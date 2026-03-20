@@ -2,6 +2,22 @@
 
 Tree of Sophia is a living knowledge architecture for philosophy and world thought, tracing texts, concepts, contexts, and lineages across time.
 
+## Start here
+
+If you are new to ToS, use this path:
+
+1. Read [What ToS is](#what-tos-is).
+2. Read [Why it exists](#why-it-exists).
+3. Read [Relationship to Agents of Abyss](#relationship-to-agents-of-abyss).
+4. Read [Guiding axis](#guiding-axis).
+5. Read [For contributors and coding agents](#for-contributors-and-coding-agents).
+
+For the shortest next route by intent:
+- if you need the ecosystem center around ToS, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
+- if you need the runtime body beneath ToS and AoA, go to [`abyss-stack`](https://github.com/8Dionysus/abyss-stack)
+- if you need derived knowledge substrate work, go to [`aoa-kag`](https://github.com/8Dionysus/aoa-kag)
+- if you need reusable techniques relevant to knowledge operations, go to [`aoa-techniques`](https://github.com/8Dionysus/aoa-techniques)
+
 ## What ToS is
 
 ToS is a long-horizon knowledge system organized as a layered graph or tree.
@@ -34,6 +50,7 @@ Agents of Abyss (AoA) is the evolving ecosystem of agents, techniques, and infra
 In short:
 - **ToS** = structured knowledge architecture
 - **AoA** = operational agent ecosystem around it
+- **abyss-stack** = infrastructure substrate beneath both
 
 ## Current status
 
@@ -70,6 +87,7 @@ Its guiding axis is a living calibration of meaning: becoming, overcoming, creat
 
 - `Agents-of-Abyss` — agent ecosystem supporting ToS
 - `aoa-techniques` — reusable techniques relevant to knowledge operations
+- `aoa-kag` — derived knowledge substrate layer for source-first, provenance-aware structures
 - `abyss-stack` — modular infrastructure for local and hybrid AI systems
 
 ## For contributors and coding agents
