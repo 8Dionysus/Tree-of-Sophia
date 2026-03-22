@@ -16,9 +16,12 @@ If you are new to ToS, use this path:
 8. Read [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md) for the current fifth-wave note on ToS guiding-axis calibration.
 9. Read [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md) for the current fifth-wave note on AI-amplified but human-reviewed growth.
 10. Read [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current fifth-wave note on when ToS should deepen, branch, or stay still.
-11. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-12. Read [ROADMAP](ROADMAP.md) for current direction.
-13. Return to this README for the public overview, scope, and guiding axis.
+11. Read [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md) for the current sixth-wave note on stable public node IDs.
+12. Read [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md) for the current sixth-wave source-node scaffold.
+13. Read [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current sixth-wave concept-node scaffold.
+14. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+15. Read [ROADMAP](ROADMAP.md) for current direction.
+16. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -75,6 +78,9 @@ See [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md) for the curr
 Growth should also stay structural rather than sedimentary.
 See [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current node, branch, and deepening rule.
 
+Public node identifiers and first node templates may also be made explicit without opening a full branch pilot.
+See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), and [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current corpus scaffold wave.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -86,7 +92,8 @@ This repository is the right place for:
 - public conceptual direction and roadmap
 - public context-compost doctrine
 - public growth-law doctrine for calibration, curation, and explicit structural expansion
-- future source-node and synthesis templates as they emerge
+- public identifier discipline and first node templates
+- schema-backed scaffold examples for first corpus growth
 
 ## What does not belong here
 
@@ -113,9 +120,9 @@ Related roles:
 
 ## Current status
 
-This repository is now establishing its public governance, knowledge-model, and growth-law baseline.
+This repository is now establishing its public governance, knowledge-model, growth-law, and first corpus-scaffold baseline.
 
-The immediate task is to make the architecture and growth law explicit before the corpus and derived systems scale much further.
+The immediate task is to make the architecture, growth law, and first corpus scaffold explicit before the corpus and derived systems scale much further.
 
 That means:
 
@@ -127,6 +134,7 @@ That means:
 - naming counterpart mapping as a legitimate but optional derived bridge
 - naming context compost as a legitimate but still contract-first architectural route
 - naming calibration, human-curated amplification, and explicit structure as the current ToS growth law trio
+- establishing stable public node IDs, first source and concept templates, and one schema-backed worked scaffold example set
 
 ## Intended scope
 
@@ -171,6 +179,7 @@ Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changin
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
+The current template wave still keeps manual review as the canonical validation route, even while examples and schema hardening become more explicit.
 
 When extending this project:
 - preserve source traceability

@@ -33,6 +33,21 @@ ToS may grow multiple node families. At the public baseline, the most important 
 
 Additional node families may appear later, but they should be introduced explicitly rather than implicitly.
 
+## Identifier discipline and first templates
+
+At the current corpus-scaffold wave, public node IDs should follow:
+
+`tos.<node_type>.<slug[.subslug...]>`
+
+The first template family stays narrow:
+
+- source nodes
+- concept nodes
+
+These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
+
+See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), and [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md) for the compact public scaffold.
+
 ## Layering inside a node
 
 A node may carry several layers at once, including:
