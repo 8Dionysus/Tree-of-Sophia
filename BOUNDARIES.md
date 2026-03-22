@@ -83,4 +83,16 @@ Stable `node_id` discipline, first node templates, and corpus-facing scaffold ex
 Downstream routing, derived substrate, or runtime layers may point to those surfaces.
 They do not become the primary authors of ToS node identity or template law.
 
+## Rule 13: branch pilots stay bounded before wider expansion
+
+The first lineage pilot should prove one small route clearly.
+
+It should not quietly become:
+
+- a cross-tradition expansion wave
+- a hidden broader corpus program
+- a graph-sprawl substitute for legible lineage
+
+Bounded pilots come before wider world-thought expansion.
+
 Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.

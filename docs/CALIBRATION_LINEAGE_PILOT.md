@@ -1,0 +1,53 @@
+# Calibration Lineage Pilot
+
+This document records the current seventh-wave ToS doctrine for the first bounded lineage-branch pilot.
+
+It follows the corpus scaffold wave.
+That scaffold gave ToS stable node IDs, source-node and concept-node templates, and one worked example pair.
+This note explains how those surfaces become one real small branch without pretending the pilot is already the whole tree.
+
+## Core rule
+
+The first branch pilot should prove one route clearly.
+
+For this wave, that route stays inside the current calibration family.
+
+## Pilot route
+
+The bounded pilot route uses:
+
+- `tos.source.the-gay-science.book-four`
+- `tos.source.thus-spoke-zarathustra.prologue`
+- `tos.concept.becoming`
+- `tos.concept.overcoming`
+- `tos.concept.stability`
+- `tos.lineage.calibration-family.becoming-to-overcoming`
+
+This is one small route, not a complete branch atlas.
+
+## Why this family
+
+The calibration family is the right pilot family because:
+
+- the current scaffold examples already point into it
+- it gives the pilot a coherent internal gravity
+- it does not require premature cross-tradition comparison
+
+## What the pilot proves
+
+This pilot should prove that ToS can now hold:
+
+- more than one source node
+- more than one concept node
+- one lineage node tying a route together
+- one bounded reviewable branch note
+
+## What the pilot does not prove
+
+This pilot does not prove:
+
+- wider world-thought expansion
+- a universal branch taxonomy
+- that the calibration family is the only rightful future branch family
+
+It is a bounded test of legibility, not a monopoly claim.
