@@ -76,4 +76,11 @@ ToS should grow through named structural choices:
 
 Quantity growth without structural clarity does not count as healthy growth.
 
+## Rule 12: node identifiers and templates stay ToS-authored
+
+Stable `node_id` discipline, first node templates, and corpus-facing scaffold examples belong to `Tree-of-Sophia`.
+
+Downstream routing, derived substrate, or runtime layers may point to those surfaces.
+They do not become the primary authors of ToS node identity or template law.
+
 Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.

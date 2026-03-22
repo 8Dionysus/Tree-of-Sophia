@@ -20,6 +20,10 @@ Use this checklist for changes to:
 - `docs/CALIBRATION_AXIS.md`
 - `docs/HUMAN_CURATED_EXPANSION.md`
 - `docs/GROWTH_STRUCTURE.md`
+- `docs/IDENTIFIER_DISCIPLINE.md`
+- `docs/SOURCE_NODE_TEMPLATE.md`
+- `docs/CONCEPT_NODE_TEMPLATE.md`
+- `examples/*.json`
 - new authored architecture notes
 
 ## Review route
@@ -36,7 +40,9 @@ Walk the change in this order:
 8. Check that calibration, when present, sharpens orientation without replacing source reading or plurality.
 9. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
 10. Check that growth decisions stay structural rather than quantity-driven.
-11. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+11. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, and examples.
+12. Check that template examples stay scaffold examples rather than quietly becoming a branch pilot.
+13. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -53,6 +59,9 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If calibration is mentioned, does it guide curation without becoming a monopoly of meaning?
 - If AI amplification is mentioned, does human judgment remain the owning review layer?
 - If growth is mentioned, are node deepening, node creation, and branch formation still distinguishable?
+- If node IDs are mentioned, do they follow a stable, readable public grammar?
+- If templates or examples are mentioned, do source-node and concept-node scaffolds stay distinct?
+- If worked examples are present, do they remain bounded scaffolds rather than pretending to be a real branch pilot?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
 - Are any new abstractions reversible and narrower than the material they summarize?
 - Does the change name uncertainty honestly where the source or interpretation remains contested?
@@ -68,6 +77,8 @@ Pause and revise before merge if any answer is `no` for:
 - ToS versus AoA ownership boundary
 - calibration flattening
 - human-review sovereignty
+- identifier drift
+- template collapse between node families
 
 ## Review note
 

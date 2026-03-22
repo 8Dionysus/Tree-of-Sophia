@@ -4,9 +4,9 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is moving from public conceptual baseline into explicit growth-law articulation.
+ToS is moving from explicit growth-law articulation into a first template-first corpus scaffold.
 
-The immediate task is to make calibration, curation judgment, and structural growth rules explicit before scaling corpus size, derived structures, or operational support around it.
+The immediate task is to make stable identifiers, first node templates, and worked scaffold examples explicit before scaling corpus size, derived structures, or operational support around it.
 
 ## Phase 1: architectural baseline
 
@@ -27,6 +27,14 @@ Goals:
 - introduce first source-node templates
 - define stable identifiers for source material and first conceptual layers
 - establish baseline conventions for node layering and provenance
+
+## Phase 2a: first corpus scaffold
+
+Goals:
+- define stable public `node_id` grammar
+- publish first source-node and concept-node templates
+- add one schema-backed worked example set without opening a branch pilot
+- keep manual review canonical until a stronger public validation route is genuinely needed
 
 ## Phase 3: lineage and relation surfaces
 
