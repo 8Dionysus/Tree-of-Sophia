@@ -14,7 +14,7 @@ A concept-node scaffold should expose at least:
 - `source_anchor`
 - `key_terms`
 - `distilled_thesis`
-- `lineage_relations`
+- `relations`
 - `interpretation_layers`
 
 The shape overlaps with source nodes, but the center of gravity is different.

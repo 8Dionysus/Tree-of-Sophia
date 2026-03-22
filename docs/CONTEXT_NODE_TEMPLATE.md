@@ -14,7 +14,7 @@ A context-node scaffold should expose at least:
 - `source_anchor`
 - `key_terms`
 - `distilled_thesis`
-- `lineage_relations`
+- `relations`
 - `interpretation_layers`
 
 The shape stays compact because it reuses the current public node contract.

@@ -106,7 +106,7 @@ At the first-wave baseline, every serious node should preserve at least:
 - a source anchor
 - key terms or concepts
 - a distilled thesis
-- explicit lineage relations
+- explicit relations
 
 See [NODE_CONTRACT](NODE_CONTRACT.md) for the compact working contract.
 

@@ -13,7 +13,7 @@ Each serious node should preserve at least:
 - a source anchor or canonical reference
 - key terms or concepts
 - a distilled thesis or extraction layer
-- explicit lineage relations
+- explicit relations
 
 These are the minimum layers that keep a node tied to meaning rather than turning it into archive dust.
 

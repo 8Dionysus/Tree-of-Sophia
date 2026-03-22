@@ -14,7 +14,7 @@ A source-node scaffold should expose at least:
 - `source_anchor`
 - `key_terms`
 - `distilled_thesis`
-- `lineage_relations`
+- `relations`
 - `interpretation_layers`
 
 These fields should remain visibly tied to the first-wave node contract.
