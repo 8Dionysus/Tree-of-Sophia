@@ -95,4 +95,16 @@ It should not quietly become:
 
 Bounded pilots come before wider world-thought expansion.
 
+## Rule 14: manual corpus-entry gates stay explicit before tree motion resumes
+
+Templates, review-route work, and schema hardening may prepare ToS for later growth.
+
+They should not quietly count as:
+
+- a new family opening
+- a new branch
+- active wider world-thought expansion
+
+When tree motion is paused behind a maintainer-led source-entry gate, that gate should be named explicitly rather than implied.
+
 Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.

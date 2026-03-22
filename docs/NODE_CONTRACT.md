@@ -43,6 +43,11 @@ Prefer explicit relation names such as:
 - `mutation`
 - `tension`
 
+When context or commentary needs a more precise fit, use explicit relation names such as:
+
+- `contextualized-by`
+- `commentary-on`
+
 Topic labels and era labels may help orientation, but they do not replace genealogical movement.
 
 ## Interpretation ladder

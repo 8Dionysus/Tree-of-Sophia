@@ -21,9 +21,12 @@ If you are new to ToS, use this path:
 13. Read [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current sixth-wave concept-node scaffold.
 14. Read [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) for the current seventh-wave lineage-node scaffold.
 15. Read [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current seventh-wave bounded branch pilot note.
-16. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-17. Read [ROADMAP](ROADMAP.md) for current direction.
-18. Return to this README for the public overview, scope, and guiding axis.
+16. Read [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md) for the current eighth-wave context-node scaffold.
+17. Read [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md) for the current eighth-wave rule that tree motion stays gated by maintainer-led source entry.
+18. Read [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the current eighth-wave preparation doctrine before wider expansion.
+19. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+20. Read [ROADMAP](ROADMAP.md) for current direction.
+21. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -86,6 +89,9 @@ See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NO
 The first bounded lineage pilot may now also be made explicit without turning one family into the whole tree.
 See [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) and [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current pilot route.
 
+The next wave may also prepare context-node law and reviewable entry gates without treating that preparation as active wider expansion.
+See [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md), and [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the current preparation surfaces.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -100,6 +106,7 @@ This repository is the right place for:
 - public identifier discipline and first node templates
 - schema-backed scaffold examples for first corpus growth
 - one bounded lineage-branch pilot built from those scaffold surfaces
+- pre-expansion soil doctrine and context-node law before manual corpus movement resumes
 
 ## What does not belong here
 
@@ -126,9 +133,9 @@ Related roles:
 
 ## Current status
 
-This repository is now establishing its public governance, knowledge-model, growth-law, first corpus scaffold, and first bounded lineage pilot.
+This repository is now establishing its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, and pre-expansion soil surfaces.
 
-The immediate task is to prove one real small branch on top of that scaffold before wider corpus and derived systems scale much further.
+The immediate task is to prepare context-node law and manual corpus-entry boundaries before wider corpus movement resumes.
 
 That means:
 
@@ -142,6 +149,7 @@ That means:
 - naming calibration, human-curated amplification, and explicit structure as the current ToS growth law trio
 - establishing stable public node IDs, first source and concept templates, and one schema-backed worked scaffold example set
 - establishing one bounded calibration-family lineage route as the first real branch pilot
+- establishing context-node law, manual entry gating, and pre-expansion review discipline without opening a new family yet
 
 ## Intended scope
 
@@ -186,7 +194,7 @@ Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changin
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
-The current template wave still keeps manual review as the canonical validation route, even while examples and schema hardening become more explicit.
+The current soil-prep wave still keeps manual review as the canonical validation route, even while schema hardening becomes more explicit.
 
 When extending this project:
 - preserve source traceability
