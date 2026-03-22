@@ -132,6 +132,35 @@ Machine-readable counterpart projections belong downstream in `aoa-kag`.
 
 See [COUNTERPART_POLICY](COUNTERPART_POLICY.md) for the compact policy and example pairs.
 
+## Context compost
+
+ToS may also digest witness-facing or other source-linked raw material through a source-first compost cycle:
+
+`raw -> note -> synthesis -> principle -> canon`
+
+This route stays:
+
+- source-first
+- reviewable
+- layered
+- reversible
+
+The current wave treats that route as doctrine, not as a full executable platform.
+Operational ownership of the witness-producing route remains in AoA repositories.
+
+The named doctrinal objects for this route are:
+- `CompostNode`
+- `SourceRef`
+- `DecayPolicy`
+- `CanonBundle`
+
+One compact worked path for the current pilot wave is:
+- `WitnessTrace -> Note -> Principle`
+
+That path gives ToS a disciplined digestion route without claiming that canonization or later growth seeds are already solved.
+
+See [CONTEXT_COMPOST](CONTEXT_COMPOST.md) for the compact doctrine.
+
 ## Handoff to derived systems
 
 `aoa-kag` and other downstream systems may consume ToS surfaces to build derived structures.

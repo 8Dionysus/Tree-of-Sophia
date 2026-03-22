@@ -12,9 +12,10 @@ If you are new to ToS, use this path:
 4. Read [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md) for the first-wave node, lineage, and interpretation law.
 5. Read [docs/PRACTICE_BRANCH](docs/PRACTICE_BRANCH.md) for the current note on idea lineage versus practice lineage.
 6. Read [docs/COUNTERPART_POLICY](docs/COUNTERPART_POLICY.md) for the current third-wave note on counterpart mapping without collapse.
-7. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-8. Read [ROADMAP](ROADMAP.md) for current direction.
-9. Return to this README for the public overview, scope, and guiding axis.
+7. Read [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md) for the current fourth-wave note on composting witness-facing or other source-linked raw material into layered ToS knowledge.
+8. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+9. Read [ROADMAP](ROADMAP.md) for current direction.
+10. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -58,6 +59,10 @@ See [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the fuller statement.
 Counterpart mapping to AoA operational forms may exist, but only as a derived and optional bridge.
 See [docs/COUNTERPART_POLICY](docs/COUNTERPART_POLICY.md) for the non-collapse rule.
 
+Context compost may also digest witness-facing or other source-linked raw material into layered ToS artifacts,
+but only through a source-first and reviewable route.
+See [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md) for the current compost-cycle doctrine.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -67,6 +72,7 @@ This repository is the right place for:
 - node and relation model baselines
 - source-discipline and provenance rules
 - public conceptual direction and roadmap
+- public context-compost doctrine
 - future source-node and synthesis templates as they emerge
 
 ## What does not belong here
@@ -106,6 +112,7 @@ That means:
 - defining the first-wave node contract and interpretation ladder
 - making downstream relationships explicit
 - naming counterpart mapping as a legitimate but optional derived bridge
+- naming context compost as a legitimate but still contract-first architectural route
 
 ## Intended scope
 
