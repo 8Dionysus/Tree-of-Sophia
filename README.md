@@ -11,9 +11,10 @@ If you are new to ToS, use this path:
 3. Read [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the conceptual model.
 4. Read [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md) for the first-wave node, lineage, and interpretation law.
 5. Read [docs/PRACTICE_BRANCH](docs/PRACTICE_BRANCH.md) for the current note on idea lineage versus practice lineage.
-6. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-7. Read [ROADMAP](ROADMAP.md) for current direction.
-8. Return to this README for the public overview, scope, and guiding axis.
+6. Read [docs/COUNTERPART_POLICY](docs/COUNTERPART_POLICY.md) for the current third-wave note on counterpart mapping without collapse.
+7. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+8. Read [ROADMAP](ROADMAP.md) for current direction.
+9. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -53,6 +54,9 @@ The operating rule is:
 **Tree for orientation. Graph for relation. Source for authority.**
 
 See [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the fuller statement.
+
+Counterpart mapping to AoA operational forms may exist, but only as a derived and optional bridge.
+See [docs/COUNTERPART_POLICY](docs/COUNTERPART_POLICY.md) for the non-collapse rule.
 
 ## What belongs here
 
@@ -101,6 +105,7 @@ That means:
 - defining the source-first knowledge model
 - defining the first-wave node contract and interpretation ladder
 - making downstream relationships explicit
+- naming counterpart mapping as a legitimate but optional derived bridge
 
 ## Intended scope
 

@@ -15,6 +15,7 @@ Use this checklist for changes to:
 - `docs/KNOWLEDGE_MODEL.md`
 - `docs/NODE_CONTRACT.md`
 - `docs/PRACTICE_BRANCH.md`
+- `docs/COUNTERPART_POLICY.md`
 - new authored architecture notes
 
 ## Review route
@@ -26,7 +27,8 @@ Walk the change in this order:
 3. Check that source, extraction, interpretation, and synthesis layers remain legible.
 4. Check that lineage and context did not disappear where they matter.
 5. Check that downstream AoA operational detail did not quietly move into ToS.
-6. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+6. Check that counterpart mapping, when present, stays optional and non-identity.
+7. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -38,6 +40,7 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - Are temporal, spatial, civilizational, or interpretive contexts still attached where they matter?
 - Is ToS still clearly authored truth rather than a restatement of a derived KAG or operational AoA surface?
 - If practice lineage is mentioned, does it stay conceptual rather than absorbing operational ownership?
+- If counterpart mapping is mentioned, does it stay derived, optional, and explicitly non-identity?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
 - Are any new abstractions reversible and narrower than the material they summarize?
 - Does the change name uncertainty honestly where the source or interpretation remains contested?
