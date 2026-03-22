@@ -4,9 +4,9 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is at the public conceptual and governance baseline.
+ToS is moving from public conceptual baseline into explicit growth-law articulation.
 
-The immediate task is to make the source-first architecture explicit before scaling corpus size, derived structures, or operational support around it.
+The immediate task is to make calibration, curation judgment, and structural growth rules explicit before scaling corpus size, derived structures, or operational support around it.
 
 ## Phase 1: architectural baseline
 
@@ -49,6 +49,14 @@ Goals:
 - make human-reviewed synthesis repeatable
 - define what counts as acceptable interpretation layers
 - keep source anchoring visible as the corpus broadens
+
+## Phase 5a: growth law trio
+
+Goals:
+- make the guiding axis explicit without turning it into a hidden monopoly of meaning
+- define AI-amplified but human-curated expansion as a visible review posture
+- define when ToS should deepen a node, create a node, or form a branch
+- keep these rules doctrinal and source-first before any heavier template or platform program
 
 ## Phase 6: wider world-thought expansion
 

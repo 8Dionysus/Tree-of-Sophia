@@ -59,4 +59,21 @@ That does not move operational ownership into ToS.
 Operational detail still belongs in neighboring AoA repositories.
 ToS remains the place that names the conceptual relation without swallowing the practice layer itself.
 
+## Rule 10: AI may amplify curation, but not replace judgment
+
+AI may assist with extraction, clustering, cross-link suggestions, contrast proposals, or lineage hypotheses.
+
+It does not become the primary author of interpretive stance, node judgment, or canon-facing promotion.
+Human-reviewed curation remains the owning judgment layer in ToS.
+
+## Rule 11: growth should stay explicit and structural
+
+ToS should grow through named structural choices:
+
+- deepen an existing node when the material strengthens the same source route
+- create a new node when a distinct source or concept needs its own authored surface
+- form a branch when the material opens a durable lineage or contextual path
+
+Quantity growth without structural clarity does not count as healthy growth.
+
 Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.
