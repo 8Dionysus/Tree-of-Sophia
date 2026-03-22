@@ -114,6 +114,24 @@ Operational detail still belongs in AoA repositories such as `aoa-techniques`, `
 
 See [PRACTICE_BRANCH](PRACTICE_BRANCH.md) for the compact boundary note.
 
+## Counterpart mapping without collapse
+
+ToS may also permit an optional derived counterpart bridge between some concepts and some AoA operational forms.
+
+That bridge stays:
+
+- derived
+- optional
+- suggestive
+- non-identity
+
+It should help orientation, not erase difference.
+Conceptual meaning remains authored in ToS.
+Operational meaning remains authored in the source AoA repository.
+Machine-readable counterpart projections belong downstream in `aoa-kag`.
+
+See [COUNTERPART_POLICY](COUNTERPART_POLICY.md) for the compact policy and example pairs.
+
 ## Handoff to derived systems
 
 `aoa-kag` and other downstream systems may consume ToS surfaces to build derived structures.
@@ -124,6 +142,7 @@ When that happens, the handoff should preserve:
 - provenance paths back to ToS-authored material
 - distinction between authored truth and derived projection
 - bounded schemas rather than vague graph sprawl
+- explicit non-identity notes when counterpart mappings are present
 
 ## What this model avoids
 
