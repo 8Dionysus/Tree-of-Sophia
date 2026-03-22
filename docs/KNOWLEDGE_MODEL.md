@@ -161,6 +161,61 @@ That path gives ToS a disciplined digestion route without claiming that canoniza
 
 See [CONTEXT_COMPOST](CONTEXT_COMPOST.md) for the compact doctrine.
 
+## Calibration axis
+
+ToS is not a neutral dust cloud of equally weighted fragments.
+
+Its current guiding axis is a living calibration of meaning:
+
+- becoming
+- overcoming
+- creation of values
+- affirmation of life
+
+In the current public architecture, *Thus Spoke Zarathustra* serves as a recurring calibration root for that axis.
+
+That axis should guide curation and reading posture without becoming a hidden monopoly of meaning.
+It is an orienting calibration, not a license to force every text into one thesis.
+
+See [CALIBRATION_AXIS](CALIBRATION_AXIS.md) for the compact rule and guardrails.
+
+## Human-curated, AI-amplified expansion
+
+ToS may use AI to amplify growth, but not to replace human judgment.
+
+AI may assist with:
+
+- extraction
+- clustering
+- cross-link suggestions
+- contrast proposals
+- lineage hypotheses
+
+Human-reviewed curation still owns:
+
+- source reading
+- node judgment
+- final interpretive stance
+- principle or canon-facing promotion
+
+This keeps AI visible as an amplifier rather than a hidden sovereign author.
+
+See [HUMAN_CURATED_EXPANSION](HUMAN_CURATED_EXPANSION.md) for the compact curation note.
+
+## Growth by explicit structure
+
+ToS should grow through explicit structure rather than silent accumulation.
+
+The practical growth choices are:
+
+- deepen a node when a stable source route already exists and the new material strengthens it
+- create a node when a distinct source, concept, or context needs its own authored home
+- form a branch when multiple nodes now justify a durable lineage or thematic path
+
+This protects ToS from node explosion, archive sediment, and quantity theater.
+
+See [GROWTH_STRUCTURE](GROWTH_STRUCTURE.md) for the compact growth law.
+
 ## Handoff to derived systems
 
 `aoa-kag` and other downstream systems may consume ToS surfaces to build derived structures.

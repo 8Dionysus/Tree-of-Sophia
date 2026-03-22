@@ -17,6 +17,9 @@ Use this checklist for changes to:
 - `docs/PRACTICE_BRANCH.md`
 - `docs/COUNTERPART_POLICY.md`
 - `docs/CONTEXT_COMPOST.md`
+- `docs/CALIBRATION_AXIS.md`
+- `docs/HUMAN_CURATED_EXPANSION.md`
+- `docs/GROWTH_STRUCTURE.md`
 - new authored architecture notes
 
 ## Review route
@@ -30,7 +33,10 @@ Walk the change in this order:
 5. Check that downstream AoA operational detail did not quietly move into ToS.
 6. Check that counterpart mapping, when present, stays optional and non-identity.
 7. Check that compost routes, when present, preserve source refs, review state, and decay or demotion posture.
-8. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+8. Check that calibration, when present, sharpens orientation without replacing source reading or plurality.
+9. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
+10. Check that growth decisions stay structural rather than quantity-driven.
+11. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -44,6 +50,9 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If practice lineage is mentioned, does it stay conceptual rather than absorbing operational ownership?
 - If counterpart mapping is mentioned, does it stay derived, optional, and explicitly non-identity?
 - If context compost is mentioned, do source refs, review state, and decay or demotion posture remain visible?
+- If calibration is mentioned, does it guide curation without becoming a monopoly of meaning?
+- If AI amplification is mentioned, does human judgment remain the owning review layer?
+- If growth is mentioned, are node deepening, node creation, and branch formation still distinguishable?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
 - Are any new abstractions reversible and narrower than the material they summarize?
 - Does the change name uncertainty honestly where the source or interpretation remains contested?
@@ -57,6 +66,8 @@ Pause and revise before merge if any answer is `no` for:
 - node layering
 - lineage preservation
 - ToS versus AoA ownership boundary
+- calibration flattening
+- human-review sovereignty
 
 ## Review note
 

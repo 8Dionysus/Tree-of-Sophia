@@ -13,9 +13,12 @@ If you are new to ToS, use this path:
 5. Read [docs/PRACTICE_BRANCH](docs/PRACTICE_BRANCH.md) for the current note on idea lineage versus practice lineage.
 6. Read [docs/COUNTERPART_POLICY](docs/COUNTERPART_POLICY.md) for the current third-wave note on counterpart mapping without collapse.
 7. Read [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md) for the current fourth-wave note on composting witness-facing or other source-linked raw material into layered ToS knowledge.
-8. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-9. Read [ROADMAP](ROADMAP.md) for current direction.
-10. Return to this README for the public overview, scope, and guiding axis.
+8. Read [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md) for the current fifth-wave note on ToS guiding-axis calibration.
+9. Read [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md) for the current fifth-wave note on AI-amplified but human-reviewed growth.
+10. Read [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current fifth-wave note on when ToS should deepen, branch, or stay still.
+11. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+12. Read [ROADMAP](ROADMAP.md) for current direction.
+13. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -63,6 +66,15 @@ Context compost may also digest witness-facing or other source-linked raw materi
 but only through a source-first and reviewable route.
 See [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md) for the current compost-cycle doctrine.
 
+The guiding axis may also be made explicit as a calibration surface without becoming a monopoly of meaning.
+See [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md) for the current calibration rule.
+
+AI may amplify extraction, clustering, and cross-link suggestion, but human curation still owns judgment.
+See [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md) for the current curation rule.
+
+Growth should also stay structural rather than sedimentary.
+See [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current node, branch, and deepening rule.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -73,6 +85,7 @@ This repository is the right place for:
 - source-discipline and provenance rules
 - public conceptual direction and roadmap
 - public context-compost doctrine
+- public growth-law doctrine for calibration, curation, and explicit structural expansion
 - future source-node and synthesis templates as they emerge
 
 ## What does not belong here
@@ -100,9 +113,9 @@ Related roles:
 
 ## Current status
 
-This repository is now establishing its public governance and knowledge-model baseline.
+This repository is now establishing its public governance, knowledge-model, and growth-law baseline.
 
-The immediate task is to make the architecture explicit before the corpus and derived systems scale much further.
+The immediate task is to make the architecture and growth law explicit before the corpus and derived systems scale much further.
 
 That means:
 
@@ -113,6 +126,7 @@ That means:
 - making downstream relationships explicit
 - naming counterpart mapping as a legitimate but optional derived bridge
 - naming context compost as a legitimate but still contract-first architectural route
+- naming calibration, human-curated amplification, and explicit structure as the current ToS growth law trio
 
 ## Intended scope
 
@@ -129,6 +143,7 @@ ToS is designed to grow across:
 ToS is not intended to become a static archive.
 
 Its guiding axis is a living calibration of meaning: becoming, overcoming, creation of values, and affirmation of life. In the current architecture, *Thus Spoke Zarathustra* serves as a recurring calibration root for that axis.
+See [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md) for the compact public rule and guardrails.
 
 ## Principles
 
