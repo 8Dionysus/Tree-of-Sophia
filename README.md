@@ -1,35 +1,32 @@
 # Tree of Sophia (ToS)
 
-Tree of Sophia is a living knowledge architecture for philosophy and world thought, tracing texts, concepts, contexts, and lineages across time.
+Tree of Sophia is a source-first living knowledge architecture for philosophy and world thought, tracing texts, concepts, contexts, and lineages across time and cultures.
 
 ## Start here
 
 If you are new to ToS, use this path:
 
-1. Read [What ToS is](#what-tos-is).
-2. Read [Why it exists](#why-it-exists).
-3. Read [Relationship to Agents of Abyss](#relationship-to-agents-of-abyss).
-4. Read [Guiding axis](#guiding-axis).
-5. Read [For contributors and coding agents](#for-contributors-and-coding-agents).
+1. Read [CHARTER](CHARTER.md) for mission and ownership boundaries.
+2. Read [BOUNDARIES](BOUNDARIES.md) for source-of-truth discipline.
+3. Read [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the conceptual model.
+4. Read [ROADMAP](ROADMAP.md) for current direction.
+5. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
-- if you need the ecosystem center around ToS, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
+- if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
 - if you need the runtime body beneath ToS and AoA, go to [`abyss-stack`](https://github.com/8Dionysus/abyss-stack)
-- if you need derived knowledge substrate work, go to [`aoa-kag`](https://github.com/8Dionysus/aoa-kag)
+- if you need derived knowledge substrate work built from authoritative sources, go to [`aoa-kag`](https://github.com/8Dionysus/aoa-kag)
 - if you need reusable techniques relevant to knowledge operations, go to [`aoa-techniques`](https://github.com/8Dionysus/aoa-techniques)
 
 ## What ToS is
 
-ToS is a long-horizon knowledge system organized as a layered graph or tree.
+ToS is a source-first knowledge world.
 
-Each node may carry multiple layers, including:
-- source text or fragment
-- key terms and concepts
-- distilled theses
-- deeper semantic fields
-- temporal context
-- spatial or civilizational context
-- links to predecessors, descendants, parallels, and mutations of ideas
+It is designed to cultivate, organize, and extend philosophy and world thought through explicit sources, lineage awareness, contextual richness, and human-reviewed synthesis.
+
+It is not just a notes repository, not just a graph, and not just a retrieval substrate.
+
+It is the architectural root where source-linked meaning should remain legible as the broader ecosystem grows around it.
 
 ## Why it exists
 
@@ -41,22 +38,65 @@ ToS exists to make thought navigable as a living structure:
 - lineages connect to civilizational and temporal shifts
 - interpretation remains linked to sources rather than floating free
 
+## Structural orientation
+
+ToS should be understood through a dual model:
+
+- **tree-shaped primary orientation** for rooted traversal, stable entry paths, and lineage legibility
+- **graph-typed secondary relations** for parallels, mutations, commentary links, and cross-branch connection
+
+The operating rule is:
+
+**Tree for orientation. Graph for relation. Source for authority.**
+
+See [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the fuller statement.
+
+## What belongs here
+
+This repository is the right place for:
+
+- source-first architectural definitions for ToS
+- statements of scope and ownership
+- node and relation model baselines
+- source-discipline and provenance rules
+- public conceptual direction and roadmap
+- future source-node and synthesis templates as they emerge
+
+## What does not belong here
+
+This repository should not silently collapse into:
+
+- generic infrastructure notes
+- purely operational agent orchestration surfaces
+- routing-only datasets
+- derived KAG projections presented as authored source truth
+- free-floating summaries detached from source traceability
+
 ## Relationship to Agents of Abyss
 
-Tree of Sophia is the knowledge architecture.
+Tree of Sophia is not the operational federation.
 
-Agents of Abyss (AoA) is the evolving ecosystem of agents, techniques, and infrastructure that helps build, maintain, validate, and expand ToS.
+Agents of Abyss (AoA) is the operational and agentic federation that helps build, maintain, route, validate, and extend systems around ToS.
 
-In short:
-- **ToS** = structured knowledge architecture
-- **AoA** = operational agent ecosystem around it
-- **abyss-stack** = infrastructure substrate beneath both
+Related roles:
+
+- **ToS** = source-authored living knowledge architecture
+- **AoA** = operational federation of agents, techniques, workflows, proof, routing, memory, roles, and derived knowledge substrate work
+- **aoa-kag** = derived knowledge substrate built from authoritative sources
+- **abyss-stack** = runtime body beneath the system
 
 ## Current status
 
-This repository is currently a public landing and conceptual foundation.
+This repository is now establishing its public governance and knowledge-model baseline.
 
-The deeper implementation will expand after adjacent infrastructure and modular stack work reach the next stage.
+The immediate task is to make the architecture explicit before the corpus and derived systems scale much further.
+
+That means:
+
+- clarifying what ToS owns
+- clarifying what ToS does not own
+- defining the source-first knowledge model
+- making downstream relationships explicit
 
 ## Intended scope
 
@@ -76,10 +116,11 @@ Its guiding axis is a living calibration of meaning: becoming, overcoming, creat
 
 ## Principles
 
-- sources before abstraction
+- sources before summaries
+- provenance before convenience
 - layered meaning over flat summaries
 - lineages over isolated notes
-- human curation over blind automation
+- human review over blind automation
 - growth through explicit structure
 - AI as amplifier, not replacement of judgment
 
@@ -93,6 +134,8 @@ Its guiding axis is a living calibration of meaning: becoming, overcoming, creat
 ## For contributors and coding agents
 
 If you are a coding agent or contributor, treat this repository as the canonical high-level statement of ToS.
+
+Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changing public doctrine or baseline architectural language.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
 
