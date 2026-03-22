@@ -4,9 +4,9 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is moving from a first template-first corpus scaffold into a first bounded lineage-branch pilot.
+ToS is moving from a first bounded lineage-branch pilot into pre-expansion soil work before wider corpus movement resumes.
 
-The immediate task is to prove one real small route on top of the new scaffold before widening corpus scope, derived structures, or operational support around it.
+The immediate task is to prepare context-node law, manual entry gating, and review discipline before wider world-thought expansion or new branch growth is reopened.
 
 ## Phase 1: architectural baseline
 
@@ -73,6 +73,14 @@ Goals:
 - define AI-amplified but human-curated expansion as a visible review posture
 - define when ToS should deepen a node, create a node, or form a branch
 - keep these rules doctrinal and source-first before any heavier template or platform program
+
+## Phase 5b: pre-expansion soil before wider expansion
+
+Goals:
+- publish a first public context-node template
+- make manual corpus-entry gating explicit
+- harden the review route for preparation work that should not count as new tree movement
+- keep wider world-thought expansion later until maintainer-led source entry begins
 
 ## Phase 6: wider world-thought expansion
 

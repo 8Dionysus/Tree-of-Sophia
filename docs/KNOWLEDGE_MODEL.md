@@ -64,6 +64,27 @@ It is not yet a broad branch program and not yet wider world-thought expansion.
 
 See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_PILOT](CALIBRATION_LINEAGE_PILOT.md) for the compact pilot surfaces.
 
+## Pre-expansion soil before wider movement
+
+At the current eighth-wave note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
+
+This preparation may include:
+
+- a context-node template
+- manual corpus-entry gating
+- review-route hardening for pre-expansion work
+
+This wave should stay:
+
+- source-first
+- reviewable
+- structurally useful
+- visibly non-expansionary
+
+It does not yet open a second family, new branch nodes, or wider world-thought expansion.
+
+See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md), [MANUAL_CORPUS_ENTRY_GATE](MANUAL_CORPUS_ENTRY_GATE.md), and [PRE_EXPANSION_SOIL](PRE_EXPANSION_SOIL.md) for the compact preparation surfaces.
+
 ## Layering inside a node
 
 A node may carry several layers at once, including:
@@ -102,6 +123,8 @@ At the baseline, ToS should privilege a compact relation vocabulary:
 - **contextualized-by**
 
 New relation types should be added only when they clarify meaning rather than decorate it.
+
+When context or commentary nodes are present, `contextualized-by` and `commentary-on` may be the more honest relation names than forcing every link into a genealogical label.
 
 ## Source-first discipline
 
