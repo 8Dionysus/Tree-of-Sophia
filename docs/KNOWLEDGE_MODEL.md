@@ -49,6 +49,15 @@ A node may carry several layers at once, including:
 
 The presence of multiple layers does not erase their distinction.
 
+At the first-wave baseline, every serious node should preserve at least:
+
+- a source anchor
+- key terms or concepts
+- a distilled thesis
+- explicit lineage relations
+
+See [NODE_CONTRACT](NODE_CONTRACT.md) for the compact working contract.
+
 ## Core relation types
 
 At the baseline, ToS should privilege a compact relation vocabulary:
@@ -57,6 +66,7 @@ At the baseline, ToS should privilege a compact relation vocabulary:
 - **descendant**
 - **parallel**
 - **mutation**
+- **tension**
 - **commentary-on**
 - **contextualized-by**
 
@@ -72,6 +82,37 @@ The minimum authority chain should remain visible:
 - downstream derived structures
 
 Every stronger layer should be able to point back toward its sources.
+
+## Interpretation ladder
+
+ToS should keep interpretation visibly layered rather than collapsing source, commentary, and synthesis into one voice.
+
+The working ladder is:
+
+1. source-linked layer
+2. distilled thesis
+3. commentary
+4. cross-text comparison
+5. speculative synthesis
+
+This keeps interpretation alive without letting it float free from source anchors.
+
+## Idea lineage and practice lineage
+
+ToS is primarily a knowledge architecture for the genealogy of ideas.
+
+At the current second-wave note, it may also recognize a neighboring genealogy of practices:
+- origin
+- mutation
+- adaptation
+- promotion
+- canonization
+- deprecation
+
+That recognition stays conceptual.
+Operational detail still belongs in AoA repositories such as `aoa-techniques`, `aoa-playbooks`, and `aoa-evals`.
+
+See [PRACTICE_BRANCH](PRACTICE_BRANCH.md) for the compact boundary note.
 
 ## Handoff to derived systems
 

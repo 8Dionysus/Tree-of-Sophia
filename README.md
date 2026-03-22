@@ -9,8 +9,11 @@ If you are new to ToS, use this path:
 1. Read [CHARTER](CHARTER.md) for mission and ownership boundaries.
 2. Read [BOUNDARIES](BOUNDARIES.md) for source-of-truth discipline.
 3. Read [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) for the conceptual model.
-4. Read [ROADMAP](ROADMAP.md) for current direction.
-5. Return to this README for the public overview, scope, and guiding axis.
+4. Read [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md) for the first-wave node, lineage, and interpretation law.
+5. Read [docs/PRACTICE_BRANCH](docs/PRACTICE_BRANCH.md) for the current note on idea lineage versus practice lineage.
+6. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+7. Read [ROADMAP](ROADMAP.md) for current direction.
+8. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -96,6 +99,7 @@ That means:
 - clarifying what ToS owns
 - clarifying what ToS does not own
 - defining the source-first knowledge model
+- defining the first-wave node contract and interpretation ladder
 - making downstream relationships explicit
 
 ## Intended scope
@@ -136,6 +140,8 @@ Its guiding axis is a living calibration of meaning: becoming, overcoming, creat
 If you are a coding agent or contributor, treat this repository as the canonical high-level statement of ToS.
 
 Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changing public doctrine or baseline architectural language.
+
+When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
 
