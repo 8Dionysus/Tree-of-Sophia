@@ -34,6 +34,7 @@ Goals:
 - introduce compact lineage relations
 - keep cross-links explicit without losing rooted orientation
 - connect works, concepts, contexts, and lineages in a way that remains reviewable
+- clarify how a neighboring practice lineage can be acknowledged conceptually without importing AoA operational detail into ToS
 
 ## Phase 4: derived handoff discipline
 

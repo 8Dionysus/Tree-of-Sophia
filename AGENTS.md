@@ -102,6 +102,7 @@ If the requested work mainly concerns runtime, agent orchestration, or derived s
 No public validation script is referenced here yet.
 
 Validate changes through structured review:
+- use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - check consistency with `README.md` and any architecture notes
 - check that provenance remains visible
 - check that node layering remains intact

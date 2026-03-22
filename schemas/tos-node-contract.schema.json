@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/8Dionysus/Tree-of-Sophia/main/schemas/tos-node-contract.schema.json",
+  "title": "ToS node contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "node_id",
+    "node_type",
+    "source_anchor",
+    "key_terms",
+    "distilled_thesis",
+    "lineage_relations",
+    "interpretation_layers"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "node_type": {
+      "type": "string",
+      "enum": [
+        "source",
+        "concept",
+        "lineage",
+        "context",
+        "synthesis"
+      ]
+    },
+    "source_anchor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "key_terms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "distilled_thesis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lineage_relations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relation",
+          "target_ref"
+        ],
+        "properties": {
+          "relation": {
+            "type": "string",
+            "enum": [
+              "predecessor",
+              "descendant",
+              "parallel",
+              "mutation",
+              "tension"
+            ]
+          },
+          "target_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "interpretation_layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "source_linked",
+          "distilled_thesis",
+          "commentary",
+          "cross_text_comparison",
+          "speculative_synthesis"
+        ]
+      },
+      "uniqueItems": true
+    }
+  }
+}

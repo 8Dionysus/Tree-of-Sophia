@@ -49,3 +49,14 @@ It should not erase the plurality of traditions, languages, or civilizational co
 More scale, more retrieval, or more automation does not justify weaker source discipline.
 
 Growth should deepen traceability, not dissolve it.
+
+## Rule 9: practice lineage may be recognized, but operational detail stays downstream
+
+ToS may acknowledge a conceptual branch of practices next to the genealogy of ideas.
+
+That does not move operational ownership into ToS.
+
+Operational detail still belongs in neighboring AoA repositories.
+ToS remains the place that names the conceptual relation without swallowing the practice layer itself.
+
+Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.
