@@ -48,6 +48,22 @@ These templates and examples are scaffold surfaces, not a full branch pilot and 
 
 See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), and [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md) for the compact public scaffold.
 
+## First bounded lineage pilot
+
+At the current pilot wave, ToS may also turn the new scaffold into one real small branch.
+
+This pilot should stay:
+
+- source-first
+- bounded
+- reviewable
+- calibration-family specific rather than universal
+
+The first public branch pilot adds a lineage-node template and one small worked route.
+It is not yet a broad branch program and not yet wider world-thought expansion.
+
+See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_PILOT](CALIBRATION_LINEAGE_PILOT.md) for the compact pilot surfaces.
+
 ## Layering inside a node
 
 A node may carry several layers at once, including:

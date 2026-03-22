@@ -4,9 +4,9 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is moving from explicit growth-law articulation into a first template-first corpus scaffold.
+ToS is moving from a first template-first corpus scaffold into a first bounded lineage-branch pilot.
 
-The immediate task is to make stable identifiers, first node templates, and worked scaffold examples explicit before scaling corpus size, derived structures, or operational support around it.
+The immediate task is to prove one real small route on top of the new scaffold before widening corpus scope, derived structures, or operational support around it.
 
 ## Phase 1: architectural baseline
 
@@ -43,6 +43,14 @@ Goals:
 - keep cross-links explicit without losing rooted orientation
 - connect works, concepts, contexts, and lineages in a way that remains reviewable
 - clarify how a neighboring practice lineage can be acknowledged conceptually without importing AoA operational detail into ToS
+
+## Phase 3a: first bounded lineage pilot
+
+Goals:
+- publish a lineage-node template that fits the current compact contract
+- turn the calibration-family scaffold into one real small branch
+- keep the pilot visibly bounded and source-first
+- leave wider world-thought expansion for the next wave
 
 ## Phase 4: derived handoff discipline
 

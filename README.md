@@ -19,9 +19,11 @@ If you are new to ToS, use this path:
 11. Read [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md) for the current sixth-wave note on stable public node IDs.
 12. Read [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md) for the current sixth-wave source-node scaffold.
 13. Read [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current sixth-wave concept-node scaffold.
-14. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-15. Read [ROADMAP](ROADMAP.md) for current direction.
-16. Return to this README for the public overview, scope, and guiding axis.
+14. Read [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) for the current seventh-wave lineage-node scaffold.
+15. Read [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current seventh-wave bounded branch pilot note.
+16. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+17. Read [ROADMAP](ROADMAP.md) for current direction.
+18. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -81,6 +83,9 @@ See [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current node, bran
 Public node identifiers and first node templates may also be made explicit without opening a full branch pilot.
 See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), and [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current corpus scaffold wave.
 
+The first bounded lineage pilot may now also be made explicit without turning one family into the whole tree.
+See [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) and [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current pilot route.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -94,6 +99,7 @@ This repository is the right place for:
 - public growth-law doctrine for calibration, curation, and explicit structural expansion
 - public identifier discipline and first node templates
 - schema-backed scaffold examples for first corpus growth
+- one bounded lineage-branch pilot built from those scaffold surfaces
 
 ## What does not belong here
 
@@ -120,9 +126,9 @@ Related roles:
 
 ## Current status
 
-This repository is now establishing its public governance, knowledge-model, growth-law, and first corpus-scaffold baseline.
+This repository is now establishing its public governance, knowledge-model, growth-law, first corpus scaffold, and first bounded lineage pilot.
 
-The immediate task is to make the architecture, growth law, and first corpus scaffold explicit before the corpus and derived systems scale much further.
+The immediate task is to prove one real small branch on top of that scaffold before wider corpus and derived systems scale much further.
 
 That means:
 
@@ -135,6 +141,7 @@ That means:
 - naming context compost as a legitimate but still contract-first architectural route
 - naming calibration, human-curated amplification, and explicit structure as the current ToS growth law trio
 - establishing stable public node IDs, first source and concept templates, and one schema-backed worked scaffold example set
+- establishing one bounded calibration-family lineage route as the first real branch pilot
 
 ## Intended scope
 
