@@ -1,13 +1,13 @@
 {
   "node_id": "tos.source.thus-spoke-zarathustra.prologue",
   "node_type": "source",
-  "source_anchor": "Friedrich Nietzsche, Thus Spoke Zarathustra, Prologue",
+  "source_anchor": "Friedrich Nietzsche, Also sprach Zarathustra, Zarathustra's Vorrede 1, bounded two-block trilingual entry through the prologue opening",
   "key_terms": [
     "becoming",
     "overcoming",
-    "affirmation"
+    "overflow"
   ],
-  "distilled_thesis": "The prologue frames a call toward self-overcoming and value creation rather than passive inheritance.",
+  "distilled_thesis": "The opening of the prologue turns Zarathustra's inward ripening into overflowing descent: his transformed heart seeks to give, go under, and reopen human becoming beyond passive inheritance.",
   "relations": [
     {
       "relation": "parallel",
@@ -22,5 +22,55 @@
     "source_linked",
     "distilled_thesis",
     "commentary"
+  ],
+  "language_witnesses": [
+    {
+      "language": "de",
+      "role": "canonical_source",
+      "segments": [
+        {
+          "segment_id": "prologue-opening",
+          "text": "Als Zarathustra dreissig Jahr alt war, verliess er seine Heimat und den See seiner Heimat und ging in das Gebirge. Hier genoss er seines Geistes und seiner Einsamkeit und wurde dessen zehn Jahr nicht muede. Endlich aber verwandelte sich sein Herz,- und eines Morgens stand er mit der Morgenroethe auf, trat vor die Sonne hin und sprach zu ihr also:"
+        },
+        {
+          "segment_id": "prologue-overflow",
+          "text": "Siehe! Ich bin meiner Weisheit ueberdruessig, wie die Biene, die des Honigs zu viel gesammelt hat, ich bedarf der Haende, die sich ausstrecken. Ich moechte verschenken und austheilen, bis die Weisen unter den Menschen wieder einmal ihrer Thorheit und die Armen einmal ihres Reichthums froh geworden sind. Dazu muss ich in die Tiefe steigen: wie du des Abends thust, wenn du hinter das Meer gehst und noch der Unterwelt Licht bringst, du ueberreiches Gestirn! Ich muss, gleich dir, untergehen, wie die Menschen es nennen, zu denen ich hinab will."
+        }
+      ]
+    },
+    {
+      "language": "ru",
+      "role": "working_translation",
+      "segments": [
+        {
+          "segment_id": "prologue-opening",
+          "text": "Когда Заратустре исполнилось тридцать лет, он покинул свою родину и озеро своей родины и ушел в горы. Там он наслаждался своим духом и своим одиночеством и десять лет не уставал от них. Но наконец сердце его изменилось, и однажды утром, встав вместе с зарею, он вышел к солнцу и сказал ему так:"
+        },
+        {
+          "segment_id": "prologue-overflow",
+          "text": "Смотри! Я пресытился своей мудростью, как пчела, собравшая слишком много меда; мне нужны руки, которые протянутся к ней. Я хочу дарить и раздавать, пока мудрые среди людей снова не обрадуются своей глупости, а бедные - своему богатству. Для этого мне надо сойти в глубину: как ты вечером уходишь за море и несешь свет даже подземному миру, о преизобильная звезда. Я должен, подобно тебе, пойти на заход, как говорят люди, к которым я хочу спуститься."
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "role": "bridge_translation",
+      "segments": [
+        {
+          "segment_id": "prologue-opening",
+          "text": "When Zarathustra was thirty, he left his home and the lake of his home and went into the mountains. There he enjoyed his spirit and his solitude and did not tire of them for ten years. But at last his heart changed, and one morning, rising with the dawn, he stood before the sun and spoke to it thus:"
+        },
+        {
+          "segment_id": "prologue-overflow",
+          "text": "Look! I have grown weary of my wisdom, like a bee that has gathered too much honey; I need hands that reach out for it. I want to give and distribute until the wise among humans become glad again in their folly and the poor in their riches. For that I must descend into the deep: as you do in the evening when you go behind the sea and still bring light to the underworld, you over-rich star. Like you, I must go under, as people call it, to those below to whom I wish to descend."
+        }
+      ]
+    }
+  ],
+  "translation_tensions": [
+    {
+      "segment_id": "prologue-overflow",
+      "note": "The cluster around 'ueberreiches Gestirn', 'in die Tiefe steigen', and 'untergehen' is kept as overflow plus descent; the Russian and English witnesses avoid flattening it into simple ruin, sacrifice, or sunset imagery alone."
+    }
   ]
 }

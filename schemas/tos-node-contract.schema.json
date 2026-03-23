@@ -79,6 +79,14 @@
         ]
       },
       "uniqueItems": true
+    },
+    "language_witnesses": {
+      "description": "Optional multilingual witness layers for one shared authored node.",
+      "$ref": "#/$defs/languageWitnessesArray"
+    },
+    "translation_tensions": {
+      "description": "Optional notes for philosophically load-bearing witness drift.",
+      "$ref": "#/$defs/translationTensionsArray"
     }
   },
   "$defs": {
@@ -106,6 +114,80 @@
             ]
           },
           "target_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "languageWitnessesArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "language",
+          "role",
+          "segments"
+        ],
+        "properties": {
+          "language": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "canonical_source",
+              "working_translation",
+              "bridge_translation"
+            ]
+          },
+          "segments": {
+            "$ref": "#/$defs/witnessSegmentsArray"
+          }
+        }
+      }
+    },
+    "witnessSegmentsArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "segment_id",
+          "text"
+        ],
+        "properties": {
+          "segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "translationTensionsArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "segment_id",
+          "note"
+        ],
+        "properties": {
+          "segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
             "type": "string",
             "minLength": 1
           }
