@@ -4,9 +4,9 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is moving from a first bounded lineage-branch pilot into pre-expansion soil work before wider corpus movement resumes.
+ToS is moving from pre-expansion soil into one bounded trilingual Zarathustra entry route before wider corpus movement broadens.
 
-The immediate task is to prepare context-node law, manual entry gating, and review discipline before wider world-thought expansion or new branch growth is reopened.
+The immediate task is to prove one source-first trilingual prologue route with a shared `node_id`, explicit language roles, and reviewable witness drift before wider world-thought expansion is reopened.
 
 ## Phase 1: architectural baseline
 
@@ -81,6 +81,15 @@ Goals:
 - make manual corpus-entry gating explicit
 - harden the review route for preparation work that should not count as new tree movement
 - keep wider world-thought expansion later until maintainer-led source entry begins
+
+## Phase 5c: bounded trilingual Zarathustra entry
+
+Goals:
+- begin real manual source entry through the Zarathustra prologue
+- keep German source authority with Russian working translation and English bridge translation
+- prove one shared `node_id` with witness layers rather than parallel language trees
+- ground `becoming` and `overcoming` more explicitly in the same bounded route
+- keep wider world-thought expansion later until this route holds under review
 
 ## Phase 6: wider world-thought expansion
 

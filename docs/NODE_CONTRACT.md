@@ -21,15 +21,44 @@ These are the minimum layers that keep a node tied to meaning rather than turnin
 
 As the node deepens, it may also include:
 
+- language witnesses when multilingual source entry is load-bearing
 - semantic field notes
 - temporal context
 - spatial or civilizational context
 - commentary
 - cross-text comparison
 - speculative synthesis
+- translation-tension notes when witness drift matters
 
 Optional does not mean vague.
 Every added layer should remain distinguishable from the source anchor beneath it.
+
+## Optional multilingual witness layers
+
+When one authored node needs a bounded multilingual entry, it may add:
+
+- `language_witnesses`
+- `translation_tensions`
+
+`language_witnesses` is an array of witness blocks with:
+
+- `language`
+- `role`
+- `segments`
+
+The current public roles are:
+
+- `canonical_source`
+- `working_translation`
+- `bridge_translation`
+
+Each witness block keeps the same `segment_id` values across languages so the node stays one node rather than three copies.
+
+`translation_tensions` is an optional array of `{ segment_id, note }`.
+Use it only when drift is philosophically load-bearing.
+
+These fields do not change the required minimum node contract.
+They make multilingual witness surfaces inspectable without splitting node identity by language.
 
 ## Lineage before archive
 
@@ -70,4 +99,6 @@ Avoid turning ToS into:
 - a summary pile detached from source anchors
 - a graph theater that hides provenance behind edges
 - a speculative essay machine with no visible interpretation ladder
+- three parallel language trees for one authored node
+- synonym piles masquerading as multilingual concept identity
 

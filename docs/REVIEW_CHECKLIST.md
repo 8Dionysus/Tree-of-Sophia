@@ -28,6 +28,7 @@ Use this checklist for changes to:
 - `docs/CONTEXT_NODE_TEMPLATE.md`
 - `docs/MANUAL_CORPUS_ENTRY_GATE.md`
 - `docs/PRE_EXPANSION_SOIL.md`
+- `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
 - `examples/*.json`
 - new authored architecture notes
 
@@ -46,10 +47,11 @@ Walk the change in this order:
 9. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
 10. Check that growth decisions stay structural rather than quantity-driven.
 11. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, and examples.
-12. Check that scaffold templates or scaffold examples stay scaffold surfaces rather than quietly becoming a branch pilot.
-13. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
-14. Check that manual corpus-entry gates, when present, keep preparation distinct from actual tree movement.
-15. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+12. Check that multilingual witnesses, when present, keep one shared node ID, explicit source authority, and no parallel language trees.
+13. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
+14. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
+15. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
+16. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -67,12 +69,16 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If AI amplification is mentioned, does human judgment remain the owning review layer?
 - If growth is mentioned, are node deepening, node creation, and branch formation still distinguishable?
 - If node IDs are mentioned, do they follow a stable, readable public grammar?
+- If multilingual witnesses are present, do they keep one shared node_id rather than language-split copies?
+- If multilingual witnesses are present, does the canonical source remain visibly authoritative over the other witness layers?
+- If Russian or English witnesses are present, do they remain witness layers rather than a new authored canon?
 - If templates or examples are mentioned, do source-node and concept-node scaffolds stay distinct?
+- If multilingual source entry is present, do concept nodes remain language-neutral rather than becoming synonym piles?
 - If scaffold examples are present, do they remain bounded scaffolds rather than pretending to be a real branch pilot?
 - If a lineage pilot is present, does it make lineage more legible rather than more graph-like and vague?
 - If a lineage pilot is present, does it stay visibly smaller than a wider world-thought expansion wave?
 - If lineage-pilot examples are present, do they stay visibly bounded rather than quietly posing as a wider expansion wave?
-- If manual corpus-entry gating is present, does it keep preparation work from being mislabeled as active branch growth or wider expansion?
+- If manual corpus-entry gating is present, does it keep bounded active source entry distinct from wider expansion?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
 - Are any new abstractions reversible and narrower than the material they summarize?
 - Does the change name uncertainty honestly where the source or interpretation remains contested?
@@ -89,6 +95,8 @@ Pause and revise before merge if any answer is `no` for:
 - calibration flattening
 - human-review sovereignty
 - identifier drift
+- language-split node copies
+- source-authority replacement by translation
 - template collapse between node families
 - pilot-boundary collapse
 - manual-entry boundary collapse

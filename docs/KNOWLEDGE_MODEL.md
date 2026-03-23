@@ -66,7 +66,7 @@ See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_P
 
 ## Pre-expansion soil before wider movement
 
-At the current eighth-wave note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
+At the previous eighth-wave note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
 
 This preparation may include:
 
@@ -85,11 +85,43 @@ It does not yet open a second family, new branch nodes, or wider world-thought e
 
 See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md), [MANUAL_CORPUS_ENTRY_GATE](MANUAL_CORPUS_ENTRY_GATE.md), and [PRE_EXPANSION_SOIL](PRE_EXPANSION_SOIL.md) for the compact preparation surfaces.
 
+## Bounded trilingual Zarathustra entry
+
+At the current gate-opening slice, ToS may now begin real tree motion through one bounded manual trilingual route.
+
+This route should stay:
+
+- source-first
+- bounded
+- reviewable
+- single-tree rather than language-split
+
+The first public route uses:
+
+- `tos.source.thus-spoke-zarathustra.prologue`
+- `tos.concept.becoming`
+- `tos.concept.overcoming`
+
+The current role contract is asymmetric on purpose:
+
+- German as canonical source authority
+- Russian as human-reviewed working translation
+- English as bridge translation for public structural use
+
+This route grows one `node_id` with `language_witnesses`, not three node copies.
+It may also record `translation_tensions` when drift is philosophically load-bearing.
+Concept nodes remain language-neutral even when their source route is multilingual.
+
+This is still not wider world-thought expansion.
+
+See [ZARATHUSTRA_TRILINGUAL_ENTRY](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the compact route note.
+
 ## Layering inside a node
 
 A node may carry several layers at once, including:
 
 - source text or canonical reference
+- language witnesses when multilingual source entry is load-bearing
 - key terms
 - distilled theses
 - semantic field notes
@@ -98,6 +130,7 @@ A node may carry several layers at once, including:
 - lineage links
 - human-reviewed interpretation
 - provenance metadata
+- translation-tension notes when witness drift matters
 
 The presence of multiple layers does not erase their distinction.
 

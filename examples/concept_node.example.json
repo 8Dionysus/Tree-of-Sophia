@@ -1,14 +1,18 @@
 {
   "node_id": "tos.concept.becoming",
   "node_type": "concept",
-  "source_anchor": "Seeded here through Thus Spoke Zarathustra as part of the current public calibration family scaffold",
+  "source_anchor": "Friedrich Nietzsche, Also sprach Zarathustra, Zarathustra's Vorrede 1, grounded through tos.source.thus-spoke-zarathustra.prologue",
   "key_terms": [
     "becoming",
     "transformation",
     "life"
   ],
-  "distilled_thesis": "Becoming names a living orientation in which meaning is tested through transformation rather than preserved as static doctrine.",
+  "distilled_thesis": "Within the bounded prologue route, becoming names the inner transformation by which Zarathustra's ripened solitude turns outward into gift, descent, and renewed human motion.",
   "relations": [
+    {
+      "relation": "commentary-on",
+      "target_ref": "tos.source.thus-spoke-zarathustra.prologue"
+    },
     {
       "relation": "parallel",
       "target_ref": "tos.concept.overcoming"
@@ -25,6 +29,6 @@
   "interpretation_layers": [
     "source_linked",
     "distilled_thesis",
-    "cross_text_comparison"
+    "commentary"
   ]
 }
