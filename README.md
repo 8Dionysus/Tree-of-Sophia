@@ -26,9 +26,10 @@ If you are new to ToS, use this path:
 18. Read [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the previous eighth-wave preparation doctrine that set the gate.
 19. Read [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current tree-first tiny-entry seam from `README.md` into one bounded authored route.
 20. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
-21. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-22. Read [ROADMAP](ROADMAP.md) for current direction.
-23. Return to this README for the public overview, scope, and guiding axis.
+21. Read [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current source-owned tiny export that downstream KAG consumers may read without replacing ToS authority.
+22. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+23. Read [ROADMAP](ROADMAP.md) for current direction.
+24. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -99,6 +100,9 @@ See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) fo
 
 The current small-model and human entry seam also stays tree-first inside ToS rather than jumping straight into downstream routing or KAG projections.
 See [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current `README.md -> node kind -> capsule -> authority -> bounded hop` route.
+
+The current bounded source-owned export also stays downstream-safe by exposing one tiny route capsule without replacing ToS authority.
+See [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current export posture.
 
 ## What belongs here
 

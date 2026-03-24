@@ -1,0 +1,47 @@
+{
+  "owner_repo": "Tree-of-Sophia",
+  "kind": "source_node",
+  "object_id": "tos.source.thus-spoke-zarathustra.prologue",
+  "primary_question": "What source-owned tiny export keeps the current Zarathustra prologue route legible for downstream KAG consumers without replacing ToS authority?",
+  "summary_50": "Source-owned tiny export for the current Zarathustra prologue authority route.",
+  "summary_200": "Source-owned tiny export capsule for the current Zarathustra prologue route, keeping the authority source node as the entry surface while preserving the capsule and tiny-entry docs as supporting ToS-owned orientation surfaces.",
+  "source_inputs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "source_class": "tos_text",
+      "role": "primary"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "source_class": "review_surface",
+      "role": "supporting"
+    }
+  ],
+  "entry_surface": {
+    "repo": "Tree-of-Sophia",
+    "path": "examples/source_node.example.json",
+    "match_key": "node_id",
+    "match_value": "tos.source.thus-spoke-zarathustra.prologue"
+  },
+  "section_handles": [
+    "source_linked",
+    "distilled_thesis",
+    "commentary"
+  ],
+  "direct_relations": [
+    {
+      "relation_type": "bounded_hop",
+      "target_ref": "Tree-of-Sophia/examples/concept_node.example.json"
+    },
+    {
+      "relation_type": "capsule_surface",
+      "target_ref": "Tree-of-Sophia/docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md"
+    },
+    {
+      "relation_type": "tiny_entry_route",
+      "target_ref": "Tree-of-Sophia/docs/TINY_ENTRY_ROUTE.md"
+    }
+  ],
+  "provenance_note": "Guide to the current ToS authority, capsule, and tiny-entry slice; it does not replace the authored source node.",
+  "non_identity_boundary": "Derived export capsule for downstream KAG consumers; ToS-authored authority remains in Tree-of-Sophia source and capsule surfaces."
+}
