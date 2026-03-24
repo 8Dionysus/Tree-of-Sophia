@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/8Dionysus/Tree-of-Sophia/main/schemas/tos-tiny-entry-route.schema.json",
+  "title": "ToS tiny entry route",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "route_id",
+    "root_surface",
+    "node_kind",
+    "node_id",
+    "capsule_surface",
+    "authority_surface",
+    "lineage_or_context_hop",
+    "fallback",
+    "non_identity_boundary"
+  ],
+  "properties": {
+    "route_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "root_surface": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "node_kind": {
+      "type": "string",
+      "enum": [
+        "source_node",
+        "concept_node",
+        "lineage_node",
+        "context_node"
+      ]
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^tos\\.(source|concept|lineage|context)\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "capsule_surface": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "authority_surface": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "lineage_or_context_hop": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/repoRelativeSurface"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fallback": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "non_identity_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "repoRelativeSurface": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z0-9_-]+:)(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!\\.\\.?[\\\\/])[A-Za-z0-9._/-]+$"
+    }
+  }
+}

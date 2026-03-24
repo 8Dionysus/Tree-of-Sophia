@@ -2,8 +2,23 @@
 
 This document records the current bounded ToS route for opening manual corpus movement through *Thus Spoke Zarathustra*.
 
+It now also serves as the first public worked capsule for the ToS tiny-entry seam.
+
 The point is not to open three language trees at once.
 The point is to begin one source-first route that stays bounded, reviewable, and honest about language roles.
+
+## Tiny-entry role
+
+Within the current public tiny-entry chain, this document is the capsule surface for:
+
+- `README.md` as the current `tos-root`
+- `source_node` as the node-kind choice
+- `examples/source_node.example.json` as the authority surface
+- `examples/concept_node.example.json` as one bounded authored hop
+- `docs/KNOWLEDGE_MODEL.md` as the in-repo fallback orientation surface
+
+This document explains the route.
+It does not replace the authority surface that carries the authored node example.
 
 ## Core move
 
@@ -78,7 +93,9 @@ This route does not yet open:
 
 - wider world-thought expansion
 - cross-tradition multilingual growth
+- separate `context_node` tiny-entry expansion
 - KAG-facing multilingual projection surfaces
 - translation automation
 
 First the bounded trilingual route has to hold under review.
+See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the tree-first seam that now wraps this worked route.

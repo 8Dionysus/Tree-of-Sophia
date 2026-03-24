@@ -24,10 +24,11 @@ If you are new to ToS, use this path:
 16. Read [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md) for the current eighth-wave context-node scaffold.
 17. Read [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md) for the rule that tree motion stays gated by maintainer-led source entry.
 18. Read [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the previous eighth-wave preparation doctrine that set the gate.
-19. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route.
-20. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-21. Read [ROADMAP](ROADMAP.md) for current direction.
-22. Return to this README for the public overview, scope, and guiding axis.
+19. Read [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current tree-first tiny-entry seam from `README.md` into one bounded authored route.
+20. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
+21. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+22. Read [ROADMAP](ROADMAP.md) for current direction.
+23. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -96,6 +97,9 @@ See [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/MANUAL_CO
 The current route now opens manual corpus movement through one bounded trilingual Zarathustra entry rather than three parallel language trees.
 See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current source-facing opening.
 
+The current small-model and human entry seam also stays tree-first inside ToS rather than jumping straight into downstream routing or KAG projections.
+See [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current `README.md -> node kind -> capsule -> authority -> bounded hop` route.
+
 ## What belongs here
 
 This repository is the right place for:
@@ -112,6 +116,7 @@ This repository is the right place for:
 - one bounded lineage-branch pilot built from those scaffold surfaces
 - pre-expansion soil doctrine and context-node law as the gate-setting prior layer
 - one bounded trilingual source-entry route through the Zarathustra prologue
+- one tree-first tiny-entry seam that keeps `README.md` as the current public `tos-root`
 
 ## What does not belong here
 
@@ -138,9 +143,9 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, and one bounded trilingual source-entry route.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, and one tree-first tiny-entry seam for bounded authored entry.
 
-The immediate task is to prove that bounded trilingual Zarathustra route under review before wider corpus movement broadens.
+The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
 That means:
 
@@ -157,6 +162,7 @@ That means:
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity
+- keeping `README.md` as the public `tos-root` while distinguishing capsule, authority, and fallback surfaces inside ToS
 
 ## Intended scope
 
@@ -201,7 +207,7 @@ Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changin
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
-The current bounded trilingual entry still keeps manual review as the canonical validation route, even while schema hardening becomes more explicit.
+The current bounded trilingual entry and tiny-entry seam still keep manual review as the canonical validation route, even while schema hardening becomes more explicit.
 
 When extending this project:
 - preserve source traceability
