@@ -116,6 +116,34 @@ This is still not wider world-thought expansion.
 
 See [ZARATHUSTRA_TRILINGUAL_ENTRY](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the compact route note.
 
+## Tree-first tiny-entry seam
+
+At the current wave, ToS may also publish one tree-first tiny-entry seam for humans and smaller models without replacing authored node law.
+
+The current public chain is:
+
+`README.md -> node kind -> capsule surface -> authority surface -> one bounded concept hop`
+
+In the first public route:
+
+- `README.md` is the current public `tos-root`
+- `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule surface
+- `examples/source_node.example.json` is the authority surface
+- `examples/concept_node.example.json` is the bounded hop
+- `docs/KNOWLEDGE_MODEL.md` remains the in-repo fallback orientation surface
+
+This seam stays:
+
+- tree-first
+- source-first
+- bounded
+- non-authoritative in itself
+
+Its job is orientation, not ownership transfer.
+`aoa-kag` and `aoa-routing` may consume this route downstream, but they do not become ToS authority surfaces.
+
+See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the compact route doctrine.
+
 ## Layering inside a node
 
 A node may carry several layers at once, including:
@@ -314,6 +342,8 @@ When that happens, the handoff should preserve:
 - distinction between authored truth and derived projection
 - bounded schemas rather than vague graph sprawl
 - explicit non-identity notes when counterpart mappings are present
+
+The same rule applies to tiny-entry routes: downstream routing or KAG layers may consume them later, but they do not replace ToS-authored capsule or authority surfaces.
 
 ## What this model avoids
 
