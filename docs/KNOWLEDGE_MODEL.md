@@ -140,7 +140,7 @@ This seam stays:
 - non-authoritative in itself
 
 Its job is orientation, not ownership transfer.
-`aoa-kag` and `aoa-routing` may consume this route downstream, but they do not become ToS authority surfaces.
+`aoa-kag` and `aoa-routing` may consume this route downstream, and the current public seam is already used that way, but they do not become ToS authority surfaces.
 
 See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the compact route doctrine.
 

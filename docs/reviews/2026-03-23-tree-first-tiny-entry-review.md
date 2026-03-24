@@ -29,8 +29,12 @@
 
 - separate `context_node` tiny-entry expansion
 - any public validator script for the tiny-entry route
-- downstream `aoa-kag` or `aoa-routing` sync work that consumes the new ToS seam
+- downstream `aoa-kag` or `aoa-routing` sync work that consumes the new ToS seam at the time of this review
 - any broader graph-first or multi-hop entry contract
+
+## Later update
+
+- 2026-03-24: the downstream `aoa-kag` and `aoa-routing` syncs for this public seam have since landed; see `docs/reviews/2026-03-24-tiny-entry-downstream-consumption-review.md`
 
 ## Boundary note
 
