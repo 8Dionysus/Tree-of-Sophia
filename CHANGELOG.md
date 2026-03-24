@@ -20,3 +20,4 @@ Tracking starts with the community-docs baseline for this repository.
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now also serves as the first worked tiny-entry capsule
 - `README.md`, `ROADMAP.md`, and `docs/KNOWLEDGE_MODEL.md` now expose the tree-first tiny-entry seam in the public entry path
 - `docs/REVIEW_CHECKLIST.md` now includes tiny-entry-specific boundary checks
+- tiny-entry doctrine now records the current downstream consumption posture in `aoa-kag` and `aoa-routing` without changing ToS authority boundaries

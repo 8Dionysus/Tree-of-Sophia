@@ -63,7 +63,12 @@ This first route stays deliberately narrow:
 
 ## Downstream boundary
 
-`aoa-kag` and `aoa-routing` may later consume ToS tiny-entry surfaces as downstream orientation or derived knowledge inputs.
+`aoa-kag` and `aoa-routing` now consume this tiny-entry seam as downstream orientation or derived knowledge input.
+
+That current downstream use stays bounded:
+
+- `aoa-kag` derives a federation-readiness spine entry from the public tiny-entry seam
+- `aoa-routing` hands `tos-root` into the source-owned tiny-entry route and the ToS-specific derived `kag_view`
 
 They do not become ToS authority surfaces.
 They do not replace authored node law.
