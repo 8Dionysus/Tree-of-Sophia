@@ -1,6 +1,8 @@
 # ToS Review Checklist
 
-Use this checklist when `Tree-of-Sophia` changes but no public validator exists yet.
+Use this checklist when `Tree-of-Sophia` changes and no public validator covers the touched surface.
+
+The bounded tiny-export seam already has a public validator at `python scripts/validate_kag_export.py`.
 
 The goal is not to imitate a machine check.
 The goal is to make source-first review repeatable and explicit.
@@ -50,12 +52,11 @@ Walk the change in this order:
 10. Check that growth decisions stay structural rather than quantity-driven.
 11. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, and examples.
 12. Check that multilingual witnesses, when present, keep one shared node ID, explicit source authority, and no parallel language trees.
-13. Check that multilingual witness provenance, when present, stays legible enough to distinguish source witness, translation witness, and maintainer-curated witness.
-14. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
-15. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
-16. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
-17. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
-18. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+13. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
+14. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
+15. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
+16. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
+17. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -75,8 +76,6 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If node IDs are mentioned, do they follow a stable, readable public grammar?
 - If multilingual witnesses are present, do they keep one shared node_id rather than language-split copies?
 - If multilingual witnesses are present, does the canonical source remain visibly authoritative over the other witness layers?
-- If multilingual witnesses are present, is witness provenance legible enough to tell canonical source, published translation, and maintainer-curated witness apart where that difference matters?
-- If multilingual witness segments are present, do locator notes stay intelligible enough to trace the bounded slice?
 - If Russian or English witnesses are present, do they remain witness layers rather than a new authored canon?
 - If templates or examples are mentioned, do source-node and concept-node scaffolds stay distinct?
 - If multilingual source entry is present, do concept nodes remain language-neutral rather than becoming synonym piles?
@@ -106,7 +105,6 @@ Pause and revise before merge if any answer is `no` for:
 - human-review sovereignty
 - identifier drift
 - language-split node copies
-- witness-provenance ambiguity where source, translation, or maintainer posture matters
 - source-authority replacement by translation
 - template collapse between node families
 - pilot-boundary collapse

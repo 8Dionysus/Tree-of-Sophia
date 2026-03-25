@@ -16,6 +16,7 @@ from generate_kag_export import (
     build_kag_export_payload,
     encode_json,
 )
+from validate_nested_agents import run_validation as run_nested_agents_validation
 
 
 class ValidationError(RuntimeError):
@@ -42,6 +43,13 @@ def validate_generated_text(path: Path, expected_text: str, *, label: str) -> No
         fail(f"{label} is missing at {path.relative_to(REPO_ROOT).as_posix()}")
     if actual_text != expected_text:
         fail(f"{label} is out of date; run python scripts/generate_kag_export.py")
+
+
+def validate_nested_agents_docs() -> None:
+    issues = run_nested_agents_validation(REPO_ROOT)
+    if issues:
+        details = "\n".join(f"- {location}: {message}" for location, message in issues)
+        fail(f"nested AGENTS docs check failed:\n{details}")
 
 
 def validate_export_payload(payload: object) -> None:
@@ -140,6 +148,7 @@ def validate_export_payload(payload: object) -> None:
 
 def main() -> int:
     try:
+        validate_nested_agents_docs()
         expected_payload = build_kag_export_payload()
         validate_generated_text(
             OUTPUT_PATH,
@@ -156,6 +165,7 @@ def main() -> int:
         print(f"[error] {exc}", file=sys.stderr)
         return 1
 
+    print("[ok] validated nested AGENTS docs surfaces")
     print("[ok] validated generated KAG export outputs are up to date")
     print("[ok] validated generated KAG export structure")
     return 0
