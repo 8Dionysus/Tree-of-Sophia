@@ -16,6 +16,7 @@ Tracking starts with the community-docs baseline for this repository.
 - `docs/reviews/2026-03-23-tree-first-tiny-entry-review.md` for the manual review result of this wave
 - bounded witness-provenance fields and optional segment locators in the public multilingual source-node contract
 - `docs/reviews/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md`
+- `docs/reviews/2026-03-25-zarathustra-pass-001-stabilization-review.md`
 
 ### Changed
 
@@ -25,3 +26,5 @@ Tracking starts with the community-docs baseline for this repository.
 - tiny-entry doctrine now records the current downstream consumption posture in `aoa-kag` and `aoa-routing` without changing ToS authority boundaries
 - `docs/NODE_CONTRACT.md`, `docs/SOURCE_NODE_TEMPLATE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `schemas/tos-node-contract.schema.json`, and `examples/source_node.example.json` now keep multilingual witness provenance explicit for the bounded Zarathustra route
 - `docs/TINY_ENTRY_ROUTE.md`, `schemas/tos-tiny-entry-route.schema.json`, and `examples/tos_tiny_entry_route.example.json` now prefer `bounded_hop` while keeping `lineage_or_context_hop` as a bounded compatibility alias during transition
+- `examples/source_node.example.json` now makes Russian and English maintainer-curated witness posture more explicit and adds a second opening-movement translation-tension note
+- `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now records pass-based stabilization posture and the non-canonical boundary for restartable checkpoint sidecars

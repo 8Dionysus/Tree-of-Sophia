@@ -59,8 +59,9 @@
           "locator": "Zarathustra's Vorrede 1, overflow and descent movement"
         }
       ],
-      "witness_ref": "Bounded Russian witness aligned to the canonical German source in Zarathustra's Vorrede 1",
-      "edition_or_source": "Maintainer-curated working translation layer for bounded ToS review use"
+      "witness_ref": "Maintainer-curated Russian witness aligned to the canonical German source in Zarathustra's Vorrede 1",
+      "edition_or_source": "Maintainer-curated Russian working witness for bounded ToS review use; not a published canonical translation attribution",
+      "normalization_note": "This public working witness is punctuation-normalized and kept explicitly subordinate to the German source witness."
     },
     {
       "language": "en",
@@ -77,11 +78,16 @@
           "locator": "Zarathustra's Vorrede 1, overflow and descent movement"
         }
       ],
-      "witness_ref": "Bounded English witness aligned to the canonical German source in Zarathustra's Vorrede 1",
-      "edition_or_source": "Maintainer-curated bridge translation layer for bounded ToS review use"
+      "witness_ref": "Maintainer-curated English witness aligned to the canonical German source in Zarathustra's Vorrede 1",
+      "edition_or_source": "Maintainer-curated English bridge witness for bounded ToS review use; not a published canonical translation attribution",
+      "normalization_note": "This public bridge witness is punctuation-normalized and kept explicitly subordinate to the German source witness."
     }
   ],
   "translation_tensions": [
+    {
+      "segment_id": "prologue-opening",
+      "note": "The phrase 'verwandelte sich sein Herz' is kept open as a changed or transformed heart; the Russian and English witnesses avoid hardening it into mere mood shift, repentance, or completed moral conversion."
+    },
     {
       "segment_id": "prologue-overflow",
       "note": "The cluster around 'ueberreiches Gestirn', 'in die Tiefe steigen', and 'untergehen' is kept as overflow plus descent; the Russian and English witnesses avoid flattening it into simple ruin, sacrifice, or sunset imagery alone."

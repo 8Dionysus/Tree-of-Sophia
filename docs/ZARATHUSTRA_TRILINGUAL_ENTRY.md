@@ -104,6 +104,27 @@ They should not become:
 - lexeme registries
 - substitute language copies of the source node
 
+## Pass 001 stabilization posture
+
+The next valid move is to deepen the current node, not widen the branch.
+
+For the first stabilization pass, that means:
+
+- keep the same `node_id`
+- keep the same 2 shared sense blocks
+- keep `becoming` and `overcoming` as the only concept companions
+- sharpen witness provenance where Russian and English are maintainer-curated witness layers rather than implied published translation attributions
+- record only translation tensions that remain philosophically load-bearing inside the bounded slice
+
+## Restartable checkpoint boundary
+
+A restartable checkpoint pack may accompany this route for operational continuity across bounded inquiry passes.
+
+That pack is an operational sidecar.
+It is not ToS canon, not a new node family, and not a substitute for the source node or review note.
+
+If a later pass stabilizes a genuine authored insight, that insight should move into an explicit ToS surface under human review rather than remaining implicit inside the checkpoint pack.
+
 ## What remains later
 
 This route does not yet open:
