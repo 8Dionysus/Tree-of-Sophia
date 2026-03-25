@@ -46,6 +46,19 @@ Keep the witness posture:
 - reviewable
 - source-authoritative
 - segment-aligned across languages
+- explicit enough to distinguish source witness, published translation, and maintainer-curated witness where that difference matters
+
+A bounded multilingual source entry may also expose optional witness provenance fields such as:
+
+- `witness_ref`
+- `edition_or_source`
+- `translator_or_editor`
+- `publication_year`
+- `normalization_note`
+
+Each witness segment may also expose an optional `locator`.
+
+Use these only when they make the witness posture easier to inspect without inflating the scaffold into a full bibliographic program.
 
 Use `translation_tensions` only where witness drift is philosophically load-bearing.
 

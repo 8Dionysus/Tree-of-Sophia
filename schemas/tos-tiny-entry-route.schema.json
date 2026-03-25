@@ -11,7 +11,6 @@
     "node_id",
     "capsule_surface",
     "authority_surface",
-    "lineage_or_context_hop",
     "fallback",
     "non_identity_boundary"
   ],
@@ -44,6 +43,8 @@
       "$ref": "#/$defs/repoRelativeSurface"
     },
     "lineage_or_context_hop": {
+      "description": "Legacy compatibility alias; prefer 'bounded_hop' for current public surfaces.",
+      "deprecated": true,
       "anyOf": [
         {
           "$ref": "#/$defs/repoRelativeSurface"
@@ -59,6 +60,17 @@
     "non_identity_boundary": {
       "type": "string",
       "minLength": 1
+    },
+    "bounded_hop": {
+      "description": "Current public hop field for one bounded authored move inside ToS.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/repoRelativeSurface"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "$defs": {
@@ -67,5 +79,17 @@
       "minLength": 1,
       "pattern": "^(?![A-Za-z0-9_-]+:)(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!\\.\\.?[\\\\/])[A-Za-z0-9._/-]+$"
     }
-  }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "bounded_hop"
+      ]
+    },
+    {
+      "required": [
+        "lineage_or_context_hop"
+      ]
+    }
+  ]
 }

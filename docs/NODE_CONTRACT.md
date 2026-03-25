@@ -22,6 +22,7 @@ These are the minimum layers that keep a node tied to meaning rather than turnin
 As the node deepens, it may also include:
 
 - language witnesses when multilingual source entry is load-bearing
+- witness provenance when multilingual entry would otherwise blur translator, edition, or maintainer posture
 - semantic field notes
 - temporal context
 - spatial or civilizational context
@@ -44,7 +45,14 @@ When one authored node needs a bounded multilingual entry, it may add:
 
 - `language`
 - `role`
+- optional `witness_ref`
+- optional `edition_or_source`
+- optional `translator_or_editor`
+- optional `publication_year`
+- optional `normalization_note`
 - `segments`
+
+Each witness segment may also expose an optional `locator` when the bounded slice needs segment-level provenance.
 
 The current public roles are:
 
@@ -53,6 +61,7 @@ The current public roles are:
 - `bridge_translation`
 
 Each witness block keeps the same `segment_id` values across languages so the node stays one node rather than three copies.
+When a witness is maintainer-curated rather than bibliographically fixed, that posture should be named explicitly instead of being left implicit.
 
 `translation_tensions` is an optional array of `{ segment_id, note }`.
 Use it only when drift is philosophically load-bearing.
@@ -100,5 +109,5 @@ Avoid turning ToS into:
 - a graph theater that hides provenance behind edges
 - a speculative essay machine with no visible interpretation ladder
 - three parallel language trees for one authored node
+- anonymous multilingual witness blocks that erase translator, edition, or maintainer posture
 - synonym piles masquerading as multilingual concept identity
-

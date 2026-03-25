@@ -44,6 +44,22 @@ The current route fixes asymmetric roles on purpose:
 German remains the authoritative source witness.
 Russian and English remain reviewable witness layers around that source rather than replacement canons.
 
+## Witness provenance posture
+
+Because this route uses one canonical source witness and two review witnesses, the public example should also keep bounded witness provenance visible.
+
+That means each witness block may expose:
+
+- a `witness_ref`
+- an `edition_or_source`
+- an optional `translator_or_editor`
+- an optional `publication_year`
+- an optional `normalization_note`
+- optional segment `locator` values
+
+The point is not bibliographic maximalism.
+The point is to prevent the German source witness, a maintainer working translation, and a bridge witness from blurring into anonymous text blocks.
+
 ## Single-tree witness discipline
 
 One meaning should keep one `node_id`.
@@ -52,6 +68,7 @@ The current route therefore grows:
 
 - one source node with `language_witnesses`
 - shared `segment_id` values across `de / ru / en`
+- optional bounded witness provenance where translator, edition, or maintainer posture would otherwise become ambiguous
 - optional `translation_tensions` only where drift is philosophically load-bearing
 
 It does not grow:

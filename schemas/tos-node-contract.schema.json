@@ -146,6 +146,31 @@
           },
           "segments": {
             "$ref": "#/$defs/witnessSegmentsArray"
+          },
+          "witness_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Bounded bibliographic or maintainer-facing witness reference."
+          },
+          "edition_or_source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Edition, source surface, or maintainer posture for this witness."
+          },
+          "translator_or_editor": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional translator or editor attribution when it is part of the witness posture."
+          },
+          "publication_year": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional publication year or bounded year note for the witness."
+          },
+          "normalization_note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional note about spelling or formatting normalization in the public witness surface."
           }
         }
       }
@@ -168,6 +193,11 @@
           "text": {
             "type": "string",
             "minLength": 1
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional bounded locator for the shared segment slice."
           }
         }
       }

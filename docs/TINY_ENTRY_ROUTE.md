@@ -61,6 +61,15 @@ This first route stays deliberately narrow:
 - one bounded concept hop
 - no separate `context_node` expansion yet
 
+## Hop field posture
+
+The current public hop field for this route type is `bounded_hop`.
+
+The older `lineage_or_context_hop` label may remain as a legacy compatibility alias during transition where a downstream consumer still expects it.
+
+The public example should treat `bounded_hop` as primary.
+If both fields are present during transition, they should point to the same in-repo surface.
+
 ## Downstream boundary
 
 `aoa-kag` and `aoa-routing` now consume this tiny-entry seam as downstream orientation or derived knowledge input.
