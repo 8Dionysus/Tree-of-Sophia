@@ -33,6 +33,8 @@ remains in the source node and its supporting ToS docs.
 - `scripts/generate_kag_export.py`
 - `scripts/validate_kag_export.py`
 
+If you edit supporting surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
+
 ## Regeneration
 
 Use:
@@ -41,3 +43,5 @@ Use:
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
 ```
+
+`python scripts/validate_kag_export.py` also checks the nested local guidance surfaces for the current tiny export seam.

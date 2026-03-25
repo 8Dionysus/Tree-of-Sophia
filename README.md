@@ -208,10 +208,14 @@ If you are a coding agent or contributor, treat this repository as the canonical
 
 Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changing public doctrine or baseline architectural language.
 
+If you are editing inside `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
+
+The current public validator is `python scripts/validate_kag_export.py` for the bounded tiny export seam, and it also checks the local guidance surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, and `scripts/`.
+
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
-The current bounded trilingual entry and tiny-entry seam still keep manual review as the canonical validation route, even while schema hardening becomes more explicit.
+The current bounded trilingual entry and tiny-entry seam still keep manual review as the canonical review route for broader doctrine, even while the tiny export seam now has a public validator.
 
 When extending this project:
 - preserve source traceability

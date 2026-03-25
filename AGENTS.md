@@ -98,11 +98,16 @@ Use the smallest correct destination.
 
 If the requested work mainly concerns runtime, agent orchestration, or derived substrate mechanics, it probably does not belong here as the primary surface.
 
-## Validation
-No public validation script is referenced here yet.
+If you are editing inside `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
 
-Validate changes through structured review:
+## Validation
+The current public validation path is `python scripts/validate_kag_export.py` for the bounded KAG export seam.
+
+It also checks the nested local guidance surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, and `scripts/`.
+
+For broader doctrine or scaffold changes that fall outside the current public validator, validate through structured review:
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
+- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py` and then `python scripts/validate_kag_export.py`
 - check consistency with `README.md` and any architecture notes
 - check that provenance remains visible
 - check that node layering remains intact
