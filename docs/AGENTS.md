@@ -33,7 +33,7 @@ Key files here include:
 
 Treat these docs as authored ToS meaning, not as operational notes or derived KAG restatements.
 Keep `README.md` as the current public `tos-root`.
-Preserve the difference between source, extraction, interpretation, synthesis, and derived export posture.
+Preserve the difference between raw source in `sources/`, candidate extraction in `intake/`, canonical authored tree surfaces in `tree/`, compatibility surfaces in `examples/`, interpretation, synthesis, and derived export posture.
 
 When a note touches multilingual witnesses or the Zarathustra route:
 
@@ -53,6 +53,7 @@ For broader doctrine changes, use `docs/REVIEW_CHECKLIST.md`.
 If you touch the current tiny export seam or the docs it depends on, run:
 
 ```bash
+python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
 ```

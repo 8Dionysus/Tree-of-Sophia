@@ -14,6 +14,9 @@ Use this checklist for changes to:
 - `README.md`
 - `BOUNDARIES.md`
 - `ROADMAP.md`
+- `sources/**/*`
+- `intake/**/*`
+- `tree/**/*.json`
 - `docs/KNOWLEDGE_MODEL.md`
 - `docs/NODE_CONTRACT.md`
 - `docs/PRACTICE_BRANCH.md`
@@ -43,20 +46,21 @@ Walk the change in this order:
 1. Compare the change against `README.md` and the owning architecture note it touches.
 2. Check that authored meaning remains distinguishable from derived structure.
 3. Check that source, extraction, interpretation, and synthesis layers remain legible.
-4. Check that lineage and context did not disappear where they matter.
-5. Check that downstream AoA operational detail did not quietly move into ToS.
-6. Check that counterpart mapping, when present, stays optional and non-identity.
-7. Check that compost routes, when present, preserve source refs, review state, and decay or demotion posture.
-8. Check that calibration, when present, sharpens orientation without replacing source reading or plurality.
-9. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
-10. Check that growth decisions stay structural rather than quantity-driven.
-11. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, and examples.
-12. Check that multilingual witnesses, when present, keep one shared node ID, explicit source authority, and no parallel language trees.
-13. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
-14. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
-15. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
-16. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
-17. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+4. Check that raw source, raw candidate intake, canonical tree, public compatibility surface, and derived export do not silently collapse into one layer.
+5. Check that lineage and context did not disappear where they matter.
+6. Check that downstream AoA operational detail did not quietly move into ToS.
+7. Check that counterpart mapping, when present, stays optional and non-identity.
+8. Check that compost routes, when present, preserve source refs, review state, and decay or demotion posture.
+9. Check that calibration, when present, sharpens orientation without replacing source reading or plurality.
+10. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
+11. Check that growth decisions stay structural rather than quantity-driven.
+12. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, examples, and canonical tree files.
+13. Check that multilingual witnesses, when present, keep one shared node ID, explicit source authority, and no parallel language trees.
+14. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
+15. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
+16. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
+17. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
+18. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
 
 ## Checklist
 
@@ -64,6 +68,7 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 
 - Does the changed surface keep a visible path back to source or authoritative meaning?
 - Are node layers still distinguishable rather than collapsed into one summary voice?
+- If `sources/`, `intake/`, `tree/`, or `examples/` changed, do those layers remain visibly distinct?
 - Are lineage relations still explicit where the subject needs them?
 - Are temporal, spatial, civilizational, or interpretive contexts still attached where they matter?
 - Is ToS still clearly authored truth rather than a restatement of a derived KAG or operational AoA surface?
@@ -78,6 +83,7 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If multilingual witnesses are present, does the canonical source remain visibly authoritative over the other witness layers?
 - If Russian or English witnesses are present, do they remain witness layers rather than a new authored canon?
 - If templates or examples are mentioned, do source-node and concept-node scaffolds stay distinct?
+- If `tree/` and `examples/` are both present for the same route, do the examples remain compatibility mirrors rather than a second canon?
 - If multilingual source entry is present, do concept nodes remain language-neutral rather than becoming synonym piles?
 - If scaffold examples are present, do they remain bounded scaffolds rather than pretending to be a real branch pilot?
 - If a lineage pilot is present, does it make lineage more legible rather than more graph-like and vague?

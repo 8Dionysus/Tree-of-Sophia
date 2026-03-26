@@ -39,11 +39,37 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "scripts/AGENTS.md": (
         "generate_kag_export.py",
+        "tree_example_sync.py",
+        "sync_tree_examples.py",
+        "validate_tree_example_sync.py",
         "validate_kag_export.py",
         "validate_nested_agents.py",
         "deterministic",
+        "tree-to-example compatibility",
         "python scripts/validate_nested_agents.py",
+        "python scripts/validate_tree_example_sync.py",
         "python scripts/validate_kag_export.py",
+    ),
+    "sources/AGENTS.md": (
+        "primary witness and source files",
+        "not node law",
+        "candidate",
+        "canonical authored nodes in `tree/`",
+        "docs/REVIEW_CHECKLIST.md",
+    ),
+    "intake/AGENTS.md": (
+        "candidate intake material",
+        "candidate material, not source authority",
+        "sources/",
+        "tree/",
+        "docs/REVIEW_CHECKLIST.md",
+    ),
+    "tree/AGENTS.md": (
+        "canonical authored tree",
+        "node.json",
+        "examples/source_node.example.json",
+        "compatibility mirrors",
+        "python scripts/validate_tree_example_sync.py",
     ),
 }
 

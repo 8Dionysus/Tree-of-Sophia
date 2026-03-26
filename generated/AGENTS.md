@@ -20,6 +20,7 @@ Change the source-owned inputs or generation logic, then regenerate the outputs.
 
 Keep the current pilot bounded to `tos.source.thus-spoke-zarathustra.prologue`.
 Keep `entry_surface` aligned with `examples/source_node.example.json`.
+Keep the compatibility surface aligned with the canonical tree mirror in `tree/`.
 Keep `section_handles` aligned with source `interpretation_layers`.
 Keep `non_identity_boundary` explicit so downstream KAG consumers do not mistake this export for ToS-authored authority.
 
@@ -28,6 +29,7 @@ Keep `non_identity_boundary` explicit so downstream KAG consumers do not mistake
 Run:
 
 ```bash
+python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
 ```

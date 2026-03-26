@@ -32,9 +32,9 @@ Any distilled thesis, semantic layer, or synthesis should retain visible linkage
 
 ToS should not become a pile of free-floating summaries.
 
-## Rule 6: human-reviewed synthesis stays distinct
+## Rule 6: raw, canonical, and synthetic layers stay distinct
 
-Raw source material, derived extraction, and human-reviewed synthesis are different layers.
+Raw source material, raw candidate extraction, canonical authored tree surfaces, compatibility or public entry surfaces, and human-reviewed synthesis are different layers.
 
 They may connect, but they should not be silently merged.
 
@@ -79,6 +79,8 @@ Quantity growth without structural clarity does not count as healthy growth.
 ## Rule 12: node identifiers and templates stay ToS-authored
 
 Stable `node_id` discipline, first node templates, and corpus-facing scaffold examples belong to `Tree-of-Sophia`.
+
+Canonical authored tree surfaces also belong to `Tree-of-Sophia`.
 
 Downstream routing, derived substrate, or runtime layers may point to those surfaces.
 They do not become the primary authors of ToS node identity or template law.

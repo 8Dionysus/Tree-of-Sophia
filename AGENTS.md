@@ -1,11 +1,12 @@
 # AGENTS.md
 
 ## Repository role
-This repository is the canonical high-level statement of Tree of Sophia (ToS).
+This repository is the canonical high-level statement of Tree of Sophia (ToS) and the home of its canonical authored tree.
 
 Tree of Sophia is a living knowledge architecture for philosophy and world thought. It traces texts, concepts, contexts, and lineages across time and cultures.
 
-At its current public stage, this repository is primarily a landing and conceptual foundation. Treat it as the place that defines the knowledge architecture and its discipline, not as a grab-bag for unrelated implementation details.
+At its current public stage, this repository is a source-first tree project.
+Treat it as the place that defines the knowledge architecture, preserves source-facing inputs, and carries canonical authored tree surfaces rather than as a grab-bag for unrelated implementation details.
 
 ## Priority of instructions
 - Follow direct maintainer instructions first.
@@ -18,9 +19,13 @@ Use this repository for work on:
 - the high-level statement of what ToS is
 - conceptual architecture for knowledge nodes and relationships
 - source-first knowledge discipline
+- primary witness and source files that ground the authored tree
+- candidate intake material that remains visibly provisional
+- canonical authored tree nodes and relations
 - text, concept, context, and lineage modeling
 - contributor rules for interpretation and curation
 - public architecture notes that explain how meaning should be preserved and extended
+- public compatibility surfaces and downstream-safe exports that remain subordinate to the canonical tree
 
 ## What ToS does not own
 Do not use this repository as the main home for:
@@ -41,6 +46,9 @@ Preserve source traceability at all times.
 
 A strong ToS contribution keeps distinct:
 - raw source text or fragment
+- raw candidate extraction
+- canonical authored tree surface
+- compatibility or public entry surface
 - key terms and concepts
 - distilled theses or semantic extraction
 - deeper interpretation
@@ -98,15 +106,16 @@ Use the smallest correct destination.
 
 If the requested work mainly concerns runtime, agent orchestration, or derived substrate mechanics, it probably does not belong here as the primary surface.
 
-If you are editing inside `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
+If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
 
 ## Validation
 The current public validation path is `python scripts/validate_kag_export.py` for the bounded KAG export seam.
 
-It also checks the nested local guidance surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, and `scripts/`.
+It also checks the nested local guidance surfaces in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
 
 For broader doctrine or scaffold changes that fall outside the current public validator, validate through structured review:
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
+- if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change export inputs or generation logic, run `python scripts/generate_kag_export.py` and then `python scripts/validate_kag_export.py`
 - check consistency with `README.md` and any architecture notes
 - check that provenance remains visible
@@ -119,6 +128,7 @@ If you add a generated or derived artifact, make its source and limits explicit.
 ## Definition of done
 A change is done when:
 - a reader can tell what the source is, what was extracted, what was inferred, and what remains interpretive
+- the distinction between source, intake, canonical tree, compatibility surface, and derived export is clearer after the change
 - provenance is clearer after the change
 - conceptual layering is stronger after the change
 - lineage and context are preserved where relevant

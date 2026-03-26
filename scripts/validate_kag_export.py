@@ -17,6 +17,7 @@ from generate_kag_export import (
     encode_json,
 )
 from validate_nested_agents import run_validation as run_nested_agents_validation
+from validate_tree_example_sync import run_validation as run_tree_example_sync_validation
 
 
 class ValidationError(RuntimeError):
@@ -50,6 +51,13 @@ def validate_nested_agents_docs() -> None:
     if issues:
         details = "\n".join(f"- {location}: {message}" for location, message in issues)
         fail(f"nested AGENTS docs check failed:\n{details}")
+
+
+def validate_tree_example_sync() -> None:
+    issues = run_tree_example_sync_validation(REPO_ROOT)
+    if issues:
+        details = "\n".join(f"- {location}: {message}" for location, message in issues)
+        fail(f"tree/example sync check failed:\n{details}")
 
 
 def validate_export_payload(payload: object) -> None:
@@ -149,6 +157,7 @@ def validate_export_payload(payload: object) -> None:
 def main() -> int:
     try:
         validate_nested_agents_docs()
+        validate_tree_example_sync()
         expected_payload = build_kag_export_payload()
         validate_generated_text(
             OUTPUT_PATH,
@@ -166,6 +175,7 @@ def main() -> int:
         return 1
 
     print("[ok] validated nested AGENTS docs surfaces")
+    print("[ok] validated tree/example compatibility mirrors")
     print("[ok] validated generated KAG export outputs are up to date")
     print("[ok] validated generated KAG export structure")
     return 0

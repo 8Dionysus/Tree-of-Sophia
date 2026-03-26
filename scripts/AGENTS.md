@@ -8,6 +8,9 @@ This file applies to the small generator and validator tools under `scripts/`.
 The current scripts are:
 
 - `generate_kag_export.py`
+- `tree_example_sync.py`
+- `sync_tree_examples.py`
+- `validate_tree_example_sync.py`
 - `validate_kag_export.py`
 - `validate_nested_agents.py`
 
@@ -17,6 +20,7 @@ Keep these tools deterministic, local, and source-owned.
 Do not add network calls, hidden state, or broad corpus automation here.
 Keep the pilot narrow to the current Zarathustra route.
 Prefer explicit file dependencies over discovery magic.
+Keep tree-to-example compatibility explicit rather than silently treating `examples/` as the canonical source.
 
 ## Validation
 
@@ -24,6 +28,7 @@ Run:
 
 ```bash
 python scripts/validate_nested_agents.py
+python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
 ```

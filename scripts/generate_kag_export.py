@@ -19,16 +19,18 @@ PRIMARY_QUESTION = (
 SUMMARY_50 = "Source-owned tiny export for the current Zarathustra prologue authority route."
 SUMMARY_200 = (
     "Source-owned tiny export capsule for the current Zarathustra prologue route, "
-    "keeping the authority source node as the entry surface while preserving the "
-    "capsule and tiny-entry docs as supporting ToS-owned orientation surfaces."
+    "keeping the public compatibility entry surface aligned with the canonical "
+    "tree while preserving the capsule and tiny-entry docs as supporting "
+    "ToS-owned orientation surfaces."
 )
 PROVENANCE_NOTE = (
-    "Guide to the current ToS authority, capsule, and tiny-entry slice; it does "
-    "not replace the authored source node."
+    "Guide to the current canonical tree node, its public compatibility mirror, "
+    "and the supporting capsule and tiny-entry slice; it does not replace the "
+    "authored source node."
 )
 NON_IDENTITY_BOUNDARY = (
     "Derived export capsule for downstream KAG consumers; ToS-authored authority "
-    "remains in Tree-of-Sophia source and capsule surfaces."
+    "remains in Tree-of-Sophia tree, source, and capsule surfaces."
 )
 
 

@@ -128,8 +128,10 @@ In the first public route:
 
 - `README.md` is the current public `tos-root`
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule surface
-- `examples/source_node.example.json` is the authority surface
-- `examples/concept_node.example.json` is the bounded hop
+- `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` is the canonical authored source node
+- `examples/source_node.example.json` is the current public compatibility authority surface
+- `tree/concept/becoming/node.json` is the canonical authored bounded hop
+- `examples/concept_node.example.json` is the current public compatibility bounded hop
 - `docs/KNOWLEDGE_MODEL.md` remains the in-repo fallback orientation surface
 
 This seam stays:
@@ -143,6 +145,19 @@ Its job is orientation, not ownership transfer.
 `aoa-kag` and `aoa-routing` may consume this route downstream, and the current public seam is already used that way, but they do not become ToS authority surfaces.
 
 See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the compact route doctrine.
+
+## Repository content layers
+
+ToS now also keeps distinct repository-facing layers for how material enters and stabilizes:
+
+- `sources/` for primary witness and source files
+- `intake/` for raw extracted candidate material
+- `tree/` for canonical authored nodes and relations
+- `examples/` for current public compatibility and tiny-entry surfaces
+- `generated/` for downstream-safe derived exports
+
+These layers may point to one another.
+They should not be silently collapsed into one interchangeable surface.
 
 ## Layering inside a node
 

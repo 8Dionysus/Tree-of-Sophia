@@ -22,8 +22,10 @@ For the first public route, that means:
 - `README.md` as the public root
 - `source_node` as the node-kind decision
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` as the capsule surface
-- `examples/source_node.example.json` as the current authority surface
-- `examples/concept_node.example.json` as one bounded authored hop
+- `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` as the canonical authored source node
+- `examples/source_node.example.json` as the current public compatibility authority surface
+- `tree/concept/becoming/node.json` as the canonical authored bounded hop
+- `examples/concept_node.example.json` as one bounded public compatibility hop
 - `docs/KNOWLEDGE_MODEL.md` as the in-repo fallback orientation surface
 
 This is a tree-first route, not a graph-first entry contract.
@@ -39,10 +41,11 @@ In this wave:
 
 - `README.md` and this note are orientation surfaces
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule that explains the bounded route
-- `examples/source_node.example.json` remains the authority surface for the first published tiny-entry example
+- `tree/` holds the canonical authored node surfaces
+- `examples/source_node.example.json` remains the public compatibility authority surface for the first published tiny-entry example
 
 The capsule is allowed to summarize the route.
-It is not allowed to replace the source-facing authority surface.
+It is not allowed to replace the canonical tree node or the source-facing compatibility authority surface.
 
 ## First worked route
 
@@ -50,7 +53,9 @@ The first public tiny-entry route is anchored in the Zarathustra prologue path:
 
 - `node_id`: `tos.source.thus-spoke-zarathustra.prologue`
 - capsule surface: `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
+- canonical source node: `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - authority surface: `examples/source_node.example.json`
+- canonical bounded hop: `tree/concept/becoming/node.json`
 - bounded hop: `examples/concept_node.example.json`
 - fallback: `docs/KNOWLEDGE_MODEL.md`
 

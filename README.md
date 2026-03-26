@@ -2,6 +2,8 @@
 
 Tree of Sophia is a source-first living knowledge architecture for philosophy and world thought, tracing texts, concepts, contexts, and lineages across time and cultures.
 
+It now also carries its own primary source layer, candidate intake layer, canonical authored tree layer, and bounded public compatibility surfaces inside the repository.
+
 ## Start here
 
 If you are new to ToS, use this path:
@@ -104,11 +106,32 @@ See [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current `README.md
 The current bounded source-owned export also stays downstream-safe by exposing one tiny route capsule without replacing ToS authority.
 See [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current export posture.
 
+## Repository layers
+
+The current repository is organized as a source-first tree project:
+
+- `sources/` keeps primary witness and source files
+- `intake/` keeps raw extracted candidate material
+- `tree/` keeps canonical authored ToS nodes and relations
+- `examples/` keeps the current public tiny-entry and export compatibility surfaces
+- `generated/` keeps downstream-safe derived exports
+
+The operating distinction matters:
+
+- `sources/` grounds the tree
+- `intake/` prepares candidate structure without becoming authority
+- `tree/` is the canonical authored layer
+- `examples/` remains a public compatibility seam during the current transition
+- `generated/` remains derived and downstream-facing
+
 ## What belongs here
 
 This repository is the right place for:
 
 - source-first architectural definitions for ToS
+- primary witness and source files that ground canonical authored routes
+- raw candidate intake surfaces that remain visibly provisional
+- canonical authored tree nodes and relation-bearing surfaces
 - statements of scope and ownership
 - node and relation model baselines
 - source-discipline and provenance rules
@@ -116,7 +139,7 @@ This repository is the right place for:
 - public context-compost doctrine
 - public growth-law doctrine for calibration, curation, and explicit structural expansion
 - public identifier discipline and first node templates
-- schema-backed scaffold examples for first corpus growth
+- schema-backed scaffold examples for first corpus growth and public compatibility surfaces
 - one bounded lineage-branch pilot built from those scaffold surfaces
 - pre-expansion soil doctrine and context-node law as the gate-setting prior layer
 - one bounded trilingual source-entry route through the Zarathustra prologue
@@ -147,7 +170,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, and one tree-first tiny-entry seam for bounded authored entry.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, and the first seeded canonical tree layer for the current Zarathustra route.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -166,7 +189,7 @@ That means:
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity
-- keeping `README.md` as the public `tos-root` while distinguishing capsule, authority, and fallback surfaces inside ToS
+- keeping `README.md` as the public `tos-root` while distinguishing canonical tree, capsule, public compatibility authority, and fallback surfaces inside ToS
 
 ## Intended scope
 
@@ -208,14 +231,14 @@ If you are a coding agent or contributor, treat this repository as the canonical
 
 Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changing public doctrine or baseline architectural language.
 
-If you are editing inside `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
+If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
 
-The current public validator is `python scripts/validate_kag_export.py` for the bounded tiny export seam, and it also checks the local guidance surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, and `scripts/`.
+The current public validator is `python scripts/validate_kag_export.py` for the bounded tiny export seam, and it also checks the local guidance surfaces in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
 
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 
 Implementation details may temporarily live elsewhere while the public architecture is being staged.
-The current bounded trilingual entry and tiny-entry seam still keep manual review as the canonical review route for broader doctrine, even while the tiny export seam now has a public validator.
+The current bounded trilingual entry and tiny-entry seam still keep manual review as the canonical review route for broader doctrine, even while the tiny export seam now has a public validator and the canonical authored tree now seeds the same route internally.
 
 When extending this project:
 - preserve source traceability

@@ -12,7 +12,8 @@ replacing ToS-authored authority.
 The current pilot stays on the Zarathustra prologue route only:
 
 - one exported object: `tos.source.thus-spoke-zarathustra.prologue`
-- one entry surface: `examples/source_node.example.json`
+- one canonical authored source node: `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
+- one public compatibility entry surface: `examples/source_node.example.json`
 - two supporting doctrine surfaces:
   - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
   - `docs/TINY_ENTRY_ROUTE.md`
@@ -24,7 +25,8 @@ The export is a source-owned guide surface, not a new authority layer.
 
 It may expose a bounded question, summaries, interpretation-layer handles, and
 current route refs for downstream consumption, but authored ToS authority
-remains in the source node and its supporting ToS docs.
+remains in the canonical tree node and its supporting ToS docs, while the public
+entry surface remains a compatibility mirror for the current tiny-entry seam.
 
 ## Current files
 
@@ -40,6 +42,7 @@ If you edit supporting surfaces in `docs/`, `examples/`, `generated/`, `schemas/
 Use:
 
 ```bash
+python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
 ```
