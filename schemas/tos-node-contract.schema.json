@@ -24,6 +24,36 @@
       ]
     }
   ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "node_type": {
+            "const": "source"
+          }
+        },
+        "required": [
+          "node_type"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "language_witnesses"
+              ]
+            },
+            {
+              "required": [
+                "translation_tensions"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
   "properties": {
     "node_id": {
       "type": "string",
@@ -134,7 +164,11 @@
         "properties": {
           "language": {
             "type": "string",
-            "minLength": 1
+            "enum": [
+              "de",
+              "ru",
+              "en"
+            ]
           },
           "role": {
             "type": "string",
@@ -173,7 +207,99 @@
             "description": "Optional note about spelling or formatting normalization in the public witness surface."
           }
         }
+      },
+      "allOf": [
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "role"
+          ],
+          "properties": {
+            "role": {
+              "const": "canonical_source"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "role"
+          ],
+          "properties": {
+            "role": {
+              "const": "working_translation"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "role"
+          ],
+          "properties": {
+            "role": {
+              "const": "bridge_translation"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "de"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "ru"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "en"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
       }
+    ]
     },
     "witnessSegmentsArray": {
       "type": "array",
