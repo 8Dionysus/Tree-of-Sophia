@@ -29,9 +29,10 @@ If you are new to ToS, use this path:
 19. Read [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current tree-first tiny-entry seam from `README.md` into one bounded authored route.
 20. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
 21. Read [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current source-owned tiny export that downstream KAG consumers may read without replacing ToS authority.
-22. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-23. Read [ROADMAP](ROADMAP.md) for current direction.
-24. Return to this README for the public overview, scope, and guiding axis.
+22. Read [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md) for the current candidate tabular base pack and vocabulary-governance route.
+23. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+24. Read [ROADMAP](ROADMAP.md) for current direction.
+25. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -111,8 +112,8 @@ See [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current export posture.
 The current repository is organized as a source-first tree project:
 
 - `sources/` keeps primary witness and source files
-- `intake/` keeps raw extracted candidate material
-- `tree/` keeps canonical authored ToS nodes and relations
+- `intake/` keeps raw extracted candidate material and the current candidate tabular base pack
+- `tree/` keeps canonical authored ToS nodes, relations, and vocabulary governance surfaces
 - `examples/` keeps the current public tiny-entry and export compatibility surfaces
 - `generated/` keeps downstream-safe derived exports
 
@@ -120,9 +121,12 @@ The operating distinction matters:
 
 - `sources/` grounds the tree
 - `intake/` prepares candidate structure without becoming authority
-- `tree/` is the canonical authored layer
+- `tree/` is the canonical authored layer and the home of graph vocabulary governance
 - `examples/` remains a public compatibility seam during the current transition
 - `generated/` remains derived and downstream-facing
+
+The root workbook carrier may inform these layers, but it is not itself a
+canonical ToS surface.
 
 ## What belongs here
 
@@ -234,6 +238,9 @@ Read `CHARTER.md`, `BOUNDARIES.md`, and `docs/KNOWLEDGE_MODEL.md` before changin
 If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
 
 The current public validator is `python scripts/validate_kag_export.py` for the bounded tiny export seam, and it also checks the local guidance surfaces in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
+
+The current tabular base validator is `python scripts/validate_intake_pack.py`
+for the bounded `v6.1`-shaped candidate pack and its vocabulary registries.
 
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 

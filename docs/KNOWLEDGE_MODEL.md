@@ -151,13 +151,24 @@ See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the compact route doctrine.
 ToS now also keeps distinct repository-facing layers for how material enters and stabilizes:
 
 - `sources/` for primary witness and source files
-- `intake/` for raw extracted candidate material
-- `tree/` for canonical authored nodes and relations
+- `intake/` for raw extracted candidate material and current candidate tabular base packs
+- `tree/` for canonical authored nodes, relations, and vocabulary governance surfaces
 - `examples/` for current public compatibility and tiny-entry surfaces
 - `generated/` for downstream-safe derived exports
 
 These layers may point to one another.
 They should not be silently collapsed into one interchangeable surface.
+
+The current workbook carrier may seed these layers, but it is not itself a
+canonical ToS surface.
+
+The current bounded Zarathustra route also keeps a deliberate split:
+
+- `tree/source/.../node.json` remains the authored source-node canon
+- `intake/.../mode-b/*.csv` remains the candidate tabular base pack
+
+Those surfaces may mirror one another in bounded ways.
+They do not replace one another.
 
 ## Layering inside a node
 

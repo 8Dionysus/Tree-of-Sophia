@@ -131,7 +131,7 @@ One meaning should keep one `node_id`.
 The current route therefore grows:
 
 - one source node with `language_witnesses`
-- 12 shared `segment_id` values across `de / ru / en`
+- 12 shared `segment_id` values in the `seg.1.1.1.n` spine across `de / ru / en`
 - bounded witness provenance where translator, edition, or donor posture would
   otherwise become ambiguous
 - bounded `translation_tensions` only where drift is philosophically
