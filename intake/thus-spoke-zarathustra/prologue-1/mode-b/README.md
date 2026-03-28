@@ -74,3 +74,7 @@ become canonical by presence alone.
 
 Promotion requires a separate review pass that explicitly decides what moves
 from `intake/` into `tree/`.
+
+Some status fields may therefore record review outcomes such as `promoted` or
+`deferred_commentary` without turning this directory itself into canonical tree
+law.

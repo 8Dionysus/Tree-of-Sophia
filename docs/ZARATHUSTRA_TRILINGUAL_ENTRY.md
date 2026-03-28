@@ -209,6 +209,12 @@ Those principle nodes remain subordinate to the same bounded source route.
 They do not replace the source node and do not widen the current tiny-entry
 seam.
 
+The current second principle pass may now also close the distilled principle
+spine for this route.
+That closure still leaves `pr.departure_from_reflective_origin` in `intake/`
+because it presently belongs to authored commentary rather than to principle
+canon.
+
 The next branch-deepening step may now also stabilize one live route-local
 `lineage` node under `tree/lineage/`.
 That node names the current bounded route explicitly without reactivating the

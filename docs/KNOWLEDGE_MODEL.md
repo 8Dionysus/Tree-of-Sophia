@@ -138,6 +138,12 @@ reviewed principle spine from `prologue-1`.
 It does not widen the current tiny-entry seam and does not yet imply a global
 principle program.
 
+After the second local transfer pass, this route now effectively holds its full
+distilled principle spine in canon.
+One remaining intake row, `pr.departure_from_reflective_origin`, stays deferred
+because it is presently an authored-commentary reading rather than a distilled
+principle.
+
 ## First live route-local lineage canonization
 
 At the current branch-deepening slice, ToS may also stabilize one live
@@ -159,7 +165,7 @@ It ties together:
 - `tos.source.thus-spoke-zarathustra.prologue`
 - `tos.concept.becoming`
 - `tos.concept.overcoming`
-- the first promoted route-local principle spine
+- the now effectively complete route-local distilled principle spine
 
 This is a real canonical branch handle inside `tree/lineage/`.
 It does not yet reactivate the broader calibration-family pilot as live canon.
