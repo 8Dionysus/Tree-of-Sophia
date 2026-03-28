@@ -215,6 +215,14 @@ That closure now leaves `pr.departure_from_reflective_origin` outside
 principle canon while moving its canonical home into one bounded route-local
 `tree/synthesis/` surface.
 
+Within that now-closed principle spine, one wording pressure remains explicitly
+seeded for later growth rather than rewritten ahead of evidence.
+The current node `blessing-is-reciprocal` remains live canon for the bounded
+pass, but an explicit review note now preserves the future alias-seed
+`blessing-requires-a-recipient` in case later Zarathustra passages make clear
+that blessing should be read less as reciprocity and more as joyous
+overflow seeking an addressee.
+
 The next branch-deepening step may now also stabilize one live route-local
 `lineage` node under `tree/lineage/`.
 That node names the current bounded route explicitly without reactivating the
