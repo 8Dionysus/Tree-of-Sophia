@@ -34,10 +34,10 @@ canonical in `tree/`.
 
 That yields one bounded pack of exactly:
 
-- 122 promoted edges
-- 90 `source_edge`
+- 125 promoted edges
+- 92 `source_edge`
 - 11 `bridge_edge`
-- 21 `principle_edge`
+- 22 `principle_edge`
 
 Everything else stays in `intake/edges.csv` with an explicit deferred status.
 
@@ -60,10 +60,8 @@ collapsing ToS node payloads into the full tabular graph.
 
 Its current required split is:
 
-- 122 `promoted`
+- 125 `promoted`
 - 3 `deferred_literal`
-- 2 `deferred_analogy`
-- 1 `deferred_commentary`
 
 The canonical relation pack is therefore a reviewed projection from intake, not
 a second unrelated table.

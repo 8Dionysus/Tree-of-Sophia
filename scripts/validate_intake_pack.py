@@ -169,17 +169,15 @@ EXPECTED_EDGE_KIND_COUNTS = Counter(
 )
 EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS = Counter(
     {
-        "source_edge": 90,
+        "source_edge": 92,
         "bridge_edge": 11,
-        "principle_edge": 21,
+        "principle_edge": 22,
     }
 )
 EXPECTED_EDGE_LEDGER_STATUS_COUNTS = Counter(
     {
-        "promoted": 122,
+        "promoted": 125,
         "deferred_literal": 3,
-        "deferred_analogy": 2,
-        "deferred_commentary": 1,
     }
 )
 PROMOTED_PRINCIPLE_IDS = {
@@ -241,16 +239,19 @@ def build_canonical_id_map(
         mapping[row["node_id"]] = f"tos.support.thus-spoke-zarathustra.prologue.{slug}"
 
     for row in es_rows:
-        if row["status"] != "promoted":
+        if row["status"] not in {"promoted", "promoted_to_analogy"}:
             continue
         slug = row["es_id"].split(".", 2)[2].replace("_", "-")
         mapping[row["es_id"]] = f"tos.{row['kind']}.thus-spoke-zarathustra.prologue.{slug}"
 
     for row in principle_rows:
-        if row["status"] != "promoted":
+        if row["status"] not in {"promoted", "promoted_to_synthesis"}:
             continue
         slug = row["principle_id"].split(".", 1)[1].replace("_", "-")
-        mapping[row["principle_id"]] = f"tos.principle.thus-spoke-zarathustra.prologue.{slug}"
+        if row["status"] == "promoted_to_synthesis":
+            mapping[row["principle_id"]] = f"tos.synthesis.thus-spoke-zarathustra.prologue.{slug}"
+        else:
+            mapping[row["principle_id"]] = f"tos.principle.thus-spoke-zarathustra.prologue.{slug}"
 
     return mapping
 
@@ -267,7 +268,10 @@ def build_entity_class_maps(
     for row in es_rows:
         raw_entity_classes[row["es_id"]] = row["kind"]
     for row in principle_rows:
-        raw_entity_classes[row["principle_id"]] = "principle"
+        if row["status"] == "promoted_to_synthesis":
+            raw_entity_classes[row["principle_id"]] = "synthesis"
+        else:
+            raw_entity_classes[row["principle_id"]] = "principle"
 
     canonical_entity_classes = {
         canonical_id_map[raw_id]: class_id
@@ -471,8 +475,8 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         elif row["kind"] == "analogy":
             if row["es_id"] != DEFERRED_ANALOGY_EVENT_STATE_ID:
                 issues.append(("event_state_nodes.csv", f"unexpected analogy row {row['es_id']}"))
-            if row["status"] != "deferred_analogy":
-                issues.append(("event_state_nodes.csv", f"{row['es_id']} must be marked deferred_analogy"))
+            if row["status"] != "promoted_to_analogy":
+                issues.append(("event_state_nodes.csv", f"{row['es_id']} must be marked promoted_to_analogy"))
         else:
             issues.append(("event_state_nodes.csv", f"unexpected kind {row['kind']}"))
 
@@ -483,7 +487,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         {
             ("event", "promoted"): 18,
             ("state", "promoted"): 9,
-            ("analogy", "deferred_analogy"): 1,
+            ("analogy", "promoted_to_analogy"): 1,
         }
     )
     if es_status_counts != expected_es_status_counts:
@@ -502,8 +506,8 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             if row["status"] != "promoted":
                 issues.append(("principles.csv", f"{row['principle_id']} must be marked promoted"))
         elif row["principle_id"] == DEFERRED_COMMENTARY_PRINCIPLE_ID:
-            if row["status"] != "deferred_commentary":
-                issues.append(("principles.csv", f"{row['principle_id']} must be marked deferred_commentary"))
+            if row["status"] != "promoted_to_synthesis":
+                issues.append(("principles.csv", f"{row['principle_id']} must be marked promoted_to_synthesis"))
         else:
             issues.append(("principles.csv", f"unexpected principle id {row['principle_id']}"))
     if len(principle_rows) != 14:
@@ -532,7 +536,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
     edge_status_counts = Counter(row["status"] for row in edge_rows)
     if edge_status_counts != EXPECTED_EDGE_LEDGER_STATUS_COUNTS:
-        issues.append(("edges.csv", "edge status split drifted from the expected 122/3/2/1 ledger"))
+        issues.append(("edges.csv", "edge status split drifted from the expected 125/3 ledger"))
 
     promoted_edge_rows = promoted_relation_rows(edge_rows, canonical_id_map)
     promoted_edge_kind_counts = Counter(row["edge_kind"] for row in promoted_edge_rows)
@@ -632,7 +636,10 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     for row in es_rows:
         entity_classes[row["es_id"]] = row["kind"]
     for row in principle_rows:
-        entity_classes[row["principle_id"]] = "principle"
+        if row["status"] == "promoted_to_synthesis":
+            entity_classes[row["principle_id"]] = "synthesis"
+        else:
+            entity_classes[row["principle_id"]] = "principle"
 
     count_as_from = Counter()
     count_as_to = Counter()

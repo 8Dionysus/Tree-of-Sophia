@@ -2,7 +2,7 @@
 
 ## Scope
 
-This note records why `ev.p5.bee_honey_analogy` remained in
+This note records why `ev.p5.bee_honey_analogy` originally remained in
 `intake/thus-spoke-zarathustra/prologue-1/mode-b/event_state_nodes.csv` as
 `deferred_analogy` during the route-local `event` and `state` canonization
 pass.
@@ -36,3 +36,14 @@ Promoting it now would blur the newly stabilized distinction between:
 
 Keeping the row visible as `deferred_analogy` preserves the candidate residue
 without pretending the family decision has already been made.
+
+## Later resolution
+
+That boundary has now been crossed in a later bounded pass.
+The same row remains visible in `intake/` as `promoted_to_analogy`, and its
+canonical authored home is now:
+
+- `tree/analogy/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/bee-honey-analogy/node.json`
+
+This note remains as the record of why the earlier event/state pass did not
+collapse analogy into dynamic canon too early.

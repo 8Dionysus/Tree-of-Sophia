@@ -32,6 +32,7 @@ ToS may grow multiple node families. At the public baseline, the most important 
 - **event nodes**: review-gated route-local movements that keep dynamic transitions legible
 - **state nodes**: review-gated route-local conditions that keep held pressures and stances legible
 - **support nodes**: review-gated route-local `n.*` surfaces that keep key carriers, symbols, places, and hinges legible without opening many semantic families yet
+- **analogy nodes**: review-gated route-local image-bearing surfaces that keep bounded symbolic comparison explicit without dissolving into generic event/state handling
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
 - **synthesis nodes**: human-reviewed interpretation that remains explicitly linked to sources
 
@@ -51,10 +52,12 @@ The first template family stays narrow:
 - event nodes
 - state nodes
 - support nodes
+- analogy nodes
+- synthesis nodes
 
 These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
 
-See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md), and [SUPPORT_NODE_TEMPLATE](SUPPORT_NODE_TEMPLATE.md) for the compact public scaffold.
+See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md), [SUPPORT_NODE_TEMPLATE](SUPPORT_NODE_TEMPLATE.md), [ANALOGY_NODE_TEMPLATE](ANALOGY_NODE_TEMPLATE.md), and [SYNTHESIS_NODE_TEMPLATE](SYNTHESIS_NODE_TEMPLATE.md) for the compact public scaffold.
 
 ## First bounded lineage pilot
 
@@ -146,9 +149,8 @@ principle program.
 
 After the second local transfer pass, this route now effectively holds its full
 distilled principle spine in canon.
-One remaining intake row, `pr.departure_from_reflective_origin`, stays deferred
-because it is presently an authored-commentary reading rather than a distilled
-principle.
+One remaining commentary-like intake row now stays outside principle canon
+while its authored home has moved into `tree/synthesis/`.
 
 ## First live route-local lineage canonization
 
@@ -197,10 +199,10 @@ They carry:
 
 - 18 canonical event nodes promoted from the bounded intake pack
 - 9 canonical state nodes promoted from the bounded intake pack
-- one remaining analogy row left in `intake/` as `deferred_analogy`
+- no attempt to absorb the route's analogy image into event/state canon
 
-This pass transfers the dynamic layer into ToS without opening a separate
-analogy family and without changing the tiny-entry export seam.
+This pass transfers the dynamic layer into ToS without changing the tiny-entry
+export seam.
 
 ## First route-local support canonization
 
@@ -246,8 +248,52 @@ It carries:
   already canonical
 - registry-first predicate vocabulary rather than a compressed node-level alias
   set
-- only literal, analogy, and commentary blockers left visible in
-  `intake/edges.csv` with explicit deferred statuses
+- only literal helper blockers left visible in `intake/edges.csv` with
+  explicit deferred statuses
+
+## Bounded route-local analogy canonization
+
+At the current special-residue slice, ToS may also stabilize one bounded
+route-local analogy node for the same Zarathustra route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- image-bearing rather than atlas-like
+
+The current live analogy family uses:
+
+- `tree/analogy/`
+
+It carries:
+
+- one canonical analogy node for `bee-honey-analogy`
+- one active compatibility mirror under `examples/`
+- no wider analogy program beyond the bounded route
+
+## Route-local synthesis canonization
+
+At the same special-residue slice, ToS may also stabilize one route-local
+synthesis node for the remaining commentary-like reading in the bounded route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- explicitly interpretive rather than disguised principle canon
+
+The current live synthesis family uses:
+
+- `tree/synthesis/`
+
+It carries:
+
+- one canonical synthesis node for `departure-from-reflective-origin`
+- one active compatibility mirror under `examples/`
+- no separate commentary family for this route
 
 ## Tree-first tiny-entry seam
 
@@ -303,8 +349,14 @@ The current bounded Zarathustra route also keeps a deliberate split:
   reviewed dynamic canon promoted from that pack
 - `tree/support/.../node.json` now carries the reviewed full non-literal
   support canon from the bounded `n.*` layer
+- `tree/analogy/.../node.json` now carries the bounded bee-honey analogy as a
+  reviewed image-bearing canon surface
+- `tree/synthesis/.../node.json` now carries the route-local
+  departure-from-reflective-origin reading as reviewed synthesis rather than
+  deferred commentary residue
 - `tree/relations/.../edges.csv` now carries the reviewed canonical relation
-  pack for edges whose endpoints are already canonical
+  pack for edges whose endpoints are already canonical, leaving only literal
+  helper residue in intake
 
 Those surfaces may mirror one another in bounded ways.
 They do not replace one another.

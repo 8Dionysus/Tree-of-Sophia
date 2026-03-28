@@ -25,6 +25,8 @@ LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
 EVENT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "event_node.example.json"
 STATE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "state_node.example.json"
 SUPPORT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "support_node.example.json"
+ANALOGY_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "analogy_node.example.json"
+SYNTHESIS_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "synthesis_node.example.json"
 ZARATHUSTRA_EVENT_DIR = (
     REPO_ROOT
     / "tree"
@@ -45,6 +47,22 @@ ZARATHUSTRA_SUPPORT_DIR = (
     REPO_ROOT
     / "tree"
     / "support"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
+ZARATHUSTRA_ANALOGY_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "analogy"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
+ZARATHUSTRA_SYNTHESIS_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "synthesis"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
     / "prologue-1"
@@ -90,6 +108,14 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         assert isinstance(support_node, dict)
         cls.support_node = support_node
 
+        analogy_node = load_json(ANALOGY_NODE_EXAMPLE_PATH)
+        assert isinstance(analogy_node, dict)
+        cls.analogy_node = analogy_node
+
+        synthesis_node = load_json(SYNTHESIS_NODE_EXAMPLE_PATH)
+        assert isinstance(synthesis_node, dict)
+        cls.synthesis_node = synthesis_node
+
     def collect_errors(self, payload: object) -> list[str]:
         return [error.message for error in self.validator.iter_errors(payload)]
 
@@ -113,6 +139,12 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
     def test_support_node_example_still_validates(self) -> None:
         self.assertEqual(self.collect_errors(self.support_node), [])
+
+    def test_analogy_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.analogy_node), [])
+
+    def test_synthesis_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.synthesis_node), [])
 
     def test_all_canonical_tree_nodes_still_validate(self) -> None:
         for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
@@ -150,6 +182,24 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
     def test_zarathustra_route_now_has_forty_six_canonical_support_nodes(self) -> None:
         support_paths = sorted(ZARATHUSTRA_SUPPORT_DIR.rglob("node.json"))
         self.assertEqual(len(support_paths), 46)
+
+    def test_zarathustra_route_now_has_one_canonical_analogy(self) -> None:
+        analogy_paths = sorted(ZARATHUSTRA_ANALOGY_DIR.rglob("node.json"))
+        self.assertEqual(len(analogy_paths), 1)
+        analogy_ids = {load_json(path)["node_id"] for path in analogy_paths}
+        self.assertEqual(
+            analogy_ids,
+            {"tos.analogy.thus-spoke-zarathustra.prologue.bee-honey-analogy"},
+        )
+
+    def test_zarathustra_route_now_has_one_canonical_synthesis_node(self) -> None:
+        synthesis_paths = sorted(ZARATHUSTRA_SYNTHESIS_DIR.rglob("node.json"))
+        self.assertEqual(len(synthesis_paths), 1)
+        synthesis_ids = {load_json(path)["node_id"] for path in synthesis_paths}
+        self.assertEqual(
+            synthesis_ids,
+            {"tos.synthesis.thus-spoke-zarathustra.prologue.departure-from-reflective-origin"},
+        )
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
         payload = copy.deepcopy(self.source_node)
