@@ -95,12 +95,12 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     )
     expected_rows = promoted_relation_rows(edge_rows, canonical_id_map)
 
-    if len(relation_rows) != 89:
-        issues.append((relation_pack_path.relative_to(root).as_posix(), "canonical relation pack must contain exactly 89 promoted edges"))
+    if len(relation_rows) != 122:
+        issues.append((relation_pack_path.relative_to(root).as_posix(), "canonical relation pack must contain exactly 122 promoted edges"))
 
     edge_kind_counts = Counter(row["edge_kind"] for row in relation_rows)
     if edge_kind_counts != EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS:
-        issues.append((relation_pack_path.relative_to(root).as_posix(), "edge_kind counts drifted from the expected 57/11/21 split"))
+        issues.append((relation_pack_path.relative_to(root).as_posix(), "edge_kind counts drifted from the expected 90/11/21 split"))
 
     if relation_rows != expected_rows:
         issues.append((relation_pack_path.relative_to(root).as_posix(), "canonical relation pack drifted from the promoted intake projection"))

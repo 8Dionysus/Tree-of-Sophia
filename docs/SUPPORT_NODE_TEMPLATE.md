@@ -46,9 +46,9 @@ A support node is not:
 - a substitute for concept, principle, event, or state nodes
 - a claim that every remaining `n.*` row should already be canonical
 
-The support family is the current bounded home for reviewed route-bearing
-support surfaces.
-Literal helpers and other residue may remain in `intake/` until later passes.
+The support family is the current bounded home for the route's reviewed
+non-literal `n.*` surfaces.
+Literal helpers remain in `intake/` until a later dedicated literal pass.
 
 ## Worked scaffold
 

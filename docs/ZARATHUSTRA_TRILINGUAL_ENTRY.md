@@ -228,15 +228,15 @@ residue rather than opening a new analogy family too early.
 
 The next residue-closing step now also stabilizes one route-local `support`
 family under `tree/support/`.
-That pass promotes a bounded reviewed core from the current `n.*` layer into
-canon while leaving literal helper rows and other residue visible in `intake/`
-until the dedicated relation-focused review pass.
+That pass now promotes the full non-literal `n.*` layer into canon while
+leaving only literal helper rows visible in `intake/`.
 
 That dedicated relation-focused review pass now also stabilizes one route-local
 canonical relation pack under `tree/relations/`.
 It promotes only those `edges.csv` rows whose endpoints are already canonical,
-rewrites them to `tos.*` ids, and leaves wider residue visibly deferred in the
-intake ledger rather than pretending the whole graph has already been settled.
+rewrites them to `tos.*` ids, and leaves only literal, analogy, and commentary
+blockers visibly deferred in the intake ledger rather than pretending those
+special boundary cases have already been settled.
 
 ## Restartable checkpoint boundary
 

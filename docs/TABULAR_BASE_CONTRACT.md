@@ -106,13 +106,12 @@ the still-deferred analogy residue visible in `intake/`.
 
 Its required split is:
 
-- 19 core route-bearing rows with `status = promoted`
+- 46 non-literal rows with `status = promoted`
 - 2 literal helper rows with `status = deferred_literal`
-- 27 remaining residue rows with `status = deferred_residue`
 
-That split lets ToS carry one bounded `tree/support/` family without
-prematurely opening many semantic families and without silently dropping the
-rest of the candidate layer.
+That split lets ToS carry one bounded `tree/support/` family for the full
+non-literal local `n.*` layer without prematurely opening many semantic
+families.
 
 ## Current edge review ledger
 
@@ -120,15 +119,14 @@ rest of the candidate layer.
 
 Its required split is:
 
-- 89 rows with `status = promoted`
-- 33 rows with `status = deferred_residue`
+- 122 rows with `status = promoted`
 - 3 rows with `status = deferred_literal`
 - 2 rows with `status = deferred_analogy`
 - 1 row with `status = deferred_commentary`
 
 That split lets ToS carry one route-local canonical relation pack under
-`tree/relations/.../edges.csv` while keeping non-canonical residue, literal,
-analogy, and commentary blockers visibly deferred in `intake/`.
+`tree/relations/.../edges.csv` while keeping only literal, analogy, and
+commentary blockers visibly deferred in `intake/`.
 
 ## Registries
 

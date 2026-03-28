@@ -184,7 +184,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake, the first route-local support family closing the core `n.*` layer, and the first route-local canonical relation pack for reviewed edges whose endpoints are already canonical while wider residue stays visibly deferred in intake.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake, the now effectively complete route-local support family for the bounded non-literal `n.*` layer, and the expanded route-local canonical relation pack that leaves only literal, analogy, and commentary residues visibly deferred in intake.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -202,7 +202,7 @@ That means:
 - establishing one bounded route-local lineage surface as the first live branch pilot while keeping the broader calibration-family scaffold in review/archive status
 - stabilizing route-local event and state families from reviewed intake while keeping one analogy row explicitly deferred by family boundary
 - stabilizing one route-local support family from reviewed `n.*` rows while leaving literals and residue explicitly deferred in intake
-- stabilizing one route-local canonical relation pack from reviewed `edges.csv` rows while leaving wider residue, literal, analogy, and commentary blockers explicitly deferred in intake
+- stabilizing one route-local canonical relation pack from reviewed `edges.csv` rows while leaving only literal, analogy, and commentary blockers explicitly deferred in intake
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity

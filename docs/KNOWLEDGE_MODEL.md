@@ -220,10 +220,9 @@ The first live support family uses:
 
 It carries:
 
-- a reviewed core subset of `n.*` support rows from the bounded intake pack
+- the full non-literal `n.*` layer from the bounded intake pack
 - no early split into agent/place/symbol/quality families
-- a deliberately narrow node-level posture that left relation canonization to the
-  following dedicated relation-pack pass
+- literal helper rows still left in `intake/` as explicit special residue
 
 ## First route-local relation-pack canonization
 
@@ -243,12 +242,12 @@ The first live relation surface uses:
 
 It carries:
 
-- one canonical `edges.csv` pack for reviewed rows whose endpoints are already
-  canonical
+- one canonical `edges.csv` pack for all reviewed rows whose endpoints are
+  already canonical
 - registry-first predicate vocabulary rather than a compressed node-level alias
   set
-- wider residue kept visible in `intake/edges.csv` with explicit deferred
-  statuses
+- only literal, analogy, and commentary blockers left visible in
+  `intake/edges.csv` with explicit deferred statuses
 
 ## Tree-first tiny-entry seam
 
@@ -302,8 +301,8 @@ The current bounded Zarathustra route also keeps a deliberate split:
 - `intake/.../mode-b/*.csv` remains the candidate tabular base pack
 - `tree/event/.../node.json` and `tree/state/.../node.json` now carry the
   reviewed dynamic canon promoted from that pack
-- `tree/support/.../node.json` now carries the reviewed core support canon from
-  the bounded `n.*` layer
+- `tree/support/.../node.json` now carries the reviewed full non-literal
+  support canon from the bounded `n.*` layer
 - `tree/relations/.../edges.csv` now carries the reviewed canonical relation
   pack for edges whose endpoints are already canonical
 

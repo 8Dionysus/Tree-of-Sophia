@@ -147,9 +147,9 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         state_paths = sorted(ZARATHUSTRA_STATE_DIR.rglob("node.json"))
         self.assertEqual(len(state_paths), 9)
 
-    def test_zarathustra_route_now_has_nineteen_canonical_support_nodes(self) -> None:
+    def test_zarathustra_route_now_has_forty_six_canonical_support_nodes(self) -> None:
         support_paths = sorted(ZARATHUSTRA_SUPPORT_DIR.rglob("node.json"))
-        self.assertEqual(len(support_paths), 19)
+        self.assertEqual(len(support_paths), 46)
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
         payload = copy.deepcopy(self.source_node)
