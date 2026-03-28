@@ -209,6 +209,11 @@ Those principle nodes remain subordinate to the same bounded source route.
 They do not replace the source node and do not widen the current tiny-entry
 seam.
 
+The next branch-deepening step may now also stabilize one live route-local
+`lineage` node under `tree/lineage/`.
+That node names the current bounded route explicitly without reactivating the
+older broad calibration-family pilot as live canon.
+
 ## Restartable checkpoint boundary
 
 A restartable checkpoint pack may accompany this route for operational

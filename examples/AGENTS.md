@@ -11,13 +11,13 @@ They now also act as compatibility mirrors of the canonical authored tree in `tr
 The current example set includes:
 
 - `source_node.example.json`
-- `source_node_gay_science.example.json`
 - `concept_node.example.json`
 - `principle_node.example.json`
-- `concept_node_overcoming.example.json`
-- `concept_node_stability.example.json`
-- `lineage_node_calibration_family.example.json`
+- `lineage_node.example.json`
 - `tos_tiny_entry_route.example.json`
+
+Older superseded pilot scaffolds may live under `examples/review/`.
+Treat those files as review/archive material rather than as active canon.
 
 ## Editing posture
 
@@ -28,11 +28,13 @@ Keep source-node, concept-node, principle-node, lineage-node, and tiny-entry-rou
 Do not let bounded examples quietly become an uncontrolled corpus program.
 Do not use example payloads as a substitute for the owning doctrine docs.
 Keep `examples/source_node.example.json`, `examples/concept_node.example.json`, and `examples/principle_node.example.json` aligned with their canonical authored tree mirrors.
+Keep `examples/lineage_node.example.json` aligned with its canonical authored tree mirror.
+Do not treat `examples/review/` as an active compatibility surface.
 
 ## Validation
 
 For scaffold or doctrine changes, use `docs/REVIEW_CHECKLIST.md`.
-If you change `source_node.example.json`, `concept_node.example.json`, or `principle_node.example.json` as part of the current canonical mirror set, run:
+If you change `source_node.example.json`, `concept_node.example.json`, `principle_node.example.json`, or `lineage_node.example.json` as part of the current canonical mirror set, run:
 
 ```bash
 python scripts/validate_tree_example_sync.py

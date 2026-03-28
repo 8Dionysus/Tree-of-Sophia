@@ -94,6 +94,8 @@ Public node identifiers and first node templates may also be made explicit witho
 See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), and [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md) for the current corpus scaffold wave.
 
 The first bounded lineage pilot may now also be made explicit without turning one family into the whole tree.
+Its current live canonical form is a route-local lineage surface under `tree/lineage/`,
+while the earlier broader calibration-family pilot remains review-only.
 See [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) and [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current pilot route.
 
 The previous gate-setting wave prepared context-node law and reviewable entry gates without treating that preparation as active wider expansion.
@@ -175,7 +177,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, and the first route-local canonical principle family for that same route.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the first route-local canonical principle family for that same route, and the first live route-local lineage node tying that bounded branch together.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -190,7 +192,7 @@ That means:
 - naming context compost as a legitimate but still contract-first architectural route
 - naming calibration, human-curated amplification, and explicit structure as the current ToS growth law trio
 - establishing stable public node IDs, first source and concept templates, and one schema-backed worked scaffold example set
-- establishing one bounded calibration-family lineage route as the first real branch pilot
+- establishing one bounded route-local lineage surface as the first live branch pilot while keeping the broader calibration-family scaffold in review/archive status
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity

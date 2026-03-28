@@ -59,10 +59,13 @@ This pilot should stay:
 - source-first
 - bounded
 - reviewable
-- calibration-family specific rather than universal
+- route-local before broad family expansion
 
-The first public branch pilot adds a lineage-node template and one small worked route.
-It is not yet a broad branch program and not yet wider world-thought expansion.
+The current live pilot adds a lineage-node template and one route-local
+canonical lineage surface under `tree/lineage/` for the bounded Zarathustra
+`prologue-1` route.
+The earlier broader calibration-family pilot remains review-only and does not
+currently function as live canon.
 
 See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_PILOT](CALIBRATION_LINEAGE_PILOT.md) for the compact pilot surfaces.
 
@@ -134,6 +137,32 @@ The first launch lives under `tree/principle/` and stabilizes only a small
 reviewed principle spine from `prologue-1`.
 It does not widen the current tiny-entry seam and does not yet imply a global
 principle program.
+
+## First live route-local lineage canonization
+
+At the current branch-deepening slice, ToS may also stabilize one live
+route-local lineage node for the same bounded Zarathustra route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- anchored only in already-canonical route surfaces
+
+The first live lineage node uses:
+
+- `tos.lineage.thus-spoke-zarathustra.prologue.becoming-to-overcoming`
+
+It ties together:
+
+- `tos.source.thus-spoke-zarathustra.prologue`
+- `tos.concept.becoming`
+- `tos.concept.overcoming`
+- the first promoted route-local principle spine
+
+This is a real canonical branch handle inside `tree/lineage/`.
+It does not yet reactivate the broader calibration-family pilot as live canon.
 
 ## Tree-first tiny-entry seam
 
