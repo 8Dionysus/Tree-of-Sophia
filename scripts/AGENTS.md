@@ -8,6 +8,7 @@ This file applies to the small generator and validator tools under `scripts/`.
 The current scripts are:
 
 - `validate_intake_pack.py`
+- `validate_tree_node_contracts.py`
 - `generate_kag_export.py`
 - `tree_example_sync.py`
 - `sync_tree_examples.py`
@@ -30,6 +31,7 @@ Run:
 ```bash
 python scripts/validate_intake_pack.py
 python scripts/validate_nested_agents.py
+python scripts/validate_tree_node_contracts.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py

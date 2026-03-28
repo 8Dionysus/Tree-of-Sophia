@@ -20,6 +20,7 @@ Key files here include:
 - `IDENTIFIER_DISCIPLINE.md`
 - `SOURCE_NODE_TEMPLATE.md`
 - `CONCEPT_NODE_TEMPLATE.md`
+- `PRINCIPLE_NODE_TEMPLATE.md`
 - `LINEAGE_NODE_TEMPLATE.md`
 - `CONTEXT_NODE_TEMPLATE.md`
 - `MANUAL_CORPUS_ENTRY_GATE.md`
@@ -55,6 +56,7 @@ If you touch the current tiny export seam or the docs it depends on, run:
 
 ```bash
 python scripts/validate_tree_example_sync.py
+python scripts/validate_tree_node_contracts.py
 python scripts/validate_intake_pack.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
