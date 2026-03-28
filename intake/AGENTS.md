@@ -11,6 +11,7 @@ Typical contents include:
 
 - raw tables of candidate nodes
 - raw tables of candidate relations
+- bounded tabular base packs that remain candidate-only
 - pass-specific notes about bounded extraction work
 
 ## Editing posture

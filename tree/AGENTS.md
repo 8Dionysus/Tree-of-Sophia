@@ -10,6 +10,7 @@ It holds:
 
 - canonical authored source nodes
 - canonical authored concept nodes
+- canonical vocabulary governance registries for the tabular graph layer
 - future canonical authored lineage, context, or synthesis nodes
 
 The current wave uses `node.json` files as the canonical authored tree payloads.
@@ -28,6 +29,7 @@ Keep relation names explicit and keep node identity stable.
 Run:
 
 ```bash
+python scripts/validate_intake_pack.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py

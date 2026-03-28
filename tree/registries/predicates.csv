@@ -1,0 +1,54 @@
+predicate_id,predicate_ru,inverse_predicate_id,allowed_from_classes,allowed_to_classes,status,note,count_in_master,row_kinds
+addresses,обращается к,,event,cosmic_entity|solar-aspect,seed,,3,source_edge
+affects,затрагивает,,event|state,inner_center|subgroup,seed,,3,source_edge
+aims_at,устремлено к,,state,abundance|anthropic_state|state,seed,,3,source_edge
+asks_for,просит,,event,act,seed,,1,source_edge
+aspect_of,является аспектом,,solar-aspect,cosmic_entity,seed,,1,source_edge
+becomes_glad_of,становится радостным о,,subgroup,concept|concept-tension,seed,,2,source_edge
+beholds,созерцает,,state,quality,seed,,1,source_edge
+blesses,благословляет,,event,cosmic_entity,seed,,1,source_edge
+carries,несёт,,event,quality-substance|reflective_quality|substance,seed,,3,source_edge
+compares_state_to,сравнивает состояние с,,analogy,state,seed,,1,source_edge
+concerns,касается,,event|state,concept|hinge-term|quality|quality-substance|route,seed,,5,source_edge
+continues_until,длится до,,event,state,seed,,1,source_edge
+culminates_in,кульминирует в,,event|principle|state,event|principle,seed,,3,bridge_edge|principle_edge
+delights_in,вкушает / наслаждается,,state,inner_resource|state-concept,seed,,2,source_edge
+depends_on,зависит от,,quality,relational_group,seed,,1,source_edge
+destination,направляется в,,event,destination-symbol|place-threshold|underworld-domain,seed,,3,source_edge
+duration,имеет длительность,,event|state,literal,seed,,2,source_edge
+enters_state,входит в состояние,,persona,state,seed,,3,source_edge
+excludes,исключает,,state,negative-affect,seed,,1,source_edge
+for,за / по причине,,event,abundance,seed,,1,source_edge
+formalizes,оформляет,,principle,principle,seed,,1,principle_edge
+from,от,,event,cosmic_entity,seed,,1,source_edge
+gathers,собирает,,analogy-animal,substance,seed,,1,source_edge
+goes_to,идёт в,,event,place,seed,,1,source_edge
+has_mode,имеет модус,,event,act-mode,seed,,2,source_edge
+has_quality,имеет качество,,event,quality,seed,,1,source_edge
+has_quantity,имеет количество,,substance,literal,seed,,1,source_edge
+includes,включает,,collective_subject,animal-symbol|persona,seed,,3,source_edge
+leads_to,ведёт к,,event|principle|state,event|principle,seed,,7,bridge_edge|principle_edge
+leaves,покидает,,event,place|place-symbol,seed,,2,source_edge
+mirrors,отзеркаливает,,event|state,event|state,seed,,2,source_edge
+motivated_by,движимо,,event,event|state,seed,,2,source_edge
+moves_beyond,уходит за,,event,threshold-place,seed,,1,source_edge
+names_descent_as,называет нисхождение как,,relational_group,hinge-term,seed,,1,source_edge
+occurs_every,повторяется каждое,,event,time,seed,,1,source_edge
+occurs_in,происходит в,,event,time-symbol,seed,,1,source_edge
+occurs_with,происходит вместе с,,event,time-symbol,seed,,1,source_edge
+originates_from,истекает из,,event,vessel-symbol,seed,,1,source_edge
+parallels,параллелен,,event,event,seed,,1,source_edge
+participates_in,участвует в,,cosmic_entity|persona|solar-aspect|vessel-symbol,event|state,seed,,10,source_edge
+performs,совершает,,collective_subject|persona,event,seed,,10,source_edge
+pertains_to,относится к,,solar_quality,cosmic_entity,seed,,1,source_edge
+prefigures,предвосхищает,,event|principle,principle|state,seed,,2,bridge_edge|principle_edge
+prepares,подготавливает,,event|principle,event|principle|state,seed,,6,bridge_edge|principle_edge
+prevented_by,предотвращается через,,state,collective_subject,seed,,1,source_edge
+receives,получает,,event,abundance,seed,,1,source_edge
+reflects,отражает,,reflective_quality,solar_quality,seed,,1,source_edge
+requires,требует,,event,recipient-interface,seed,,1,source_edge
+subset_of,является подмножеством,,subgroup,relational_group,seed,,2,source_edge
+supported_by,поддерживается,,principle,event|state,seed,,14,principle_edge
+targets,направлено к,,event|state,cosmic_entity|relational_group|vessel-symbol,seed,,5,source_edge
+uses_image_of,использует образ,,analogy,analogy-animal,seed,,1,source_edge
+uses_surface,использует языковую поверхность,,event,hinge-term,seed,,1,source_edge

@@ -7,6 +7,7 @@ This file applies to the small generator and validator tools under `scripts/`.
 `scripts/` owns the bounded tiny-export seam and its local documentation guardrails.
 The current scripts are:
 
+- `validate_intake_pack.py`
 - `generate_kag_export.py`
 - `tree_example_sync.py`
 - `sync_tree_examples.py`
@@ -27,6 +28,7 @@ Keep tree-to-example compatibility explicit rather than silently treating `examp
 Run:
 
 ```bash
+python scripts/validate_intake_pack.py
 python scripts/validate_nested_agents.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
