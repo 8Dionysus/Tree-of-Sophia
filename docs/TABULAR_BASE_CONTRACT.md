@@ -74,7 +74,7 @@ event_state_nodes:
 es_id,kind,label_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,subject_hint,es_class,repeatable,status,note
 
 edges:
-edge_id,edge_kind,from_id,predicate_id,to_id,layer,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,witness_scope,connectivity_role,confidence,note
+edge_id,edge_kind,from_id,predicate_id,to_id,layer,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,witness_scope,connectivity_role,confidence,note,status
 
 translation_tensions:
 tension_id,normalized_core,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,witness_ids,why_load_bearing,decision_status,preferred_handling,note
@@ -114,6 +114,22 @@ That split lets ToS carry one bounded `tree/support/` family without
 prematurely opening many semantic families and without silently dropping the
 rest of the candidate layer.
 
+## Current edge review ledger
+
+`edges.csv` is now also an explicit review ledger for the bounded route.
+
+Its required split is:
+
+- 89 rows with `status = promoted`
+- 33 rows with `status = deferred_residue`
+- 3 rows with `status = deferred_literal`
+- 2 rows with `status = deferred_analogy`
+- 1 row with `status = deferred_commentary`
+
+That split lets ToS carry one route-local canonical relation pack under
+`tree/relations/.../edges.csv` while keeping non-canonical residue, literal,
+analogy, and commentary blockers visibly deferred in `intake/`.
+
 ## Registries
 
 The current tabular graph layer also keeps vocabulary governance surfaces under
@@ -132,6 +148,7 @@ Run:
 
 ```bash
 python scripts/validate_intake_pack.py
+python scripts/validate_tree_relation_pack.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py

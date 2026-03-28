@@ -34,9 +34,10 @@ If you are new to ToS, use this path:
 24. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
 25. Read [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current source-owned tiny export that downstream KAG consumers may read without replacing ToS authority.
 26. Read [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md) for the current candidate tabular base pack and vocabulary-governance route.
-27. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-28. Read [ROADMAP](ROADMAP.md) for current direction.
-29. Return to this README for the public overview, scope, and guiding axis.
+27. Read [docs/RELATION_PACK_CONTRACT](docs/RELATION_PACK_CONTRACT.md) for the first route-local canonical relation-pack contract.
+28. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+29. Read [ROADMAP](ROADMAP.md) for current direction.
+30. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -153,6 +154,7 @@ This repository is the right place for:
 - one bounded lineage-branch pilot built from those scaffold surfaces
 - route-local event and state families promoted from reviewed intake
 - one route-local support family promoted from reviewed `n.*` surfaces without opening many semantic families at once
+- one route-local canonical relation pack promoted from reviewed edges whose endpoints are already canonical
 - pre-expansion soil doctrine and context-node law as the gate-setting prior layer
 - one bounded trilingual source-entry route through the Zarathustra prologue
 - one tree-first tiny-entry seam that keeps `README.md` as the current public `tos-root`
@@ -182,7 +184,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake, and the first route-local support family closing the core `n.*` layer without yet canonizing the full relation surface.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake, the first route-local support family closing the core `n.*` layer, and the first route-local canonical relation pack for reviewed edges whose endpoints are already canonical while wider residue stays visibly deferred in intake.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -200,6 +202,7 @@ That means:
 - establishing one bounded route-local lineage surface as the first live branch pilot while keeping the broader calibration-family scaffold in review/archive status
 - stabilizing route-local event and state families from reviewed intake while keeping one analogy row explicitly deferred by family boundary
 - stabilizing one route-local support family from reviewed `n.*` rows while leaving literals and residue explicitly deferred in intake
+- stabilizing one route-local canonical relation pack from reviewed `edges.csv` rows while leaving wider residue, literal, analogy, and commentary blockers explicitly deferred in intake
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity
@@ -257,6 +260,10 @@ The current canonical tree-node validator is
 `python scripts/validate_tree_node_contracts.py` for repo-owned `tree/**/node.json`
 payloads, including the current route-local principle, event, and state
 families and the current route-local support family.
+
+The current canonical relation-pack validator is
+`python scripts/validate_tree_relation_pack.py` for the route-local
+`tree/relations/**/edges.csv` surface.
 
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 

@@ -20,6 +20,7 @@ from validate_intake_pack import run_validation as run_intake_pack_validation
 from validate_nested_agents import run_validation as run_nested_agents_validation
 from validate_tree_example_sync import run_validation as run_tree_example_sync_validation
 from validate_tree_node_contracts import run_validation as run_tree_node_contracts_validation
+from validate_tree_relation_pack import run_validation as run_tree_relation_pack_validation
 
 
 class ValidationError(RuntimeError):
@@ -67,6 +68,13 @@ def validate_tree_node_contracts() -> None:
     if issues:
         details = "\n".join(f"- {location}: {message}" for location, message in issues)
         fail(f"tree node contract check failed:\n{details}")
+
+
+def validate_tree_relation_pack() -> None:
+    issues = run_tree_relation_pack_validation(REPO_ROOT)
+    if issues:
+        details = "\n".join(f"- {location}: {message}" for location, message in issues)
+        fail(f"tree relation-pack check failed:\n{details}")
 
 
 def validate_intake_pack() -> None:
@@ -175,6 +183,7 @@ def main() -> int:
         validate_nested_agents_docs()
         validate_intake_pack()
         validate_tree_node_contracts()
+        validate_tree_relation_pack()
         validate_tree_example_sync()
         expected_payload = build_kag_export_payload()
         validate_generated_text(
@@ -195,6 +204,7 @@ def main() -> int:
     print("[ok] validated nested AGENTS docs surfaces")
     print("[ok] validated v6.1 tabular base intake pack")
     print("[ok] validated canonical tree node payloads against the node contract")
+    print("[ok] validated route-local canonical relation pack")
     print("[ok] validated tree/example compatibility mirrors")
     print("[ok] validated generated KAG export outputs are up to date")
     print("[ok] validated generated KAG export structure")

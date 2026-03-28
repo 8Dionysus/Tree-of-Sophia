@@ -222,7 +222,33 @@ It carries:
 
 - a reviewed core subset of `n.*` support rows from the bounded intake pack
 - no early split into agent/place/symbol/quality families
-- no full relation-surface canonization from `edges.csv` yet
+- a deliberately narrow node-level posture that left relation canonization to the
+  following dedicated relation-pack pass
+
+## First route-local relation-pack canonization
+
+At the current relation-transfer slice, ToS may also stabilize one route-local
+canonical relation pack for the same bounded Zarathustra route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- route-local
+
+The first live relation surface uses:
+
+- `tree/relations/`
+
+It carries:
+
+- one canonical `edges.csv` pack for reviewed rows whose endpoints are already
+  canonical
+- registry-first predicate vocabulary rather than a compressed node-level alias
+  set
+- wider residue kept visible in `intake/edges.csv` with explicit deferred
+  statuses
 
 ## Tree-first tiny-entry seam
 
@@ -278,6 +304,8 @@ The current bounded Zarathustra route also keeps a deliberate split:
   reviewed dynamic canon promoted from that pack
 - `tree/support/.../node.json` now carries the reviewed core support canon from
   the bounded `n.*` layer
+- `tree/relations/.../edges.csv` now carries the reviewed canonical relation
+  pack for edges whose endpoints are already canonical
 
 Those surfaces may mirror one another in bounded ways.
 They do not replace one another.

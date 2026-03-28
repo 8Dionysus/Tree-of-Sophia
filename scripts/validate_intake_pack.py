@@ -114,6 +114,7 @@ EXPECTED_HEADERS = {
         "connectivity_role",
         "confidence",
         "note",
+        "status",
     ],
     "translation_tensions.csv": [
         "tension_id",
@@ -164,6 +165,22 @@ EXPECTED_EDGE_KIND_COUNTS = Counter(
         "source_edge": 95,
         "bridge_edge": 11,
         "principle_edge": 22,
+    }
+)
+EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS = Counter(
+    {
+        "source_edge": 57,
+        "bridge_edge": 11,
+        "principle_edge": 21,
+    }
+)
+EXPECTED_EDGE_LEDGER_STATUS_COUNTS = Counter(
+    {
+        "promoted": 89,
+        "deferred_residue": 33,
+        "deferred_literal": 3,
+        "deferred_analogy": 2,
+        "deferred_commentary": 1,
     }
 )
 PROMOTED_PRINCIPLE_IDS = {
@@ -230,6 +247,85 @@ def parse_bool(value: str) -> bool | None:
     if lowered in {"true", "false"}:
         return lowered == "true"
     return None
+
+
+def build_canonical_id_map(
+    node_rows: list[dict[str, str]],
+    es_rows: list[dict[str, str]],
+    principle_rows: list[dict[str, str]],
+) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+
+    for row in node_rows:
+        if row["status"] != "promoted":
+            continue
+        slug = row["canonical_label"].replace("_", "-")
+        mapping[row["node_id"]] = f"tos.support.thus-spoke-zarathustra.prologue.{slug}"
+
+    for row in es_rows:
+        if row["status"] != "promoted":
+            continue
+        slug = row["es_id"].split(".", 2)[2].replace("_", "-")
+        mapping[row["es_id"]] = f"tos.{row['kind']}.thus-spoke-zarathustra.prologue.{slug}"
+
+    for row in principle_rows:
+        if row["status"] != "promoted":
+            continue
+        slug = row["principle_id"].split(".", 1)[1].replace("_", "-")
+        mapping[row["principle_id"]] = f"tos.principle.thus-spoke-zarathustra.prologue.{slug}"
+
+    return mapping
+
+
+def build_entity_class_maps(
+    node_rows: list[dict[str, str]],
+    es_rows: list[dict[str, str]],
+    principle_rows: list[dict[str, str]],
+    canonical_id_map: dict[str, str],
+) -> tuple[dict[str, str], dict[str, str]]:
+    raw_entity_classes: dict[str, str] = {}
+    for row in node_rows:
+        raw_entity_classes[row["node_id"]] = row["node_class"]
+    for row in es_rows:
+        raw_entity_classes[row["es_id"]] = row["kind"]
+    for row in principle_rows:
+        raw_entity_classes[row["principle_id"]] = "principle"
+
+    canonical_entity_classes = {
+        canonical_id_map[raw_id]: class_id
+        for raw_id, class_id in raw_entity_classes.items()
+        if raw_id in canonical_id_map
+    }
+    return raw_entity_classes, canonical_entity_classes
+
+
+def classify_edge_status(row: dict[str, str], canonical_raw_ids: set[str]) -> str:
+    raw_ids = {row["from_id"], row["to_id"]}
+    if raw_ids <= canonical_raw_ids:
+        return "promoted"
+    if DEFERRED_COMMENTARY_PRINCIPLE_ID in raw_ids:
+        return "deferred_commentary"
+    if DEFERRED_ANALOGY_EVENT_STATE_ID in raw_ids:
+        return "deferred_analogy"
+    if raw_ids & DEFERRED_LITERAL_NODE_IDS:
+        return "deferred_literal"
+    return "deferred_residue"
+
+
+def promoted_relation_rows(
+    edge_rows: list[dict[str, str]],
+    canonical_id_map: dict[str, str],
+) -> list[dict[str, str]]:
+    canonical_raw_ids = set(canonical_id_map)
+    promoted_rows: list[dict[str, str]] = []
+    for row in edge_rows:
+        if classify_edge_status(row, canonical_raw_ids) != "promoted":
+            continue
+        promoted_row = {key: value for key, value in row.items() if key != "status"}
+        promoted_row["from_id"] = canonical_id_map[row["from_id"]]
+        promoted_row["to_id"] = canonical_id_map[row["to_id"]]
+        promoted_rows.append(promoted_row)
+    return promoted_rows
 
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
@@ -322,6 +418,8 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     es_ids = {row["es_id"] for row in es_rows}
     principle_ids = {row["principle_id"] for row in principle_rows}
     graph_ids = node_ids | es_ids | principle_ids
+    canonical_id_map = build_canonical_id_map(node_rows, es_rows, principle_rows)
+    canonical_raw_ids = set(canonical_id_map)
 
     if "literal.ten_years" not in node_ids or "literal.too_much" not in node_ids:
         issues.append(("nodes.csv", "literal.ten_years and literal.too_much must remain explicit node rows"))
@@ -454,6 +552,18 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             anchor_end_secondary=row["anchor_end_secondary"],
             anchor_segment_ids=row["anchor_segment_ids"],
         )
+        expected_status = classify_edge_status(row, canonical_raw_ids)
+        if row["status"] != expected_status:
+            issues.append(("edges.csv", f"{row['edge_id']} must be marked {expected_status}"))
+
+    edge_status_counts = Counter(row["status"] for row in edge_rows)
+    if edge_status_counts != EXPECTED_EDGE_LEDGER_STATUS_COUNTS:
+        issues.append(("edges.csv", "edge status split drifted from the expected 89/33/3/2/1 ledger"))
+
+    promoted_edge_rows = promoted_relation_rows(edge_rows, canonical_id_map)
+    promoted_edge_kind_counts = Counter(row["edge_kind"] for row in promoted_edge_rows)
+    if promoted_edge_kind_counts != EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS:
+        issues.append(("edges.csv", "promoted relation subset drifted from the expected 57/11/21 canonical split"))
 
     source_tensions = source_payload.get("translation_tensions", [])
     if not isinstance(source_tensions, list):
