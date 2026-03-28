@@ -25,17 +25,18 @@ If you are new to ToS, use this path:
 15. Read [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md) for the current seventh-wave lineage-node scaffold.
 16. Read [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md) for the current route-local event-node scaffold.
 17. Read [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md) for the current route-local state-node scaffold.
-18. Read [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current seventh-wave bounded branch pilot note.
-19. Read [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md) for the current eighth-wave context-node scaffold.
-20. Read [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md) for the rule that tree motion stays gated by maintainer-led source entry.
-21. Read [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the previous eighth-wave preparation doctrine that set the gate.
-22. Read [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current tree-first tiny-entry seam from `README.md` into one bounded authored route.
-23. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
-24. Read [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current source-owned tiny export that downstream KAG consumers may read without replacing ToS authority.
-25. Read [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md) for the current candidate tabular base pack and vocabulary-governance route.
-26. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
-27. Read [ROADMAP](ROADMAP.md) for current direction.
-28. Return to this README for the public overview, scope, and guiding axis.
+18. Read [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md) for the current route-local support-node scaffold.
+19. Read [docs/CALIBRATION_LINEAGE_PILOT](docs/CALIBRATION_LINEAGE_PILOT.md) for the current seventh-wave bounded branch pilot note.
+20. Read [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md) for the current eighth-wave context-node scaffold.
+21. Read [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md) for the rule that tree motion stays gated by maintainer-led source entry.
+22. Read [docs/PRE_EXPANSION_SOIL](docs/PRE_EXPANSION_SOIL.md) for the previous eighth-wave preparation doctrine that set the gate.
+23. Read [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the current tree-first tiny-entry seam from `README.md` into one bounded authored route.
+24. Read [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the current bounded trilingual source-entry route and first worked capsule.
+25. Read [docs/KAG_EXPORT](docs/KAG_EXPORT.md) for the current source-owned tiny export that downstream KAG consumers may read without replacing ToS authority.
+26. Read [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md) for the current candidate tabular base pack and vocabulary-governance route.
+27. Read [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for the current manual validation route.
+28. Read [ROADMAP](ROADMAP.md) for current direction.
+29. Return to this README for the public overview, scope, and guiding axis.
 
 For the shortest next route by intent:
 - if you need the AoA ecosystem center that supports ToS operationally, go to [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
@@ -93,7 +94,7 @@ Growth should also stay structural rather than sedimentary.
 See [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md) for the current node, branch, and deepening rule.
 
 Public node identifiers and first node templates may also be made explicit without opening a full branch pilot.
-See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), and [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md) for the current corpus scaffold wave.
+See [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md), and [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md) for the current corpus scaffold wave.
 
 The first bounded lineage pilot may now also be made explicit without turning one family into the whole tree.
 Its current live canonical form is a route-local lineage surface under `tree/lineage/`,
@@ -151,6 +152,7 @@ This repository is the right place for:
 - schema-backed scaffold examples for first corpus growth and public compatibility surfaces
 - one bounded lineage-branch pilot built from those scaffold surfaces
 - route-local event and state families promoted from reviewed intake
+- one route-local support family promoted from reviewed `n.*` surfaces without opening many semantic families at once
 - pre-expansion soil doctrine and context-node law as the gate-setting prior layer
 - one bounded trilingual source-entry route through the Zarathustra prologue
 - one tree-first tiny-entry seam that keeps `README.md` as the current public `tos-root`
@@ -180,7 +182,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, and the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, the first live route-local lineage node tying that bounded branch together, the route-local event/state canon for that same bounded passage with one deferred analogy residue kept visible in intake, and the first route-local support family closing the core `n.*` layer without yet canonizing the full relation surface.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -197,6 +199,7 @@ That means:
 - establishing stable public node IDs, first source and concept templates, and one schema-backed worked scaffold example set
 - establishing one bounded route-local lineage surface as the first live branch pilot while keeping the broader calibration-family scaffold in review/archive status
 - stabilizing route-local event and state families from reviewed intake while keeping one analogy row explicitly deferred by family boundary
+- stabilizing one route-local support family from reviewed `n.*` rows while leaving literals and residue explicitly deferred in intake
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity
@@ -253,7 +256,7 @@ for the bounded `v6.1`-shaped candidate pack and its vocabulary registries.
 The current canonical tree-node validator is
 `python scripts/validate_tree_node_contracts.py` for repo-owned `tree/**/node.json`
 payloads, including the current route-local principle, event, and state
-families.
+families and the current route-local support family.
 
 When no public validator exists for the touched surface, use `docs/REVIEW_CHECKLIST.md` and leave a short review note with the change.
 

@@ -31,6 +31,7 @@ ToS may grow multiple node families. At the public baseline, the most important 
 - **lineage nodes**: schools, streams, genealogies, developmental arcs
 - **event nodes**: review-gated route-local movements that keep dynamic transitions legible
 - **state nodes**: review-gated route-local conditions that keep held pressures and stances legible
+- **support nodes**: review-gated route-local `n.*` surfaces that keep key carriers, symbols, places, and hinges legible without opening many semantic families yet
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
 - **synthesis nodes**: human-reviewed interpretation that remains explicitly linked to sources
 
@@ -49,10 +50,11 @@ The first template family stays narrow:
 - principle nodes
 - event nodes
 - state nodes
+- support nodes
 
 These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
 
-See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), and [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md) for the compact public scaffold.
+See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md), and [SUPPORT_NODE_TEMPLATE](SUPPORT_NODE_TEMPLATE.md) for the compact public scaffold.
 
 ## First bounded lineage pilot
 
@@ -200,6 +202,28 @@ They carry:
 This pass transfers the dynamic layer into ToS without opening a separate
 analogy family and without changing the tiny-entry export seam.
 
+## First route-local support canonization
+
+At the current residue-closing slice, ToS may also stabilize one route-local
+`support` family for the same bounded Zarathustra route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- route-local
+
+The first live support family uses:
+
+- `tree/support/`
+
+It carries:
+
+- a reviewed core subset of `n.*` support rows from the bounded intake pack
+- no early split into agent/place/symbol/quality families
+- no full relation-surface canonization from `edges.csv` yet
+
 ## Tree-first tiny-entry seam
 
 At the current wave, ToS may also publish one tree-first tiny-entry seam for humans and smaller models without replacing authored node law.
@@ -252,6 +276,8 @@ The current bounded Zarathustra route also keeps a deliberate split:
 - `intake/.../mode-b/*.csv` remains the candidate tabular base pack
 - `tree/event/.../node.json` and `tree/state/.../node.json` now carry the
   reviewed dynamic canon promoted from that pack
+- `tree/support/.../node.json` now carries the reviewed core support canon from
+  the bounded `n.*` layer
 
 Those surfaces may mirror one another in bounded ways.
 They do not replace one another.
