@@ -10,7 +10,7 @@ ev.p4.bless_sun_for_overflow,event,благословение солнца за 
 ev.p4.morning_wait_for_sun,event,утреннее ожидание солнца,single,"1,1,1,4",,seg.1.1.1.4,,,false,promoted,
 ev.p4.receive_overflow_from_sun,event,принятие избытка солнца,multi,"1,1,1,4","1,1,1,5",seg.1.1.1.4|seg.1.1.1.5,,,false,promoted,внешний overflow затем становится внутренним
 st.p5.overfull_wisdom,state,пресыщение мудростью,multi,"1,1,1,4","1,1,1,6",seg.1.1.1.4|seg.1.1.1.5|seg.1.1.1.6,,,false,promoted,внешний overflow затем становится внутренним | образ удерживает логику накопления | избыток ищет адресата
-ev.p5.bee_honey_analogy,analogy,аналогия пчелы и мёда,single,"1,1,1,5",,seg.1.1.1.5,,,false,deferred_analogy,образ удерживает логику накопления
+ev.p5.bee_honey_analogy,analogy,аналогия пчелы и мёда,single,"1,1,1,5",,seg.1.1.1.5,,,false,promoted_to_analogy,образ удерживает логику накопления
 ev.p5_6.need_hands_for_giving,event,нужда в простёртых руках ради дара,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,,,false,promoted,избыток ищет адресата
 ev.p6.bestow_and_distribute,event,одаривать и раздавать,multi,"1,1,1,6","1,1,1,7",seg.1.1.1.6|seg.1.1.1.7,,,false,promoted,дар требует движения вниз
 ev.p7.descend_into_depth,event,спуск в глубину,multi,"1,1,1,6","1,1,1,8",seg.1.1.1.6|seg.1.1.1.7|seg.1.1.1.8,,,false,promoted,дар требует движения вниз | дар и катабасис сцеплены

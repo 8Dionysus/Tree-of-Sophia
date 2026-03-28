@@ -4,10 +4,10 @@ Date: 2026-03-28
 
 ## Summary
 
-The second Zarathustra principle pass completes the route-local distilled
+The second Zarathustra principle pass completed the route-local distilled
 principle spine in `tree/principle/`.
 
-One intake row remains deferred:
+One intake row remained deferred at that stage:
 
 - `pr.departure_from_reflective_origin`
 
@@ -24,5 +24,13 @@ The deferral is therefore a family-boundary decision, not a quality rejection.
 
 - canonical distilled principles: `13`
 - deferred commentary-like row: `1`
-- current home of the deferred row: `intake/.../principles.csv`
-- future destination: a later commentary or synthesis family, if one is opened
+- current home of the original row: `intake/.../principles.csv`
+- later destination: a route-local `tree/synthesis/` surface
+
+## Later resolution
+
+That future destination has now been opened.
+The same row remains visible in `intake/` as `promoted_to_synthesis`, and its
+canonical authored home is now:
+
+- `tree/synthesis/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/departure-from-reflective-origin/node.json`

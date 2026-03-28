@@ -46,5 +46,7 @@ This wave gives public ID discipline to:
 - event-node scaffolds
 - state-node scaffolds
 - support-node scaffolds
+- analogy-node scaffolds
+- synthesis-node scaffolds
 
 It does not claim a full branch pilot, full corpus taxonomy, or public validator program yet.

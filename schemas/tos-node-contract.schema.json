@@ -58,7 +58,7 @@
     "node_id": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^tos\\.(source|concept|principle|lineage|event|state|support|context|synthesis)\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+      "pattern": "^tos\\.(source|concept|principle|lineage|event|state|support|context|analogy|synthesis)\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
     },
     "node_type": {
       "type": "string",
@@ -71,6 +71,7 @@
         "state",
         "support",
         "context",
+        "analogy",
         "synthesis"
       ]
     },

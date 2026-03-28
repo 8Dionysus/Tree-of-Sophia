@@ -21,7 +21,7 @@ persona,graph_agent,,seed,,12,1,n.zarathustra,from+to
 place,graph_place,,seed,,0,2,n.homeland,to_only
 place-symbol,graph_place,,seed,,0,1,n.lake_of_homeland,to_only
 place-threshold,graph_place,,seed,,0,1,n.cave,to_only
-principle,graph_claim,,seed,,22,8,pr.solitude_as_ripening,from+to
+principle,graph_claim,,seed,,21,8,pr.solitude_as_ripening,from+to
 quality,graph_quality,,seed,,1,3,n.happiness,from+to
 quality-substance,graph_quality,,seed,,0,2,n.light,to_only
 recipient-interface,graph_concept,,seed,,0,1,n.outstretched_hands,to_only
@@ -34,6 +34,7 @@ state,graph_dynamic,,seed,,20,20,st.p1.solitary_ripening_10y,from+to
 state-concept,graph_concept,,seed,,0,1,n.solitude,to_only
 subgroup,graph_agent,,seed,,4,2,n.wise_among_humans,from+to
 substance,graph_entity,,seed,,1,2,n.honey,from+to
+synthesis,graph_claim,,seed,route-local synthesis canon promoted from commentary-like residue,1,0,pr.departure_from_reflective_origin,from_only
 threshold-place,graph_place,,seed,,0,1,n.sea,to_only
 time,graph_concept,,seed,,0,1,n.morning,to_only
 time-symbol,graph_symbol,,seed,,0,2,n.dawn,to_only

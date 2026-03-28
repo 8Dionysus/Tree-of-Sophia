@@ -211,9 +211,9 @@ seam.
 
 The current second principle pass may now also close the distilled principle
 spine for this route.
-That closure still leaves `pr.departure_from_reflective_origin` in `intake/`
-because it presently belongs to authored commentary rather than to principle
-canon.
+That closure now leaves `pr.departure_from_reflective_origin` outside
+principle canon while moving its canonical home into one bounded route-local
+`tree/synthesis/` surface.
 
 The next branch-deepening step may now also stabilize one live route-local
 `lineage` node under `tree/lineage/`.
@@ -222,21 +222,30 @@ older broad calibration-family pilot as live canon.
 
 The next local transfer step now also stabilizes route-local `event` and
 `state` families under `tree/event/` and `tree/state/`.
-That pass promotes the dynamic layer of the bounded route into canon while
-leaving `ev.p5.bee_honey_analogy` visible in `intake/` as a deferred analogy
-residue rather than opening a new analogy family too early.
+That pass promotes the dynamic layer of the bounded route into canon without
+changing the tiny-entry seam.
 
 The next residue-closing step now also stabilizes one route-local `support`
 family under `tree/support/`.
 That pass now promotes the full non-literal `n.*` layer into canon while
 leaving only literal helper rows visible in `intake/`.
 
+The next special-residue step now also stabilizes one bounded route-local
+`analogy` family under `tree/analogy/`.
+That pass promotes the bee-honey image into canon as an image-bearing analogy
+surface rather than leaving it indefinitely deferred inside the dynamic ledger.
+
+The next commentary-residue step now also stabilizes one route-local
+`synthesis` surface under `tree/synthesis/`.
+That pass promotes the departure-from-reflective-origin reading into canon as
+reviewed synthesis rather than a deferred commentary-like intake row.
+
 That dedicated relation-focused review pass now also stabilizes one route-local
 canonical relation pack under `tree/relations/`.
 It promotes only those `edges.csv` rows whose endpoints are already canonical,
-rewrites them to `tos.*` ids, and leaves only literal, analogy, and commentary
+rewrites them to `tos.*` ids, and now leaves only permanent literal helper
 blockers visibly deferred in the intake ledger rather than pretending those
-special boundary cases have already been settled.
+helper surfaces belong in the authored tree.
 
 ## Restartable checkpoint boundary
 

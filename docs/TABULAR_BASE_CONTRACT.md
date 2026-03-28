@@ -95,10 +95,23 @@ Its required split is:
 
 - 18 `event` rows with `status = promoted`
 - 9 `state` rows with `status = promoted`
-- 1 `analogy` row with `status = deferred_analogy`
+- 1 `analogy` row with `status = promoted_to_analogy`
 
 That split lets ToS carry the reviewed dynamic canon in `tree/` while keeping
-the still-deferred analogy residue visible in `intake/`.
+the original analogy row visible in `intake/` as a cross-family promotion
+ledger entry rather than a second canon.
+
+## Current principle review ledger
+
+`principles.csv` is now also an explicit review ledger for the bounded route.
+
+Its required split is:
+
+- 13 `distilled_principle` rows with `status = promoted`
+- 1 `authored_commentary` row with `status = promoted_to_synthesis`
+
+That split lets ToS keep the original commentary-like row visible in
+`intake/` while moving its canonical home to `tree/synthesis/`.
 
 ## Current support review ledger
 
@@ -119,14 +132,12 @@ families.
 
 Its required split is:
 
-- 122 rows with `status = promoted`
+- 125 rows with `status = promoted`
 - 3 rows with `status = deferred_literal`
-- 2 rows with `status = deferred_analogy`
-- 1 row with `status = deferred_commentary`
 
 That split lets ToS carry one route-local canonical relation pack under
-`tree/relations/.../edges.csv` while keeping only literal, analogy, and
-commentary blockers visibly deferred in `intake/`.
+`tree/relations/.../edges.csv` while keeping only literal helper residue
+visibly deferred in `intake/`.
 
 ## Registries
 

@@ -39,8 +39,8 @@ m037,source_edge,ev.p4.bless_sun_for_overflow,for,n.overflow,source_linked,singl
 m038,bridge_edge,ev.p4.receive_overflow_from_sun,prefigures,st.p5.overfull_wisdom,source_linked,multi,"1,1,1,4","1,1,1,5",seg.1.1.1.4|seg.1.1.1.5,de+ru+en,reasoning_bridge,1,внешний overflow затем становится внутренним,promoted
 m039,source_edge,n.zarathustra,enters_state,st.p5.overfull_wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
 m040,source_edge,st.p5.overfull_wisdom,concerns,n.wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
-m041,source_edge,ev.p5.bee_honey_analogy,compares_state_to,st.p5.overfull_wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,образ удерживает логику накопления,deferred_analogy
-m042,source_edge,ev.p5.bee_honey_analogy,uses_image_of,n.bee,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,deferred_analogy
+m041,source_edge,ev.p5.bee_honey_analogy,compares_state_to,st.p5.overfull_wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,образ удерживает логику накопления,promoted
+m042,source_edge,ev.p5.bee_honey_analogy,uses_image_of,n.bee,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
 m043,source_edge,n.bee,gathers,n.honey,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
 m044,source_edge,n.honey,has_quantity,literal.too_much,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,deferred_literal
 m045,bridge_edge,st.p5.overfull_wisdom,leads_to,ev.p5_6.need_hands_for_giving,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,избыток ищет адресата,promoted
@@ -106,7 +106,7 @@ m104,source_edge,n.zarathustra,participates_in,ev.p12.beginning_of_zarathustra_g
 m105,source_edge,ev.p12.beginning_of_zarathustra_going_under,concerns,n.go_under,source_linked,single,"1,1,1,12",,seg.1.1.1.12,de+ru+en,local_chain,1,,promoted
 m106,bridge_edge,ev.p8.go_under_to_humans,culminates_in,ev.p12.beginning_of_zarathustra_going_under,source_linked,multi,"1,1,1,8","1,1,1,12",seg.1.1.1.8|seg.1.1.1.12,de+ru+en,reasoning_bridge,1,намеченный спуск становится начавшимся путем,promoted
 m107,principle_edge,pr.solitude_as_ripening,supported_by,st.p1.solitary_ripening_10y,distilled_principle,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,principle_support,1,"уединение не пустота, а созревание",promoted
-m108,principle_edge,pr.departure_from_reflective_origin,supported_by,ev.p1.departure_from_origin,authored_commentary,single,"1,1,1,1",,seg.1.1.1.1,authored,symbolic_support,1,озеро читается как отражённый исток,deferred_commentary
+m108,principle_edge,pr.departure_from_reflective_origin,supported_by,ev.p1.departure_from_origin,authored_commentary,single,"1,1,1,1",,seg.1.1.1.1,authored,symbolic_support,1,озеро читается как отражённый исток,promoted
 m109,principle_edge,pr.happiness_is_relational,supported_by,st.p2.solar_happiness_requires_recipients,distilled_principle,single,"1,1,1,2",,seg.1.1.1.2,de+ru+en,principle_support,1,,promoted
 m110,principle_edge,pr.overflow_can_be_received,supported_by,ev.p4.receive_overflow_from_sun,distilled_principle,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,principle_support,1,,promoted
 m111,principle_edge,pr.blessing_is_reciprocal,supported_by,ev.p4.bless_sun_for_overflow,distilled_principle,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,principle_support,1,,promoted
