@@ -13,10 +13,14 @@ TREE_BOUNDED_HOP_REL = Path("tree/concept/becoming/node.json")
 TREE_WORKED_PRINCIPLE_REL = Path(
     "tree/principle/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitude-as-ripening/node.json"
 )
+TREE_WORKED_LINEAGE_REL = Path(
+    "tree/lineage/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/becoming-to-overcoming/node.json"
+)
 
 EXAMPLE_SOURCE_NODE_REL = Path("examples/source_node.example.json")
 EXAMPLE_BOUNDED_HOP_REL = Path("examples/concept_node.example.json")
 EXAMPLE_WORKED_PRINCIPLE_REL = Path("examples/principle_node.example.json")
+EXAMPLE_WORKED_LINEAGE_REL = Path("examples/lineage_node.example.json")
 
 
 def read_json(path: Path) -> object:
@@ -33,6 +37,7 @@ def mirror_pairs(repo_root: Path | None = None) -> list[tuple[Path, Path]]:
         (root / TREE_SOURCE_NODE_REL, root / EXAMPLE_SOURCE_NODE_REL),
         (root / TREE_BOUNDED_HOP_REL, root / EXAMPLE_BOUNDED_HOP_REL),
         (root / TREE_WORKED_PRINCIPLE_REL, root / EXAMPLE_WORKED_PRINCIPLE_REL),
+        (root / TREE_WORKED_LINEAGE_REL, root / EXAMPLE_WORKED_LINEAGE_REL),
     ]
 
 

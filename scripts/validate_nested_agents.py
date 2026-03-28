@@ -20,8 +20,17 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "source_node.example.json",
         "concept_node.example.json",
         "principle_node.example.json",
+        "lineage_node.example.json",
         "tos_tiny_entry_route.example.json",
         "one shared `node_id`",
+        "examples/review/",
+        "docs/REVIEW_CHECKLIST.md",
+    ),
+    "examples/review/AGENTS.md": (
+        "review/archive material",
+        "superseded",
+        "not active canon",
+        "examples/review/calibration-family-pilot/",
         "docs/REVIEW_CHECKLIST.md",
     ),
     "generated/AGENTS.md": (
@@ -71,11 +80,20 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     "tree/AGENTS.md": (
         "canonical authored tree",
         "canonical authored principle nodes",
+        "canonical authored lineage nodes",
         "node.json",
         "examples/principle_node.example.json",
+        "examples/lineage_node.example.json",
         "examples/source_node.example.json",
         "compatibility mirrors",
         "python scripts/validate_tree_example_sync.py",
+    ),
+    "tree/lineage/AGENTS.md": (
+        "canonical authored lineage nodes",
+        "route-local",
+        "node.json",
+        "examples/lineage_node.example.json",
+        "python scripts/validate_tree_node_contracts.py",
     ),
     "tree/principle/AGENTS.md": (
         "canonical authored principle nodes",

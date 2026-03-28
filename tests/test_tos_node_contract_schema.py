@@ -13,6 +13,7 @@ SCHEMA_PATH = REPO_ROOT / "schemas" / "tos-node-contract.schema.json"
 SOURCE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "source_node.example.json"
 CONCEPT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "concept_node.example.json"
 PRINCIPLE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "principle_node.example.json"
+LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
 
 
 def load_json(path: Path) -> object:
@@ -38,6 +39,10 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         assert isinstance(principle_node, dict)
         cls.principle_node = principle_node
 
+        lineage_node = load_json(LINEAGE_NODE_EXAMPLE_PATH)
+        assert isinstance(lineage_node, dict)
+        cls.lineage_node = lineage_node
+
     def collect_errors(self, payload: object) -> list[str]:
         return [error.message for error in self.validator.iter_errors(payload)]
 
@@ -49,6 +54,9 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
     def test_principle_node_example_still_validates(self) -> None:
         self.assertEqual(self.collect_errors(self.principle_node), [])
+
+    def test_lineage_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.lineage_node), [])
 
     def test_all_canonical_tree_nodes_still_validate(self) -> None:
         for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
