@@ -84,3 +84,10 @@ For the current dynamic ledger, that now means:
 - all 18 `event` rows in `event_state_nodes.csv` are marked `promoted`
 - all 9 `state` rows in `event_state_nodes.csv` are marked `promoted`
 - `ev.p5.bee_honey_analogy` remains in `intake/` as `deferred_analogy`
+
+For the current support ledger, that now means:
+
+- 19 core route-bearing `n.*` rows in `nodes.csv` are marked `promoted`
+- `literal.ten_years` and `literal.too_much` remain in `intake/` as
+  `deferred_literal`
+- all other `n.*` rows remain in `intake/` as `deferred_residue`

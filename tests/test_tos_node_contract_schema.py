@@ -24,6 +24,7 @@ ZARATHUSTRA_PRINCIPLE_DIR = (
 LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
 EVENT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "event_node.example.json"
 STATE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "state_node.example.json"
+SUPPORT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "support_node.example.json"
 ZARATHUSTRA_EVENT_DIR = (
     REPO_ROOT
     / "tree"
@@ -36,6 +37,14 @@ ZARATHUSTRA_STATE_DIR = (
     REPO_ROOT
     / "tree"
     / "state"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
+ZARATHUSTRA_SUPPORT_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "support"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
     / "prologue-1"
@@ -77,6 +86,10 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         assert isinstance(state_node, dict)
         cls.state_node = state_node
 
+        support_node = load_json(SUPPORT_NODE_EXAMPLE_PATH)
+        assert isinstance(support_node, dict)
+        cls.support_node = support_node
+
     def collect_errors(self, payload: object) -> list[str]:
         return [error.message for error in self.validator.iter_errors(payload)]
 
@@ -97,6 +110,9 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
     def test_state_node_example_still_validates(self) -> None:
         self.assertEqual(self.collect_errors(self.state_node), [])
+
+    def test_support_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.support_node), [])
 
     def test_all_canonical_tree_nodes_still_validate(self) -> None:
         for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
@@ -130,6 +146,10 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
     def test_zarathustra_route_now_has_nine_canonical_states(self) -> None:
         state_paths = sorted(ZARATHUSTRA_STATE_DIR.rglob("node.json"))
         self.assertEqual(len(state_paths), 9)
+
+    def test_zarathustra_route_now_has_nineteen_canonical_support_nodes(self) -> None:
+        support_paths = sorted(ZARATHUSTRA_SUPPORT_DIR.rglob("node.json"))
+        self.assertEqual(len(support_paths), 19)
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
         payload = copy.deepcopy(self.source_node)

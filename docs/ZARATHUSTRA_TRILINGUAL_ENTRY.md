@@ -226,6 +226,12 @@ That pass promotes the dynamic layer of the bounded route into canon while
 leaving `ev.p5.bee_honey_analogy` visible in `intake/` as a deferred analogy
 residue rather than opening a new analogy family too early.
 
+The next residue-closing step now also stabilizes one route-local `support`
+family under `tree/support/`.
+That pass promotes a bounded reviewed core from the current `n.*` layer into
+canon while leaving literal helper rows and other residue visible in `intake/`
+until a later relation-focused review pass.
+
 ## Restartable checkpoint boundary
 
 A restartable checkpoint pack may accompany this route for operational

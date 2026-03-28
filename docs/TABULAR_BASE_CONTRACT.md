@@ -100,6 +100,20 @@ Its required split is:
 That split lets ToS carry the reviewed dynamic canon in `tree/` while keeping
 the still-deferred analogy residue visible in `intake/`.
 
+## Current support review ledger
+
+`nodes.csv` is now also an explicit review ledger for the bounded `n.*` layer.
+
+Its required split is:
+
+- 19 core route-bearing rows with `status = promoted`
+- 2 literal helper rows with `status = deferred_literal`
+- 27 remaining residue rows with `status = deferred_residue`
+
+That split lets ToS carry one bounded `tree/support/` family without
+prematurely opening many semantic families and without silently dropping the
+rest of the candidate layer.
+
 ## Registries
 
 The current tabular graph layer also keeps vocabulary governance surfaces under

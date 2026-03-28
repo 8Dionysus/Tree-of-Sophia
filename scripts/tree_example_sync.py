@@ -22,6 +22,9 @@ TREE_WORKED_EVENT_REL = Path(
 TREE_WORKED_STATE_REL = Path(
     "tree/state/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/solitary-ripening-10y/node.json"
 )
+TREE_WORKED_SUPPORT_REL = Path(
+    "tree/support/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/zarathustra/node.json"
+)
 
 EXAMPLE_SOURCE_NODE_REL = Path("examples/source_node.example.json")
 EXAMPLE_BOUNDED_HOP_REL = Path("examples/concept_node.example.json")
@@ -29,6 +32,7 @@ EXAMPLE_WORKED_PRINCIPLE_REL = Path("examples/principle_node.example.json")
 EXAMPLE_WORKED_LINEAGE_REL = Path("examples/lineage_node.example.json")
 EXAMPLE_WORKED_EVENT_REL = Path("examples/event_node.example.json")
 EXAMPLE_WORKED_STATE_REL = Path("examples/state_node.example.json")
+EXAMPLE_WORKED_SUPPORT_REL = Path("examples/support_node.example.json")
 
 
 def read_json(path: Path) -> object:
@@ -48,6 +52,7 @@ def mirror_pairs(repo_root: Path | None = None) -> list[tuple[Path, Path]]:
         (root / TREE_WORKED_LINEAGE_REL, root / EXAMPLE_WORKED_LINEAGE_REL),
         (root / TREE_WORKED_EVENT_REL, root / EXAMPLE_WORKED_EVENT_REL),
         (root / TREE_WORKED_STATE_REL, root / EXAMPLE_WORKED_STATE_REL),
+        (root / TREE_WORKED_SUPPORT_REL, root / EXAMPLE_WORKED_SUPPORT_REL),
     ]
 
 

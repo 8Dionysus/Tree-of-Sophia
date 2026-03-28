@@ -41,5 +41,10 @@ This wave gives public ID discipline to:
 
 - source-node scaffolds
 - concept-node scaffolds
+- principle-node scaffolds
+- lineage-node scaffolds
+- event-node scaffolds
+- state-node scaffolds
+- support-node scaffolds
 
 It does not claim a full branch pilot, full corpus taxonomy, or public validator program yet.
