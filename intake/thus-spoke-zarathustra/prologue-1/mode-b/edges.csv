@@ -1,17 +1,17 @@
 edge_id,edge_kind,from_id,predicate_id,to_id,layer,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,witness_scope,connectivity_role,confidence,note,status
 m001,source_edge,n.zarathustra,participates_in,ev.p1.departure_from_origin,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,стартовый пространственный разрыв,promoted
-m002,source_edge,ev.p1.departure_from_origin,leaves,n.homeland,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_residue
-m003,source_edge,ev.p1.departure_from_origin,leaves,n.lake_of_homeland,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_residue
-m004,source_edge,ev.p1.departure_from_origin,goes_to,n.mountains,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_residue
+m002,source_edge,ev.p1.departure_from_origin,leaves,n.homeland,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
+m003,source_edge,ev.p1.departure_from_origin,leaves,n.lake_of_homeland,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
+m004,source_edge,ev.p1.departure_from_origin,goes_to,n.mountains,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m005,source_edge,n.zarathustra,enters_state,st.p1.solitary_ripening_10y,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,десятилетнее уединение как состояние,promoted
-m006,source_edge,st.p1.solitary_ripening_10y,delights_in,n.spirit,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_residue
+m006,source_edge,st.p1.solitary_ripening_10y,delights_in,n.spirit,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m007,source_edge,st.p1.solitary_ripening_10y,delights_in,n.solitude,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m008,source_edge,st.p1.solitary_ripening_10y,duration,literal.ten_years,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_literal
 m009,bridge_edge,st.p1.solitary_ripening_10y,leads_to,ev.p1.heart_transformation,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,reasoning_bridge,1,созревание ведет к внутреннему повороту,promoted
 m010,source_edge,ev.p1.heart_transformation,affects,n.heart,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m011,bridge_edge,ev.p1.heart_transformation,prepares,ev.p1.dawn_address_to_sun,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,reasoning_bridge,1,,promoted
 m012,source_edge,n.zarathustra,performs,ev.p1.dawn_address_to_sun,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
-m013,source_edge,ev.p1.dawn_address_to_sun,occurs_with,n.dawn,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,deferred_residue
+m013,source_edge,ev.p1.dawn_address_to_sun,occurs_with,n.dawn,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m014,source_edge,ev.p1.dawn_address_to_sun,addresses,n.sun,source_linked,single,"1,1,1,1",,seg.1.1.1.1,de+ru+en,local_chain,1,,promoted
 m015,source_edge,n.sun,participates_in,st.p2.solar_happiness_requires_recipients,source_linked,single,"1,1,1,2",,seg.1.1.1.2,de+ru+en,local_chain,1,солнечное счастье задано как отношение,promoted
 m016,source_edge,st.p2.solar_happiness_requires_recipients,concerns,n.happiness,source_linked,single,"1,1,1,2",,seg.1.1.1.2,de+ru+en,local_chain,1,,promoted
@@ -21,19 +21,19 @@ m019,source_edge,n.sun,participates_in,ev.p3.sun_ascends_to_cave_10y,source_link
 m020,source_edge,ev.p3.sun_ascends_to_cave_10y,destination,n.cave,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
 m021,source_edge,ev.p3.sun_ascends_to_cave_10y,duration,literal.ten_years,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_literal
 m022,source_edge,n.sun,participates_in,st.p3.sun_would_grow_sated_without_triad,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,условная конструкция пресыщения,promoted
-m023,source_edge,st.p3.sun_would_grow_sated_without_triad,concerns,n.light,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m024,source_edge,st.p3.sun_would_grow_sated_without_triad,concerns,n.path,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m025,source_edge,st.p3.sun_would_grow_sated_without_triad,prevented_by,n.triad_zarathustra_eagle_serpent,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m026,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.zarathustra,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m027,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.eagle,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m028,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.serpent,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,deferred_residue
-m029,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.morning_wait_for_sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,deferred_residue
-m030,source_edge,ev.p4.morning_wait_for_sun,occurs_every,n.morning,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,deferred_residue
+m023,source_edge,st.p3.sun_would_grow_sated_without_triad,concerns,n.light,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m024,source_edge,st.p3.sun_would_grow_sated_without_triad,concerns,n.path,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m025,source_edge,st.p3.sun_would_grow_sated_without_triad,prevented_by,n.triad_zarathustra_eagle_serpent,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m026,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.zarathustra,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m027,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.eagle,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m028,source_edge,n.triad_zarathustra_eagle_serpent,includes,n.serpent,source_linked,single,"1,1,1,3",,seg.1.1.1.3,de+ru+en,local_chain,1,,promoted
+m029,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.morning_wait_for_sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
+m030,source_edge,ev.p4.morning_wait_for_sun,occurs_every,n.morning,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m031,source_edge,ev.p4.morning_wait_for_sun,targets,n.sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
-m032,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.receive_overflow_from_sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,deferred_residue
+m032,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.receive_overflow_from_sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m033,source_edge,ev.p4.receive_overflow_from_sun,receives,n.overflow,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m034,source_edge,ev.p4.receive_overflow_from_sun,from,n.sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
-m035,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.bless_sun_for_overflow,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,deferred_residue
+m035,source_edge,n.triad_zarathustra_eagle_serpent,performs,ev.p4.bless_sun_for_overflow,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m036,source_edge,ev.p4.bless_sun_for_overflow,blesses,n.sun,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m037,source_edge,ev.p4.bless_sun_for_overflow,for,n.overflow,source_linked,single,"1,1,1,4",,seg.1.1.1.4,de+ru+en,local_chain,1,,promoted
 m038,bridge_edge,ev.p4.receive_overflow_from_sun,prefigures,st.p5.overfull_wisdom,source_linked,multi,"1,1,1,4","1,1,1,5",seg.1.1.1.4|seg.1.1.1.5,de+ru+en,reasoning_bridge,1,внешний overflow затем становится внутренним,promoted
@@ -41,31 +41,31 @@ m039,source_edge,n.zarathustra,enters_state,st.p5.overfull_wisdom,source_linked,
 m040,source_edge,st.p5.overfull_wisdom,concerns,n.wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
 m041,source_edge,ev.p5.bee_honey_analogy,compares_state_to,st.p5.overfull_wisdom,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,образ удерживает логику накопления,deferred_analogy
 m042,source_edge,ev.p5.bee_honey_analogy,uses_image_of,n.bee,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,deferred_analogy
-m043,source_edge,n.bee,gathers,n.honey,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,deferred_residue
+m043,source_edge,n.bee,gathers,n.honey,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,promoted
 m044,source_edge,n.honey,has_quantity,literal.too_much,source_linked,single,"1,1,1,5",,seg.1.1.1.5,de+ru+en,local_chain,1,,deferred_literal
 m045,bridge_edge,st.p5.overfull_wisdom,leads_to,ev.p5_6.need_hands_for_giving,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,избыток ищет адресата,promoted
 m046,source_edge,n.zarathustra,performs,ev.p5_6.need_hands_for_giving,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,,promoted
-m047,source_edge,ev.p5_6.need_hands_for_giving,requires,n.outstretched_hands,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,,deferred_residue
+m047,source_edge,ev.p5_6.need_hands_for_giving,requires,n.outstretched_hands,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,,promoted
 m048,source_edge,ev.p5_6.need_hands_for_giving,motivated_by,st.p5.overfull_wisdom,source_linked,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,de+ru+en,multi_anchor,1,,promoted
 m049,source_edge,n.zarathustra,performs,ev.p6.bestow_and_distribute,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
-m050,source_edge,ev.p6.bestow_and_distribute,has_mode,n.bestowal,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m051,source_edge,ev.p6.bestow_and_distribute,has_mode,n.distribution,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
+m050,source_edge,ev.p6.bestow_and_distribute,has_mode,n.bestowal,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m051,source_edge,ev.p6.bestow_and_distribute,has_mode,n.distribution,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
 m052,source_edge,ev.p6.bestow_and_distribute,targets,n.humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
 m053,source_edge,ev.p6.bestow_and_distribute,continues_until,st.p6.revaluation_of_joy,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
-m054,source_edge,st.p6.revaluation_of_joy,affects,n.wise_among_humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m055,source_edge,n.wise_among_humans,subset_of,n.humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m056,source_edge,n.wise_among_humans,becomes_glad_of,n.folly,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m057,source_edge,st.p6.revaluation_of_joy,affects,n.poor_among_humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m058,source_edge,n.poor_among_humans,subset_of,n.humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
-m059,source_edge,n.poor_among_humans,becomes_glad_of,n.wealth,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,deferred_residue
+m054,source_edge,st.p6.revaluation_of_joy,affects,n.wise_among_humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m055,source_edge,n.wise_among_humans,subset_of,n.humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m056,source_edge,n.wise_among_humans,becomes_glad_of,n.folly,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m057,source_edge,st.p6.revaluation_of_joy,affects,n.poor_among_humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m058,source_edge,n.poor_among_humans,subset_of,n.humans,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
+m059,source_edge,n.poor_among_humans,becomes_glad_of,n.wealth,source_linked,single,"1,1,1,6",,seg.1.1.1.6,de+ru+en,local_chain,1,,promoted
 m060,bridge_edge,ev.p6.bestow_and_distribute,leads_to,ev.p7.descend_into_depth,source_linked,multi,"1,1,1,6","1,1,1,7",seg.1.1.1.6|seg.1.1.1.7,de+ru+en,reasoning_bridge,1,дар требует движения вниз,promoted
 m061,source_edge,n.zarathustra,performs,ev.p7.descend_into_depth,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
 m062,source_edge,ev.p7.descend_into_depth,destination,n.depth,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
 m063,source_edge,ev.p7.descend_into_depth,motivated_by,ev.p6.bestow_and_distribute,source_linked,multi,"1,1,1,6","1,1,1,7",seg.1.1.1.6|seg.1.1.1.7,de+ru+en,multi_anchor,1,,promoted
 m064,source_edge,n.sun,participates_in,ev.p7.sun_evening_underworld_light,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
-m065,source_edge,ev.p7.sun_evening_underworld_light,occurs_in,n.evening,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,deferred_residue
+m065,source_edge,ev.p7.sun_evening_underworld_light,occurs_in,n.evening,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
 m066,source_edge,ev.p7.sun_evening_underworld_light,moves_beyond,n.sea,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
-m067,source_edge,ev.p7.sun_evening_underworld_light,carries,n.light,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,deferred_residue
+m067,source_edge,ev.p7.sun_evening_underworld_light,carries,n.light,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
 m068,source_edge,ev.p7.sun_evening_underworld_light,destination,n.underworld,source_linked,single,"1,1,1,7",,seg.1.1.1.7,de+ru+en,local_chain,1,,promoted
 m069,source_edge,ev.p7_8.descent_named_as_go_under,parallels,ev.p7.descend_into_depth,source_linked,multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,de+ru+en,multi_anchor,1,,promoted
 m070,source_edge,ev.p7_8.descent_named_as_go_under,uses_surface,n.go_under,source_linked,multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,de+ru+en,multi_anchor,1,,promoted
@@ -78,9 +78,9 @@ m076,source_edge,n.zarathustra,performs,ev.p9.request_blessing_from_tranquil_eye
 m077,source_edge,ev.p9.request_blessing_from_tranquil_eye,addresses,n.tranquil_eye,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,promoted
 m078,source_edge,n.tranquil_eye,aspect_of,n.sun,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,солнечный образ сужен до ока,promoted
 m079,source_edge,n.tranquil_eye,participates_in,st.p9.tranquil_eye_without_envy,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,promoted
-m080,source_edge,st.p9.tranquil_eye_without_envy,beholds,n.all_too_great_happiness,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,deferred_residue
-m081,source_edge,st.p9.tranquil_eye_without_envy,excludes,n.envy,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,deferred_residue
-m082,source_edge,ev.p9.request_blessing_from_tranquil_eye,asks_for,n.blessing,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,deferred_residue
+m080,source_edge,st.p9.tranquil_eye_without_envy,beholds,n.all_too_great_happiness,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,promoted
+m081,source_edge,st.p9.tranquil_eye_without_envy,excludes,n.envy,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,promoted
+m082,source_edge,ev.p9.request_blessing_from_tranquil_eye,asks_for,n.blessing,source_linked,single,"1,1,1,9",,seg.1.1.1.9,de+ru+en,local_chain,1,,promoted
 m083,bridge_edge,ev.p9.request_blessing_from_tranquil_eye,prepares,ev.p10.request_blessing_of_cup,source_linked,multi,"1,1,1,9","1,1,1,10",seg.1.1.1.9|seg.1.1.1.10,de+ru+en,reasoning_bridge,1,,promoted
 m084,source_edge,n.zarathustra,performs,ev.p10.request_blessing_of_cup,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
 m085,source_edge,ev.p10.request_blessing_of_cup,addresses,n.tranquil_eye,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
@@ -88,8 +88,8 @@ m086,source_edge,ev.p10.request_blessing_of_cup,targets,n.cup,source_linked,sing
 m087,source_edge,n.cup,participates_in,st.p10.cup_wants_to_overflow,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
 m088,source_edge,st.p10.cup_wants_to_overflow,aims_at,n.overflow,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
 m089,source_edge,n.cup,participates_in,ev.p10.golden_water_flows,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
-m090,source_edge,ev.p10.golden_water_flows,carries,n.water,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,deferred_residue
-m091,source_edge,ev.p10.golden_water_flows,has_quality,n.gold,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,deferred_residue
+m090,source_edge,ev.p10.golden_water_flows,carries,n.water,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
+m091,source_edge,ev.p10.golden_water_flows,has_quality,n.gold,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
 m092,source_edge,ev.p10.golden_water_flows,originates_from,n.cup,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
 m093,bridge_edge,ev.p10.golden_water_flows,leads_to,ev.p10.reflection_of_bliss_is_carried,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,reasoning_bridge,1,,promoted
 m094,source_edge,ev.p10.reflection_of_bliss_is_carried,carries,n.reflection,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,,promoted
@@ -97,7 +97,7 @@ m095,source_edge,n.reflection,reflects,n.bliss,source_linked,single,"1,1,1,10",,
 m096,source_edge,n.bliss,pertains_to,n.sun,source_linked,single,"1,1,1,10",,seg.1.1.1.10,de+ru+en,local_chain,1,твоя отрада относится к светилу,promoted
 m097,bridge_edge,ev.p10.request_blessing_of_cup,prepares,st.p11.cup_wants_to_empty_again,source_linked,multi,"1,1,1,10","1,1,1,11",seg.1.1.1.10|seg.1.1.1.11,de+ru+en,reasoning_bridge,1,,promoted
 m098,source_edge,n.cup,participates_in,st.p11.cup_wants_to_empty_again,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,,promoted
-m099,source_edge,st.p11.cup_wants_to_empty_again,aims_at,n.emptiness,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,,deferred_residue
+m099,source_edge,st.p11.cup_wants_to_empty_again,aims_at,n.emptiness,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,,promoted
 m100,source_edge,n.zarathustra,enters_state,st.p11.zarathustra_wants_to_become_human_again,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,,promoted
 m101,source_edge,st.p11.zarathustra_wants_to_become_human_again,aims_at,n.human,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,,promoted
 m102,source_edge,st.p11.zarathustra_wants_to_become_human_again,mirrors,st.p11.cup_wants_to_empty_again,source_linked,single,"1,1,1,11",,seg.1.1.1.11,de+ru+en,local_chain,1,чаша и Заратустра движутся параллельно,promoted

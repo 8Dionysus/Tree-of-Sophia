@@ -87,15 +87,13 @@ For the current dynamic ledger, that now means:
 
 For the current support ledger, that now means:
 
-- 19 core route-bearing `n.*` rows in `nodes.csv` are marked `promoted`
+- all 46 non-literal `n.*` rows in `nodes.csv` are marked `promoted`
 - `literal.ten_years` and `literal.too_much` remain in `intake/` as
   `deferred_literal`
-- all other `n.*` rows remain in `intake/` as `deferred_residue`
 
 For the current edge ledger, that now means:
 
-- 89 `edges.csv` rows are marked `promoted`
-- 33 rows remain in `intake/` as `deferred_residue`
+- 122 `edges.csv` rows are marked `promoted`
 - 3 rows remain in `intake/` as `deferred_literal`
 - 2 rows remain in `intake/` as `deferred_analogy`
 - 1 row remains in `intake/` as `deferred_commentary`

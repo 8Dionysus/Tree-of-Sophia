@@ -34,8 +34,8 @@ canonical in `tree/`.
 
 That yields one bounded pack of exactly:
 
-- 89 promoted edges
-- 57 `source_edge`
+- 122 promoted edges
+- 90 `source_edge`
 - 11 `bridge_edge`
 - 21 `principle_edge`
 
@@ -60,8 +60,7 @@ collapsing ToS node payloads into the full tabular graph.
 
 Its current required split is:
 
-- 89 `promoted`
-- 33 `deferred_residue`
+- 122 `promoted`
 - 3 `deferred_literal`
 - 2 `deferred_analogy`
 - 1 `deferred_commentary`

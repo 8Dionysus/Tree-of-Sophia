@@ -169,15 +169,14 @@ EXPECTED_EDGE_KIND_COUNTS = Counter(
 )
 EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS = Counter(
     {
-        "source_edge": 57,
+        "source_edge": 90,
         "bridge_edge": 11,
         "principle_edge": 21,
     }
 )
 EXPECTED_EDGE_LEDGER_STATUS_COUNTS = Counter(
     {
-        "promoted": 89,
-        "deferred_residue": 33,
+        "promoted": 122,
         "deferred_literal": 3,
         "deferred_analogy": 2,
         "deferred_commentary": 1,
@@ -200,27 +199,6 @@ PROMOTED_PRINCIPLE_IDS = {
 }
 DEFERRED_COMMENTARY_PRINCIPLE_ID = "pr.departure_from_reflective_origin"
 DEFERRED_ANALOGY_EVENT_STATE_ID = "ev.p5.bee_honey_analogy"
-PROMOTED_SUPPORT_NODE_IDS = {
-    "n.zarathustra",
-    "n.sun",
-    "n.humans",
-    "n.recipients_of_light",
-    "n.human",
-    "n.solitude",
-    "n.heart",
-    "n.happiness",
-    "n.wisdom",
-    "n.overflow",
-    "n.go_under",
-    "n.cave",
-    "n.depth",
-    "n.sea",
-    "n.underworld",
-    "n.tranquil_eye",
-    "n.cup",
-    "n.reflection",
-    "n.bliss",
-}
 DEFERRED_LITERAL_NODE_IDS = {"literal.ten_years", "literal.too_much"}
 
 Issue = tuple[str, str]
@@ -309,7 +287,7 @@ def classify_edge_status(row: dict[str, str], canonical_raw_ids: set[str]) -> st
         return "deferred_analogy"
     if raw_ids & DEFERRED_LITERAL_NODE_IDS:
         return "deferred_literal"
-    return "deferred_residue"
+    return "invalid_residue"
 
 
 def promoted_relation_rows(
@@ -429,27 +407,23 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append(("nodes.csv", f"unknown first_segment_id {row['first_segment_id']}"))
         if row["first_source_secondary"] not in source_secondary_set:
             issues.append(("nodes.csv", f"unknown first_source_secondary {row['first_source_secondary']}"))
-        if row["node_id"] in PROMOTED_SUPPORT_NODE_IDS:
-            if row["status"] != "promoted":
-                issues.append(("nodes.csv", f"{row['node_id']} must be marked promoted"))
-        elif row["node_id"] in DEFERRED_LITERAL_NODE_IDS:
+        if row["node_id"] in DEFERRED_LITERAL_NODE_IDS:
             if row["status"] != "deferred_literal":
                 issues.append(("nodes.csv", f"{row['node_id']} must be marked deferred_literal"))
         else:
-            if row["status"] != "deferred_residue":
-                issues.append(("nodes.csv", f"{row['node_id']} must be marked deferred_residue"))
+            if row["status"] != "promoted":
+                issues.append(("nodes.csv", f"{row['node_id']} must be marked promoted"))
     if len(node_rows) != 48:
         issues.append(("nodes.csv", "expected 48 support-ledger rows for the current bounded route"))
     node_status_counts = Counter(row["status"] for row in node_rows)
     expected_node_status_counts = Counter(
         {
-            "promoted": 19,
+            "promoted": 46,
             "deferred_literal": 2,
-            "deferred_residue": 27,
         }
     )
     if node_status_counts != expected_node_status_counts:
-        issues.append(("nodes.csv", "support-node status split drifted from the expected 19/2/27 ledger"))
+        issues.append(("nodes.csv", "support-node status split drifted from the expected 46/2 ledger"))
 
     def validate_anchor_row(
         *,
@@ -558,12 +532,12 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
     edge_status_counts = Counter(row["status"] for row in edge_rows)
     if edge_status_counts != EXPECTED_EDGE_LEDGER_STATUS_COUNTS:
-        issues.append(("edges.csv", "edge status split drifted from the expected 89/33/3/2/1 ledger"))
+        issues.append(("edges.csv", "edge status split drifted from the expected 122/3/2/1 ledger"))
 
     promoted_edge_rows = promoted_relation_rows(edge_rows, canonical_id_map)
     promoted_edge_kind_counts = Counter(row["edge_kind"] for row in promoted_edge_rows)
     if promoted_edge_kind_counts != EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS:
-        issues.append(("edges.csv", "promoted relation subset drifted from the expected 57/11/21 canonical split"))
+        issues.append(("edges.csv", "promoted relation subset drifted from the expected 90/11/21 canonical split"))
 
     source_tensions = source_payload.get("translation_tensions", [])
     if not isinstance(source_tensions, list):
