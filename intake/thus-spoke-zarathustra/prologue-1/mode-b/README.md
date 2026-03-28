@@ -78,3 +78,9 @@ from `intake/` into `tree/`.
 Some status fields may therefore record review outcomes such as `promoted` or
 `deferred_commentary` without turning this directory itself into canonical tree
 law.
+
+For the current dynamic ledger, that now means:
+
+- all 18 `event` rows in `event_state_nodes.csv` are marked `promoted`
+- all 9 `state` rows in `event_state_nodes.csv` are marked `promoted`
+- `ev.p5.bee_honey_analogy` remains in `intake/` as `deferred_analogy`

@@ -22,6 +22,24 @@ ZARATHUSTRA_PRINCIPLE_DIR = (
     / "prologue-1"
 )
 LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
+EVENT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "event_node.example.json"
+STATE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "state_node.example.json"
+ZARATHUSTRA_EVENT_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "event"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
+ZARATHUSTRA_STATE_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "state"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
 
 
 def load_json(path: Path) -> object:
@@ -51,6 +69,14 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         assert isinstance(lineage_node, dict)
         cls.lineage_node = lineage_node
 
+        event_node = load_json(EVENT_NODE_EXAMPLE_PATH)
+        assert isinstance(event_node, dict)
+        cls.event_node = event_node
+
+        state_node = load_json(STATE_NODE_EXAMPLE_PATH)
+        assert isinstance(state_node, dict)
+        cls.state_node = state_node
+
     def collect_errors(self, payload: object) -> list[str]:
         return [error.message for error in self.validator.iter_errors(payload)]
 
@@ -65,6 +91,12 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
     def test_lineage_node_example_still_validates(self) -> None:
         self.assertEqual(self.collect_errors(self.lineage_node), [])
+
+    def test_event_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.event_node), [])
+
+    def test_state_node_example_still_validates(self) -> None:
+        self.assertEqual(self.collect_errors(self.state_node), [])
 
     def test_all_canonical_tree_nodes_still_validate(self) -> None:
         for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
@@ -82,6 +114,22 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
             "tos.principle.thus-spoke-zarathustra.prologue.departure-from-reflective-origin",
             principle_ids,
         )
+
+    def test_zarathustra_route_now_has_eighteen_canonical_events(self) -> None:
+        event_paths = sorted(ZARATHUSTRA_EVENT_DIR.rglob("node.json"))
+        self.assertEqual(len(event_paths), 18)
+        event_ids = {
+            load_json(path)["node_id"]
+            for path in event_paths
+        }
+        self.assertNotIn(
+            "tos.event.thus-spoke-zarathustra.prologue.bee-honey-analogy",
+            event_ids,
+        )
+
+    def test_zarathustra_route_now_has_nine_canonical_states(self) -> None:
+        state_paths = sorted(ZARATHUSTRA_STATE_DIR.rglob("node.json"))
+        self.assertEqual(len(state_paths), 9)
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
         payload = copy.deepcopy(self.source_node)
