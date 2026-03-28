@@ -27,6 +27,7 @@ ToS may grow multiple node families. At the public baseline, the most important 
 
 - **source nodes**: works, books, passages, fragments, excerpts
 - **concept nodes**: key terms, theses, motifs, semantic fields
+- **principle nodes**: review-gated distilled claims that remain explicitly route-linked
 - **lineage nodes**: schools, streams, genealogies, developmental arcs
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
 - **synthesis nodes**: human-reviewed interpretation that remains explicitly linked to sources
@@ -43,10 +44,11 @@ The first template family stays narrow:
 
 - source nodes
 - concept nodes
+- principle nodes
 
 These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
 
-See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), and [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md) for the compact public scaffold.
+See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), and [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md) for the compact public scaffold.
 
 ## First bounded lineage pilot
 
@@ -115,6 +117,23 @@ Concept nodes remain language-neutral even when their source route is multilingu
 This is still not wider world-thought expansion.
 
 See [ZARATHUSTRA_TRILINGUAL_ENTRY](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the compact route note.
+
+## First route-local principle promotion
+
+At the current post-intake deepening slice, ToS may also promote a narrow
+principle family from the bounded Zarathustra route.
+
+This promotion should stay:
+
+- source-first
+- review-gated
+- route-local
+- bounded rather than atlas-like
+
+The first launch lives under `tree/principle/` and stabilizes only a small
+reviewed principle spine from `prologue-1`.
+It does not widen the current tiny-entry seam and does not yet imply a global
+principle program.
 
 ## Tree-first tiny-entry seam
 

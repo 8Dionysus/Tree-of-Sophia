@@ -10,6 +10,7 @@ Issue: TypeAlias = tuple[str, str]
 REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     "docs/AGENTS.md": (
         "KNOWLEDGE_MODEL.md",
+        "PRINCIPLE_NODE_TEMPLATE.md",
         "ZARATHUSTRA_TRILINGUAL_ENTRY.md",
         "Keep `README.md` as the current public `tos-root`",
         "docs/REVIEW_CHECKLIST.md",
@@ -18,6 +19,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     "examples/AGENTS.md": (
         "source_node.example.json",
         "concept_node.example.json",
+        "principle_node.example.json",
         "tos_tiny_entry_route.example.json",
         "one shared `node_id`",
         "docs/REVIEW_CHECKLIST.md",
@@ -42,11 +44,13 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "tree_example_sync.py",
         "sync_tree_examples.py",
         "validate_tree_example_sync.py",
+        "validate_tree_node_contracts.py",
         "validate_kag_export.py",
         "validate_nested_agents.py",
         "deterministic",
         "tree-to-example compatibility",
         "python scripts/validate_nested_agents.py",
+        "python scripts/validate_tree_node_contracts.py",
         "python scripts/validate_tree_example_sync.py",
         "python scripts/validate_kag_export.py",
     ),
@@ -66,10 +70,19 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "tree/AGENTS.md": (
         "canonical authored tree",
+        "canonical authored principle nodes",
         "node.json",
+        "examples/principle_node.example.json",
         "examples/source_node.example.json",
         "compatibility mirrors",
         "python scripts/validate_tree_example_sync.py",
+    ),
+    "tree/principle/AGENTS.md": (
+        "canonical authored principle nodes",
+        "route-local",
+        "node.json",
+        "examples/principle_node.example.json",
+        "python scripts/validate_tree_node_contracts.py",
     ),
 }
 

@@ -203,6 +203,12 @@ For the current deepening pass, that means:
 This keeps the first route narrow while making its source surface much more
 legible.
 
+The first post-intake canonical deepening step may now also stabilize a narrow
+route-local `principle` family under `tree/principle/`.
+Those principle nodes remain subordinate to the same bounded source route.
+They do not replace the source node and do not widen the current tiny-entry
+seam.
+
 ## Restartable checkpoint boundary
 
 A restartable checkpoint pack may accompany this route for operational

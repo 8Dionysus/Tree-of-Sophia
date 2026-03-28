@@ -4,6 +4,10 @@ This document records the first-wave working law for ToS nodes.
 
 It keeps Tree of Sophia source-first, lineage-aware, and explicit about interpretation layers.
 
+The same minimum contract currently covers source, concept, principle, lineage,
+context, and synthesis nodes unless a more specific family template narrows the
+posture.
+
 ## Minimum node contract
 
 At the first-wave baseline, a node should not be treated as a flat note.

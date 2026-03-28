@@ -10,6 +10,7 @@ It holds:
 
 - canonical authored source nodes
 - canonical authored concept nodes
+- canonical authored principle nodes
 - canonical vocabulary governance registries for the tabular graph layer
 - future canonical authored lineage, context, or synthesis nodes
 
@@ -21,7 +22,8 @@ Treat `tree/` as the canonical authored tree, not as raw witness storage and not
 as a derived export layer.
 Keep one authored object per directory-scoped `node.json`.
 Keep `examples/source_node.example.json` and `examples/concept_node.example.json`
-as compatibility mirrors of the canonical tree rather than a second canon.
+and `examples/principle_node.example.json` as compatibility mirrors of the
+canonical tree rather than a second canon.
 Keep relation names explicit and keep node identity stable.
 
 ## Validation
@@ -29,6 +31,7 @@ Keep relation names explicit and keep node identity stable.
 Run:
 
 ```bash
+python scripts/validate_tree_node_contracts.py
 python scripts/validate_intake_pack.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
