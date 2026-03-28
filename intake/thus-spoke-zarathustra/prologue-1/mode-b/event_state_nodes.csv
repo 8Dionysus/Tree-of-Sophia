@@ -1,29 +1,29 @@
-es_id,kind,label_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,subject_hint,es_class,repeatable,note
-ev.p1.dawn_address_to_sun,event,утреннее обращение к солнцу,single,"1,1,1,1",,seg.1.1.1.1,,,false,
-ev.p1.departure_from_origin,event,уход из родины и озера,single,"1,1,1,1",,seg.1.1.1.1,,,false,стартовый пространственный разрыв | озеро читается как отражённый исток
-ev.p1.heart_transformation,event,преображение сердца,single,"1,1,1,1",,seg.1.1.1.1,,,false,созревание ведет к внутреннему повороту
-st.p1.solitary_ripening_10y,state,десятилетнее горное уединение,single,"1,1,1,1",,seg.1.1.1.1,,,false,"десятилетнее уединение как состояние | созревание ведет к внутреннему повороту | уединение не пустота, а созревание"
-st.p2.solar_happiness_requires_recipients,state,счастье светила требует адресатов света,single,"1,1,1,2",,seg.1.1.1.2,,,false,солнечное счастье задано как отношение | адресаты света держат смысл счастья
-ev.p3.sun_ascends_to_cave_10y,event,десятилетнее восхождение солнца к пещере,single,"1,1,1,3",,seg.1.1.1.3,,,false,
-st.p3.sun_would_grow_sated_without_triad,state,без триады солнце пресытилось бы светом и путем,single,"1,1,1,3",,seg.1.1.1.3,,,false,условная конструкция пресыщения
-ev.p4.bless_sun_for_overflow,event,благословение солнца за избыток,single,"1,1,1,4",,seg.1.1.1.4,,,false,
-ev.p4.morning_wait_for_sun,event,утреннее ожидание солнца,single,"1,1,1,4",,seg.1.1.1.4,,,false,
-ev.p4.receive_overflow_from_sun,event,принятие избытка солнца,multi,"1,1,1,4","1,1,1,5",seg.1.1.1.4|seg.1.1.1.5,,,false,внешний overflow затем становится внутренним
-st.p5.overfull_wisdom,state,пресыщение мудростью,multi,"1,1,1,4","1,1,1,6",seg.1.1.1.4|seg.1.1.1.5|seg.1.1.1.6,,,false,внешний overflow затем становится внутренним | образ удерживает логику накопления | избыток ищет адресата
-ev.p5.bee_honey_analogy,analogy,аналогия пчелы и мёда,single,"1,1,1,5",,seg.1.1.1.5,,,false,образ удерживает логику накопления
-ev.p5_6.need_hands_for_giving,event,нужда в простёртых руках ради дара,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,,,false,избыток ищет адресата
-ev.p6.bestow_and_distribute,event,одаривать и раздавать,multi,"1,1,1,6","1,1,1,7",seg.1.1.1.6|seg.1.1.1.7,,,false,дар требует движения вниз
-ev.p7.descend_into_depth,event,спуск в глубину,multi,"1,1,1,6","1,1,1,8",seg.1.1.1.6|seg.1.1.1.7|seg.1.1.1.8,,,false,дар требует движения вниз | дар и катабасис сцеплены
-st.p6.revaluation_of_joy,state,переоценка радости и меры,single,"1,1,1,6",,seg.1.1.1.6,,,false,
-ev.p7.sun_evening_underworld_light,event,вечерний ход солнца за море с несением света,multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,,,false,
-ev.p7_8.descent_named_as_go_under,event,"нисхождение, названное закатом",multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,,,false,
-ev.p8.go_under_to_humans,event,закатиться к людям,multi,"1,1,1,7","1,1,1,12",seg.1.1.1.12|seg.1.1.1.7|seg.1.1.1.8|seg.1.1.1.9,,,false,намеченный спуск становится начавшимся путем
-ev.p12.beginning_of_zarathustra_going_under,event,начало заката Заратустры,multi,"1,1,1,8","1,1,1,12",seg.1.1.1.11|seg.1.1.1.12|seg.1.1.1.8,,,false,намеченный спуск становится начавшимся путем
-ev.p9.request_blessing_from_tranquil_eye,event,просьба о благословении к спокойному оку,multi,"1,1,1,8","1,1,1,10",seg.1.1.1.10|seg.1.1.1.8|seg.1.1.1.9,,,false,
-ev.p10.request_blessing_of_cup,event,просьба благословить чашу,multi,"1,1,1,9","1,1,1,11",seg.1.1.1.10|seg.1.1.1.11|seg.1.1.1.9,,,false,
-st.p9.tranquil_eye_without_envy,state,спокойное око без зависти,single,"1,1,1,9",,seg.1.1.1.9,,,false,
-ev.p10.golden_water_flows,event,золотистая влага течёт из чаши,single,"1,1,1,10",,seg.1.1.1.10,,,false,
-ev.p10.reflection_of_bliss_is_carried,event,отблеск отрады несётся повсюду,single,"1,1,1,10",,seg.1.1.1.10,,,false,
-st.p10.cup_wants_to_overflow,state,чаша хочет перелиться,single,"1,1,1,10",,seg.1.1.1.10,,,false,
-st.p11.cup_wants_to_empty_again,state,чаша хочет снова стать пустой,multi,"1,1,1,10","1,1,1,11",seg.1.1.1.10|seg.1.1.1.11,,,false,чаша и Заратустра движутся параллельно
-st.p11.zarathustra_wants_to_become_human_again,state,Заратустра хочет снова стать человеком,multi,"1,1,1,11","1,1,1,12",seg.1.1.1.11|seg.1.1.1.12,,,false,чаша и Заратустра движутся параллельно | возвращение удерживается как акт
+es_id,kind,label_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,subject_hint,es_class,repeatable,status,note
+ev.p1.dawn_address_to_sun,event,утреннее обращение к солнцу,single,"1,1,1,1",,seg.1.1.1.1,,,false,promoted,
+ev.p1.departure_from_origin,event,уход из родины и озера,single,"1,1,1,1",,seg.1.1.1.1,,,false,promoted,стартовый пространственный разрыв | озеро читается как отражённый исток
+ev.p1.heart_transformation,event,преображение сердца,single,"1,1,1,1",,seg.1.1.1.1,,,false,promoted,созревание ведет к внутреннему повороту
+st.p1.solitary_ripening_10y,state,десятилетнее горное уединение,single,"1,1,1,1",,seg.1.1.1.1,,,false,promoted,"десятилетнее уединение как состояние | созревание ведет к внутреннему повороту | уединение не пустота, а созревание"
+st.p2.solar_happiness_requires_recipients,state,счастье светила требует адресатов света,single,"1,1,1,2",,seg.1.1.1.2,,,false,promoted,солнечное счастье задано как отношение | адресаты света держат смысл счастья
+ev.p3.sun_ascends_to_cave_10y,event,десятилетнее восхождение солнца к пещере,single,"1,1,1,3",,seg.1.1.1.3,,,false,promoted,
+st.p3.sun_would_grow_sated_without_triad,state,без триады солнце пресытилось бы светом и путем,single,"1,1,1,3",,seg.1.1.1.3,,,false,promoted,условная конструкция пресыщения
+ev.p4.bless_sun_for_overflow,event,благословение солнца за избыток,single,"1,1,1,4",,seg.1.1.1.4,,,false,promoted,
+ev.p4.morning_wait_for_sun,event,утреннее ожидание солнца,single,"1,1,1,4",,seg.1.1.1.4,,,false,promoted,
+ev.p4.receive_overflow_from_sun,event,принятие избытка солнца,multi,"1,1,1,4","1,1,1,5",seg.1.1.1.4|seg.1.1.1.5,,,false,promoted,внешний overflow затем становится внутренним
+st.p5.overfull_wisdom,state,пресыщение мудростью,multi,"1,1,1,4","1,1,1,6",seg.1.1.1.4|seg.1.1.1.5|seg.1.1.1.6,,,false,promoted,внешний overflow затем становится внутренним | образ удерживает логику накопления | избыток ищет адресата
+ev.p5.bee_honey_analogy,analogy,аналогия пчелы и мёда,single,"1,1,1,5",,seg.1.1.1.5,,,false,deferred_analogy,образ удерживает логику накопления
+ev.p5_6.need_hands_for_giving,event,нужда в простёртых руках ради дара,multi,"1,1,1,5","1,1,1,6",seg.1.1.1.5|seg.1.1.1.6,,,false,promoted,избыток ищет адресата
+ev.p6.bestow_and_distribute,event,одаривать и раздавать,multi,"1,1,1,6","1,1,1,7",seg.1.1.1.6|seg.1.1.1.7,,,false,promoted,дар требует движения вниз
+ev.p7.descend_into_depth,event,спуск в глубину,multi,"1,1,1,6","1,1,1,8",seg.1.1.1.6|seg.1.1.1.7|seg.1.1.1.8,,,false,promoted,дар требует движения вниз | дар и катабасис сцеплены
+st.p6.revaluation_of_joy,state,переоценка радости и меры,single,"1,1,1,6",,seg.1.1.1.6,,,false,promoted,
+ev.p7.sun_evening_underworld_light,event,вечерний ход солнца за море с несением света,multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,,,false,promoted,
+ev.p7_8.descent_named_as_go_under,event,"нисхождение, названное закатом",multi,"1,1,1,7","1,1,1,8",seg.1.1.1.7|seg.1.1.1.8,,,false,promoted,
+ev.p8.go_under_to_humans,event,закатиться к людям,multi,"1,1,1,7","1,1,1,12",seg.1.1.1.12|seg.1.1.1.7|seg.1.1.1.8|seg.1.1.1.9,,,false,promoted,намеченный спуск становится начавшимся путем
+ev.p12.beginning_of_zarathustra_going_under,event,начало заката Заратустры,multi,"1,1,1,8","1,1,1,12",seg.1.1.1.11|seg.1.1.1.12|seg.1.1.1.8,,,false,promoted,намеченный спуск становится начавшимся путем
+ev.p9.request_blessing_from_tranquil_eye,event,просьба о благословении к спокойному оку,multi,"1,1,1,8","1,1,1,10",seg.1.1.1.10|seg.1.1.1.8|seg.1.1.1.9,,,false,promoted,
+ev.p10.request_blessing_of_cup,event,просьба благословить чашу,multi,"1,1,1,9","1,1,1,11",seg.1.1.1.10|seg.1.1.1.11|seg.1.1.1.9,,,false,promoted,
+st.p9.tranquil_eye_without_envy,state,спокойное око без зависти,single,"1,1,1,9",,seg.1.1.1.9,,,false,promoted,
+ev.p10.golden_water_flows,event,золотистая влага течёт из чаши,single,"1,1,1,10",,seg.1.1.1.10,,,false,promoted,
+ev.p10.reflection_of_bliss_is_carried,event,отблеск отрады несётся повсюду,single,"1,1,1,10",,seg.1.1.1.10,,,false,promoted,
+st.p10.cup_wants_to_overflow,state,чаша хочет перелиться,single,"1,1,1,10",,seg.1.1.1.10,,,false,promoted,
+st.p11.cup_wants_to_empty_again,state,чаша хочет снова стать пустой,multi,"1,1,1,10","1,1,1,11",seg.1.1.1.10|seg.1.1.1.11,,,false,promoted,чаша и Заратустра движутся параллельно
+st.p11.zarathustra_wants_to_become_human_again,state,Заратустра хочет снова стать человеком,multi,"1,1,1,11","1,1,1,12",seg.1.1.1.11|seg.1.1.1.12,,,false,promoted,чаша и Заратустра движутся параллельно | возвращение удерживается как акт

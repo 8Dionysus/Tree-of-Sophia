@@ -29,6 +29,8 @@ ToS may grow multiple node families. At the public baseline, the most important 
 - **concept nodes**: key terms, theses, motifs, semantic fields
 - **principle nodes**: review-gated distilled claims that remain explicitly route-linked
 - **lineage nodes**: schools, streams, genealogies, developmental arcs
+- **event nodes**: review-gated route-local movements that keep dynamic transitions legible
+- **state nodes**: review-gated route-local conditions that keep held pressures and stances legible
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
 - **synthesis nodes**: human-reviewed interpretation that remains explicitly linked to sources
 
@@ -45,10 +47,12 @@ The first template family stays narrow:
 - source nodes
 - concept nodes
 - principle nodes
+- event nodes
+- state nodes
 
 These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
 
-See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), and [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md) for the compact public scaffold.
+See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), and [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md) for the compact public scaffold.
 
 ## First bounded lineage pilot
 
@@ -170,6 +174,32 @@ It ties together:
 This is a real canonical branch handle inside `tree/lineage/`.
 It does not yet reactivate the broader calibration-family pilot as live canon.
 
+## First route-local event and state canonization
+
+At the current dynamic-transfer slice, ToS may also stabilize route-local event
+and state families for the same bounded Zarathustra route.
+
+This canonization should stay:
+
+- source-first
+- bounded
+- review-gated
+- route-local rather than atlas-like
+
+The first live dynamic families use:
+
+- `tree/event/`
+- `tree/state/`
+
+They carry:
+
+- 18 canonical event nodes promoted from the bounded intake pack
+- 9 canonical state nodes promoted from the bounded intake pack
+- one remaining analogy row left in `intake/` as `deferred_analogy`
+
+This pass transfers the dynamic layer into ToS without opening a separate
+analogy family and without changing the tiny-entry export seam.
+
 ## Tree-first tiny-entry seam
 
 At the current wave, ToS may also publish one tree-first tiny-entry seam for humans and smaller models without replacing authored node law.
@@ -220,6 +250,8 @@ The current bounded Zarathustra route also keeps a deliberate split:
 
 - `tree/source/.../node.json` remains the authored source-node canon
 - `intake/.../mode-b/*.csv` remains the candidate tabular base pack
+- `tree/event/.../node.json` and `tree/state/.../node.json` now carry the
+  reviewed dynamic canon promoted from that pack
 
 Those surfaces may mirror one another in bounded ways.
 They do not replace one another.

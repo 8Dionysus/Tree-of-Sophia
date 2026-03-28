@@ -10,6 +10,8 @@ It holds:
 
 - canonical authored source nodes
 - canonical authored concept nodes
+- canonical authored event nodes
+- canonical authored state nodes
 - canonical authored principle nodes
 - canonical authored lineage nodes
 - canonical vocabulary governance registries for the tabular graph layer
@@ -24,8 +26,9 @@ as a derived export layer.
 Keep one authored object per directory-scoped `node.json`.
 Keep `examples/source_node.example.json` and `examples/concept_node.example.json`
 and `examples/principle_node.example.json` and
-`examples/lineage_node.example.json` as compatibility mirrors of the canonical
-tree rather than a second canon.
+`examples/lineage_node.example.json` and `examples/event_node.example.json` and
+`examples/state_node.example.json` as compatibility mirrors of the canonical tree
+rather than a second canon.
 Keep relation names explicit and keep node identity stable.
 
 ## Validation

@@ -220,6 +220,12 @@ The next branch-deepening step may now also stabilize one live route-local
 That node names the current bounded route explicitly without reactivating the
 older broad calibration-family pilot as live canon.
 
+The next local transfer step now also stabilizes route-local `event` and
+`state` families under `tree/event/` and `tree/state/`.
+That pass promotes the dynamic layer of the bounded route into canon while
+leaving `ev.p5.bee_honey_analogy` visible in `intake/` as a deferred analogy
+residue rather than opening a new analogy family too early.
+
 ## Restartable checkpoint boundary
 
 A restartable checkpoint pack may accompany this route for operational

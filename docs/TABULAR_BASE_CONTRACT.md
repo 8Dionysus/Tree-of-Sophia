@@ -71,7 +71,7 @@ nodes:
 node_id,label_ru,node_class,layer,first_segment_id,first_source_secondary,canonical_label,label_en,status,note
 
 event_state_nodes:
-es_id,kind,label_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,subject_hint,es_class,repeatable,note
+es_id,kind,label_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,subject_hint,es_class,repeatable,status,note
 
 edges:
 edge_id,edge_kind,from_id,predicate_id,to_id,layer,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,witness_scope,connectivity_role,confidence,note
@@ -85,6 +85,20 @@ gloss_id,witness_id,segment_id,source_secondary,token_or_phrase,normalized_core,
 principles:
 principle_id,layer,formula_ru,anchor_mode,anchor_start_secondary,anchor_end_secondary,anchor_segment_ids,status,note
 ```
+
+## Current dynamic review ledger
+
+`event_state_nodes.csv` is now also an explicit review ledger for the bounded
+route.
+
+Its required split is:
+
+- 18 `event` rows with `status = promoted`
+- 9 `state` rows with `status = promoted`
+- 1 `analogy` row with `status = deferred_analogy`
+
+That split lets ToS carry the reviewed dynamic canon in `tree/` while keeping
+the still-deferred analogy residue visible in `intake/`.
 
 ## Registries
 

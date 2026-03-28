@@ -96,6 +96,7 @@ EXPECTED_HEADERS = {
         "subject_hint",
         "es_class",
         "repeatable",
+        "status",
         "note",
     ],
     "edges.csv": [
@@ -181,6 +182,7 @@ PROMOTED_PRINCIPLE_IDS = {
     "pr.beginning_through_going_under",
 }
 DEFERRED_COMMENTARY_PRINCIPLE_ID = "pr.departure_from_reflective_origin"
+DEFERRED_ANALOGY_EVENT_STATE_ID = "ev.p5.bee_honey_analogy"
 
 Issue = tuple[str, str]
 
@@ -345,6 +347,32 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         )
         if parse_bool(row["repeatable"]) is None:
             issues.append(("event_state_nodes.csv", f"{row['es_id']} has invalid repeatable value {row['repeatable']}"))
+        if row["kind"] == "event":
+            if row["status"] != "promoted":
+                issues.append(("event_state_nodes.csv", f"{row['es_id']} must be marked promoted"))
+        elif row["kind"] == "state":
+            if row["status"] != "promoted":
+                issues.append(("event_state_nodes.csv", f"{row['es_id']} must be marked promoted"))
+        elif row["kind"] == "analogy":
+            if row["es_id"] != DEFERRED_ANALOGY_EVENT_STATE_ID:
+                issues.append(("event_state_nodes.csv", f"unexpected analogy row {row['es_id']}"))
+            if row["status"] != "deferred_analogy":
+                issues.append(("event_state_nodes.csv", f"{row['es_id']} must be marked deferred_analogy"))
+        else:
+            issues.append(("event_state_nodes.csv", f"unexpected kind {row['kind']}"))
+
+    if len(es_rows) != 28:
+        issues.append(("event_state_nodes.csv", "expected 28 event/state ledger rows for the current bounded route"))
+    es_status_counts = Counter((row["kind"], row["status"]) for row in es_rows)
+    expected_es_status_counts = Counter(
+        {
+            ("event", "promoted"): 18,
+            ("state", "promoted"): 9,
+            ("analogy", "deferred_analogy"): 1,
+        }
+    )
+    if es_status_counts != expected_es_status_counts:
+        issues.append(("event_state_nodes.csv", "event/state status split drifted from the expected 18/9/1 ledger"))
 
     for row in principle_rows:
         validate_anchor_row(

@@ -1,0 +1,38 @@
+{
+  "node_id": "tos.state.thus-spoke-zarathustra.prologue.zarathustra-wants-to-become-human-again",
+  "node_type": "state",
+  "source_anchor": "Friedrich Nietzsche, Also sprach Zarathustra, Zarathustra's Vorrede 1, route-local state surface grounded through tos.source.thus-spoke-zarathustra.prologue and supported by seg.1.1.1.11|seg.1.1.1.12",
+  "key_terms": [
+    "Zarathustra",
+    "human again",
+    "return"
+  ],
+  "distilled_thesis": "In parallel with the cup, Zarathustra holds the state of wanting to become human again, so return appears as an active readiness rather than a completed fact.",
+  "relations": [
+    {
+      "relation": "commentary-on",
+      "target_ref": "tos.source.thus-spoke-zarathustra.prologue"
+    },
+    {
+      "relation": "parallel",
+      "target_ref": "tos.lineage.thus-spoke-zarathustra.prologue.becoming-to-overcoming"
+    },
+    {
+      "relation": "parallel",
+      "target_ref": "tos.principle.thus-spoke-zarathustra.prologue.return-as-action"
+    },
+    {
+      "relation": "predecessor",
+      "target_ref": "tos.event.thus-spoke-zarathustra.prologue.beginning-of-zarathustra-going-under"
+    },
+    {
+      "relation": "parallel",
+      "target_ref": "tos.state.thus-spoke-zarathustra.prologue.cup-wants-to-empty-again"
+    }
+  ],
+  "interpretation_layers": [
+    "source_linked",
+    "distilled_thesis",
+    "commentary"
+  ]
+}
