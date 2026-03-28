@@ -230,7 +230,13 @@ The next residue-closing step now also stabilizes one route-local `support`
 family under `tree/support/`.
 That pass promotes a bounded reviewed core from the current `n.*` layer into
 canon while leaving literal helper rows and other residue visible in `intake/`
-until a later relation-focused review pass.
+until the dedicated relation-focused review pass.
+
+That dedicated relation-focused review pass now also stabilizes one route-local
+canonical relation pack under `tree/relations/`.
+It promotes only those `edges.csv` rows whose endpoints are already canonical,
+rewrites them to `tos.*` ids, and leaves wider residue visibly deferred in the
+intake ledger rather than pretending the whole graph has already been settled.
 
 ## Restartable checkpoint boundary
 

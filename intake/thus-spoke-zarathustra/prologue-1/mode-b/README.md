@@ -91,3 +91,15 @@ For the current support ledger, that now means:
 - `literal.ten_years` and `literal.too_much` remain in `intake/` as
   `deferred_literal`
 - all other `n.*` rows remain in `intake/` as `deferred_residue`
+
+For the current edge ledger, that now means:
+
+- 89 `edges.csv` rows are marked `promoted`
+- 33 rows remain in `intake/` as `deferred_residue`
+- 3 rows remain in `intake/` as `deferred_literal`
+- 2 rows remain in `intake/` as `deferred_analogy`
+- 1 row remains in `intake/` as `deferred_commentary`
+
+Those promoted rows now mirror into the route-local canonical relation pack at
+`tree/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv`
+while this directory stays visibly provisional.
