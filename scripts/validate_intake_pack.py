@@ -165,6 +165,22 @@ EXPECTED_EDGE_KIND_COUNTS = Counter(
         "principle_edge": 22,
     }
 )
+PROMOTED_PRINCIPLE_IDS = {
+    "pr.solitude_as_ripening",
+    "pr.wisdom_can_overfill",
+    "pr.happiness_is_relational",
+    "pr.blessing_is_reciprocal",
+    "pr.excess_seeks_recipients",
+    "pr.overflow_can_be_received",
+    "pr.descent_is_required_by_gift",
+    "pr.gift_has_dual_mode",
+    "pr.go_under_is_human_name",
+    "pr.reflected_light_can_be_carried",
+    "pr.tranquil_vision_without_envy",
+    "pr.return_as_action",
+    "pr.beginning_through_going_under",
+}
+DEFERRED_COMMENTARY_PRINCIPLE_ID = "pr.departure_from_reflective_origin"
 
 Issue = tuple[str, str]
 
@@ -339,8 +355,20 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             anchor_end_secondary=row["anchor_end_secondary"],
             anchor_segment_ids=row["anchor_segment_ids"],
         )
+        if row["principle_id"] in PROMOTED_PRINCIPLE_IDS:
+            if row["status"] != "promoted":
+                issues.append(("principles.csv", f"{row['principle_id']} must be marked promoted"))
+        elif row["principle_id"] == DEFERRED_COMMENTARY_PRINCIPLE_ID:
+            if row["status"] != "deferred_commentary":
+                issues.append(("principles.csv", f"{row['principle_id']} must be marked deferred_commentary"))
+        else:
+            issues.append(("principles.csv", f"unexpected principle id {row['principle_id']}"))
     if len(principle_rows) != 14:
         issues.append(("principles.csv", "expected 14 principle rows for the current bounded route"))
+    actual_principle_ids = {row["principle_id"] for row in principle_rows}
+    expected_principle_ids = PROMOTED_PRINCIPLE_IDS | {DEFERRED_COMMENTARY_PRINCIPLE_ID}
+    if actual_principle_ids != expected_principle_ids:
+        issues.append(("principles.csv", "principle id set drifted from the current bounded route"))
 
     for row in edge_rows:
         if row["from_id"] not in graph_ids:

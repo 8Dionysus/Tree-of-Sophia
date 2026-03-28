@@ -177,7 +177,7 @@ Related roles:
 
 ## Current status
 
-This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the first route-local canonical principle family for that same route, and the first live route-local lineage node tying that bounded branch together.
+This repository now holds its public governance, knowledge-model, growth-law, first corpus scaffold, first bounded lineage pilot, pre-expansion soil surfaces, one bounded trilingual source-entry route, one tree-first tiny-entry seam for bounded authored entry, a primary witness layer, a prepared intake layer, the first seeded canonical tree layer for the current Zarathustra route, the now effectively complete route-local distilled principle spine for that same route, and the first live route-local lineage node tying that bounded branch together.
 
 The immediate task is to prove that bounded trilingual Zarathustra route and its tree-first tiny-entry seam under review before wider corpus movement broadens.
 
@@ -196,7 +196,7 @@ That means:
 - keeping the pre-expansion soil surfaces visible as the gate-setting prior layer
 - opening one bounded trilingual Zarathustra prologue route with a shared `node_id`
 - grounding `becoming` and `overcoming` more explicitly in that route without language-splitting concept identity
-- promoting a first route-local principle family from reviewed intake without widening the branch
+- closing the route-local distilled principle spine from reviewed intake without widening the branch and while deferring one commentary-like row by family boundary
 - keeping `README.md` as the public `tos-root` while distinguishing canonical tree, capsule, public compatibility authority, and fallback surfaces inside ToS
 
 ## Intended scope

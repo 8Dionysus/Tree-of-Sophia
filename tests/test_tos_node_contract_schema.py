@@ -13,6 +13,14 @@ SCHEMA_PATH = REPO_ROOT / "schemas" / "tos-node-contract.schema.json"
 SOURCE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "source_node.example.json"
 CONCEPT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "concept_node.example.json"
 PRINCIPLE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "principle_node.example.json"
+ZARATHUSTRA_PRINCIPLE_DIR = (
+    REPO_ROOT
+    / "tree"
+    / "principle"
+    / "friedrich-nietzsche"
+    / "thus-spoke-zarathustra"
+    / "prologue-1"
+)
 LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
 
 
@@ -62,6 +70,18 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 self.assertEqual(self.collect_errors(load_json(path)), [])
+
+    def test_zarathustra_route_now_has_thirteen_canonical_principles(self) -> None:
+        principle_paths = sorted(ZARATHUSTRA_PRINCIPLE_DIR.rglob("node.json"))
+        self.assertEqual(len(principle_paths), 13)
+        principle_ids = {
+            load_json(path)["node_id"]
+            for path in principle_paths
+        }
+        self.assertNotIn(
+            "tos.principle.thus-spoke-zarathustra.prologue.departure-from-reflective-origin",
+            principle_ids,
+        )
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
         payload = copy.deepcopy(self.source_node)
