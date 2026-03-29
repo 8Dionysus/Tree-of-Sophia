@@ -116,6 +116,22 @@ One compact path for the current pilot wave:
 This path does not prove canon.
 It prepares a disciplined route toward later growth.
 
+### Memory bridge fragment
+
+For the current public bridge-bearing memo pilot, ToS may expose one bounded
+fragment that downstream AoA layers can cite without treating compost doctrine
+as graph truth, routing authority, or operational ownership.
+
+That fragment should stay:
+
+- source-first
+- non-identity
+- reviewable
+- subordinate to authored ToS doctrine
+
+It may support memo-side or KAG-side bridge readiness references.
+It does not move memory, runtime, or derived-substrate authority into ToS.
+
 ## Ownership boundary
 
 Context compost does not move operational ownership into ToS.
