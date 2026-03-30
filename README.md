@@ -134,8 +134,10 @@ The operating distinction matters:
 - `examples/` remains a public compatibility seam during the current transition
 - `generated/` remains derived and downstream-facing
 
-The root workbook carrier may inform these layers, but it is not itself a
-canonical ToS surface.
+The current route-local workbook carrier at
+`intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
+may inform these layers, but it is a staging artifact rather than a canonical
+ToS surface.
 
 ## What belongs here
 

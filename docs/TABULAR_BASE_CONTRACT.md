@@ -3,8 +3,20 @@
 This document defines the current tabular base contract for the bounded
 `thus-spoke-zarathustra/prologue-1` intake route.
 
-It treats the root workbook carrier as a staging artifact.
-It does not treat the workbook itself as ToS canon.
+It treats the current route-local workbook carrier at
+`intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
+as a staging artifact.
+It does not treat that workbook itself as ToS canon.
+
+Only one live workbook carrier should remain per bounded route directory at a
+time.
+For this route, that means keeping a single live workbook under
+`intake/thus-spoke-zarathustra/prologue-1/carriers/`.
+When a new carrier supersedes the current one for the same route, replace the
+file rather than accumulating versioned siblings in that active route-local
+path.
+Future chapters should keep their own route-local carrier files under their
+own intake directories rather than widening one workbook across the whole book.
 
 ## Role
 

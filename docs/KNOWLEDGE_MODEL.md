@@ -338,8 +338,9 @@ ToS now also keeps distinct repository-facing layers for how material enters and
 These layers may point to one another.
 They should not be silently collapsed into one interchangeable surface.
 
-The current workbook carrier may seed these layers, but it is not itself a
-canonical ToS surface.
+The current route-local workbook carrier at
+`intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
+may seed these layers, but it is not itself a canonical ToS surface.
 
 The current bounded Zarathustra route also keeps a deliberate split:
 

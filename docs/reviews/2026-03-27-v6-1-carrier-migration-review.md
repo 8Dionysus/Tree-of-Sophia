@@ -4,7 +4,9 @@ Date: 2026-03-27
 
 ## What Changed
 
-- adopted the `v6.1` workbook as a carrier rather than a canonical repo surface
+- adopted the `v6.1` workbook as the current live carrier at
+  `intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
+  rather than as a canonical repo surface
 - migrated the bounded intake route to the 9-table tabular base contract
 - replaced the active segment spine with `seg.1.1.1.n`
 - moved graph vocabulary governance into tracked registries under `tree/`
@@ -16,7 +18,8 @@ Date: 2026-03-27
   a second source of truth
 - `intake/.../mode-b/*.csv` now carries the candidate tabular base pack
 - `tree/registries/*.csv` now carries predicate and class governance surfaces
-- the root workbook remains a carrier and review artifact, not repo canon
+- the single live route-local carrier workbook remains a carrier and review
+  artifact, not repo canon
 
 ## Residual Boundaries
 

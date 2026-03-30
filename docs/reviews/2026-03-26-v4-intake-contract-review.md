@@ -17,7 +17,8 @@ This review records the pre-`v6.1` intake contract before the route moved from
 ## Highest-Risk Checklist Items
 
 - `yes` `sources/`, `intake/`, and `tree/` remain visibly distinct
-- `yes` the workbook remains an audit scaffold, not a second canon
+- `yes` the workbook audit scaffold remains outside the current route-local
+  live carrier slot and does not become a second canon
 - `yes` at that stage `segment_id` stayed aligned to the then-current
   canonical ToS route ids `zv1-*`
 - `yes` raw tables stay candidate-only and do not promote into `tree/`
