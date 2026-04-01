@@ -1,0 +1,48 @@
+schema_version: work_quest_v1
+id: TOS-Q-0002
+title: Harden identifier discipline and node-template follow-through without flattening authored meaning into generic backlog
+summary: Use quests for source-first template and ID hardening work while keeping authored knowledge in its proper homes.
+repo: Tree-of-Sophia
+owner_surface: identifiers/templates
+theme_ref: ''
+milestone_ref: ''
+kind: guardrail
+state: triaged
+band: frontier
+difficulty: d3_seam
+risk: r2_contract
+control_mode: human_codex_copilot
+delegate_tier: planner
+fallback_tier: verifier
+wrapper_class: hybrid
+write_scope: docs_only
+split_required: true
+complexity_basis:
+  scope: 2
+  ambiguity: 1
+  boundary: 2
+  verification: 2
+parent: null
+depends_on: []
+activation:
+  mode: on_review_of
+  ref: docs/IDENTIFIER_DISCIPLINE.md
+  note: review when node-template or identifier surfaces change
+anchor_ref:
+  artifact: node-contract
+  ref: docs/NODE_CONTRACT.md
+handoff_role: tos-maintainer
+evidence:
+  - identifier and template gaps receive stable quest IDs
+  - authored meaning remains in source and node surfaces
+  - questbook stays operational rather than interpretive
+harvest:
+  target: none
+opened_at: '2026-03-31'
+touched_at: '2026-03-31'
+tags:
+  - identifiers
+  - templates
+  - source-first
+notes: ''
+public_safe: true

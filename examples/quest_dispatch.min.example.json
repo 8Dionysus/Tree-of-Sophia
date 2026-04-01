@@ -1,0 +1,94 @@
+[
+  {
+    "schema_version": "quest_dispatch_v1",
+    "id": "TOS-Q-0001",
+    "repo": "Tree-of-Sophia",
+    "state": "ready",
+    "band": "frontier",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "control_mode": "human_codex_copilot",
+    "delegate_tier": "conductor",
+    "split_required": true,
+    "write_scope": "repo_local",
+    "requires_artifacts": [
+      "bounded_plan",
+      "work_result",
+      "verification_result"
+    ],
+    "activation_mode": "immediate",
+    "source_path": "quests/TOS-Q-0001.yaml",
+    "public_safe": true,
+    "fallback_tier": "deep",
+    "wrapper_class": "codex_primary"
+  },
+  {
+    "schema_version": "quest_dispatch_v1",
+    "id": "TOS-Q-0002",
+    "repo": "Tree-of-Sophia",
+    "state": "triaged",
+    "band": "frontier",
+    "difficulty": "d3_seam",
+    "risk": "r2_contract",
+    "control_mode": "human_codex_copilot",
+    "delegate_tier": "planner",
+    "split_required": true,
+    "write_scope": "docs_only",
+    "requires_artifacts": [
+      "bounded_plan",
+      "guardrail_check",
+      "verification_result"
+    ],
+    "activation_mode": "on_review_of",
+    "source_path": "quests/TOS-Q-0002.yaml",
+    "public_safe": true,
+    "fallback_tier": "verifier",
+    "wrapper_class": "hybrid"
+  },
+  {
+    "schema_version": "quest_dispatch_v1",
+    "id": "TOS-Q-0003",
+    "repo": "Tree-of-Sophia",
+    "state": "captured",
+    "band": "near",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "control_mode": "human_codex_copilot",
+    "delegate_tier": "conductor",
+    "split_required": true,
+    "write_scope": "repo_local",
+    "requires_artifacts": [
+      "bounded_plan",
+      "work_result",
+      "verification_result"
+    ],
+    "activation_mode": "manual",
+    "source_path": "quests/TOS-Q-0003.yaml",
+    "public_safe": true,
+    "fallback_tier": "deep",
+    "wrapper_class": "codex_primary"
+  },
+  {
+    "schema_version": "quest_dispatch_v1",
+    "id": "TOS-Q-0004",
+    "repo": "Tree-of-Sophia",
+    "state": "captured",
+    "band": "latent",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "control_mode": "human_gate",
+    "delegate_tier": "conductor",
+    "split_required": true,
+    "write_scope": "cross_repo_request",
+    "requires_artifacts": [
+      "bounded_plan",
+      "work_result",
+      "verification_result"
+    ],
+    "activation_mode": "manual",
+    "source_path": "quests/TOS-Q-0004.yaml",
+    "public_safe": true,
+    "fallback_tier": "deep",
+    "wrapper_class": "human_only"
+  }
+]

@@ -1,0 +1,46 @@
+schema_version: work_quest_v1
+id: TOS-Q-0001
+title: Land a ToS-tailored questbook surface limited to source, identifier, intake, and compatibility obligations
+summary: Create a ToS-specific questbook shape that serves the architecture without turning philosophy into generic backlog.
+repo: Tree-of-Sophia
+owner_surface: questbook/public-surface
+theme_ref: ''
+milestone_ref: ''
+kind: rollout
+state: ready
+band: frontier
+difficulty: d4_architecture
+risk: r2_contract
+control_mode: human_codex_copilot
+delegate_tier: conductor
+fallback_tier: deep
+wrapper_class: codex_primary
+write_scope: repo_local
+split_required: true
+complexity_basis:
+  scope: 2
+  ambiguity: 2
+  boundary: 2
+  verification: 2
+parent: null
+depends_on: []
+activation:
+  mode: immediate
+anchor_ref:
+  artifact: charter
+  ref: CHARTER.md
+handoff_role: tos-maintainer
+evidence:
+  - QUESTBOOK.md exists
+  - quest and dispatch schemas exist
+  - the boundary between operational quests and authored meaning is explicit
+harvest:
+  target: none
+opened_at: '2026-03-31'
+touched_at: '2026-03-31'
+tags:
+  - tos
+  - source-first
+  - questbook-boundary
+notes: ''
+public_safe: true

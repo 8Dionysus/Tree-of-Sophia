@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://8dionysus.github.io/schemas/work_quest_v1.schema.json",
+  "title": "Tree-of-Sophia work_quest_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "repo",
+    "owner_surface",
+    "kind",
+    "state",
+    "band",
+    "difficulty",
+    "risk",
+    "control_mode",
+    "delegate_tier",
+    "write_scope",
+    "activation",
+    "anchor_ref",
+    "evidence",
+    "opened_at",
+    "touched_at",
+    "public_safe"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "work_quest_v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5
+    },
+    "summary": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner_surface": {
+      "type": "string",
+      "minLength": 1
+    },
+    "theme_ref": {
+      "type": "string"
+    },
+    "milestone_ref": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "followup",
+        "guardrail",
+        "seam",
+        "harvest",
+        "debt",
+        "investigation",
+        "rollout",
+        "doctrine",
+        "support",
+        "proof",
+        "memory",
+        "automation"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "captured",
+        "triaged",
+        "ready",
+        "active",
+        "blocked",
+        "reanchor",
+        "done",
+        "dropped"
+      ]
+    },
+    "band": {
+      "type": "string",
+      "enum": [
+        "frontier",
+        "near",
+        "latent",
+        "parked"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "d0_probe",
+        "d1_patch",
+        "d2_slice",
+        "d3_seam",
+        "d4_architecture",
+        "d5_doctrine"
+      ]
+    },
+    "risk": {
+      "type": "string",
+      "enum": [
+        "r0_readonly",
+        "r1_repo_local",
+        "r2_contract",
+        "r3_side_effect"
+      ]
+    },
+    "control_mode": {
+      "type": "string",
+      "enum": [
+        "codex_supervised",
+        "human_gate",
+        "human_codex_copilot",
+        "blocked"
+      ]
+    },
+    "delegate_tier": {
+      "type": "string",
+      "enum": [
+        "router",
+        "planner",
+        "executor",
+        "verifier",
+        "conductor",
+        "deep",
+        "archivist"
+      ]
+    },
+    "fallback_tier": {
+      "type": "string",
+      "enum": [
+        "router",
+        "planner",
+        "executor",
+        "verifier",
+        "conductor",
+        "deep",
+        "archivist"
+      ]
+    },
+    "wrapper_class": {
+      "type": "string",
+      "enum": [
+        "local_reader",
+        "local_builder",
+        "local_patcher",
+        "local_validator",
+        "codex_primary",
+        "human_only",
+        "hybrid"
+      ]
+    },
+    "write_scope": {
+      "type": "string",
+      "enum": [
+        "none",
+        "docs_only",
+        "generated_only",
+        "repo_local",
+        "cross_repo_request"
+      ]
+    },
+    "split_required": {
+      "type": "boolean"
+    },
+    "complexity_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "ambiguity",
+        "boundary",
+        "verification"
+      ],
+      "properties": {
+        "scope": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "ambiguity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "boundary": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "verification": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "parent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "on_parent_done",
+            "on_merge_of",
+            "on_regression_of",
+            "on_review_of",
+            "on_recurrence",
+            "manual"
+          ]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "anchor_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "ref"
+      ],
+      "properties": {
+        "artifact": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "handoff_role": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "harvest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": [
+            "none",
+            "technique",
+            "skill",
+            "eval",
+            "playbook",
+            "agent_contract",
+            "memo",
+            "routing"
+          ]
+        },
+        "trigger_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "touched_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string"
+    },
+    "public_safe": {
+      "type": "boolean"
+    }
+  }
+}

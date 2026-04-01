@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://8dionysus.github.io/schemas/quest_dispatch_v1.schema.json",
+  "title": "Tree-of-Sophia quest_dispatch_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "repo",
+    "state",
+    "band",
+    "difficulty",
+    "risk",
+    "control_mode",
+    "delegate_tier",
+    "split_required",
+    "write_scope",
+    "activation_mode",
+    "public_safe"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "quest_dispatch_v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "captured",
+        "triaged",
+        "ready",
+        "active",
+        "blocked",
+        "reanchor",
+        "done",
+        "dropped"
+      ]
+    },
+    "band": {
+      "type": "string",
+      "enum": [
+        "frontier",
+        "near",
+        "latent",
+        "parked"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "d0_probe",
+        "d1_patch",
+        "d2_slice",
+        "d3_seam",
+        "d4_architecture",
+        "d5_doctrine"
+      ]
+    },
+    "risk": {
+      "type": "string",
+      "enum": [
+        "r0_readonly",
+        "r1_repo_local",
+        "r2_contract",
+        "r3_side_effect"
+      ]
+    },
+    "control_mode": {
+      "type": "string",
+      "enum": [
+        "codex_supervised",
+        "human_gate",
+        "human_codex_copilot",
+        "blocked"
+      ]
+    },
+    "delegate_tier": {
+      "type": "string",
+      "enum": [
+        "router",
+        "planner",
+        "executor",
+        "verifier",
+        "conductor",
+        "deep",
+        "archivist"
+      ]
+    },
+    "fallback_tier": {
+      "type": "string",
+      "enum": [
+        "router",
+        "planner",
+        "executor",
+        "verifier",
+        "conductor",
+        "deep",
+        "archivist"
+      ]
+    },
+    "wrapper_class": {
+      "type": "string",
+      "enum": [
+        "local_reader",
+        "local_builder",
+        "local_patcher",
+        "local_validator",
+        "codex_primary",
+        "human_only",
+        "hybrid"
+      ]
+    },
+    "split_required": {
+      "type": "boolean"
+    },
+    "write_scope": {
+      "type": "string",
+      "enum": [
+        "none",
+        "docs_only",
+        "generated_only",
+        "repo_local",
+        "cross_repo_request"
+      ]
+    },
+    "requires_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "activation_mode": {
+      "type": "string",
+      "enum": [
+        "immediate",
+        "on_parent_done",
+        "on_merge_of",
+        "on_regression_of",
+        "on_review_of",
+        "on_recurrence",
+        "manual"
+      ]
+    },
+    "source_path": {
+      "type": "string"
+    },
+    "public_safe": {
+      "type": "boolean"
+    }
+  }
+}

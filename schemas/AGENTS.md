@@ -9,6 +9,8 @@ The current contract files are:
 
 - `tos-node-contract.schema.json`
 - `tos-tiny-entry-route.schema.json`
+- `quest.schema.json`
+- `quest_dispatch.schema.json`
 
 ## Editing posture
 
@@ -18,6 +20,7 @@ Keep multilingual witness support inside one shared authored node rather than sp
 Keep relation enums explicit and bounded.
 Keep repo-relative surfaces bounded to ToS-local paths.
 Do not fold AoA routing semantics or derived KAG output envelopes into these source contracts.
+Keep quest contracts operational-only and avoid using them to flatten authored meaning into backlog terms.
 
 ## Validation
 
