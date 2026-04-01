@@ -7,7 +7,7 @@ owner_surface: identifiers/templates
 theme_ref: ''
 milestone_ref: ''
 kind: guardrail
-state: triaged
+state: done
 band: frontier
 difficulty: d3_seam
 risk: r2_contract
@@ -44,5 +44,9 @@ tags:
   - identifiers
   - templates
   - source-first
-notes: ''
+notes: >-
+  Stage 5 identifier/template hardening closed the current public family drift
+  between docs/NODE_CONTRACT.md and docs/IDENTIFIER_DISCIPLINE.md by bringing
+  context-node scaffolds into the published identifier posture without widening
+  ToS quests into interpretive or source-meaning work.
 public_safe: true

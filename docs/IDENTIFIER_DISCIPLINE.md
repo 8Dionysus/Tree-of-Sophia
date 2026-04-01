@@ -46,6 +46,7 @@ This wave gives public ID discipline to:
 - event-node scaffolds
 - state-node scaffolds
 - support-node scaffolds
+- context-node scaffolds
 - analogy-node scaffolds
 - synthesis-node scaffolds
 
