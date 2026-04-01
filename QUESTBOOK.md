@@ -15,7 +15,7 @@ Do not use it for:
 - private reading notes or living interpretive work that belongs in source surfaces
 
 ## Frontier
-- `TOS-Q-0002` — harden identifier discipline and node-template follow-through without flattening authored meaning into generic backlog
+- none right now
 
 ## Near
 - `TOS-Q-0003` — track intake-to-tree compost and counterpart-boundary obligations when new source routes widen
