@@ -1,0 +1,47 @@
+schema_version: work_quest_v1
+id: TOS-Q-0004
+title: Track ToS to aoa-kag bridge and export requests as bounded derived contracts, not source-truth migration
+summary: Use quests to keep ToS-derived export requests bounded and review-gated instead of letting them silently rewrite source ownership.
+repo: Tree-of-Sophia
+owner_surface: bridges/derived-exports
+theme_ref: ''
+milestone_ref: ''
+kind: seam
+state: captured
+band: latent
+difficulty: d4_architecture
+risk: r2_contract
+control_mode: human_gate
+delegate_tier: conductor
+fallback_tier: deep
+wrapper_class: human_only
+write_scope: cross_repo_request
+split_required: true
+complexity_basis:
+  scope: 3
+  ambiguity: 2
+  boundary: 2
+  verification: 2
+parent: null
+depends_on: []
+activation:
+  mode: manual
+  note: open only after a bounded review gate is approved
+anchor_ref:
+  artifact: counterpart-policy
+  ref: docs/COUNTERPART_POLICY.md
+handoff_role: tos-maintainer
+evidence:
+  - derived export requests reference source owners
+  - ToS meaning does not collapse into KAG
+  - bridge contracts are explicit before widening
+harvest:
+  target: none
+opened_at: '2026-03-31'
+touched_at: '2026-03-31'
+tags:
+  - bridge
+  - derived
+  - kag
+notes: ''
+public_safe: true

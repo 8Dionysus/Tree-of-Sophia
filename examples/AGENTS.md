@@ -20,6 +20,8 @@ The current example set includes:
 - `analogy_node.example.json`
 - `synthesis_node.example.json`
 - `tos_tiny_entry_route.example.json`
+- `quest_catalog.min.example.json`
+- `quest_dispatch.min.example.json`
 
 Older superseded pilot scaffolds may live under `examples/review/`.
 Treat those files as review/archive material rather than as active canon.
@@ -37,6 +39,8 @@ Keep `examples/lineage_node.example.json` aligned with its canonical authored tr
 Keep `examples/event_node.example.json` and `examples/state_node.example.json` aligned with their canonical authored tree mirrors.
 Keep `examples/support_node.example.json` aligned with its canonical authored tree mirror.
 Keep `examples/analogy_node.example.json` and `examples/synthesis_node.example.json` aligned with their canonical authored tree mirrors.
+Keep `quest_catalog.min.example.json` and `quest_dispatch.min.example.json` aligned with `quests/*.yaml` and `schemas/`.
+Treat the quest examples as reviewable compatibility artifacts rather than as generated state or runtime authority.
 Do not treat `examples/review/` as an active compatibility surface.
 
 ## Validation

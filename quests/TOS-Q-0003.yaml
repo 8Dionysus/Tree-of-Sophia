@@ -1,0 +1,47 @@
+schema_version: work_quest_v1
+id: TOS-Q-0003
+title: Track intake-to-tree compost and counterpart-boundary obligations when new source routes widen
+summary: Use quests to hold architecture-level intake and counterpart boundary work when new source routes survive review.
+repo: Tree-of-Sophia
+owner_surface: intake/boundaries
+theme_ref: ''
+milestone_ref: ''
+kind: seam
+state: captured
+band: near
+difficulty: d4_architecture
+risk: r2_contract
+control_mode: human_codex_copilot
+delegate_tier: conductor
+fallback_tier: deep
+wrapper_class: codex_primary
+write_scope: repo_local
+split_required: true
+complexity_basis:
+  scope: 2
+  ambiguity: 2
+  boundary: 2
+  verification: 2
+parent: null
+depends_on: []
+activation:
+  mode: manual
+  note: open when a new intake or counterpart route survives current review
+anchor_ref:
+  artifact: context-compost
+  ref: docs/CONTEXT_COMPOST.md
+handoff_role: tos-maintainer
+evidence:
+  - intake boundary changes receive stable quest IDs
+  - counterpart and practice boundaries are named
+  - ToS source-first posture remains explicit
+harvest:
+  target: none
+opened_at: '2026-03-31'
+touched_at: '2026-03-31'
+tags:
+  - intake
+  - compost
+  - counterpart
+notes: ''
+public_safe: true

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "TOS-Q-0001",
+    "title": "Land a ToS-tailored questbook surface limited to source, identifier, intake, and compatibility obligations",
+    "repo": "Tree-of-Sophia",
+    "theme_ref": "",
+    "milestone_ref": "",
+    "state": "ready",
+    "band": "frontier",
+    "kind": "rollout",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "owner_surface": "questbook/public-surface",
+    "source_path": "quests/TOS-Q-0001.yaml",
+    "public_safe": true
+  },
+  {
+    "id": "TOS-Q-0002",
+    "title": "Harden identifier discipline and node-template follow-through without flattening authored meaning into generic backlog",
+    "repo": "Tree-of-Sophia",
+    "theme_ref": "",
+    "milestone_ref": "",
+    "state": "triaged",
+    "band": "frontier",
+    "kind": "guardrail",
+    "difficulty": "d3_seam",
+    "risk": "r2_contract",
+    "owner_surface": "identifiers/templates",
+    "source_path": "quests/TOS-Q-0002.yaml",
+    "public_safe": true
+  },
+  {
+    "id": "TOS-Q-0003",
+    "title": "Track intake-to-tree compost and counterpart-boundary obligations when new source routes widen",
+    "repo": "Tree-of-Sophia",
+    "theme_ref": "",
+    "milestone_ref": "",
+    "state": "captured",
+    "band": "near",
+    "kind": "seam",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "owner_surface": "intake/boundaries",
+    "source_path": "quests/TOS-Q-0003.yaml",
+    "public_safe": true
+  },
+  {
+    "id": "TOS-Q-0004",
+    "title": "Track ToS to aoa-kag bridge and export requests as bounded derived contracts, not source-truth migration",
+    "repo": "Tree-of-Sophia",
+    "theme_ref": "",
+    "milestone_ref": "",
+    "state": "captured",
+    "band": "latent",
+    "kind": "seam",
+    "difficulty": "d4_architecture",
+    "risk": "r2_contract",
+    "owner_surface": "bridges/derived-exports",
+    "source_path": "quests/TOS-Q-0004.yaml",
+    "public_safe": true
+  }
+]
