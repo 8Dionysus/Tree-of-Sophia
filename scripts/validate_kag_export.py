@@ -58,6 +58,7 @@ QUESTBOOK_INTEGRATION_REQUIRED_TOKENS = (
     "do not replace authored doctrine",
 )
 QUESTBOOK_INTEGRATION_FORBIDDEN_TOKENS = ("ATM10-Agent", "aoa-sdk")
+CLOSED_QUEST_STATES = {"done", "dropped"}
 QUEST_SCHEMA_REQUIRED_FIELDS = (
     "schema_version",
     "id",
@@ -237,9 +238,6 @@ def validate_questbook_surface() -> None:
             fail(f"missing required file: {relative_path.as_posix()}")
 
     questbook_text = read_text(REPO_ROOT / QUESTBOOK_PATH)
-    for quest_id in QUEST_IDS:
-        if quest_id not in questbook_text:
-            fail(f"QUESTBOOK.md must reference '{quest_id}'")
     for token in QUESTBOOK_REQUIRED_TOKENS:
         if token not in questbook_text:
             fail(f"QUESTBOOK.md must contain '{token}'")
@@ -275,6 +273,8 @@ def validate_questbook_surface() -> None:
 
     expected_catalog = []
     expected_dispatch = []
+    active_quest_ids: list[str] = []
+    closed_quest_ids: list[str] = []
     for quest_id in QUEST_IDS:
         quest_path = REPO_ROOT / "quests" / f"{quest_id}.yaml"
         quest_payload = read_yaml(quest_path)
@@ -288,6 +288,10 @@ def validate_questbook_surface() -> None:
             fail(f"{quest_id} repo must equal 'Tree-of-Sophia'")
         if quest_payload.get("public_safe") is not True:
             fail(f"{quest_id} public_safe must be true")
+        if quest_payload.get("state") in CLOSED_QUEST_STATES:
+            closed_quest_ids.append(quest_id)
+        else:
+            active_quest_ids.append(quest_id)
         notes = quest_payload.get("notes", "")
         if not isinstance(notes, str):
             fail(f"{quest_id} notes must be a string")
@@ -296,6 +300,13 @@ def validate_questbook_surface() -> None:
 
         expected_catalog.append(build_expected_quest_catalog_entry(quest_id, quest_payload))
         expected_dispatch.append(build_expected_quest_dispatch_entry(quest_id, quest_payload))
+
+    for quest_id in active_quest_ids:
+        if quest_id not in questbook_text:
+            fail(f"QUESTBOOK.md must reference active quest id '{quest_id}'")
+    for quest_id in closed_quest_ids:
+        if quest_id in questbook_text:
+            fail(f"QUESTBOOK.md must not list closed quest id '{quest_id}'")
 
     catalog_payload = read_json(REPO_ROOT / QUEST_CATALOG_EXAMPLE_PATH)
     if catalog_payload != expected_catalog:

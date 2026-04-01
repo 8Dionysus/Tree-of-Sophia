@@ -15,7 +15,6 @@ Do not use it for:
 - private reading notes or living interpretive work that belongs in source surfaces
 
 ## Frontier
-- `TOS-Q-0001` — land a ToS-tailored questbook surface limited to source, identifier, intake, and compatibility obligations
 - `TOS-Q-0002` — harden identifier discipline and node-template follow-through without flattening authored meaning into generic backlog
 
 ## Near

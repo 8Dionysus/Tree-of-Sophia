@@ -7,7 +7,7 @@ owner_surface: questbook/public-surface
 theme_ref: ''
 milestone_ref: ''
 kind: rollout
-state: ready
+state: done
 band: frontier
 difficulty: d4_architecture
 risk: r2_contract
@@ -42,5 +42,6 @@ tags:
   - tos
   - source-first
   - questbook-boundary
-notes: ''
+notes: Closed in the Phase 2 manual-first hygiene pass after the operational-only
+  questbook boundary, schemas, and example projections all landed and validated.
 public_safe: true
