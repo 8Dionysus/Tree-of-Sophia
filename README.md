@@ -24,6 +24,14 @@ Use the shortest route by need:
 
 For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.md` docs in `docs/` after the identifier discipline and first template surfaces.
 
+## Route by need
+
+- canonical authored tree and registries: `tree/` and `tree/registries/*.csv`
+- source witness and provisional intake: `sources/`, `intake/`, and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
+- node-template scaffold family: [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md), [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md), [docs/ANALOGY_NODE_TEMPLATE](docs/ANALOGY_NODE_TEMPLATE.md), and [docs/SYNTHESIS_NODE_TEMPLATE](docs/SYNTHESIS_NODE_TEMPLATE.md)
+- bounded public compatibility and export surfaces: `examples/`, `generated/kag_export.json`, `generated/kag_export.min.json`, and [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
+- review posture and bounded change checks: [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) and `docs/reviews/`
+
 ## What ToS owns
 
 Tree of Sophia is the canonical home for:
