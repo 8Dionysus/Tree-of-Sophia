@@ -1,150 +1,139 @@
 # AGENTS.md
 
-## Repository role
-This repository is the canonical high-level statement of Tree of Sophia (ToS) and the home of its canonical authored tree.
+Guidance for coding agents and humans contributing to `Tree-of-Sophia`.
 
-Tree of Sophia is a living knowledge architecture for philosophy and world thought. It traces texts, concepts, contexts, and lineages across time and cultures.
+## Purpose
 
-At its current public stage, this repository is a source-first tree project.
-Treat it as the place that defines the knowledge architecture, preserves source-facing inputs, and carries canonical authored tree surfaces rather than as a grab-bag for unrelated implementation details.
+`Tree-of-Sophia` is the canonical high-level statement of ToS and the home of its canonical authored tree. Treat it as the place that defines the knowledge architecture, preserves source-facing inputs, and carries canonical authored tree surfaces.
 
-## Priority of instructions
-- Follow direct maintainer instructions first.
-- Then follow this file.
-- Preserve the distinction between authored meaning, derived structure, and operational support.
-- When a task belongs to AoA, `aoa-kag`, or `abyss-stack`, route there instead of forcing it into ToS.
+Preserve the distinction between authored meaning, derived structure, and operational support at all times.
 
-## What ToS owns
-Use this repository for work on:
-- the high-level statement of what ToS is
-- conceptual architecture for knowledge nodes and relationships
-- source-first knowledge discipline
-- primary witness and source files that ground the authored tree
+## Owns
+
+This repository is the source of truth for:
+
+- source-first knowledge architecture
+- source discipline and interpretation law
+- primary witness and source files that ground authored routes
 - candidate intake material that remains visibly provisional
-- canonical authored tree nodes and relations
-- text, concept, context, and lineage modeling
-- contributor rules for interpretation and curation
-- public architecture notes that explain how meaning should be preserved and extended
-- public compatibility surfaces and downstream-safe exports that remain subordinate to the canonical tree
+- canonical authored tree nodes, relations, and vocabulary governance
+- public compatibility and downstream-safe export seams that remain subordinate to the canonical tree
 
-## What ToS does not own
-Do not use this repository as the main home for:
-- runtime and deployment implementation details
+## Does not own
+
+Do not treat this repository as the main home for:
+
+- runtime, deployment, storage, or service posture in `abyss-stack`
+- operational federation rules in `Agents-of-Abyss`
+- derived substrate semantics in `aoa-kag`
 - general agent workflow machinery
 - infrastructure configuration
-- eval harnesses that are not specifically about ToS knowledge claims
-- derived knowledge substrate as the sole source of truth
-- contextless note dumps or flat archives detached from provenance
+- flat note archives detached from provenance
 
-Related ownership boundaries:
-- `Agents-of-Abyss` owns the operational ecosystem around ToS
-- `aoa-kag` owns derived provenance-aware substrate layers
-- `abyss-stack` owns runtime, deployment, storage, and service posture
+If the task mainly concerns runtime, orchestration, or derived substrate mechanics, route there instead of forcing it into ToS.
 
-## Knowledge posture
-Preserve source traceability at all times.
+## Core rule
 
-A strong ToS contribution keeps distinct:
+Sources before abstraction.
+
+Keep these layers visibly distinct whenever you touch them:
+
 - raw source text or fragment
 - raw candidate extraction
 - canonical authored tree surface
 - compatibility or public entry surface
-- key terms and concepts
-- distilled theses or semantic extraction
-- deeper interpretation
-- temporal context
-- spatial or civilizational context
-- lineage relations to predecessors, descendants, parallels, and mutations
+- interpretation or synthesis
+- lineage, temporal, and civilizational context
 
-Do not flatten these layers into one undifferentiated summary.
+Do not flatten those layers into one undifferentiated summary.
 
-## Guiding axis
-ToS is not a static archive. Its guiding axis is a living calibration of meaning: becoming, overcoming, creation of values, and affirmation of life.
+The guiding axis of becoming, overcoming, value creation, and life-affirmation is an interpretive compass. It is not permission to distort sources or force every text into one frame.
 
-In the current public architecture, *Thus Spoke Zarathustra* functions as a recurring calibration root for that axis.
+## Read this first
 
-Use this axis as an interpretive compass, not as permission to distort sources or force every text into one reading.
+Before making changes, read in this order:
 
-## Working posture
-- Sources before abstraction.
-- Layered meaning over flat summaries.
-- Lineages over isolated notes.
-- Human curation over blind automation.
-- Growth through explicit structure.
-- AI as amplifier of judgment, not a replacement for judgment.
-- Mark uncertainty, ambiguity, and contested interpretation explicitly.
-- Keep public artifacts public-safe and provenance-aware.
-
-## Editing rules
-When adding or revising content:
-- preserve a visible path back to primary or authoritative material
-- keep extraction, interpretation, and synthesis distinguishable
-- keep lineage relations explicit when they matter
-- keep temporal and civilizational context attached to claims when relevant
-- prefer reversible structure over overfit ontology
-- avoid premature universal schemas that erase nuance
-- avoid replacing source-grounded thought with generic AI paraphrase
-
-When summarizing:
-- summarize with fidelity to the source
-- name the layer you are operating in when needed: source, extraction, interpretation, synthesis
-- preserve unresolved tensions instead of sanding them flat
-
-When introducing structure:
-- design nodes and relations so future expansion remains legible
-- prefer explicit relation types over vague associative sprawl
-- keep derived artifacts clearly derived
-
-## Repository routing guidance
-Use the smallest correct destination.
-
-- `Tree-of-Sophia`: knowledge architecture, source discipline, node layering, lineage logic
-- `Agents-of-Abyss`: operational ecosystem, federation rules, layer coordination
-- `aoa-kag`: derived provenance-aware knowledge substrate
-- `aoa-techniques`: reusable engineering practice for knowledge operations
-- `abyss-stack`: infrastructure and runtime body beneath ToS and AoA
-
-If the requested work mainly concerns runtime, agent orchestration, or derived substrate mechanics, it probably does not belong here as the primary surface.
+1. `README.md`
+2. `CHARTER.md` and `BOUNDARIES.md`
+3. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
+4. the specific template, review, or route docs that govern the surface you are changing
+5. the target source file you plan to edit
+6. any affected export or example surfaces if the task touches `examples/` or `generated/`
 
 If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
 
+## Primary objects
+
+The most important objects in this repository are:
+
+- source files under `sources/`
+- candidate intake material under `intake/`
+- canonical authored nodes and relation-bearing surfaces under `tree/`
+- knowledge-model, node-contract, and review docs
+- bounded public entry and export seams under `examples/` and `generated/`
+
+## Hard NO
+
+Do not:
+
+- replace source-grounded thought with generic AI paraphrase
+- collapse extraction, interpretation, and synthesis into one layer
+- present derived exports as authored authority
+- move runtime or orchestration doctrine here
+- erase provenance, temporal context, or lineage when they matter
+- introduce private or hidden material into public surfaces
+
+## Contribution doctrine
+
+Use this flow: `PLAN -> DIFF -> VERIFY -> REPORT`
+
+### PLAN
+
+State:
+
+- what ToS surface is changing
+- which layer is affected: source, intake, tree, compatibility, or export
+- what provenance or interpretation risk exists
+- which neighboring repositories may be affected
+
+### DIFF
+
+Keep the change focused. Prefer the smallest reversible structure that preserves fidelity, legibility, and provenance.
+
+### VERIFY
+
+Confirm that:
+
+- source traceability is still visible
+- extraction, interpretation, and synthesis remain distinguishable
+- lineage and context still attach where relevant
+- derived surfaces are still clearly derived
+- no wording overclaims authority beyond what the layer can honestly support
+
+### REPORT
+
+Summarize:
+
+- what surfaces changed
+- whether semantics changed or only metadata / organization changed
+- whether provenance, lineage, or interpretation posture changed
+- what validation was run
+- any neighboring repo follow-up likely needed
+
 ## Validation
-The current public validation path is `python scripts/validate_kag_export.py` for the bounded KAG export seam.
 
-It also checks the nested local guidance surfaces in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
+The current public validator is:
 
-For broader doctrine or scaffold changes that fall outside the current public validator, validate through structured review:
+```bash
+python scripts/validate_kag_export.py
+```
+
+It also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
+
+When the task falls outside that narrow export seam:
+
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change export inputs or generation logic, run `python scripts/generate_kag_export.py` and then `python scripts/validate_kag_export.py`
-- check consistency with `README.md` and any architecture notes
-- check that provenance remains visible
-- check that node layering remains intact
-- check that lineage relations are not lost
-- check that authored meaning is not replaced by derived convenience surfaces
 
-If you add a generated or derived artifact, make its source and limits explicit.
-
-## Definition of done
-A change is done when:
-- a reader can tell what the source is, what was extracted, what was inferred, and what remains interpretive
-- the distinction between source, intake, canonical tree, compatibility surface, and derived export is clearer after the change
-- provenance is clearer after the change
-- conceptual layering is stronger after the change
-- lineage and context are preserved where relevant
-- the repository remains a living knowledge architecture rather than a flat archive
-
-## Style for this repository
-Write with precision, depth, and restraint.
-
-Prefer:
-- source-grounded language
-- layered explanations
-- explicit relation names
-- careful distinctions between evidence and interpretation
-
-Avoid:
-- generic encyclopedic flattening
-- detached summaries with no lineage or context
-- overstated certainty about contested ideas
-- rhetoric that obscures provenance
+Do not claim checks you did not run.
