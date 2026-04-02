@@ -7,6 +7,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-04-01
+
+First public baseline release of `Tree-of-Sophia` as the source-first knowledge architecture repository in the AoA / ToS ecosystem.
+
+This changelog entry uses the release-prep merge date.
+
+### Summary
+
+- first public baseline release of `Tree-of-Sophia` as the canonical home of ToS knowledge architecture and authored tree posture
+- the public baseline now includes source, intake, tree, example, and generated export layers around one bounded trilingual Zarathustra entry route
+- the release keeps ToS authority source-first while exposing one downstream-safe KAG export and one source-owned tiny-entry seam
+
 ### Added
 
 - community-docs baseline established for this repository
@@ -28,3 +40,22 @@ Tracking starts with the community-docs baseline for this repository.
 - `docs/TINY_ENTRY_ROUTE.md`, `schemas/tos-tiny-entry-route.schema.json`, and `examples/tos_tiny_entry_route.example.json` now prefer `bounded_hop` while keeping `lineage_or_context_hop` as a bounded compatibility alias during transition
 - `examples/source_node.example.json` now makes Russian and English maintainer-curated witness posture more explicit and adds a second opening-movement translation-tension note
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now records pass-based stabilization posture and the non-canonical boundary for restartable checkpoint sidecars
+
+### Included in this release
+
+- the current source-first repository layers under `sources/`, `intake/`, `tree/`, `examples/`, and `generated/`
+- the bounded Zarathustra route carried by `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `docs/TINY_ENTRY_ROUTE.md`, `examples/source_node.example.json`, and `generated/kag_export.min.json`
+- the current canonical tree surface validated as `92` node payloads plus the route-local canonical relation pack
+
+### Validation
+
+- `python scripts/validate_tree_example_sync.py`
+- `python scripts/validate_tree_node_contracts.py`
+- `python scripts/validate_tree_relation_pack.py`
+- `python scripts/validate_intake_pack.py`
+- `python scripts/generate_kag_export.py`
+- `python scripts/validate_kag_export.py`
+
+### Notes
+
+- this release exposes a bounded public entry path and export seam without weakening ToS source authority
