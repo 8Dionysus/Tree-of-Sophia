@@ -18,7 +18,7 @@ Use the shortest route by need:
 - mission and source-of-truth boundaries: [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md)
 - knowledge model and interpretation law: [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) and [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md)
 - growth law and curation posture: [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md), [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md), [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md), [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md), and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
-- scaffold wave and review posture: [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md), [docs/RELATION_PACK_CONTRACT](docs/RELATION_PACK_CONTRACT.md), and [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md)
+- scaffold wave and review posture: [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md), [docs/RELATION_PACK_CONTRACT](docs/RELATION_PACK_CONTRACT.md), [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md), and `python scripts/validate_kag_export.py`
 - current bounded entry and export route: [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md), [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md), and [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
 - current direction: [ROADMAP](ROADMAP.md)
 
@@ -30,7 +30,7 @@ For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.m
 - source witness and provisional intake: `sources/`, `intake/`, and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
 - node-template scaffold family: [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md), [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md), [docs/ANALOGY_NODE_TEMPLATE](docs/ANALOGY_NODE_TEMPLATE.md), and [docs/SYNTHESIS_NODE_TEMPLATE](docs/SYNTHESIS_NODE_TEMPLATE.md)
 - bounded public compatibility and export surfaces: `examples/`, `generated/kag_export.json`, `generated/kag_export.min.json`, and [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
-- review posture and bounded change checks: [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) and `docs/reviews/`
+- review posture and bounded change checks: `python scripts/validate_kag_export.py` for the current bounded route, plus [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) and `docs/reviews/` for broader boundary-sensitive changes outside the current validator perimeter
 
 ## What ToS owns
 

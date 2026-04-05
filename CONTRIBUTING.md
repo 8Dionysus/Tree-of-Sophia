@@ -26,8 +26,8 @@ Please make sure:
 - uncertainty is named honestly when the material is contested or interpretive
 - public additions remain provenance-aware and reviewable
 
-No public validator is required here yet.
-Use `docs/REVIEW_CHECKLIST.md` as the canonical validation route and include a short review note in the PR when the change is boundary-sensitive.
+For the current bounded route, run `python scripts/validate_kag_export.py`.
+When the touched surface falls outside that validator coverage, use `docs/REVIEW_CHECKLIST.md` as the manual validation route and include a short review note in the PR when the change is boundary-sensitive.
 
 ## Preferred PR scope
 

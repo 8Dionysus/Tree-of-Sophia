@@ -106,4 +106,4 @@ The authored type for this seam is `tos_tiny_entry_route`.
 
 Its current public example is [examples/tos_tiny_entry_route.example.json](../examples/tos_tiny_entry_route.example.json).
 
-See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the first worked capsule and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for the manual review route that remains canonical in this wave.
+See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the first worked capsule, `python scripts/validate_kag_export.py` for the current validator of this bounded route, and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for broader manual review outside the current validator perimeter.
