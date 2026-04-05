@@ -34,7 +34,7 @@ Goals:
 - define stable public `node_id` grammar
 - publish first source-node and concept-node templates
 - add one schema-backed worked example set without opening a branch pilot
-- keep manual review canonical until a stronger public validation route is genuinely needed
+- keep manual review explicit for surfaces outside the current bounded public validator until wider coverage is genuinely needed
 
 ## Phase 3: lineage and relation surfaces
 

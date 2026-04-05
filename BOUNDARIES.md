@@ -109,4 +109,4 @@ They should not quietly count as:
 
 When tree motion is paused behind a maintainer-led source-entry gate, that gate should be named explicitly rather than implied.
 
-Until a public validator exists, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.
+When the current public validator does not cover the touched surface, use `docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.
