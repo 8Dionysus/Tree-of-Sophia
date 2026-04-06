@@ -37,14 +37,25 @@ entry surface remains a compatibility mirror for the current tiny-entry seam.
 
 If you edit supporting surfaces in `docs/`, `examples/`, `generated/`, `schemas/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
 
+## Current verification
+
+For the current bounded export seam without regeneration, use:
+
+```bash
+python scripts/validate_kag_export.py
+python -m unittest discover -s tests
+```
+
+`python scripts/validate_kag_export.py` also checks the nested local guidance surfaces for the current tiny export seam.
+`python -m unittest discover -s tests` strengthens the repo-local contract and schema coverage around that same bounded route.
+
 ## Regeneration
 
-Use:
+If you change export inputs or generation logic, use:
 
 ```bash
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
+python -m unittest discover -s tests
 ```
-
-`python scripts/validate_kag_export.py` also checks the nested local guidance surfaces for the current tiny export seam.

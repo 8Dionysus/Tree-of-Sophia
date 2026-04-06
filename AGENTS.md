@@ -122,18 +122,19 @@ Summarize:
 
 ## Validation
 
-The current public validator is:
+The current bounded read-only battery is:
 
 ```bash
 python scripts/validate_kag_export.py
+python -m unittest discover -s tests
 ```
 
-It also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
+`python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
 
 When the task falls outside that narrow export seam:
 
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
-- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py` and then `python scripts/validate_kag_export.py`
+- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
 
 Do not claim checks you did not run.
