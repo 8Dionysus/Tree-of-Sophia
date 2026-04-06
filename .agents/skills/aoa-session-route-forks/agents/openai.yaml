@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Session Route Forks
+  short_description: Make next-route forks explicit
+  default_prompt: Use $aoa-session-route-forks to turn a reviewed session or harvest packet into explicit fork cards with likely gains, costs, risks, owner targets, and stop conditions.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false
