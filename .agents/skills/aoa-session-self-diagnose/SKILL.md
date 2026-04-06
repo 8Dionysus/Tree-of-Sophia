@@ -1,0 +1,87 @@
+---
+name: aoa-session-self-diagnose
+description: Classify drift, friction, proof gaps, ownership confusion, and repeated failure patterns from a reviewed session into a bounded diagnosis packet without mutating anything yet. Use when the next honest move is diagnosis before repair and the reviewed material points to repeated contradictions, blockers, or boundary blur. Do not use for live sessions, for issues that are already fully diagnosed, or when the real task is final quest-promotion triage.
+license: Apache-2.0
+compatibility: Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.
+metadata:
+  aoa_scope: core
+  aoa_status: scaffold
+  aoa_invocation_mode: explicit-only
+  aoa_source_skill_path: skills/aoa-session-self-diagnose/SKILL.md
+  aoa_source_repo: 8Dionysus/aoa-skills
+  aoa_technique_dependencies: AOA-T-0080,AOA-T-0081
+  aoa_portable_profile: codex-facing-wave-3
+---
+
+# aoa-session-self-diagnose
+
+## Intent
+Use this skill to turn a reviewed session into a `DIAGNOSIS_PACKET`.
+
+It should answer: what drifted, what hurt, what boundary blurred, what proof is
+missing, and what repair shape is most plausible.
+
+## Trigger boundary
+Use this skill when:
+- a reviewed session contains repeated friction, contradiction, or drift
+- the next honest move is diagnosis before repair
+- boundary confusion or missing proof may be more important than immediate output production
+- the same class of problem may be appearing across sessions
+
+Do not use this skill when:
+- the session is still live
+- the issue is already fully diagnosed and only needs repair execution
+- the material is a celebration recap with no meaningful friction
+- the route is actually a single quest-promotion decision
+
+## Inputs
+- reviewed session artifact or harvest packet
+- observed frictions, failures, or contradictions
+- relevant owner layers and touched repos
+- previous related session evidence if available
+
+## Outputs
+- `DIAGNOSIS_PACKET` with drift types, symptoms, probable causes, repair shapes, and owner hints
+- severity or urgency notes when evidence supports them
+- explicit unknowns when diagnosis remains incomplete
+- optional handoff to `aoa-session-self-repair`
+
+## Procedure
+1. gather reviewed symptoms and evidence refs
+2. separate symptom from probable cause
+3. classify drift types such as boundary drift, proof debt, role leakage, memory contamination, route collapse, compaction damage, or repeated blocker patterns
+4. map each diagnosis toward the likely owner layer
+5. suggest a repair shape without silently performing it
+6. preserve unknowns where evidence does not justify stronger claims
+
+## Contracts
+- diagnosis is read-only
+- one odd anecdote is not enough for structural certainty
+- probable cause must remain probabilistic when evidence is thin
+- owner hints must not override owner-layer law
+- no hidden mutation or silent patching
+
+## Risks and anti-patterns
+- mistaking symptom for cause
+- using vague vibes as diagnosis
+- smuggling repair work into diagnosis
+- turning every inconvenience into a system flaw
+- blaming one owner layer for a cross-layer issue
+
+## Verification
+- confirm each diagnosis cites evidence refs
+- confirm symptoms and causes are separated
+- confirm a likely owner layer is named
+- confirm unknowns are preserved where needed
+- confirm no mutation happened
+
+## Technique traceability
+Manifest-backed techniques:
+- AOA-T-0080 from `8Dionysus/aoa-techniques` at `364da8f4e97d0c29f4b31c59d7bfd91585633f2a` using path `techniques/agent-workflows/session-drift-taxonomy/TECHNIQUE.md` and sections: Intent, Outputs, Risks, Validation
+- AOA-T-0081 from `8Dionysus/aoa-techniques` at `364da8f4e97d0c29f4b31c59d7bfd91585633f2a` using path `techniques/agent-workflows/diagnosis-from-reviewed-evidence/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Contracts, Validation
+
+## Adaptation points
+Project overlays may add:
+- local drift taxonomies
+- repo-specific failure classes
+- severity bands

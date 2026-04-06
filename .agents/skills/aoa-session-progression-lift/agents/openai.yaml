@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Session Progression Lift
+  short_description: Lift reviewed progression signals
+  default_prompt: Use $aoa-session-progression-lift to turn reviewed session evidence into a bounded multi-axis progression delta with explicit verdicts and small unlock hints.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false

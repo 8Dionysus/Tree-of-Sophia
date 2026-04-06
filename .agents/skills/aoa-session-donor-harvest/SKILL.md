@@ -1,6 +1,6 @@
 ---
 name: aoa-session-donor-harvest
-description: Harvest reusable pattern, mechanic, utility, law, proof, recall, or route candidates from a reviewed session artifact, route each one to the right AoA owner layer, and draft the smallest honest next artifact. Use when the source is a reviewed session transcript, compaction note, or recap and the real question is what reusable object emerged here rather than merely what happened. Do not use for active or unreviewed sessions, raw session capture or indexing work, or when there is already one repeated quest unit that only needs `aoa-quest-harvest` for the final promotion verdict.
+description: Turn a reviewed session artifact into a bounded HARVEST_PACKET, route each reusable unit to the right AoA owner layer, and hand off to the next honest post-session skill when needed. Use when the source is a reviewed session transcript, compaction note, or recap and the real question is what should survive this session rather than merely what happened. Do not use for active or unreviewed sessions, raw session capture or indexing work, or when the only remaining object is already one repeated quest unit that just needs `aoa-quest-harvest` for the final promotion verdict.
 license: Apache-2.0
 compatibility: Designed for Codex or similar coding agents with repository file access and an interactive shell. Network access is optional and only needed when repository validation or referenced workflows require it.
 metadata:
@@ -9,20 +9,26 @@ metadata:
   aoa_invocation_mode: explicit-only
   aoa_source_skill_path: skills/aoa-session-donor-harvest/SKILL.md
   aoa_source_repo: 8Dionysus/aoa-skills
-  aoa_technique_dependencies: AOA-T-0075,AOA-T-0076
+  aoa_technique_dependencies: AOA-T-0075,AOA-T-0076,AOA-T-0077
   aoa_portable_profile: codex-facing-wave-3
 ---
 
 # aoa-session-donor-harvest
 
 ## Intent
-Use this skill to turn a reviewed session artifact into a bounded donor harvest pack that names reusable units, routes each one to the right AoA owner layer, and drafts the next honest artifact without forcing promotion.
+Use this skill to metabolize a reviewed session artifact into a bounded
+`HARVEST_PACKET` that names reusable units, routes each one to the right AoA
+owner layer, and drafts the next honest artifact without forcing promotion.
 
 ## Trigger boundary
 Use this skill when:
 - a session transcript, compaction note, review packet, or bounded recap exists and must be distilled into reusable donor units
 - the work is post-session and reviewable rather than live execution
-- candidate outputs may belong in technique canon, `aoa-skills`, `aoa-playbooks`, `aoa-evals`, `aoa-memo`, `aoa-agents`, or a hold/quest lane
+- candidate outputs may belong in technique canon, `aoa-skills`,
+  `aoa-playbooks`, `aoa-evals`, `aoa-memo`, `aoa-agents`, or a hold/quest lane
+- the session may also have produced decision forks, diagnosis clues, repair
+  candidates, progression evidence, or quest residue that should be made
+  explicit rather than buried in recap prose
 - the question is not merely "what happened?" but "what reusable object, if any, emerged here?"
 
 Do not use this skill when:
@@ -41,7 +47,7 @@ Do not use this skill when:
 - desired output posture: classify-only, draft-stub, or patch-ready proposal
 
 ## Outputs
-- one bounded donor harvest pack
+- one bounded `HARVEST_PACKET`
 - named candidates, each with:
   - reusable unit name
   - unit kind: pattern, mechanic, utility, law, proof, recall, or route
@@ -51,6 +57,9 @@ Do not use this skill when:
   - one rejected nearest-wrong target
   - evidence anchors from the session artifact
 - one short list of items to defer, drop, or keep as quest residue
+- one optional handoff list to `aoa-session-route-forks`,
+  `aoa-session-self-diagnose`, `aoa-session-self-repair`,
+  `aoa-session-progression-lift`, or `aoa-quest-harvest`
 
 ## Procedure
 1. start from a reviewed session artifact rather than transient chat memory
@@ -67,9 +76,22 @@ Do not use this skill when:
 10. route recall, writeback, recurrence, and memory-support patterns to `aoa-memo`
 11. route role law, orchestrator class law, handoff law, and actor-boundary rules to `aoa-agents`
 12. keep `aoa-routing` and `aoa-kag` out of first-authoring unless the source-owned object already exists elsewhere and the session only discovered a derivative bridge update
-13. when the candidate is a repeated reviewed quest unit and the remaining ambiguity is specifically the final promotion target among quest, skill, playbook, agent, eval, or memo, hand off to `aoa-quest-harvest`
-14. draft the smallest next artifact for each accepted candidate, such as `TECHNIQUE.md`, `SKILL.md`, `PLAYBOOK.md`, `EVAL.md`, memory object seed, or agent/orchestrator surface note
-15. record one clear reason for the chosen owner and one clear reason against the nearest wrong owner
+13. preserve quest residue without forcing promotion when the reviewed session
+    is still mixed, early, or weakly repeated
+14. hand off to `aoa-session-route-forks` when the main post-session need is
+    explicit next-route choice rather than donor extraction itself
+15. hand off to `aoa-session-self-diagnose` when the dominant surviving object
+    is drift, contradiction, proof gap, or ownership confusion
+16. hand off to `aoa-session-progression-lift` when the main surviving object is
+    evidence-backed progression reflection rather than owner placement
+17. when the candidate is a repeated reviewed quest unit and the remaining
+    ambiguity is specifically the final promotion target among quest, skill,
+    playbook, agent, eval, or memo, hand off to `aoa-quest-harvest`
+18. draft the smallest next artifact for each accepted candidate, such as
+    `TECHNIQUE.md`, `SKILL.md`, `PLAYBOOK.md`, `EVAL.md`, memory object seed,
+    or agent/orchestrator surface note
+19. record one clear reason for the chosen owner and one clear reason against
+    the nearest wrong owner
 
 ## Contracts
 - invocation must remain explicit and post-session
@@ -78,6 +100,8 @@ Do not use this skill when:
 - `usefulness` is a reuse signal, not an owner layer by itself
 - derivative layers do not become first authoring targets for source-owned meaning
 - weak evidence may end in `hold` or `keep_or_open_quest`
+- the `HARVEST_PACKET` may carry handoff hints, but it does not become hidden
+  routing authority
 - drafting a next artifact is allowed; forcing promotion is not
 
 ## Risks and anti-patterns
@@ -88,6 +112,8 @@ Do not use this skill when:
 - promoting memory residue as if it were proof or source meaning
 - over-harvesting one session into too many thin objects
 - treating a transcript package or session index as the same thing as donor harvest
+- stuffing route-forks, diagnosis, repair, or progression meaning into vague
+  donor notes instead of naming the next family seam explicitly
 
 ## Verification
 - confirm the source artifact is reviewed and bounded
@@ -97,11 +123,14 @@ Do not use this skill when:
 - confirm no candidate routes source-owned meaning first into derivative layers
 - confirm hold and defer outcomes remain available
 - confirm the output names the next artifact rather than only abstract categories
+- confirm any family handoff hint is explicit rather than smuggled into the
+  packet as hidden policy
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0075 from `8Dionysus/aoa-techniques` at `2db37769d65833cce9dce1919dfac0bf69e5c115` using path `techniques/agent-workflows/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0076 from `8Dionysus/aoa-techniques` at `2db37769d65833cce9dce1919dfac0bf69e5c115` using path `techniques/agent-workflows/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+- AOA-T-0075 from `8Dionysus/aoa-techniques` at `364da8f4e97d0c29f4b31c59d7bfd91585633f2a` using path `techniques/agent-workflows/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0076 from `8Dionysus/aoa-techniques` at `364da8f4e97d0c29f4b31c59d7bfd91585633f2a` using path `techniques/agent-workflows/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+- AOA-T-0077 from `8Dionysus/aoa-techniques` at `364da8f4e97d0c29f4b31c59d7bfd91585633f2a` using path `techniques/agent-workflows/harvest-packet-contract/TECHNIQUE.md` and sections: Inputs, Outputs, Contracts, Validation
 
 ## Adaptation points
 Project overlays may add:
@@ -110,5 +139,7 @@ Project overlays may add:
 - repo-relative destination paths for drafted artifacts
 - local stop conditions for when the result must stay `hold`
 - local naming rules for donor packs and quest IDs
+- local family handoff preferences when route-forks, diagnosis, repair, or
+  progression surfaces exist
 
 This skill assumes the session artifact already exists. Adjacent history techniques such as session capture, transcript packaging, and local indexing remain separate neighbors rather than being reopened here.
