@@ -1,0 +1,24 @@
+packet_kind: AUTOMATION_OPPORTUNITY_PACKET
+required_fields:
+  - candidate_name
+  - current_manual_route
+  - repeat_signal
+  - friction_signal
+  - input_clarity
+  - output_clarity
+  - proof_surface
+  - reversibility
+  - approval_sensitivity
+  - verdict
+  - checkpoint_required
+  - owner_layer
+  - next_artifact
+optional_fields:
+  - schedule_hint
+  - nearest_wrong_target
+  - repair_reason
+  - evidence_refs
+rules:
+  - schedule_hint must remain advisory only
+  - checkpoint_required must be true for self-changing or approval-heavy routes
+  - verdict must be seed_ready or not_now

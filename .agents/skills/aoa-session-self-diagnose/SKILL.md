@@ -26,6 +26,7 @@ Use this skill when:
 - a reviewed session contains repeated friction, contradiction, or drift
 - the next honest move is diagnosis before repair
 - boundary confusion or missing proof may be more important than immediate output production
+- blocked automation readiness may need root-cause classification before any automation claim becomes honest
 - the same class of problem may be appearing across sessions
 
 Do not use this skill when:
@@ -44,15 +45,18 @@ Do not use this skill when:
 - `DIAGNOSIS_PACKET` with drift types, symptoms, probable causes, repair shapes, and owner hints
 - severity or urgency notes when evidence supports them
 - explicit unknowns when diagnosis remains incomplete
+- optional blocked-automation findings such as unstable inputs, hidden approval,
+  rollback gaps, or secret coupling
 - optional handoff to `aoa-session-self-repair`
 
 ## Procedure
 1. gather reviewed symptoms and evidence refs
 2. separate symptom from probable cause
 3. classify drift types such as boundary drift, proof debt, role leakage, memory contamination, route collapse, compaction damage, or repeated blocker patterns
-4. map each diagnosis toward the likely owner layer
-5. suggest a repair shape without silently performing it
-6. preserve unknowns where evidence does not justify stronger claims
+4. call out blocked automation causes when the route looks repetitive but still fails readiness because of unstable inputs, hidden authority, weak rollback posture, or secret coupling
+5. map each diagnosis toward the likely owner layer
+6. suggest a repair shape without silently performing it
+7. preserve unknowns where evidence does not justify stronger claims
 
 ## Contracts
 - diagnosis is read-only
@@ -60,6 +64,7 @@ Do not use this skill when:
 - probable cause must remain probabilistic when evidence is thin
 - owner hints must not override owner-layer law
 - no hidden mutation or silent patching
+- diagnosis does not grant automation readiness by itself
 
 ## Risks and anti-patterns
 - mistaking symptom for cause
@@ -67,6 +72,7 @@ Do not use this skill when:
 - smuggling repair work into diagnosis
 - turning every inconvenience into a system flaw
 - blaming one owner layer for a cross-layer issue
+- treating automation frustration as if it automatically proved readiness
 
 ## Verification
 - confirm each diagnosis cites evidence refs

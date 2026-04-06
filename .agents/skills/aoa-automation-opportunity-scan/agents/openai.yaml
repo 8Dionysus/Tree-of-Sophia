@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Automation Opportunity Scan
+  short_description: Classify automation-ready routes
+  default_prompt: Use $aoa-automation-opportunity-scan to turn reviewed recurring work into an automation opportunity packet with a seed-ready or not-now verdict, checkpoint posture, and the most honest next artifact.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false

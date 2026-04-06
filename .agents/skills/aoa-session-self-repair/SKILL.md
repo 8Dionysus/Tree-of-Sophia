@@ -26,6 +26,7 @@ Use this skill when:
 - a reviewed diagnosis already exists
 - the next honest move is a bounded repair plan or repair-ready packet
 - the route may change skill, playbook, agent, eval, or memo surfaces and needs explicit checkpoint posture
+- the route may need prerequisite repair before later automation becomes honest
 - repair can still be kept inside one bounded execution unit
 
 Do not use this skill when:
@@ -44,6 +45,8 @@ Do not use this skill when:
 ## Outputs
 - `REPAIR_PACKET` with target owner repo, smallest diff shape, approval need, rollback marker, health check, and improvement-log stub
 - optional repair quest when execution should remain deferred
+- optional automation-readiness prerequisite packet when the real need is to
+  stabilize a route before later automation scanning or seeding
 - explicit stop conditions and escalation points
 
 ## Procedure
@@ -51,8 +54,9 @@ Do not use this skill when:
 2. choose the smallest honest repair shape
 3. name the primary owner repo and target artifact class
 4. record checkpoint posture: constitution or policy check, approval gate, rollback marker, post-change health check, bounded iteration limit, improvement log
-5. define validation and stop conditions
-6. emit a repair quest instead of mutating immediately when risk or approval posture requires it
+5. if the target route was blocked automation, emit the smallest prerequisite repair that would make later automation classification more honest
+6. define validation and stop conditions
+7. emit a repair quest instead of mutating immediately when risk or approval posture requires it
 
 ## Contracts
 - self-repair is not free self-modification
@@ -61,6 +65,7 @@ Do not use this skill when:
 - role law changes route to `aoa-agents`
 - proof-law changes route to `aoa-evals`
 - scenario-scale repair routes to `aoa-playbooks`
+- repair does not smuggle live automation authority into the packet
 
 ## Risks and anti-patterns
 - silent doctrine edits

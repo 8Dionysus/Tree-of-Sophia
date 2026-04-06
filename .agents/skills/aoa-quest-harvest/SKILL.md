@@ -31,6 +31,8 @@ Do not use this skill when:
 - the task is to invent net-new doctrine rather than classify a repeated pattern
 - the route is already clearly scenario-shaped and only needs playbook authoring
 - the source is a reviewed session artifact with multiple candidate donor units that still need owner-layer routing first; use `aoa-session-donor-harvest`
+- the source still needs explicit automation-readiness classification for a
+  repeated manual route; use `aoa-automation-opportunity-scan`
 - the source still needs explicit route forks, diagnosis, repair, or progression reflection from the wider session-harvest family before final promotion triage
 
 ## Inputs
