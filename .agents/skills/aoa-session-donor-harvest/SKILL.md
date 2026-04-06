@@ -9,7 +9,7 @@ metadata:
   aoa_invocation_mode: explicit-only
   aoa_source_skill_path: skills/aoa-session-donor-harvest/SKILL.md
   aoa_source_repo: 8Dionysus/aoa-skills
-  aoa_technique_dependencies: AOA-T-PENDING-SESSION-DONOR-HARVEST,AOA-T-PENDING-OWNER-LAYER-TRIAGE
+  aoa_technique_dependencies: AOA-T-0075,AOA-T-0076
   aoa_portable_profile: codex-facing-wave-3
 ---
 
@@ -99,9 +99,9 @@ Do not use this skill when:
 - confirm the output names the next artifact rather than only abstract categories
 
 ## Technique traceability
-Pending manifest-backed techniques:
-- AOA-T-PENDING-SESSION-DONOR-HARVEST from `8Dionysus/aoa-techniques` with `path: TBD` and `source_ref: TBD`; intended sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-PENDING-OWNER-LAYER-TRIAGE from `8Dionysus/aoa-techniques` with `path: TBD` and `source_ref: TBD`; intended sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+Manifest-backed techniques:
+- AOA-T-0075 from `8Dionysus/aoa-techniques` at `2db37769d65833cce9dce1919dfac0bf69e5c115` using path `techniques/agent-workflows/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0076 from `8Dionysus/aoa-techniques` at `2db37769d65833cce9dce1919dfac0bf69e5c115` using path `techniques/agent-workflows/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
 
 ## Adaptation points
 Project overlays may add:
