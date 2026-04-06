@@ -27,6 +27,7 @@ Use this skill when:
 - a reviewed session ended with multiple plausible next moves
 - the operator or Codex needs explicit branch choices instead of a buried recommendation
 - the next route may change owner repo, risk posture, or difficulty posture
+- the choice may include staying manual, becoming a bounded skill, becoming a playbook automation seed candidate, or waiting for prerequisite repair
 - the session needs quest-board legibility without pretending to be runtime state
 
 Do not use this skill when:
@@ -46,6 +47,8 @@ Do not use this skill when:
 - `FORK_CARDS` with likely gain, cost, risk, owner repo, and stop conditions
 - one suggested default route if evidence is strong enough
 - one explicit hold or defer option when honest uncertainty remains
+- optional automation and non-automation branches side by side when that choice
+  is real
 - optional quest hooks or campaign hints without runtime authority
 
 ## Procedure
@@ -54,8 +57,9 @@ Do not use this skill when:
 3. name the likely first owner repo for each branch
 4. state likely gains, likely costs, likely risks, and stop conditions
 5. attach a small route passport with difficulty, risk, control mode, and delegate tier
-6. preserve a hold or reanchor path where uncertainty or risk remains meaningful
-7. emit quest-board-readable language only as adjunct reflection
+6. allow automation and non-automation branches to appear side by side when the reviewed evidence supports a real choice between them
+7. preserve a hold or reanchor path where uncertainty or risk remains meaningful
+8. emit quest-board-readable language only as adjunct reflection
 
 ## Contracts
 - branch cards do not become routing authority
@@ -63,12 +67,14 @@ Do not use this skill when:
 - confidence should be named when weak
 - stop conditions are first-class, not footnotes
 - a fork card may recommend but must not hide alternatives
+- automation-shaped branches must not be read as schedule authority
 
 ## Risks and anti-patterns
 - fake certainty about future routes
 - using fork cards as hidden routing policy
 - collapsing all branches into one generic recommendation
 - confusing playbook outline with branch analysis
+- confusing an automation seed candidate with a live scheduler or background job
 - treating quest-board cards as runtime state
 
 ## Verification

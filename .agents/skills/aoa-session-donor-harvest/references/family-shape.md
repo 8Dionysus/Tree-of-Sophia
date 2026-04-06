@@ -5,6 +5,7 @@ Recommended relation graph:
 - `aoa-session-donor-harvest`
   - authors a bounded `HARVEST_PACKET`
   - may hand off to:
+    - `aoa-automation-opportunity-scan`
     - `aoa-session-route-forks`
     - `aoa-session-self-diagnose`
     - `aoa-session-self-repair`
