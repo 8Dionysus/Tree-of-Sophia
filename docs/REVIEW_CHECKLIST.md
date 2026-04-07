@@ -2,8 +2,9 @@
 
 Use this checklist when `Tree-of-Sophia` changes and the current public validator does not cover the touched surface.
 
-The current bounded Zarathustra route already has a public validator at `python scripts/validate_kag_export.py`.
-That validator covers the tiny-entry and export seam together with the current intake pack, canonical tree node contracts, route-local relation pack, tree/example compatibility mirrors, nested guidance surfaces, and questbook boundary-runtime surfaces.
+The current bounded Zarathustra route already has public validators at `python scripts/validate_tiny_entry_route.py` and `python scripts/validate_kag_export.py`.
+The tiny-entry validator keeps the source-owned `tos-root` handoff, public compatibility authority vocabulary, and source-first re-entry explicit.
+The KAG export validator covers the export seam together with the current intake pack, canonical tree node contracts, route-local relation pack, tree/example compatibility mirrors, nested guidance surfaces, and questbook boundary-runtime surfaces.
 
 The goal is not to imitate a machine check.
 The goal is to make source-first review repeatable and explicit.

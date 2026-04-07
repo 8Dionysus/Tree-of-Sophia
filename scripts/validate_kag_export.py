@@ -19,6 +19,7 @@ from generate_kag_export import (
 )
 from validate_intake_pack import run_validation as run_intake_pack_validation
 from validate_nested_agents import run_validation as run_nested_agents_validation
+from validate_tiny_entry_route import run_validation as run_tiny_entry_route_validation
 from validate_tree_example_sync import run_validation as run_tree_example_sync_validation
 from validate_tree_node_contracts import run_validation as run_tree_node_contracts_validation
 from validate_tree_relation_pack import run_validation as run_tree_relation_pack_validation
@@ -331,6 +332,13 @@ def validate_tree_example_sync() -> None:
         fail(f"tree/example sync check failed:\n{details}")
 
 
+def validate_tiny_entry_route() -> None:
+    issues = run_tiny_entry_route_validation(REPO_ROOT)
+    if issues:
+        details = "\n".join(f"- {location}: {message}" for location, message in issues)
+        fail(f"tiny-entry route check failed:\n{details}")
+
+
 def validate_tree_node_contracts() -> None:
     issues = run_tree_node_contracts_validation(REPO_ROOT)
     if issues:
@@ -453,6 +461,7 @@ def main() -> int:
         validate_tree_node_contracts()
         validate_tree_relation_pack()
         validate_tree_example_sync()
+        validate_tiny_entry_route()
         validate_questbook_surface()
         expected_payload = build_kag_export_payload()
         validate_generated_text(
@@ -475,6 +484,7 @@ def main() -> int:
     print("[ok] validated canonical tree node payloads against the node contract")
     print("[ok] validated route-local canonical relation pack")
     print("[ok] validated tree/example compatibility mirrors")
+    print("[ok] validated source-owned tiny-entry route surfaces")
     print("[ok] validated questbook boundary-runtime surfaces")
     print("[ok] validated generated KAG export outputs are up to date")
     print("[ok] validated generated KAG export structure")

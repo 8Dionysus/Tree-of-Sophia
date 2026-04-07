@@ -61,6 +61,7 @@ For broader doctrine changes, use `docs/REVIEW_CHECKLIST.md`.
 If you touch the current tiny export seam or the docs it depends on, run:
 
 ```bash
+python scripts/validate_tiny_entry_route.py
 python scripts/validate_tree_example_sync.py
 python scripts/validate_tree_node_contracts.py
 python scripts/validate_tree_relation_pack.py

@@ -20,6 +20,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "ZARATHUSTRA_TRILINGUAL_ENTRY.md",
         "Keep `README.md` as the current public `tos-root`",
         "docs/REVIEW_CHECKLIST.md",
+        "python scripts/validate_tiny_entry_route.py",
         "python scripts/validate_kag_export.py",
     ),
     "examples/AGENTS.md": (
@@ -60,6 +61,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "docs/REVIEW_CHECKLIST.md",
     ),
     "scripts/AGENTS.md": (
+        "validate_tiny_entry_route.py",
         "generate_kag_export.py",
         "tree_example_sync.py",
         "sync_tree_examples.py",
@@ -70,6 +72,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "validate_nested_agents.py",
         "deterministic",
         "tree-to-example compatibility",
+        "python scripts/validate_tiny_entry_route.py",
         "python scripts/validate_nested_agents.py",
         "python scripts/validate_tree_node_contracts.py",
         "python scripts/validate_tree_relation_pack.py",

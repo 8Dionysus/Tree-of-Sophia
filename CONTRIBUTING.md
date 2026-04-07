@@ -26,7 +26,7 @@ Please make sure:
 - uncertainty is named honestly when the material is contested or interpretive
 - public additions remain provenance-aware and reviewable
 
-For the current bounded route, run `python scripts/validate_kag_export.py` and `python -m unittest discover -s tests`.
+For the current bounded route, run `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests`.
 When the touched surface falls outside that validator coverage, use `docs/REVIEW_CHECKLIST.md` as the manual validation route and include a short review note in the PR when the change is boundary-sensitive.
 
 ## Preferred PR scope

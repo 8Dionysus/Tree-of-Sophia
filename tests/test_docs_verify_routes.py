@@ -35,6 +35,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
     def test_readme_verify_path_mentions_validator_tests_and_manual_review(self) -> None:
         readme = read_text(README_PATH)
 
+        self.assertIn("python scripts/validate_tiny_entry_route.py", readme)
         self.assertIn("python scripts/validate_kag_export.py", readme)
         self.assertIn("python -m unittest discover -s tests", readme)
         self.assertIn("docs/REVIEW_CHECKLIST.md", readme)
@@ -43,6 +44,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         agents = read_text(AGENTS_PATH)
 
         self.assertIn("The current bounded read-only battery is:", agents)
+        self.assertIn("python scripts/validate_tiny_entry_route.py", agents)
         self.assertIn("python scripts/validate_kag_export.py", agents)
         self.assertIn("python -m unittest discover -s tests", agents)
         self.assertIn("docs/REVIEW_CHECKLIST.md", agents)
@@ -50,6 +52,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
     def test_contributing_mentions_tests_alongside_validator(self) -> None:
         contributing = read_text(CONTRIBUTING_PATH)
 
+        self.assertIn("python scripts/validate_tiny_entry_route.py", contributing)
         self.assertIn("python scripts/validate_kag_export.py", contributing)
         self.assertIn("python -m unittest discover -s tests", contributing)
         self.assertIn("docs/REVIEW_CHECKLIST.md", contributing)

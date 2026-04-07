@@ -35,7 +35,7 @@ This is a tree-first route, not a graph-first entry contract.
 ToS needs both orientation surfaces and authority surfaces, but they should not collapse into one layer.
 
 - orientation surfaces help a reader or smaller model enter the right authored path quickly
-- authority surfaces hold the authored node contract or the closest published source-backed example
+- authority surfaces hold the authored node contract or the closest published source-backed compatibility surface
 
 In this wave:
 
@@ -54,7 +54,7 @@ The first public tiny-entry route is anchored in the Zarathustra prologue path:
 - `node_id`: `tos.source.thus-spoke-zarathustra.prologue`
 - capsule surface: `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
 - canonical source node: `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
-- authority surface: `examples/source_node.example.json`
+- public compatibility authority surface: `examples/source_node.example.json`
 - canonical bounded hop: `tree/concept/becoming/node.json`
 - bounded hop: `examples/concept_node.example.json`
 - fallback: `docs/KNOWLEDGE_MODEL.md`
@@ -88,6 +88,15 @@ They do not become ToS authority surfaces.
 They do not replace authored node law.
 They do not become the public root of this route.
 
+## Source-first re-entry
+
+If a downstream consumer loses ToS boundary and needs to restore the current bounded route from `tos-root`, the source-first re-entry should stay:
+
+`README.md -> examples/tos_tiny_entry_route.example.json -> examples/source_node.example.json`
+
+`CHARTER.md` remains the root authority note for ToS posture, but the worked route should re-enter through the source-owned tiny-entry example before any derived `kag_view` or adjunct.
+`aoa-routing` may restore this re-entry hop as bounded navigation, but it must not replace Tree-of-Sophia authority or jump directly to downstream derived surfaces.
+
 ## Anti-collapse rule
 
 A tiny-entry route is an orientation aid inside Tree of Sophia.
@@ -106,4 +115,4 @@ The authored type for this seam is `tos_tiny_entry_route`.
 
 Its current public example is [examples/tos_tiny_entry_route.example.json](../examples/tos_tiny_entry_route.example.json).
 
-See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the first worked capsule, `python scripts/validate_kag_export.py` for the current validator of this bounded route, and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for broader manual review outside the current validator perimeter.
+See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md), `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for the current validator and manual-review route for this bounded seam.

@@ -125,16 +125,19 @@ Summarize:
 The current bounded read-only battery is:
 
 ```bash
+python scripts/validate_tiny_entry_route.py
 python scripts/validate_kag_export.py
 python -m unittest discover -s tests
 ```
 
+`python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
 `python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
 
 When the task falls outside that narrow export seam:
 
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
-- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
+- if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
+- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_tiny_entry_route.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
 
 Do not claim checks you did not run.
