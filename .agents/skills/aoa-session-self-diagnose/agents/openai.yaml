@@ -1,9 +1,0 @@
-interface:
-  display_name: AoA Session Self Diagnose
-  short_description: Diagnose reviewed session drift
-  default_prompt: Use $aoa-session-self-diagnose to turn reviewed session evidence into a diagnosis packet with drift types, symptoms, probable causes, repair shapes, and owner hints.
-  icon_small: ./assets/small-logo.svg
-  icon_large: ./assets/large-logo.svg
-  brand_color: '#2563EB'
-policy:
-  allow_implicit_invocation: false
