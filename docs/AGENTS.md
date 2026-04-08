@@ -2,63 +2,66 @@
 
 This file applies to authored doctrine and review surfaces under `docs/`.
 
-## What lives here
+## Read first
+
+Before changing anything here, read:
+1. the repository root `AGENTS.md`
+2. `README.md`
+3. `CHARTER.md` and `BOUNDARIES.md`
+4. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
+5. the exact template, route, checklist, or review note you are touching
+
+## Local role
 
 `docs/` is where Tree of Sophia states its public knowledge law.
-These files define the knowledge model, node contract, practice-lineage boundary, counterpart and compost posture, calibration and growth law, identifier discipline, node templates, bounded lineage pilot, tiny-entry route, current Zarathustra capsule, KAG export posture, and manual review route.
 
-Key files here include:
+These files govern:
+- the knowledge model and interpretation law
+- node and relation contracts
+- growth, calibration, compost, and counterpart posture
+- identifier and template discipline
+- review and manual corpus-entry gates
+- the current bounded public route and export posture
 
-- `KNOWLEDGE_MODEL.md`
-- `NODE_CONTRACT.md`
-- `PRACTICE_BRANCH.md`
-- `COUNTERPART_POLICY.md`
-- `CONTEXT_COMPOST.md`
-- `CALIBRATION_AXIS.md`
-- `HUMAN_CURATED_EXPANSION.md`
-- `GROWTH_STRUCTURE.md`
-- `IDENTIFIER_DISCIPLINE.md`
-- `SOURCE_NODE_TEMPLATE.md`
-- `CONCEPT_NODE_TEMPLATE.md`
-- `PRINCIPLE_NODE_TEMPLATE.md`
-- `LINEAGE_NODE_TEMPLATE.md`
-- `EVENT_NODE_TEMPLATE.md`
-- `STATE_NODE_TEMPLATE.md`
-- `SUPPORT_NODE_TEMPLATE.md`
-- `ANALOGY_NODE_TEMPLATE.md`
-- `SYNTHESIS_NODE_TEMPLATE.md`
-- `CONTEXT_NODE_TEMPLATE.md`
-- `MANUAL_CORPUS_ENTRY_GATE.md`
-- `TINY_ENTRY_ROUTE.md`
-- `ZARATHUSTRA_TRILINGUAL_ENTRY.md`
-- `KAG_EXPORT.md`
-- `TABULAR_BASE_CONTRACT.md`
-- `RELATION_PACK_CONTRACT.md`
-- `REVIEW_CHECKLIST.md`
-- review notes under `docs/reviews/`
+Use this directory to clarify how source-linked meaning becomes authored structure. Do not use it as a dumping ground for generic notes, runtime policy, or downstream restatements.
 
 ## Editing posture
 
-Treat these docs as authored ToS meaning, not as operational notes or derived KAG restatements.
-Keep `README.md` as the current public `tos-root`.
-Preserve the difference between raw source in `sources/`, candidate extraction in `intake/`, canonical authored tree surfaces in `tree/`, compatibility surfaces in `examples/`, interpretation, synthesis, and derived export posture.
+Treat `docs/` as authored ToS meaning.
 
-When a note touches multilingual witnesses or the Zarathustra route:
+Keep these distinctions legible:
+- raw witness in `sources/`
+- candidate structure in `intake/`
+- canonical authored tree surfaces in `tree/`
+- compatibility mirrors in `examples/`
+- derived exports in `generated/`
 
+When a doc touches multilingual witness routes:
 - keep one shared `node_id`
 - keep the canonical source visibly authoritative
-- do not split the tree into parallel language branches
-- keep fallback inside ToS rather than jumping straight to downstream repos
+- do not split identity into parallel language trees
+- keep fallback and route repair inside ToS before reaching for downstream repos
 
-When a note touches counterpart mapping, compost, calibration, or growth:
-
-- keep those surfaces optional, bounded, and explicitly non-identity
+When a doc touches growth, calibration, compost, or counterpart posture:
+- keep those surfaces bounded and explicitly non-identity
 - do not let AoA operational language silently replace ToS doctrine
+- do not let quest or RPG reflection vocabulary replace node, source, or authority semantics
+
+Review notes in `docs/reviews/` are dated inspection surfaces. They can justify, archive, or challenge a route, but they do not overrule the current doctrine files they discuss.
+
+## Hard no
+
+Do not:
+- restate derived KAG projections as if they were ToS law
+- turn route docs into backlog, quest, or runtime-control surfaces
+- flatten source, interpretation, and synthesis into one tone
+- use a review note to bypass a stronger current contract
 
 ## Validation
 
 For broader doctrine changes, use `docs/REVIEW_CHECKLIST.md`.
-If you touch the current tiny export seam or the docs it depends on, run:
+
+If you touch the current tiny route, the current export seam, or the docs those surfaces depend on, run:
 
 ```bash
 python scripts/validate_tiny_entry_route.py

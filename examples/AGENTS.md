@@ -1,52 +1,56 @@
 # AGENTS.md
 
-This file applies to scaffold and source-owned example surfaces under `examples/`.
+This file applies to compatibility and scaffold example surfaces under `examples/`.
 
-## What lives here
+## Read first
 
-`examples/` holds the current public scaffold and entry surfaces for Tree of Sophia.
-These files illustrate the authored node contract and the current tiny-entry route without pretending to be a full corpus.
-They now also act as compatibility mirrors of the canonical authored tree in `tree/`.
+Before editing examples, read:
+1. the repository root `AGENTS.md`
+2. `tree/AGENTS.md`
+3. `schemas/AGENTS.md`
+4. the exact canonical tree surface the example mirrors
+5. `docs/KAG_EXPORT.md` when the example participates in the current export seam
 
-The current example set includes:
+## Local role
 
-- `source_node.example.json`
-- `concept_node.example.json`
-- `principle_node.example.json`
-- `lineage_node.example.json`
-- `event_node.example.json`
-- `state_node.example.json`
-- `support_node.example.json`
-- `analogy_node.example.json`
-- `synthesis_node.example.json`
-- `tos_tiny_entry_route.example.json`
-- `quest_catalog.min.example.json`
-- `quest_dispatch.min.example.json`
+`examples/` holds the current public compatibility and entry surfaces for Tree of Sophia.
 
-Older superseded pilot scaffolds may live under `examples/review/`.
-Treat those files as review/archive material rather than as active canon.
+These files illustrate:
+- the authored node contract
+- the current tiny-entry route
+- bounded quest compatibility artifacts used for public-safe review or transport
+
+Older superseded pilots may live under `examples/review/`. Treat those as archive or review surfaces, not as current compatibility truth.
 
 ## Editing posture
 
-Keep examples aligned with `schemas/`.
-Keep `node_id` values stable, readable, and scoped to one authored object.
-Use one shared `node_id` across multilingual witnesses rather than language-split copies.
-Keep source-node, concept-node, principle-node, lineage-node, event-node, state-node, support-node, analogy-node, synthesis-node, and tiny-entry-route examples distinct.
-Do not let bounded examples quietly become an uncontrolled corpus program.
-Do not use example payloads as a substitute for the owning doctrine docs.
-Keep `examples/source_node.example.json`, `examples/concept_node.example.json`, and `examples/principle_node.example.json` aligned with their canonical authored tree mirrors.
-Keep `examples/lineage_node.example.json` aligned with its canonical authored tree mirror.
-Keep `examples/event_node.example.json` and `examples/state_node.example.json` aligned with their canonical authored tree mirrors.
-Keep `examples/support_node.example.json` aligned with its canonical authored tree mirror.
-Keep `examples/analogy_node.example.json` and `examples/synthesis_node.example.json` aligned with their canonical authored tree mirrors.
-Keep `quest_catalog.min.example.json` and `quest_dispatch.min.example.json` aligned with `quests/*.yaml` and `schemas/`.
-Treat the quest examples as reviewable compatibility artifacts rather than as generated state or runtime authority.
-Do not treat `examples/review/` as an active compatibility surface.
+Keep examples aligned with both:
+- `schemas/`
+- their canonical mirrors in `tree/`
+
+Keep `node_id` values stable, readable, and scoped to one authored object. Use one shared `node_id` across multilingual witnesses rather than language-split copies.
+
+Examples are not:
+- a second canon
+- generated runtime state
+- a substitute for doctrine docs
+- permission to broaden the bounded route into a full corpus program
+
+`quest_catalog.min.example.json` and `quest_dispatch.min.example.json` are reviewable compatibility artifacts. They are not runtime authority, not live quest state, and not a license to collapse authored meaning into backlog language.
+
+## Hard no
+
+Do not:
+- edit an example first and retrofit the tree later
+- treat `examples/review/` as an active compatibility surface
+- widen example payloads just because downstream consumers might want more
+- blur authored nodes and operational compatibility artifacts into one envelope
 
 ## Validation
 
 For scaffold or doctrine changes, use `docs/REVIEW_CHECKLIST.md`.
-If you change `source_node.example.json`, `concept_node.example.json`, `principle_node.example.json`, `lineage_node.example.json`, `event_node.example.json`, `state_node.example.json`, `support_node.example.json`, `analogy_node.example.json`, or `synthesis_node.example.json` as part of the current canonical mirror set, run:
+
+If you change the current mirror set or the current tiny-entry route examples, run:
 
 ```bash
 python scripts/validate_tree_example_sync.py
