@@ -4,7 +4,7 @@ Guidance for coding agents and humans contributing to `Tree-of-Sophia`.
 
 ## Purpose
 
-`Tree-of-Sophia` is the canonical high-level statement of ToS and the home of its canonical authored tree. Treat it as the place that defines the knowledge architecture, preserves source-facing inputs, and carries canonical authored tree surfaces.
+`Tree-of-Sophia` is the canonical home of ToS as a source-first living knowledge architecture for philosophy and world thought. Treat it as the place where source-linked authority, authored tree meaning, and bounded public compatibility/export seams must stay legible as the wider ecosystem grows around them.
 
 Preserve the distinction between authored meaning, derived structure, and operational support at all times.
 
@@ -24,15 +24,17 @@ This repository is the source of truth for:
 Do not treat this repository as the main home for:
 
 - runtime, deployment, storage, or service posture in `abyss-stack`
-- operational federation rules in `Agents-of-Abyss`
+- ecosystem-level federation rules in `Agents-of-Abyss`
+- typed workspace integration or bounded activation in `aoa-sdk`
 - derived substrate semantics in `aoa-kag`
-- general agent workflow machinery
+- seed staging or replay logistics in `Dionysus`
+- general agent workflow machinery, quest doctrine, or runtime-side progression overlays
 - infrastructure configuration
 - flat note archives detached from provenance
 
-If the task mainly concerns runtime, orchestration, or derived substrate mechanics, route there instead of forcing it into ToS.
+If the task mainly concerns runtime, orchestration, seed staging, or derived substrate mechanics, route there instead of forcing it into ToS.
 
-## Core rule
+## Core meaning posture
 
 Sources before abstraction.
 
@@ -44,10 +46,13 @@ Keep these layers visibly distinct whenever you touch them:
 - compatibility or public entry surface
 - interpretation or synthesis
 - lineage, temporal, and civilizational context
+- downstream-derived substrate or export surface
 
 Do not flatten those layers into one undifferentiated summary.
 
-The guiding axis of becoming, overcoming, value creation, and life-affirmation is an interpretive compass. It is not permission to distort sources or force every text into one frame.
+`generated/` and KAG-facing exports remain derived. They may improve access, but they do not replace source-owned authority.
+
+The guiding axis of becoming, overcoming, value creation, and life-affirmation is an interpretive compass. It is not permission to distort sources, force every text into one frame, or import AoA quest / RPG reflection vocabulary as if it were ToS-owned meaning.
 
 ## Read this first
 
@@ -56,11 +61,24 @@ Before making changes, read in this order:
 1. `README.md`
 2. `CHARTER.md` and `BOUNDARIES.md`
 3. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
-4. the specific template, review, or route docs that govern the surface you are changing
-5. the target source file you plan to edit
-6. any affected export or example surfaces if the task touches `examples/` or `generated/`
+4. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when the current public route or export seam is in scope
+5. the specific template, review, or route docs that govern the surface you are changing
+6. the target source file, node, registry, or intake artifact you plan to edit
+7. any affected export or example surfaces if the task touches `examples/` or `generated/`
 
 If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
+
+## Route by intent
+
+When the requested change is not truly ToS-owned, route by the question being asked:
+
+- `Agents-of-Abyss` for ecosystem identity, charter, and federation rules
+- `abyss-stack` for runtime, deployment, storage, and service posture
+- `aoa-kag` for derived provenance-aware retrieval and reasoning-handoff substrates
+- `aoa-techniques` for reusable engineering practice around knowledge operations
+- `Dionysus` for seed staging, replay, and pre-canon transplant logistics
+
+If ToS is only being named because the task mentions ideas or concepts, but the real mutation is runtime, agent, or seed behavior, stop and reroute.
 
 ## Primary objects
 
@@ -77,11 +95,12 @@ The most important objects in this repository are:
 Do not:
 
 - replace source-grounded thought with generic AI paraphrase
-- collapse extraction, interpretation, and synthesis into one layer
-- present derived exports as authored authority
-- move runtime or orchestration doctrine here
+- collapse extraction, interpretation, synthesis, and export into one layer
+- present derived exports or KAG projections as authored authority
+- move runtime, orchestration, or agent doctrine here
 - erase provenance, temporal context, or lineage when they matter
 - introduce private or hidden material into public surfaces
+- use quest, campaign, loadout, or ability-card language as a substitute for node, relation, lineage, context, or synthesis contracts
 
 ## Contribution doctrine
 
@@ -93,22 +112,24 @@ State:
 
 - what ToS surface is changing
 - which layer is affected: source, intake, tree, compatibility, or export
+- whether the current bounded public route is touched
 - what provenance or interpretation risk exists
 - which neighboring repositories may be affected
 
 ### DIFF
 
-Keep the change focused. Prefer the smallest reversible structure that preserves fidelity, legibility, and provenance.
+Keep the change focused. Prefer the smallest reversible structure that preserves fidelity, legibility, provenance, and honest layer separation.
 
 ### VERIFY
 
 Confirm that:
 
 - source traceability is still visible
-- extraction, interpretation, and synthesis remain distinguishable
+- extraction, interpretation, synthesis, and export remain distinguishable
 - lineage and context still attach where relevant
 - derived surfaces are still clearly derived
 - no wording overclaims authority beyond what the layer can honestly support
+- route docs, registries, and examples still point back to the right owning surfaces
 
 ### REPORT
 
@@ -117,6 +138,7 @@ Summarize:
 - what surfaces changed
 - whether semantics changed or only metadata / organization changed
 - whether provenance, lineage, or interpretation posture changed
+- whether the current tiny-entry or export seam was affected
 - what validation was run
 - any neighboring repo follow-up likely needed
 
@@ -133,11 +155,12 @@ python -m unittest discover -s tests
 `python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
 `python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
 
-When the task falls outside that narrow export seam:
+When the task falls outside that narrow validator seam:
 
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
 - if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_tiny_entry_route.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
+- if the task is mainly interpretive or structural outside the current validator perimeter, say that manual review was used instead of pretending automatic proof exists
 
 Do not claim checks you did not run.
