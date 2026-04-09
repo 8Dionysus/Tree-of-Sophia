@@ -35,6 +35,8 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
     def test_readme_verify_path_mentions_validator_tests_and_manual_review(self) -> None:
         readme = read_text(README_PATH)
 
+        self.assertIn("python scripts/build_root_entry_map.py --check", readme)
+        self.assertIn("python scripts/validate_root_entry_map.py", readme)
         self.assertIn("python scripts/validate_tiny_entry_route.py", readme)
         self.assertIn("python scripts/validate_kag_export.py", readme)
         self.assertIn("python -m unittest discover -s tests", readme)
@@ -69,6 +71,15 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         self.assertIn("python scripts/validate_kag_export.py", kag_export_doc)
         self.assertIn("python -m unittest discover -s tests", kag_export_doc)
         self.assertIn("python scripts/generate_kag_export.py", kag_export_doc)
+
+    def test_readme_and_tiny_entry_doc_expose_root_entry_capsule(self) -> None:
+        readme = read_text(README_PATH)
+        tiny_entry_doc = read_text(REPO_ROOT / "docs" / "TINY_ENTRY_ROUTE.md")
+
+        self.assertIn("generated/root_entry_map.min.json", readme)
+        self.assertIn("generated/root_entry_map.min.json", tiny_entry_doc)
+        self.assertIn("python scripts/build_root_entry_map.py --check", tiny_entry_doc)
+        self.assertIn("python scripts/validate_root_entry_map.py", tiny_entry_doc)
 
 
 if __name__ == "__main__":

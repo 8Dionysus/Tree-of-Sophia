@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/8Dionysus/Tree-of-Sophia/main/schemas/root-entry-map.schema.json",
+  "title": "ToS root entry map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "schema_ref",
+    "owner_repo",
+    "surface_kind",
+    "authority_ref",
+    "public_root_ref",
+    "current_tiny_entry_ref",
+    "export_ref",
+    "validation_refs",
+    "routes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_root_entry_map_v1"
+    },
+    "schema_ref": {
+      "const": "schemas/root-entry-map.schema.json"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "surface_kind": {
+      "const": "root_entry_map"
+    },
+    "authority_ref": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "public_root_ref": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "current_tiny_entry_ref": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "export_ref": {
+      "$ref": "#/$defs/repoRelativeSurface"
+    },
+    "validation_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/repoRelativeSurface"
+      }
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    }
+  },
+  "$defs": {
+    "repoRelativeSurface": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z0-9_-]+:)(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!\\.\\.?[\\\\/])[A-Za-z0-9._/#-]+$"
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_id",
+        "need",
+        "surface_ref",
+        "verification_refs"
+      ],
+      "properties": {
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "need": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surface_ref": {
+          "$ref": "#/$defs/repoRelativeSurface"
+        },
+        "verification_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/repoRelativeSurface"
+          }
+        }
+      }
+    }
+  }
+}

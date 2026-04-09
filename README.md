@@ -16,8 +16,9 @@ This repository currently carries four public layers:
 Use the shortest route by need:
 
 - if you are new here and want the one real current public route: [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) and [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md)
+- if you want the compact machine-facing companion to that same root path: `generated/root_entry_map.min.json`
 - if you need the bounded downstream export seam for that route: [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
-- if you want to verify the current bounded route: [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md), `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, `python -m unittest discover -s tests`, and [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for surfaces outside the current validator perimeter
+- if you want to verify the current bounded route: [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, `python -m unittest discover -s tests`, and [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for surfaces outside the current validator perimeter
 - mission and source-of-truth boundaries: [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md)
 - knowledge model and interpretation law: [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) and [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md)
 - current direction: [ROADMAP](ROADMAP.md)
@@ -31,10 +32,10 @@ For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.m
 Use this order:
 
 1. [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) for ownership and non-ownership.
-2. [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the route shape from `README.md` to capsule, authority, and bounded hop.
+2. `generated/root_entry_map.min.json` and [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the route shape from `README.md` to capsule, authority, and bounded hop.
 3. `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` for the canonical authored source node.
 4. `examples/source_node.example.json` and `examples/concept_node.example.json` for the current public compatibility mirrors.
-5. `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded validator and test battery, then [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) if your change falls outside that perimeter.
+5. `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded validator and test battery, then [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) if your change falls outside that perimeter.
 
 ## Route by need
 

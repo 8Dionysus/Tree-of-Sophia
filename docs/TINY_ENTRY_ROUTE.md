@@ -10,6 +10,7 @@ At the current wave, the public `tos-root` is `README.md`.
 
 No separate root file is introduced here.
 The root stays human-readable, public, and tree-first.
+`generated/root_entry_map.min.json` is the additive machine-facing companion for that same root.
 
 ## Tree-first chain
 
@@ -40,6 +41,7 @@ ToS needs both orientation surfaces and authority surfaces, but they should not 
 In this wave:
 
 - `README.md` and this note are orientation surfaces
+- `generated/root_entry_map.min.json` is the compact root-entry capsule for machine-facing entry
 - `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule that explains the bounded route
 - `tree/` holds the canonical authored node surfaces
 - `examples/source_node.example.json` remains the public compatibility authority surface for the first published tiny-entry example
@@ -115,4 +117,6 @@ The authored type for this seam is `tos_tiny_entry_route`.
 
 Its current public example is [examples/tos_tiny_entry_route.example.json](../examples/tos_tiny_entry_route.example.json).
 
-See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md), `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for the current validator and manual-review route for this bounded seam.
+The additive machine-facing root capsule is `generated/root_entry_map.min.json`.
+
+See [docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and [docs/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for the current validator and manual-review route for this bounded seam.
