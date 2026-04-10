@@ -9,6 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [0.2.0] - 2026-04-10
 
+### Summary
+
+- this release adds a source-owned zero-entry root capsule, reentry doctrine, stronger routed-language validation, and repo-local follow-through skill surfaces
+- witness handling, schema-level uniqueness, and source-first review guidance are tightened across the current trilingual tree contour
+- `Tree-of-Sophia` remains source-first authority while exposing stronger downstream-safe entry and export seams
+
+### Validation
+
+- `python scripts/release_check.py`
+
+### Notes
+
+- detailed route, corpus, and generated-surface coverage for this release remains enumerated below under `Added`, `Changed`, and `Included in this release`
+
 ### Added
 
 - source-owned tiny-entry route validation and reentry doctrine together with a
