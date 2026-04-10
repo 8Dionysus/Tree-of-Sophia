@@ -169,11 +169,7 @@
         "properties": {
           "language": {
             "type": "string",
-            "enum": [
-              "de",
-              "ru",
-              "en"
-            ]
+            "pattern": "^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$"
           },
           "role": {
             "type": "string",
@@ -253,51 +249,6 @@
           "properties": {
             "role": {
               "const": "bridge_translation"
-            }
-          }
-        },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "de"
-            }
-          }
-        },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "ru"
-            }
-          }
-        },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "en"
             }
           }
         },

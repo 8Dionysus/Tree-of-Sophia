@@ -22,6 +22,28 @@ def node_paths(repo_root: Path | None = None) -> list[Path]:
     return sorted((root / "tree").rglob("node.json"))
 
 
+def duplicate_language_witness_issues(payload: object, *, location: str) -> list[Issue]:
+    if not isinstance(payload, dict):
+        return []
+    witnesses = payload.get("language_witnesses")
+    if not isinstance(witnesses, list):
+        return []
+
+    seen_languages: set[str] = set()
+    issues: list[Issue] = []
+    for witness in witnesses:
+        if not isinstance(witness, dict):
+            continue
+        language = witness.get("language")
+        if not isinstance(language, str):
+            continue
+        if language in seen_languages:
+            issues.append((location, f"language_witnesses contains a duplicate language: {language}"))
+            continue
+        seen_languages.add(language)
+    return issues
+
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -46,6 +68,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
         for error in validator.iter_errors(payload):
             issues.append((rel, error.message))
+        issues.extend(duplicate_language_witness_issues(payload, location=rel))
 
     return issues
 
