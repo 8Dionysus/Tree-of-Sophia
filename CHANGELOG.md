@@ -23,6 +23,17 @@ Tracking starts with the community-docs baseline for this repository.
 - tightened AGENTS and review guidance around source-first boundaries,
   validator scope, and the current knowledge-first route posture
 
+### Included in this release
+
+- root-route and contributor-posture refreshes across `README.md`,
+  `BOUNDARIES.md`, `ROADMAP.md`, `AGENTS.md`, `.agents/`, `.github/`, and
+  `docs/`, including public-route clarity, review guidance, and follow-through
+  installs
+- source, intake, and tree route artifacts across `sources/`, `intake/`,
+  `tree/`, `examples/`, `generated/`, `schemas/`, `scripts/`, `tests/`, and
+  `Spark/`, including routed-language witness handling and the zero-entry root
+  capsule
+
 ## [0.1.0] - 2026-04-01
 
 First public baseline release of `Tree-of-Sophia` as the source-first knowledge architecture repository in the AoA / ToS ecosystem.
