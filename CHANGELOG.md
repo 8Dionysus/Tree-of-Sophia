@@ -7,6 +7,22 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-10
+
+### Added
+
+- source-owned tiny-entry route validation and reentry doctrine together with a
+  zero-entry `generated/root_entry_map.min.json` capsule
+- stronger routed-language witness handling through generalized language
+  validation and restored schema-level uniqueness
+- repo-local project-foundation, session-harvest, and automation-opportunity
+  skill surfaces for source-first review and closeout follow-through
+
+### Changed
+
+- tightened AGENTS and review guidance around source-first boundaries,
+  validator scope, and the current knowledge-first route posture
+
 ## [0.1.0] - 2026-04-01
 
 First public baseline release of `Tree-of-Sophia` as the source-first knowledge architecture repository in the AoA / ToS ecosystem.
