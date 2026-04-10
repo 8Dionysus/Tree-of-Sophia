@@ -1,4 +1,4 @@
-name: Repo Validation
+name: Release Audit
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
   pull_request:
 
 jobs:
-  validate:
+  release_audit:
+    name: Release Audit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,11 +22,5 @@ jobs:
       - name: Install validator dependencies
         run: python -m pip install -r requirements-dev.txt
 
-      - name: Run tiny-entry validator
-        run: python scripts/validate_tiny_entry_route.py
-
-      - name: Run ToS validator
-        run: python scripts/validate_kag_export.py
-
-      - name: Run tests
-        run: python -m pytest -q
+      - name: Run release audit
+        run: python scripts/release_check.py
