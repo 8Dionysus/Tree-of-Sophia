@@ -254,6 +254,51 @@
         },
         "minContains": 0,
         "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "de"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "ru"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
+      },
+      {
+        "contains": {
+          "type": "object",
+          "required": [
+            "language"
+          ],
+          "properties": {
+            "language": {
+              "const": "en"
+            }
+          }
+        },
+        "minContains": 0,
+        "maxContains": 1
       }
     ]
     },

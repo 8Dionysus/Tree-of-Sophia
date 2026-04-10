@@ -225,6 +225,12 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
         self.assertNotEqual(self.collect_errors(payload), [])
 
+    def test_duplicate_witness_languages_fail_schema_validation(self) -> None:
+        payload = copy.deepcopy(self.source_node)
+        payload["language_witnesses"][1]["language"] = payload["language_witnesses"][0]["language"]
+
+        self.assertNotEqual(self.collect_errors(payload), [])
+
     def test_additional_language_codes_pass_schema_validation(self) -> None:
         payload = copy.deepcopy(self.source_node)
         payload["language_witnesses"][2]["language"] = "el"
