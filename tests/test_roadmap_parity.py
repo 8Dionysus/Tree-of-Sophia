@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unittest
 from pathlib import Path
 
 
@@ -15,15 +16,20 @@ def load_json(relative_path: str) -> object:
     return json.loads((REPO_ROOT / relative_path).read_text(encoding="utf-8"))
 
 
-def test_roadmap_keeps_root_entry_routes_in_current_phase() -> None:
-    roadmap = read_text("ROADMAP.md")
-    payload = load_json("generated/root_entry_map.min.json")
+class RoadmapParityTestCase(unittest.TestCase):
+    def test_roadmap_keeps_root_entry_routes_in_current_phase(self) -> None:
+        roadmap = read_text("ROADMAP.md")
+        payload = load_json("generated/root_entry_map.min.json")
 
-    route_ids = {route["route_id"] for route in payload["routes"]}
+        route_ids = {route["route_id"] for route in payload["routes"]}
 
-    assert "current-tiny-entry" in route_ids
-    assert "bounded-export" in route_ids
-    assert "shared `node_id`" in roadmap
-    assert "tiny-entry seam" in roadmap
-    assert "bounded export seam" in roadmap
-    assert "`aoa-kag`" in roadmap
+        self.assertIn("current-tiny-entry", route_ids)
+        self.assertIn("bounded-export", route_ids)
+        self.assertIn("shared `node_id`", roadmap)
+        self.assertIn("tiny-entry seam", roadmap)
+        self.assertIn("bounded export seam", roadmap)
+        self.assertIn("`aoa-kag`", roadmap)
+
+
+if __name__ == "__main__":
+    unittest.main()
