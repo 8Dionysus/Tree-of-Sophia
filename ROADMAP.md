@@ -4,9 +4,14 @@ This roadmap tracks the staged growth of Tree of Sophia as a source-first knowle
 
 ## Current phase
 
-ToS is now holding one bounded trilingual Zarathustra entry route and one tree-first tiny-entry seam before wider corpus movement broadens.
+ToS is now holding one bounded trilingual Zarathustra entry route, one tree-
+first tiny-entry seam, and one bounded export seam before wider corpus
+movement broadens.
 
 The immediate task is to prove one source-first trilingual prologue route with a shared `node_id`, explicit language roles, reviewable witness drift, and a stable `README.md -> capsule -> authority -> bounded hop` entry seam before wider world-thought expansion is reopened.
+
+The export route should stay bounded and downstream: it may support `aoa-kag`
+handoff, but it must not become a new public entry authority for ToS.
 
 ## Phase 1: architectural baseline
 
