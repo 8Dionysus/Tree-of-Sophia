@@ -59,12 +59,13 @@ The guiding axis of becoming, overcoming, value creation, and life-affirmation i
 Before making changes, read in this order:
 
 1. `README.md`
-2. `CHARTER.md` and `BOUNDARIES.md`
-3. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
-4. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when the current public route or export seam is in scope
-5. the specific template, review, or route docs that govern the surface you are changing
-6. the target source file, node, registry, or intake artifact you plan to edit
-7. any affected export or example surfaces if the task touches `examples/` or `generated/`
+2. `ROADMAP.md`
+3. `CHARTER.md` and `BOUNDARIES.md`
+4. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
+5. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when the current public route or export seam is in scope
+6. the specific template, review, or route docs that govern the surface you are changing
+7. the target source file, node, registry, or intake artifact you plan to edit
+8. any affected export or example surfaces if the task touches `examples/` or `generated/`
 
 If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
 
