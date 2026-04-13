@@ -13,6 +13,37 @@ The immediate task is to prove one source-first trilingual prologue route with a
 The export route should stay bounded and downstream: it may support `aoa-kag`
 handoff, but it must not become a new public entry authority for ToS.
 
+### Current release contour
+
+The live `v0.2.0` contour is a source-owned root-entry and export hardening
+wave. Its current checked surface is:
+
+- public source-first orientation and boundaries:
+  `README.md`, `CHARTER.md`, `BOUNDARIES.md`,
+  `docs/KNOWLEDGE_MODEL.md`, `docs/NODE_CONTRACT.md`, and
+  `docs/REVIEW_CHECKLIST.md`
+- source-owned zero-entry capsule and re-entry doctrine:
+  `docs/TINY_ENTRY_ROUTE.md`,
+  `examples/tos_tiny_entry_route.example.json`,
+  `generated/root_entry_map.min.json`, `scripts/build_root_entry_map.py`,
+  `scripts/validate_root_entry_map.py`, and
+  `scripts/validate_tiny_entry_route.py`
+- current trilingual authority and compatibility route:
+  `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`,
+  `sources/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`,
+  `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`,
+  `examples/source_node.example.json`,
+  `tree/concept/becoming/node.json`, and
+  `examples/concept_node.example.json`
+- bounded downstream export seam:
+  `docs/KAG_EXPORT.md`, `generated/kag_export.json`,
+  `generated/kag_export.min.json`, `scripts/generate_kag_export.py`, and
+  `scripts/validate_kag_export.py`
+
+This contour keeps routed-language witness handling and source-first re-entry
+inside ToS. Downstream KAG and routing consumers may use the seam, but they do
+not become ToS authority or widen the tree.
+
 ## Phase 1: architectural baseline
 
 Goals:
