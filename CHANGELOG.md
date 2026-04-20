@@ -7,6 +7,36 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-19
+
+### Summary
+
+- this patch tightens release posture, roadmap routing, and current-direction
+  locks around the active root-entry line
+- README front-page, release-audit baseline, PR template coverage, and
+  required-check plus Node24 CI surfaces now agree
+- `Tree-of-Sophia` remains the source-first authority while keeping
+  release-facing entry surfaces bounded and legible
+
+### Added
+
+- a release-audit baseline, current-direction route locks, and a GitHub pull
+  request template for the repository
+
+### Changed
+
+- roadmap entry-routing docs, README release front page, changelog contract,
+  and CI/protection refs are aligned with the current root-entry contour
+
+### Validation
+
+- `python scripts/release_check.py`
+
+### Notes
+
+- this patch is release-contract and route-legibility work for the source
+  repository; it does not widen Tree-of-Sophia ownership boundaries
+
 ## [0.2.0] - 2026-04-10
 
 ### Summary
