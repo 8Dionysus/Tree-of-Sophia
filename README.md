@@ -11,7 +11,7 @@ This repository currently carries four public layers:
 - `tree/` for canonical authored nodes, relations, and vocabulary governance
 - `examples/` and `generated/` for bounded public compatibility and downstream-safe export seams
 
-> Current release: `v0.2.0`. See [CHANGELOG](CHANGELOG.md) for release notes.
+> Current release: `v0.2.1`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
 ## Start here
 
