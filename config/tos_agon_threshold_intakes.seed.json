@@ -1,0 +1,346 @@
+{
+  "registry_id": "tos.agon_threshold_intake.registry.v1",
+  "runtime_posture": "candidate_only",
+  "threshold_intakes": [
+    {
+      "accepted_from": [
+        "aoa-kag",
+        "Agents-of-Abyss"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.threshold.intake_packet.v1",
+      "live_protocol": false,
+      "purpose": "Receive an Agon/KAG threshold packet as review material, not as canon.",
+      "required_evidence": [
+        "threshold_packet",
+        "kag_candidate_reference",
+        "owner_review_trace"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "aoa-memo",
+        "aoa-evals",
+        "aoa-stats",
+        "aoa-kag"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.canon_review_dossier.v1",
+      "live_protocol": false,
+      "purpose": "Bundle evidence for slow ToS review.",
+      "required_evidence": [
+        "memo_package",
+        "eval_alignment",
+        "stats_summary",
+        "kag_candidate"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "Agents-of-Abyss"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.source_boundary_review.v1",
+      "live_protocol": false,
+      "purpose": "Check that no AoA layer is claiming ToS-authored truth.",
+      "required_evidence": [
+        "source_boundary_statement",
+        "direct_write_absence"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "Tree-of-Sophia"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.authorial_acceptance_request.v1",
+      "live_protocol": false,
+      "purpose": "Prepare an explicit authorial review request; it cannot accept itself.",
+      "required_evidence": [
+        "candidate_dossier",
+        "review_scope"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "Tree-of-Sophia"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.rejection_notice_candidate.v1",
+      "live_protocol": false,
+      "purpose": "Allow ToS to reject threshold candidates with reasons and return route.",
+      "required_evidence": [
+        "rejection_reason",
+        "return_route"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "Tree-of-Sophia"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.defer_with_cost_notice.v1",
+      "live_protocol": false,
+      "purpose": "Allow ToS to defer review while preserving the cost of delay.",
+      "required_evidence": [
+        "defer_reason",
+        "cost_statement",
+        "next_review_hint"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "aoa-kag",
+        "aoa-memo"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.branch_candidate_packet.v1",
+      "live_protocol": false,
+      "purpose": "Represent a possible branch without creating a canonical branch.",
+      "required_evidence": [
+        "branch_survival_record",
+        "lineage_evidence"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    },
+    {
+      "accepted_from": [
+        "Tree-of-Sophia"
+      ],
+      "assistant_contestant_allowed": false,
+      "canon_write_allowed": false,
+      "direct_tos_write_allowed": false,
+      "forbidden_effects": [
+        "live_verdict_authority",
+        "durable_scar_write",
+        "retention_execution",
+        "rank_mutation",
+        "trust_mutation",
+        "tree_of_sophia_canon_write",
+        "direct_tos_write",
+        "automatic_canonization",
+        "kag_as_canon",
+        "hidden_scheduler_action",
+        "assistant_contestant_drift",
+        "auto_doctrine_rewrite",
+        "center_takeover_of_owner_truth",
+        "eval_memo_stats_sovereignty",
+        "stats_as_canon_authority",
+        "eval_as_canon_authority",
+        "memo_as_canon_authority",
+        "sdk_hidden_write"
+      ],
+      "intake_id": "tos.agon.canon_entry_draft_candidate.v1",
+      "live_protocol": false,
+      "purpose": "Represent a draft candidate for a possible authored node, not a node.",
+      "required_evidence": [
+        "authorial_review_route",
+        "source_material",
+        "boundary_checks"
+      ],
+      "requires_review": true,
+      "review_status": "candidate_only",
+      "runtime_effect": "candidate_only",
+      "tos_canonization_allowed": false,
+      "wave": "XVIII",
+      "wave_name": "Sophian Threshold"
+    }
+  ],
+  "wave": "XVIII",
+  "wave_name": "Sophian Threshold"
+}
