@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "entry": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_from": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "assistant_contestant_allowed": {
+          "const": false
+        },
+        "canon_write_allowed": {
+          "const": false
+        },
+        "direct_tos_write_allowed": {
+          "const": false
+        },
+        "forbidden_effects": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "intake_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "live_protocol": {
+          "const": false
+        },
+        "purpose": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "required_evidence": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "requires_review": {
+          "const": true
+        },
+        "review_status": {
+          "const": "candidate_only"
+        },
+        "runtime_effect": {
+          "enum": [
+            "none",
+            "candidate_only",
+            "local_dry_run_candidate_only",
+            "local_rehearsal_candidate_only"
+          ]
+        },
+        "tos_canonization_allowed": {
+          "const": false
+        },
+        "wave": {
+          "const": "XVIII"
+        },
+        "wave_name": {
+          "const": "Sophian Threshold"
+        }
+      },
+      "required": [
+        "accepted_from",
+        "assistant_contestant_allowed",
+        "canon_write_allowed",
+        "direct_tos_write_allowed",
+        "forbidden_effects",
+        "intake_id",
+        "live_protocol",
+        "purpose",
+        "required_evidence",
+        "requires_review",
+        "review_status",
+        "runtime_effect",
+        "tos_canonization_allowed",
+        "wave",
+        "wave_name"
+      ],
+      "title": "tos-agon-threshold-intake.schema.json item contract",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "count": {
+      "const": 8
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "registry_id": {
+      "const": "tos.agon_threshold_intake.registry.v1"
+    },
+    "runtime_posture": {
+      "const": "candidate_only"
+    },
+    "threshold_intakes": {
+      "items": {
+        "$ref": "#/$defs/entry"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "type": "array"
+    },
+    "wave": {
+      "const": "XVIII"
+    },
+    "wave_name": {
+      "const": "Sophian Threshold"
+    }
+  },
+  "required": [
+    "registry_id",
+    "wave",
+    "wave_name",
+    "runtime_posture",
+    "count",
+    "threshold_intakes",
+    "digest"
+  ],
+  "title": "tos.agon_threshold_intake.registry.v1 generated registry contract",
+  "type": "object"
+}
