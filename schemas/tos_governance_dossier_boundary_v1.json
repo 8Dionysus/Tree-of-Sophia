@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aoa.local/Tree-of-Sophia/schemas/tos_governance_dossier_boundary_v1.json",
+  "title": "tos_governance_dossier_boundary_v1",
+  "description": "Seed schema for tos_governance_dossier_boundary_v1 in Experience Constitution Runtime v0.9.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "boundary_state",
+    "dossier_id",
+    "review_required",
+    "source_decision"
+  ],
+  "properties": {
+    "boundary_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dossier_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_required": {
+      "type": "boolean",
+      "const": true
+    },
+    "source_decision": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
