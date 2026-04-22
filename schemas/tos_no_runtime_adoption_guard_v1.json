@@ -109,7 +109,8 @@
           "minimum": 1
         },
         "direct_runtime_adoption_allowed": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": false
         },
         "boundary": {
           "type": "string"
