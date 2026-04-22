@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "kind": "aoa_experience_candidate_dossier",
+  "id": "aoa_experience_candidate_dossier.example",
+  "status": "candidate",
+  "summary": "Example aoa_experience_candidate_dossier object for v0.6 federation harvest seed.",
+  "owner_repo": "Tree-of-Sophia",
+  "evidence_refs": [
+    "receipt://v0.6/aoa_experience_candidate_dossier/example"
+  ],
+  "payload": {
+    "dossier_id": "tos.dossier.pattern.001",
+    "source": "aoa-kag",
+    "direct_write_attempted": false,
+    "review_required": true
+  }
+}

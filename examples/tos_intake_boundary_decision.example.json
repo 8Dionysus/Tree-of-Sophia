@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "kind": "tos_intake_boundary_decision",
+  "id": "tos_intake_boundary_decision.example",
+  "status": "approved",
+  "summary": "Example tos_intake_boundary_decision object for v0.6 federation harvest seed.",
+  "owner_repo": "Tree-of-Sophia",
+  "evidence_refs": [
+    "receipt://v0.6/tos_intake_boundary_decision/example"
+  ],
+  "payload": {
+    "dossier_id": "tos.dossier.pattern.001",
+    "decision": "accept_for_review",
+    "canon_write": false
+  }
+}
