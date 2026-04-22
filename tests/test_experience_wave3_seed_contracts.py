@@ -17,6 +17,27 @@ WAVE3_STEMS = (
     "tos_no_runtime_adoption_guard",
     "tos_pattern_review_note",
 )
+GUARDRAIL_BOOLEAN_FIELDS = {
+    "authority_required",
+    "derived_only",
+    "direct_tos_write",
+    "direct_write",
+    "direct_write_allowed",
+    "direct_write_blocked",
+    "dossier_allowed",
+    "drill_required",
+    "kag_may_force_uptake",
+    "kag_may_propose",
+    "lineage_indexed",
+    "meaning_authority",
+    "required_trial",
+    "requires_eval_verdict",
+    "requires_owner_consent",
+    "rollback_required",
+    "source_theft",
+    "submit_only",
+}
+RATIO_FIELD_HINTS = ("rate", "threshold")
 
 
 def load_contract(stem: str) -> tuple[dict[str, object], dict[str, object]]:
@@ -101,6 +122,57 @@ class ExperienceWave3SeedContractTests(unittest.TestCase):
                         self.assertIsInstance(with_wrong_payload_type["payload"], dict)
                         with_wrong_payload_type["payload"][key] = wrong_type_value(payload[key])
                         self.assert_invalid(schema, with_wrong_payload_type, f"{stem} wrong payload type")
+
+    def test_experience_wave3_schemas_reject_guardrail_boolean_inversions(self) -> None:
+        for stem in WAVE3_STEMS:
+            schema, example = load_contract(stem)
+            payload = example.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            for key, value in payload.items():
+                if key not in GUARDRAIL_BOOLEAN_FIELDS or not isinstance(value, bool):
+                    continue
+                with self.subTest(stem=stem, key=key):
+                    mutated = copy.deepcopy(example)
+                    self.assertIsInstance(mutated["payload"], dict)
+                    mutated["payload"][key] = not value
+                    self.assert_invalid(schema, mutated, f"{stem} inverted {key}")
+
+    def test_experience_wave3_schemas_reject_invalid_numeric_ranges(self) -> None:
+        for stem in WAVE3_STEMS:
+            schema, example = load_contract(stem)
+            payload = example.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            for key, value in payload.items():
+                if not isinstance(value, (int, float)) or isinstance(value, bool):
+                    continue
+                with self.subTest(stem=stem, key=key, case="negative"):
+                    mutated = copy.deepcopy(example)
+                    self.assertIsInstance(mutated["payload"], dict)
+                    mutated["payload"][key] = -1
+                    self.assert_invalid(schema, mutated, f"{stem} negative {key}")
+                if key == "value" or any(hint in key for hint in RATIO_FIELD_HINTS):
+                    with self.subTest(stem=stem, key=key, case="above-one"):
+                        mutated = copy.deepcopy(example)
+                        self.assertIsInstance(mutated["payload"], dict)
+                        mutated["payload"][key] = 1.5
+                        self.assert_invalid(schema, mutated, f"{stem} out-of-range {key}")
+
+    def test_experience_wave3_schemas_reject_non_string_array_items(self) -> None:
+        for stem in WAVE3_STEMS:
+            schema, example = load_contract(stem)
+            payload = example.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            for key, value in payload.items():
+                if not isinstance(value, list):
+                    continue
+                with self.subTest(stem=stem, key=key):
+                    mutated = copy.deepcopy(example)
+                    self.assertIsInstance(mutated["payload"], dict)
+                    mutated["payload"][key] = [12345]
+                    self.assert_invalid(schema, mutated, f"{stem} non-string {key} item")
 
 
 if __name__ == "__main__":

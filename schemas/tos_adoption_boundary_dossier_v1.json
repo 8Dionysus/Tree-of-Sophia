@@ -96,13 +96,16 @@
           "type": "string"
         },
         "requires_owner_consent": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "rollback_required": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "retention_cycles": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0
         },
         "direct_runtime_adoption_allowed": {
           "type": "boolean"
