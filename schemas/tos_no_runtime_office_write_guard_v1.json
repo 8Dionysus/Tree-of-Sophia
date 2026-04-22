@@ -21,9 +21,31 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "enum": [
+          "runtime_write",
+          "direct_service_write",
+          "direct_office_train_write"
+        ]
       },
-      "minItems": 1
+      "minItems": 3,
+      "allOf": [
+        {
+          "contains": {
+            "const": "runtime_write"
+          }
+        },
+        {
+          "contains": {
+            "const": "direct_service_write"
+          }
+        },
+        {
+          "contains": {
+            "const": "direct_office_train_write"
+          }
+        }
+      ]
     },
     "created_at": {
       "type": "string",
