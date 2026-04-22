@@ -30,10 +30,12 @@ GUARDRAIL_BOOLEAN_FIELDS = {
     "kag_may_propose",
     "lineage_indexed",
     "meaning_authority",
+    "release_required",
     "required_trial",
     "requires_eval_verdict",
     "requires_owner_consent",
     "rollback_required",
+    "scar_required",
     "source_theft",
     "submit_only",
 }
@@ -80,6 +82,34 @@ def payload_schema_properties(schema: dict[str, object]) -> dict[str, object]:
     if not isinstance(payload_properties, dict):
         return {}
     return payload_properties
+
+
+def array_field_targets(example: dict[str, object]) -> list[tuple[str, str]]:
+    targets: list[tuple[str, str]] = []
+    for key, value in example.items():
+        if isinstance(value, list):
+            targets.append(("top", key))
+    refs = example.get("refs")
+    if isinstance(refs, dict):
+        for key, value in refs.items():
+            if isinstance(value, list):
+                targets.append(("refs", key))
+    payload = example.get("payload")
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if isinstance(value, list):
+                targets.append(("payload", key))
+    return targets
+
+
+def set_section_value(value: dict[str, object], section: str, key: str, replacement: object) -> None:
+    if section == "top":
+        value[key] = replacement
+        return
+    nested = value[section]
+    if not isinstance(nested, dict):
+        raise AssertionError(f"{section} is not an object")
+    nested[key] = replacement
 
 
 class ExperienceWave3SeedContractTests(unittest.TestCase):
@@ -180,19 +210,20 @@ class ExperienceWave3SeedContractTests(unittest.TestCase):
                         self.assert_invalid(schema, mutated, f"{stem} out-of-range {key}")
 
     def test_experience_wave3_schemas_reject_non_string_array_items(self) -> None:
+        exercised = 0
         for stem in WAVE3_STEMS:
             schema, example = load_contract(stem)
-            payload = example.get("payload")
-            if not isinstance(payload, dict):
-                continue
-            for key, value in payload.items():
-                if not isinstance(value, list):
-                    continue
-                with self.subTest(stem=stem, key=key):
+            for section, key in array_field_targets(example):
+                exercised += 1
+                with self.subTest(stem=stem, section=section, key=key, case="non-string"):
                     mutated = copy.deepcopy(example)
-                    self.assertIsInstance(mutated["payload"], dict)
-                    mutated["payload"][key] = [12345]
-                    self.assert_invalid(schema, mutated, f"{stem} non-string {key} item")
+                    set_section_value(mutated, section, key, [12345])
+                    self.assert_invalid(schema, mutated, f"{stem} non-string {section}.{key} item")
+                with self.subTest(stem=stem, section=section, key=key, case="empty-string"):
+                    mutated = copy.deepcopy(example)
+                    set_section_value(mutated, section, key, [""])
+                    self.assert_invalid(schema, mutated, f"{stem} empty {section}.{key} item")
+        self.assertGreater(exercised, 0, "no wave3 array fields were exercised")
 
     def test_experience_wave3_schemas_reject_payload_enum_escape_values(self) -> None:
         for stem in WAVE3_STEMS:
