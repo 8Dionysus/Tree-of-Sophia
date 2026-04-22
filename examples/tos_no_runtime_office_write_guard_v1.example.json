@@ -1,0 +1,18 @@
+{
+  "blocked_actions": [
+    "runtime_write",
+    "direct_service_write",
+    "direct_office_train_write"
+  ],
+  "created_at": "2026-04-22T00:00:00Z",
+  "evidence_refs": [
+    "generated/multi_office_train_clean_flow/release_train.json"
+  ],
+  "id": "tos_no_runtime_office_write_guard_v1_example",
+  "kind": "tos_no_runtime_office_write_guard_v1",
+  "notes": "Example artifact for tos_no_runtime_office_write_guard_v1.",
+  "owner_repo": "Tree-of-Sophia",
+  "status": "draft",
+  "target": "Tree-of-Sophia",
+  "version": "1.1.0"
+}
