@@ -23,9 +23,9 @@ class RoadmapParityTestCase(unittest.TestCase):
         changelog = read_text("CHANGELOG.md")
         payload = load_json("generated/root_entry_map.min.json")
 
-        self.assertIn("> Current release: `v0.2.1`", readme)
-        self.assertIn("## [0.2.1] - 2026-04-19", changelog)
-        self.assertIn("`v0.2.1`", roadmap)
+        self.assertIn("> Current release: `v0.2.2`", readme)
+        self.assertIn("## [0.2.2] - 2026-04-23", changelog)
+        self.assertIn("`v0.2.2`", roadmap)
         self.assertIn("Current release contour", roadmap)
         self.assertIn("source-owned root-entry and export hardening", roadmap)
         self.assertIn("routed-language witness handling and source-first re-entry", roadmap)
