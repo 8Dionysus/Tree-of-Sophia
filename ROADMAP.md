@@ -15,7 +15,7 @@ handoff, but it must not become a new public entry authority for ToS.
 
 ### Current release contour
 
-The live `v0.2.1` contour is a source-owned root-entry and export hardening
+The live `v0.2.2` contour is a source-owned root-entry and export hardening
 wave. Its current checked surface is:
 
 - public source-first orientation and boundaries:

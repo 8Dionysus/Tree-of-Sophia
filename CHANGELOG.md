@@ -7,6 +7,51 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-23
+
+### Summary
+
+- this patch lands Agon Sophian threshold intake posture, ToS candidate
+  dossier review, canon-restraint checks, rejection/branching posture, and
+  follow-up guards while keeping ToS on source-owned interpretation and intake
+  boundaries
+- Experience wave3-wave5 boundary contracts are planted for adoption,
+  governance, installation, service dossiers, runtime stop-lines, and
+  sovereign office intake without allowing direct arena, runtime, or assistant
+  office writes into the tree
+- `Tree-of-Sophia` remains the source-first knowledge authority and does not
+  turn installation, governance, runtime, or assistant-office artifacts into
+  direct authored tree writes
+
+### Added
+
+- Agon Sophian threshold intake registry surfaces, ToS candidate dossier
+  review notes, pattern review notes, canon-restraint guidance, and
+  rejection/branching boundaries
+- wave3 Experience adoption and no-runtime-adoption boundary dossiers, wave4
+  governance and constitution-runtime no-direct-write guards, and wave5
+  installation, service, and sovereign-office intake boundaries
+- governance, installation, service, and sovereign-office dossier contracts
+  with explicit decision-reference requirements
+
+### Changed
+
+- schema and contract guards now enforce stronger no-direct-write,
+  no-runtime-adoption, no-runtime-office-write, and governance decision-ref
+  stop-lines
+- post-merge review guards are tightened around Experience boundary surfaces
+  so ToS can receive dossiers without becoming a runtime adoption mechanism
+
+### Validation
+
+- `python scripts/release_check.py`
+
+### Notes
+
+- this patch is a source-boundary release for ToS; runtime, release
+  certification, and office-operation authority remain in their owning AoA
+  repositories
+
 ## [0.2.1] - 2026-04-19
 
 ### Summary
