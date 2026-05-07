@@ -50,18 +50,21 @@ def _command(step: dict[str, Any]) -> str:
 
 
 def build_contract(payload: dict[str, Any]) -> dict[str, Any]:
-    raw_preview_steps = payload.get("preview_steps") or []
+    raw_preview_steps = payload["preview_steps"] if "preview_steps" in payload else []
     preview_steps = raw_preview_steps if isinstance(raw_preview_steps, list) else []
-    raw_apply_step = payload.get("apply_step") or {}
+    raw_apply_step = payload["apply_step"] if "apply_step" in payload else {}
     apply_step = raw_apply_step if isinstance(raw_apply_step, Mapping) else {}
-    limitations = payload.get("limitations") or []
+    raw_limitations = payload["limitations"] if "limitations" in payload else []
+    limitations = raw_limitations if isinstance(raw_limitations, list) else []
     warnings: list[str] = []
     errors: list[str] = []
 
     if not isinstance(raw_preview_steps, list):
         errors.append("preview_steps must be a list.")
-    if raw_apply_step and not isinstance(raw_apply_step, Mapping):
+    if not isinstance(raw_apply_step, Mapping):
         errors.append("apply_step must be an object.")
+    if not isinstance(raw_limitations, list):
+        errors.append("limitations must be a list.")
     if not preview_steps:
         errors.append("No preview_steps were provided.")
     if not apply_step:
