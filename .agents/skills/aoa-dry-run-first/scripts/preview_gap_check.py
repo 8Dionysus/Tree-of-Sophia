@@ -19,7 +19,6 @@ def _load_payload(path: str | None) -> dict[str, Any]:
 
 def check_gaps(payload: dict[str, Any]) -> dict[str, Any]:
     raw_preview_steps = payload.get("preview_steps") or []
-    preview_steps = [step for step in raw_preview_steps if isinstance(step, dict)]
     apply_step = payload.get("apply_step") or {}
     limitations = payload.get("limitations") or payload.get("honest_boundaries") or []
 
@@ -29,7 +28,7 @@ def check_gaps(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(raw_preview_steps, list):
         gaps.append("preview-steps-not-list")
         raw_preview_steps = []
-        preview_steps = []
+    preview_steps = [step for step in raw_preview_steps if isinstance(step, dict)]
     malformed_preview_count = len(raw_preview_steps) - len(preview_steps)
     if malformed_preview_count:
         gaps.append("preview-step-not-object")
