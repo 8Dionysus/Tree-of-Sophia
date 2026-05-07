@@ -18,9 +18,14 @@ def _load_payload(path: str | None) -> dict[str, Any]:
 
 
 def check_gaps(payload: dict[str, Any]) -> dict[str, Any]:
-    raw_preview_steps = payload.get("preview_steps") or []
-    apply_step = payload.get("apply_step") or {}
-    limitations = payload.get("limitations") or payload.get("honest_boundaries") or []
+    raw_preview_steps = payload["preview_steps"] if "preview_steps" in payload else []
+    apply_step = payload["apply_step"] if "apply_step" in payload else {}
+    if "limitations" in payload:
+        raw_limitations = payload["limitations"]
+    elif "honest_boundaries" in payload:
+        raw_limitations = payload["honest_boundaries"]
+    else:
+        raw_limitations = []
 
     gaps: list[str] = []
     notes: list[str] = []
@@ -36,6 +41,10 @@ def check_gaps(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(apply_step, dict):
         gaps.append("apply-step-not-object")
         apply_step = {}
+    if not isinstance(raw_limitations, list):
+        gaps.append("limitations-not-list")
+        raw_limitations = []
+    limitations = raw_limitations
 
     apply_command = str(apply_step.get("command", "")).strip()
     if not preview_steps:
