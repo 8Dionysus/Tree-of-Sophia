@@ -18,12 +18,25 @@ def _load_payload(path: str | None) -> dict[str, Any]:
 
 
 def check_gaps(payload: dict[str, Any]) -> dict[str, Any]:
-    preview_steps = payload.get("preview_steps") or []
+    raw_preview_steps = payload.get("preview_steps") or []
+    preview_steps = [step for step in raw_preview_steps if isinstance(step, dict)]
     apply_step = payload.get("apply_step") or {}
     limitations = payload.get("limitations") or payload.get("honest_boundaries") or []
 
     gaps: list[str] = []
     notes: list[str] = []
+
+    if not isinstance(raw_preview_steps, list):
+        gaps.append("preview-steps-not-list")
+        raw_preview_steps = []
+        preview_steps = []
+    malformed_preview_count = len(raw_preview_steps) - len(preview_steps)
+    if malformed_preview_count:
+        gaps.append("preview-step-not-object")
+        notes.append(f"malformed preview steps: {malformed_preview_count}")
+    if not isinstance(apply_step, dict):
+        gaps.append("apply-step-not-object")
+        apply_step = {}
 
     apply_command = str(apply_step.get("command", "")).strip()
     if not preview_steps:
