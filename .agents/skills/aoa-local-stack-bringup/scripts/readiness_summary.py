@@ -46,6 +46,8 @@ def summarize(payload: Any) -> dict[str, Any]:
     normalized = []
     counts = {"ok": 0, "warn": 0, "fail": 0}
     for item in items:
+        if not isinstance(item, dict):
+            item = _normalize_line(str(item))
         severity = str(item.get("severity", "warn")).lower()
         if severity not in counts:
             severity = "warn"
