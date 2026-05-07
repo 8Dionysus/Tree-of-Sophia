@@ -4,6 +4,8 @@ Recommended relation graph:
 
 - `aoa-session-donor-harvest`
   - authors a bounded `HARVEST_PACKET`
+  - filters checkpoint and closeout-handoff hints through reviewed evidence
+    before candidate refs exist
   - may hand off to:
     - `aoa-automation-opportunity-scan`
     - `aoa-session-route-forks`

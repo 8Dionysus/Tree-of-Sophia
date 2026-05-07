@@ -3,13 +3,18 @@ event_kind: progression_delta_receipt
 envelope_ref: references/stats-event-envelope.md
 required_payload_fields:
   - scope_ref
+  - baseline_posture
   - axis_delta_summary
+  - axis_evidence_posture
   - verdict
 optional_payload_fields:
   - caution_refs
   - unlock_hint_refs
   - automation_readiness_hint
+  - deferred_axis_refs
 rules:
   - keep the receipt multi-axis and descriptive rather than score-shaped
+  - baseline posture must stay visible before comparative movement is claimed
+  - checkpoint, donor, closeout, and generated hints must not appear as confirmed movement unless reviewed evidence supports them
   - allow hold, reanchor, or downgrade without treating receipt emission as progress by itself
   - keep automation hints advisory and non-authoritative

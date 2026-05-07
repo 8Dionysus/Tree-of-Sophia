@@ -3,6 +3,7 @@ event_kind: quest_promotion_receipt
 envelope_ref: references/stats-event-envelope.md
 required_payload_fields:
   - promotion_verdict
+  - repeat_evidence_posture
   - owner_repo
   - next_surface
   - nearest_wrong_target
@@ -10,7 +11,11 @@ optional_payload_fields:
   - defer_reason
   - repeat_shape
   - bounded_unit_ref
+  - downstream_acceptance_status
+  - owner_followthrough_ref
 rules:
   - keep the receipt verdict-shaped rather than canon-shaped
+  - repeat evidence posture must support the verdict rather than hiding weak or mixed repetition
   - rejected nearest-wrong target must remain visible when promotion pressure exists
+  - downstream acceptance must not be implied by receipt emission
   - the receipt summarizes the closed triage rather than replacing the quest promotion packet

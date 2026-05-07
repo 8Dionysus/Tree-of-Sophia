@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/aoa-summon/result-v3.schema.json",
+  "title": "aoa-summon result v3",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["allowed", "lane", "execution_surface", "cohort_pattern", "closeout_required"],
+  "properties": {
+    "allowed": {"type": "boolean"},
+    "lane": {"type": "string"},
+    "execution_surface": {"type": "string"},
+    "cohort_pattern": {"type": "string"},
+    "closeout_required": {"type": "boolean"},
+    "checkpoint_required": {"type": "boolean"},
+    "progression_required": {"type": "boolean"},
+    "requested_posture": {"type": ["string", "null"]},
+    "reason_codes": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "blocked_actions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "codex_local_target": {"type": ["object", "null"]},
+    "return_plan": {"type": ["object", "null"]},
+    "checkpoint_bridge_plan": {"type": ["object", "null"]},
+    "return_receipt_plan": {"type": ["object", "null"]},
+    "memo_export_plan": {"type": ["object", "null"]},
+    "owner_publication_plan": {
+      "type": "array",
+      "items": {"type": "object"}
+    }
+  }
+}

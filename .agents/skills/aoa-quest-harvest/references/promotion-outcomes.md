@@ -29,3 +29,23 @@ Do not promote an orchestrator class into a skill just because an orchestrator r
 Promote only the repeatable leaf workflow, not the class itself.
 
 Do not collapse proof and memo promotions into one shared outcome. They route to different owner layers for different reasons.
+
+The verdict names the next honest owner target; it does not author that target
+and does not mean the destination owner repo has accepted the work. If the
+destination owner still needs review, keep that as follow-through rather than
+pretending promotion is complete.
+
+## Repeat evidence posture
+
+Name one posture before final triage:
+
+- `reviewed_repeat_isolated`
+- `reviewed_repeat_weak`
+- `contested_repeat`
+- `topic_only_repeat`
+- `mixed_residue`
+- `owner_pending`
+
+Only `reviewed_repeat_isolated` can support a confident promotion verdict.
+Weak, contested, topic-only, mixed, or owner-pending repetition should keep or
+open a quest unless the verdict explicitly names a deferred follow-through.

@@ -32,6 +32,7 @@ Use this skill when:
 
 Do not use this skill when:
 - there is only one obvious next bounded move
+- one bounded child route is already chosen, anchored, and output-named; use `aoa-summon` for the launch gate instead
 - the session still needs first-pass donor harvest
 - the question is final promotion of a repeated quest unit
 - the route needs scenario canon immediately rather than branch analysis
@@ -62,11 +63,12 @@ Do not use this skill when:
 4. state likely gains, likely costs, likely risks, and stop conditions
 5. attach a small route passport with difficulty, risk, control mode, and delegate tier
 6. allow automation and non-automation branches to appear side by side when the reviewed evidence supports a real choice between them
-7. preserve a hold or reanchor path where uncertainty or risk remains meaningful
-8. emit quest-board-readable language only as adjunct reflection
-9. emit one `DECISION_FORK_RECEIPT` when the fork set closes, keeping the
+7. when one branch becomes an anchored child-route candidate, stop at fork evidence and hand the launch gate to `aoa-summon`
+8. preserve a hold or reanchor path where uncertainty or risk remains meaningful
+9. emit quest-board-readable language only as adjunct reflection
+10. emit one `DECISION_FORK_RECEIPT` when the fork set closes, keeping the
    receipt smaller than the branch cards themselves
-10. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
+11. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
     that points back to the bounded fork receipt and records one finished
     kernel-skill application only
 
@@ -77,6 +79,7 @@ Do not use this skill when:
 - stop conditions are first-class, not footnotes
 - a fork card may recommend but must not hide alternatives
 - automation-shaped branches must not be read as schedule authority
+- child-route-shaped branches must not launch from fork analysis; `aoa-summon` owns that gate after anchor, outputs, and passport are clear
 - `DECISION_FORK_RECEIPT` is descriptive branch telemetry, not routing policy
 - `CORE_SKILL_APPLICATION_RECEIPT` is generic kernel telemetry, not branch
   policy or route choice authority
@@ -97,14 +100,15 @@ Do not use this skill when:
 - confirm at least one cost or risk is explicit
 - confirm stop conditions exist for risky branches
 - confirm hold or defer remains possible when uncertainty is real
+- confirm selected child-route work is routed to `aoa-summon` rather than launched from fork cards
 - confirm any emitted receipt stays evidence-linked and subordinate to the fork cards
 - confirm any emitted `CORE_SKILL_APPLICATION_RECEIPT` points to the fork
   detail receipt and stays finish-only
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0078 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/governance/decision-routing/decision-fork-cards/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Validation
-- AOA-T-0079 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/governance/decision-routing/risk-passport-lift/TECHNIQUE.md` and sections: Outputs, Contracts, Risks, Validation
+- AOA-T-0078 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/decision-routing/decision-fork-cards/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Validation
+- AOA-T-0079 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/decision-routing/risk-passport-lift/TECHNIQUE.md` and sections: Outputs, Contracts, Risks, Validation
 
 ## Adaptation points
 Project overlays may add:

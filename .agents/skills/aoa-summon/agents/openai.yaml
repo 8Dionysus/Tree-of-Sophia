@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Summon
+  short_description: Summon one bounded child route
+  default_prompt: Use $aoa-summon to decide whether one anchored parent route may launch a bounded child helper, pick the honest lane, and return explicit gate, return, and closeout plans.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false

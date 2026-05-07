@@ -24,6 +24,11 @@ The goal is to notice when a process has become repetitive, stable, legible,
 and evidence-backed enough that automation or semi-automation becomes an honest
 next move.
 
+Automation can honestly mean many modes: keep manual, assistant draft,
+dry-run preview, human-approved execution, or a future scheduler seed. The
+packet must name that mode instead of letting `seed_ready` imply unattended
+execution.
+
 ## Trigger boundary
 Use this skill when:
 - a reviewed session or repeated project slice reveals a recurring manual route
@@ -50,6 +55,7 @@ Do not use this skill when:
 - `AUTOMATION_OPPORTUNITY_PACKET`
 - one or more `AUTOMATION_CANDIDATE` cards
 - `seed_ready` or `not_now` verdict for each candidate
+- `automation_mode_posture` for the highest honest mode the candidate may claim now
 - `checkpoint_required` flag when the route crosses self-change or approval-sensitive boundaries
 - next-artifact suggestion such as `skill`, `playbook_seed`, `technique_candidate`, `repair_quest`, `quest`, or `defer`
 - one `AUTOMATION_CANDIDATE_RECEIPT` using
@@ -62,20 +68,24 @@ Do not use this skill when:
 1. start from reviewed evidence, not from vague enthusiasm
 2. isolate the current manual route as actually practiced
 3. classify repeat signal, friction, determinism, input clarity, output clarity, proof surface, reversibility, secret coupling, and approval sensitivity
-4. decide whether the first honest landing is a bounded skill, a playbook automation seed candidate, a technique candidate, a repair quest, or a defer verdict
-5. mark `checkpoint_required` when the route would cross into self-change, hidden authority, or important mutation
-6. emit `seed_ready` only when the process is stable enough to name inputs, outputs, bounded prompts or activation hints, and a likely owner surface
-7. state the nearest wrong target so promotion pressure stays honest
-8. when classification pressure is high, use `references/automation-fit-matrix.md`, `references/session-harvest-integration.md`, `references/playbook-seed-bridge.md`, `references/checkpoint-boundary.md`, and `references/automation-opportunity-packet-schema.yaml`
-9. emit one `AUTOMATION_CANDIDATE_RECEIPT` when the packet closes, keeping the
+4. name the `automation_mode_posture`: `manual_only`, `assistant_draft`,
+   `dry_run_preview`, `human_approved_execution`, or
+   `scheduler_seed_candidate`
+5. decide whether the first honest landing is a bounded skill, a playbook automation seed candidate, a technique candidate, a repair quest, or a defer verdict
+6. mark `checkpoint_required` when the route would cross into self-change, hidden authority, or important mutation
+7. emit `seed_ready` only when the process is stable enough to name inputs, outputs, bounded prompts or activation hints, a likely owner surface, and a conservative automation mode
+8. state the nearest wrong target so promotion pressure stays honest
+9. when classification pressure is high, use `references/automation-fit-matrix.md`, `references/session-harvest-integration.md`, `references/playbook-seed-bridge.md`, `references/checkpoint-boundary.md`, and `references/automation-opportunity-packet-schema.yaml`
+10. emit one `AUTOMATION_CANDIDATE_RECEIPT` when the packet closes, keeping the
    receipt detector-shaped rather than scheduler-shaped
-10. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
+11. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
     that records the finished kernel-skill run, points back to the bounded
     detail receipt, and stays separate from scheduler or mutation authority
 
 ## Contracts
 - this skill detects and packages automation opportunities; it does not create live automation authority
 - schedule hints remain hints, not runtime truth
+- `automation_mode_posture` is a boundary statement, not permission to execute
 - recurring scenario candidates belong in `aoa-playbooks` as seed candidates rather than hidden playbooks inside a skill
 - self-changing or approval-heavy candidates must surface checkpoint posture explicitly
 - unresolved candidates may become repair quests instead of fake-ready automations
@@ -90,6 +100,7 @@ Do not use this skill when:
 
 ## Risks and anti-patterns
 - treating one exciting session as proof of repeatability
+- treating `seed_ready` as a synonym for unattended execution
 - automating unstable, under-specified, or secret-heavy work too early
 - confusing a bounded skill with a recurring scenario seed
 - using automation desire to bypass approval, rollback, or post-change health checks
@@ -102,6 +113,7 @@ Do not use this skill when:
 - confirm evidence refs justify the repeat signal
 - confirm stable input and output posture is assessed explicitly
 - confirm `seed_ready` or `not_now` is explicit for each candidate
+- confirm `automation_mode_posture` names the highest honest mode without granting extra authority
 - confirm a first owner layer and next artifact are named
 - confirm the nearest wrong target is rejected when classification pressure exists
 - confirm checkpoint posture appears for self-changing or approval-heavy routes
@@ -111,9 +123,9 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0086 from `8Dionysus/aoa-techniques` at `7f17c22ddd96de4b63873eff4c8e9e4c94a6aee9` using path `techniques/governance/automation-readiness/automation-fit-matrix/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Risks, Validation
-- AOA-T-0087 from `8Dionysus/aoa-techniques` at `7f17c22ddd96de4b63873eff4c8e9e4c94a6aee9` using path `techniques/governance/automation-readiness/human-loop-to-first-landing/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0088 from `8Dionysus/aoa-techniques` at `7f17c22ddd96de4b63873eff4c8e9e4c94a6aee9` using path `techniques/governance/automation-readiness/approval-sensitivity-check/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Risks, Validation
+- AOA-T-0086 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/automation-readiness/automation-fit-matrix/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Risks, Validation
+- AOA-T-0087 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/automation-readiness/human-loop-to-first-landing/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0088 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/automation-readiness/approval-sensitivity-check/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Risks, Validation
 
 ## Adaptation points
 - project overlays may add local execution modes, trigger classes, or schedule vocabularies

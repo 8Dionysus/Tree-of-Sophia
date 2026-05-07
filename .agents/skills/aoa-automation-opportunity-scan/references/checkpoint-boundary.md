@@ -11,6 +11,7 @@ Mark `checkpoint_required: true` when the candidate would:
 
 - mutate important system surfaces
 - operate with hidden or changing authority
+- move beyond draft or dry-run posture into execution authority
 - require rollback discipline that is not already explicit
 - act as a self-repair or self-upgrade route
 - blur thinker and operator roles
@@ -31,3 +32,6 @@ When checkpoint posture is needed, the next artifact is usually not a ready
 automation seed.
 It is a checkpoint-aware repair route, playbook review packet, or bounded skill
 proposal with explicit approval seams.
+If the packet still names `seed_ready: true`, its `automation_mode_posture`
+should stay no stronger than `human_approved_execution` until the checkpoint
+route accepts a narrower mode.

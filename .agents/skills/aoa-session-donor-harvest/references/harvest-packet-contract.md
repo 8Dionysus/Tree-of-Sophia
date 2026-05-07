@@ -20,6 +20,7 @@ shape for the post-session packet it emits.
 - `quest_hooks`
 - `chronicle_stub`
 - `fork_cards`
+- `intake_hint_dispositions`
 - `diagnosis`
 - `repair_candidates`
 - `progression`
@@ -42,6 +43,8 @@ Each accepted candidate should keep:
 - `nearest_wrong_target`
 - `status_posture`
 - optional `supersedes`, `merged_into`, and `drop_reason`
+- optional `hint_disposition` when a checkpoint or handoff hint was accepted,
+  rejected, carried, or found stale before candidate minting
 - optional `difficulty`, `risk`, `control_mode`, and `notes`
 
 ## Contract rule
@@ -49,3 +52,5 @@ Each accepted candidate should keep:
 The `HARVEST_PACKET` is a bounded post-session packet.
 It may point at route forks, diagnosis, repair, progression, or quest follow-up,
 but it must not silently replace those family seams.
+Checkpoint and handoff hints may shape the packet intake, but reviewed evidence
+must confirm a reusable unit before the packet mints a `candidate_ref`.

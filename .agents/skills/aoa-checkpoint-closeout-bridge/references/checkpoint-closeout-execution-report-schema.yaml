@@ -4,15 +4,22 @@ envelope_ref: references/stats-event-envelope.md
 required_payload_fields:
   - context_ref
   - executed_skills
+  - stage_results
   - produced_receipt_refs
   - final_stop_reason
 optional_payload_fields:
   - checkpoint_note_ref
   - surface_handoff_ref
+  - accepted_focus_hints
+  - rejected_focus_hints
+  - unresolved_focus_hints
   - skipped_skills
+  - deferred_skills
   - produced_artifact_refs
 rules:
   - the report must reflect the fixed order `aoa-session-donor-harvest -> aoa-session-progression-lift -> aoa-quest-harvest`
   - checkpoint notes and handoffs remain shortlist hints, not final authority
   - at least one reviewed artifact ref must stay inspectable through the paired closeout context
+  - each stage result must be `executed`, `skipped`, `deferred`, or `stopped` with an evidence-linked reason
+  - skipped or deferred stages must not be represented as final verdicts
   - stats refresh remains downstream and must not be represented as an executed bridge stage

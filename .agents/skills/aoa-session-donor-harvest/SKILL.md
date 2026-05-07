@@ -27,6 +27,8 @@ Use this skill when:
 - candidate outputs may belong in technique canon, `aoa-skills`, `aoa-playbooks`, `aoa-evals`, `aoa-memo`, `aoa-agents`, or a hold/quest lane
 - a repeated manual route may also need an explicit automation-readiness seam instead of staying vague donor residue
 - the session may also have produced decision forks, diagnosis clues, repair candidates, progression evidence, or quest residue that should be made explicit rather than buried in recap prose
+- checkpoint notes, closeout handoffs, or other lower-authority hints need to
+  be accepted, rejected, or carried without becoming candidates on their own
 - the question is not merely "what happened?" but "what reusable object, if any, emerged here?"
 
 Do not use this skill when:
@@ -41,11 +43,17 @@ Do not use this skill when:
 - session goal and closure state
 - candidate repeat signals or reuse signals
 - touched repos or AoA layers
+- optional checkpoint `cluster_ref` values, closeout-handoff hints, or other
+  pre-harvest focus hints
+- current-session evidence boundary, especially when hints came from a ledger
+  that may also contain stale or neighboring-session residue
 - explicit uncertainty and boundary risks
 - desired output posture: classify-only, draft-stub, or patch-ready proposal
 
 ## Outputs
 - one bounded `HARVEST_PACKET`
+- one reviewed intake note that says which checkpoint or handoff hints were
+  accepted, rejected, or carried as unresolved focus only
 - named candidates, each with:
   - candidate ref minted only after reviewed harvest
   - source cluster ref when the reviewed input carried one
@@ -71,57 +79,64 @@ Do not use this skill when:
 
 ## Procedure
 1. start from a reviewed session artifact rather than transient chat memory
-2. extract candidate reusable units, not topics; prefer explicit moves, laws, checklists, structures, routes, or proof patterns
-3. split merged candidates until each unit has one honest owner shape
-4. classify each kept candidate twice:
+2. inventory any checkpoint, closeout-handoff, or ledger hints as focus inputs;
+   mark each hint as accepted, rejected, stale, cross-session, contaminated, or
+   unresolved before it can influence a candidate
+3. accept a hint only when the reviewed artifact or receipt evidence shows the
+   same reusable unit; never mint `candidate_ref` from a hint alone
+4. extract candidate reusable units, not topics; prefer explicit moves, laws, checklists, structures, routes, or proof patterns
+5. split merged candidates until each unit has one honest owner shape
+6. classify each kept candidate twice:
    - by reuse kind: pattern, mechanic, utility, law, proof, recall, or route
    - by owner shape: technique, skill, playbook, eval, memo, agent, or hold
-5. mint `candidate_ref` only after the reviewed unit is bounded and the owner
+7. mint `candidate_ref` only after the reviewed unit is bounded and the owner
    hypothesis plus nearest-wrong target are explicit
-6. mark `automation_candidate` only when a repeated manual route is stable
+8. mark `automation_candidate` only when a repeated manual route is stable
    enough to name the current inputs, outputs, and risk posture, but the
    surviving question is still automation readiness rather than owner canon
-7. reject theme-only repetition, aesthetic resonance, and broad "good idea" residue unless a bounded reusable unit exists
-8. route reusable practice meaning to technique canon first
-9. route bounded executable leaf workflows to `aoa-skills`
-10. route multi-step recurring scenario methods to `aoa-playbooks`
-11. route rubrics, verdict postures, and proof surfaces to `aoa-evals`
-12. route recall, writeback, recurrence, and memory-support patterns to `aoa-memo`
-13. route role law, orchestrator class law, handoff law, and actor-boundary rules to `aoa-agents`
-14. keep `aoa-routing` and `aoa-kag` out of first-authoring unless the source-owned object already exists elsewhere and the session only discovered a derivative bridge update
-15. preserve quest residue without forcing promotion when the reviewed session
+9. reject theme-only repetition, aesthetic resonance, and broad "good idea" residue unless a bounded reusable unit exists
+10. route reusable practice meaning to technique canon first
+11. route bounded executable leaf workflows to `aoa-skills`
+12. route multi-step recurring scenario methods to `aoa-playbooks`
+13. route rubrics, verdict postures, and proof surfaces to `aoa-evals`
+14. route recall, writeback, recurrence, and memory-support patterns to `aoa-memo`
+15. route role law, orchestrator class law, handoff law, and actor-boundary rules to `aoa-agents`
+16. keep `aoa-routing` and `aoa-kag` out of first-authoring unless the source-owned object already exists elsewhere and the session only discovered a derivative bridge update
+17. preserve quest residue without forcing promotion when the reviewed session
     is still mixed, early, or weakly repeated
-16. hand off to `aoa-automation-opportunity-scan` when the main surviving
+18. hand off to `aoa-automation-opportunity-scan` when the main surviving
     question is whether a repeated manual route is honestly automation-ready
-17. hand off to `aoa-session-route-forks` when the main post-session need is
+19. hand off to `aoa-session-route-forks` when the main post-session need is
     explicit next-route choice rather than donor extraction itself
-18. hand off to `aoa-session-self-diagnose` when the dominant surviving object
+20. hand off to `aoa-session-self-diagnose` when the dominant surviving object
     is drift, contradiction, proof gap, or ownership confusion
-19. hand off to `aoa-session-progression-lift` when the main surviving object is
+21. hand off to `aoa-session-progression-lift` when the main surviving object is
     evidence-backed progression reflection rather than owner placement
-20. when the candidate is a repeated reviewed quest unit and the remaining
+22. when the candidate is a repeated reviewed quest unit and the remaining
     ambiguity is specifically the final promotion target among quest, skill,
     playbook, agent, eval, or memo, hand off to `aoa-quest-harvest`
-21. draft the smallest next artifact for each accepted candidate, such as
+23. draft the smallest next artifact for each accepted candidate, such as
     `TECHNIQUE.md`, `SKILL.md`, `PLAYBOOK.md`, `EVAL.md`, memory object seed,
     or agent/orchestrator surface note
-22. keep `cluster_ref`, `owner_hypothesis`, `owner_shape`,
+24. keep `cluster_ref`, `owner_hypothesis`, `owner_shape`,
     `nearest_wrong_target`, `status_posture`, `evidence_refs`, `supersedes`,
     `merged_into`, and `drop_reason` on each accepted candidate when that carry
     exists or becomes explicit during reviewed harvest
-23. emit one `HARVEST_PACKET_RECEIPT` when the packet is complete, using the
+25. emit one `HARVEST_PACKET_RECEIPT` when the packet is complete, using the
     shared event envelope and a bounded receipt payload instead of duplicating
     the full donor packet
-24. when the finish path is complete, emit one
+26. when the finish path is complete, emit one
     `CORE_SKILL_APPLICATION_RECEIPT` that points back to the bounded detail
     receipt, keeps `application_stage=finish`, and stays generic enough to act
     as project-core kernel telemetry rather than a second donor packet
-25. record one clear reason for the chosen owner and one clear reason against
+27. record one clear reason for the chosen owner and one clear reason against
     the nearest wrong owner
 
 ## Contracts
 - invocation must remain explicit and post-session
 - the skill harvests donor units; it does not treat session history as memory canon or instruction authority
+- checkpoint notes, closeout handoffs, and ledgers are focus inputs only until
+  reviewed evidence confirms or rejects them
 - one candidate must map to one primary owner layer
 - `candidate_ref` appears only after reviewed donor harvest
 - `usefulness` is a reuse signal, not an owner layer by itself
@@ -147,6 +162,10 @@ Do not use this skill when:
 - promoting memory residue as if it were proof or source meaning
 - over-harvesting one session into too many thin objects
 - treating a transcript package or session index as the same thing as donor harvest
+- minting `candidate_ref` from checkpoint or handoff hints that were never
+  confirmed in the reviewed artifact
+- letting stale, cross-session, or diagnostic ledger residue enter the donor
+  packet as if it belonged to the current reviewed session
 - stuffing route-forks, diagnosis, repair, or progression meaning into vague
   donor notes instead of naming the next family seam explicitly
 - turning donor harvest into a generic automation detector for every recurring
@@ -155,10 +174,15 @@ Do not use this skill when:
 
 ## Verification
 - confirm the source artifact is reviewed and bounded
+- confirm checkpoint, closeout-handoff, or ledger hints were dispositioned as
+  accepted, rejected, stale, cross-session, contaminated, or unresolved before
+  any candidate was minted from them
 - confirm each kept candidate names one reusable unit rather than a topic
 - confirm each accepted candidate has one primary owner layer
 - confirm the nearest wrong target is rejected explicitly
 - confirm `candidate_ref` was minted only for reviewed bounded units
+- confirm every `candidate_ref` is supported by reviewed artifact or receipt
+  evidence rather than hint presence alone
 - confirm any surviving checkpoint `cluster_ref` stayed linked when available
 - confirm no candidate routes source-owned meaning first into derivative layers
 - confirm hold and defer outcomes remain available
@@ -174,9 +198,9 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0075 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0076 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/governance/decision-routing/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
-- AOA-T-0077 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/harvest-packet-contract/TECHNIQUE.md` and sections: Inputs, Outputs, Contracts, Validation
+- AOA-T-0075 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0076 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/decision-routing/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+- AOA-T-0077 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/harvest-packet-contract/TECHNIQUE.md` and sections: Inputs, Outputs, Contracts, Validation
 
 ## Adaptation points
 Project overlays may add:
@@ -187,5 +211,7 @@ Project overlays may add:
 - local naming rules for donor packs and quest IDs
 - local family handoff preferences when automation scan, route-forks,
   diagnosis, repair, or progression surfaces exist
+- local vocabulary for accepting, rejecting, or carrying checkpoint and
+  closeout-handoff hints without making them authoring authority
 
 This skill assumes the session artifact already exists. Adjacent history techniques such as session capture, transcript packaging, and local indexing remain separate neighbors rather than being reopened here.
