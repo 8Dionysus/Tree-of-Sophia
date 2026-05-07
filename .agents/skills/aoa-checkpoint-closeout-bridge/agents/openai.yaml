@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Checkpoint Closeout Bridge
+  short_description: Bridge checkpoints into reviewed closeout
+  default_prompt: Use $aoa-checkpoint-closeout-bridge to build one closeout context from reviewed evidence, keep checkpoint hints provisional, and run donor harvest, progression lift, and quest harvest in order.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: true

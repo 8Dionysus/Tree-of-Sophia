@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Session Self Repair
+  short_description: Author checkpointed repair packets
+  default_prompt: Use $aoa-session-self-repair to turn a reviewed diagnosis packet into a bounded repair packet with owner target, checkpoint posture, rollback marker, health check, and stop conditions.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,19 @@
+receipt_name: AUTOMATION_CANDIDATE_RECEIPT
+event_kind: automation_candidate_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - manual_route_ref
+  - repeat_signal_posture
+  - determinism_posture
+  - reversibility_posture
+  - checkpoint_required
+  - seed_ready
+  - next_artifact_hint
+optional_payload_fields:
+  - likely_owner_layer
+  - not_now_reason
+  - proof_surface_notes
+rules:
+  - keep the receipt detector-shaped rather than scheduler-shaped
+  - `seed_ready` does not grant live execution authority
+  - keep manual-route and evidence refs inspectable instead of duplicating the full packet

@@ -1,0 +1,21 @@
+{
+  "change_summary": "Adjust Terraform variables and service deployment configuration for the API tier",
+  "touched_surfaces": [
+    "infra/terraform/api.tfvars",
+    "deploy/kubernetes/api-deployment.yaml"
+  ],
+  "mutating_commands": [
+    "terraform apply -target=module.api",
+    "kubectl apply -f deploy/kubernetes/api-deployment.yaml"
+  ],
+  "verification_steps": [
+    "terraform plan -target=module.api",
+    "kubectl rollout status deployment/api",
+    "curl -fsS http://localhost:8080/healthz"
+  ],
+  "rollback_steps": [
+    "terraform apply -target=module.api -var-file=previous.tfvars",
+    "kubectl rollout undo deployment/api"
+  ],
+  "authority_state": "approved"
+}

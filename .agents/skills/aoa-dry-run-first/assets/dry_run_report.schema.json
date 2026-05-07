@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DryRunFirstReport",
+  "type": "object",
+  "required": [
+    "skill",
+    "requested_action",
+    "preview_verdict",
+    "workflow_state",
+    "preview_steps",
+    "apply_step",
+    "honest_boundaries",
+    "warnings",
+    "errors",
+    "next_step"
+  ],
+  "properties": {
+    "skill": {
+      "const": "aoa-dry-run-first"
+    },
+    "requested_action": {
+      "type": "string"
+    },
+    "preview_verdict": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "warn",
+        "fail"
+      ]
+    },
+    "workflow_state": {
+      "type": "string"
+    },
+    "preview_steps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "apply_step": {
+      "type": "object"
+    },
+    "touched_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "honest_boundaries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confirmation_prompt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_step": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,59 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Candidate Lineage Receipt
+type: object
+required:
+  - schema_version
+  - receipt_kind
+  - cluster_ref
+  - candidate_ref
+  - owner_hypothesis
+  - owner_shape
+  - nearest_wrong_target
+  - status_posture
+  - evidence_refs
+  - supersedes
+  - merged_into
+  - drop_reason
+properties:
+  schema_version:
+    const: aoa_candidate_lineage_receipt_v1
+  receipt_kind:
+    const: candidate_lineage_receipt
+  cluster_ref:
+    type:
+      - string
+      - "null"
+  candidate_ref:
+    type: string
+  owner_hypothesis:
+    type: string
+  owner_shape:
+    type: string
+  nearest_wrong_target:
+    type:
+      - string
+      - "null"
+  status_posture:
+    type: string
+    enum:
+      - early
+      - reanchor
+      - thin-evidence
+      - stable
+  evidence_refs:
+    type: array
+    items:
+      type: string
+  supersedes:
+    type: array
+    items:
+      type: string
+  merged_into:
+    type:
+      - string
+      - "null"
+  drop_reason:
+    type:
+      - string
+      - "null"
+additionalProperties: false
