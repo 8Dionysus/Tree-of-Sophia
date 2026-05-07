@@ -34,7 +34,18 @@ def _normalize_line(line: str) -> dict[str, str]:
 
 def summarize(payload: Any) -> dict[str, Any]:
     if isinstance(payload, dict) and "readiness_items" in payload:
-        items = payload.get("readiness_items") or []
+        raw_items = payload.get("readiness_items")
+        if raw_items is None:
+            items = []
+        elif isinstance(raw_items, list):
+            items = raw_items
+        else:
+            items = [
+                {
+                    "severity": "fail",
+                    "label": "readiness_items must be a list when present.",
+                }
+            ]
     elif isinstance(payload, list):
         if payload and isinstance(payload[0], dict):
             items = payload
