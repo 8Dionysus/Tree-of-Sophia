@@ -1,0 +1,20 @@
+receipt_name: DIAGNOSIS_PACKET_RECEIPT
+event_kind: diagnosis_packet_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - skill_name
+  - result_kind
+  - diagnosis_types
+  - symptom_refs
+  - probable_cause_hypotheses
+  - confidence_band
+  - owner_hints
+optional_payload_fields:
+  - route_ref
+  - blocked_automation_causes
+  - repair_handoff
+  - unknowns
+rules:
+  - set `skill_name` to `aoa-session-self-diagnose`
+  - set `result_kind` to `diagnosis_packet`
+  - keep probable causes probabilistic when evidence is thin

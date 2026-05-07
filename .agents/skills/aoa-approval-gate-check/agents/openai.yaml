@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Approval Gate Check
+  short_description: Classify approval boundaries
+  default_prompt: Use $aoa-approval-gate-check to classify whether the requested action is safe, approval-gated, or out of bounds before any execution proceeds.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#B45309'
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocalStackBringupReport",
+  "type": "object",
+  "required": [
+    "skill",
+    "runtime_name",
+    "selector",
+    "rendered_services",
+    "readiness_items",
+    "blocker_count",
+    "warning_count",
+    "launch_command",
+    "stop_command",
+    "verdict",
+    "next_step",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "skill": {
+      "const": "aoa-local-stack-bringup"
+    },
+    "runtime_name": {
+      "type": "string"
+    },
+    "selector": {
+      "type": "string"
+    },
+    "rendered_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "readiness_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "blocker_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warning_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "launch_command": {
+      "type": "string"
+    },
+    "stop_command": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string"
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,18 @@
+receipt_name: DECISION_FORK_RECEIPT
+event_kind: decision_fork_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - branch_ids
+  - suggested_default_branch
+  - predicted_gain_posture
+  - predicted_cost_posture
+  - predicted_risk_posture
+optional_payload_fields:
+  - chosen_branch
+  - stop_condition_refs
+  - realized_outcome_refs
+  - owner_targets
+rules:
+  - summarize the completed fork set instead of replacing the branch cards
+  - keep gain, cost, and risk posture descriptive rather than predictive theater
+  - preserve hold or defer posture when no branch should be treated as final authority

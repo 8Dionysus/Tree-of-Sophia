@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SafeInfraChangeReport",
+  "type": "object",
+  "required": [
+    "skill",
+    "change_summary",
+    "detected_surfaces",
+    "risk_band",
+    "report_state",
+    "authority_state",
+    "verification_strength",
+    "rollback_ready",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "skill": {
+      "const": "aoa-safe-infra-change"
+    },
+    "change_summary": {
+      "type": "string"
+    },
+    "detected_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_band": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "report_state": {
+      "type": "string"
+    },
+    "authority_state": {
+      "type": "string"
+    },
+    "verification_strength": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "weak",
+        "moderate",
+        "strong"
+      ]
+    },
+    "rollback_ready": {
+      "type": "boolean"
+    },
+    "touched_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mutating_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rollback_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

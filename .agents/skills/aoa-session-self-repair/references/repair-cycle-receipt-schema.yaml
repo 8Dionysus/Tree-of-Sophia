@@ -1,0 +1,18 @@
+receipt_name: REPAIR_CYCLE_RECEIPT
+event_kind: repair_cycle_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - repair_cycle_state
+  - linked_diagnosis_refs
+  - action_family
+  - approval_posture
+  - rollback_marker
+  - health_check_refs
+optional_payload_fields:
+  - resolution_status
+  - escalation_route
+  - iteration_limit
+rules:
+  - keep the receipt smaller than the REPAIR_PACKET itself
+  - make checkpoint posture explicit without granting silent mutation authority
+  - reopen or correction should arrive through a new receipt, not silent overwrite

@@ -1,0 +1,16 @@
+receipt_name: QUEST_PROMOTION_RECEIPT
+event_kind: quest_promotion_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - promotion_verdict
+  - owner_repo
+  - next_surface
+  - nearest_wrong_target
+optional_payload_fields:
+  - defer_reason
+  - repeat_shape
+  - bounded_unit_ref
+rules:
+  - keep the receipt verdict-shaped rather than canon-shaped
+  - rejected nearest-wrong target must remain visible when promotion pressure exists
+  - the receipt summarizes the closed triage rather than replacing the quest promotion packet

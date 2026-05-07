@@ -1,0 +1,29 @@
+{
+  "requested_action": "Switch application symlink from current to previous release",
+  "preview_steps": [
+    {
+      "label": "inspect current symlink target",
+      "command": "readlink current",
+      "touches_state": false
+    },
+    {
+      "label": "show candidate target",
+      "command": "readlink previous",
+      "touches_state": false
+    }
+  ],
+  "apply_step": {
+    "label": "switch symlink",
+    "command": "ln -sfn previous current",
+    "touches_state": true
+  },
+  "touched_surfaces": [
+    "application symlink",
+    "release pointer"
+  ],
+  "limitations": [
+    "preview does not prove runtime health after the switch",
+    "preview does not validate permissions for the final write"
+  ],
+  "confirmation_required": true
+}

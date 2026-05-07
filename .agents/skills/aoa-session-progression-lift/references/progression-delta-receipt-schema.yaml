@@ -1,0 +1,15 @@
+receipt_name: PROGRESSION_DELTA_RECEIPT
+event_kind: progression_delta_receipt
+envelope_ref: references/stats-event-envelope.md
+required_payload_fields:
+  - scope_ref
+  - axis_delta_summary
+  - verdict
+optional_payload_fields:
+  - caution_refs
+  - unlock_hint_refs
+  - automation_readiness_hint
+rules:
+  - keep the receipt multi-axis and descriptive rather than score-shaped
+  - allow hold, reanchor, or downgrade without treating receipt emission as progress by itself
+  - keep automation hints advisory and non-authoritative

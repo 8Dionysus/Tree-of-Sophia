@@ -1,0 +1,22 @@
+receipt_name: CORE_SKILL_APPLICATION_RECEIPT
+event_kind: core_skill_application_receipt
+envelope_ref: references/stats-event-envelope.md
+kernel_id: project-core-session-growth-v1
+skill_name: aoa-session-self-repair
+required_payload_fields:
+  - kernel_id
+  - skill_name
+  - application_stage
+  - detail_event_kind
+  - detail_receipt_ref
+optional_payload_fields:
+  - route_ref
+  - surface_detection_context
+rules:
+  - `application_stage` must equal `finish`
+  - `kernel_id` must equal `project-core-session-growth-v1`
+  - `skill_name` must equal `aoa-session-self-repair`
+  - `detail_event_kind` must equal `repair_cycle_receipt`
+  - `detail_receipt_ref` must point to the bounded finish receipt for the same completed run
+  - include `route_ref` only when the detail receipt already names it honestly
+  - if present, `surface_detection_context` stays advisory and may only preserve shortlist, ambiguity, handoff, and closeout-link truth; it must not claim non-skill activation

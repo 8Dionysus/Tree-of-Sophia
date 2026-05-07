@@ -1,0 +1,27 @@
+{
+  "runtime_name": "compose",
+  "selector": "dev",
+  "rendered_services": [
+    "api",
+    "worker",
+    "postgres",
+    "redis"
+  ],
+  "readiness_items": [
+    {
+      "severity": "ok",
+      "label": "docker daemon reachable"
+    },
+    {
+      "severity": "ok",
+      "label": "dev profile render completed"
+    },
+    {
+      "severity": "warn",
+      "label": "postgres volume will be reused"
+    }
+  ],
+  "launch_command": "docker compose --profile dev up -d",
+  "stop_command": "docker compose --profile dev down",
+  "confirmation_required": true
+}
