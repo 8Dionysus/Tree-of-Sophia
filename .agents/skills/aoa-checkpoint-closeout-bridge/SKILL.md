@@ -25,6 +25,10 @@ explicit reviewed-closeout chain in the fixed order:
 
 `aoa-session-donor-harvest -> aoa-session-progression-lift -> aoa-quest-harvest`
 
+The fixed order is an execution discipline, not a promise that every stage will
+produce a positive verdict. A stage may be skipped, deferred, or stopped with an
+evidence-linked reason when its prerequisites are absent.
+
 ## Trigger boundary
 Use this skill when:
 - checkpoint notes already carry harvest, progression, or upgrade candidates
@@ -32,6 +36,8 @@ Use this skill when:
   them as final authority
 - the route needs one explicit bridge from local checkpoint evidence into the
   reviewed session-harvest family
+- the agent must distinguish accepted focus hints from stale, cross-session, or
+  contaminated checkpoint residue before downstream skills run
 - the honest next move is not raw recap, but a bounded session-end chain
 
 Do not use this skill when:
@@ -42,6 +48,8 @@ Do not use this skill when:
 - the task wants final harvest, progression, or quest verdicts from checkpoint
   notes alone
 - the request tries to make `aoa closeout run` a hidden skill runner
+- the request demands that all three downstream stages produce verdicts even
+  when reviewed evidence only supports a skip, defer, or stop
 
 ## Inputs
 - reviewed session artifact
@@ -59,10 +67,13 @@ Do not use this skill when:
   - ordered session-end target list
 - in `reviewed-closeout-execute` mode:
   - one explicit execution context bundle
+  - accepted, rejected, and unresolved focus hints before the first downstream
+    skill runs
   - one explicit run of:
     - `aoa-session-donor-harvest`
     - `aoa-session-progression-lift`
     - `aoa-quest-harvest`
+  - explicit stage statuses: `executed`, `skipped`, `deferred`, or `stopped`
   - one execution report that records what ran, what was skipped, and which
     artifacts or receipts were emitted
   - one agent-authored closeout summary that says which conclusions came from
@@ -80,20 +91,26 @@ Do not use this skill when:
 4. before executing reviewed closeout, the Codex agent must reread the skill
    instructions and the primary session evidence; checkpoint JSON, generated
    packets, and closeout reports are only navigation aids
-5. when executing reviewed closeout, reread the full reviewed artifact before
+5. build one closeout context bundle with reviewed artifact refs, checkpoint
+   note refs, receipt refs, accepted focus hints, rejected focus hints,
+   unresolved focus hints, and current-session boundaries
+6. when executing reviewed closeout, reread the full reviewed artifact before
    every core skill stage
-6. let checkpoint note and reviewed handoff narrow attention, but never replace
+7. let checkpoint note and reviewed handoff narrow attention, but never replace
    the reviewed artifact or receipt evidence
-7. explicitly separate current-session evidence from stale, neighboring, or
+8. explicitly separate current-session evidence from stale, neighboring, or
    diagnostic checkpoint contamination before naming final candidates
-8. run `aoa-session-donor-harvest` first so reusable units and owner routing
+9. run `aoa-session-donor-harvest` first so reusable units and owner routing
    are bounded before any progression verdict
-9. run `aoa-session-progression-lift` second so final multi-axis movement is
+10. run `aoa-session-progression-lift` second so final multi-axis movement is
    gathered from reviewed evidence, donor outputs, and provisional checkpoint
    axes together
-10. run `aoa-quest-harvest` third so final promotion triage happens only after
+11. run `aoa-quest-harvest` third so final promotion triage happens only after
    donor harvest and progression lift have finished
-11. keep stats refresh out of this bridge skill; that remains downstream after
+12. if a downstream stage lacks prerequisites, record `skipped`, `deferred`, or
+   `stopped` with a reason and evidence refs instead of forcing a verdict to
+   satisfy the chain shape
+13. keep stats refresh out of this bridge skill; that remains downstream after
    explicit closeout receipts exist
 
 ## Contracts
@@ -108,6 +125,8 @@ Do not use this skill when:
   - `aoa-session-donor-harvest`
   - `aoa-session-progression-lift`
   - `aoa-quest-harvest`
+- fixed order means the dependency order for evaluation and reporting; it does
+  not force final verdicts when a stage's prerequisites are absent
 - this bridge skill coordinates core skills; it does not replace their meaning
 - `aoa closeout run` remains a separate receipt-first publisher path
 - stats refresh is not part of this skill
@@ -119,6 +138,8 @@ Do not use this skill when:
 - skipping donor harvest and jumping straight to progression or quest verdicts
 - using progression verdicts that were not reread against the reviewed artifact
 - letting quest harvest run before progression lift
+- forcing quest harvest or progression lift to emit a positive verdict when
+  reviewed evidence only supports skip, defer, hold, or stop
 - turning the bridge into a hidden auto-runner inside `aoa closeout run`
 - refreshing stats before the explicit reviewed-closeout chain finishes
 
@@ -127,6 +148,8 @@ Do not use this skill when:
 - confirm the bridge never emits final verdicts during mid-session capture
 - confirm reviewed closeout refuses to run without a reviewed artifact
 - confirm the core skill order is fixed and visible
+- confirm each downstream stage records `executed`, `skipped`, `deferred`, or
+  `stopped` with an evidence-linked reason
 - confirm checkpoint note and reviewed handoff are treated as hints rather than
   sole evidence
 - confirm the final answer distinguishes current-session evidence from
@@ -137,15 +160,17 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0075 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
-- AOA-T-0084 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/progression-evidence-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
-- AOA-T-0089 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/governance/promotion-boundary/quest-unit-promotion-review/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0075 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
+- AOA-T-0084 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/progression-evidence-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
+- AOA-T-0089 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/governance/promotion-boundary/quest-unit-promotion-review/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
 
 ## Adaptation points
 Project overlays may add:
 - local reviewed artifact entrypoints
 - local receipt bundle locations
 - local stop conditions before quest triage
+- local stage-status vocabulary and report locations, as long as the donor ->
+  progression -> quest dependency order remains visible
 - local owner-layer route maps for generated donor packets
 - project-local reviewed follow-through notes under `docs/session-harvests/`
   when bridge upkeep becomes reusable but is still below promotion authority

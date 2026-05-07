@@ -11,12 +11,16 @@ self-agent checkpoint stack.
 - post-change health check
 - bounded iteration limit
 - explicit improvement log
+- execution posture: proposed, prepared, executing, verified, blocked, or
+  handoff_required
 
 ## Repair rule
 
 Self-repair may propose or author the smallest bounded repair packet, but it
 must not silently mutate important system surfaces without naming checkpoint
 posture.
+Prepared repair is not executed repair, and executed repair is not verified
+repair unless the health check evidence exists.
 
 ## Good repair outputs
 

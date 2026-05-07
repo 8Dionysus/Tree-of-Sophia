@@ -1,0 +1,9 @@
+interface:
+  display_name: AoA Commit Growth Seam
+  short_description: Commit bounded diffs honestly
+  default_prompt: Use $aoa-commit-growth-seam to isolate one bounded diff, carry forward the real validation state, and stop at one intentional local commit boundary before any push or publish route.
+  icon_small: ./assets/small-logo.svg
+  icon_large: ./assets/large-logo.svg
+  brand_color: '#2563EB'
+policy:
+  allow_implicit_invocation: false

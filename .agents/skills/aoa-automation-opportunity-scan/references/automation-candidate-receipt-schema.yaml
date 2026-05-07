@@ -6,6 +6,7 @@ required_payload_fields:
   - repeat_signal_posture
   - determinism_posture
   - reversibility_posture
+  - automation_mode_posture
   - checkpoint_required
   - seed_ready
   - next_artifact_hint
@@ -15,5 +16,6 @@ optional_payload_fields:
   - proof_surface_notes
 rules:
   - keep the receipt detector-shaped rather than scheduler-shaped
-  - `seed_ready` does not grant live execution authority
+  - "`seed_ready` does not grant live execution authority"
+  - "`automation_mode_posture` must name the highest honest mode, not an aspiration"
   - keep manual-route and evidence refs inspectable instead of duplicating the full packet

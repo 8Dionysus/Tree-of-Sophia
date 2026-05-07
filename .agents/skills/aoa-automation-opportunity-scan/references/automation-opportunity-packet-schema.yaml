@@ -9,6 +9,7 @@ required_fields:
   - proof_surface
   - reversibility
   - approval_sensitivity
+  - automation_mode_posture
   - verdict
   - checkpoint_required
   - owner_layer
@@ -20,5 +21,6 @@ optional_fields:
   - evidence_refs
 rules:
   - schedule_hint must remain advisory only
+  - automation_mode_posture must be conservative and must not imply hidden execution authority
   - checkpoint_required must be true for self-changing or approval-heavy routes
   - verdict must be seed_ready or not_now

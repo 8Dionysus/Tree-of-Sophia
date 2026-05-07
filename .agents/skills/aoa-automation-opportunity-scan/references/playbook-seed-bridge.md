@@ -21,6 +21,7 @@ A candidate should usually be `seed_ready: true` only when it can name:
 - stable inputs and outputs
 - a likely owning playbook or skill handle
 - a bounded prompt or activation description
+- the highest honest `automation_mode_posture`
 - schedule hints as hints, not authority
 
 ## What not to do
@@ -30,3 +31,4 @@ Do not confuse:
 - an automation seed with a live scheduler
 - a playbook seed with a secret-bearing ops script
 - a skill with a recurring scenario composition surface
+- a human-approved execution route with unattended background authority

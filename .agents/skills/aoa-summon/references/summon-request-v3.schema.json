@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/aoa-summon/request-v3.schema.json",
+  "title": "aoa-summon request v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["quest_passport", "summon_request", "expected_outputs"],
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "quest_passport": {
+              "required": ["route_anchor"],
+              "properties": {
+                "route_anchor": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "summon_request": {
+              "required": ["parent_task_id"],
+              "properties": {
+                "parent_task_id": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "summon_request": {
+              "required": ["session_ref"],
+              "properties": {
+                "session_ref": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "properties": {
+    "quest_passport": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["difficulty", "risk", "control_mode", "delegate_tier"],
+      "properties": {
+        "difficulty": {"type": "string"},
+        "risk": {"type": "string"},
+        "control_mode": {"type": "string"},
+        "delegate_tier": {"type": "string"},
+        "fallback_tier": {"type": ["string", "null"]},
+        "wrapper_class": {"type": ["string", "null"]},
+        "route_anchor": {"type": ["string", "null"]},
+        "expected_artifacts": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "self_agent": {"type": "boolean"}
+      }
+    },
+    "summon_request": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "desired_role": {"type": ["string", "null"]},
+        "child_agent_id": {"type": ["string", "null"]},
+        "transport_preference": {
+          "type": "string",
+          "enum": ["codex_local", "a2a_remote", "either"]
+        },
+        "parent_task_id": {"type": ["string", "null"]},
+        "session_ref": {"type": ["string", "null"]},
+        "expected_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "reviewed_artifact_path": {"type": ["string", "null"]},
+        "require_progression": {"type": "boolean"}
+      }
+    },
+    "expected_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"}
+    },
+    "progression_overlay_ref": {"type": ["string", "null"]},
+    "self_agent_checkpoint_ref": {"type": ["string", "null"]},
+    "stress_bundle_ref": {"type": ["string", "null"]},
+    "checkpoint_note_ref": {"type": ["string", "null"]},
+    "codex_trace_ref": {"type": ["string", "null"]},
+    "reviewed_artifact_path": {"type": ["string", "null"]},
+    "audit_refs": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

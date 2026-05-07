@@ -20,6 +20,8 @@ Use this skill to author a bounded `REPAIR_PACKET`.
 
 The repair packet should be small, explicit, reversible where needed, and
 aligned with checkpoint posture before any important system surface is changed.
+It should also say whether the repair is only proposed, prepared, executing,
+verified, blocked, or handed off.
 
 ## Trigger boundary
 Use this skill when:
@@ -28,12 +30,14 @@ Use this skill when:
 - the route may change skill, playbook, agent, eval, or memo surfaces and needs explicit checkpoint posture
 - the route may need prerequisite repair before later automation becomes honest
 - repair can still be kept inside one bounded execution unit
+- a prepared repair packet or receipt must not be mistaken for executed or verified repair
 
 Do not use this skill when:
 - there is no reviewed diagnosis yet
 - the repair is actually a large scenario rollout better owned by a playbook
 - the route is trying to bypass approval, rollback, or health-check posture
 - the request is vague self-improvement rhetoric with no bounded target
+- the route only needs a diagnosis packet, route fork, automation-readiness scan, or final quest-promotion verdict
 
 ## Inputs
 - reviewed diagnosis packet
@@ -41,9 +45,12 @@ Do not use this skill when:
 - risk and approval posture
 - known validation surfaces
 - current rollback anchors if any
+- current execution state, if a repair packet already exists
+- evidence showing whether validation actually ran or is only planned
 
 ## Outputs
 - `REPAIR_PACKET` with target owner repo, smallest diff shape, approval need, rollback marker, health check, and improvement-log stub
+- explicit repair execution posture such as proposed, prepared, executing, verified, blocked, or handoff_required
 - optional repair quest when execution should remain deferred
 - optional automation-readiness prerequisite packet when the real need is to
   stabilize a route before later automation scanning or seeding
@@ -57,12 +64,14 @@ Do not use this skill when:
 1. start from the reviewed diagnosis rather than from general aspiration
 2. choose the smallest honest repair shape
 3. name the primary owner repo and target artifact class
-4. record checkpoint posture: constitution or policy check, approval gate, rollback marker, post-change health check, bounded iteration limit, improvement log
-5. if the target route was blocked automation, emit the smallest prerequisite repair that would make later automation classification more honest
-6. define validation and stop conditions
-7. emit a repair quest instead of mutating immediately when risk or approval posture requires it
-8. emit one `REPAIR_CYCLE_RECEIPT` when the repair packet or repair-quest handoff closes, keeping the receipt smaller than the packet
-9. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
+4. state the repair execution posture before writing any outcome language: proposed, prepared, executing, verified, blocked, or handoff_required
+5. record checkpoint posture: constitution or policy check, approval gate, rollback marker, post-change health check, bounded iteration limit, improvement log
+6. if validation has not actually run, keep health checks as planned checks and set execution posture below verified
+7. if the target route was blocked automation, emit the smallest prerequisite repair that would make later automation classification more honest
+8. define validation and stop conditions
+9. emit a repair quest instead of mutating immediately when risk or approval posture requires it
+10. emit one `REPAIR_CYCLE_RECEIPT` when the repair packet or repair-quest handoff closes, keeping the receipt smaller than the packet
+11. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
    that points back to the bounded repair receipt and records one finished
    kernel-skill application
 
@@ -70,6 +79,7 @@ Do not use this skill when:
 - self-repair is not free self-modification
 - important surface changes must pass checkpoint posture
 - repair packets stay bounded and reviewable
+- prepared repair packets are not executed repairs, and executed repairs are not verified repairs unless validation evidence is present
 - role law changes route to `aoa-agents`
 - proof-law changes route to `aoa-evals`
 - scenario-scale repair routes to `aoa-playbooks`
@@ -86,11 +96,13 @@ Do not use this skill when:
 - using repair to hide broader governance debt
 - changing too many surfaces at once
 - letting a repair receipt pretend the repair is already verified when it is only planned
+- using `resolved`, `prepared`, or `finished` without saying what was actually executed and verified
 
 ## Verification
 - confirm diagnosis exists and is cited
 - confirm the chosen repair is the smallest honest shape
 - confirm checkpoint fields are present
+- confirm repair execution posture is explicit and does not overclaim validation
 - confirm validation and rollback posture are named
 - confirm escalation route exists if the repair widens
 - confirm any emitted receipt cites diagnosis and validation refs without duplicating the whole packet
@@ -99,8 +111,8 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0082 from `8Dionysus/aoa-techniques` at `bfb4281c60295ab85605e188b350e0f6008b3184` using path `techniques/recovery/diagnosis-repair/repair-shape-from-diagnosis/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Validation
-- AOA-T-0083 from `8Dionysus/aoa-techniques` at `bfb4281c60295ab85605e188b350e0f6008b3184` using path `techniques/recovery/diagnosis-repair/checkpoint-bound-self-repair/TECHNIQUE.md` and sections: Outputs, Contracts, Risks, Validation
+- AOA-T-0082 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/recovery/diagnosis-repair/repair-shape-from-diagnosis/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Validation
+- AOA-T-0083 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/recovery/diagnosis-repair/checkpoint-bound-self-repair/TECHNIQUE.md` and sections: Outputs, Contracts, Risks, Validation
 
 ## Adaptation points
 Project overlays may add:

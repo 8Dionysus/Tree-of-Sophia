@@ -20,17 +20,27 @@ Use this skill to author a `PROGRESSION_DELTA` from reviewed evidence.
 
 This is not score inflation.
 It is an evidence-backed overlay that says what mastery axes moved, what should
-hold or reanchor, and what small unlock hints are now safer.
+hold or reanchor, what baseline the movement is compared against, and what
+small unlock hints are now safer.
 
 ## Trigger boundary
 Use this skill when:
 - a reviewed session generated meaningful mastery evidence
 - the route needs progression legibility without mutating source role profiles
+- donor harvest, checkpoint closeout, or a reviewed handoff produced provisional
+  axis hints that must be accepted, rejected, or carried without becoming
+  growth claims by themselves
+- movement needs to be distinguished from first observation, stale baseline,
+  missing baseline, or regression against a known prior state
 - quest or RPG reflection would help continuation
 - the output needs to stay small, evidence-backed, and multi-axis
 
 Do not use this skill when:
 - there is no reviewed evidence
+- the only input is a checkpoint axis hint, mood note, or generated summary
+  that has not been reread against reviewed session evidence
+- the route wants comparative movement while refusing to name a baseline or
+  admit that the baseline is missing, stale, or contested
 - the request wants one global power number
 - progression is being used as hidden routing policy
 - the route is trying to mint authority rights without evidence
@@ -38,11 +48,20 @@ Do not use this skill when:
 ## Inputs
 - reviewed session artifact or harvest packet
 - named evidence refs
+- optional donor harvest output, checkpoint-closeout stage result, or
+  provisional axis hints
+- current-session boundary for separating stale or neighboring evidence
+- baseline ref, prior delta ref, or an explicit no-baseline marker
 - relevant role or cohort context if known
 - existing progression baseline if available
 
 ## Outputs
 - `PROGRESSION_DELTA` with axis movement, verdict, and optional unlock hints
+- baseline posture such as `baseline_ref`, `prior_delta_ref`,
+  `first_observed`, `baseline_missing`, `baseline_stale`, or
+  `baseline_contested`
+- one axis table where each meaningful axis names movement, evidence refs,
+  evidence posture, and any defer or no-movement reason
 - optional automation-readiness hint when reviewed evidence supports it
 - optional rank reflection note if evidence is strong enough
 - quest hooks or chronicle stub when useful
@@ -54,23 +73,43 @@ Do not use this skill when:
 
 ## Procedure
 1. collect reviewed evidence refs
-2. assess movement qualitatively across `boundary_integrity`,
+2. separate confirmed current-session evidence from checkpoint hints,
+   closeout-handoff cues, generated summaries, stale residue, and neighboring
+   session evidence
+3. declare the movement basis before assigning any axis movement: baseline ref,
+   prior delta ref, first-observed posture, missing baseline, stale baseline, or
+   contested baseline
+4. assess movement qualitatively across `boundary_integrity`,
    `execution_reliability`, `change_legibility`, `review_sharpness`,
    `proof_discipline`, `provenance_hygiene`, and `deep_readiness`
-3. emit a verdict: advance, hold, reanchor, or downgrade
-4. name small unlock hints only when evidence supports them
-5. keep any automation-readiness hint small, descriptive, and non-authoritative
-6. allow negative, zero, and cautionary movement
-7. map ability or feat hints only as reflection, not as ownership transfer
-8. emit one `PROGRESSION_DELTA_RECEIPT` when the delta closes, keeping the
+5. mark each touched axis with evidence posture: `confirmed`, `contested`,
+   `provisional`, `stale`, `not_current_session`, or `no_movement`
+6. emit a verdict: advance, hold, reanchor, or downgrade
+7. when the baseline is missing, stale, or contested, avoid comparative advance
+   language unless a specific current-session axis has confirmed evidence and
+   the limitation remains visible
+8. when evidence is only provisional or contested, prefer hold, reanchor, or an
+   explicit defer reason over invented advance
+9. name small unlock hints only when evidence supports them
+10. keep any automation-readiness hint small, descriptive, and non-authoritative
+11. allow negative, zero, and cautionary movement
+12. map ability or feat hints only as reflection, not as ownership transfer
+13. hand off to `aoa-quest-harvest` only when a repeated reviewed quest unit
+   survives as a final promotion question; otherwise keep quest hooks as
+   reflection or defer them
+14. emit one `PROGRESSION_DELTA_RECEIPT` when the delta closes, keeping the
    receipt descriptive, evidence-linked, and smaller than the progression packet
-9. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
+15. when the finish path closes, emit one `CORE_SKILL_APPLICATION_RECEIPT`
    that points back to the bounded progression receipt and records one
    finished kernel-skill application
 
 ## Contracts
 - progression remains evidence-backed
 - multi-axis only; no authoritative universal score
+- movement claims must name their baseline posture; missing baseline can support
+  first-observed evidence notes, not fake comparative growth
+- checkpoint, donor, and closeout hints may focus the review but do not become
+  progression claims until reviewed evidence supports them
 - rank labels are descriptive, not sovereign
 - unlock hints must stay reviewable and small
 - progression does not replace owner-layer truth or routing authority
@@ -82,6 +121,10 @@ Do not use this skill when:
 
 ## Risks and anti-patterns
 - inventing progress from mood
+- promoting checkpoint axis hints or generated summaries into movement without
+  reviewed evidence
+- calling a first observation an improvement without naming the absent baseline
+- treating absence of a problem as evidence of mastery movement
 - using progression as policy
 - granting authority without cited evidence
 - flattening multi-axis growth into one number
@@ -91,6 +134,9 @@ Do not use this skill when:
 
 ## Verification
 - confirm all meaningful axis claims cite reviewed evidence
+- confirm the delta declares baseline posture before comparative movement claims
+- confirm provisional, stale, contested, and no-movement axes are marked rather
+  than smoothed into progress
 - confirm the verdict matches the evidence
 - confirm zero or negative movement remains allowed
 - confirm unlock hints are small and explicit
@@ -101,11 +147,16 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0084 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/progression-evidence-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
-- AOA-T-0085 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/continuity/donor-harvest/multi-axis-quest-overlay/TECHNIQUE.md` and sections: Outputs, Risks, Validation
+- AOA-T-0084 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/progression-evidence-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Validation
+- AOA-T-0085 from `8Dionysus/aoa-techniques` at `b4e5c1446469f142c60a85d0a7a4d9de7835ea65` using path `techniques/continuity/donor-harvest/multi-axis-quest-overlay/TECHNIQUE.md` and sections: Outputs, Risks, Validation
 
 ## Adaptation points
 Project overlays may add:
 - local axis notes
 - role-affinity hints
 - local unlock classes
+- local axis posture vocabulary, provided it still distinguishes confirmed
+  reviewed evidence from provisional or stale hints
+- local baseline vocabulary, provided it still distinguishes a reviewed prior
+  baseline from first observation, missing baseline, stale baseline, or contested
+  baseline

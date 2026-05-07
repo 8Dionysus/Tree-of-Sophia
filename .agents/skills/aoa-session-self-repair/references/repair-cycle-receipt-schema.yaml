@@ -3,6 +3,7 @@ event_kind: repair_cycle_receipt
 envelope_ref: references/stats-event-envelope.md
 required_payload_fields:
   - repair_cycle_state
+  - execution_posture
   - linked_diagnosis_refs
   - action_family
   - approval_posture
@@ -14,5 +15,7 @@ optional_payload_fields:
   - iteration_limit
 rules:
   - keep the receipt smaller than the REPAIR_PACKET itself
+  - distinguish prepared, executing, verified, blocked, and handoff_required states
+  - do not describe a prepared packet as executed or verified unless validation evidence exists
   - make checkpoint posture explicit without granting silent mutation authority
   - reopen or correction should arrive through a new receipt, not silent overwrite

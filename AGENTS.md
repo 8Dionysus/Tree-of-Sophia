@@ -49,6 +49,22 @@ It does not own:
 - derived substrate mechanics belong in `aoa-kag`
 - staging, replay, or pre-canon transplant logistics belong in `Dionysus`
 
+## GitHub landing workflow
+
+Root `AGENTS.md` owns the repository-wide branch, PR, CI, and merge route.
+`.github/AGENTS.md` owns the GitHub-native files that support it.
+
+When the user asks to commit, push, and merge in this repository, use this route:
+
+1. Start from a branch based on the current `origin/main`. If the worktree is already dirty, inventory it first and carry forward only the intended diff.
+2. Commit the intended change with a message that names the changed surface.
+3. Push the branch and open a pull request that states changed surfaces, validation run, skipped checks, and remaining risk.
+4. Wait for GitHub `Repo Validation` and any required GitHub checks. If a check fails, fix the branch and wait for the new result.
+5. Merge through GitHub after green validation. Use squash unless repository settings report a different required method; report the method that landed.
+6. Return to `main`, fast-forward from `origin/main`, and confirm the worktree is clean before closeout.
+
+If GitHub status or merge permissions cannot be observed, stop the landing route and report the exact blocker instead of guessing.
+
 ## Verify
 
 The current bounded read-only battery is:

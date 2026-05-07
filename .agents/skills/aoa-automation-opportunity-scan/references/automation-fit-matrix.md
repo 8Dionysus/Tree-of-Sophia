@@ -15,6 +15,7 @@ only desires automation.
 | reversibility | rollback marker is obvious | rollback is unclear or expensive | weak rollback pushes toward repair or checkpoint routes |
 | secret coupling | little or no secret handling | secret-heavy or environment-bound | high coupling often disqualifies public seed-ready paths |
 | approval sensitivity | authority is explicit | authority is hidden or shifting | unclear authority should force checkpoint or defer posture |
+| automation mode | the highest honest mode is named as manual, draft, dry-run, human-approved, or scheduler seed | `seed_ready` is left to imply execution | unclear mode posture turns a detector into fake runtime authority |
 
 ## Good first candidates
 
@@ -36,3 +37,4 @@ Bad first candidates usually look like:
 - secret-heavy ops without explicit boundaries
 - routes with no rollback or no health check
 - routes that silently reshape important system surfaces
+- candidates that treat seed readiness as permission for unattended execution
