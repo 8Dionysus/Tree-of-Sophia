@@ -89,8 +89,8 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0016 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/proof/skill-support/bounded-context-map/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0015 from `8Dionysus/aoa-techniques` at `cd276f040d55d490bd015b8698c7a5d594b9f875` using path `techniques/proof/skill-support/contract-test-design/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Risks, Validation
+- AOA-T-0016 from `8Dionysus/aoa-techniques` at `fbead87e01b82df6c56e3d92a074cd7515131847` using path `techniques/proof/skill-support/bounded-context-map/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0015 from `8Dionysus/aoa-techniques` at `fbead87e01b82df6c56e3d92a074cd7515131847` using path `techniques/proof/skill-support/contract-test-design/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Risks, Validation
 
 ## Adaptation points
 Future project overlays may add:
