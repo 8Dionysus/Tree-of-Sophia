@@ -58,7 +58,7 @@ Do not use this skill when:
 - optional receipt refs from already published or staged session evidence
 - repo scope and touched owner hints
 - full session evidence available to the agent, such as the reviewed artifact,
-  Codex rollout trace, transcript excerpts, and relevant receipts
+  local agent rollout trace, transcript excerpts, and relevant receipts
 
 ## Outputs
 - in `checkpoint-collect` mode:
@@ -88,7 +88,7 @@ Do not use this skill when:
    - donor harvest first
    - progression lift second
    - quest harvest third
-4. before executing reviewed closeout, the Codex agent must reread the skill
+4. before executing reviewed closeout, the local coding agent must reread the skill
    instructions and the primary session evidence; checkpoint JSON, generated
    packets, and closeout reports are only navigation aids
 5. build one closeout context bundle with reviewed artifact refs, checkpoint
