@@ -25,7 +25,7 @@ matters, what each one likely costs, and where each route probably lands first.
 ## Trigger boundary
 Use this skill when:
 - a reviewed session ended with multiple plausible next moves
-- the operator or Codex needs explicit branch choices instead of a buried recommendation
+- the operator or local coding agent needs explicit branch choices instead of a buried recommendation
 - the next route may change owner repo, risk posture, or difficulty posture
 - the choice may include staying manual, becoming a bounded skill, becoming a playbook automation seed candidate, or waiting for prerequisite repair
 - the session needs quest-board legibility without pretending to be runtime state

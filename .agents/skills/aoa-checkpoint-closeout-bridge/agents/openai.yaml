@@ -6,4 +6,5 @@ interface:
   icon_large: ./assets/large-logo.svg
   brand_color: '#2563EB'
 policy:
-  allow_implicit_invocation: true
+  implicit_activation_policy: suggest
+  allow_implicit_invocation: false
