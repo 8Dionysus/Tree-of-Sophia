@@ -198,9 +198,9 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0075 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0076 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/governance/decision-routing/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
-- AOA-T-0077 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/continuity/donor-harvest/harvest-packet-contract/TECHNIQUE.md` and sections: Inputs, Outputs, Contracts, Validation
+- AOA-T-0075 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/continuity/donor-harvest/session-donor-harvest/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0076 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/governance/decision-routing/owner-layer-triage/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+- AOA-T-0077 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/continuity/donor-harvest/harvest-packet-contract/TECHNIQUE.md` and sections: Inputs, Outputs, Contracts, Validation
 
 ## Adaptation points
 Project overlays may add:

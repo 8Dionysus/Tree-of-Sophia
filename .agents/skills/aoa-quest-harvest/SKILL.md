@@ -149,8 +149,8 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0089 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/governance/promotion-boundary/quest-unit-promotion-review/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0090 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/governance/promotion-boundary/nearest-wrong-target-rejection/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
+- AOA-T-0089 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/governance/promotion-boundary/quest-unit-promotion-review/TECHNIQUE.md` and sections: Intent, When to use, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0090 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/governance/promotion-boundary/nearest-wrong-target-rejection/TECHNIQUE.md` and sections: Intent, When to use, Outputs, Core procedure, Risks, Validation
 
 ## Adaptation points
 Project overlays may add:

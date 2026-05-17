@@ -111,8 +111,8 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0080 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/recovery/diagnosis-repair/session-drift-taxonomy/TECHNIQUE.md` and sections: Intent, Outputs, Risks, Validation
-- AOA-T-0081 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/recovery/diagnosis-repair/diagnosis-from-reviewed-evidence/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0080 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/recovery/diagnosis-repair/session-drift-taxonomy/TECHNIQUE.md` and sections: Intent, Outputs, Risks, Validation
+- AOA-T-0081 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/recovery/diagnosis-repair/diagnosis-from-reviewed-evidence/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Contracts, Validation
 
 ## Adaptation points
 Project overlays may add:
