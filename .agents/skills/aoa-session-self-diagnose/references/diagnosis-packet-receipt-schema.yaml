@@ -19,5 +19,5 @@ rules:
   - set `skill_name` to `aoa-session-self-diagnose`
   - set `result_kind` to `diagnosis_packet`
   - keep probable causes probabilistic when evidence is thin
-  - `evidence_posture` must separate reviewed symptoms, reviewed inferences, provisional hints, contested evidence, stale evidence, and unknowns
+  - "`evidence_posture` must separate reviewed symptoms, reviewed inferences, provisional hints, contested evidence, stale evidence, and unknowns"
   - checkpoint, closeout, generated, or stale hints must not appear as settled diagnosis evidence

@@ -50,6 +50,35 @@ class ValidateTreeNodeContractsTests(unittest.TestCase):
             issues,
         )
 
+    def test_duplicate_extension_witness_languages_fail_contract_validation(self) -> None:
+        payload = load_json(REPO_ROOT / "examples" / "source_node.example.json")
+        assert isinstance(payload, dict)
+        payload = copy.deepcopy(payload)
+        payload["language_witnesses"][0]["language"] = "el"
+        payload["language_witnesses"][1]["language"] = "el"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp) / "Tree-of-Sophia"
+            schema_path = repo_root / "schemas" / "tos-node-contract.schema.json"
+            node_path = repo_root / "tree" / "source" / "test-route" / "node.json"
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            node_path.parent.mkdir(parents=True, exist_ok=True)
+            schema_path.write_text(
+                (REPO_ROOT / "schemas" / "tos-node-contract.schema.json").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            node_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+            issues = validate_tree_node_contracts.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "tree/source/test-route/node.json",
+                "language_witnesses contains a duplicate language: el",
+            ),
+            issues,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

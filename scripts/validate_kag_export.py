@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from jsonschema import Draft202012Validator, exceptions
 from generate_kag_export import (
     CAPSULE_PATH,
     CONCEPT_NODE_PATH,
@@ -127,6 +128,37 @@ def read_yaml(path: Path) -> object:
         fail(f"invalid YAML in {path.relative_to(REPO_ROOT).as_posix()}: {exc}")
 
 
+def schema_path(error: exceptions.ValidationError) -> str:
+    parts = [str(part) for part in error.path]
+    return ".".join(parts) if parts else "$"
+
+
+def validate_with_schema(
+    payload: object,
+    schema: object,
+    *,
+    payload_label: str,
+    schema_label: str,
+) -> None:
+    if not isinstance(schema, dict):
+        fail(f"{schema_label} must be a JSON object")
+    try:
+        Draft202012Validator.check_schema(schema)
+    except exceptions.SchemaError as exc:
+        fail(f"{schema_label} is not a valid JSON Schema: {exc.message}")
+
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(payload),
+        key=lambda error: list(error.path),
+    )
+    if errors:
+        error = errors[0]
+        fail(
+            f"{payload_label} violates {schema_label} at {schema_path(error)}: "
+            f"{error.message}"
+        )
+
+
 def validate_generated_text(path: Path, expected_text: str, *, label: str) -> None:
     try:
         actual_text = path.read_text(encoding="utf-8")
@@ -201,6 +233,9 @@ def build_expected_quest_dispatch_entry(quest_id: str, payload: dict[str, Any]) 
     activation = payload.get("activation")
     if not isinstance(activation, dict):
         fail(f"quest {quest_id} activation must be an object")
+    activation_mode = activation.get("mode")
+    if not isinstance(activation_mode, str) or not activation_mode:
+        fail(f"quest {quest_id} activation.mode must be a non-empty string")
 
     return {
         "schema_version": "quest_dispatch_v1",
@@ -215,7 +250,7 @@ def build_expected_quest_dispatch_entry(quest_id: str, payload: dict[str, Any]) 
         "split_required": payload["split_required"],
         "write_scope": payload["write_scope"],
         "requires_artifacts": requires_artifacts,
-        "activation_mode": activation["mode"],
+        "activation_mode": activation_mode,
         "source_path": f"quests/{quest_id}.yaml",
         "public_safe": payload["public_safe"],
         "fallback_tier": payload["fallback_tier"],
@@ -255,6 +290,8 @@ def validate_questbook_surface() -> None:
             fail(f"{QUESTBOOK_INTEGRATION_PATH.as_posix()} must not mention '{token}'")
 
     quest_schema_payload = read_json(REPO_ROOT / QUEST_SCHEMA_PATH)
+    if not isinstance(quest_schema_payload, dict):
+        fail(f"{QUEST_SCHEMA_PATH.as_posix()} must be a JSON object")
     validate_quest_schema_envelope(
         quest_schema_payload,
         title="Tree-of-Sophia work_quest_v1",
@@ -264,6 +301,8 @@ def validate_questbook_surface() -> None:
     )
 
     dispatch_schema_payload = read_json(REPO_ROOT / QUEST_DISPATCH_SCHEMA_PATH)
+    if not isinstance(dispatch_schema_payload, dict):
+        fail(f"{QUEST_DISPATCH_SCHEMA_PATH.as_posix()} must be a JSON object")
     validate_quest_schema_envelope(
         dispatch_schema_payload,
         title="Tree-of-Sophia quest_dispatch_v1",
@@ -281,6 +320,12 @@ def validate_questbook_surface() -> None:
         quest_payload = read_yaml(quest_path)
         if not isinstance(quest_payload, dict):
             fail(f"{quest_path.relative_to(REPO_ROOT).as_posix()} must be a YAML object")
+        validate_with_schema(
+            quest_payload,
+            quest_schema_payload,
+            payload_label=quest_path.relative_to(REPO_ROOT).as_posix(),
+            schema_label=QUEST_SCHEMA_PATH.as_posix(),
+        )
         if quest_payload.get("schema_version") != "work_quest_v1":
             fail(f"{quest_id} schema_version must equal 'work_quest_v1'")
         if quest_payload.get("id") != quest_id:
@@ -300,7 +345,14 @@ def validate_questbook_surface() -> None:
             fail(f"{quest_id} notes must stay in scope for the current contour")
 
         expected_catalog.append(build_expected_quest_catalog_entry(quest_id, quest_payload))
-        expected_dispatch.append(build_expected_quest_dispatch_entry(quest_id, quest_payload))
+        dispatch_entry = build_expected_quest_dispatch_entry(quest_id, quest_payload)
+        validate_with_schema(
+            dispatch_entry,
+            dispatch_schema_payload,
+            payload_label=f"derived dispatch entry for {quest_id}",
+            schema_label=QUEST_DISPATCH_SCHEMA_PATH.as_posix(),
+        )
+        expected_dispatch.append(dispatch_entry)
 
     for quest_id in active_quest_ids:
         if quest_id not in questbook_text:
@@ -314,6 +366,15 @@ def validate_questbook_surface() -> None:
         fail("examples/quest_catalog.min.example.json must stay aligned with quests/*.yaml")
 
     dispatch_payload = read_json(REPO_ROOT / QUEST_DISPATCH_EXAMPLE_PATH)
+    if not isinstance(dispatch_payload, list):
+        fail(f"{QUEST_DISPATCH_EXAMPLE_PATH.as_posix()} must be a JSON array")
+    for index, dispatch_entry in enumerate(dispatch_payload):
+        validate_with_schema(
+            dispatch_entry,
+            dispatch_schema_payload,
+            payload_label=f"{QUEST_DISPATCH_EXAMPLE_PATH.as_posix()}[{index}]",
+            schema_label=QUEST_DISPATCH_SCHEMA_PATH.as_posix(),
+        )
     if dispatch_payload != expected_dispatch:
         fail("examples/quest_dispatch.min.example.json must stay aligned with quests/*.yaml")
 

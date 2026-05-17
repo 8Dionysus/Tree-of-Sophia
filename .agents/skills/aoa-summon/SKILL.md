@@ -68,7 +68,7 @@ Do not use this skill when:
 
 ## Procedure
 1. start from the parent anchor and quest passport, not from raw pressure to delegate
-2. default `transport_preference` to local execution when the request leaves it open
+2. default `transport_preference` to `codex_local` when the request leaves it open
 3. verify that expected outputs are named before picking a lane
 4. classify the lane with difficulty, risk, control mode, requested role, and
    `references/passport-lane-matrix.v3.md`

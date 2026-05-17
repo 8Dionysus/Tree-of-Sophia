@@ -13,12 +13,12 @@ required_fields:
   - verdict
   - checkpoint_required
   - owner_layer
+  - evidence_refs
   - next_artifact
 optional_fields:
   - schedule_hint
   - nearest_wrong_target
   - repair_reason
-  - evidence_refs
 rules:
   - schedule_hint must remain advisory only
   - automation_mode_posture must be conservative and must not imply hidden execution authority

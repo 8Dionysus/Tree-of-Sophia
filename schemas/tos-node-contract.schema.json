@@ -3,7 +3,7 @@
   "$id": "https://raw.githubusercontent.com/8Dionysus/Tree-of-Sophia/main/schemas/tos-node-contract.schema.json",
   "title": "ToS node contract",
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "node_id",
     "node_type",

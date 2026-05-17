@@ -51,7 +51,10 @@ def _load_payload(path: str | None) -> dict[str, Any]:
     return json.loads(raw)
 
 
-def _iter_strings(values: list[Any]) -> list[str]:
+def _iter_strings(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+
     out: list[str] = []
     for value in values:
         if isinstance(value, str):
@@ -91,13 +94,24 @@ def verification_strength(steps: list[str]) -> str:
 
 
 def build_report(payload: dict[str, Any]) -> dict[str, Any]:
-    touched_surfaces = _iter_strings(payload.get("touched_surfaces") or [])
-    commands = _iter_strings(payload.get("mutating_commands") or [])
-    verification_steps = _iter_strings(payload.get("verification_steps") or [])
-    rollback_steps = _iter_strings(payload.get("rollback_steps") or [])
-    detected_surfaces, score = classify_surfaces(touched_surfaces + commands)
     warnings: list[str] = []
     errors: list[str] = []
+    list_fields = (
+        "touched_surfaces",
+        "mutating_commands",
+        "verification_steps",
+        "rollback_steps",
+    )
+    for field in list_fields:
+        value = payload.get(field)
+        if value is not None and not isinstance(value, list):
+            errors.append(f"{field} must be a list.")
+
+    touched_surfaces = _iter_strings(payload.get("touched_surfaces"))
+    commands = _iter_strings(payload.get("mutating_commands"))
+    verification_steps = _iter_strings(payload.get("verification_steps"))
+    rollback_steps = _iter_strings(payload.get("rollback_steps"))
+    detected_surfaces, score = classify_surfaces(touched_surfaces + commands)
 
     if not touched_surfaces:
         errors.append("No touched_surfaces were provided.")
