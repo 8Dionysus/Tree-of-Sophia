@@ -127,12 +127,13 @@ def build_report(payload: dict[str, Any]) -> dict[str, Any]:
     report_state = "hold" if errors else "ready"
     if risk_band == "high" and authority_state != "approved":
         warnings.append("High-risk change is not marked approved.")
-        report_state = "confirm-or-hold"
+        if not errors:
+            report_state = "confirm-or-hold"
 
     if verification_strength(verification_steps) == "missing":
         warnings.append("Verification posture is missing or too thin.")
 
-    if not rollback_steps:
+    if not rollback_steps and not errors:
         report_state = "confirm-or-hold"
 
     return {
