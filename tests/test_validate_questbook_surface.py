@@ -202,6 +202,60 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
 
         self.assertIn("quest_dispatch.min.example.json", str(context.exception))
 
+    def test_missing_activation_mode_fails_without_key_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            quest_path = repo_root / "quests" / "TOS-Q-0001.yaml"
+            write_text(
+                quest_path,
+                quest_path.read_text(encoding="utf-8").replace(
+                    "activation:\n  mode: immediate\n",
+                    "activation: {}\n",
+                ),
+            )
+
+            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
+                with self.assertRaises(validate_kag_export.ValidationError) as context:
+                    validate_kag_export.validate_questbook_surface()
+
+        message = str(context.exception)
+        self.assertIn("activation", message)
+        self.assertIn("mode", message)
+
+    def test_dispatch_example_schema_violation_fails_before_projection_match(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            dispatch_path = repo_root / "examples" / "quest_dispatch.min.example.json"
+            write_text(
+                dispatch_path,
+                dispatch_path.read_text(encoding="utf-8").replace(
+                    '"activation_mode": "immediate"',
+                    '"activation_mode": "not-a-valid-mode"',
+                    1,
+                ),
+            )
+
+            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
+                with self.assertRaises(validate_kag_export.ValidationError) as context:
+                    validate_kag_export.validate_questbook_surface()
+
+        self.assertIn("quest_dispatch.schema.json", str(context.exception))
+
+    def test_build_dispatch_entry_reports_missing_activation_mode(self) -> None:
+        quest_payload = validate_kag_export.read_yaml(REPO_ROOT / "quests" / "TOS-Q-0001.yaml")
+        self.assertIsInstance(quest_payload, dict)
+        quest_payload["activation"] = {}
+
+        with self.assertRaises(validate_kag_export.ValidationError) as context:
+            validate_kag_export.build_expected_quest_dispatch_entry(
+                "TOS-Q-0001",
+                quest_payload,
+            )
+
+        self.assertIn("activation.mode", str(context.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

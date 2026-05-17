@@ -237,6 +237,15 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
         self.assertEqual(self.collect_errors(payload), [])
 
+    def test_documented_optional_node_layers_can_extend_minimum_contract(self) -> None:
+        payload = copy.deepcopy(self.concept_node)
+        payload["semantic_field_notes"] = [
+            "becoming remains a live interpretive field, not a flat keyword"
+        ]
+        payload["temporal_context"] = "bounded to the current Zarathustra entry route"
+
+        self.assertEqual(self.collect_errors(payload), [])
+
 
 if __name__ == "__main__":
     unittest.main()
