@@ -151,6 +151,12 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 self.assertEqual(self.collect_errors(load_json(path)), [])
 
+    def test_unknown_top_level_node_fields_fail_schema_validation(self) -> None:
+        payload = copy.deepcopy(self.concept_node)
+        payload["unexpected_top_level_field"] = "schema strictness should reject this"
+
+        self.assertNotEqual(self.collect_errors(payload), [])
+
     def test_zarathustra_route_now_has_thirteen_canonical_principles(self) -> None:
         principle_paths = sorted(ZARATHUSTRA_PRINCIPLE_DIR.rglob("node.json"))
         self.assertEqual(len(principle_paths), 13)
