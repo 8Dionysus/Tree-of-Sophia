@@ -7,7 +7,16 @@
   "required": ["allowed", "lane", "execution_surface", "cohort_pattern", "closeout_required"],
   "properties": {
     "allowed": {"type": "boolean"},
-    "lane": {"type": "string"},
+    "lane": {
+      "type": "string",
+      "enum": [
+        "codex_local_leaf",
+        "codex_local_reviewed",
+        "remote_reviewed",
+        "split_required",
+        "human_gate"
+      ]
+    },
     "execution_surface": {"type": "string"},
     "cohort_pattern": {"type": "string"},
     "closeout_required": {"type": "boolean"},
