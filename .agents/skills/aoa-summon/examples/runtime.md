@@ -24,9 +24,9 @@ closeout.
 
 ## Expected outputs
 
-- one summon decision that selects the local reviewed execution lane
-- one local child target with named expected outputs
-- reason codes explaining why local reviewed execution is sufficient
+- one summon decision that selects the `codex_local_reviewed` lane
+- one `codex_local_target` with named expected outputs
+- reason codes explaining why `codex_local_reviewed` is sufficient
 - a return plan that says how the child result rejoins the parent route
 - a checkpoint bridge plan for reviewed closeout if the child narrows but does
   not fully finish the route
@@ -53,7 +53,7 @@ routing re-entry in their owning repositories.
 ## Verification notes
 
 - Confirm the lane is justified by the passport and requested role.
-- Confirm local coding-agent execution stayed the default.
+- Confirm `codex_local` stayed the default local coding-agent execution surface.
 - Confirm return and closeout planning are explicit.
 - Confirm receipt or acceptance expectations are clear when the child crosses
   actor, session, or owner boundaries.

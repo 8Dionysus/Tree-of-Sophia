@@ -56,10 +56,10 @@ Do not use this skill when:
 
 ## Outputs
 - one summon decision with allowed or blocked posture
-- one chosen lane such as local leaf execution, local reviewed execution,
+- one chosen `lane` such as `codex_local_leaf`, `codex_local_reviewed`,
   `remote_reviewed`, `split_required`, or `human_gate`
 - `execution_surface`, `cohort_pattern`, `reason_codes`, and `blocked_actions`
-- optional local child target
+- optional `codex_local_target`
 - `return_plan`, `checkpoint_bridge_plan`, `memo_export_plan`, and
   `owner_publication_plan`
 - return receipt or acceptance expectation when the child crosses an actor,
@@ -73,9 +73,9 @@ Do not use this skill when:
 4. classify the lane with difficulty, risk, control mode, requested role, and
    `references/passport-lane-matrix.v3.md`
 5. keep low-risk `d0_probe`, `d1_patch`, and bounded `d2_slice` leaf work in
-   local leaf execution when anchor and outputs are clear
+   `codex_local_leaf` when anchor and outputs are clear
 6. keep local reviewer, evaluator, and architect-like narrowing work in
-   local reviewed execution
+   `codex_local_reviewed`
 7. allow `remote_reviewed` only when a separate endpoint or execution surface
    is actually required
 8. if difficulty is `d3+`, return `split_required` instead of launching child execution
@@ -152,10 +152,10 @@ Do not use this skill when:
 
 ## Technique traceability
 Manifest-backed techniques:
-- AOA-T-0078 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/governance/decision-routing/decision-fork-cards/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Contracts, Validation
-- AOA-T-0079 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/governance/decision-routing/risk-passport-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Risks, Validation
-- AOA-T-0062 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/continuity/handoff-continuation/episode-bounded-agent-loop/TECHNIQUE.md` and sections: Intent, Outputs, Core procedure, Contracts, Risks, Validation
-- AOA-T-0058 from `8Dionysus/aoa-techniques` at `b0f7e094bf81abaf0895a729d504a97f3af91ae8` using path `techniques/continuity/handoff-continuation/receipt-confirmed-handoff-packet/TECHNIQUE.md` and sections: Intent, Outputs, Core procedure, Contracts, Risks, Validation
+- AOA-T-0078 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/governance/decision-routing/decision-fork-cards/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Core procedure, Contracts, Validation
+- AOA-T-0079 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/governance/decision-routing/risk-passport-lift/TECHNIQUE.md` and sections: Intent, Inputs, Outputs, Contracts, Risks, Validation
+- AOA-T-0062 from `8Dionysus/aoa-techniques` at `fe4b04ed877916c46e60e70aaa9a1d4c86e81b6e` using path `techniques/continuity/handoff-continuation/episode-bounded-agent-loop/TECHNIQUE.md` and sections: Intent, Outputs, Core procedure, Contracts, Risks, Validation
+- AOA-T-0058 from `8Dionysus/aoa-techniques` at `3b1d5d623569aa4920b87280d0db0e911d2e29d5` using path `techniques/continuity/handoff-continuation/receipt-confirmed-handoff-packet/TECHNIQUE.md` and sections: Intent, Outputs, Core procedure, Contracts, Risks, Validation
 
 ## Adaptation points
 - project overlays may add local child-role labels, control modes, or transport
