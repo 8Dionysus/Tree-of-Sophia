@@ -58,7 +58,7 @@ Do not use this skill when:
   - candidate ref minted only after reviewed harvest
   - source cluster ref when the reviewed input carried one
   - reusable unit name
-  - unit kind: pattern, mechanic, utility, law, proof, recall, or route
+  - unit kind: pattern, mechanic, utility, law, proof, recall, route, or automation_candidate
   - owner shape: technique, skill, playbook, eval, memo, agent, or hold
   - owner hypothesis and owner repo recommendation
   - one chosen next artifact
@@ -70,7 +70,8 @@ Do not use this skill when:
   stable enough to deserve explicit automation-readiness classification
 - one optional handoff list to `aoa-automation-opportunity-scan`,
   `aoa-session-route-forks`,
-  `aoa-session-self-diagnose`, `aoa-session-self-repair`,
+  `aoa-session-self-diagnose`,
+  `aoa-session-self-repair` only when a reviewed diagnosis already exists,
   `aoa-session-progression-lift`, or `aoa-quest-harvest`
 - one `HARVEST_PACKET_RECEIPT` using `references/stats-event-envelope.md` and
   `references/harvest-packet-receipt-schema.yaml`
@@ -87,7 +88,7 @@ Do not use this skill when:
 4. extract candidate reusable units, not topics; prefer explicit moves, laws, checklists, structures, routes, or proof patterns
 5. split merged candidates until each unit has one honest owner shape
 6. classify each kept candidate twice:
-   - by reuse kind: pattern, mechanic, utility, law, proof, recall, or route
+   - by reuse kind: pattern, mechanic, utility, law, proof, recall, route, or automation_candidate
    - by owner shape: technique, skill, playbook, eval, memo, agent, or hold
 7. mint `candidate_ref` only after the reviewed unit is bounded and the owner
    hypothesis plus nearest-wrong target are explicit
@@ -110,26 +111,28 @@ Do not use this skill when:
     explicit next-route choice rather than donor extraction itself
 20. hand off to `aoa-session-self-diagnose` when the dominant surviving object
     is drift, contradiction, proof gap, or ownership confusion
-21. hand off to `aoa-session-progression-lift` when the main surviving object is
+21. hand off to `aoa-session-self-repair` only when a reviewed diagnosis
+    already exists and the next honest artifact is a bounded repair packet
+22. hand off to `aoa-session-progression-lift` when the main surviving object is
     evidence-backed progression reflection rather than owner placement
-22. when the candidate is a repeated reviewed quest unit and the remaining
+23. when the candidate is a repeated reviewed quest unit and the remaining
     ambiguity is specifically the final promotion target among quest, skill,
     playbook, agent, eval, or memo, hand off to `aoa-quest-harvest`
-23. draft the smallest next artifact for each accepted candidate, such as
+24. draft the smallest next artifact for each accepted candidate, such as
     `TECHNIQUE.md`, `SKILL.md`, `PLAYBOOK.md`, `EVAL.md`, memory object seed,
     or agent/orchestrator surface note
-24. keep `cluster_ref`, `owner_hypothesis`, `owner_shape`,
+25. keep `cluster_ref`, `owner_hypothesis`, `owner_shape`,
     `nearest_wrong_target`, `status_posture`, `evidence_refs`, `supersedes`,
     `merged_into`, and `drop_reason` on each accepted candidate when that carry
     exists or becomes explicit during reviewed harvest
-25. emit one `HARVEST_PACKET_RECEIPT` when the packet is complete, using the
+26. emit one `HARVEST_PACKET_RECEIPT` when the packet is complete, using the
     shared event envelope and a bounded receipt payload instead of duplicating
     the full donor packet
-26. when the finish path is complete, emit one
+27. when the finish path is complete, emit one
     `CORE_SKILL_APPLICATION_RECEIPT` that points back to the bounded detail
     receipt, keeps `application_stage=finish`, and stays generic enough to act
     as project-core kernel telemetry rather than a second donor packet
-27. record one clear reason for the chosen owner and one clear reason against
+28. record one clear reason for the chosen owner and one clear reason against
     the nearest wrong owner
 
 ## Contracts
@@ -189,6 +192,8 @@ Do not use this skill when:
 - confirm the output names the next artifact rather than only abstract categories
 - confirm any family handoff hint is explicit rather than smuggled into the
   packet as hidden policy
+- confirm any `aoa-session-self-repair` handoff cites an existing reviewed
+  diagnosis instead of treating donor harvest as a repair trigger
 - confirm any `automation_candidate` names the current manual route and still
   stops short of automation authority
 - confirm any emitted receipt stays append-only, evidence-linked, and smaller
