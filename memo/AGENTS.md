@@ -65,8 +65,9 @@ review.
 ## Validation
 
 ```bash
-python /srv/AbyssOS/aoa-memo/scripts/memory/validate_local_memo_port.py --path memo
-python /srv/AbyssOS/aoa-memo/scripts/memory/build_local_memo_port_index.py --path memo --check
+AOA_MEMO_ROOT="${AOA_MEMO_ROOT:-/srv/AbyssOS/aoa-memo}"
+python "$AOA_MEMO_ROOT/scripts/memory/validate_local_memo_port.py" --path memo
+python "$AOA_MEMO_ROOT/scripts/memory/build_local_memo_port_index.py" --path memo --check
 ```
 
 For repo-wide release posture, use the root `AGENTS.md` validation route.
