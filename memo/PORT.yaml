@@ -1,0 +1,26 @@
+schema: aoa_local_memo_port_v1
+repo: Tree-of-Sophia
+owner: Tree-of-Sophia
+stronger_memory_owner: aoa-memo
+default_mode: write_candidate_only
+port_scope: project
+allowed_routes:
+  - local_only
+  - reviewed_intake
+  - owner_handoff
+  - quarantine
+candidate_dir: candidates
+receipt_dir: receipts
+export_dir: exports
+local_dir: local
+validators:
+  - aoa_memo_validate_candidate
+  - validate_local_memo_port
+return_receipts: true
+bridge_targets:
+  - aoa-memo
+privacy_posture: public-tree-safe
+local_terms:
+  family:
+    - source-linked-memory
+    - tree-continuity-memory
