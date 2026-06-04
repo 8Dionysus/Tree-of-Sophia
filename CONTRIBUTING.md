@@ -28,6 +28,7 @@ Please make sure:
 
 For the current bounded route, run `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests`.
 When the touched surface falls outside that validator coverage, use `docs/REVIEW_CHECKLIST.md` as the manual validation route and include a short review note in the PR when the change is boundary-sensitive.
+When the change creates durable route, boundary, validator, export, or source-discipline rationale, add or update `docs/decisions/TOS-D-####-*.md`, then run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`.
 
 ## Preferred PR scope
 

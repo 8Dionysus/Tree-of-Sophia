@@ -165,6 +165,8 @@ The current bounded read-only battery is:
 ```bash
 python scripts/validate_tiny_entry_route.py
 python scripts/validate_kag_export.py
+python scripts/generate_decision_indexes.py --check
+python scripts/validate_decision_records.py
 python -m unittest discover -s tests
 ```
 
@@ -176,6 +178,7 @@ When the task falls outside that narrow validator seam:
 - use `docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
+- if you add durable route, boundary, validator, export, or source-discipline rationale, run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`
 - if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_tiny_entry_route.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
 - if the task is mainly interpretive or structural outside the current validator perimeter, say that manual review was used instead of pretending automatic proof exists
 

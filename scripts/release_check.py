@@ -13,6 +13,8 @@ COMMANDS = [
     ("validate root entry map", [sys.executable, "scripts/validate_root_entry_map.py"]),
     ("validate tiny entry route", [sys.executable, "scripts/validate_tiny_entry_route.py"]),
     ("validate KAG export", [sys.executable, "scripts/validate_kag_export.py"]),
+    ("check decision indexes", [sys.executable, "scripts/generate_decision_indexes.py", "--check"]),
+    ("validate decision records", [sys.executable, "scripts/validate_decision_records.py"]),
     ("run tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"]),
 ]
 

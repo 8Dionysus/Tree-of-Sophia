@@ -26,4 +26,6 @@ See also:
 - `python scripts/validate_root_entry_map.py`
 - `python scripts/validate_tiny_entry_route.py`
 - `python scripts/validate_kag_export.py`
+- `python scripts/generate_decision_indexes.py --check`
+- `python scripts/validate_decision_records.py`
 - `python -m unittest discover -s tests`

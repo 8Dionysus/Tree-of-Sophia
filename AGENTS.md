@@ -29,7 +29,8 @@ It does not own:
 4. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
 5. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when public entry or export is in scope
 6. the target source, node, registry, intake, or export surface
-7. `docs/AGENTS_ROOT_REFERENCE.md` for the preserved full root guidance
+7. `docs/decisions/README.md` when durable route, boundary, validator, or export rationale is in scope
+8. `docs/AGENTS_ROOT_REFERENCE.md` for the preserved full root guidance
 
 
 ## AGENTS stack law
@@ -80,11 +81,14 @@ The current bounded read-only battery is:
 ```bash
 python scripts/validate_tiny_entry_route.py
 python scripts/validate_kag_export.py
+python scripts/generate_decision_indexes.py --check
+python scripts/validate_decision_records.py
 python -m unittest discover -s tests
 ```
 
 If canonical tree mirrors, export inputs, or generated seams change, run the additional targeted validators named in `docs/AGENTS_ROOT_REFERENCE.md`.
 Use `docs/REVIEW_CHECKLIST.md` for manual review posture when source, interpretation, or export meaning is touched.
+Use `docs/decisions/AGENTS.md` when the change creates durable rationale; decision records explain why and do not replace source, tree, route, or export authority.
 
 ## Report
 

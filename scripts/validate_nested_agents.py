@@ -22,6 +22,17 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "python scripts/generate_kag_export.py",
         "python scripts/validate_kag_export.py",
     ),
+    "docs/decisions/AGENTS.md": (
+        "durable ToS decision rationale",
+        "Decision notes explain why",
+        "weaker than the current source",
+        "TOS-D-####",
+        "Index Metadata",
+        "ToS layers",
+        "Tree classes",
+        "python scripts/generate_decision_indexes.py --check",
+        "python scripts/validate_decision_records.py",
+    ),
     "examples/AGENTS.md": (
         "current public compatibility and entry surfaces",
         "the authored node contract",
@@ -76,6 +87,8 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "python scripts/validate_tree_relation_pack.py",
         "python scripts/validate_tree_example_sync.py",
         "python scripts/validate_kag_export.py",
+        "python scripts/generate_decision_indexes.py --check",
+        "python scripts/validate_decision_records.py",
     ),
     "sources/AGENTS.md": (
         "primary witness and source files",

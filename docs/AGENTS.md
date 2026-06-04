@@ -21,6 +21,7 @@ These files govern:
 - growth, calibration, compost, and counterpart posture
 - identifier and template discipline
 - review and manual corpus-entry gates
+- durable decision rationale under `docs/decisions/`
 - the current bounded public route and export posture
 
 Use this directory to clarify how source-linked meaning becomes authored structure. Do not use it as a dumping ground for generic notes, runtime policy, or downstream restatements.
@@ -56,6 +57,7 @@ Do not:
 - turn route docs into backlog, quest, or runtime-control surfaces
 - flatten source, interpretation, and synthesis into one tone
 - use a review note to bypass a stronger current contract
+- use a decision note to bypass a stronger current contract
 
 ## Validation
 

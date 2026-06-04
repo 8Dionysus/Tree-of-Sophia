@@ -1,0 +1,35 @@
+schema_version: tos_decision_index_contract_v1
+authority: docs/decisions/AGENTS.md
+source_records: docs/decisions/TOS-D-*.md
+generated_by: scripts/generate_decision_indexes.py
+generated_indexes:
+  - docs/decisions/indexes/README.md
+  - docs/decisions/indexes/by-number.md
+  - docs/decisions/indexes/by-date.md
+  - docs/decisions/indexes/by-surface.md
+  - docs/decisions/indexes/by-tos-layer.md
+  - docs/decisions/indexes/by-tree-class.md
+  - docs/decisions/indexes/by-guard.md
+fields:
+  decision_id:
+    required: true
+    pattern: TOS-D-####
+  original_date:
+    required: true
+    pattern: YYYY-MM-DD
+  surface_classes:
+    required: true
+  tos_layers:
+    required: true
+  tree_classes:
+    required: true
+  guard_families:
+    required: true
+  posture:
+    required: true
+path_policy:
+  path_mode: full_canonical_id_filename
+  current_path_authority: full canonical-ID decision files are active source files
+  canonical_handle: Decision ID and matching filename prefix
+  historical_path_policy: previous paths live in git and PR history only
+  compatibility_policy: no repository lookup layer is generated for retired decision paths

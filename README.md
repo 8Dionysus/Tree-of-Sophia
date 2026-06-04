@@ -24,6 +24,7 @@ Use the shortest route by need:
 - mission and source-of-truth boundaries: [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md)
 - knowledge model and interpretation law: [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) and [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md)
 - current direction: [ROADMAP](ROADMAP.md)
+- durable route, boundary, validator, or export rationale: [docs/decisions](docs/decisions/README.md), `python scripts/generate_decision_indexes.py --check`, and `python scripts/validate_decision_records.py`
 - growth law and curation posture: [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md), [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md), [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md), [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md), and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
 - scaffold wave and review posture: [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md), [docs/RELATION_PACK_CONTRACT](docs/RELATION_PACK_CONTRACT.md), [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md), `python scripts/validate_tiny_entry_route.py`, and `python scripts/validate_kag_export.py`
 
@@ -47,6 +48,7 @@ Use this order:
 - node-template scaffold family: [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md), [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md), [docs/ANALOGY_NODE_TEMPLATE](docs/ANALOGY_NODE_TEMPLATE.md), and [docs/SYNTHESIS_NODE_TEMPLATE](docs/SYNTHESIS_NODE_TEMPLATE.md)
 - bounded public compatibility and export surfaces: [examples/README](examples/README.md), [generated/README](generated/README.md), `generated/kag_export.json`, `generated/kag_export.min.json`, and [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
 - review posture and bounded change checks: `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded route, plus [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) and `docs/reviews/` for broader boundary-sensitive changes outside the current validator perimeter
+- durable rationale lookup: [docs/decisions](docs/decisions/README.md) and generated decision indexes under `docs/decisions/indexes/`
 
 ## What ToS owns
 
