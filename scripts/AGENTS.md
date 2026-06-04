@@ -9,7 +9,8 @@ Before editing tools here, read:
 2. `docs/TINY_ENTRY_ROUTE.md`
 3. `docs/KAG_EXPORT.md`
 4. `docs/REVIEW_CHECKLIST.md`
-5. the schema, example, intake, or tree surfaces the script actually touches
+5. `docs/decisions/AGENTS.md` when decision-index tooling is touched
+6. the schema, example, intake, decision, or tree surfaces the script actually touches
 
 ## Local role
 
@@ -61,4 +62,6 @@ python scripts/validate_tree_relation_pack.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
+python scripts/generate_decision_indexes.py --check
+python scripts/validate_decision_records.py
 ```
