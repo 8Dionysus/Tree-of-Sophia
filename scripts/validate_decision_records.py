@@ -5,12 +5,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from generate_decision_indexes import REPO_ROOT, collect_decision_records, validate_index_contract
+from generate_decision_indexes import REPO_ROOT, collect_decision_records, validate_decision_lane_surfaces, validate_index_contract
 
 
 def validate_decision_records(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
     records, issues = collect_decision_records(repo_root)
     issues.extend(validate_index_contract(repo_root))
+    issues.extend(validate_decision_lane_surfaces(repo_root))
     if not records:
         issues.append(("docs/decisions", "no decision records available for validation"))
     return issues
