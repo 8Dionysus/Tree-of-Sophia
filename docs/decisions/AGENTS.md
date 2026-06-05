@@ -40,6 +40,9 @@ Use the owning surface itself for current meaning:
 - doctrine, review law, and public route docs stay in their current `docs/` files
 
 Generated indexes under `docs/decisions/indexes/` are lookup read models only.
+Keep `modeled_surfaces` in `docs/decisions/indexes/index_contract.yaml` as a
+top-level list of normalized repo-relative paths under `docs/decisions/`; do
+not use it for root non-record Markdown.
 
 ## Record shape
 
