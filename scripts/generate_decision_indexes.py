@@ -183,6 +183,39 @@ def validate_index_contract(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]
     return issues
 
 
+def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
+    repo_root = repo_root.resolve()
+    decision_root = repo_root / DECISIONS_DIR
+    if not decision_root.is_dir():
+        return [(DECISIONS_DIR.as_posix(), "decision directory is missing")]
+
+    allowed_paths = {
+        (DECISIONS_DIR / "AGENTS.md").as_posix(),
+        (DECISIONS_DIR / "README.md").as_posix(),
+        (DECISIONS_DIR / "TEMPLATE.md").as_posix(),
+        (INDEX_DIR / "index_contract.yaml").as_posix(),
+        *(path.as_posix() for path in INDEX_PATHS),
+    }
+    issues: list[tuple[str, str]] = []
+    for path in sorted(decision_root.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(repo_root)
+        relative_text = relative.as_posix()
+        if relative_text in allowed_paths:
+            continue
+        decision_relative = path.relative_to(decision_root)
+        if len(decision_relative.parts) == 1 and DECISION_RE.match(path.name):
+            continue
+        issues.append(
+            (
+                relative_text,
+                "unmodeled decision-lane surface; add it to the local decision surface contract or move it outside docs/decisions",
+            )
+        )
+    return issues
+
+
 def _record_link(record: DecisionRecord) -> str:
     return f"[{record.decision_id} - {record.title}](../{Path(record.path).name})"
 
@@ -317,6 +350,7 @@ def render_index_files(records: list[DecisionRecord]) -> dict[Path, str]:
 
 def validate_decision_indexes(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
     records, issues = collect_decision_records(repo_root)
+    issues.extend(validate_decision_lane_surfaces(repo_root))
     issues.extend(validate_index_contract(repo_root))
     if issues:
         return issues
@@ -340,6 +374,7 @@ def main(argv: list[str] | None = None) -> int:
 
     repo_root = args.repo_root.resolve()
     records, issues = collect_decision_records(repo_root)
+    issues.extend(validate_decision_lane_surfaces(repo_root))
     issues.extend(validate_index_contract(repo_root))
     if issues:
         for location, message in issues:
