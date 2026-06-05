@@ -183,6 +183,24 @@ def validate_index_contract(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]
     return issues
 
 
+def _contract_list_values(repo_root: Path, key: str) -> set[str]:
+    path = repo_root / INDEX_DIR / "index_contract.yaml"
+    if not path.is_file():
+        return set()
+    values: set[str] = set()
+    in_list = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line == f"{key}:":
+            in_list = True
+            continue
+        if in_list and line.startswith("  - "):
+            values.add(line[4:].strip().strip("'\""))
+            continue
+        if in_list and line and not line.startswith(" "):
+            break
+    return values
+
+
 def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
     repo_root = repo_root.resolve()
     decision_root = repo_root / DECISIONS_DIR
@@ -195,6 +213,7 @@ def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[s
         (DECISIONS_DIR / "TEMPLATE.md").as_posix(),
         (INDEX_DIR / "index_contract.yaml").as_posix(),
         *(path.as_posix() for path in INDEX_PATHS),
+        *_contract_list_values(repo_root, "modeled_surfaces"),
     }
     issues: list[tuple[str, str]] = []
     for path in sorted(decision_root.rglob("*")):
@@ -210,7 +229,7 @@ def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[s
         issues.append(
             (
                 relative_text,
-                "unmodeled decision-lane surface; add it to the local decision surface contract or move it outside docs/decisions",
+                "unmodeled decision-lane surface; add it to modeled_surfaces in docs/decisions/indexes/index_contract.yaml or move it outside docs/decisions",
             )
         )
     return issues
