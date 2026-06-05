@@ -183,20 +183,57 @@ def validate_index_contract(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]
     return issues
 
 
+def _contract_list_values(repo_root: Path, key: str) -> set[str]:
+    path = repo_root / INDEX_DIR / "index_contract.yaml"
+    if not path.is_file():
+        return set()
+    values: set[str] = set()
+    in_list = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line == f"{key}:":
+            in_list = True
+            continue
+        if in_list and line.startswith("  - "):
+            values.add(line[4:].strip().strip("'\""))
+            continue
+        if in_list and line and not line.startswith(" "):
+            break
+    return values
+
+
+def _modeled_contract_surfaces(repo_root: Path, issues: list[tuple[str, str]]) -> set[str]:
+    allowed: set[str] = set()
+    prefix = f"{DECISIONS_DIR.as_posix()}/"
+    for item in _contract_list_values(repo_root, "modeled_surfaces"):
+        relative = Path(item)
+        if not item.startswith(prefix):
+            issues.append(((INDEX_DIR / "index_contract.yaml").as_posix(), f"modeled_surfaces entry must live under {DECISIONS_DIR.as_posix()}: {item}"))
+            continue
+        if relative.parent == DECISIONS_DIR and relative.suffix == ".md" and relative.name not in STATIC_MARKDOWN and not DECISION_RE.match(relative.name):
+            issues.append(((INDEX_DIR / "index_contract.yaml").as_posix(), f"modeled_surfaces must not include root non-record Markdown: {item}"))
+            continue
+        if not (repo_root / relative).is_file():
+            issues.append(((INDEX_DIR / "index_contract.yaml").as_posix(), f"modeled_surfaces entry does not exist: {item}"))
+            continue
+        allowed.add(item)
+    return allowed
+
+
 def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[str, str]]:
     repo_root = repo_root.resolve()
     decision_root = repo_root / DECISIONS_DIR
     if not decision_root.is_dir():
         return [(DECISIONS_DIR.as_posix(), "decision directory is missing")]
 
+    issues: list[tuple[str, str]] = []
     allowed_paths = {
         (DECISIONS_DIR / "AGENTS.md").as_posix(),
         (DECISIONS_DIR / "README.md").as_posix(),
         (DECISIONS_DIR / "TEMPLATE.md").as_posix(),
         (INDEX_DIR / "index_contract.yaml").as_posix(),
         *(path.as_posix() for path in INDEX_PATHS),
+        *_modeled_contract_surfaces(repo_root, issues),
     }
-    issues: list[tuple[str, str]] = []
     for path in sorted(decision_root.rglob("*")):
         if not path.is_file():
             continue
@@ -210,7 +247,7 @@ def validate_decision_lane_surfaces(repo_root: Path = REPO_ROOT) -> list[tuple[s
         issues.append(
             (
                 relative_text,
-                "unmodeled decision-lane surface; add it to the local decision surface contract or move it outside docs/decisions",
+                "unmodeled decision-lane surface; add it to modeled_surfaces in docs/decisions/indexes/index_contract.yaml or move it outside docs/decisions",
             )
         )
     return issues
