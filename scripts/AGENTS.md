@@ -26,6 +26,18 @@ These tools should:
 branch so it cannot collapse into a flat import folder or inherit source UI
 labels as repository topology.
 
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | deterministic generator and validator lane for current ToS surfaces |
+| input | schema, example, intake, canon, decision, topology, or export surface |
+| output | generated payload, generated index, or pass/fail validation signal |
+| owner | `scripts/AGENTS.md` and the exact script being changed |
+| next route | source surface -> script update -> generated artifact when needed -> validator |
+| tools | local Python scripts, unittest, schema files, generated parity checks |
+| check | affected script plus `python scripts/release_check.py` for broad changes |
+
 ## Editing posture
 
 Keep the pilot narrow to the current Zarathustra route.
@@ -45,13 +57,15 @@ Avoid:
 
 The scripts should serve the source-first route, not become a kingdom of their own.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- silently treat `ToS/public-compatibility/` as canonical source
-- let generation logic outrun the contracts it is supposed to protect
-- hide widening scope behind convenience flags
-- add adjunct quest or progression behavior that changes semantic authority
+- Canonical source for authored meaning routes to `ToS/canon/` and
+  `ToS/source-witnesses/`; compatibility examples remain mirrors.
+- Generation logic follows contracts and owning source surfaces.
+- Scope widening routes through a visible source, contract, decision, and
+  validator change.
+- Adjunct quest or progression behavior stays compatibility-only unless the
+  owning ToS doctrine and contracts change.
 
 ## Validation
 

@@ -32,17 +32,32 @@ current bounded Zarathustra route:
 - current source canon: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - current bounded export: `ToS/derived-exports/kag_export.min.json`
 
-The next contour adds `ToS/philosophy/` as the domain-shaped philosophy branch.
-It is not `candidate-intake/`. It is the growing philosophical body whose
-local branches may later promote authored nodes and relation packs into
-`ToS/canon/`.
+The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
+branch. It is the authored philosophical body whose local branches may later
+prepare nodes and relation packs for review and promotion into `ToS/canon/`.
 
-## Stop Lines
+## Operating Card
 
-- Do not split ToS authorship back into root-level active homes.
-- Do not make `public-compatibility/` a second canon.
-- Do not make `derived-exports/` stronger than `canon/` or `doctrine/`.
-- Do not hide provisional uncertainty in `candidate-intake/`.
-- Do not name repository topology after working UI labels from Notion.
-- Do not move AoA federation, runtime, SDK, KAG substrate, memory, or eval
-  authority into this home.
+| Field | Route |
+| --- | --- |
+| role | source-home entrypoint for ToS-authored philosophical work |
+| input | source witnesses, domain branches, candidate extraction, canon objects, public examples, generated exports, contracts, doctrine, and review evidence |
+| output | branch-shaped ToS surface with a visible owner, source posture, and validation route |
+| owner | `ToS/AGENTS.md` and `ToS/source_home.manifest.json` |
+| next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |
+| tools | nearest nested `AGENTS.md`, source-home manifest, branch manifest, schema, generator, or validator |
+| check | `python scripts/validate_tos_source_home.py` plus the owning branch validator |
+
+## Boundary Routes
+
+- ToS-owned active material routes into `ToS/`, not back into root-level active
+  homes.
+- Source-facing evidence routes to `source-witnesses/`; domain growth routes to
+  `philosophy/`; provisional extraction routes to `candidate-intake/`; authored
+  nodes and relation packs route to `canon/`.
+- Public examples route to `public-compatibility/`; generated read models route
+  to `derived-exports/`; schemas route to `contracts/`.
+- Durable rationale routes to `docs/decisions/`; current ToS doctrine stays in
+  `ToS/doctrine/`.
+- AoA federation, runtime, SDK, memory, eval, and KAG-substrate authority stay
+  with their owning repositories or layers.

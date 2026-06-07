@@ -19,7 +19,20 @@ These files may include:
 - bounded bridge or working translations
 - source-linked donor markdown used to ground authored tree nodes
 
-This directory is where authority is witnessed, not where it is already interpreted into node law.
+This directory witnesses authority and routes later interpretation toward the
+owning doctrine, candidate, philosophy, or canon surface.
+
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | primary witness and source-facing evidence surface |
+| input | primary-language text, bridge translation, donor markdown, source-page metadata, and provenance notes |
+| output | reviewable witness surface with explicit source posture |
+| owner | `ToS/source-witnesses/AGENTS.md` and the nearest source-route file |
+| next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
+| tools | manual corpus gate, source route docs, witness manifests |
+| check | route validator when the witness feeds a current public or export surface |
 
 ## Editing posture
 
@@ -36,17 +49,19 @@ When multilingual witness files are present:
 - keep one shared source route rather than parallel language trees
 - keep canonical-source versus translation posture explicit
 - preserve translator, editor, and donor attribution where it matters
-- do not hide witness uncertainty behind smooth merged prose
+- keep witness uncertainty visible instead of smoothing it into merged prose
 
 If you are touching the current Zarathustra route, preserve the witness chain that supports the bounded tiny-entry path.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- turn witness files into commentary notes
-- encode relation law or node law directly in source text
-- let a bridge translation quietly replace the canonical source posture
-- add quest, runtime, or orchestration metadata that obscures provenance
+- Commentary routes to doctrine, review, or canon surfaces according to its
+  owner; witness files keep source posture and provenance.
+- Relation law and node law route to `ToS/canon/` and `ToS/doctrine/`.
+- Bridge translations stay visibly marked as bridge material rather than
+  replacing canonical source posture.
+- Operational metadata routes to its owning compatibility, review, or sibling
+  repo surface when it is needed.
 
 ## Validation
 

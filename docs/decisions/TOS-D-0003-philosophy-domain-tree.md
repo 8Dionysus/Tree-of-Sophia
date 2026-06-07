@@ -74,7 +74,7 @@ local graph fragments and promotion ledgers, but canonical nodes and relation
 packs still require review and validation before they move into canon.
 
 `scripts/validate_philosophy_topology.py` enforces the first branch contour and
-rejects source UI labels such as `zagotovki` as path components.
+checks that metadata-only source labels stay out of repository path components.
 
 ## Source Surfaces
 

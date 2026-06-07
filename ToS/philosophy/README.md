@@ -2,9 +2,10 @@
 
 `ToS/philosophy/` is the growing domain tree of philosophy.
 
-It is not a temporary intake folder. It is the place where the philosophical
-body can branch from trunk law into eras, regions, traditions, works, figures,
-concepts, transmissions, source anchors, and local graph fragments.
+Philosophical branch growth lives here. Temporary extraction routes through
+`ToS/candidate-intake/`; this branch grows the authored domain body from trunk
+law into eras, regions, traditions, works, figures, concepts, transmissions,
+source anchors, and local graph fragments.
 
 ## Shape
 
@@ -51,10 +52,7 @@ Use names that describe the philosophical topology:
 - `classical-south-asia`
 - `mulamadhyamakakarika`
 
-Do not use source UI labels or workbench nicknames as topology:
-
-- `zagotovki`
-- `raw-pages`
-- `world-written-philosophy`
-
-Those may appear only as source metadata when needed.
+Source UI labels and workbench nicknames stay in source metadata when they are
+needed for provenance. Repository paths name the philosophical branch: era,
+region, tradition, work, figure, concept, source corpus, transmission, or local
+graph route.

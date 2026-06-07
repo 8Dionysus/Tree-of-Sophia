@@ -15,11 +15,13 @@ It holds:
 
 ## Editing posture
 
-Treat these files as review/archive material, not active canon.
+Treat these files as review/archive material. Active canon stays under
+`ToS/canon/`.
 Keep superseded surfaces visibly marked rather than silently deleted when they
 still matter for review history.
-Do not point current validators or tiny-entry routes at these files unless a
-later pass explicitly reactivates them.
+Current validators and tiny-entry routes point at active compatibility surfaces.
+A later pass that reactivates archived material should move or copy it into the
+active owner route and validate that route.
 
 ## Validation
 

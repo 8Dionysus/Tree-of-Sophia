@@ -16,7 +16,8 @@ Before editing decision records here, read:
 `docs/decisions/` is the durable ToS decision rationale lane.
 
 Decision notes explain why a route, topology, boundary, validator, export posture, or source-discipline choice was made.
-They do not own the current node contract, source witness, authored tree surface, roadmap, review checklist, or generated export payload.
+Current node contracts, source witnesses, authored tree surfaces, roadmaps,
+review checklists, and generated export payloads keep their own owner routes.
 
 ## Authority
 
@@ -52,17 +53,17 @@ New decision records use:
 - full path shape `docs/decisions/TOS-D-####-short-slug.md`
 - an `## Index Metadata` block with `Decision ID`, `Original date`, `Surface classes`, `ToS layers`, `Tree classes`, `Guard families`, and `Posture`
 
-Do not renumber existing records. If a decision changes, add a new superseding record and say what it supersedes.
+Existing record numbers stay stable. If a decision changes, add a new
+superseding record and say what it supersedes.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-
-- use a decision note to bypass a stronger current contract
-- turn decisions into source canon, node law, relation law, roadmap authority, runtime control, or KAG substrate truth
-- hide new source, intake, tree, export, or generated behavior inside a rationale-only note
-- copy sibling repository mechanics when ToS needs source-first layer language
-- hand-edit generated indexes
+- Current contracts, source surfaces, canon, roadmap, runtime, and KAG substrate
+  keep their own authority; decisions explain why routes exist.
+- New source, intake, tree, export, or generated behavior routes to its owning
+  surface before or alongside the rationale note.
+- Cross-repo symmetry is translated into ToS source-first layer language.
+- Generated indexes are regenerated from decision metadata.
 
 ## Validation
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import TypeAlias
@@ -30,11 +31,25 @@ def load_json(repo_root: Path, relative_path: Path, issues: list[Issue]) -> dict
     return payload
 
 
-def check_path_components(relative_path: Path, forbidden: set[str], issues: list[Issue]) -> None:
+def slugify_label(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+
+def collect_metadata_only_path_labels(payload: dict[str, object]) -> set[str]:
+    labels: set[str] = set()
+    source_page = payload.get("notion_source_page")
+    if isinstance(source_page, dict):
+        title = source_page.get("original_title") or source_page.get("title")
+        if isinstance(title, str) and title:
+            labels.add(slugify_label(title))
+    return {label for label in labels if label}
+
+
+def check_path_components(relative_path: Path, metadata_only_labels: set[str], issues: list[Issue]) -> None:
     lowered_parts = {part.lower() for part in relative_path.parts}
-    for component in sorted(forbidden):
-        if component.lower() in lowered_parts:
-            issues.append((relative_path.as_posix(), f"forbidden path component: {component}"))
+    for label in sorted(metadata_only_labels):
+        if label in lowered_parts:
+            issues.append((relative_path.as_posix(), f"metadata-only source label used as path component: {label}"))
 
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
@@ -63,12 +78,46 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     if manifest.get("path") != "ToS/philosophy":
         issues.append((MANIFEST_PATH.as_posix(), "path must be ToS/philosophy"))
 
-    forbidden_raw = manifest.get("forbidden_path_components")
-    if not isinstance(forbidden_raw, list) or not all(isinstance(item, str) for item in forbidden_raw):
-        issues.append((MANIFEST_PATH.as_posix(), "forbidden_path_components must be a string list"))
-        forbidden: set[str] = set()
+    boundary_routes = manifest.get("boundary_routes")
+    if not isinstance(boundary_routes, dict):
+        issues.append((MANIFEST_PATH.as_posix(), "boundary_routes must be an object"))
     else:
-        forbidden = set(forbidden_raw)
+        expected_routes = {
+            "provisional_extraction": "ToS/candidate-intake",
+            "source_page_witnesses": "ToS/source-witnesses/notion/philosophy",
+            "canon_promotion": "ToS/canon",
+        }
+        for key, expected_value in expected_routes.items():
+            if boundary_routes.get(key) != expected_value:
+                issues.append((MANIFEST_PATH.as_posix(), f"boundary_routes.{key} must be {expected_value}"))
+
+    path_policy = manifest.get("path_component_policy")
+    if not isinstance(path_policy, dict):
+        issues.append((MANIFEST_PATH.as_posix(), "path_component_policy must be an object"))
+    else:
+        for key in ("repository_paths_describe", "metadata_only_inputs"):
+            value = path_policy.get(key)
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                issues.append((MANIFEST_PATH.as_posix(), f"path_component_policy.{key} must be a string list"))
+
+    source_witness_routes = manifest.get("source_witness_routes")
+    if source_witness_routes != [WITNESS_MANIFEST_PATH.as_posix()]:
+        issues.append((MANIFEST_PATH.as_posix(), "source_witness_routes must point to the Notion philosophy witness manifest"))
+
+    metadata_only_labels: set[str] = set()
+    witness_manifest = load_json(root, WITNESS_MANIFEST_PATH, issues)
+    if witness_manifest is not None:
+        metadata_only_labels = collect_metadata_only_path_labels(witness_manifest)
+        if witness_manifest.get("schema_version") != "tos_notion_witness_v1":
+            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "schema_version must be tos_notion_witness_v1"))
+        if witness_manifest.get("domain_branch") != "ToS/philosophy":
+            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "domain_branch must be ToS/philosophy"))
+        source_page = witness_manifest.get("notion_source_page")
+        if not isinstance(source_page, dict) or not source_page.get("id"):
+            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "notion_source_page.id is required"))
+        child_pages = witness_manifest.get("seed_child_pages")
+        if not isinstance(child_pages, list) or not child_pages:
+            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "seed_child_pages must be a non-empty list"))
 
     branch_manifests = manifest.get("branch_manifests")
     if not isinstance(branch_manifests, list) or not branch_manifests:
@@ -83,7 +132,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                 issues.append((MANIFEST_PATH.as_posix(), f"duplicate branch manifest {entry}"))
             seen.add(entry)
             relative_path = Path(entry)
-            check_path_components(relative_path, forbidden, issues)
+            check_path_components(relative_path, metadata_only_labels, issues)
             payload = load_json(root, relative_path, issues)
             if payload is None:
                 continue
@@ -96,25 +145,8 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             if not isinstance(role, str) or not role:
                 issues.append((entry, "role must be a non-empty string"))
 
-    source_witness_routes = manifest.get("source_witness_routes")
-    if source_witness_routes != [WITNESS_MANIFEST_PATH.as_posix()]:
-        issues.append((MANIFEST_PATH.as_posix(), "source_witness_routes must point to the Notion philosophy witness manifest"))
-
-    witness_manifest = load_json(root, WITNESS_MANIFEST_PATH, issues)
-    if witness_manifest is not None:
-        if witness_manifest.get("schema_version") != "tos_notion_witness_v1":
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "schema_version must be tos_notion_witness_v1"))
-        if witness_manifest.get("domain_branch") != "ToS/philosophy":
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "domain_branch must be ToS/philosophy"))
-        source_page = witness_manifest.get("notion_source_page")
-        if not isinstance(source_page, dict) or not source_page.get("id"):
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "notion_source_page.id is required"))
-        child_pages = witness_manifest.get("seed_child_pages")
-        if not isinstance(child_pages, list) or not child_pages:
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "seed_child_pages must be a non-empty list"))
-
     for relative_path in Path("ToS").glob("**/*"):
-        check_path_components(relative_path, forbidden, issues)
+        check_path_components(relative_path, metadata_only_labels, issues)
 
     return issues
 
