@@ -65,7 +65,7 @@ Keep these layers visibly distinct whenever you touch them:
 
 Do not flatten those layers into one undifferentiated summary.
 
-`generated/` and KAG-facing exports remain derived. They may improve access, but they do not replace source-owned authority.
+`ToS/derived-exports/` and KAG-facing exports remain derived. They may improve access, but they do not replace source-owned authority.
 
 The guiding axis of becoming, overcoming, value creation, and life-affirmation is an interpretive compass. It is not permission to distort sources, force every text into one frame, or import AoA quest / RPG reflection vocabulary as if it were ToS-owned meaning.
 
@@ -76,13 +76,13 @@ Before making changes, read in this order:
 1. `README.md`
 2. `ROADMAP.md`
 3. `CHARTER.md` and `BOUNDARIES.md`
-4. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
-5. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when the current public route or export seam is in scope
+4. `ToS/doctrine/KNOWLEDGE_MODEL.md` and `ToS/doctrine/NODE_CONTRACT.md`
+5. `ToS/doctrine/TINY_ENTRY_ROUTE.md`, `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `ToS/doctrine/KAG_EXPORT.md` when the current public route or export seam is in scope
 6. the specific template, review, or route docs that govern the surface you are changing
 7. the target source file, node, registry, or intake artifact you plan to edit
-8. any affected export or example surfaces if the task touches `examples/` or `generated/`
+8. any affected export or example surfaces if the task touches `ToS/public-compatibility/` or `ToS/derived-exports/`
 
-If you are editing inside `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, or `tree/`, also follow the nested `AGENTS.md` in that directory.
+If you are editing inside `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/candidate-intake/`, `ToS/contracts/`, `scripts/`, `ToS/source-witnesses/`, or `ToS/canon/`, also follow the nested `AGENTS.md` in that directory.
 
 ## Route by intent
 
@@ -100,11 +100,11 @@ If ToS is only being named because the task mentions ideas or concepts, but the 
 
 The most important objects in this repository are:
 
-- source files under `sources/`
-- candidate intake material under `intake/`
-- canonical authored nodes and relation-bearing surfaces under `tree/`
+- source files under `ToS/source-witnesses/`
+- candidate intake material under `ToS/candidate-intake/`
+- canonical authored nodes and relation-bearing surfaces under `ToS/canon/`
 - knowledge-model, node-contract, and review docs
-- bounded public entry and export seams under `examples/` and `generated/`
+- bounded public entry and export seams under `ToS/public-compatibility/` and `ToS/derived-exports/`
 
 ## Hard NO
 
@@ -171,11 +171,11 @@ python -m unittest discover -s tests
 ```
 
 `python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
-`python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `examples/`, `generated/`, `intake/`, `schemas/`, `scripts/`, `sources/`, and `tree/`.
+`python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/candidate-intake/`, `ToS/contracts/`, `scripts/`, `ToS/source-witnesses/`, and `ToS/canon/`.
 
 When the task falls outside that narrow validator seam:
 
-- use `docs/REVIEW_CHECKLIST.md` as the default manual review route
+- use `ToS/doctrine/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
 - if you add durable route, boundary, validator, export, or source-discipline rationale, run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`

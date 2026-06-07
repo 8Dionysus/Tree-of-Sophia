@@ -20,24 +20,24 @@ wave. Its current checked surface is:
 
 - public source-first orientation and boundaries:
   `README.md`, `CHARTER.md`, `BOUNDARIES.md`,
-  `docs/KNOWLEDGE_MODEL.md`, `docs/NODE_CONTRACT.md`, and
-  `docs/REVIEW_CHECKLIST.md`
+  `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`, and
+  `ToS/doctrine/REVIEW_CHECKLIST.md`
 - source-owned zero-entry capsule and re-entry doctrine:
-  `docs/TINY_ENTRY_ROUTE.md`,
-  `examples/tos_tiny_entry_route.example.json`,
-  `generated/root_entry_map.min.json`, `scripts/build_root_entry_map.py`,
+  `ToS/doctrine/TINY_ENTRY_ROUTE.md`,
+  `ToS/public-compatibility/tos_tiny_entry_route.example.json`,
+  `ToS/derived-exports/root_entry_map.min.json`, `scripts/build_root_entry_map.py`,
   `scripts/validate_root_entry_map.py`, and
   `scripts/validate_tiny_entry_route.py`
 - current trilingual authority and compatibility route:
-  `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`,
-  `sources/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`,
-  `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`,
-  `examples/source_node.example.json`,
-  `tree/concept/becoming/node.json`, and
-  `examples/concept_node.example.json`
+  `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`,
+  `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`,
+  `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`,
+  `ToS/public-compatibility/source_node.example.json`,
+  `ToS/canon/concept/becoming/node.json`, and
+  `ToS/public-compatibility/concept_node.example.json`
 - bounded downstream export seam:
-  `docs/KAG_EXPORT.md`, `generated/kag_export.json`,
-  `generated/kag_export.min.json`, `scripts/generate_kag_export.py`, and
+  `ToS/doctrine/KAG_EXPORT.md`, `ToS/derived-exports/kag_export.json`,
+  `ToS/derived-exports/kag_export.min.json`, `scripts/generate_kag_export.py`, and
   `scripts/validate_kag_export.py`
 
 This contour keeps routed-language witness handling and source-first re-entry

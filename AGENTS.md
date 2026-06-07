@@ -26,8 +26,8 @@ It does not own:
 1. `README.md`
 2. `ROADMAP.md`
 3. `CHARTER.md` and `BOUNDARIES.md`
-4. `docs/KNOWLEDGE_MODEL.md` and `docs/NODE_CONTRACT.md`
-5. `docs/TINY_ENTRY_ROUTE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `docs/KAG_EXPORT.md` when public entry or export is in scope
+4. `ToS/doctrine/KNOWLEDGE_MODEL.md` and `ToS/doctrine/NODE_CONTRACT.md`
+5. `ToS/doctrine/TINY_ENTRY_ROUTE.md`, `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `ToS/doctrine/KAG_EXPORT.md` when public entry or export is in scope
 6. the target source, node, registry, intake, or export surface
 7. `docs/decisions/README.md` when durable route, boundary, validator, or export rationale is in scope
 8. `docs/AGENTS_ROOT_REFERENCE.md` for the preserved full root guidance
@@ -87,7 +87,7 @@ python -m unittest discover -s tests
 ```
 
 If canonical tree mirrors, export inputs, or generated seams change, run the additional targeted validators named in `docs/AGENTS_ROOT_REFERENCE.md`.
-Use `docs/REVIEW_CHECKLIST.md` for manual review posture when source, interpretation, or export meaning is touched.
+Use `ToS/doctrine/REVIEW_CHECKLIST.md` for manual review posture when source, interpretation, or export meaning is touched.
 Use `docs/decisions/AGENTS.md` when the change creates durable rationale; decision records explain why and do not replace source, tree, route, or export authority.
 
 ## Report

@@ -17,7 +17,7 @@ class RootEntryMapTests(unittest.TestCase):
         payload = build_payload()
 
         self.assertEqual(payload["schema_version"], "tos_root_entry_map_v1")
-        self.assertEqual(payload["schema_ref"], "schemas/root-entry-map.schema.json")
+        self.assertEqual(payload["schema_ref"], "ToS/contracts/root-entry-map.schema.json")
         self.assertEqual(payload["owner_repo"], "Tree-of-Sophia")
         self.assertEqual(payload["surface_kind"], "root_entry_map")
         self.assertEqual(payload["authority_ref"], SURFACE_PAYLOAD["authority_ref"])
@@ -35,12 +35,12 @@ class RootEntryMapTests(unittest.TestCase):
         payload = build_payload()
         route = next(route for route in payload["routes"] if route["route_id"] == "current-tiny-entry")
 
-        self.assertEqual(route["surface_ref"], "examples/tos_tiny_entry_route.example.json")
+        self.assertEqual(route["surface_ref"], "ToS/public-compatibility/tos_tiny_entry_route.example.json")
         self.assertEqual(
             route["verification_refs"],
             [
-                "docs/TINY_ENTRY_ROUTE.md",
-                "docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+                "ToS/doctrine/TINY_ENTRY_ROUTE.md",
+                "ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
             ],
         )
 

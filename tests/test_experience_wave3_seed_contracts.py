@@ -44,8 +44,8 @@ ENUM_ESCAPE_VALUE = "__wave3_not_allowed__"
 
 
 def load_contract(stem: str) -> tuple[dict[str, object], dict[str, object]]:
-    schema_path = ROOT / "schemas" / f"{stem}_v1.json"
-    example_path = ROOT / "examples" / f"{stem}.example.json"
+    schema_path = ROOT / "ToS" / "contracts" / f"{stem}_v1.json"
+    example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     example = json.loads(example_path.read_text(encoding="utf-8"))
     return schema, example
@@ -120,8 +120,8 @@ class ExperienceWave3SeedContractTests(unittest.TestCase):
     def test_experience_wave3_examples_match_schemas(self) -> None:
         missing_pairs: list[str] = []
         for stem in WAVE3_STEMS:
-            schema_path = ROOT / "schemas" / f"{stem}_v1.json"
-            example_path = ROOT / "examples" / f"{stem}.example.json"
+            schema_path = ROOT / "ToS" / "contracts" / f"{stem}_v1.json"
+            example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():

@@ -9,27 +9,29 @@ from jsonschema import Draft202012Validator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = REPO_ROOT / "schemas" / "tos-node-contract.schema.json"
-SOURCE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "source_node.example.json"
-CONCEPT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "concept_node.example.json"
-PRINCIPLE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "principle_node.example.json"
+SCHEMA_PATH = REPO_ROOT / "ToS" / "contracts" / "tos-node-contract.schema.json"
+SOURCE_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json"
+CONCEPT_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "concept_node.example.json"
+PRINCIPLE_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "principle_node.example.json"
 ZARATHUSTRA_PRINCIPLE_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "principle"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
     / "prologue-1"
 )
-LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "lineage_node.example.json"
-EVENT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "event_node.example.json"
-STATE_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "state_node.example.json"
-SUPPORT_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "support_node.example.json"
-ANALOGY_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "analogy_node.example.json"
-SYNTHESIS_NODE_EXAMPLE_PATH = REPO_ROOT / "examples" / "synthesis_node.example.json"
+LINEAGE_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "lineage_node.example.json"
+EVENT_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "event_node.example.json"
+STATE_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "state_node.example.json"
+SUPPORT_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "support_node.example.json"
+ANALOGY_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "analogy_node.example.json"
+SYNTHESIS_NODE_EXAMPLE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "synthesis_node.example.json"
 ZARATHUSTRA_EVENT_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "event"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
@@ -37,7 +39,8 @@ ZARATHUSTRA_EVENT_DIR = (
 )
 ZARATHUSTRA_STATE_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "state"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
@@ -45,7 +48,8 @@ ZARATHUSTRA_STATE_DIR = (
 )
 ZARATHUSTRA_SUPPORT_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "support"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
@@ -53,7 +57,8 @@ ZARATHUSTRA_SUPPORT_DIR = (
 )
 ZARATHUSTRA_ANALOGY_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "analogy"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
@@ -61,7 +66,8 @@ ZARATHUSTRA_ANALOGY_DIR = (
 )
 ZARATHUSTRA_SYNTHESIS_DIR = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "synthesis"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
@@ -147,7 +153,7 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
         self.assertEqual(self.collect_errors(self.synthesis_node), [])
 
     def test_all_canonical_tree_nodes_still_validate(self) -> None:
-        for path in sorted((REPO_ROOT / "tree").rglob("node.json")):
+        for path in sorted((REPO_ROOT / "ToS" / "canon").rglob("node.json")):
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 self.assertEqual(self.collect_errors(load_json(path)), [])
 

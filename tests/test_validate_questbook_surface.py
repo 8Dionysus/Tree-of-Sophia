@@ -27,18 +27,18 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             (REPO_ROOT / "QUESTBOOK.md").read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / "docs" / "QUESTBOOK_TOS_INTEGRATION.md",
-            (REPO_ROOT / "docs" / "QUESTBOOK_TOS_INTEGRATION.md").read_text(
+            repo_root / "ToS" / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md",
+            (REPO_ROOT / "ToS" / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md").read_text(
                 encoding="utf-8"
             ),
         )
         write_text(
-            repo_root / "schemas" / "quest.schema.json",
-            (REPO_ROOT / "schemas" / "quest.schema.json").read_text(encoding="utf-8"),
+            repo_root / "ToS" / "contracts" / "quest.schema.json",
+            (REPO_ROOT / "ToS" / "contracts" / "quest.schema.json").read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / "schemas" / "quest_dispatch.schema.json",
-            (REPO_ROOT / "schemas" / "quest_dispatch.schema.json").read_text(
+            repo_root / "ToS" / "contracts" / "quest_dispatch.schema.json",
+            (REPO_ROOT / "ToS" / "contracts" / "quest_dispatch.schema.json").read_text(
                 encoding="utf-8"
             ),
         )
@@ -50,14 +50,14 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
         write_text(
-            repo_root / "examples" / "quest_catalog.min.example.json",
-            (REPO_ROOT / "examples" / "quest_catalog.min.example.json").read_text(
+            repo_root / "ToS" / "public-compatibility" / "quest_catalog.min.example.json",
+            (REPO_ROOT / "ToS" / "public-compatibility" / "quest_catalog.min.example.json").read_text(
                 encoding="utf-8"
             ),
         )
         write_text(
-            repo_root / "examples" / "quest_dispatch.min.example.json",
-            (REPO_ROOT / "examples" / "quest_dispatch.min.example.json").read_text(
+            repo_root / "ToS" / "public-compatibility" / "quest_dispatch.min.example.json",
+            (REPO_ROOT / "ToS" / "public-compatibility" / "quest_dispatch.min.example.json").read_text(
                 encoding="utf-8"
             ),
         )
@@ -74,13 +74,13 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            (repo_root / "docs" / "QUESTBOOK_TOS_INTEGRATION.md").unlink()
+            (repo_root / "ToS" / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md").unlink()
 
             with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
                 with self.assertRaises(validate_kag_export.ValidationError) as context:
                     validate_kag_export.validate_questbook_surface()
 
-        self.assertIn("docs/QUESTBOOK_TOS_INTEGRATION.md", str(context.exception))
+        self.assertIn("ToS/doctrine/QUESTBOOK_TOS_INTEGRATION.md", str(context.exception))
 
     def test_missing_quest_file_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -167,8 +167,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
             write_text(
-                repo_root / "docs" / "QUESTBOOK_TOS_INTEGRATION.md",
-                (repo_root / "docs" / "QUESTBOOK_TOS_INTEGRATION.md")
+                repo_root / "ToS" / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md",
+                (repo_root / "ToS" / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md")
                 .read_text(encoding="utf-8")
                 .replace(
                     "It is not the place where philosophical interpretation, authored knowledge, or source meaning becomes a task list.",
@@ -187,8 +187,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
             write_text(
-                repo_root / "examples" / "quest_dispatch.min.example.json",
-                (repo_root / "examples" / "quest_dispatch.min.example.json")
+                repo_root / "ToS" / "public-compatibility" / "quest_dispatch.min.example.json",
+                (repo_root / "ToS" / "public-compatibility" / "quest_dispatch.min.example.json")
                 .read_text(encoding="utf-8")
                 .replace(
                     '"source_path": "quests/TOS-Q-0004.yaml"',
@@ -227,7 +227,7 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            dispatch_path = repo_root / "examples" / "quest_dispatch.min.example.json"
+            dispatch_path = repo_root / "ToS" / "public-compatibility" / "quest_dispatch.min.example.json"
             write_text(
                 dispatch_path,
                 dispatch_path.read_text(encoding="utf-8").replace(

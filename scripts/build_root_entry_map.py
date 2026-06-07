@@ -9,7 +9,7 @@ from root_entry_map_common import ROOT_ENTRY_MAP_PATH, build_payload, render_pay
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build Tree-of-Sophia generated/root_entry_map.min.json.")
+    parser = argparse.ArgumentParser(description="Build Tree-of-Sophia ToS/derived-exports/root_entry_map.min.json.")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -26,11 +26,11 @@ def main() -> int:
     if args.check:
         current = ROOT_ENTRY_MAP_PATH.read_text(encoding="utf-8")
         if current != rendered:
-            raise SystemExit("generated/root_entry_map.min.json is out of date")
-        print("[ok] verified generated/root_entry_map.min.json")
+            raise SystemExit("ToS/derived-exports/root_entry_map.min.json is out of date")
+        print("[ok] verified ToS/derived-exports/root_entry_map.min.json")
         return 0
     ROOT_ENTRY_MAP_PATH.write_text(rendered, encoding="utf-8")
-    print("[ok] wrote generated/root_entry_map.min.json")
+    print("[ok] wrote ToS/derived-exports/root_entry_map.min.json")
     return 0
 
 

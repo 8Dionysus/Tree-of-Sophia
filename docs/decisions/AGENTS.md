@@ -32,11 +32,11 @@ Use this lane to preserve rationale when a future agent would otherwise need to 
 
 Use the owning surface itself for current meaning:
 
-- source authority stays in `sources/`
-- candidate structure stays in `intake/`
-- canonical authored meaning stays in `tree/`
-- public compatibility stays in `examples/`
-- derived export stays in `generated/`
+- source authority stays in `ToS/source-witnesses/`
+- candidate structure stays in `ToS/candidate-intake/`
+- canonical authored meaning stays in `ToS/canon/`
+- public compatibility stays in `ToS/public-compatibility/`
+- derived export stays in `ToS/derived-exports/`
 - doctrine, review law, and public route docs stay in their current `docs/` files
 
 Generated indexes under `docs/decisions/indexes/` are lookup read models only.

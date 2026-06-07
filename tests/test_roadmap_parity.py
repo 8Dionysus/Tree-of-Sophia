@@ -21,7 +21,7 @@ class RoadmapParityTestCase(unittest.TestCase):
         roadmap = read_text("ROADMAP.md")
         readme = read_text("README.md")
         changelog = read_text("CHANGELOG.md")
-        payload = load_json("generated/root_entry_map.min.json")
+        payload = load_json("ToS/derived-exports/root_entry_map.min.json")
 
         self.assertIn("> Current release: `v0.2.2`", readme)
         self.assertIn("## [0.2.2] - 2026-04-23", changelog)
@@ -43,24 +43,24 @@ class RoadmapParityTestCase(unittest.TestCase):
             "README.md",
             "CHARTER.md",
             "BOUNDARIES.md",
-            "docs/KNOWLEDGE_MODEL.md",
-            "docs/NODE_CONTRACT.md",
-            "docs/REVIEW_CHECKLIST.md",
-            "docs/TINY_ENTRY_ROUTE.md",
-            "examples/tos_tiny_entry_route.example.json",
-            "generated/root_entry_map.min.json",
+            "ToS/doctrine/KNOWLEDGE_MODEL.md",
+            "ToS/doctrine/NODE_CONTRACT.md",
+            "ToS/doctrine/REVIEW_CHECKLIST.md",
+            "ToS/doctrine/TINY_ENTRY_ROUTE.md",
+            "ToS/public-compatibility/tos_tiny_entry_route.example.json",
+            "ToS/derived-exports/root_entry_map.min.json",
             "scripts/build_root_entry_map.py",
             "scripts/validate_root_entry_map.py",
             "scripts/validate_tiny_entry_route.py",
-            "docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
-            "sources/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md",
-            "tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
-            "examples/source_node.example.json",
-            "tree/concept/becoming/node.json",
-            "examples/concept_node.example.json",
-            "docs/KAG_EXPORT.md",
-            "generated/kag_export.json",
-            "generated/kag_export.min.json",
+            "ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            "ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md",
+            "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+            "ToS/public-compatibility/source_node.example.json",
+            "ToS/canon/concept/becoming/node.json",
+            "ToS/public-compatibility/concept_node.example.json",
+            "ToS/doctrine/KAG_EXPORT.md",
+            "ToS/derived-exports/kag_export.json",
+            "ToS/derived-exports/kag_export.min.json",
             "scripts/generate_kag_export.py",
             "scripts/validate_kag_export.py",
         ]

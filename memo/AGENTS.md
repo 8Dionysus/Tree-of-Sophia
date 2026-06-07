@@ -15,7 +15,7 @@ candidates, receipts, exports, and local notes before reviewed landing in
 1. Root `AGENTS.md`
 2. `CHARTER.md`
 3. `BOUNDARIES.md`
-4. `docs/KNOWLEDGE_MODEL.md`
+4. `ToS/doctrine/KNOWLEDGE_MODEL.md`
 5. This `README.md`
 6. `PORT.yaml`
 7. `aoa-memo` memory operation contracts when a candidate should move centrally

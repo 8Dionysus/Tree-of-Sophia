@@ -19,8 +19,8 @@ WAVE5_CONTRACTS = (
 
 
 def load_contract(stem: str, schema_file: str) -> tuple[dict[str, object], dict[str, object]]:
-    schema_path = ROOT / "schemas" / schema_file
-    example_path = ROOT / "examples" / f"{stem}.example.json"
+    schema_path = ROOT / "ToS" / "contracts" / schema_file
+    example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     example = json.loads(example_path.read_text(encoding="utf-8"))
     return schema, example
@@ -243,8 +243,8 @@ class ExperienceWave5SeedContractTests(unittest.TestCase):
         self.assertTrue(WAVE5_CONTRACTS)
         missing_pairs: list[str] = []
         for stem, schema_file in WAVE5_CONTRACTS:
-            schema_path = ROOT / "schemas" / schema_file
-            example_path = ROOT / "examples" / f"{stem}.example.json"
+            schema_path = ROOT / "ToS" / "contracts" / schema_file
+            example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():

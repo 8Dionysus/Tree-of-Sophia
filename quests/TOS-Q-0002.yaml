@@ -26,11 +26,11 @@ parent: null
 depends_on: []
 activation:
   mode: on_review_of
-  ref: docs/IDENTIFIER_DISCIPLINE.md
+  ref: ToS/doctrine/IDENTIFIER_DISCIPLINE.md
   note: review when node-template or identifier surfaces change
 anchor_ref:
   artifact: node-contract
-  ref: docs/NODE_CONTRACT.md
+  ref: ToS/doctrine/NODE_CONTRACT.md
 handoff_role: tos-maintainer
 evidence:
   - identifier and template gaps receive stable quest IDs
@@ -46,7 +46,7 @@ tags:
   - source-first
 notes: >-
   Stage 5 identifier/template hardening closed the current public family drift
-  between docs/NODE_CONTRACT.md and docs/IDENTIFIER_DISCIPLINE.md by bringing
+  between ToS/doctrine/NODE_CONTRACT.md and ToS/doctrine/IDENTIFIER_DISCIPLINE.md by bringing
   context-node scaffolds into the published identifier posture without widening
   ToS quests into interpretive or source-meaning work.
 public_safe: true

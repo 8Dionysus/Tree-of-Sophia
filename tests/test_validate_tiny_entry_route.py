@@ -25,13 +25,13 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         for relative_path in (
             Path("README.md"),
             Path("CHARTER.md"),
-            Path("docs") / "TINY_ENTRY_ROUTE.md",
-            Path("docs") / "ZARATHUSTRA_TRILINGUAL_ENTRY.md",
-            Path("docs") / "KNOWLEDGE_MODEL.md",
-            Path("docs") / "REVIEW_CHECKLIST.md",
-            Path("examples") / "source_node.example.json",
-            Path("examples") / "concept_node.example.json",
-            Path("examples") / "tos_tiny_entry_route.example.json",
+            Path("ToS") / "doctrine" / "TINY_ENTRY_ROUTE.md",
+            Path("ToS") / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            Path("ToS") / "doctrine" / "KNOWLEDGE_MODEL.md",
+            Path("ToS") / "doctrine" / "REVIEW_CHECKLIST.md",
+            Path("ToS") / "public-compatibility" / "source_node.example.json",
+            Path("ToS") / "public-compatibility" / "concept_node.example.json",
+            Path("ToS") / "public-compatibility" / "tos_tiny_entry_route.example.json",
         ):
             write_text(
                 repo_root / relative_path,
@@ -51,9 +51,9 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            route_path = repo_root / "examples" / "tos_tiny_entry_route.example.json"
+            route_path = repo_root / "ToS" / "public-compatibility" / "tos_tiny_entry_route.example.json"
             payload = json.loads(route_path.read_text(encoding="utf-8"))
-            payload["root_surface"] = "docs/TINY_ENTRY_ROUTE.md"
+            payload["root_surface"] = "ToS/doctrine/TINY_ENTRY_ROUTE.md"
             write_text(route_path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
             issues = validate_tiny_entry_route.run_validation(repo_root)
@@ -66,9 +66,9 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            route_path = repo_root / "examples" / "tos_tiny_entry_route.example.json"
+            route_path = repo_root / "ToS" / "public-compatibility" / "tos_tiny_entry_route.example.json"
             payload = json.loads(route_path.read_text(encoding="utf-8"))
-            payload["lineage_or_context_hop"] = "docs/TINY_ENTRY_ROUTE.md"
+            payload["lineage_or_context_hop"] = "ToS/doctrine/TINY_ENTRY_ROUTE.md"
             write_text(route_path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
             issues = validate_tiny_entry_route.run_validation(repo_root)
@@ -81,7 +81,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            doc_path = repo_root / "docs" / "TINY_ENTRY_ROUTE.md"
+            doc_path = repo_root / "ToS" / "doctrine" / "TINY_ENTRY_ROUTE.md"
             write_text(
                 doc_path,
                 doc_path.read_text(encoding="utf-8").replace(
@@ -100,7 +100,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            checklist_path = repo_root / "docs" / "REVIEW_CHECKLIST.md"
+            checklist_path = repo_root / "ToS" / "doctrine" / "REVIEW_CHECKLIST.md"
             write_text(
                 checklist_path,
                 checklist_path.read_text(encoding="utf-8").replace(
