@@ -8,6 +8,6 @@
 | input | bad-growth signal, rejection pressure, source weakness |
 | output | reviewable refusal, pruning route, or return to source |
 | owner | `mechanics/antifragility/parts/source-resilience/` |
-| next route | `ToS/doctrine/REVIEW_CHECKLIST.md` or source-home owner |
-| tools | `ToS/doctrine/GROWTH_STRUCTURE.md`, `ToS/doctrine/TOS_REJECTION_AND_BRANCHING.md` |
+| next route | `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` or source-home owner |
+| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `mechanics/agon/parts/canon-restraint/docs/TOS_REJECTION_AND_BRANCHING.md` |
 | check | `python scripts/validate_tos_source_home.py` |

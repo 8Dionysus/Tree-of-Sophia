@@ -22,7 +22,7 @@ For the first public route, that means:
 
 - `README.md` as the public root
 - `source_node` as the node-kind decision
-- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md` as the capsule surface
+- `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md` as the capsule surface
 - `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` as the canonical authored source node
 - `ToS/public-compatibility/source_node.example.json` as the current public compatibility authority surface
 - `ToS/canon/concept/becoming/node.json` as the canonical authored bounded hop
@@ -42,7 +42,7 @@ In this wave:
 
 - `README.md` and this note are orientation surfaces
 - `ToS/derived-exports/root_entry_map.min.json` is the compact root-entry capsule for machine-facing entry
-- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule that explains the bounded route
+- `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md` is the worked capsule that explains the bounded route
 - `ToS/canon/` holds the canonical authored node surfaces
 - `ToS/public-compatibility/source_node.example.json` remains the public compatibility authority surface for the first published tiny-entry example
 
@@ -54,7 +54,7 @@ It is not allowed to replace the canonical tree node or the source-facing compat
 The first public tiny-entry route is anchored in the Zarathustra prologue path:
 
 - `node_id`: `tos.source.thus-spoke-zarathustra.prologue`
-- capsule surface: `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
+- capsule surface: `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
 - canonical source node: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - public compatibility authority surface: `ToS/public-compatibility/source_node.example.json`
 - canonical bounded hop: `ToS/canon/concept/becoming/node.json`
@@ -115,8 +115,16 @@ It must never:
 
 The authored type for this seam is `tos_tiny_entry_route`.
 
-Its current public example is [ToS/public-compatibility/tos_tiny_entry_route.example.json](../public-compatibility/tos_tiny_entry_route.example.json).
+Its current public example is
+[ToS/public-compatibility/tos_tiny_entry_route.example.json](../../public-compatibility/tos_tiny_entry_route.example.json).
 
 The additive machine-facing root capsule is `ToS/derived-exports/root_entry_map.min.json`.
 
-See [ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md](ZARATHUSTRA_TRILINGUAL_ENTRY.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and [ToS/doctrine/REVIEW_CHECKLIST.md](REVIEW_CHECKLIST.md) for the current validator and manual-review route for this bounded seam.
+See
+[ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md](../prologue-1/TRILINGUAL_ENTRY.md),
+`python scripts/build_root_entry_map.py --check`,
+`python scripts/validate_root_entry_map.py`,
+`python scripts/validate_tiny_entry_route.py`,
+`python scripts/validate_kag_export.py`, and
+[mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md](../../../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
+for the current validator and manual-review route for this bounded seam.

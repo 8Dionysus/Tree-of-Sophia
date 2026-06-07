@@ -17,7 +17,8 @@ Before editing decision records here, read:
 
 Decision notes explain why a route, topology, boundary, validator, export posture, or source-discipline choice was made.
 Current node contracts, source witnesses, authored tree surfaces, roadmaps,
-review checklists, and generated export payloads keep their own owner routes.
+review checklists, mechanics surfaces, Zarathustra route surfaces, and
+generated export payloads keep their own owner routes.
 
 ## Authority
 
@@ -34,12 +35,15 @@ Use this lane to preserve rationale when a future agent would otherwise need to 
 Use the owning surface itself for current meaning:
 
 - source authority stays in `ToS/source-witnesses/`
+- golden Zarathustra route surfaces stay in `ToS/zarathustra/`
+- non-authoritative research scaffolds stay in `ToS/research-packets/`
 - candidate structure stays in `ToS/candidate-intake/`
 - canonical authored meaning stays in `ToS/canon/`
 - public compatibility stays in `ToS/public-compatibility/`
 - derived export stays in `ToS/derived-exports/`
 - operation mechanics stay in `mechanics/`
-- doctrine, review law, and public route docs stay in their current `docs/` files
+- doctrine stays in `ToS/doctrine/`
+- review law and repeatable operation docs stay in `mechanics/`
 
 Generated indexes under `docs/decisions/indexes/` are lookup read models only.
 Keep `modeled_surfaces` in `docs/decisions/indexes/index_contract.yaml` as a

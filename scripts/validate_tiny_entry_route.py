@@ -12,10 +12,12 @@ Issue: TypeAlias = tuple[str, str]
 ROUTE_PATH = Path("ToS") / "public-compatibility" / "tos_tiny_entry_route.example.json"
 README_PATH = Path("README.md")
 CHARTER_PATH = Path("CHARTER.md")
-ROUTE_DOC_PATH = Path("ToS") / "doctrine" / "TINY_ENTRY_ROUTE.md"
-CAPSULE_PATH = Path("ToS") / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
+ROUTE_DOC_PATH = Path("ToS") / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"
+CAPSULE_PATH = Path("ToS") / "zarathustra" / "prologue-1" / "TRILINGUAL_ENTRY.md"
 KNOWLEDGE_MODEL_PATH = Path("ToS") / "doctrine" / "KNOWLEDGE_MODEL.md"
-REVIEW_CHECKLIST_PATH = Path("ToS") / "doctrine" / "REVIEW_CHECKLIST.md"
+REVIEW_CHECKLIST_PATH = (
+    Path("mechanics") / "audit" / "parts" / "review-ledger-route" / "docs" / "REVIEW_CHECKLIST.md"
+)
 SOURCE_NODE_PATH = Path("ToS") / "public-compatibility" / "source_node.example.json"
 CONCEPT_NODE_PATH = Path("ToS") / "public-compatibility" / "concept_node.example.json"
 

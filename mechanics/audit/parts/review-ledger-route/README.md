@@ -9,5 +9,5 @@
 | output | owner surface, validator, or decision follow-up |
 | owner | `mechanics/audit/parts/review-ledger-route/` |
 | next route | `ToS/review-ledger/`, `docs/decisions/`, or owning validator |
-| tools | `ToS/doctrine/REVIEW_CHECKLIST.md`, `ToS/review-ledger/` |
+| tools | `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`, `ToS/review-ledger/` |
 | check | `python scripts/validate_nested_agents.py` |

@@ -25,10 +25,10 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         for relative_path in (
             Path("README.md"),
             Path("CHARTER.md"),
-            Path("ToS") / "doctrine" / "TINY_ENTRY_ROUTE.md",
-            Path("ToS") / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            Path("ToS") / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md",
+            Path("ToS") / "zarathustra" / "prologue-1" / "TRILINGUAL_ENTRY.md",
             Path("ToS") / "doctrine" / "KNOWLEDGE_MODEL.md",
-            Path("ToS") / "doctrine" / "REVIEW_CHECKLIST.md",
+            Path("mechanics") / "audit" / "parts" / "review-ledger-route" / "docs" / "REVIEW_CHECKLIST.md",
             Path("ToS") / "public-compatibility" / "source_node.example.json",
             Path("ToS") / "public-compatibility" / "concept_node.example.json",
             Path("ToS") / "public-compatibility" / "tos_tiny_entry_route.example.json",
@@ -53,7 +53,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             self.write_valid_surface(repo_root)
             route_path = repo_root / "ToS" / "public-compatibility" / "tos_tiny_entry_route.example.json"
             payload = json.loads(route_path.read_text(encoding="utf-8"))
-            payload["root_surface"] = "ToS/doctrine/TINY_ENTRY_ROUTE.md"
+            payload["root_surface"] = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
             write_text(route_path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
             issues = validate_tiny_entry_route.run_validation(repo_root)
@@ -68,7 +68,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             self.write_valid_surface(repo_root)
             route_path = repo_root / "ToS" / "public-compatibility" / "tos_tiny_entry_route.example.json"
             payload = json.loads(route_path.read_text(encoding="utf-8"))
-            payload["lineage_or_context_hop"] = "ToS/doctrine/TINY_ENTRY_ROUTE.md"
+            payload["lineage_or_context_hop"] = "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md"
             write_text(route_path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
             issues = validate_tiny_entry_route.run_validation(repo_root)
@@ -81,7 +81,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            doc_path = repo_root / "ToS" / "doctrine" / "TINY_ENTRY_ROUTE.md"
+            doc_path = repo_root / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"
             write_text(
                 doc_path,
                 doc_path.read_text(encoding="utf-8").replace(
@@ -100,7 +100,15 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            checklist_path = repo_root / "ToS" / "doctrine" / "REVIEW_CHECKLIST.md"
+            checklist_path = (
+                repo_root
+                / "mechanics"
+                / "audit"
+                / "parts"
+                / "review-ledger-route"
+                / "docs"
+                / "REVIEW_CHECKLIST.md"
+            )
             write_text(
                 checklist_path,
                 checklist_path.read_text(encoding="utf-8").replace(

@@ -279,5 +279,5 @@ This route does not yet open:
 - translation automation
 
 First the paragraph-aligned trilingual route has to hold under review.
-See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the tree-first seam that now
-wraps this worked route.
+See [TINY_ENTRY_ROUTE](../public-entry/TINY_ENTRY_ROUTE.md) for the tree-first
+seam that now wraps this worked route.

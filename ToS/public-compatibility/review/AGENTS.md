@@ -25,4 +25,4 @@ active owner route and validate that route.
 
 ## Validation
 
-Use `ToS/doctrine/REVIEW_CHECKLIST.md` for changes here.
+Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for changes here.

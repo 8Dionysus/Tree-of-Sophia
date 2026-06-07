@@ -7,7 +7,7 @@ This file applies to primary witness and source files under `ToS/source-witnesse
 Before editing witness material, read:
 1. the repository root `AGENTS.md`
 2. the exact source file you plan to touch
-3. `ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md`
+3. `mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md`
 4. the current route docs if the file participates in the bounded Zarathustra path
 
 ## Local role
@@ -65,7 +65,7 @@ If you are touching the current Zarathustra route, preserve the witness chain th
 
 ## Validation
 
-Use `ToS/doctrine/REVIEW_CHECKLIST.md` for broader review.
+Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for broader review.
 
 If the touched witness participates in the current bounded route or export seam, also run:
 

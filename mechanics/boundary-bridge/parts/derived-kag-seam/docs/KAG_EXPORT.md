@@ -15,8 +15,8 @@ The current pilot stays on the Zarathustra prologue route only:
 - one canonical authored source node: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - one public compatibility entry surface: `ToS/public-compatibility/source_node.example.json`
 - two supporting doctrine surfaces:
-  - `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
-  - `ToS/doctrine/TINY_ENTRY_ROUTE.md`
+  - `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
+  - `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - one compact consumer export: `ToS/derived-exports/kag_export.min.json`
 
 ## Core rule

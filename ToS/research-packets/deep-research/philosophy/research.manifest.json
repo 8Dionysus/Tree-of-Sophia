@@ -1,20 +1,28 @@
 {
-  "schema_version": "tos_notion_witness_v1",
-  "witness_id": "notion.tree-of-sophia.philosophy",
-  "path": "ToS/source-witnesses/notion/philosophy",
-  "role": "Notion witness route for the philosophy branch skeleton",
-  "notion_parent_page": {
-    "id": "2b6778a4-3758-80c4-b1c8-d8388db524b6",
-    "title": "Tree of Sophia",
-    "url": "https://app.notion.com/p/2b6778a4375880c4b1c8d8388db524b6"
+  "schema_version": "tos_research_packet_v1",
+  "packet_id": "research.deep-research.philosophy.seed-skeleton",
+  "path": "ToS/research-packets/deep-research/philosophy",
+  "role": "non-authoritative AI-generated research packet metadata for the philosophy branch skeleton",
+  "authority": {
+    "source_status": "not_source_witness",
+    "canon_status": "not_canon",
+    "doctrine_status": "not_doctrine",
+    "use": "scaffold for later source anchoring and branch review"
   },
-  "notion_source_page": {
-    "id": "2b6778a4-3758-80ee-bbe5-dc8387858f3c",
+  "capture_container": {
+    "system": "notion",
+    "parent_page_id": "2b6778a4-3758-80c4-b1c8-d8388db524b6",
+    "parent_title": "Tree of Sophia",
+    "page_id": "2b6778a4-3758-80ee-bbe5-dc8387858f3c",
     "original_title": "Zagotovki",
-    "url": "https://app.notion.com/p/2b6778a4375880eebbe5dc8387858f3c",
-    "repo_path_rule": "source UI title stays metadata-only; repository paths use philosophical branch identity"
+    "repo_path_rule": "capture titles stay metadata-only; repository paths name the philosophical branch identity"
+  },
+  "generated_material": {
+    "class": "deep-research-gpt-result",
+    "asserted_source_authority": "none"
   },
   "domain_branch": "ToS/philosophy",
+  "next_route": "research packet -> philosophy branch review -> source anchoring -> graph workbench -> canon review",
   "seed_child_pages": [
     {
       "id": "2fe778a4-3758-814b-88ff-c798b2ce57c2",

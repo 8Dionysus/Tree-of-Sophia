@@ -6,7 +6,7 @@ This file applies to derived export artifacts under `ToS/derived-exports/`.
 
 Before touching anything here, read:
 1. the repository root `AGENTS.md`
-2. `../doctrine/KAG_EXPORT.md`
+2. `../../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
 3. `../public-compatibility/AGENTS.md`
 4. `../canon/AGENTS.md`
 5. the generator or validator scripts that produce the file

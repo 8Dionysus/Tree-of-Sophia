@@ -10,7 +10,11 @@ from typing import TypeAlias
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = Path("ToS/philosophy/philosophy.manifest.json")
-WITNESS_MANIFEST_PATH = Path("ToS/source-witnesses/notion/philosophy/witness.manifest.json")
+RESEARCH_PACKET_ROOT = Path("ToS/research-packets")
+FALSE_AUTHORITY_PATHS = (
+    Path("ToS/source-witnesses/notion"),
+    Path("ToS/source-witnesses/notion/philosophy"),
+)
 
 Issue: TypeAlias = tuple[str, str]
 
@@ -37,9 +41,9 @@ def slugify_label(value: str) -> str:
 
 def collect_metadata_only_path_labels(payload: dict[str, object]) -> set[str]:
     labels: set[str] = set()
-    source_page = payload.get("notion_source_page")
-    if isinstance(source_page, dict):
-        title = source_page.get("original_title") or source_page.get("title")
+    capture_container = payload.get("capture_container")
+    if isinstance(capture_container, dict):
+        title = capture_container.get("original_title") or capture_container.get("title")
         if isinstance(title, str) and title:
             labels.add(slugify_label(title))
     return {label for label in labels if label}
@@ -60,8 +64,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         Path("ToS/philosophy/AGENTS.md"),
         Path("ToS/philosophy/README.md"),
         MANIFEST_PATH,
-        Path("ToS/source-witnesses/notion/philosophy/AGENTS.md"),
-        WITNESS_MANIFEST_PATH,
+        Path("ToS/research-packets/AGENTS.md"),
     ]
     for relative_path in required_files:
         if not (root / relative_path).is_file():
@@ -70,6 +73,10 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     manifest = load_json(root, MANIFEST_PATH, issues)
     if manifest is None:
         return issues
+
+    for relative_path in FALSE_AUTHORITY_PATHS:
+        if (root / relative_path).exists():
+            issues.append((relative_path.as_posix(), "AI/Notion research packets must not live under source-witnesses"))
 
     if manifest.get("schema_version") != "tos_philosophy_topology_v1":
         issues.append((MANIFEST_PATH.as_posix(), "schema_version must be tos_philosophy_topology_v1"))
@@ -84,9 +91,12 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     else:
         expected_routes = {
             "provisional_extraction": "ToS/candidate-intake",
-            "source_page_witnesses": "ToS/source-witnesses/notion/philosophy",
+            "research_packets": "ToS/research-packets",
+            "source_witnesses": "ToS/source-witnesses",
             "canon_promotion": "ToS/canon",
         }
+        if "source_page_witnesses" in boundary_routes:
+            issues.append((MANIFEST_PATH.as_posix(), "boundary_routes.source_page_witnesses must not route AI/Notion packets as source witnesses"))
         for key, expected_value in expected_routes.items():
             if boundary_routes.get(key) != expected_value:
                 issues.append((MANIFEST_PATH.as_posix(), f"boundary_routes.{key} must be {expected_value}"))
@@ -100,24 +110,52 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 issues.append((MANIFEST_PATH.as_posix(), f"path_component_policy.{key} must be a string list"))
 
-    source_witness_routes = manifest.get("source_witness_routes")
-    if source_witness_routes != [WITNESS_MANIFEST_PATH.as_posix()]:
-        issues.append((MANIFEST_PATH.as_posix(), "source_witness_routes must point to the Notion philosophy witness manifest"))
+    if "source_witness_routes" in manifest:
+        issues.append((MANIFEST_PATH.as_posix(), "source_witness_routes must not point to AI/Notion research packets"))
 
     metadata_only_labels: set[str] = set()
-    witness_manifest = load_json(root, WITNESS_MANIFEST_PATH, issues)
-    if witness_manifest is not None:
-        metadata_only_labels = collect_metadata_only_path_labels(witness_manifest)
-        if witness_manifest.get("schema_version") != "tos_notion_witness_v1":
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "schema_version must be tos_notion_witness_v1"))
-        if witness_manifest.get("domain_branch") != "ToS/philosophy":
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "domain_branch must be ToS/philosophy"))
-        source_page = witness_manifest.get("notion_source_page")
-        if not isinstance(source_page, dict) or not source_page.get("id"):
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "notion_source_page.id is required"))
-        child_pages = witness_manifest.get("seed_child_pages")
+    research_packet_routes = manifest.get("research_packet_routes")
+    if not isinstance(research_packet_routes, list):
+        issues.append((MANIFEST_PATH.as_posix(), "research_packet_routes must be a list when research packets are present"))
+        research_packet_routes = []
+    for entry in research_packet_routes:
+        if not isinstance(entry, str) or not entry:
+            issues.append((MANIFEST_PATH.as_posix(), "research_packet_routes entries must be non-empty strings"))
+            continue
+        packet_path = Path(entry)
+        if not packet_path.is_relative_to(RESEARCH_PACKET_ROOT):
+            issues.append((entry, "research packet routes must stay under ToS/research-packets"))
+            continue
+        if "source-witnesses" in packet_path.parts:
+            issues.append((entry, "research packet routes must not point into source-witnesses"))
+            continue
+        packet_agents = packet_path.parent / "AGENTS.md"
+        if not (root / packet_agents).is_file():
+            issues.append((packet_agents.as_posix(), "research packet route must have a local AGENTS.md"))
+        research_packet = load_json(root, packet_path, issues)
+        if research_packet is None:
+            continue
+        metadata_only_labels.update(collect_metadata_only_path_labels(research_packet))
+        if research_packet.get("schema_version") != "tos_research_packet_v1":
+            issues.append((entry, "schema_version must be tos_research_packet_v1"))
+        if research_packet.get("path") != packet_path.parent.as_posix():
+            issues.append((entry, "path must match the research packet directory"))
+        if research_packet.get("domain_branch") != "ToS/philosophy":
+            issues.append((entry, "domain_branch must be ToS/philosophy"))
+        authority = research_packet.get("authority")
+        if not isinstance(authority, dict):
+            issues.append((entry, "authority must be an object"))
+        else:
+            if authority.get("source_status") != "not_source_witness":
+                issues.append((entry, "authority.source_status must be not_source_witness"))
+            if authority.get("canon_status") != "not_canon":
+                issues.append((entry, "authority.canon_status must be not_canon"))
+        capture_container = research_packet.get("capture_container")
+        if not isinstance(capture_container, dict) or not capture_container.get("page_id"):
+            issues.append((entry, "capture_container.page_id is required"))
+        child_pages = research_packet.get("seed_child_pages")
         if not isinstance(child_pages, list) or not child_pages:
-            issues.append((WITNESS_MANIFEST_PATH.as_posix(), "seed_child_pages must be a non-empty list"))
+            issues.append((entry, "seed_child_pages must be a non-empty list"))
 
     branch_manifests = manifest.get("branch_manifests")
     if not isinstance(branch_manifests, list) or not branch_manifests:

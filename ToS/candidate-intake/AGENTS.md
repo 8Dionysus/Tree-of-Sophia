@@ -6,10 +6,10 @@ This file applies to candidate intake material under `ToS/candidate-intake/`.
 
 Before editing intake material, read:
 1. the repository root `AGENTS.md`
-2. `ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md`
+2. `mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md`
 3. `ToS/doctrine/TABULAR_BASE_CONTRACT.md` and `ToS/doctrine/RELATION_PACK_CONTRACT.md` when applicable
 4. the exact source witness or source route the intake pass depends on
-5. `ToS/doctrine/REVIEW_CHECKLIST.md` if the change broadens scope
+5. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` if the change broadens scope
 
 ## Local role
 
@@ -68,7 +68,7 @@ Quest or progression language may appear here only as bounded work-tracking or c
 
 ## Validation
 
-Use `ToS/doctrine/REVIEW_CHECKLIST.md` for broader review.
+Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for broader review.
 
 If you change a bounded intake pack or a surface consumed by the current export seam, also run:
 

@@ -8,7 +8,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 README_PATH = REPO_ROOT / "README.md"
 AGENTS_PATH = REPO_ROOT / "AGENTS.md"
 CONTRIBUTING_PATH = REPO_ROOT / "CONTRIBUTING.md"
-KAG_EXPORT_DOC_PATH = REPO_ROOT / "ToS" / "doctrine" / "KAG_EXPORT.md"
+KAG_EXPORT_DOC_PATH = (
+    REPO_ROOT / "mechanics" / "boundary-bridge" / "parts" / "derived-kag-seam" / "docs" / "KAG_EXPORT.md"
+)
 
 
 def read_text(path: Path) -> str:
@@ -20,12 +22,12 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         readme = read_text(README_PATH)
         source_route = (
             "if you are new here and want the one real current public route: "
-            "[ToS/doctrine/TINY_ENTRY_ROUTE](ToS/doctrine/TINY_ENTRY_ROUTE.md) and "
-            "[ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY](ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md)"
+            "[ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) and "
+            "[ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)"
         )
         export_seam = (
             "if you need the bounded downstream export seam for that route: "
-            "[ToS/doctrine/KAG_EXPORT](ToS/doctrine/KAG_EXPORT.md)"
+            "[mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)"
         )
 
         self.assertIn(source_route, readme)
@@ -40,7 +42,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         self.assertIn("python scripts/validate_tiny_entry_route.py", readme)
         self.assertIn("python scripts/validate_kag_export.py", readme)
         self.assertIn("python -m unittest discover -s tests", readme)
-        self.assertIn("ToS/doctrine/REVIEW_CHECKLIST.md", readme)
+        self.assertIn("mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md", readme)
 
     def test_agents_validation_section_mentions_full_bounded_battery(self) -> None:
         agents = read_text(AGENTS_PATH)
@@ -49,7 +51,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         self.assertIn("python scripts/validate_tiny_entry_route.py", agents)
         self.assertIn("python scripts/validate_kag_export.py", agents)
         self.assertIn("python -m unittest discover -s tests", agents)
-        self.assertIn("ToS/doctrine/REVIEW_CHECKLIST.md", agents)
+        self.assertIn("mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md", agents)
 
     def test_contributing_mentions_tests_alongside_validator(self) -> None:
         contributing = read_text(CONTRIBUTING_PATH)
@@ -57,7 +59,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
         self.assertIn("python scripts/validate_tiny_entry_route.py", contributing)
         self.assertIn("python scripts/validate_kag_export.py", contributing)
         self.assertIn("python -m unittest discover -s tests", contributing)
-        self.assertIn("ToS/doctrine/REVIEW_CHECKLIST.md", contributing)
+        self.assertIn("mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md", contributing)
 
     def test_kag_export_doc_separates_verification_from_regeneration(self) -> None:
         kag_export_doc = read_text(KAG_EXPORT_DOC_PATH)
@@ -74,7 +76,7 @@ class DocsVerifyRoutesTestCase(unittest.TestCase):
 
     def test_readme_and_tiny_entry_doc_expose_root_entry_capsule(self) -> None:
         readme = read_text(README_PATH)
-        tiny_entry_doc = read_text(REPO_ROOT / "ToS" / "doctrine" / "TINY_ENTRY_ROUTE.md")
+        tiny_entry_doc = read_text(REPO_ROOT / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md")
 
         self.assertIn("ToS/derived-exports/root_entry_map.min.json", readme)
         self.assertIn("ToS/derived-exports/root_entry_map.min.json", tiny_entry_doc)

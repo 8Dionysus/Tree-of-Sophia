@@ -5,7 +5,7 @@
 - Decision ID: TOS-D-0004
 - Original date: 2026-06-07
 - Surface classes: docs/route-law, source-home, scripts/validation, agent-instructions
-- ToS layers: docs, doctrine, source-witnesses, philosophy, candidate-intake, canon, public-compatibility, derived-exports, contracts, scripts
+- ToS layers: docs, doctrine, source-witnesses, research-packets, philosophy, candidate-intake, canon, public-compatibility, derived-exports, contracts, scripts
 - Tree classes: source, concept, principle, lineage, event, state, support, analogy, synthesis, relation
 - Guard families: instruction topology, owner boundary, source-first authority, validation route, metadata boundary
 - Posture: accepted
@@ -72,9 +72,10 @@ shape gives them the minimum durable information needed to act:
 - where material goes next
 - which tools and checks close the loop
 
-The same principle applies to Notion witness material. Source page titles and
-temporary UI labels remain useful provenance metadata, but repository topology
-names the philosophical branch identity.
+The same principle applies to AI-generated research packet material. Capture
+page titles and temporary UI labels remain useful metadata, but repository
+topology names the philosophical branch identity and does not treat the packet
+as source authority.
 
 ## Consequences
 
@@ -87,9 +88,10 @@ headers in current nested route cards.
 `scripts/validate_tos_source_home.py` checks the same route-card shape in the
 ToS home README.
 
-`scripts/validate_philosophy_topology.py` now checks metadata-only source labels
-from witness metadata instead of carrying a hard-coded list of prior bad path
-names.
+`scripts/validate_philosophy_topology.py` now checks metadata-only capture
+labels from non-authoritative research packet metadata, rejects the old
+AI/Notion-as-source-witness route, and avoids hard-coding prior bad path names
+as topology.
 
 ## Source Surfaces
 
@@ -98,9 +100,10 @@ names.
 - `ToS/philosophy/AGENTS.md`
 - `ToS/philosophy/README.md`
 - `ToS/philosophy/philosophy.manifest.json`
-- `ToS/source-witnesses/notion/philosophy/AGENTS.md`
-- `ToS/source-witnesses/notion/philosophy/witness.manifest.json`
-- `ToS/source-witnesses/notion/philosophy/pages/2b6778a4-3758-80ee-bbe5-dc8387858f3c/page.meta.json`
+- `ToS/research-packets/AGENTS.md`
+- `ToS/research-packets/deep-research/philosophy/AGENTS.md`
+- `ToS/research-packets/deep-research/philosophy/research.manifest.json`
+- `ToS/research-packets/deep-research/philosophy/pages/2b6778a4-3758-80ee-bbe5-dc8387858f3c/capture.meta.json`
 - `scripts/validate_nested_agents.py`
 - `scripts/validate_tos_source_home.py`
 - `scripts/validate_philosophy_topology.py`

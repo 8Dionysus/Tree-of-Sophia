@@ -52,7 +52,11 @@ Use names that describe the philosophical topology:
 - `classical-south-asia`
 - `mulamadhyamakakarika`
 
-Source UI labels and workbench nicknames stay in source metadata when they are
+Capture page labels and workbench nicknames stay in metadata when they are
 needed for provenance. Repository paths name the philosophical branch: era,
 region, tradition, work, figure, concept, source corpus, transmission, or local
 graph route.
+
+AI-generated research packets can suggest branch leads, but they do not witness
+source authority. Claims that matter must be anchored later in real source
+witnesses, published works, editions, translations, or reviewed canon surfaces.

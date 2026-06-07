@@ -29,13 +29,13 @@ EXPECTED_PACKAGES: dict[str, dict[str, object]] = {
         "class": "head-fed/local",
         "status": "planted",
         "parts": ("review-ledger-route",),
-        "legacy_required": False,
+        "legacy_required": True,
     },
     "boundary-bridge": {
         "class": "head-fed/local",
         "status": "planted",
         "parts": ("derived-kag-seam",),
-        "legacy_required": False,
+        "legacy_required": True,
     },
     "canon-formation": {
         "class": "local",
@@ -53,7 +53,7 @@ EXPECTED_PACKAGES: dict[str, dict[str, object]] = {
         "class": "head-fed/local",
         "status": "planted",
         "parts": ("source-compost",),
-        "legacy_required": False,
+        "legacy_required": True,
     },
     "experience": {
         "class": "head-fed/local",
@@ -73,7 +73,7 @@ EXPECTED_PACKAGES: dict[str, dict[str, object]] = {
         "class": "head-fed/local",
         "status": "planted",
         "parts": ("branch-growth-cycle",),
-        "legacy_required": False,
+        "legacy_required": True,
     },
     "method-growth": {
         "class": "head-fed/local",
@@ -115,7 +115,7 @@ EXPECTED_PACKAGES: dict[str, dict[str, object]] = {
         "class": "local",
         "status": "planted",
         "parts": ("witness-route",),
-        "legacy_required": False,
+        "legacy_required": True,
     },
 }
 
@@ -134,6 +134,10 @@ MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
             ),
         ),
         "canon-restraint": (
+            (
+                "ToS/doctrine/TOS_REJECTION_AND_BRANCHING.md",
+                "mechanics/agon/parts/canon-restraint/docs/TOS_REJECTION_AND_BRANCHING.md",
+            ),
             (
                 "ToS/doctrine/TOS_CANON_RESTRAINT.md",
                 "mechanics/agon/parts/canon-restraint/docs/TOS_CANON_RESTRAINT.md",
@@ -165,6 +169,30 @@ MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
             (
                 "ToS/doctrine/AGON_WAVE18_TOS_LANDING.md",
                 "mechanics/agon/parts/landing-handoff/docs/AGON_WAVE18_TOS_LANDING.md",
+            ),
+        ),
+    },
+    "audit": {
+        "review-ledger-route": (
+            (
+                "ToS/doctrine/REVIEW_CHECKLIST.md",
+                "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
+            ),
+        ),
+    },
+    "boundary-bridge": {
+        "derived-kag-seam": (
+            (
+                "ToS/doctrine/KAG_EXPORT.md",
+                "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+            ),
+        ),
+    },
+    "distillation": {
+        "source-compost": (
+            (
+                "ToS/doctrine/CONTEXT_COMPOST.md",
+                "mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md",
             ),
         ),
     },
@@ -332,6 +360,22 @@ MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
             ),
         ),
     },
+    "growth-cycle": {
+        "branch-growth-cycle": (
+            (
+                "ToS/doctrine/GROWTH_STRUCTURE.md",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md",
+            ),
+            (
+                "ToS/doctrine/HUMAN_CURATED_EXPANSION.md",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md",
+            ),
+            (
+                "ToS/doctrine/PRE_EXPANSION_SOIL.md",
+                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md",
+            ),
+        ),
+    },
     "questbook": {
         "obligation-boundary": (
             (
@@ -355,6 +399,14 @@ MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
             (
                 "ToS/public-compatibility/quest_dispatch.min.example.json",
                 "mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json",
+            ),
+        ),
+    },
+    "source-witnessing": {
+        "witness-route": (
+            (
+                "ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md",
+                "mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md",
             ),
         ),
     },

@@ -3,10 +3,10 @@
   "schema_version": "tos_source_home_v1",
   "owner_repo": "Tree-of-Sophia",
   "home": "ToS/",
-  "role": "source-home organ for ToS-authored philosophy, source witness discipline, domain philosophy topology, canon, ToS-owned compatibility, ToS-owned contracts, ToS-owned derived exports, and review evidence",
+  "role": "source-home organ for ToS-authored philosophy, source witness discipline, the golden Zarathustra route, non-authoritative research packets, domain philosophy topology, canon, ToS-owned compatibility, ToS-owned contracts, ToS-owned derived exports, and review evidence",
   "home_rules": [
     "ToS-owned source surfaces live under ToS/ rather than in separate root-level active homes.",
-    "The home is tree-shaped: philosophy, witness, intake, canon, ToS-owned compatibility, ToS-owned export, ToS-owned contract, doctrine, and review branches stay distinct.",
+    "The home is tree-shaped: philosophy, witness, Zarathustra route, research packet, intake, canon, ToS-owned compatibility, ToS-owned export, ToS-owned contract, doctrine, and review branches stay distinct.",
     "Root README, charter, boundaries, roadmap, release route, and decision rationale remain repository-level surfaces.",
     "Generated and compatibility surfaces remain lower authority than doctrine, source witnesses, canon, and contracts.",
     "Every active source-home branch has an owner surface and a validation route."
@@ -15,7 +15,7 @@
     {
       "id": "doctrine",
       "path": "ToS/doctrine",
-      "role": "ToS knowledge law, node contracts, templates, route doctrine, growth posture, and review law.",
+      "role": "ToS knowledge law, node contracts, templates, interpretation ladder, and route doctrine that belongs to authored meaning.",
       "owner_surface": "ToS/doctrine/AGENTS.md",
       "validators": [
         "python scripts/validate_tos_source_home.py",
@@ -30,6 +30,27 @@
       "validators": [
         "python scripts/validate_tiny_entry_route.py",
         "python scripts/validate_kag_export.py"
+      ]
+    },
+    {
+      "id": "zarathustra",
+      "path": "ToS/zarathustra",
+      "role": "Golden Zarathustra route branch for the current bounded prologue entry, public-entry capsule, and ToS axis orientation.",
+      "owner_surface": "ToS/zarathustra/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tos_source_home.py",
+        "python scripts/validate_tiny_entry_route.py",
+        "python scripts/validate_kag_export.py"
+      ]
+    },
+    {
+      "id": "research_packets",
+      "path": "ToS/research-packets",
+      "role": "Non-authoritative AI-assisted or secondary research scaffolds that may feed philosophy branch review but never source, doctrine, canon, or graph authority.",
+      "owner_surface": "ToS/research-packets/AGENTS.md",
+      "validators": [
+        "python scripts/validate_philosophy_topology.py",
+        "python scripts/validate_nested_agents.py"
       ]
     },
     {

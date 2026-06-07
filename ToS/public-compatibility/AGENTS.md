@@ -9,7 +9,7 @@ Before editing examples, read:
 2. `../canon/AGENTS.md`
 3. `ToS/contracts/AGENTS.md`
 4. the exact canonical tree surface the example mirrors
-5. `../doctrine/KAG_EXPORT.md` when the example participates in the current export seam
+5. `../../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` when the example participates in the current export seam
 
 ## Local role
 
@@ -63,7 +63,7 @@ Examples route back to:
 
 ## Validation
 
-For scaffold or doctrine changes, use `ToS/doctrine/REVIEW_CHECKLIST.md`.
+For scaffold or doctrine changes, use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`.
 
 If you change the current mirror set or the current tiny-entry route examples, run:
 

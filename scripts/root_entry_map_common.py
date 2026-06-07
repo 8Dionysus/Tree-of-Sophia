@@ -37,8 +37,8 @@ ROUTES = (
         "need": "enter the current bounded ToS route through the source-owned tiny-entry seam",
         "surface_ref": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
         "verification_refs": [
-            "ToS/doctrine/TINY_ENTRY_ROUTE.md",
-            "ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+            "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
         ],
     },
     {
@@ -51,7 +51,7 @@ ROUTES = (
         "route_id": "bounded-export",
         "need": "inspect the current bounded downstream export seam without mistaking it for ToS authority",
         "surface_ref": "ToS/derived-exports/kag_export.min.json",
-        "verification_refs": ["ToS/doctrine/KAG_EXPORT.md", "ToS/public-compatibility/source_node.example.json"],
+        "verification_refs": ["mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md", "ToS/public-compatibility/source_node.example.json"],
     },
 )
 

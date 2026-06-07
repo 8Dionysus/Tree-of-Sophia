@@ -21,22 +21,22 @@ wave. Its current checked surface is:
 - public source-first orientation and boundaries:
   `README.md`, `CHARTER.md`, `BOUNDARIES.md`,
   `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`, and
-  `ToS/doctrine/REVIEW_CHECKLIST.md`
+  `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
 - source-owned zero-entry capsule and re-entry doctrine:
-  `ToS/doctrine/TINY_ENTRY_ROUTE.md`,
+  `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`,
   `ToS/public-compatibility/tos_tiny_entry_route.example.json`,
   `ToS/derived-exports/root_entry_map.min.json`, `scripts/build_root_entry_map.py`,
   `scripts/validate_root_entry_map.py`, and
   `scripts/validate_tiny_entry_route.py`
 - current trilingual authority and compatibility route:
-  `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`,
+  `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`,
   `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`,
   `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`,
   `ToS/public-compatibility/source_node.example.json`,
   `ToS/canon/concept/becoming/node.json`, and
   `ToS/public-compatibility/concept_node.example.json`
 - bounded downstream export seam:
-  `ToS/doctrine/KAG_EXPORT.md`, `ToS/derived-exports/kag_export.json`,
+  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, `ToS/derived-exports/kag_export.json`,
   `ToS/derived-exports/kag_export.min.json`, `scripts/generate_kag_export.py`, and
   `scripts/validate_kag_export.py`
 

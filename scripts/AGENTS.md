@@ -6,9 +6,9 @@ This file applies to the generator and validator tools under `scripts/`.
 
 Before editing tools here, read:
 1. the repository root `AGENTS.md`
-2. `ToS/doctrine/TINY_ENTRY_ROUTE.md`
-3. `ToS/doctrine/KAG_EXPORT.md`
-4. `ToS/doctrine/REVIEW_CHECKLIST.md`
+2. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+3. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+4. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
 5. `docs/decisions/AGENTS.md` when decision-index tooling is touched
 6. the schema, example, intake, decision, or tree surfaces the script actually touches
 

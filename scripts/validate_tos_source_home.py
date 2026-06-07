@@ -21,6 +21,8 @@ LEGACY_ROOT_HOMES = (
 EXPECTED_BRANCHES = {
     "doctrine": "ToS/doctrine",
     "source_witnesses": "ToS/source-witnesses",
+    "zarathustra": "ToS/zarathustra",
+    "research_packets": "ToS/research-packets",
     "philosophy": "ToS/philosophy",
     "candidate_intake": "ToS/candidate-intake",
     "canon": "ToS/canon",
@@ -33,7 +35,7 @@ REQUIRED_HOME_README_FRAGMENTS = (
     "## Operating Card",
     "## Boundary Routes",
     "| role | source-home entrypoint for ToS-authored philosophical work |",
-    "| next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |",
+    "| next route | witness or research packet -> zarathustra, philosophy, or candidate intake -> canon -> public compatibility -> derived export |",
 )
 BANNED_HOME_README_MARKERS = (
     "## Stop Lines",

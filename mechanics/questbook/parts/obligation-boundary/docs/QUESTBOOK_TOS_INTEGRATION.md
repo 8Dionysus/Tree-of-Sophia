@@ -32,7 +32,7 @@ Use stable anchors such as:
 - `BOUNDARIES.md`
 - `ToS/doctrine/KNOWLEDGE_MODEL.md`
 - `ToS/doctrine/NODE_CONTRACT.md`
-- `ToS/doctrine/CONTEXT_COMPOST.md`
+- `mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`
 - `ToS/doctrine/COUNTERPART_POLICY.md`
 - `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
 - node template docs under `docs/*_NODE_TEMPLATE.md`

@@ -94,8 +94,8 @@ must treat those as the current repo-relative ToS paths.
 - `ToS/source_home.manifest.json`
 - `ToS/doctrine/KNOWLEDGE_MODEL.md`
 - `ToS/doctrine/NODE_CONTRACT.md`
-- `ToS/doctrine/TINY_ENTRY_ROUTE.md`
-- `ToS/doctrine/KAG_EXPORT.md`
+- `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
 - `ToS/canon/`
 - `ToS/public-compatibility/`
 - `ToS/derived-exports/`

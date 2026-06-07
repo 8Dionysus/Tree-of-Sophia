@@ -97,7 +97,10 @@ This wave should stay:
 
 It does not yet open a second family, new branch nodes, or wider world-thought expansion.
 
-See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md), [MANUAL_CORPUS_ENTRY_GATE](MANUAL_CORPUS_ENTRY_GATE.md), and [PRE_EXPANSION_SOIL](PRE_EXPANSION_SOIL.md) for the compact preparation surfaces.
+See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md),
+[MANUAL_CORPUS_ENTRY_GATE](../../mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md),
+and [PRE_EXPANSION_SOIL](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md)
+for the compact preparation surfaces.
 
 ## Bounded trilingual Zarathustra entry
 
@@ -128,7 +131,8 @@ Concept nodes remain language-neutral even when their source route is multilingu
 
 This is still not wider world-thought expansion.
 
-See [ZARATHUSTRA_TRILINGUAL_ENTRY](ZARATHUSTRA_TRILINGUAL_ENTRY.md) for the compact route note.
+See [TRILINGUAL_ENTRY](../zarathustra/prologue-1/TRILINGUAL_ENTRY.md)
+for the compact route note.
 
 ## First route-local principle promotion
 
@@ -306,7 +310,7 @@ The current public chain is:
 In the first public route:
 
 - `README.md` is the current public `tos-root`
-- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md` is the worked capsule surface
+- `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md` is the worked capsule surface
 - `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` is the canonical authored source node
 - `ToS/public-compatibility/source_node.example.json` is the current public compatibility authority surface
 - `ToS/canon/concept/becoming/node.json` is the canonical authored bounded hop
@@ -323,7 +327,8 @@ This seam stays:
 Its job is orientation, not ownership transfer.
 `aoa-kag` and `aoa-routing` may consume this route downstream, and the current public seam is already used that way, but they do not become ToS authority surfaces.
 
-See [TINY_ENTRY_ROUTE](TINY_ENTRY_ROUTE.md) for the compact route doctrine.
+See [TINY_ENTRY_ROUTE](../zarathustra/public-entry/TINY_ENTRY_ROUTE.md)
+for the compact route surface.
 
 ## Repository content layers
 
@@ -492,7 +497,8 @@ One compact worked path for the current pilot wave is:
 
 That path gives ToS a disciplined digestion route without claiming that canonization or later growth seeds are already solved.
 
-See [CONTEXT_COMPOST](CONTEXT_COMPOST.md) for the compact doctrine.
+See [CONTEXT_COMPOST](../../mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md)
+for the compact distillation route.
 
 ## Calibration axis
 
@@ -533,7 +539,8 @@ Human-reviewed curation still owns:
 
 This keeps AI visible as an amplifier rather than a hidden sovereign author.
 
-See [HUMAN_CURATED_EXPANSION](HUMAN_CURATED_EXPANSION.md) for the compact curation note.
+See [HUMAN_CURATED_EXPANSION](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md)
+for the compact curation note.
 
 ## Growth by explicit structure
 
@@ -547,7 +554,8 @@ The practical growth choices are:
 
 This protects ToS from node explosion, archive sediment, and quantity theater.
 
-See [GROWTH_STRUCTURE](GROWTH_STRUCTURE.md) for the compact growth law.
+See [GROWTH_STRUCTURE](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md)
+for the compact growth route.
 
 ## Handoff to derived systems
 
