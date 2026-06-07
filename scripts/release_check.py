@@ -14,6 +14,8 @@ COMMANDS = [
     ("validate mechanics topology", [sys.executable, "scripts/validate_mechanics_topology.py"]),
     ("check root entry map", [sys.executable, "scripts/build_root_entry_map.py", "--check"]),
     ("validate root entry map", [sys.executable, "scripts/validate_root_entry_map.py"]),
+    ("check ToS corpus index", [sys.executable, "scripts/build_tos_corpus_index.py", "--check"]),
+    ("validate ToS corpus index", [sys.executable, "scripts/validate_tos_corpus_index.py"]),
     ("validate tiny entry route", [sys.executable, "scripts/validate_tiny_entry_route.py"]),
     ("validate KAG export", [sys.executable, "scripts/validate_kag_export.py"]),
     ("check decision indexes", [sys.executable, "scripts/generate_decision_indexes.py", "--check"]),

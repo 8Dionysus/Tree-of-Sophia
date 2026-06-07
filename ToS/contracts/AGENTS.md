@@ -18,6 +18,7 @@ Before changing a schema, read:
 The current contract files include:
 - `tos-node-contract.schema.json`
 - `tos-tiny-entry-route.schema.json`
+- `tos-corpus-index.schema.json`
 
 Any schema edit here is a public contract change.
 
@@ -44,6 +45,10 @@ Keep:
 Route AoA routing semantics, generated KAG export envelopes, runtime
 assumptions, and non-source operational contracts to their owning surfaces
 before changing source-owned contracts.
+
+The corpus index contract describes a derived resource map for review and
+runtime access. It must keep graph UI, MCP, Neo4j, and service behavior owned by
+`abyss-stack`.
 
 ## Boundary Routes
 

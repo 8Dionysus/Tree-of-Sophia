@@ -13,7 +13,9 @@ Before touching anything here, read:
 
 ## Local role
 
-`ToS/derived-exports/` contains the current tiny KAG export surfaces for Tree of Sophia.
+`ToS/derived-exports/` contains generated read-model surfaces for Tree of Sophia:
+the current tiny KAG export and the whole-corpus index used by runtime access
+planes.
 
 These files are:
 - derived guide artifacts for downstream consumers
@@ -32,8 +34,11 @@ read models.
 | output | generated export payloads and compact read models |
 | owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | `scripts/generate_kag_export.py`, `scripts/validate_kag_export.py`, source validators |
+| tools | `scripts/generate_kag_export.py`, `scripts/validate_kag_export.py`, `scripts/build_tos_corpus_index.py`, `scripts/validate_tos_corpus_index.py`, source validators |
 | check | generated parity and export validation |
+
+The corpus index additionally reads the whole source-home branch set and
+publishes a generated resource map for graph review.
 
 ## Editing posture
 
@@ -47,7 +52,8 @@ Keep the pilot narrow to the current Zarathustra route:
 - keep `non_identity_boundary` explicit so downstream consumers do not mistake export for authorship
 
 Widen the export envelope only when the source-owned route, contract, and
-review posture have widened first.
+review posture have widened first. The corpus index may cover the whole `ToS/`
+home, but it remains an index and must not become authored meaning.
 
 ## Boundary Routes
 
@@ -56,6 +62,8 @@ review posture have widened first.
 - AoA routing and control-plane semantics route to their owning repositories.
 - Runtime state routes to runtime owner surfaces, not derived ToS exports.
 - Derived fields point back to the source-owned input that gives them meaning.
+- Runtime graph, UI, MCP, and Neo4j projection behavior route to `abyss-stack`;
+  this branch only publishes the checked corpus resource they may read.
 
 ## Validation
 
@@ -65,6 +73,8 @@ Run:
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
+python scripts/build_tos_corpus_index.py --check
+python scripts/validate_tos_corpus_index.py
 ```
 
 If the touched export depends on the current tiny-entry route, also run:

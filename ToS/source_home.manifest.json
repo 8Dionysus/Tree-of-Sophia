@@ -101,6 +101,8 @@
       "validators": [
         "python scripts/build_root_entry_map.py --check",
         "python scripts/validate_root_entry_map.py",
+        "python scripts/build_tos_corpus_index.py --check",
+        "python scripts/validate_tos_corpus_index.py",
         "python scripts/validate_kag_export.py"
       ]
     },
