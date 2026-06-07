@@ -11,12 +11,14 @@ Use `ToS/derived-exports/` when you need:
 
 - a compact downstream-safe export of the current bounded route
 - a reviewable derived payload for KAG-oriented consumers
+- a checked whole-corpus index for runtime graph, UI, and MCP access planes
 
 Do not treat `ToS/derived-exports/` as:
 
 - the primary authored home of the route
 - a replacement for the canonical tree node
 - an excuse to skip the source-owned capsule and tiny-entry docs
+- a runtime projection store or graph UI authority
 
 ## Current bounded export
 
@@ -24,8 +26,11 @@ The current public export surfaces are:
 
 - `kag_export.json`
 - `kag_export.min.json`
+- `tos_corpus_index.min.json`
 
 They summarize the current Zarathustra route for downstream consumers while pointing back to ToS-owned authority and compatibility surfaces.
+The corpus index covers the whole `ToS/` home as a derived resource map so
+`abyss-stack` can project and visualize the corpus without owning ToS meaning.
 
 ## How to verify
 
@@ -35,3 +40,5 @@ Use:
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../public-compatibility/source_node.example.json`
 - `python scripts/validate_kag_export.py`
+- `python scripts/build_tos_corpus_index.py --check`
+- `python scripts/validate_tos_corpus_index.py`

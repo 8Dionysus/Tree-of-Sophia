@@ -26,6 +26,11 @@ These tools should:
 branch so it cannot collapse into a flat import folder or inherit source UI
 labels as repository topology.
 
+`build_tos_corpus_index.py` and `validate_tos_corpus_index.py` publish the
+checked whole-corpus index for graph review. They index the whole `ToS/` home
+as a derived resource map; they do not move runtime projection or visualization
+authority into Tree of Sophia.
+
 ## Operating Card
 
 | Field | Route |
@@ -52,6 +57,7 @@ Avoid:
 - network calls
 - hidden state
 - broad corpus automation
+- broad corpus automation without an explicit derived-export contract
 - discovery magic that blurs ownership
 - turning validators into a runtime or orchestration control plane
 
@@ -81,6 +87,8 @@ python scripts/validate_tree_relation_pack.py
 python scripts/validate_tree_example_sync.py
 python scripts/generate_kag_export.py
 python scripts/validate_kag_export.py
+python scripts/build_tos_corpus_index.py --check
+python scripts/validate_tos_corpus_index.py
 python scripts/generate_decision_indexes.py --check
 python scripts/validate_decision_records.py
 ```
