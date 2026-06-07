@@ -20,7 +20,21 @@ These files illustrate:
 - the current tiny-entry route
 - bounded quest compatibility artifacts used for public-safe review or transport
 
-Older superseded pilots may live under `ToS/public-compatibility/review/`. Treat those as archive or review surfaces, not as current compatibility truth.
+Older superseded pilots may live under `ToS/public-compatibility/review/`.
+Treat those as archive or review surfaces; current compatibility truth stays
+in the active files at this branch root.
+
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | public compatibility and tiny-entry example surface |
+| input | reviewed canon object, contract change, public-safe route example, or bounded compatibility artifact |
+| output | example payload aligned with canon, contract, and export validators |
+| owner | `ToS/public-compatibility/AGENTS.md`; review archive owner for `review/` |
+| next route | canon or contract -> public example -> generated export when included |
+| tools | tree example sync, KAG export generator, schema validators |
+| check | `python scripts/validate_tree_example_sync.py` and export validation when relevant |
 
 ## Editing posture
 
@@ -30,21 +44,27 @@ Keep examples aligned with both:
 
 Keep `node_id` values stable, readable, and scoped to one authored object. Use one shared `node_id` across multilingual witnesses rather than language-split copies.
 
-Examples are not:
-- a second canon
-- generated runtime state
-- a substitute for doctrine docs
-- permission to broaden the bounded route into a full corpus program
+Examples route back to:
+- canon for authored object meaning
+- contracts for public structure
+- doctrine docs for route law
+- generated exports only when the bounded route includes them
 
-`quest_catalog.min.example.json` and `quest_dispatch.min.example.json` are reviewable compatibility artifacts. They are not runtime authority, not live quest state, and not a license to collapse authored meaning into backlog language.
+`quest_catalog.min.example.json` and `quest_dispatch.min.example.json` are
+reviewable compatibility artifacts. Runtime authority and live quest state stay
+with their runtime owner surfaces; authored meaning stays with source, doctrine,
+and canon owners.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- edit an example first and retrofit the tree later
-- treat `ToS/public-compatibility/review/` as an active compatibility surface
-- widen example payloads just because downstream consumers might want more
-- blur authored nodes and operational compatibility artifacts into one envelope
+- Change canon or contracts first when the example needs new source-owned
+  meaning.
+- Route superseded material to `ToS/public-compatibility/review/` with visible
+  archive posture.
+- Widen public payloads only after the owning source, canon, contract, and
+  review surfaces support the wider route.
+- Keep authored nodes and operational compatibility artifacts in distinct
+  fields or files.
 
 ## Validation
 

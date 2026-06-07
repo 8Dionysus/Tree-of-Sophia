@@ -20,13 +20,25 @@ These files are:
 - bounded transport surfaces for the current route
 - explicitly subordinate to authored ToS authority
 
-They are not authored law.
+Authored law stays in source-owned ToS surfaces; this branch publishes derived
+read models.
+
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | generated downstream-facing read model surface |
+| input | owned canon, compatibility examples, contracts, and generator logic |
+| output | generated export payloads and compact read models |
+| owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
+| next route | source-owned input or generator -> regenerate -> validate export |
+| tools | `scripts/generate_kag_export.py`, `scripts/validate_kag_export.py`, source validators |
+| check | generated parity and export validation |
 
 ## Editing posture
 
-Do not hand-edit derived payloads as the normal workflow.
-
-Change the source-owned inputs or generation logic, then regenerate.
+Change the source-owned inputs or generation logic, then regenerate the
+derived payloads.
 
 Keep the pilot narrow to the current Zarathustra route:
 - preserve `tos.source.thus-spoke-zarathustra.prologue`
@@ -34,15 +46,16 @@ Keep the pilot narrow to the current Zarathustra route:
 - keep `section_handles` aligned with source `interpretation_layers`
 - keep `non_identity_boundary` explicit so downstream consumers do not mistake export for authorship
 
-Do not widen the export envelope just because downstream tooling could ingest more. A larger export that weakens provenance is a paper crown.
+Widen the export envelope only when the source-owned route, contract, and
+review posture have widened first.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- treat `ToS/derived-exports/` as a hand-maintained data layer
-- slip AoA routing or control-plane semantics into ToS export by convenience
-- let quest or progression fields become hidden runtime state here
-- present a derived field as a stronger authority than its source-owned input
+- Hand-maintained data routes to source-owned inputs, contracts, or generator
+  logic before the export changes.
+- AoA routing and control-plane semantics route to their owning repositories.
+- Runtime state routes to runtime owner surfaces, not derived ToS exports.
+- Derived fields point back to the source-owned input that gives them meaning.
 
 ## Validation
 

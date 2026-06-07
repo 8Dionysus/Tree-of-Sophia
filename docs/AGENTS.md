@@ -28,8 +28,8 @@ compatibility, and derived exports belong under `ToS/`.
 
 ## Editing posture
 
-Treat `docs/` as a repository-level rationale and release lane, not as the ToS
-source home.
+Treat `docs/` as a repository-level rationale and release lane. The ToS source
+home remains under `ToS/`.
 
 When a repository-level doc describes ToS source-home surfaces, use current
 repo-relative paths:
@@ -43,13 +43,14 @@ repo-relative paths:
 - public contracts in `ToS/contracts/`
 - review notes in `ToS/review-ledger/`
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- recreate ToS doctrine here after it has moved into `ToS/doctrine/`
-- use a decision note to bypass a stronger current ToS contract
-- hand-edit generated decision indexes
-- turn repository release docs into source, canon, runtime, or KAG authority
+- Current ToS doctrine routes to `ToS/doctrine/`.
+- Durable rationale routes to `docs/decisions/` and remains weaker than the
+  source surface it explains.
+- Generated decision indexes are regenerated from decision notes.
+- Release docs describe release procedure; source, canon, runtime, and KAG
+  authority stay with their owning surfaces.
 
 ## Validation
 

@@ -9,9 +9,21 @@ Sophia. It is where trunk law, era branches, region branches, tradition
 subtrees, works, figures, concepts, transmissions, sources, and local graph
 workbenches can expand without flattening into a warehouse.
 
-This branch is not `candidate-intake/`. Candidate intake remains a quarantine
-surface for provisional extraction. `ToS/philosophy/` is the authored domain
-body that can grow toward canonical nodes and relation packs.
+`ToS/philosophy/` owns authored domain growth. `ToS/candidate-intake/` owns
+provisional extraction before reviewed material can grow toward canonical nodes
+and relation packs.
+
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | growing domain branch for philosophy |
+| input | era, region, tradition, work, figure, concept, source-corpus, transmission, and branch-graph material |
+| output | tree-shaped philosophical branch surfaces with evidence posture and local graph workbench routes |
+| owner | `ToS/philosophy/AGENTS.md`, `ToS/philosophy/README.md`, and `ToS/philosophy/philosophy.manifest.json` |
+| next route | branch witness -> local domain branch -> graph workbench -> review -> `ToS/canon/` promotion when ready |
+| tools | branch manifests, source witness manifests, local workbench ledgers, canon route cards |
+| check | `python scripts/validate_philosophy_topology.py` |
 
 ## Read First
 
@@ -37,14 +49,16 @@ body that can grow toward canonical nodes and relation packs.
 - Preserve evidence status and uncertainty in branch manifests instead of
   smoothing it into authoritative prose.
 
-## Stop Lines
+## Boundary Routes
 
-- Do not create `zagotovki`, `world-written-philosophy`, `raw-pages`, or other
-  flat source-label paths inside this branch.
-- Do not make `ToS/philosophy/` a database dump, a Notion mirror, or a hidden
-  replacement for `ToS/canon/`.
-- Do not promote a work, figure, concept, or relation into canon until the
-  branch has enough source anchors and review posture to support it.
+- Source UI labels and workbench nicknames stay in source-witness metadata.
+  Repository paths describe the philosophical branch they belong to.
+- Notion pages route through `ToS/source-witnesses/notion/philosophy/`; their
+  branch-shaped material routes into `ToS/philosophy/`.
+- Provisional extraction routes to `ToS/candidate-intake/`; reviewed authored
+  nodes and relation packs route to `ToS/canon/`.
+- Canon promotion needs source anchors, evidence posture, and the owning canon
+  validator.
 
 ## Validation
 

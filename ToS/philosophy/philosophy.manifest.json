@@ -3,11 +3,29 @@
   "branch_id": "philosophy",
   "path": "ToS/philosophy",
   "role": "growing domain tree of philosophy",
-  "not": [
-    "candidate-intake",
-    "notion mirror",
-    "flat index warehouse"
-  ],
+  "boundary_routes": {
+    "provisional_extraction": "ToS/candidate-intake",
+    "source_page_witnesses": "ToS/source-witnesses/notion/philosophy",
+    "canon_promotion": "ToS/canon"
+  },
+  "path_component_policy": {
+    "repository_paths_describe": [
+      "era",
+      "region",
+      "tradition",
+      "work",
+      "figure",
+      "concept",
+      "source-corpus",
+      "transmission",
+      "graph-route"
+    ],
+    "metadata_only_inputs": [
+      "source page titles",
+      "temporary UI labels",
+      "workbench nicknames"
+    ]
+  },
   "primary_growth_order": [
     "trunk",
     "eras",
@@ -58,10 +76,5 @@
   ],
   "source_witness_routes": [
     "ToS/source-witnesses/notion/philosophy/witness.manifest.json"
-  ],
-  "forbidden_path_components": [
-    "zagotovki",
-    "raw-pages",
-    "world-written-philosophy"
   ]
 }

@@ -29,6 +29,16 @@ EXPECTED_BRANCHES = {
     "contracts": "ToS/contracts",
     "review_ledger": "ToS/review-ledger",
 }
+REQUIRED_HOME_README_FRAGMENTS = (
+    "## Operating Card",
+    "## Boundary Routes",
+    "| role | source-home entrypoint for ToS-authored philosophical work |",
+    "| next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |",
+)
+BANNED_HOME_README_MARKERS = (
+    "## Stop Lines",
+    "## Hard no",
+)
 
 Issue: TypeAlias = tuple[str, str]
 
@@ -57,6 +67,15 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         issues.append(("ToS/AGENTS.md", "missing ToS home route card"))
     if not (root / HOME_PATH / "README.md").is_file():
         issues.append(("ToS/README.md", "missing ToS home map"))
+    else:
+        readme_text = (root / HOME_PATH / "README.md").read_text(encoding="utf-8")
+        normalized_readme = " ".join(readme_text.lower().split())
+        for fragment in REQUIRED_HOME_README_FRAGMENTS:
+            if " ".join(fragment.lower().split()) not in normalized_readme:
+                issues.append(("ToS/README.md", f"missing source-home route fragment: {fragment}"))
+        for marker in BANNED_HOME_README_MARKERS:
+            if marker in readme_text:
+                issues.append(("ToS/README.md", f"use Operating Card/Boundary Routes instead of {marker}"))
 
     for legacy_path in LEGACY_ROOT_HOMES:
         if (root / legacy_path).exists():

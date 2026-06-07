@@ -23,6 +23,18 @@ The current contract files include:
 
 Any schema edit here is a public contract change.
 
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | public schema contract surface for ToS structures |
+| input | reviewed structural change in canon, compatibility, quest transport, or export boundary |
+| output | schema contract aligned with examples and validators |
+| owner | `ToS/contracts/AGENTS.md` and the specific schema file |
+| next route | source/canon/compatibility pressure -> schema update -> examples -> validators |
+| tools | JSON schema, example sync, export validation, review checklist |
+| check | schema-aware validators and affected route validators |
+
 ## Editing posture
 
 Keep:
@@ -31,20 +43,20 @@ Keep:
 - relation enums explicit and bounded
 - repo-relative surfaces local to ToS
 
-Do not fold:
-- AoA routing semantics
-- derived KAG export envelopes
-- hidden runtime assumptions
-into source-owned schema contracts.
+Route AoA routing semantics, generated KAG export envelopes, and runtime
+assumptions to their owning surfaces before changing source-owned contracts.
 
-Quest contracts here are operational compatibility surfaces only. They must not flatten authored meaning into backlog or game-state language.
+Quest contracts here are operational compatibility surfaces only. Authored
+meaning stays with source, doctrine, and canon owners.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- smuggle a semantic model rewrite through a "small schema tweak"
-- split one authored node identity into language-specific variants
-- let downstream convenience become schema sovereignty
+- Semantic model changes route through doctrine, canon, contracts, examples,
+  and validators together.
+- One authored node identity stays shared across multilingual witnesses unless
+  the node contract itself changes.
+- Downstream convenience becomes contract language only after source-owned ToS
+  surfaces justify it.
 
 ## Validation
 

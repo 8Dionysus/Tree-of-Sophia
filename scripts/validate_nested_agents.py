@@ -10,6 +10,10 @@ Issue: TypeAlias = tuple[str, str]
 REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     "ToS/AGENTS.md": (
         "source-home organ for Tree of Sophia",
+        "## Operating Card",
+        "| input | source witnesses, philosophy branches",
+        "| output | a branch-shaped ToS surface",
+        "| next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |",
         "ToS/source_home.manifest.json",
         "ToS/doctrine/KNOWLEDGE_MODEL.md",
         "ToS/doctrine/NODE_CONTRACT.md",
@@ -26,19 +30,27 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "ToS/philosophy/AGENTS.md": (
         "growing domain branch for philosophy",
+        "## Operating Card",
+        "| input | era, region, tradition, work, figure, concept, source-corpus, transmission, and branch-graph material |",
+        "| next route | branch witness -> local domain branch -> graph workbench -> review -> `ToS/canon/` promotion when ready |",
         "trunk law",
         "era branches",
         "region branches",
         "tradition subtrees",
         "works, figures, concepts, transmissions, sources, and local graph workbenches",
-        "not `candidate-intake/`",
+        "`ToS/philosophy/` owns authored domain growth",
+        "`ToS/candidate-intake/` owns provisional extraction",
         "Name branches by what they are in the philosophical tree",
         "trunk -> eras -> regions -> traditions",
-        "Do not create `zagotovki`, `world-written-philosophy`, `raw-pages`",
+        "Source UI labels and workbench nicknames stay in source-witness metadata",
+        "Repository paths describe the philosophical branch they belong to",
         "python scripts/validate_philosophy_topology.py",
     ),
     "ToS/source-witnesses/notion/philosophy/AGENTS.md": (
         "Notion witness surfaces for `ToS/philosophy/`",
+        "## Operating Card",
+        "| input | Notion page identity, title, ancestor path, source timestamp, and child-page pointers |",
+        "| output | witness metadata and page pointers",
         "without letting Notion UI labels become repository topology",
         "Keep source page names in metadata, not in path names",
         "Route branch-shaped philosophical material into `ToS/philosophy/`",
@@ -59,6 +71,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "docs/AGENTS.md": (
         "repository-level documentation surfaces",
+        "## Boundary Routes",
         "docs/decisions/",
         "docs/RELEASING.md",
         "docs/AGENTS_ROOT_REFERENCE.md",
@@ -73,6 +86,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "docs/decisions/AGENTS.md": (
         "durable ToS decision rationale",
+        "## Boundary Routes",
         "Decision notes explain why",
         "weaker than the current source",
         "TOS-D-####",
@@ -84,6 +98,9 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "ToS/public-compatibility/AGENTS.md": (
         "current public compatibility and entry surfaces",
+        "## Operating Card",
+        "| input | reviewed canon object, contract change, public-safe route example, or bounded compatibility artifact |",
+        "| output | example payload aligned with canon, contract, and export validators |",
         "the authored node contract",
         "the current tiny-entry route",
         "bounded quest compatibility artifacts used for public-safe review or transport",
@@ -91,19 +108,22 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "one shared `node_id`",
         "`quest_catalog.min.example.json`",
         "`quest_dispatch.min.example.json`",
-        "not runtime authority",
+        "Runtime authority and live quest state stay",
         "ToS/doctrine/REVIEW_CHECKLIST.md",
     ),
     "ToS/public-compatibility/review/AGENTS.md": (
         "review/archive material",
         "superseded",
-        "not active canon",
+        "Active canon stays under `ToS/canon/`",
         "ToS/public-compatibility/review/calibration-family-pilot/",
         "ToS/doctrine/REVIEW_CHECKLIST.md",
     ),
     "ToS/derived-exports/AGENTS.md": (
         "derived export artifacts under `ToS/derived-exports/`",
-        "Do not hand-edit derived payloads as the normal workflow",
+        "## Operating Card",
+        "| input | owned canon, compatibility examples, contracts, and generator logic |",
+        "| output | generated export payloads and compact read models |",
+        "Change the source-owned inputs or generation logic, then regenerate",
         "tos.source.thus-spoke-zarathustra.prologue",
         "`entry_surface`",
         "`section_handles`",
@@ -112,6 +132,7 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "python scripts/validate_kag_export.py",
     ),
     "ToS/contracts/AGENTS.md": (
+        "## Operating Card",
         "tos-node-contract.schema.json",
         "tos-tiny-entry-route.schema.json",
         "quest.schema.json",
@@ -122,6 +143,9 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
         "ToS/doctrine/REVIEW_CHECKLIST.md",
     ),
     "scripts/AGENTS.md": (
+        "## Operating Card",
+        "| input | schema, example, intake, canon, decision, topology, or export surface |",
+        "| output | generated payload, generated index, or pass/fail validation signal |",
         "validate_tiny_entry_route.py",
         "validate_philosophy_topology.py",
         "generate_kag_export.py",
@@ -143,20 +167,26 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "ToS/source-witnesses/AGENTS.md": (
         "primary witness and source files",
-        "authority is witnessed, not where it is already interpreted into node law",
+        "## Operating Card",
+        "| input | primary-language text, bridge translation, donor markdown, source-page metadata, and provenance notes |",
+        "| output | reviewable witness surface with explicit source posture |",
+        "witnesses authority and routes later interpretation",
         "candidate structure in `ToS/candidate-intake/`",
         "canonical authored nodes in `ToS/canon/`",
         "compatibility mirrors in `ToS/public-compatibility/`",
-        "do not hide witness uncertainty behind smooth merged prose",
+        "keep witness uncertainty visible",
         "ToS/doctrine/REVIEW_CHECKLIST.md",
     ),
     "ToS/candidate-intake/AGENTS.md": (
         "candidate intake material",
-        "staging ledge, not a throne room",
-        "not primary witness authority",
-        "not canonical tree law",
-        "not the public route of truth",
-        "not a hidden automation pipeline",
+        "## Operating Card",
+        "| input | source-linked extraction pass, candidate node table, relation table, normalization note, or promotion residue |",
+        "| output | reviewable candidate pack with source pointer, pass frame, blocker state, and uncertainty |",
+        "staging ledge for material that still needs review",
+        "primary witness authority in `ToS/source-witnesses/`",
+        "canonical tree law in `ToS/canon/`",
+        "public route examples in `ToS/public-compatibility/`",
+        "deterministic tooling in `scripts/`",
         "the source witness",
         "the pass or extraction frame",
         "the uncertainty that still remains",
@@ -165,6 +195,9 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
     "ToS/canon/AGENTS.md": (
         "canonical authored tree",
+        "## Operating Card",
+        "| input | reviewed source-grounded authored object, canonical relation pack, or vocabulary registry change |",
+        "| output | canonical `node.json`, `edges.csv`, or registry surface with stable identity |",
         "canonical authored source nodes",
         "concept, principle, lineage, event, state, support, analogy, and synthesis nodes",
         "canonical relation packs",
@@ -236,6 +269,11 @@ REQUIRED_AGENTS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+BANNED_ROUTE_SECTION_MARKERS = (
+    "## Stop Lines",
+    "## Hard no",
+)
+
 
 def normalize(text: str) -> str:
     return " ".join(text.lower().split())
@@ -260,6 +298,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         for phrase in required_phrases:
             if normalize(phrase) not in text:
                 issues.append((relative_path, f"missing required phrase: {phrase}"))
+        for marker in BANNED_ROUTE_SECTION_MARKERS:
+            if marker in raw_text:
+                issues.append((relative_path, f"use Operating Card/Boundary Routes instead of {marker}"))
 
     return issues
 

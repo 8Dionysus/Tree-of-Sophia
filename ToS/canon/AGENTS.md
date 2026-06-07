@@ -24,9 +24,22 @@ It holds:
 
 The current route uses directory-scoped `node.json` files as canonical payloads and route-local `edges.csv` files as canonical relation packs.
 
+## Operating Card
+
+| Field | Route |
+| --- | --- |
+| role | canonical authored tree layer |
+| input | reviewed source-grounded authored object, canonical relation pack, or vocabulary registry change |
+| output | canonical `node.json`, `edges.csv`, or registry surface with stable identity |
+| owner | `ToS/canon/AGENTS.md` and nearest class-specific `AGENTS.md` |
+| next route | source witness or philosophy branch -> canon review -> compatibility mirror -> derived export |
+| tools | node templates, relation contract, registries, tree validators |
+| check | node contract, relation pack, example sync, and export validators |
+
 ## Editing posture
 
-Treat `ToS/canon/` as authored meaning, not as raw witness storage and not as a derived export layer.
+Treat `ToS/canon/` as authored meaning. Raw witness storage routes to
+`ToS/source-witnesses/`; generated projections route to `ToS/derived-exports/`.
 
 Keep these rules sharp:
 - one authored object per directory-scoped `node.json`
@@ -35,18 +48,20 @@ Keep these rules sharp:
 - explicit, bounded relation names
 - authored interpretation kept visibly distinct from raw witness text
 
-`ToS/public-compatibility/*.example.json` are compatibility mirrors of this layer, not a second canon.
-`ToS/derived-exports/` is downstream-facing derivative output, not a rival authority surface.
+`ToS/public-compatibility/*.example.json` are compatibility mirrors of this
+layer. `ToS/derived-exports/` is downstream-facing derivative output. Canon
+keeps authored authority.
 
 Quest or RPG reflection vocabulary must remain adjunct-only. It may annotate routes elsewhere, but it must not rename node classes, relation law, or authorship posture inside the canonical tree.
 
-## Hard no
+## Boundary Routes
 
-Do not:
-- move raw witness storage into `ToS/canon/`
-- flatten multiple authored objects into one node because they feel related
-- let compatibility mirrors drift and then treat the drift as a new canon
-- smuggle AoA routing or runtime control semantics into authored node law
+- Raw witness storage routes to `ToS/source-witnesses/`.
+- Related authored objects keep separate identities unless a reviewed template
+  defines one shared object.
+- Compatibility drift routes through example sync and canon review.
+- AoA routing or runtime control semantics route to their owning repositories
+  or layers.
 
 ## Validation
 
