@@ -17,6 +17,14 @@ WAVE3_STEMS = (
     "tos_no_runtime_adoption_guard",
     "tos_pattern_review_note",
 )
+WAVE3_PARTS = {
+    "aoa_experience_candidate_dossier": "candidate-review",
+    "tos_adoption_boundary_dossier": "adoption-boundary",
+    "tos_intake_boundary_decision": "candidate-review",
+    "tos_no_direct_write_guard": "write-guards",
+    "tos_no_runtime_adoption_guard": "adoption-boundary",
+    "tos_pattern_review_note": "pattern-review",
+}
 GUARDRAIL_BOOLEAN_FIELDS = {
     "authority_required",
     "derived_only",
@@ -44,11 +52,16 @@ ENUM_ESCAPE_VALUE = "__wave3_not_allowed__"
 
 
 def load_contract(stem: str) -> tuple[dict[str, object], dict[str, object]]:
-    schema_path = ROOT / "ToS" / "contracts" / f"{stem}_v1.json"
-    example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
+    schema_path, example_path = contract_paths(stem)
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     example = json.loads(example_path.read_text(encoding="utf-8"))
     return schema, example
+
+
+def contract_paths(stem: str) -> tuple[Path, Path]:
+    part = WAVE3_PARTS[stem]
+    base = ROOT / "mechanics" / "experience" / "parts" / part
+    return base / "schemas" / f"{stem}_v1.json", base / "examples" / f"{stem}.example.json"
 
 
 def validation_errors(schema: dict[str, object], value: dict[str, object]) -> list[object]:
@@ -120,8 +133,7 @@ class ExperienceWave3SeedContractTests(unittest.TestCase):
     def test_experience_wave3_examples_match_schemas(self) -> None:
         missing_pairs: list[str] = []
         for stem in WAVE3_STEMS:
-            schema_path = ROOT / "ToS" / "contracts" / f"{stem}_v1.json"
-            example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
+            schema_path, example_path = contract_paths(stem)
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():

@@ -9,8 +9,8 @@ import sys
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SRC = ROOT / 'config/tos_agon_threshold_intakes.seed.json'
-OUT = ROOT / 'ToS/derived-exports/tos_agon_threshold_intake_registry.min.json'
+SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json'
+OUT = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'
 WAVE = 'XVIII'

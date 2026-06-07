@@ -18,7 +18,7 @@ Before editing examples, read:
 These files illustrate:
 - the authored node contract
 - the current tiny-entry route
-- bounded quest compatibility artifacts used for public-safe review or transport
+- public-safe ToS compatibility mirrors that remain subordinate to canon
 
 Older superseded pilots may live under `ToS/public-compatibility/review/`.
 Treat those as archive or review surfaces; current compatibility truth stays
@@ -50,11 +50,6 @@ Examples route back to:
 - doctrine docs for route law
 - generated exports only when the bounded route includes them
 
-`quest_catalog.min.example.json` and `quest_dispatch.min.example.json` are
-reviewable compatibility artifacts. Runtime authority and live quest state stay
-with their runtime owner surfaces; authored meaning stays with source, doctrine,
-and canon owners.
-
 ## Boundary Routes
 
 - Change canon or contracts first when the example needs new source-owned
@@ -63,8 +58,8 @@ and canon owners.
   archive posture.
 - Widen public payloads only after the owning source, canon, contract, and
   review surfaces support the wider route.
-- Keep authored nodes and operational compatibility artifacts in distinct
-  fields or files.
+- Keep authored nodes distinct from operational artifacts and generated
+  companions.
 
 ## Validation
 

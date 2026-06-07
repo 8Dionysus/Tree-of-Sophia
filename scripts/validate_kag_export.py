@@ -32,11 +32,21 @@ class ValidationError(RuntimeError):
 
 
 QUESTBOOK_PATH = Path("QUESTBOOK.md")
-QUESTBOOK_INTEGRATION_PATH = Path("ToS") / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md"
-QUEST_SCHEMA_PATH = Path("ToS") / "contracts" / "quest.schema.json"
-QUEST_DISPATCH_SCHEMA_PATH = Path("ToS") / "contracts" / "quest_dispatch.schema.json"
-QUEST_CATALOG_EXAMPLE_PATH = Path("ToS") / "public-compatibility" / "quest_catalog.min.example.json"
-QUEST_DISPATCH_EXAMPLE_PATH = Path("ToS") / "public-compatibility" / "quest_dispatch.min.example.json"
+QUESTBOOK_INTEGRATION_PATH = (
+    Path("mechanics") / "questbook" / "parts" / "obligation-boundary" / "docs" / "QUESTBOOK_TOS_INTEGRATION.md"
+)
+QUEST_SCHEMA_PATH = (
+    Path("mechanics") / "questbook" / "parts" / "dispatch-contracts" / "schemas" / "quest.schema.json"
+)
+QUEST_DISPATCH_SCHEMA_PATH = (
+    Path("mechanics") / "questbook" / "parts" / "dispatch-contracts" / "schemas" / "quest_dispatch.schema.json"
+)
+QUEST_CATALOG_EXAMPLE_PATH = (
+    Path("mechanics") / "questbook" / "parts" / "dispatch-contracts" / "examples" / "quest_catalog.min.example.json"
+)
+QUEST_DISPATCH_EXAMPLE_PATH = (
+    Path("mechanics") / "questbook" / "parts" / "dispatch-contracts" / "examples" / "quest_dispatch.min.example.json"
+)
 QUEST_IDS = (
     "TOS-Q-0001",
     "TOS-Q-0002",
@@ -47,8 +57,8 @@ QUESTBOOK_REQUIRED_TOKENS = (
     "operational obligations that belong to `Tree-of-Sophia`",
     "philosophical truth claims as backlog items",
     "collapsing ToS meaning into AoA operational language",
-    "ToS/public-compatibility/quest_catalog.min.example.json",
-    "reviewable examples",
+    "mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json",
+    "reviewable compatibility examples",
 )
 QUESTBOOK_FORBIDDEN_TOKENS = ("ATM10-Agent", "aoa-sdk")
 QUESTBOOK_INTEGRATION_REQUIRED_TOKENS = (
@@ -363,7 +373,7 @@ def validate_questbook_surface() -> None:
 
     catalog_payload = read_json(REPO_ROOT / QUEST_CATALOG_EXAMPLE_PATH)
     if catalog_payload != expected_catalog:
-        fail("ToS/public-compatibility/quest_catalog.min.example.json must stay aligned with quests/*.yaml")
+        fail("mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json must stay aligned with quests/*.yaml")
 
     dispatch_payload = read_json(REPO_ROOT / QUEST_DISPATCH_EXAMPLE_PATH)
     if not isinstance(dispatch_payload, list):
@@ -376,7 +386,7 @@ def validate_questbook_surface() -> None:
             schema_label=QUEST_DISPATCH_SCHEMA_PATH.as_posix(),
         )
     if dispatch_payload != expected_dispatch:
-        fail("ToS/public-compatibility/quest_dispatch.min.example.json must stay aligned with quests/*.yaml")
+        fail("mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json must stay aligned with quests/*.yaml")
 
 
 def validate_nested_agents_docs() -> None:

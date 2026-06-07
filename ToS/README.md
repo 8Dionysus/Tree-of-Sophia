@@ -15,9 +15,9 @@ home.
 | `philosophy/` | growing domain tree of philosophy: trunk, eras, regions, traditions, works, figures, concepts, transmissions, local graph workbenches | candidate intake and generated readers |
 | `candidate-intake/` | provisional extraction and promotion ledgers | generated exports |
 | `canon/` | canonical authored nodes, relations, and registries | public mirrors and derived exports |
-| `public-compatibility/` | public-safe examples, mirrors, tiny-entry compatibility | derived exports |
-| `derived-exports/` | generated downstream-facing read models | nothing source-owned |
-| `contracts/` | schemas and public structural contracts | generated payloads |
+| `public-compatibility/` | ToS-owned public-safe examples, mirrors, and tiny-entry compatibility | derived exports |
+| `derived-exports/` | ToS-owned generated downstream-facing read models | nothing source-owned |
+| `contracts/` | ToS-owned schemas and public structural contracts | generated payloads |
 | `review-ledger/` | dated review and inspection notes | generated readers only |
 
 ## First Contour
@@ -41,7 +41,7 @@ prepare nodes and relation packs for review and promotion into `ToS/canon/`.
 | Field | Route |
 | --- | --- |
 | role | source-home entrypoint for ToS-authored philosophical work |
-| input | source witnesses, domain branches, candidate extraction, canon objects, public examples, generated exports, contracts, doctrine, and review evidence |
+| input | source witnesses, domain branches, candidate extraction, canon objects, ToS-owned public examples, generated exports, contracts, doctrine, and review evidence |
 | output | branch-shaped ToS surface with a visible owner, source posture, and validation route |
 | owner | `ToS/AGENTS.md` and `ToS/source_home.manifest.json` |
 | next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |
@@ -57,7 +57,6 @@ prepare nodes and relation packs for review and promotion into `ToS/canon/`.
   nodes and relation packs route to `canon/`.
 - Public examples route to `public-compatibility/`; generated read models route
   to `derived-exports/`; schemas route to `contracts/`.
-- Durable rationale routes to `docs/decisions/`; current ToS doctrine stays in
-  `ToS/doctrine/`.
+- Current ToS doctrine stays in `ToS/doctrine/`.
 - AoA federation, runtime, SDK, memory, eval, and KAG-substrate authority stay
   with their owning repositories or layers.

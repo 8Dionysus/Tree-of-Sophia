@@ -38,6 +38,7 @@ Use the owning surface itself for current meaning:
 - canonical authored meaning stays in `ToS/canon/`
 - public compatibility stays in `ToS/public-compatibility/`
 - derived export stays in `ToS/derived-exports/`
+- operation mechanics stay in `mechanics/`
 - doctrine, review law, and public route docs stay in their current `docs/` files
 
 Generated indexes under `docs/decisions/indexes/` are lookup read models only.

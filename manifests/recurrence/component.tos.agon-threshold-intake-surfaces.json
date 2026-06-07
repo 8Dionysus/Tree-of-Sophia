@@ -21,10 +21,10 @@
     "sdk_hidden_write"
   ],
   "observed_surfaces": [
-    "config/tos_agon_threshold_intakes.seed.json",
-    "ToS/derived-exports/tos_agon_threshold_intake_registry.min.json",
-    "ToS/contracts/tos-agon-threshold-intake.schema.json",
-    "ToS/contracts/tos-agon-threshold-intake-registry.schema.json"
+    "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json",
+    "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
+    "mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json",
+    "mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json"
   ],
   "recurrence_posture": "observe_review_queue_only",
   "repo": "Tree-of-Sophia",

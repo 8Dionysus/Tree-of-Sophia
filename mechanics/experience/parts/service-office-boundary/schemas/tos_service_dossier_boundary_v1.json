@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aoa.local/Tree-of-Sophia/mechanics/experience/parts/service-office-boundary/schemas/tos_service_dossier_boundary_v1.json",
+  "title": "Tos Service Dossier Boundary V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "created_at",
+    "dossier_type",
+    "evidence_refs",
+    "id",
+    "kind",
+    "notes",
+    "owner_repo",
+    "runtime_write_allowed",
+    "status",
+    "version"
+  ],
+  "properties": {
+    "created_at": {
+      "type": "string",
+      "minLength": 1,
+      "format": "date-time"
+    },
+    "dossier_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "minLength": 1,
+      "const": "tos_service_dossier_boundary_v1"
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner_repo": {
+      "type": "string",
+      "minLength": 1,
+      "const": "Tree-of-Sophia"
+    },
+    "runtime_write_allowed": {
+      "type": "boolean",
+      "const": false
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "enum": [
+        "active",
+        "allowed",
+        "applied",
+        "blocked",
+        "completed",
+        "draft",
+        "failed",
+        "held",
+        "passed",
+        "proposed",
+        "rejected",
+        "rolled_back",
+        "sealed"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "const": "1.1.0"
+    }
+  }
+}

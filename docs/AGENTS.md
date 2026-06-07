@@ -25,6 +25,7 @@ These files govern:
 ToS knowledge law, node contracts, route doctrine, templates, review ledgers,
 source witnesses, domain philosophy topology, canon, contracts, public
 compatibility, and derived exports belong under `ToS/`.
+Mechanic-owned operation payload belongs under root `mechanics/`.
 
 ## Editing posture
 
@@ -42,6 +43,7 @@ repo-relative paths:
 - derived exports in `ToS/derived-exports/`
 - public contracts in `ToS/contracts/`
 - review notes in `ToS/review-ledger/`
+- operation mechanics in `mechanics/`
 
 ## Boundary Routes
 
@@ -67,5 +69,6 @@ For source-home topology changes, run:
 ```bash
 python scripts/validate_tos_source_home.py
 python scripts/validate_philosophy_topology.py
+python scripts/validate_mechanics_topology.py
 python scripts/validate_nested_agents.py
 ```

@@ -25,12 +25,12 @@
     {
       "hook_id": "detect_threshold_surface_drift",
       "mode": "observe_only",
-      "target": "ToS/derived-exports/tos_agon_threshold_intake_registry.min.json"
+      "target": "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json"
     },
     {
       "hook_id": "detect_canon_authority_leak",
       "mode": "observe_only",
-      "target": "config/tos_agon_threshold_intakes.seed.json"
+      "target": "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json"
     }
   ],
   "wave": "XVIII"
