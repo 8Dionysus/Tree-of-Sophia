@@ -18,11 +18,11 @@ and relation packs.
 | Field | Route |
 | --- | --- |
 | role | growing domain branch for philosophy |
-| input | era, region, tradition, work, figure, concept, source-corpus, transmission, and branch-graph material |
+| input | era, region, tradition, work, figure, concept, source-corpus, transmission, research packet, and branch-graph material |
 | output | tree-shaped philosophical branch surfaces with evidence posture and local graph workbench routes |
 | owner | `ToS/philosophy/AGENTS.md`, `ToS/philosophy/README.md`, and `ToS/philosophy/philosophy.manifest.json` |
-| next route | branch witness -> local domain branch -> graph workbench -> review -> `ToS/canon/` promotion when ready |
-| tools | branch manifests, source witness manifests, local workbench ledgers, canon route cards |
+| next route | source witness or research packet -> local domain branch -> source anchoring -> graph workbench -> review -> `ToS/canon/` promotion when ready |
+| tools | branch manifests, research packet manifests, source witness routes, local workbench ledgers, canon route cards |
 | check | `python scripts/validate_philosophy_topology.py` |
 
 ## Read First
@@ -51,10 +51,12 @@ and relation packs.
 
 ## Boundary Routes
 
-- Source UI labels and workbench nicknames stay in source-witness metadata.
+- Capture page labels and workbench nicknames stay in metadata.
   Repository paths describe the philosophical branch they belong to.
-- Notion pages route through `ToS/source-witnesses/notion/philosophy/`; their
-  branch-shaped material routes into `ToS/philosophy/`.
+- AI-generated Deep Research material routes through
+  `ToS/research-packets/deep-research/philosophy/`; it is not a source witness
+  and cannot authorize philosophical claims.
+- Real source witnesses route through `ToS/source-witnesses/`.
 - Provisional extraction routes to `ToS/candidate-intake/`; reviewed authored
   nodes and relation packs route to `ToS/canon/`.
 - Canon promotion needs source anchors, evidence posture, and the owning canon

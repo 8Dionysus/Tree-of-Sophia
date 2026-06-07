@@ -39,8 +39,8 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertEqual(
             route["verification_refs"],
             [
-                "ToS/doctrine/TINY_ENTRY_ROUTE.md",
-                "ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+                "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+                "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
             ],
         )
 

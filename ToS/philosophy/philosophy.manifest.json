@@ -5,7 +5,8 @@
   "role": "growing domain tree of philosophy",
   "boundary_routes": {
     "provisional_extraction": "ToS/candidate-intake",
-    "source_page_witnesses": "ToS/source-witnesses/notion/philosophy",
+    "research_packets": "ToS/research-packets",
+    "source_witnesses": "ToS/source-witnesses",
     "canon_promotion": "ToS/canon"
   },
   "path_component_policy": {
@@ -21,7 +22,7 @@
       "graph-route"
     ],
     "metadata_only_inputs": [
-      "source page titles",
+      "capture page titles",
       "temporary UI labels",
       "workbench nicknames"
     ]
@@ -74,7 +75,7 @@
     "ToS/philosophy/graph-workbench/branch-fragments/branch.manifest.json",
     "ToS/philosophy/graph-workbench/promotion-ledger/branch.manifest.json"
   ],
-  "source_witness_routes": [
-    "ToS/source-witnesses/notion/philosophy/witness.manifest.json"
+  "research_packet_routes": [
+    "ToS/research-packets/deep-research/philosophy/research.manifest.json"
   ]
 }

@@ -506,8 +506,8 @@ def validate_export_payload(payload: object) -> None:
         fail("generated KAG export direct_relations must contain the bounded authority-supporting route set")
     expected_refs = {
         "Tree-of-Sophia/ToS/public-compatibility/concept_node.example.json",
-        "Tree-of-Sophia/ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
-        "Tree-of-Sophia/ToS/doctrine/TINY_ENTRY_ROUTE.md",
+        "Tree-of-Sophia/ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
+        "Tree-of-Sophia/ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
     }
     actual_refs = set()
     for index, relation in enumerate(direct_relations):

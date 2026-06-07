@@ -32,7 +32,7 @@
       "active_parts": [
         "review-ledger-route"
       ],
-      "legacy_required": false
+      "legacy_required": true
     },
     {
       "slug": "boundary-bridge",
@@ -41,7 +41,7 @@
       "active_parts": [
         "derived-kag-seam"
       ],
-      "legacy_required": false
+      "legacy_required": true
     },
     {
       "slug": "canon-formation",
@@ -68,7 +68,7 @@
       "active_parts": [
         "source-compost"
       ],
-      "legacy_required": false
+      "legacy_required": true
     },
     {
       "slug": "experience",
@@ -92,7 +92,7 @@
       "active_parts": [
         "branch-growth-cycle"
       ],
-      "legacy_required": false
+      "legacy_required": true
     },
     {
       "slug": "method-growth",
@@ -156,7 +156,7 @@
       "active_parts": [
         "witness-route"
       ],
-      "legacy_required": false
+      "legacy_required": true
     }
   ],
   "moved_path_accounting": {
@@ -166,6 +166,7 @@
         "ToS/contracts/tos-agon-threshold-intake.schema.json"
       ],
       "canon-restraint": [
+        "ToS/doctrine/TOS_REJECTION_AND_BRANCHING.md",
         "ToS/doctrine/TOS_CANON_RESTRAINT.md",
         "ToS/doctrine/TOS_THRESHOLD_REVIEW_BOUNDARY.md"
       ],
@@ -177,6 +178,21 @@
       ],
       "landing-handoff": [
         "ToS/doctrine/AGON_WAVE18_TOS_LANDING.md"
+      ]
+    },
+    "audit": {
+      "review-ledger-route": [
+        "ToS/doctrine/REVIEW_CHECKLIST.md"
+      ]
+    },
+    "boundary-bridge": {
+      "derived-kag-seam": [
+        "ToS/doctrine/KAG_EXPORT.md"
+      ]
+    },
+    "distillation": {
+      "source-compost": [
+        "ToS/doctrine/CONTEXT_COMPOST.md"
       ]
     },
     "experience": {
@@ -232,6 +248,13 @@
         "ToS/public-compatibility/tos_no_direct_write_guard.example.json"
       ]
     },
+    "growth-cycle": {
+      "branch-growth-cycle": [
+        "ToS/doctrine/GROWTH_STRUCTURE.md",
+        "ToS/doctrine/HUMAN_CURATED_EXPANSION.md",
+        "ToS/doctrine/PRE_EXPANSION_SOIL.md"
+      ]
+    },
     "questbook": {
       "obligation-boundary": [
         "ToS/doctrine/QUESTBOOK_TOS_INTEGRATION.md"
@@ -241,6 +264,11 @@
         "ToS/contracts/quest_dispatch.schema.json",
         "ToS/public-compatibility/quest_catalog.min.example.json",
         "ToS/public-compatibility/quest_dispatch.min.example.json"
+      ]
+    },
+    "source-witnessing": {
+      "witness-route": [
+        "ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md"
       ]
     }
   }

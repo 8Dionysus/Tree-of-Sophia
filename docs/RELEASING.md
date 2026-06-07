@@ -6,7 +6,7 @@ See also:
 
 - [README](../README.md)
 - [CHANGELOG](../CHANGELOG.md)
-- [REVIEW_CHECKLIST](REVIEW_CHECKLIST.md)
+- [REVIEW_CHECKLIST](../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
 
 ## Recommended release flow
 

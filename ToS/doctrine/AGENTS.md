@@ -4,11 +4,14 @@ This file applies to ToS doctrine under `ToS/doctrine/`.
 
 ## Role
 
-`ToS/doctrine/` owns ToS knowledge law: knowledge model, node contract, route
-doctrine, template discipline, growth posture, boundary notes, export posture,
-and source-first review law.
+`ToS/doctrine/` owns ToS knowledge law: knowledge model, node contract,
+interpretation ladder, route doctrine, template discipline, and boundary notes
+that belong to authored meaning.
 
 It is not the decision lane. Durable rationale lives in `docs/decisions/`.
+It is not a mechanics store. Repeatable operation docs, review checklists,
+growth-cycle process docs, export-seam process docs, and guard packets route to
+`mechanics/`.
 
 ## Read First
 
@@ -31,6 +34,7 @@ It is not the decision lane. Durable rationale lives in `docs/decisions/`.
 
 ## Validation
 
-Use `ToS/doctrine/REVIEW_CHECKLIST.md` for boundary-sensitive doctrine changes.
+Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
+boundary-sensitive doctrine changes.
 Run the route, canon, contract, or export validator named by the surface you
 touch.

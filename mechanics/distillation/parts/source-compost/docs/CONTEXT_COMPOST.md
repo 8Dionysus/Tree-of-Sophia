@@ -2,7 +2,9 @@
 
 This document records the current fourth-wave ToS doctrine for `Context Compost`.
 
-It is separate from [PRACTICE_BRANCH](PRACTICE_BRANCH.md) and [COUNTERPART_POLICY](COUNTERPART_POLICY.md).
+It is separate from
+[PRACTICE_BRANCH](../../../../../ToS/doctrine/PRACTICE_BRANCH.md) and
+[COUNTERPART_POLICY](../../../../../ToS/doctrine/COUNTERPART_POLICY.md).
 `PRACTICE_BRANCH.md` explains why ToS may recognize a neighboring genealogy of practices.
 `COUNTERPART_POLICY.md` explains how derived bridges to AoA operational forms stay optional and non-identity.
 This note explains how witness-facing or other source-linked raw material may be digested into layered ToS knowledge without pretending the runtime platform already exists.

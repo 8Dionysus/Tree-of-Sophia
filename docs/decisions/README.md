@@ -24,11 +24,13 @@ Decision notes explain why a route was chosen.
 They are weaker than the source surface they describe:
 
 - source authority stays in `ToS/source-witnesses/`;
+- golden Zarathustra route surfaces stay in `ToS/zarathustra/`;
+- non-authoritative research scaffolds stay in `ToS/research-packets/`;
 - candidate structure stays in `ToS/candidate-intake/`;
 - canonical authored nodes and relations stay in `ToS/canon/`;
 - public compatibility stays in `ToS/public-compatibility/`;
 - derived export stays in `ToS/derived-exports/`;
-- route law, current doctrine, review posture, boundaries, and roadmap stay in their owning docs;
+- route law, current doctrine, review posture, boundaries, and roadmap stay in their owning surfaces;
 - neighboring repositories keep stronger truth for federation, runtime, SDK control-plane helpers, KAG substrate semantics, skills, techniques, and playbooks.
 
 Generated decision indexes are weaker than the decision notes. They exist to make lookup cheaper for agents, not to carry decision rationale.

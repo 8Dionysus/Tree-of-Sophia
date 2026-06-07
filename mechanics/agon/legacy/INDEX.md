@@ -10,6 +10,7 @@ behavior. It is preserved here as former-path accounting.
 
 ## Canon Restraint
 
+- `ToS/doctrine/TOS_REJECTION_AND_BRANCHING.md` -> `mechanics/agon/parts/canon-restraint/docs/TOS_REJECTION_AND_BRANCHING.md`; status: `moved-to-active-part`
 - `ToS/doctrine/TOS_CANON_RESTRAINT.md` -> `mechanics/agon/parts/canon-restraint/docs/TOS_CANON_RESTRAINT.md`; status: `moved-to-active-part`
 - `ToS/doctrine/TOS_THRESHOLD_REVIEW_BOUNDARY.md` -> `mechanics/agon/parts/canon-restraint/docs/TOS_THRESHOLD_REVIEW_BOUNDARY.md`; status: `moved-to-active-part`
 

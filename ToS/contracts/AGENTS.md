@@ -9,7 +9,7 @@ Before changing a schema, read:
 2. `ToS/doctrine/KNOWLEDGE_MODEL.md`
 3. `ToS/doctrine/NODE_CONTRACT.md`
 4. the relevant example and canonical tree mirror
-5. `ToS/doctrine/KAG_EXPORT.md` if the schema touches the current export seam
+5. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` if the schema touches the current export seam
 
 ## Local role
 
@@ -56,7 +56,7 @@ before changing source-owned contracts.
 
 ## Validation
 
-Schema changes rely on structured review through `ToS/doctrine/REVIEW_CHECKLIST.md`.
+Schema changes rely on structured review through `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`.
 
 If the same change affects current examples or the bounded export seam, also run:
 

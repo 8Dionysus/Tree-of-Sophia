@@ -31,7 +31,7 @@ They summarize the current Zarathustra route for downstream consumers while poin
 
 Use:
 
-- `../doctrine/KAG_EXPORT.md`
-- `../doctrine/TINY_ENTRY_ROUTE.md`
+- `../../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+- `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../public-compatibility/source_node.example.json`
 - `python scripts/validate_kag_export.py`

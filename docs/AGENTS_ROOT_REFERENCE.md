@@ -77,7 +77,7 @@ Before making changes, read in this order:
 2. `ROADMAP.md`
 3. `CHARTER.md` and `BOUNDARIES.md`
 4. `ToS/doctrine/KNOWLEDGE_MODEL.md` and `ToS/doctrine/NODE_CONTRACT.md`
-5. `ToS/doctrine/TINY_ENTRY_ROUTE.md`, `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, and `ToS/doctrine/KAG_EXPORT.md` when the current public route or export seam is in scope
+5. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`, and `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` when the current public route or export seam is in scope
 6. the specific template, review, or route docs that govern the surface you are changing
 7. the target source file, node, registry, or intake artifact you plan to edit
 8. any affected export or example surfaces if the task touches `ToS/public-compatibility/` or `ToS/derived-exports/`
@@ -175,7 +175,7 @@ python -m unittest discover -s tests
 
 When the task falls outside that narrow validator seam:
 
-- use `ToS/doctrine/REVIEW_CHECKLIST.md` as the default manual review route
+- use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` as the default manual review route
 - if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
 - if you add durable route, boundary, validator, export, or source-discipline rationale, run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`

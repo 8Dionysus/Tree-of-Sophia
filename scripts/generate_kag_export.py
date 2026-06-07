@@ -7,8 +7,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json"
 CONCEPT_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "concept_node.example.json"
-TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "ToS" / "doctrine" / "TINY_ENTRY_ROUTE.md"
-CAPSULE_PATH = REPO_ROOT / "ToS" / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
+TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"
+CAPSULE_PATH = REPO_ROOT / "ToS" / "zarathustra" / "prologue-1" / "TRILINGUAL_ENTRY.md"
 OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.json"
 MIN_OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.min.json"
 
@@ -66,11 +66,11 @@ def build_kag_export_payload() -> dict[str, object]:
         },
         {
             "relation_type": "capsule_surface",
-            "target_ref": "Tree-of-Sophia/ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            "target_ref": "Tree-of-Sophia/ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
         },
         {
             "relation_type": "tiny_entry_route",
-            "target_ref": "Tree-of-Sophia/ToS/doctrine/TINY_ENTRY_ROUTE.md",
+            "target_ref": "Tree-of-Sophia/ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
         },
     ]
     if not relations:

@@ -23,8 +23,11 @@ These files govern:
 - this repository-level route card
 
 ToS knowledge law, node contracts, route doctrine, templates, review ledgers,
-source witnesses, domain philosophy topology, canon, contracts, public
-compatibility, and derived exports belong under `ToS/`.
+source witnesses, the golden Zarathustra route, domain philosophy topology,
+canon, contracts, public compatibility, and derived exports belong under
+`ToS/`.
+Non-authoritative research packets belong under `ToS/research-packets/`, not
+under source witnesses.
 Mechanic-owned operation payload belongs under root `mechanics/`.
 
 ## Editing posture
@@ -36,6 +39,8 @@ When a repository-level doc describes ToS source-home surfaces, use current
 repo-relative paths:
 
 - raw witness in `ToS/source-witnesses/`
+- golden Zarathustra route surfaces in `ToS/zarathustra/`
+- non-authoritative research packets in `ToS/research-packets/`
 - domain philosophy topology in `ToS/philosophy/`
 - candidate structure in `ToS/candidate-intake/`
 - canonical authored canon in `ToS/canon/`
@@ -47,7 +52,8 @@ repo-relative paths:
 
 ## Boundary Routes
 
-- Current ToS doctrine routes to `ToS/doctrine/`.
+- Current ToS knowledge law routes to `ToS/doctrine/`.
+- Current repeatable operation law routes to `mechanics/`.
 - Durable rationale routes to `docs/decisions/` and remains weaker than the
   source surface it explains.
 - Generated decision indexes are regenerated from decision notes.

@@ -9,5 +9,5 @@
 | output | canon promotion route or return-to-review |
 | owner | `mechanics/canon-formation/parts/promotion-gate/` |
 | next route | `ToS/canon/` only after review and validators pass |
-| tools | `ToS/doctrine/REVIEW_CHECKLIST.md`, canon validators |
+| tools | `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`, canon validators |
 | check | `python scripts/validate_tree_node_contracts.py` |

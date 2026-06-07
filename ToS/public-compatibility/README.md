@@ -33,7 +33,7 @@ Use:
 
 - `../canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - `../canon/concept/becoming/node.json`
-- `../doctrine/TINY_ENTRY_ROUTE.md`
-- `../doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
+- `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+- `../zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
 - `python scripts/validate_tree_example_sync.py`
 - `python scripts/validate_kag_export.py`

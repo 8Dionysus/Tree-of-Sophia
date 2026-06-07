@@ -9,5 +9,5 @@
 | output | reviewable candidate or return to source |
 | owner | `mechanics/distillation/parts/source-compost/` |
 | next route | `ToS/source-witnesses/`, `ToS/candidate-intake/`, or `ToS/canon/` |
-| tools | `ToS/doctrine/CONTEXT_COMPOST.md`, source-home validators |
+| tools | `mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`, source-home validators |
 | check | `python scripts/validate_tos_source_home.py` |

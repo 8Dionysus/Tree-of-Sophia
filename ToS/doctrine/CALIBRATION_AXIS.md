@@ -2,7 +2,9 @@
 
 This document records the current fifth-wave ToS doctrine for `Calibration Axis, Not Neutral Dust`.
 
-It sits alongside [NODE_CONTRACT](NODE_CONTRACT.md), [COUNTERPART_POLICY](COUNTERPART_POLICY.md), and [CONTEXT_COMPOST](CONTEXT_COMPOST.md).
+It sits alongside [NODE_CONTRACT](NODE_CONTRACT.md),
+[COUNTERPART_POLICY](COUNTERPART_POLICY.md), and
+[CONTEXT_COMPOST](../../mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md).
 Those notes explain node law, derived bridges, and compost-cycle digestion.
 This note explains how ToS keeps a living axis of orientation without turning that axis into an ideological flattening machine.
 

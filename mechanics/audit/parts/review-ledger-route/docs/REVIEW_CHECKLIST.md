@@ -23,20 +23,20 @@ Use this checklist for changes to:
 - `ToS/doctrine/NODE_CONTRACT.md`
 - `ToS/doctrine/PRACTICE_BRANCH.md`
 - `ToS/doctrine/COUNTERPART_POLICY.md`
-- `ToS/doctrine/CONTEXT_COMPOST.md`
+- `mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`
 - `ToS/doctrine/CALIBRATION_AXIS.md`
-- `ToS/doctrine/HUMAN_CURATED_EXPANSION.md`
-- `ToS/doctrine/GROWTH_STRUCTURE.md`
+- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md`
+- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`
 - `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
 - `ToS/doctrine/SOURCE_NODE_TEMPLATE.md`
 - `ToS/doctrine/CONCEPT_NODE_TEMPLATE.md`
 - `ToS/doctrine/LINEAGE_NODE_TEMPLATE.md`
 - `ToS/doctrine/CALIBRATION_LINEAGE_PILOT.md`
 - `ToS/doctrine/CONTEXT_NODE_TEMPLATE.md`
-- `ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md`
-- `ToS/doctrine/PRE_EXPANSION_SOIL.md`
-- `ToS/doctrine/TINY_ENTRY_ROUTE.md`
-- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`
+- `mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md`
+- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md`
+- `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+- `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
 - `ToS/public-compatibility/*.json`
 - `ToS/contracts/*.json`
 - new authored architecture notes

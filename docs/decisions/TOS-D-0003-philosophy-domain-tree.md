@@ -4,8 +4,8 @@
 
 - Decision ID: TOS-D-0003
 - Original date: 2026-06-07
-- Surface classes: source-home, domain-topology, scripts/validation, source-witness
-- ToS layers: philosophy, source-witnesses, doctrine, canon, scripts
+- Surface classes: source-home, domain-topology, scripts/validation, research-packet
+- ToS layers: philosophy, research-packets, source-witnesses, doctrine, canon, scripts
 - Tree classes: context, source, concept, principle, lineage, event, state, support, analogy, synthesis, relation
 - Guard families: domain topology, source-first authority, canon promotion, naming discipline, owner boundary
 - Posture: accepted
@@ -36,9 +36,11 @@ promotion. Its first contour is:
 - `ToS/philosophy/threads/`
 - `ToS/philosophy/graph-workbench/`
 
-The Notion page that supplied the current skeleton is routed as a source
-witness under `ToS/source-witnesses/notion/philosophy/`. The source page title
-is metadata only; it must not become a repository path component.
+The Deep Research packet that supplied the current skeleton is routed as a
+non-authoritative research packet under
+`ToS/research-packets/deep-research/philosophy/`. Capture page titles are
+metadata only; they must not become repository path components or source
+authority.
 
 ## Rationale
 
@@ -73,16 +75,18 @@ is not the main route for the philosophy skeleton.
 local graph fragments and promotion ledgers, but canonical nodes and relation
 packs still require review and validation before they move into canon.
 
-`scripts/validate_philosophy_topology.py` enforces the first branch contour and
-checks that metadata-only source labels stay out of repository path components.
+`scripts/validate_philosophy_topology.py` enforces the first branch contour,
+checks that metadata-only capture labels stay out of repository path
+components, and rejects AI/Notion packet placement under source witnesses.
 
 ## Source Surfaces
 
 - `ToS/philosophy/AGENTS.md`
 - `ToS/philosophy/README.md`
 - `ToS/philosophy/philosophy.manifest.json`
-- `ToS/source-witnesses/notion/philosophy/AGENTS.md`
-- `ToS/source-witnesses/notion/philosophy/witness.manifest.json`
+- `ToS/research-packets/AGENTS.md`
+- `ToS/research-packets/deep-research/philosophy/AGENTS.md`
+- `ToS/research-packets/deep-research/philosophy/research.manifest.json`
 - `scripts/validate_philosophy_topology.py`
 - `scripts/validate_tos_source_home.py`
 - `scripts/validate_nested_agents.py`
