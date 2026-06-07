@@ -6,10 +6,10 @@ It is not just a notes repository, not just a graph, and not just a retrieval su
 
 This repository currently carries four public layers:
 
-- `sources/` for primary witness and source material
-- `intake/` for candidate structure that stays visibly provisional
-- `tree/` for canonical authored nodes, relations, and vocabulary governance
-- `examples/` and `generated/` for bounded public compatibility and downstream-safe export seams
+- `ToS/source-witnesses/` for primary witness and source material
+- `ToS/candidate-intake/` for candidate structure that stays visibly provisional
+- `ToS/canon/` for canonical authored nodes, relations, and vocabulary governance
+- `ToS/public-compatibility/` and `ToS/derived-exports/` for bounded public compatibility and downstream-safe export seams
 
 > Current release: `v0.2.2`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
@@ -17,16 +17,16 @@ This repository currently carries four public layers:
 
 Use the shortest route by need:
 
-- if you are new here and want the one real current public route: [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) and [docs/ZARATHUSTRA_TRILINGUAL_ENTRY](docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md)
-- if you want the compact machine-facing companion to that same root path: `generated/root_entry_map.min.json`
-- if you need the bounded downstream export seam for that route: [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
-- if you want to verify the current bounded route: [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, `python -m unittest discover -s tests`, and [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) for surfaces outside the current validator perimeter
+- if you are new here and want the one real current public route: [ToS/doctrine/TINY_ENTRY_ROUTE](ToS/doctrine/TINY_ENTRY_ROUTE.md) and [ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY](ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md)
+- if you want the compact machine-facing companion to that same root path: `ToS/derived-exports/root_entry_map.min.json`
+- if you need the bounded downstream export seam for that route: [ToS/doctrine/KAG_EXPORT](ToS/doctrine/KAG_EXPORT.md)
+- if you want to verify the current bounded route: [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, `python -m unittest discover -s tests`, and [ToS/doctrine/REVIEW_CHECKLIST](ToS/doctrine/REVIEW_CHECKLIST.md) for surfaces outside the current validator perimeter
 - mission and source-of-truth boundaries: [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md)
-- knowledge model and interpretation law: [docs/KNOWLEDGE_MODEL](docs/KNOWLEDGE_MODEL.md) and [docs/NODE_CONTRACT](docs/NODE_CONTRACT.md)
+- knowledge model and interpretation law: [ToS/doctrine/KNOWLEDGE_MODEL](ToS/doctrine/KNOWLEDGE_MODEL.md) and [ToS/doctrine/NODE_CONTRACT](ToS/doctrine/NODE_CONTRACT.md)
 - current direction: [ROADMAP](ROADMAP.md)
 - durable route, boundary, validator, or export rationale: [docs/decisions](docs/decisions/README.md), `python scripts/generate_decision_indexes.py --check`, and `python scripts/validate_decision_records.py`
-- growth law and curation posture: [docs/CONTEXT_COMPOST](docs/CONTEXT_COMPOST.md), [docs/CALIBRATION_AXIS](docs/CALIBRATION_AXIS.md), [docs/HUMAN_CURATED_EXPANSION](docs/HUMAN_CURATED_EXPANSION.md), [docs/GROWTH_STRUCTURE](docs/GROWTH_STRUCTURE.md), and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
-- scaffold wave and review posture: [docs/IDENTIFIER_DISCIPLINE](docs/IDENTIFIER_DISCIPLINE.md), [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/TABULAR_BASE_CONTRACT](docs/TABULAR_BASE_CONTRACT.md), [docs/RELATION_PACK_CONTRACT](docs/RELATION_PACK_CONTRACT.md), [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md), `python scripts/validate_tiny_entry_route.py`, and `python scripts/validate_kag_export.py`
+- growth law and curation posture: [ToS/doctrine/CONTEXT_COMPOST](ToS/doctrine/CONTEXT_COMPOST.md), [ToS/doctrine/CALIBRATION_AXIS](ToS/doctrine/CALIBRATION_AXIS.md), [ToS/doctrine/HUMAN_CURATED_EXPANSION](ToS/doctrine/HUMAN_CURATED_EXPANSION.md), [ToS/doctrine/GROWTH_STRUCTURE](ToS/doctrine/GROWTH_STRUCTURE.md), and [ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE](ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md)
+- scaffold wave and review posture: [ToS/doctrine/IDENTIFIER_DISCIPLINE](ToS/doctrine/IDENTIFIER_DISCIPLINE.md), [ToS/doctrine/SOURCE_NODE_TEMPLATE](ToS/doctrine/SOURCE_NODE_TEMPLATE.md), [ToS/doctrine/CONCEPT_NODE_TEMPLATE](ToS/doctrine/CONCEPT_NODE_TEMPLATE.md), [ToS/doctrine/LINEAGE_NODE_TEMPLATE](ToS/doctrine/LINEAGE_NODE_TEMPLATE.md), [ToS/doctrine/CONTEXT_NODE_TEMPLATE](ToS/doctrine/CONTEXT_NODE_TEMPLATE.md), [ToS/doctrine/TABULAR_BASE_CONTRACT](ToS/doctrine/TABULAR_BASE_CONTRACT.md), [ToS/doctrine/RELATION_PACK_CONTRACT](ToS/doctrine/RELATION_PACK_CONTRACT.md), [ToS/doctrine/REVIEW_CHECKLIST](ToS/doctrine/REVIEW_CHECKLIST.md), `python scripts/validate_tiny_entry_route.py`, and `python scripts/validate_kag_export.py`
 
 For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.md` docs in `docs/` after the identifier discipline and first template surfaces.
 
@@ -35,19 +35,19 @@ For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.m
 Use this order:
 
 1. [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) for ownership and non-ownership.
-2. `generated/root_entry_map.min.json` and [docs/TINY_ENTRY_ROUTE](docs/TINY_ENTRY_ROUTE.md) for the route shape from `README.md` to capsule, authority, and bounded hop.
-3. `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` for the canonical authored source node.
-4. `examples/source_node.example.json` and `examples/concept_node.example.json` for the current public compatibility mirrors.
-5. `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded validator and test battery, then [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) if your change falls outside that perimeter.
+2. `ToS/derived-exports/root_entry_map.min.json` and [ToS/doctrine/TINY_ENTRY_ROUTE](ToS/doctrine/TINY_ENTRY_ROUTE.md) for the route shape from `README.md` to capsule, authority, and bounded hop.
+3. `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` for the canonical authored source node.
+4. `ToS/public-compatibility/source_node.example.json` and `ToS/public-compatibility/concept_node.example.json` for the current public compatibility mirrors.
+5. `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded validator and test battery, then [ToS/doctrine/REVIEW_CHECKLIST](ToS/doctrine/REVIEW_CHECKLIST.md) if your change falls outside that perimeter.
 
 ## Route by need
 
-- current canonical authority for the bounded public route: `tree/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` and `tree/concept/becoming/node.json`
-- canonical authored tree and registries: `tree/` and `tree/registries/*.csv`
-- source witness and provisional intake: `sources/`, `intake/`, and [docs/MANUAL_CORPUS_ENTRY_GATE](docs/MANUAL_CORPUS_ENTRY_GATE.md)
-- node-template scaffold family: [docs/SOURCE_NODE_TEMPLATE](docs/SOURCE_NODE_TEMPLATE.md), [docs/CONCEPT_NODE_TEMPLATE](docs/CONCEPT_NODE_TEMPLATE.md), [docs/LINEAGE_NODE_TEMPLATE](docs/LINEAGE_NODE_TEMPLATE.md), [docs/CONTEXT_NODE_TEMPLATE](docs/CONTEXT_NODE_TEMPLATE.md), [docs/PRINCIPLE_NODE_TEMPLATE](docs/PRINCIPLE_NODE_TEMPLATE.md), [docs/EVENT_NODE_TEMPLATE](docs/EVENT_NODE_TEMPLATE.md), [docs/STATE_NODE_TEMPLATE](docs/STATE_NODE_TEMPLATE.md), [docs/SUPPORT_NODE_TEMPLATE](docs/SUPPORT_NODE_TEMPLATE.md), [docs/ANALOGY_NODE_TEMPLATE](docs/ANALOGY_NODE_TEMPLATE.md), and [docs/SYNTHESIS_NODE_TEMPLATE](docs/SYNTHESIS_NODE_TEMPLATE.md)
-- bounded public compatibility and export surfaces: [examples/README](examples/README.md), [generated/README](generated/README.md), `generated/kag_export.json`, `generated/kag_export.min.json`, and [docs/KAG_EXPORT](docs/KAG_EXPORT.md)
-- review posture and bounded change checks: `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded route, plus [docs/REVIEW_CHECKLIST](docs/REVIEW_CHECKLIST.md) and `docs/reviews/` for broader boundary-sensitive changes outside the current validator perimeter
+- current canonical authority for the bounded public route: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` and `ToS/canon/concept/becoming/node.json`
+- canonical authored tree and registries: `ToS/canon/` and `ToS/canon/registries/*.csv`
+- source witness and provisional intake: `ToS/source-witnesses/`, `ToS/candidate-intake/`, and [ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE](ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md)
+- node-template scaffold family: [ToS/doctrine/SOURCE_NODE_TEMPLATE](ToS/doctrine/SOURCE_NODE_TEMPLATE.md), [ToS/doctrine/CONCEPT_NODE_TEMPLATE](ToS/doctrine/CONCEPT_NODE_TEMPLATE.md), [ToS/doctrine/LINEAGE_NODE_TEMPLATE](ToS/doctrine/LINEAGE_NODE_TEMPLATE.md), [ToS/doctrine/CONTEXT_NODE_TEMPLATE](ToS/doctrine/CONTEXT_NODE_TEMPLATE.md), [ToS/doctrine/PRINCIPLE_NODE_TEMPLATE](ToS/doctrine/PRINCIPLE_NODE_TEMPLATE.md), [ToS/doctrine/EVENT_NODE_TEMPLATE](ToS/doctrine/EVENT_NODE_TEMPLATE.md), [ToS/doctrine/STATE_NODE_TEMPLATE](ToS/doctrine/STATE_NODE_TEMPLATE.md), [ToS/doctrine/SUPPORT_NODE_TEMPLATE](ToS/doctrine/SUPPORT_NODE_TEMPLATE.md), [ToS/doctrine/ANALOGY_NODE_TEMPLATE](ToS/doctrine/ANALOGY_NODE_TEMPLATE.md), and [ToS/doctrine/SYNTHESIS_NODE_TEMPLATE](ToS/doctrine/SYNTHESIS_NODE_TEMPLATE.md)
+- bounded public compatibility and export surfaces: [ToS/public-compatibility/README](ToS/public-compatibility/README.md), [ToS/derived-exports/README](ToS/derived-exports/README.md), `ToS/derived-exports/kag_export.json`, `ToS/derived-exports/kag_export.min.json`, and [ToS/doctrine/KAG_EXPORT](ToS/doctrine/KAG_EXPORT.md)
+- review posture and bounded change checks: `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded route, plus [ToS/doctrine/REVIEW_CHECKLIST](ToS/doctrine/REVIEW_CHECKLIST.md) and `ToS/review-ledger/` for broader boundary-sensitive changes outside the current validator perimeter
 - durable rationale lookup: [docs/decisions](docs/decisions/README.md) and generated decision indexes under `docs/decisions/indexes/`
 
 ## What ToS owns
@@ -76,11 +76,11 @@ This repository should not become the main home for:
 
 The working distinction matters:
 
-- `sources/` grounds authority
-- `intake/` prepares candidate structure without becoming authority
-- `tree/` is the canonical authored layer
-- `examples/` is the current public compatibility seam
-- `generated/` stays derived and downstream-facing
+- `ToS/source-witnesses/` grounds authority
+- `ToS/candidate-intake/` prepares candidate structure without becoming authority
+- `ToS/canon/` is the canonical authored layer
+- `ToS/public-compatibility/` is the current public compatibility seam
+- `ToS/derived-exports/` stays derived and downstream-facing
 
 Tree for orientation. Graph for relation. Source for authority.
 

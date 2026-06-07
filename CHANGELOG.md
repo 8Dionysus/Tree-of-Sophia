@@ -101,7 +101,7 @@ Tracking starts with the community-docs baseline for this repository.
 ### Added
 
 - source-owned tiny-entry route validation and reentry doctrine together with a
-  zero-entry `generated/root_entry_map.min.json` capsule
+  zero-entry `ToS/derived-exports/root_entry_map.min.json` capsule
 - stronger routed-language witness handling through generalized language
   validation and restored schema-level uniqueness
 - repo-local project-foundation, session-harvest, and automation-opportunity
@@ -118,8 +118,8 @@ Tracking starts with the community-docs baseline for this repository.
   `BOUNDARIES.md`, `ROADMAP.md`, `AGENTS.md`, `.agents/`, `.github/`, and
   `docs/`, including public-route clarity, review guidance, and follow-through
   installs
-- source, intake, and tree route artifacts across `sources/`, `intake/`,
-  `tree/`, `examples/`, `generated/`, `schemas/`, `scripts/`, `tests/`, and
+- source, intake, and tree route artifacts across `ToS/source-witnesses/`, `ToS/candidate-intake/`,
+  `ToS/canon/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/contracts/`, `scripts/`, `tests/`, and
   `Spark/`, including routed-language witness handling and the zero-entry root
   capsule
 
@@ -139,28 +139,28 @@ This changelog entry uses the release-prep merge date.
 
 - community-docs baseline established for this repository
 - `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `CONTRIBUTING.md`
-- `docs/TINY_ENTRY_ROUTE.md` as the first public doctrine note for the tree-first tiny-entry seam
-- `schemas/tos-tiny-entry-route.schema.json` and `examples/tos_tiny_entry_route.example.json`
-- `docs/reviews/2026-03-23-tree-first-tiny-entry-review.md` for the manual review result of this wave
+- `ToS/doctrine/TINY_ENTRY_ROUTE.md` as the first public doctrine note for the tree-first tiny-entry seam
+- `ToS/contracts/tos-tiny-entry-route.schema.json` and `ToS/public-compatibility/tos_tiny_entry_route.example.json`
+- `ToS/review-ledger/2026-03-23-tree-first-tiny-entry-review.md` for the manual review result of this wave
 - bounded witness-provenance fields and optional segment locators in the public multilingual source-node contract
-- `docs/reviews/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md`
-- `docs/reviews/2026-03-25-zarathustra-pass-001-stabilization-review.md`
+- `ToS/review-ledger/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md`
+- `ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md`
 
 ### Changed
 
-- `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now also serves as the first worked tiny-entry capsule
-- `README.md`, `ROADMAP.md`, and `docs/KNOWLEDGE_MODEL.md` now expose the tree-first tiny-entry seam in the public entry path
-- `docs/REVIEW_CHECKLIST.md` now includes tiny-entry-specific boundary checks
+- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now also serves as the first worked tiny-entry capsule
+- `README.md`, `ROADMAP.md`, and `ToS/doctrine/KNOWLEDGE_MODEL.md` now expose the tree-first tiny-entry seam in the public entry path
+- `ToS/doctrine/REVIEW_CHECKLIST.md` now includes tiny-entry-specific boundary checks
 - tiny-entry doctrine now records the current downstream consumption posture in `aoa-kag` and `aoa-routing` without changing ToS authority boundaries
-- `docs/NODE_CONTRACT.md`, `docs/SOURCE_NODE_TEMPLATE.md`, `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `schemas/tos-node-contract.schema.json`, and `examples/source_node.example.json` now keep multilingual witness provenance explicit for the bounded Zarathustra route
-- `docs/TINY_ENTRY_ROUTE.md`, `schemas/tos-tiny-entry-route.schema.json`, and `examples/tos_tiny_entry_route.example.json` now prefer `bounded_hop` while keeping `lineage_or_context_hop` as a bounded compatibility alias during transition
-- `examples/source_node.example.json` now makes Russian and English maintainer-curated witness posture more explicit and adds a second opening-movement translation-tension note
-- `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now records pass-based stabilization posture and the non-canonical boundary for restartable checkpoint sidecars
+- `ToS/doctrine/NODE_CONTRACT.md`, `ToS/doctrine/SOURCE_NODE_TEMPLATE.md`, `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `ToS/contracts/tos-node-contract.schema.json`, and `ToS/public-compatibility/source_node.example.json` now keep multilingual witness provenance explicit for the bounded Zarathustra route
+- `ToS/doctrine/TINY_ENTRY_ROUTE.md`, `ToS/contracts/tos-tiny-entry-route.schema.json`, and `ToS/public-compatibility/tos_tiny_entry_route.example.json` now prefer `bounded_hop` while keeping `lineage_or_context_hop` as a bounded compatibility alias during transition
+- `ToS/public-compatibility/source_node.example.json` now makes Russian and English maintainer-curated witness posture more explicit and adds a second opening-movement translation-tension note
+- `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md` now records pass-based stabilization posture and the non-canonical boundary for restartable checkpoint sidecars
 
 ### Included in this release
 
-- the current source-first repository layers under `sources/`, `intake/`, `tree/`, `examples/`, and `generated/`
-- the bounded Zarathustra route carried by `docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `docs/TINY_ENTRY_ROUTE.md`, `examples/source_node.example.json`, and `generated/kag_export.min.json`
+- the current source-first repository layers under `ToS/source-witnesses/`, `ToS/candidate-intake/`, `ToS/canon/`, `ToS/public-compatibility/`, and `ToS/derived-exports/`
+- the bounded Zarathustra route carried by `ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md`, `ToS/doctrine/TINY_ENTRY_ROUTE.md`, `ToS/public-compatibility/source_node.example.json`, and `ToS/derived-exports/kag_export.min.json`
 - the current canonical tree surface validated as `92` node payloads plus the route-local canonical relation pack
 
 ### Validation

@@ -9,6 +9,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 COMMANDS = [
+    ("validate ToS source home", [sys.executable, "scripts/validate_tos_source_home.py"]),
+    ("validate philosophy topology", [sys.executable, "scripts/validate_philosophy_topology.py"]),
     ("check root entry map", [sys.executable, "scripts/build_root_entry_map.py", "--check"]),
     ("validate root entry map", [sys.executable, "scripts/validate_root_entry_map.py"]),
     ("validate tiny entry route", [sys.executable, "scripts/validate_tiny_entry_route.py"]),

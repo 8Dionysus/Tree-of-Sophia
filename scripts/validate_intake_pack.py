@@ -9,17 +9,18 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-INTAKE_DIR = REPO_ROOT / "intake" / "thus-spoke-zarathustra" / "prologue-1" / "mode-b"
+INTAKE_DIR = REPO_ROOT / "ToS" / "candidate-intake" / "thus-spoke-zarathustra" / "prologue-1" / "mode-b"
 TREE_SOURCE_NODE_PATH = (
     REPO_ROOT
-    / "tree"
+    / "ToS"
+    / "canon"
     / "source"
     / "friedrich-nietzsche"
     / "thus-spoke-zarathustra"
     / "prologue-1"
     / "node.json"
 )
-REGISTRY_DIR = REPO_ROOT / "tree" / "registries"
+REGISTRY_DIR = REPO_ROOT / "ToS" / "canon" / "registries"
 PREDICATES_REGISTRY_PATH = REGISTRY_DIR / "predicates.csv"
 CLASSES_REGISTRY_PATH = REGISTRY_DIR / "classes.csv"
 
@@ -602,7 +603,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         "count_in_master",
         "row_kinds",
     ]:
-        issues.append(("tree/registries/predicates.csv", "predicate registry header drift"))
+        issues.append(("ToS/canon/registries/predicates.csv", "predicate registry header drift"))
 
     class_headers, class_rows = read_csv(CLASSES_REGISTRY_PATH)
     if class_headers != [
@@ -616,7 +617,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         "example_id",
         "source_side",
     ]:
-        issues.append(("tree/registries/classes.csv", "class registry header drift"))
+        issues.append(("ToS/canon/registries/classes.csv", "class registry header drift"))
 
     predicate_edge_counts = Counter(row["predicate_id"] for row in edge_rows)
     predicate_row_kinds: dict[str, str] = {}
@@ -626,9 +627,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     for row in predicate_rows:
         count = predicate_edge_counts.get(row["predicate_id"], 0)
         if row["count_in_master"] != str(count):
-            issues.append(("tree/registries/predicates.csv", f"count drift for predicate {row['predicate_id']}"))
+            issues.append(("ToS/canon/registries/predicates.csv", f"count drift for predicate {row['predicate_id']}"))
         if row["row_kinds"] != predicate_row_kinds.get(row["predicate_id"], ""):
-            issues.append(("tree/registries/predicates.csv", f"row_kinds drift for predicate {row['predicate_id']}"))
+            issues.append(("ToS/canon/registries/predicates.csv", f"row_kinds drift for predicate {row['predicate_id']}"))
 
     entity_classes: dict[str, str] = {}
     for row in node_rows:
@@ -662,11 +663,11 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         from_count = count_as_from.get(row["class_id"], 0)
         to_count = count_as_to.get(row["class_id"], 0)
         if row["count_as_from"] != str(from_count):
-            issues.append(("tree/registries/classes.csv", f"count_as_from drift for class {row['class_id']}"))
+            issues.append(("ToS/canon/registries/classes.csv", f"count_as_from drift for class {row['class_id']}"))
         if row["count_as_to"] != str(to_count):
-            issues.append(("tree/registries/classes.csv", f"count_as_to drift for class {row['class_id']}"))
+            issues.append(("ToS/canon/registries/classes.csv", f"count_as_to drift for class {row['class_id']}"))
         if row["source_side"] != compute_source_side(from_count, to_count):
-            issues.append(("tree/registries/classes.csv", f"source_side drift for class {row['class_id']}"))
+            issues.append(("ToS/canon/registries/classes.csv", f"source_side drift for class {row['class_id']}"))
 
     return issues
 

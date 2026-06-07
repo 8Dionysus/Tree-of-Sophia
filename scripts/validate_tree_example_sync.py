@@ -41,7 +41,7 @@ def main() -> int:
             print(f"- {location}: {message}", file=sys.stderr)
         return 1
 
-    print("[ok] validated tree/example compatibility mirrors")
+    print("[ok] validated ToS/canon/example compatibility mirrors")
     return 0
 
 

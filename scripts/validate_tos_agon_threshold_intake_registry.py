@@ -11,9 +11,9 @@ from jsonschema import Draft202012Validator
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SRC = ROOT / 'config/tos_agon_threshold_intakes.seed.json'
-OUT = ROOT / 'generated/tos_agon_threshold_intake_registry.min.json'
-ENTRY_SCHEMA = ROOT / 'schemas/tos-agon-threshold-intake.schema.json'
-REGISTRY_SCHEMA = ROOT / 'schemas/tos-agon-threshold-intake-registry.schema.json'
+OUT = ROOT / 'ToS/derived-exports/tos_agon_threshold_intake_registry.min.json'
+ENTRY_SCHEMA = ROOT / 'ToS/contracts/tos-agon-threshold-intake.schema.json'
+REGISTRY_SCHEMA = ROOT / 'ToS/contracts/tos-agon-threshold-intake-registry.schema.json'
 BUILDER = ROOT / 'scripts/build_tos_agon_threshold_intake_registry.py'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'

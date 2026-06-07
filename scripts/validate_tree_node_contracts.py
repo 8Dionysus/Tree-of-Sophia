@@ -19,7 +19,7 @@ def load_json(path: Path) -> object:
 
 def node_paths(repo_root: Path | None = None) -> list[Path]:
     root = repo_root or REPO_ROOT
-    return sorted((root / "tree").rglob("node.json"))
+    return sorted((root / "ToS" / "canon").rglob("node.json"))
 
 
 def duplicate_language_witness_issues(payload: object, *, location: str) -> list[Issue]:
@@ -48,14 +48,14 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
 
-    schema = load_json(root / "schemas" / "tos-node-contract.schema.json")
+    schema = load_json(root / "ToS" / "contracts" / "tos-node-contract.schema.json")
     if not isinstance(schema, dict):
-        return [("schemas/tos-node-contract.schema.json", "schema root must be a JSON object")]
+        return [("ToS/contracts/tos-node-contract.schema.json", "schema root must be a JSON object")]
 
     validator = Draft202012Validator(schema)
     paths = node_paths(root)
     if not paths:
-        issues.append(("tree/", "no canonical tree node.json files found"))
+        issues.append(("ToS/canon/", "no canonical tree node.json files found"))
         return issues
 
     for path in paths:

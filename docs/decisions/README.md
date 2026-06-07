@@ -23,11 +23,11 @@ Decision notes explain why a route was chosen.
 
 They are weaker than the source surface they describe:
 
-- source authority stays in `sources/`;
-- candidate structure stays in `intake/`;
-- canonical authored nodes and relations stay in `tree/`;
-- public compatibility stays in `examples/`;
-- derived export stays in `generated/`;
+- source authority stays in `ToS/source-witnesses/`;
+- candidate structure stays in `ToS/candidate-intake/`;
+- canonical authored nodes and relations stay in `ToS/canon/`;
+- public compatibility stays in `ToS/public-compatibility/`;
+- derived export stays in `ToS/derived-exports/`;
 - route law, current doctrine, review posture, boundaries, and roadmap stay in their owning docs;
 - neighboring repositories keep stronger truth for federation, runtime, SDK control-plane helpers, KAG substrate semantics, skills, techniques, and playbooks.
 

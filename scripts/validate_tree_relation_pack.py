@@ -62,12 +62,13 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
 
-    intake_dir = root / "intake" / "thus-spoke-zarathustra" / "prologue-1" / "mode-b"
-    predicates_registry_path = root / "tree" / "registries" / "predicates.csv"
-    classes_registry_path = root / "tree" / "registries" / "classes.csv"
+    intake_dir = root / "ToS" / "candidate-intake" / "thus-spoke-zarathustra" / "prologue-1" / "mode-b"
+    predicates_registry_path = root / "ToS" / "canon" / "registries" / "predicates.csv"
+    classes_registry_path = root / "ToS" / "canon" / "registries" / "classes.csv"
     relation_pack_path = (
         root
-        / "tree"
+        / "ToS"
+        / "canon"
         / "relations"
         / "friedrich-nietzsche"
         / "thus-spoke-zarathustra"

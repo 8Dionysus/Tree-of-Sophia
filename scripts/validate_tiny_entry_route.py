@@ -9,15 +9,15 @@ from typing import TypeAlias
 REPO_ROOT = Path(__file__).resolve().parents[1]
 Issue: TypeAlias = tuple[str, str]
 
-ROUTE_PATH = Path("examples") / "tos_tiny_entry_route.example.json"
+ROUTE_PATH = Path("ToS") / "public-compatibility" / "tos_tiny_entry_route.example.json"
 README_PATH = Path("README.md")
 CHARTER_PATH = Path("CHARTER.md")
-ROUTE_DOC_PATH = Path("docs") / "TINY_ENTRY_ROUTE.md"
-CAPSULE_PATH = Path("docs") / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
-KNOWLEDGE_MODEL_PATH = Path("docs") / "KNOWLEDGE_MODEL.md"
-REVIEW_CHECKLIST_PATH = Path("docs") / "REVIEW_CHECKLIST.md"
-SOURCE_NODE_PATH = Path("examples") / "source_node.example.json"
-CONCEPT_NODE_PATH = Path("examples") / "concept_node.example.json"
+ROUTE_DOC_PATH = Path("ToS") / "doctrine" / "TINY_ENTRY_ROUTE.md"
+CAPSULE_PATH = Path("ToS") / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
+KNOWLEDGE_MODEL_PATH = Path("ToS") / "doctrine" / "KNOWLEDGE_MODEL.md"
+REVIEW_CHECKLIST_PATH = Path("ToS") / "doctrine" / "REVIEW_CHECKLIST.md"
+SOURCE_NODE_PATH = Path("ToS") / "public-compatibility" / "source_node.example.json"
+CONCEPT_NODE_PATH = Path("ToS") / "public-compatibility" / "concept_node.example.json"
 
 EXPECTED_ROUTE_ID = "tos-tiny-entry.zarathustra-prologue"
 EXPECTED_NODE_KIND = "source_node"
@@ -36,7 +36,7 @@ README_REQUIRED_PHRASES = (
 ROUTE_DOC_REQUIRED_PHRASES = (
     "public compatibility authority surface",
     "## Source-first re-entry",
-    "`README.md -> examples/tos_tiny_entry_route.example.json -> examples/source_node.example.json`",
+    "`README.md -> ToS/public-compatibility/tos_tiny_entry_route.example.json -> ToS/public-compatibility/source_node.example.json`",
     "`aoa-routing` may restore this re-entry hop as bounded navigation",
     "python scripts/validate_tiny_entry_route.py",
 )
@@ -155,7 +155,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append((ROUTE_PATH.as_posix(), "node_id must stay a non-empty string"))
         elif isinstance(source_payload, dict) and source_payload.get("node_id") != node_id:
             issues.append(
-                (ROUTE_PATH.as_posix(), "node_id must stay aligned with examples/source_node.example.json")
+                (ROUTE_PATH.as_posix(), "node_id must stay aligned with ToS/public-compatibility/source_node.example.json")
             )
 
         capsule_surface = ensure_repo_relative_surface(

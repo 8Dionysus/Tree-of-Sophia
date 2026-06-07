@@ -10,8 +10,8 @@ from jsonschema import Draft202012Validator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ROOT_ENTRY_MAP_PATH = REPO_ROOT / "generated" / "root_entry_map.min.json"
-SCHEMA_REF = "schemas/root-entry-map.schema.json"
+ROOT_ENTRY_MAP_PATH = REPO_ROOT / "ToS" / "derived-exports" / "root_entry_map.min.json"
+SCHEMA_REF = "ToS/contracts/root-entry-map.schema.json"
 VALIDATION_REFS = (
     "scripts/build_root_entry_map.py",
     "scripts/validate_root_entry_map.py",
@@ -26,8 +26,8 @@ SURFACE_PAYLOAD = {
     "surface_kind": "root_entry_map",
     "authority_ref": "CHARTER.md",
     "public_root_ref": "README.md",
-    "current_tiny_entry_ref": "examples/tos_tiny_entry_route.example.json",
-    "export_ref": "generated/kag_export.min.json",
+    "current_tiny_entry_ref": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
+    "export_ref": "ToS/derived-exports/kag_export.min.json",
     "validation_refs": list(VALIDATION_REFS),
 }
 
@@ -35,23 +35,23 @@ ROUTES = (
     {
         "route_id": "current-tiny-entry",
         "need": "enter the current bounded ToS route through the source-owned tiny-entry seam",
-        "surface_ref": "examples/tos_tiny_entry_route.example.json",
+        "surface_ref": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
         "verification_refs": [
-            "docs/TINY_ENTRY_ROUTE.md",
-            "docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            "ToS/doctrine/TINY_ENTRY_ROUTE.md",
+            "ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
         ],
     },
     {
         "route_id": "tree-first-model",
         "need": "restore the tree-first model and repository boundary before following derived downstream layers",
-        "surface_ref": "docs/KNOWLEDGE_MODEL.md",
+        "surface_ref": "ToS/doctrine/KNOWLEDGE_MODEL.md",
         "verification_refs": ["CHARTER.md", "BOUNDARIES.md"],
     },
     {
         "route_id": "bounded-export",
         "need": "inspect the current bounded downstream export seam without mistaking it for ToS authority",
-        "surface_ref": "generated/kag_export.min.json",
-        "verification_refs": ["docs/KAG_EXPORT.md", "examples/source_node.example.json"],
+        "surface_ref": "ToS/derived-exports/kag_export.min.json",
+        "verification_refs": ["ToS/doctrine/KAG_EXPORT.md", "ToS/public-compatibility/source_node.example.json"],
     },
 )
 

@@ -5,3 +5,11 @@
 ## 2026-06-04
 
 - [TOS-D-0001 - Source-First Decision Rationale Lane](../TOS-D-0001-source-first-decision-rationale-lane.md) (`docs/decisions/TOS-D-0001-source-first-decision-rationale-lane.md`)
+
+## 2026-06-06
+
+- [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
+
+## 2026-06-07
+
+- [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)

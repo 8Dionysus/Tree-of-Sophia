@@ -1,0 +1,67 @@
+{
+  "schema_version": "tos_philosophy_topology_v1",
+  "branch_id": "philosophy",
+  "path": "ToS/philosophy",
+  "role": "growing domain tree of philosophy",
+  "not": [
+    "candidate-intake",
+    "notion mirror",
+    "flat index warehouse"
+  ],
+  "primary_growth_order": [
+    "trunk",
+    "eras",
+    "regions",
+    "traditions",
+    "works",
+    "figures",
+    "concepts",
+    "transmissions",
+    "sources",
+    "local graph fragments",
+    "canon promotion"
+  ],
+  "branch_manifests": [
+    "ToS/philosophy/trunk/branch.manifest.json",
+    "ToS/philosophy/trunk/branch-law/branch.manifest.json",
+    "ToS/philosophy/trunk/evidence-status/branch.manifest.json",
+    "ToS/philosophy/trunk/chronology/branch.manifest.json",
+    "ToS/philosophy/eras/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/traditions/mesopotamian-wisdom/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/traditions/egyptian-sebayt/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/traditions/elamite-writing/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/traditions/indus-valley/branch.manifest.json",
+    "ToS/philosophy/eras/bronze-age/regions/ancient-near-east/traditions/bronze-anatolia/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/regions/east-asia/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/regions/south-asia/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/regions/iranian-world/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/regions/aegean-world/branch.manifest.json",
+    "ToS/philosophy/eras/axial-age/regions/levant/branch.manifest.json",
+    "ToS/philosophy/eras/hellenistic-age/branch.manifest.json",
+    "ToS/philosophy/eras/roman-world/branch.manifest.json",
+    "ToS/philosophy/eras/late-antiquity/branch.manifest.json",
+    "ToS/philosophy/eras/classical-south-asia/branch.manifest.json",
+    "ToS/philosophy/threads/branch.manifest.json",
+    "ToS/philosophy/threads/figures/branch.manifest.json",
+    "ToS/philosophy/threads/works/branch.manifest.json",
+    "ToS/philosophy/threads/concepts/branch.manifest.json",
+    "ToS/philosophy/threads/source-corpora/branch.manifest.json",
+    "ToS/philosophy/threads/transmissions/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/proposed-nodes/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/proposed-relations/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/branch-fragments/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/promotion-ledger/branch.manifest.json"
+  ],
+  "source_witness_routes": [
+    "ToS/source-witnesses/notion/philosophy/witness.manifest.json"
+  ],
+  "forbidden_path_components": [
+    "zagotovki",
+    "raw-pages",
+    "world-written-philosophy"
+  ]
+}

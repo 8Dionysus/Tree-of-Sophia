@@ -1,0 +1,31 @@
+# V6.1 Carrier Migration Review
+
+Date: 2026-03-27
+
+## What Changed
+
+- adopted the `v6.1` workbook as the current live carrier at
+  `ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
+  rather than as a canonical repo surface
+- migrated the bounded intake route to the 9-table tabular base contract
+- replaced the active segment spine with `seg.1.1.1.n`
+- moved graph vocabulary governance into tracked registries under `ToS/canon/`
+
+## Review Notes
+
+- `ToS/canon/source/.../node.json` remains the authored source-node canon
+- `ToS/public-compatibility/source_node.example.json` remains a compatibility mirror rather than
+  a second source of truth
+- `ToS/candidate-intake/.../mode-b/*.csv` now carries the candidate tabular base pack
+- `ToS/canon/registries/*.csv` now carries predicate and class governance surfaces
+- the single live route-local carrier workbook remains a carrier and review
+  artifact, not repo canon
+
+## Residual Boundaries
+
+- `translation_tensions.csv` is now long-model and anchor-based, while the
+  source-node JSON keeps the compact `{ segment_id, note }` surface
+- `15_Master`, `16_Coverage`, and `*_actual` workbook sheets remain derivation
+  and review views rather than tracked primary repo surfaces
+- promotion from `ToS/candidate-intake/` into broader authored tree law still requires a
+  separate review pass

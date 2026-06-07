@@ -5,12 +5,12 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_NODE_PATH = REPO_ROOT / "examples" / "source_node.example.json"
-CONCEPT_NODE_PATH = REPO_ROOT / "examples" / "concept_node.example.json"
-TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "docs" / "TINY_ENTRY_ROUTE.md"
-CAPSULE_PATH = REPO_ROOT / "docs" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
-OUTPUT_PATH = REPO_ROOT / "generated" / "kag_export.json"
-MIN_OUTPUT_PATH = REPO_ROOT / "generated" / "kag_export.min.json"
+SOURCE_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json"
+CONCEPT_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "concept_node.example.json"
+TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "ToS" / "doctrine" / "TINY_ENTRY_ROUTE.md"
+CAPSULE_PATH = REPO_ROOT / "ToS" / "doctrine" / "ZARATHUSTRA_TRILINGUAL_ENTRY.md"
+OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.json"
+MIN_OUTPUT_PATH = REPO_ROOT / "ToS" / "derived-exports" / "kag_export.min.json"
 
 PRIMARY_QUESTION = (
     "What source-owned tiny export keeps the current Zarathustra prologue route "
@@ -30,7 +30,7 @@ PROVENANCE_NOTE = (
 )
 NON_IDENTITY_BOUNDARY = (
     "Derived export capsule for downstream KAG consumers; ToS-authored authority "
-    "remains in Tree-of-Sophia tree, source, and capsule surfaces."
+    "remains in Tree-of-Sophia ToS/canon, ToS/source-witnesses, and capsule surfaces."
 )
 
 
@@ -47,34 +47,34 @@ def encode_json(payload: object, *, compact: bool) -> str:
 def build_kag_export_payload() -> dict[str, object]:
     source_payload = read_json(SOURCE_NODE_PATH)
     if not isinstance(source_payload, dict):
-        raise RuntimeError("examples/source_node.example.json must be a JSON object")
+        raise RuntimeError("ToS/public-compatibility/source_node.example.json must be a JSON object")
 
     node_id = source_payload.get("node_id")
     interpretation_layers = source_payload.get("interpretation_layers")
     relations = source_payload.get("relations")
     if not isinstance(node_id, str) or not node_id:
-        raise RuntimeError("examples/source_node.example.json must keep node_id")
+        raise RuntimeError("ToS/public-compatibility/source_node.example.json must keep node_id")
     if not isinstance(interpretation_layers, list) or not interpretation_layers:
-        raise RuntimeError("examples/source_node.example.json must keep interpretation_layers")
+        raise RuntimeError("ToS/public-compatibility/source_node.example.json must keep interpretation_layers")
     if not isinstance(relations, list):
-        raise RuntimeError("examples/source_node.example.json must keep relations")
+        raise RuntimeError("ToS/public-compatibility/source_node.example.json must keep relations")
 
     direct_relations = [
         {
             "relation_type": "bounded_hop",
-            "target_ref": "Tree-of-Sophia/examples/concept_node.example.json",
+            "target_ref": "Tree-of-Sophia/ToS/public-compatibility/concept_node.example.json",
         },
         {
             "relation_type": "capsule_surface",
-            "target_ref": "Tree-of-Sophia/docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+            "target_ref": "Tree-of-Sophia/ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
         },
         {
             "relation_type": "tiny_entry_route",
-            "target_ref": "Tree-of-Sophia/docs/TINY_ENTRY_ROUTE.md",
+            "target_ref": "Tree-of-Sophia/ToS/doctrine/TINY_ENTRY_ROUTE.md",
         },
     ]
     if not relations:
-        raise RuntimeError("examples/source_node.example.json must keep at least one relation")
+        raise RuntimeError("ToS/public-compatibility/source_node.example.json must keep at least one relation")
 
     section_handles = []
     for layer in interpretation_layers:
@@ -103,7 +103,7 @@ def build_kag_export_payload() -> dict[str, object]:
         ],
         "entry_surface": {
             "repo": "Tree-of-Sophia",
-            "path": "examples/source_node.example.json",
+            "path": "ToS/public-compatibility/source_node.example.json",
             "match_key": "node_id",
             "match_value": node_id,
         },

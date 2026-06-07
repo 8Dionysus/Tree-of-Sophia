@@ -6,9 +6,9 @@ This file applies to the generator and validator tools under `scripts/`.
 
 Before editing tools here, read:
 1. the repository root `AGENTS.md`
-2. `docs/TINY_ENTRY_ROUTE.md`
-3. `docs/KAG_EXPORT.md`
-4. `docs/REVIEW_CHECKLIST.md`
+2. `ToS/doctrine/TINY_ENTRY_ROUTE.md`
+3. `ToS/doctrine/KAG_EXPORT.md`
+4. `ToS/doctrine/REVIEW_CHECKLIST.md`
 5. `docs/decisions/AGENTS.md` when decision-index tooling is touched
 6. the schema, example, intake, decision, or tree surfaces the script actually touches
 
@@ -21,6 +21,10 @@ These tools should:
 - stay deterministic
 - stay source-owned
 - make review easier rather than more magical
+
+`validate_philosophy_topology.py` protects the domain-shaped `ToS/philosophy/`
+branch so it cannot collapse into a flat import folder or inherit source UI
+labels as repository topology.
 
 ## Editing posture
 
@@ -44,7 +48,7 @@ The scripts should serve the source-first route, not become a kingdom of their o
 ## Hard no
 
 Do not:
-- silently treat `examples/` as canonical source
+- silently treat `ToS/public-compatibility/` as canonical source
 - let generation logic outrun the contracts it is supposed to protect
 - hide widening scope behind convenience flags
 - add adjunct quest or progression behavior that changes semantic authority
@@ -56,6 +60,7 @@ Run:
 ```bash
 python scripts/validate_intake_pack.py
 python scripts/validate_tiny_entry_route.py
+python scripts/validate_philosophy_topology.py
 python scripts/validate_nested_agents.py
 python scripts/validate_tree_node_contracts.py
 python scripts/validate_tree_relation_pack.py

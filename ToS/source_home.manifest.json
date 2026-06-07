@@ -1,0 +1,133 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/tos-source-home.schema.json",
+  "schema_version": "tos_source_home_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "home": "ToS/",
+  "role": "source-home organ for ToS-authored philosophy, source witness discipline, domain philosophy topology, canon, compatibility, contracts, derived exports, and review evidence",
+  "home_rules": [
+    "ToS-owned source surfaces live under ToS/ rather than in separate root-level active homes.",
+    "The home is tree-shaped: philosophy, witness, intake, canon, compatibility, export, contract, doctrine, and review branches stay distinct.",
+    "Root README, charter, boundaries, roadmap, release route, and decision rationale remain repository-level surfaces.",
+    "Generated and compatibility surfaces remain lower authority than doctrine, source witnesses, canon, and contracts.",
+    "Every active source-home branch has an owner surface and a validation route."
+  ],
+  "branches": [
+    {
+      "id": "doctrine",
+      "path": "ToS/doctrine",
+      "role": "ToS knowledge law, node contracts, templates, route doctrine, growth posture, and review law.",
+      "owner_surface": "ToS/doctrine/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tos_source_home.py",
+        "python scripts/validate_nested_agents.py"
+      ]
+    },
+    {
+      "id": "source_witnesses",
+      "path": "ToS/source-witnesses",
+      "role": "Primary source-facing witness material and provenance-aware source files.",
+      "owner_surface": "ToS/source-witnesses/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tiny_entry_route.py",
+        "python scripts/validate_kag_export.py"
+      ]
+    },
+    {
+      "id": "philosophy",
+      "path": "ToS/philosophy",
+      "role": "Domain-shaped growing philosophy tree: trunk law, era branches, tradition subtrees, local graph workbenches, and cross-thread navigation.",
+      "owner_surface": "ToS/philosophy/AGENTS.md",
+      "validators": [
+        "python scripts/validate_philosophy_topology.py",
+        "python scripts/validate_nested_agents.py"
+      ]
+    },
+    {
+      "id": "candidate_intake",
+      "path": "ToS/candidate-intake",
+      "role": "Provisional extraction, tabular base material, and promotion ledgers.",
+      "owner_surface": "ToS/candidate-intake/AGENTS.md",
+      "validators": [
+        "python scripts/validate_intake_pack.py"
+      ]
+    },
+    {
+      "id": "canon",
+      "path": "ToS/canon",
+      "role": "Canonical authored nodes, relation packs, and vocabulary registries.",
+      "owner_surface": "ToS/canon/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tree_node_contracts.py",
+        "python scripts/validate_tree_relation_pack.py",
+        "python scripts/validate_tree_example_sync.py"
+      ]
+    },
+    {
+      "id": "public_compatibility",
+      "path": "ToS/public-compatibility",
+      "role": "Public-safe compatibility mirrors, examples, and tiny-entry compatibility surfaces.",
+      "owner_surface": "ToS/public-compatibility/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tree_example_sync.py",
+        "python scripts/validate_tiny_entry_route.py"
+      ]
+    },
+    {
+      "id": "derived_exports",
+      "path": "ToS/derived-exports",
+      "role": "Generated downstream-facing exports and compact read models.",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "validators": [
+        "python scripts/build_root_entry_map.py --check",
+        "python scripts/validate_root_entry_map.py",
+        "python scripts/validate_kag_export.py"
+      ]
+    },
+    {
+      "id": "contracts",
+      "path": "ToS/contracts",
+      "role": "Public schema contracts for ToS surfaces.",
+      "owner_surface": "ToS/contracts/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tree_node_contracts.py",
+        "python scripts/validate_kag_export.py"
+      ]
+    },
+    {
+      "id": "review_ledger",
+      "path": "ToS/review-ledger",
+      "role": "Dated inspection notes and review evidence.",
+      "owner_surface": "ToS/review-ledger/AGENTS.md",
+      "validators": [
+        "python scripts/validate_tos_source_home.py",
+        "python scripts/validate_nested_agents.py"
+      ]
+    }
+  ],
+  "stronger_owner_routes": [
+    {
+      "pressure": "AoA federation, center doctrine, or ecosystem constitution",
+      "route": "Agents-of-Abyss"
+    },
+    {
+      "pressure": "derived KAG substrate semantics",
+      "route": "aoa-kag"
+    },
+    {
+      "pressure": "runtime, service, storage, or deployment behavior",
+      "route": "abyss-stack"
+    },
+    {
+      "pressure": "typed workspace integration or SDK helpers",
+      "route": "aoa-sdk"
+    },
+    {
+      "pressure": "durable memory object or recall policy",
+      "route": "aoa-memo"
+    },
+    {
+      "pressure": "bounded proof verdicts",
+      "route": "aoa-evals"
+    }
+  ]
+}

@@ -32,11 +32,11 @@ class ValidationError(RuntimeError):
 
 
 QUESTBOOK_PATH = Path("QUESTBOOK.md")
-QUESTBOOK_INTEGRATION_PATH = Path("docs") / "QUESTBOOK_TOS_INTEGRATION.md"
-QUEST_SCHEMA_PATH = Path("schemas") / "quest.schema.json"
-QUEST_DISPATCH_SCHEMA_PATH = Path("schemas") / "quest_dispatch.schema.json"
-QUEST_CATALOG_EXAMPLE_PATH = Path("examples") / "quest_catalog.min.example.json"
-QUEST_DISPATCH_EXAMPLE_PATH = Path("examples") / "quest_dispatch.min.example.json"
+QUESTBOOK_INTEGRATION_PATH = Path("ToS") / "doctrine" / "QUESTBOOK_TOS_INTEGRATION.md"
+QUEST_SCHEMA_PATH = Path("ToS") / "contracts" / "quest.schema.json"
+QUEST_DISPATCH_SCHEMA_PATH = Path("ToS") / "contracts" / "quest_dispatch.schema.json"
+QUEST_CATALOG_EXAMPLE_PATH = Path("ToS") / "public-compatibility" / "quest_catalog.min.example.json"
+QUEST_DISPATCH_EXAMPLE_PATH = Path("ToS") / "public-compatibility" / "quest_dispatch.min.example.json"
 QUEST_IDS = (
     "TOS-Q-0001",
     "TOS-Q-0002",
@@ -47,7 +47,7 @@ QUESTBOOK_REQUIRED_TOKENS = (
     "operational obligations that belong to `Tree-of-Sophia`",
     "philosophical truth claims as backlog items",
     "collapsing ToS meaning into AoA operational language",
-    "examples/quest_catalog.min.example.json",
+    "ToS/public-compatibility/quest_catalog.min.example.json",
     "reviewable examples",
 )
 QUESTBOOK_FORBIDDEN_TOKENS = ("ATM10-Agent", "aoa-sdk")
@@ -363,7 +363,7 @@ def validate_questbook_surface() -> None:
 
     catalog_payload = read_json(REPO_ROOT / QUEST_CATALOG_EXAMPLE_PATH)
     if catalog_payload != expected_catalog:
-        fail("examples/quest_catalog.min.example.json must stay aligned with quests/*.yaml")
+        fail("ToS/public-compatibility/quest_catalog.min.example.json must stay aligned with quests/*.yaml")
 
     dispatch_payload = read_json(REPO_ROOT / QUEST_DISPATCH_EXAMPLE_PATH)
     if not isinstance(dispatch_payload, list):
@@ -376,7 +376,7 @@ def validate_questbook_surface() -> None:
             schema_label=QUEST_DISPATCH_SCHEMA_PATH.as_posix(),
         )
     if dispatch_payload != expected_dispatch:
-        fail("examples/quest_dispatch.min.example.json must stay aligned with quests/*.yaml")
+        fail("ToS/public-compatibility/quest_dispatch.min.example.json must stay aligned with quests/*.yaml")
 
 
 def validate_nested_agents_docs() -> None:
@@ -390,7 +390,7 @@ def validate_tree_example_sync() -> None:
     issues = run_tree_example_sync_validation(REPO_ROOT)
     if issues:
         details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"tree/example sync check failed:\n{details}")
+        fail(f"ToS/canon/example sync check failed:\n{details}")
 
 
 def validate_tiny_entry_route() -> None:
@@ -449,17 +449,17 @@ def validate_export_payload(payload: object) -> None:
 
     source_payload = read_json(SOURCE_NODE_PATH)
     if not isinstance(source_payload, dict):
-        fail("examples/source_node.example.json must be a JSON object")
+        fail("ToS/public-compatibility/source_node.example.json must be a JSON object")
     node_id = source_payload.get("node_id")
     if payload["object_id"] != node_id:
-        fail("generated KAG export object_id must stay aligned with examples/source_node.example.json")
+        fail("generated KAG export object_id must stay aligned with ToS/public-compatibility/source_node.example.json")
 
     entry_surface = payload["entry_surface"]
     if not isinstance(entry_surface, dict):
         fail("generated KAG export entry_surface must be an object")
     expected_entry_surface = {
         "repo": "Tree-of-Sophia",
-        "path": "examples/source_node.example.json",
+        "path": "ToS/public-compatibility/source_node.example.json",
         "match_key": "node_id",
         "match_value": node_id,
     }
@@ -495,9 +495,9 @@ def validate_export_payload(payload: object) -> None:
     if not isinstance(direct_relations, list) or len(direct_relations) != 3:
         fail("generated KAG export direct_relations must contain the bounded authority-supporting route set")
     expected_refs = {
-        "Tree-of-Sophia/examples/concept_node.example.json",
-        "Tree-of-Sophia/docs/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
-        "Tree-of-Sophia/docs/TINY_ENTRY_ROUTE.md",
+        "Tree-of-Sophia/ToS/public-compatibility/concept_node.example.json",
+        "Tree-of-Sophia/ToS/doctrine/ZARATHUSTRA_TRILINGUAL_ENTRY.md",
+        "Tree-of-Sophia/ToS/doctrine/TINY_ENTRY_ROUTE.md",
     }
     actual_refs = set()
     for index, relation in enumerate(direct_relations):
@@ -544,7 +544,7 @@ def main() -> int:
     print("[ok] validated v6.1 tabular base intake pack")
     print("[ok] validated canonical tree node payloads against the node contract")
     print("[ok] validated route-local canonical relation pack")
-    print("[ok] validated tree/example compatibility mirrors")
+    print("[ok] validated ToS/canon/example compatibility mirrors")
     print("[ok] validated source-owned tiny-entry route surfaces")
     print("[ok] validated questbook boundary-runtime surfaces")
     print("[ok] validated generated KAG export outputs are up to date")
