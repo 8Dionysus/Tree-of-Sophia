@@ -19,7 +19,7 @@ decision rationale lane.
 | Field | Route |
 | --- | --- |
 | role | source-home organ for Tree of Sophia |
-| input | source witnesses, philosophy branches, candidate extraction, canon payloads, compatibility examples, generated exports, contracts, doctrine, and review notes |
+| input | source witnesses, philosophy branches, candidate extraction, canon payloads, ToS-owned compatibility examples, generated exports, contracts, doctrine, and review notes |
 | output | a branch-shaped ToS surface with current owner guidance and validation |
 | owner | `ToS/AGENTS.md` for home law; nearest nested `AGENTS.md` for branch law; `ToS/source_home.manifest.json` for the branch inventory |
 | next route | witness -> philosophy or candidate intake -> canon -> public compatibility -> derived export |
@@ -63,7 +63,6 @@ decision rationale lane.
   `docs/decisions/`.
 - Route active ToS-owned source surfaces into the source home instead of
   recreating root-level active homes.
-
 ## Validation
 
 For source-home topology changes, run:

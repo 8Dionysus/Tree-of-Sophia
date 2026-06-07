@@ -29,9 +29,9 @@ Do not use it for:
 ## Backing files
 
 - `quests/*.yaml`
-- `ToS/contracts/quest.schema.json`
-- `ToS/contracts/quest_dispatch.schema.json`
-- `ToS/public-compatibility/quest_catalog.min.example.json`
-- `ToS/public-compatibility/quest_dispatch.min.example.json`
+- `mechanics/questbook/parts/dispatch-contracts/schemas/quest.schema.json`
+- `mechanics/questbook/parts/dispatch-contracts/schemas/quest_dispatch.schema.json`
+- `mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json`
+- `mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json`
 
-The files under `ToS/public-compatibility/*.example.json` are reviewable examples. They are not generated state and they are not runtime authority.
+The quest examples under `mechanics/questbook/parts/dispatch-contracts/examples/` are reviewable compatibility examples. They are not generated state and they are not runtime authority.

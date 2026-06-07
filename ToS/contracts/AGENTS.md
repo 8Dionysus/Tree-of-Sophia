@@ -18,8 +18,6 @@ Before changing a schema, read:
 The current contract files include:
 - `tos-node-contract.schema.json`
 - `tos-tiny-entry-route.schema.json`
-- `quest.schema.json`
-- `quest_dispatch.schema.json`
 
 Any schema edit here is a public contract change.
 
@@ -28,7 +26,7 @@ Any schema edit here is a public contract change.
 | Field | Route |
 | --- | --- |
 | role | public schema contract surface for ToS structures |
-| input | reviewed structural change in canon, compatibility, quest transport, or export boundary |
+| input | reviewed structural change in canon, ToS compatibility, or export boundary |
 | output | schema contract aligned with examples and validators |
 | owner | `ToS/contracts/AGENTS.md` and the specific schema file |
 | next route | source/canon/compatibility pressure -> schema update -> examples -> validators |
@@ -43,11 +41,9 @@ Keep:
 - relation enums explicit and bounded
 - repo-relative surfaces local to ToS
 
-Route AoA routing semantics, generated KAG export envelopes, and runtime
-assumptions to their owning surfaces before changing source-owned contracts.
-
-Quest contracts here are operational compatibility surfaces only. Authored
-meaning stays with source, doctrine, and canon owners.
+Route AoA routing semantics, generated KAG export envelopes, runtime
+assumptions, and non-source operational contracts to their owning surfaces
+before changing source-owned contracts.
 
 ## Boundary Routes
 

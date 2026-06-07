@@ -3,10 +3,10 @@
   "schema_version": "tos_source_home_v1",
   "owner_repo": "Tree-of-Sophia",
   "home": "ToS/",
-  "role": "source-home organ for ToS-authored philosophy, source witness discipline, domain philosophy topology, canon, compatibility, contracts, derived exports, and review evidence",
+  "role": "source-home organ for ToS-authored philosophy, source witness discipline, domain philosophy topology, canon, ToS-owned compatibility, ToS-owned contracts, ToS-owned derived exports, and review evidence",
   "home_rules": [
     "ToS-owned source surfaces live under ToS/ rather than in separate root-level active homes.",
-    "The home is tree-shaped: philosophy, witness, intake, canon, compatibility, export, contract, doctrine, and review branches stay distinct.",
+    "The home is tree-shaped: philosophy, witness, intake, canon, ToS-owned compatibility, ToS-owned export, ToS-owned contract, doctrine, and review branches stay distinct.",
     "Root README, charter, boundaries, roadmap, release route, and decision rationale remain repository-level surfaces.",
     "Generated and compatibility surfaces remain lower authority than doctrine, source witnesses, canon, and contracts.",
     "Every active source-home branch has an owner surface and a validation route."
@@ -65,7 +65,7 @@
     {
       "id": "public_compatibility",
       "path": "ToS/public-compatibility",
-      "role": "Public-safe compatibility mirrors, examples, and tiny-entry compatibility surfaces.",
+      "role": "ToS-owned public-safe compatibility mirrors, examples, and tiny-entry compatibility surfaces.",
       "owner_surface": "ToS/public-compatibility/AGENTS.md",
       "validators": [
         "python scripts/validate_tree_example_sync.py",
@@ -75,7 +75,7 @@
     {
       "id": "derived_exports",
       "path": "ToS/derived-exports",
-      "role": "Generated downstream-facing exports and compact read models.",
+      "role": "ToS-owned generated downstream-facing exports and compact read models.",
       "owner_surface": "ToS/derived-exports/AGENTS.md",
       "validators": [
         "python scripts/build_root_entry_map.py --check",
@@ -86,7 +86,7 @@
     {
       "id": "contracts",
       "path": "ToS/contracts",
-      "role": "Public schema contracts for ToS surfaces.",
+      "role": "ToS-owned public schema contracts for ToS surfaces.",
       "owner_surface": "ToS/contracts/AGENTS.md",
       "validators": [
         "python scripts/validate_tree_node_contracts.py",

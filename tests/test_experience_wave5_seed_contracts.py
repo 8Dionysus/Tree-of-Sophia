@@ -16,14 +16,24 @@ WAVE5_CONTRACTS = (
     ('tos_no_runtime_office_write_guard_v1', 'tos_no_runtime_office_write_guard_v1.json'),
     ('tos_service_dossier_boundary_v1', 'tos_service_dossier_boundary_v1.json'),
 )
+WAVE5_PARTS = {
+    "tos_installation_dossier_boundary_v1": "installation-boundary",
+    "tos_no_runtime_office_write_guard_v1": "service-office-boundary",
+    "tos_service_dossier_boundary_v1": "service-office-boundary",
+}
 
 
 def load_contract(stem: str, schema_file: str) -> tuple[dict[str, object], dict[str, object]]:
-    schema_path = ROOT / "ToS" / "contracts" / schema_file
-    example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
+    schema_path, example_path = contract_paths(stem, schema_file)
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     example = json.loads(example_path.read_text(encoding="utf-8"))
     return schema, example
+
+
+def contract_paths(stem: str, schema_file: str) -> tuple[Path, Path]:
+    part = WAVE5_PARTS[stem]
+    base = ROOT / "mechanics" / "experience" / "parts" / part
+    return base / "schemas" / schema_file, base / "examples" / f"{stem}.example.json"
 
 
 def validation_errors(schema: dict[str, object], value: object) -> list[object]:
@@ -243,8 +253,7 @@ class ExperienceWave5SeedContractTests(unittest.TestCase):
         self.assertTrue(WAVE5_CONTRACTS)
         missing_pairs: list[str] = []
         for stem, schema_file in WAVE5_CONTRACTS:
-            schema_path = ROOT / "ToS" / "contracts" / schema_file
-            example_path = ROOT / "ToS" / "public-compatibility" / f"{stem}.example.json"
+            schema_path, example_path = contract_paths(stem, schema_file)
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():

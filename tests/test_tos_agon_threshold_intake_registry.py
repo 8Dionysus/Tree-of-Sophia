@@ -7,7 +7,7 @@ import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-GENERATED = ROOT / 'ToS/derived-exports/tos_agon_threshold_intake_registry.min.json'
+GENERATED = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
 SCRIPT = ROOT / 'scripts/build_tos_agon_threshold_intake_registry.py'
 VALIDATOR = ROOT / 'scripts/validate_tos_agon_threshold_intake_registry.py'
 EXPECTED_COUNT = 8
