@@ -1,112 +1,72 @@
 # ToS Boundaries
 
-This document records the most important ownership and source-of-truth boundaries around Tree of Sophia.
+This document names the strongest ownership boundaries around
+`Tree-of-Sophia`.
 
-## Rule 1: ToS owns ToS authored meaning
+## Core Boundary
 
-`Tree-of-Sophia` owns the source-authored meaning of ToS nodes, relations, scope, and public architectural direction.
+ToS owns ToS-authored meaning: source witnesses, doctrine, node identity,
+branch topology, relation shape, canon posture, review routes, and public
+entry seams for the philosophical tree.
 
-If there is conflict between a ToS-authored surface and a derived surface elsewhere, ToS remains authoritative for ToS meaning.
+If a ToS-authored surface conflicts with a derived or downstream surface, ToS
+remains authoritative for ToS meaning.
 
-## Rule 2: KAG is derived substrate, not authored source
+## Owner Map
 
-`aoa-kag` may derive knowledge-ready structures, graph-friendly projections, section lifts, and retrieval-oriented views from ToS and other authoritative sources.
+| Pressure | ToS route | Stronger or neighboring owner |
+| --- | --- | --- |
+| source witness, work, author, concept, lineage, context | `ToS/` source home, doctrine, canon, review ledger | none inside this ecosystem |
+| root authority, public orientation, direction | `README.md`, `CHARTER.md`, `DESIGN.md`, `ROADMAP.md` | `Agents-of-Abyss` only for ecosystem-level law |
+| repeatable ToS operation | `mechanics/` package and part cards | sibling mechanics only when the operation belongs outside ToS |
+| generated reader, compact index, public example, export | source surface -> builder -> generated/exported companion | source remains ToS-authored |
+| KAG substrate, retrieval substrate, downstream graph handoff | bounded export route inside ToS | `aoa-kag` owns downstream substrate behavior |
+| runtime, service stack, visualization runtime | ToS supplies source/export material | `abyss-stack` owns serving and stack execution |
+| memory, proof, evaluation, routing, SDK, playbook, skill, technique | ToS may supply philosophical source or boundary input | owning AoA repository or layer |
 
-It must not silently replace ToS as the source of authored meaning.
+## Layer Boundaries
 
-## Rule 3: the AoA center does not own ToS corpus truth
+Raw source material, research packets, source witnesses, doctrine, canon,
+public compatibility, generated exports, review notes, tests, and validators
+are different layers. They may connect, but they should not silently merge.
 
-`Agents-of-Abyss` may describe how ToS relates to the AoA federation.
+Generated, public, graph-ready, and downstream-facing surfaces do not replace
+ToS-authored authority. A bounded route to `aoa-kag`, `aoa-routing`, or any
+other derived consumer does not delegate authority to aoa-kag, aoa-routing, or
+any other downstream derived system.
 
-It does not own the primary authored truth of ToS texts, nodes, or knowledge-model rules.
+## Growth Boundary
 
-## Rule 4: infrastructure is body, not meaning
+Growth means clearer branch structure, stronger source anchoring, better
+review, or more legible graph readiness. Quantity alone is not growth.
 
-`abyss-stack` may run the systems around ToS.
+Before widening the corpus:
 
-It does not own the meaning of ToS source material, interpretations, or structural relations.
+- prove the current branch route;
+- keep source and language roles explicit;
+- show where uncertainty sits;
+- keep manual review visible when automation does not cover the surface;
+- route recurring operation pressure into mechanics rather than root prose.
 
-## Rule 5: summaries must remain anchored
+## AI Boundary
 
-Any distilled thesis, semantic layer, or synthesis should retain visible linkage back to the relevant sources.
+AI may assist with extraction, clustering, cross-link suggestions, contrast
+proposals, translation comparison, graph views, or lineage hypotheses.
 
-ToS should not become a pile of free-floating summaries.
+AI does not become the primary author of interpretive stance, node judgment,
+canon promotion, or philosophical authority. Human-reviewed curation remains
+the owning judgment layer in ToS.
 
-## Rule 6: raw, canonical, and synthetic layers stay distinct
+## Calibration Boundary
 
-Raw source material, raw candidate extraction, canonical authored tree surfaces, compatibility or public entry surfaces, and human-reviewed synthesis are different layers.
+A guiding axis may orient the architecture. It should not erase plurality,
+language difference, tradition difference, or civilizational context.
 
-They may connect, but they should not be silently merged.
+Calibration roots guide relation and comparison. They do not make the tree a
+single doctrine.
 
-## Rule 7: calibration roots guide, not erase plurality
+## Current Manual Review Route
 
-A guiding axis or calibration root may help orient the architecture.
-
-It should not erase the plurality of traditions, languages, or civilizational contexts that ToS is designed to hold.
-
-## Rule 8: the architecture should stay source-first as it grows
-
-More scale, more retrieval, or more automation does not justify weaker source discipline.
-
-Growth should deepen traceability, not dissolve it.
-
-## Rule 9: practice lineage may be recognized, but operational detail stays downstream
-
-ToS may acknowledge a conceptual branch of practices next to the genealogy of ideas.
-
-That does not move operational ownership into ToS.
-
-Operational detail still belongs in neighboring AoA repositories.
-ToS remains the place that names the conceptual relation without swallowing the practice layer itself.
-
-## Rule 10: AI may amplify curation, but not replace judgment
-
-AI may assist with extraction, clustering, cross-link suggestions, contrast proposals, or lineage hypotheses.
-
-It does not become the primary author of interpretive stance, node judgment, or canon-facing promotion.
-Human-reviewed curation remains the owning judgment layer in ToS.
-
-## Rule 11: growth should stay explicit and structural
-
-ToS should grow through named structural choices:
-
-- deepen an existing node when the material strengthens the same source route
-- create a new node when a distinct source or concept needs its own authored surface
-- form a branch when the material opens a durable lineage or contextual path
-
-Quantity growth without structural clarity does not count as healthy growth.
-
-## Rule 12: node identifiers and templates stay ToS-authored
-
-Stable `node_id` discipline, first node templates, and corpus-facing scaffold examples belong to `Tree-of-Sophia`.
-
-Canonical authored tree surfaces also belong to `Tree-of-Sophia`.
-
-Downstream routing, derived substrate, or runtime layers may point to those surfaces.
-They do not become the primary authors of ToS node identity or template law.
-
-## Rule 13: branch pilots stay bounded before wider expansion
-
-The first lineage pilot should prove one small route clearly.
-
-It should not quietly become:
-
-- a cross-tradition expansion wave
-- a hidden broader corpus program
-- a graph-sprawl substitute for legible lineage
-
-Bounded pilots come before wider world-thought expansion.
-
-## Rule 14: manual corpus-entry gates stay explicit before tree motion resumes
-
-Templates, review-route work, and schema hardening may prepare ToS for later growth.
-
-They should not quietly count as:
-
-- a new family opening
-- a new branch
-- active wider world-thought expansion
-
-When tree motion is paused behind a maintainer-led source-entry gate, that gate should be named explicitly rather than implied.
-
-When the current public validator does not cover the touched surface, use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` to review boundary-sensitive changes explicitly.
+When the current public validator does not cover the touched surface, use
+`mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` to review
+boundary-sensitive changes explicitly.

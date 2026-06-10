@@ -35,6 +35,8 @@ domain tree changes.
   split, boundary, and validation route.
 - `parts/` holds active functioning operation contracts, not source-file
   inventories.
+- Package `ROADMAP.md` holds future pressure and growth conditions. It is not a
+  backlog, validation inventory, script/test refactor plan, or landing ledger.
 - Package `PROVENANCE.md` is the active bridge to former placement or source
   lineage. It is not the archive itself.
 - Package-local `legacy/` exists only for real moved-path, raw-receipt, or old

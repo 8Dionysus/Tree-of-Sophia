@@ -24,7 +24,7 @@ route was true.
 
 ## Decision
 
-Move the Deep Research philosophy seed out of `ToS/source-witnesses/` and into
+Move the Deep Research philosophy packet out of `ToS/source-witnesses/` and into
 `ToS/research-packets/deep-research/philosophy/`.
 
 Research packets may preserve capture metadata and branch leads. They must not

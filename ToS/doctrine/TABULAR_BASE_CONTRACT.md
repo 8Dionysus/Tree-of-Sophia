@@ -51,7 +51,7 @@ The current bounded tabular base pack consists of nine CSV files:
 - `principles.csv`
 
 This pack stays candidate-only.
-It may seed later authored tree work, but it is not promoted by presence alone.
+It may candidate later authored tree work, but it is not promoted by presence alone.
 
 ## Segment spine
 

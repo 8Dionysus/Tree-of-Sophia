@@ -28,6 +28,6 @@ authority.
 
 ```bash
 python scripts/validate_mechanics_topology.py
-python -m unittest discover -s tests -p 'test_experience_wave*_seed_contracts.py'
+python -m unittest discover -s tests -p 'test_experience_boundary_batch*_contracts.py'
 python scripts/validate_nested_agents.py
 ```

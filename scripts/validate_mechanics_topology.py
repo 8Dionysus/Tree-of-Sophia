@@ -161,14 +161,14 @@ MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
                 "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
             ),
             (
-                "config/tos_agon_threshold_intakes.seed.json",
-                "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json",
+                "config/tos_agon_threshold_intakes.config.json",
+                "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
             ),
         ),
         "landing-handoff": (
             (
-                "ToS/doctrine/AGON_WAVE18_TOS_LANDING.md",
-                "mechanics/agon/parts/landing-handoff/docs/AGON_WAVE18_TOS_LANDING.md",
+                "ToS/doctrine/SOPHIAN_THRESHOLD_TOS_LANDING.md",
+                "mechanics/agon/parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md",
             ),
         ),
     },

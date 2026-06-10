@@ -49,9 +49,6 @@ class RoadmapParityTestCase(unittest.TestCase):
             "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
             "ToS/public-compatibility/tos_tiny_entry_route.example.json",
             "ToS/derived-exports/root_entry_map.min.json",
-            "scripts/build_root_entry_map.py",
-            "scripts/validate_root_entry_map.py",
-            "scripts/validate_tiny_entry_route.py",
             "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
             "ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md",
             "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
@@ -61,13 +58,24 @@ class RoadmapParityTestCase(unittest.TestCase):
             "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
             "ToS/derived-exports/kag_export.json",
             "ToS/derived-exports/kag_export.min.json",
-            "scripts/generate_kag_export.py",
-            "scripts/validate_kag_export.py",
         ]
         for surface in current_release_surfaces:
             with self.subTest(surface=surface):
                 self.assertTrue((REPO_ROOT / surface).exists(), surface)
-                self.assertIn(surface, roadmap)
+
+        indexed_surfaces = {
+            payload["authority_ref"],
+            payload["public_root_ref"],
+            payload["current_tiny_entry_ref"],
+            payload["export_ref"],
+        }
+        for route in payload["routes"]:
+            indexed_surfaces.add(route["surface_ref"])
+            indexed_surfaces.update(route.get("verification_refs", []))
+
+        for surface in indexed_surfaces:
+            with self.subTest(indexed_surface=surface):
+                self.assertTrue((REPO_ROOT / surface).exists(), surface)
 
 
 if __name__ == "__main__":

@@ -26,9 +26,9 @@ Please make sure:
 - uncertainty is named honestly when the material is contested or interpretive
 - public additions remain provenance-aware and reviewable
 
-For the current bounded route, run `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests`.
+Validation starts at [AGENTS](AGENTS.md#verify), then [scripts/AGENTS](scripts/AGENTS.md) or the nearest local route card.
 When the touched surface falls outside that validator coverage, use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` as the manual validation route and include a short review note in the PR when the change is boundary-sensitive.
-When the change creates durable route, boundary, validator, export, or source-discipline rationale, add or update `docs/decisions/TOS-D-####-*.md`, then run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`.
+When the change creates durable route, boundary, validator, export, or source-discipline rationale, add or update `docs/decisions/TOS-D-####-*.md` and use the decision route in [docs/decisions](docs/decisions/README.md).
 
 ## Preferred PR scope
 

@@ -14,4 +14,4 @@
 
 ## Payload
 
-- `docs/AGON_WAVE18_TOS_LANDING.md`
+- `docs/SOPHIAN_THRESHOLD_TOS_LANDING.md`

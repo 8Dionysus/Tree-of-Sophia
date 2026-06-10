@@ -8,7 +8,7 @@ Owner-local v1.1 surface for `Tree-of-Sophia`: no runtime office write.
 
 ## Boundary Source
 
-Live office expansion law lives in [Agents-of-Abyss](https://github.com/8Dionysus/Agents-of-Abyss/blob/main/docs/EXPERIENCE_WAVE5_SOVEREIGN_OFFICE.md). This Tree-of-Sophia surface only states the source-owned intake boundary: service dossiers may be reviewed, but office runtime state must not write directly into ToS canon.
+Live office expansion law lives in [Agents-of-Abyss](https://github.com/8Dionysus/Agents-of-Abyss/blob/main/mechanics/experience/parts/office-operations/README.md). This Tree-of-Sophia surface only states the source-owned intake boundary: service dossiers may be reviewed, but office runtime state must not write directly into ToS canon.
 
 ## Shape
 

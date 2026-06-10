@@ -7,7 +7,7 @@
 | status | `planted` |
 | class | `local` |
 | trigger | source witness material needs route discipline before branch or canon movement |
-| input | primary witness, Notion source page, translation layer, evidence status |
+| input | primary witness, published source metadata, translation layer, evidence status |
 | output | witness route or return-to-source |
 | owner | `mechanics/source-witnessing/` |
 | stronger route | `ToS/source-witnesses/` owns witness material |

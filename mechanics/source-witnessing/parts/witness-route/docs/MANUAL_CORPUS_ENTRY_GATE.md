@@ -1,6 +1,6 @@
 # Manual Corpus Entry Gate
 
-This document records the current eighth-wave ToS doctrine for manual corpus-entry gating.
+This document records the current eighth-phase ToS doctrine for manual corpus-entry gating.
 
 The point is simple:
 tree motion does not open automatically.

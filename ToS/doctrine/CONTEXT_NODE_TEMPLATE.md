@@ -1,6 +1,6 @@
 # Context Node Template
 
-This document records the current eighth-wave ToS scaffold for context nodes.
+This document records the current eighth-phase ToS scaffold for context nodes.
 
 The point is not to open a new corpus slice by itself.
 The point is to give temporal, geographic, linguistic, civilizational, and institutional context a reviewable authored form before wider expansion begins.

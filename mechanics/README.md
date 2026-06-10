@@ -64,6 +64,11 @@ the owning package or part. Durable rationale belongs in `docs/decisions/`.
 Former-path accounting belongs in package `PROVENANCE.md` and package-local
 `legacy/` only when an active route needs it.
 
+Package `ROADMAP.md` files own future pressure contours: what the mechanic is
+currently holding, what condition would make it grow, and what boundary keeps
+that growth honest. They are not backlogs, validation inventories, script
+placement plans, or migration ledgers.
+
 ## Placement
 
 - Source-authored philosophical material stays under `ToS/`.

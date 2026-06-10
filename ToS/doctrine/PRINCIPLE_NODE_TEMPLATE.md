@@ -1,6 +1,6 @@
 # Principle Node Template
 
-This document records the current first-wave scaffold for canonical principle
+This document records the current first-phase scaffold for canonical principle
 nodes in ToS.
 
 Principle nodes should not float free as detached maxims.

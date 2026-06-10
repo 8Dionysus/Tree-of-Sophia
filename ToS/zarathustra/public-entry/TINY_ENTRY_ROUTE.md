@@ -6,7 +6,7 @@ The seam is meant to help humans and smaller models enter a bounded authored rou
 
 ## Current public root
 
-At the current wave, the public `tos-root` is `README.md`.
+At the current phase, the public `tos-root` is `README.md`.
 
 No separate root file is introduced here.
 The root stays human-readable, public, and tree-first.
@@ -38,7 +38,7 @@ ToS needs both orientation surfaces and authority surfaces, but they should not 
 - orientation surfaces help a reader or smaller model enter the right authored path quickly
 - authority surfaces hold the authored node contract or the closest published source-backed compatibility surface
 
-In this wave:
+In this phase:
 
 - `README.md` and this note are orientation surfaces
 - `ToS/derived-exports/root_entry_map.min.json` is the compact root-entry capsule for machine-facing entry

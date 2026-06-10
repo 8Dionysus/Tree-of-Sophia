@@ -37,9 +37,9 @@ What remains interpretive or unresolved:
 
 - the pilot is still one bounded family rather than a cross-tradition branch
 - manual review remains canonical; there is still no public ToS validator script
-- wider world-thought expansion still needs its own later wave rather than piggybacking on this pilot
+- wider world-thought expansion still needs its own later phase rather than piggybacking on this pilot
 
 Likely downstream follow-up:
 
 - `Agents-of-Abyss` for center-layer routing and support doctrine
-- the final wider world-thought expansion wave
+- the final wider world-thought expansion phase

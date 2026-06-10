@@ -2,7 +2,7 @@
 
 This document records the original bounded calibration-family pilot for the first lineage-branch experiment in ToS.
 
-It follows the corpus scaffold wave.
+It follows the corpus scaffold phase.
 That scaffold gave ToS stable node IDs, source-node and concept-node templates, and one worked example pair.
 This note explains how those surfaces become one real small branch without pretending the pilot is already the whole tree.
 
@@ -17,7 +17,7 @@ for the bounded Zarathustra `prologue-1` route.
 
 The first branch pilot should prove one route clearly.
 
-For this wave, that route stays inside the current calibration family.
+For this phase, that route stays inside the current calibration family.
 
 ## Original pilot route
 

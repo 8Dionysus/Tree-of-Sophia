@@ -9,12 +9,12 @@ import sys
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json'
+SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json'
 OUT = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'
-WAVE = 'XVIII'
-WAVE_NAME = 'Sophian Threshold'
+REVIEW_PHASE_ORDER = 'XVIII'
+REVIEW_PHASE_LABEL = 'Sophian Threshold'
 RUNTIME_POSTURE = 'candidate_only'
 
 
@@ -28,8 +28,8 @@ def load_source() -> dict[str, Any]:
     data = json.loads(SRC.read_text(encoding='utf-8'))
     expected_metadata = {
         'registry_id': REGISTRY_ID,
-        'wave': WAVE,
-        'wave_name': WAVE_NAME,
+        'review_phase_order': REVIEW_PHASE_ORDER,
+        'review_phase_label': REVIEW_PHASE_LABEL,
         'runtime_posture': RUNTIME_POSTURE,
     }
     for field, expected in expected_metadata.items():
@@ -46,8 +46,8 @@ def build() -> dict[str, Any]:
     items = data[ITEM_KEY]
     return {
         'registry_id': REGISTRY_ID,
-        'wave': WAVE,
-        'wave_name': WAVE_NAME,
+        'review_phase_order': REVIEW_PHASE_ORDER,
+        'review_phase_label': REVIEW_PHASE_LABEL,
         'runtime_posture': RUNTIME_POSTURE,
         'count': len(items),
         ITEM_KEY: items,

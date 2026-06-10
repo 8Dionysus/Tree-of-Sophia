@@ -1,6 +1,6 @@
 # Calibration Axis
 
-This document records the current fifth-wave ToS doctrine for `Calibration Axis, Not Neutral Dust`.
+This document records the current fifth-phase ToS doctrine for `Calibration Axis, Not Neutral Dust`.
 
 It sits alongside [NODE_CONTRACT](NODE_CONTRACT.md),
 [COUNTERPART_POLICY](COUNTERPART_POLICY.md), and

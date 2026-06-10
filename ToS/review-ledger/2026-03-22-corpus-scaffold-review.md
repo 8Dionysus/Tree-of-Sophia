@@ -35,7 +35,7 @@ What remains interpretive or unresolved:
 
 - the corpus scaffold is still manual-review-first rather than backed by a public validator script
 - the worked example family is orienting and coherent, but not a claim of exclusive future canon
-- lineage/branch pilot work still belongs to a later wave after the scaffold proves itself
+- lineage/branch pilot work still belongs to a later phase after the scaffold proves itself
 
 Likely downstream follow-up:
 

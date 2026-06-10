@@ -17,7 +17,7 @@ ITEM_KEY = 'threshold_intakes'
 class TosAgonThresholdIntakeRegistryTestCase(unittest.TestCase):
     def test_generated_registry_shape(self) -> None:
         reg = json.loads(GENERATED.read_text(encoding='utf-8'))
-        self.assertEqual(reg['wave'], 'XVIII')
+        self.assertEqual(reg['review_phase_order'], 'XVIII')
         self.assertEqual(reg['count'], EXPECTED_COUNT)
         self.assertEqual(len(reg[ITEM_KEY]), EXPECTED_COUNT)
         self.assertTrue(all(item.get('live_protocol') is False for item in reg[ITEM_KEY]))

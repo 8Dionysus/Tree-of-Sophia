@@ -10,15 +10,15 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json'
+SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json'
 OUT = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
 ENTRY_SCHEMA = ROOT / 'mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json'
 REGISTRY_SCHEMA = ROOT / 'mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json'
 BUILDER = ROOT / 'scripts/build_tos_agon_threshold_intake_registry.py'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'
-WAVE = 'XVIII'
-WAVE_NAME = 'Sophian Threshold'
+REVIEW_PHASE_ORDER = 'XVIII'
+REVIEW_PHASE_LABEL = 'Sophian Threshold'
 RUNTIME_POSTURE = 'candidate_only'
 EXPECTED_COUNT = 8
 UNIQUE_KEY_FIELD = 'intake_id'
@@ -37,7 +37,7 @@ def load_json(path: pathlib.Path) -> Any:
 
 
 def load_builder():
-    spec = importlib.util.spec_from_file_location('_agon_seed_builder', BUILDER)
+    spec = importlib.util.spec_from_file_location('_agon_threshold_registry_builder', BUILDER)
     if spec is None or spec.loader is None:
         raise RuntimeError(f'cannot load builder {BUILDER}')
     module = importlib.util.module_from_spec(spec)
@@ -70,8 +70,8 @@ def require_string_list(value: Any, field: str, key: str) -> str | None:
 def validate_source_metadata(source: dict[str, Any]) -> str | None:
     expected = {
         'registry_id': REGISTRY_ID,
-        'wave': WAVE,
-        'wave_name': WAVE_NAME,
+        'review_phase_order': REVIEW_PHASE_ORDER,
+        'review_phase_label': REVIEW_PHASE_LABEL,
         'runtime_posture': RUNTIME_POSTURE,
     }
     for field, expected_value in expected.items():
@@ -84,8 +84,8 @@ def validate_item(item: dict[str, Any]) -> str | None:
     key = item.get(UNIQUE_KEY_FIELD)
     if not isinstance(key, str) or not key:
         return f'missing {UNIQUE_KEY_FIELD}'
-    if item.get('wave') != WAVE:
-        return f'{key} wave must be {WAVE}'
+    if item.get('review_phase_order') != REVIEW_PHASE_ORDER:
+        return f'{key} review_phase_order must be {REVIEW_PHASE_ORDER}'
     if item.get('live_protocol') is not False:
         return f'{key} live_protocol must be false'
     if item.get('assistant_contestant_allowed') is not False:

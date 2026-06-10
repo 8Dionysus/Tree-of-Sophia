@@ -1,6 +1,6 @@
-# Tos Rejection And Branching
+# Sophian Threshold ToS Landing
 
-Rejection, defer-with-cost, and branch candidate paths are first-class; none imply canon.
+Landing note for ToS-side Agon Sophian Threshold surfaces.
 
 ## Sophian Threshold Review Invariant
 
@@ -9,6 +9,6 @@ Rejection, defer-with-cost, and branch candidate paths are first-class; none imp
 This surface is candidate-only. It routes threshold material toward review,
 owner evidence, return, deferral, quarantine, or authorial request.
 
-## Required restraint
+## Candidate-Only Restraint
 
 Canon begins only after ToS-owned source review and authored promotion.

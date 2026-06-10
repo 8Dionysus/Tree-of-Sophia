@@ -2,7 +2,7 @@
 
 Version: v0.7
 Owner surface: `Tree-of-Sophia`
-Seed family: Experience Adoption Forge
+Contract family: Experience Adoption Forge
 
 ## Purpose
 
@@ -39,4 +39,4 @@ How ToS material can inform dossiers without direct adoption.
 
 ## Notes
 
-This document belongs to the v0.7 downstream adoption wave. It assumes the v0.6 federation harvest has already approved a shared pattern, but it refuses to treat approval as automatic adoption. Adoption is a second sovereign act: local owner consent, compatibility, shadow proof, rollback path, retention watch, and kind-safe projection are required.
+This document belongs to the v0.7 downstream adoption pass. It assumes the v0.6 federation harvest has already approved a shared pattern, but it refuses to treat approval as automatic adoption. Adoption is a second sovereign act: local owner consent, compatibility, shadow proof, rollback path, retention watch, and kind-safe projection are required.

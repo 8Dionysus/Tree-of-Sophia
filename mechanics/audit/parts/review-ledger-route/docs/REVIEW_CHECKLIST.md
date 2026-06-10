@@ -89,8 +89,8 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If multilingual source entry is present, do concept nodes remain language-neutral rather than becoming synonym piles?
 - If scaffold examples are present, do they remain bounded scaffolds rather than pretending to be a real branch pilot?
 - If a lineage pilot is present, does it make lineage more legible rather than more graph-like and vague?
-- If a lineage pilot is present, does it stay visibly smaller than a wider world-thought expansion wave?
-- If lineage-pilot examples are present, do they stay visibly bounded rather than quietly posing as a wider expansion wave?
+- If a lineage pilot is present, does it stay visibly smaller than a wider world-thought expansion phase?
+- If lineage-pilot examples are present, do they stay visibly bounded rather than quietly posing as a wider expansion phase?
 - If manual corpus-entry gating is present, does it keep bounded active source entry distinct from wider expansion?
 - If a tiny-entry route is present, does `README.md` remain the current public `tos-root` rather than being replaced by a derived surface?
 - If a tiny-entry route is present, do capsule and authority remain distinct rather than collapsing into one interchangeable surface?

@@ -1,6 +1,6 @@
 # Context Compost
 
-This document records the current fourth-wave ToS doctrine for `Context Compost`.
+This document records the current fourth-phase ToS doctrine for `Context Compost`.
 
 It is separate from
 [PRACTICE_BRANCH](../../../../../ToS/doctrine/PRACTICE_BRANCH.md) and
@@ -19,9 +19,9 @@ That compost cycle must stay:
 - reviewable
 - layered
 - reversible
-- non-platform-sovereign in this wave
+- non-platform-sovereign in this phase
 
-The current wave is doctrinal and doc-driven.
+The current phase is doctrinal and doc-driven.
 It does not claim a full executable ToS schema system yet.
 
 ## Canonical compost cycle
@@ -109,7 +109,7 @@ Canonization should remain explicit rather than ambient.
 
 ### `WitnessTrace -> Note -> Principle`
 
-One compact path for the current pilot wave:
+One compact path for the current pilot phase:
 
 1. `WitnessTrace` enters ToS as `raw` context, not as canon and not as operational ownership.
 2. A bounded `note` digests the route into source-linked language while preserving review state and limits.
@@ -143,15 +143,15 @@ Keep the chain explicit:
 - `aoa-memo` owns witness-facing memory contracts
 - `aoa-evals` owns proof of trace integrity and provenance preservation
 - `Tree-of-Sophia` owns the compost-cycle doctrine and canon-facing digestion
-- `abyss-stack` remains later runtime instrumentation, not part of this wave
+- `abyss-stack` remains later runtime instrumentation, not part of this phase
 
 ## What this does not replace
 
 Context compost may prepare the ground for later ToS growth work.
 
 It does not replace:
-- `TOS-SEED-03`
-- `TOS-SEED-05`
-- `TOS-SEED-08`
+- `TOS-GROWTH-03`
+- `TOS-GROWTH-05`
+- `TOS-GROWTH-08`
 
-It gives those later growth seeds a cleaner future intake route.
+It gives those later growth candidates a cleaner future intake route.
