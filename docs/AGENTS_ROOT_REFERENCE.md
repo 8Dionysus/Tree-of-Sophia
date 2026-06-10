@@ -42,12 +42,12 @@ Do not treat this repository as the main home for:
 - ecosystem-level federation rules in `Agents-of-Abyss`
 - typed workspace integration or bounded activation in `aoa-sdk`
 - derived substrate semantics in `aoa-kag`
-- seed staging or replay logistics in `Dionysus`
+- pre-canon staging or replay logistics in `Dionysus`
 - general agent workflow machinery, quest doctrine, or runtime-side progression overlays
 - infrastructure configuration
 - flat note archives detached from provenance
 
-If the task mainly concerns runtime, orchestration, seed staging, or derived substrate mechanics, route there instead of forcing it into ToS.
+If the task mainly concerns runtime, orchestration, pre-canon staging, or derived substrate mechanics, route there instead of forcing it into ToS.
 
 ## Core meaning posture
 
@@ -92,9 +92,9 @@ When the requested change is not truly ToS-owned, route by the question being as
 - `abyss-stack` for runtime, deployment, storage, and service posture
 - `aoa-kag` for derived provenance-aware retrieval and reasoning-handoff substrates
 - `aoa-techniques` for reusable engineering practice around knowledge operations
-- `Dionysus` for seed staging, replay, and pre-canon transplant logistics
+- `Dionysus` for pre-canon staging, replay, and transplant logistics
 
-If ToS is only being named because the task mentions ideas or concepts, but the real mutation is runtime, agent, or seed behavior, stop and reroute.
+If ToS is only being named because the task mentions ideas or concepts, but the real mutation is runtime, agent, or pre-canon behavior, stop and reroute.
 
 ## Primary objects
 

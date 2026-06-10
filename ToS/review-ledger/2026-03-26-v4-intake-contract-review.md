@@ -9,7 +9,7 @@ This review records the pre-`v6.1` intake contract before the route moved from
 ## What Changed
 
 - replaced the `mode-b` intake stub with a real local contract manifest
-- added the first `Wave 1` raw intake tables for
+- added the first `Phase 1` raw intake tables for
   `thus-spoke-zarathustra/prologue-1`
 - kept the pack bounded to `corpus_map`, `witnesses`, `segments`, `nodes`,
   `event_state_nodes`, `edges`, and `translation_tensions`
@@ -32,7 +32,7 @@ This review records the pre-`v6.1` intake contract before the route moved from
 - `nodes.csv` normalizes workbook `literal.*` targets into candidate `n.*`
   nodes so that edge references remain inside the allowed `node_id` or `es_id`
   space
-- second-wave tables and master control sheets remain intentionally deferred
+- second-phase tables and master control sheets remain intentionally deferred
 
 ## Remaining Interpretive Or Provisional Areas
 

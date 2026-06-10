@@ -30,10 +30,16 @@ EXPECTED_BOUNDED_HOP = CONCEPT_NODE_PATH.as_posix()
 EXPECTED_FALLBACK = KNOWLEDGE_MODEL_PATH.as_posix()
 LEGACY_HOP_FIELD = "lineage_or_context_hop"
 
-README_REQUIRED_PHRASES = (
-    "keeps `README.md` as the public `tos-root`",
-    "routes through a source-owned tiny-entry seam",
-    "python scripts/validate_tiny_entry_route.py",
+README_ROUTE_LINKS = (
+    "[ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md)",
+    "[ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)",
+    "ToS/derived-exports/root_entry_map.min.json",
+    "[mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)",
+    "[AGENTS](AGENTS.md#verify)",
+)
+README_BANNED_COMMANDS = (
+    "python scripts/",
+    "python -m unittest",
 )
 ROUTE_DOC_REQUIRED_PHRASES = (
     "public compatibility authority surface",
@@ -119,6 +125,22 @@ def require_phrases(
     for phrase in required_phrases:
         if normalize(phrase) not in text:
             issues.append((relative_path.as_posix(), f"missing required phrase: {phrase}"))
+
+
+def reject_phrases(
+    *,
+    relative_path: Path,
+    repo_root: Path,
+    banned_phrases: tuple[str, ...],
+    issues: list[Issue],
+) -> None:
+    path = repo_root / relative_path
+    if not path.is_file():
+        return
+    text = normalize(path.read_text(encoding="utf-8"))
+    for phrase in banned_phrases:
+        if normalize(phrase) in text:
+            issues.append((relative_path.as_posix(), f"route surface should not carry command text: {phrase}"))
 
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
@@ -231,7 +253,13 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     require_phrases(
         relative_path=README_PATH,
         repo_root=repo_root,
-        required_phrases=README_REQUIRED_PHRASES,
+        required_phrases=README_ROUTE_LINKS,
+        issues=issues,
+    )
+    reject_phrases(
+        relative_path=README_PATH,
+        repo_root=repo_root,
+        banned_phrases=README_BANNED_COMMANDS,
         issues=issues,
     )
     require_phrases(

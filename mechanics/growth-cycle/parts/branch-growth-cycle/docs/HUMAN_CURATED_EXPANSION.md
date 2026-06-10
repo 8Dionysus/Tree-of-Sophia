@@ -1,6 +1,6 @@
 # Human-Curated Expansion
 
-This document records the current fifth-wave ToS doctrine for `Human-Curated, AI-Amplified Expansion`.
+This document records the current fifth-phase ToS doctrine for `Human-Curated, AI-Amplified Expansion`.
 
 It does not introduce a new execution platform.
 It defines the public curation boundary for how ToS may grow with AI assistance while keeping judgment human-reviewed and source-first.
@@ -50,7 +50,7 @@ AI assistance should remain visible enough that a reviewer can tell:
 - what a human reviewed and stabilized
 - what remains provisional
 
-Hidden pipeline authority is out of bounds for this wave.
+Hidden pipeline authority is out of bounds for this phase.
 
 ## Failure mode to avoid
 

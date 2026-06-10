@@ -1,6 +1,6 @@
 # Concept Node Template
 
-This document records the current sixth-wave ToS scaffold for concept nodes.
+This document records the current sixth-phase ToS scaffold for concept nodes.
 
 Concept nodes should not collapse into floating abstractions.
 They still need a visible route back toward source-linked meaning.

@@ -23,7 +23,7 @@
 - `yes` the fallback stays inside ToS through `ToS/doctrine/KNOWLEDGE_MODEL.md`
 - `yes` no field in the new public example points to `aoa-kag` or `aoa-routing`
 - `yes` the route stays bounded to one real authored source node plus one bounded concept hop
-- `yes` no separate `context_node` example was introduced in this wave
+- `yes` no separate `context_node` example was introduced in this phase
 
 ## What remains deferred
 

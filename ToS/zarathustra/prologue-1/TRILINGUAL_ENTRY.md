@@ -216,9 +216,9 @@ principle canon while moving its canonical home into one bounded route-local
 `ToS/canon/synthesis/` surface.
 
 Within that now-closed principle spine, one wording pressure remains explicitly
-seeded for later growth rather than rewritten ahead of evidence.
+planted for later growth rather than rewritten ahead of evidence.
 The current node `blessing-is-reciprocal` remains live canon for the bounded
-pass, but an explicit review note now preserves the future alias-seed
+pass, but an explicit review note now preserves the future alias candidate
 `blessing-requires-a-recipient` in case later Zarathustra passages make clear
 that blessing should be read less as reciprocity and more as joyous
 overflow seeking an addressee.

@@ -1,14 +1,14 @@
 # Tos Governance Review Note
 
-Status: seed v0.8.0  
-Repo landing: `Tree-of-Sophia`  
+Status: candidate v0.8.0
+Repo landing: `Tree-of-Sophia`
 Layer: Experience Polis Governance
 
 ## Purpose
 
 Review note shape for ToS-facing governance dossiers.
 
-v0.8 adds a polis-governance contour around the experience mechanic. Earlier seeds forged capture, distillation, certification, deployment, federation and adoption. This seed asks a harder question: **who may decide when those paths conflict?**
+v0.8 adds a polis-governance contour around the experience mechanic. Earlier contract passes forged capture, distillation, certification, deployment, federation and adoption. This contract pass asks a harder question: **who may decide when those paths conflict?**
 
 ## Local law
 

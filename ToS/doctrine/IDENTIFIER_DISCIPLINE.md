@@ -1,6 +1,6 @@
 # Identifier Discipline
 
-This document records the current sixth-wave ToS doctrine for stable public node identifiers.
+This document records the current sixth-phase ToS doctrine for stable public node identifiers.
 
 It does not introduce a full executable corpus platform.
 It defines the public grammar that later templates, examples, and derived handoffs should meet.
@@ -37,7 +37,7 @@ The ID should identify the node, not narrate its whole lifecycle.
 
 ## Current scaffold posture
 
-This wave gives public ID discipline to:
+This phase gives public ID discipline to:
 
 - source-node scaffolds
 - concept-node scaffolds

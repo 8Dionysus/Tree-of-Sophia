@@ -63,10 +63,10 @@
     "tos_canonization_allowed": {
       "const": false
     },
-    "wave": {
+    "review_phase_order": {
       "const": "XVIII"
     },
-    "wave_name": {
+    "review_phase_label": {
       "const": "Sophian Threshold"
     }
   },
@@ -84,8 +84,8 @@
     "review_status",
     "runtime_effect",
     "tos_canonization_allowed",
-    "wave",
-    "wave_name"
+    "review_phase_order",
+    "review_phase_label"
   ],
   "title": "tos-agon-threshold-intake.schema.json item contract",
   "type": "object"

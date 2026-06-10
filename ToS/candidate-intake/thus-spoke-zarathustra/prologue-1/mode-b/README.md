@@ -62,7 +62,7 @@ That means:
 - `15_Master_*` and `16_Master_*` remain serving and review views rather than
   primary tracked intake files
 - `17_nodes_actual`, `18_event_state_nodes_actual`, and `19_principles_actual`
-  seed the candidate tables here, but do not become primary repo surfaces on
+  candidate the candidate tables here, but do not become primary repo surfaces on
   their own
 - `20_predicates_registry` and `21_class_registry` are promoted into
   `ToS/canon/registries/` as governance surfaces

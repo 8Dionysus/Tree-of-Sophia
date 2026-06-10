@@ -6,7 +6,7 @@
 - added a manual corpus-entry gate note
 - added a pre-expansion soil doctrine note
 - aligned the compact node schema with context-facing relation labels
-- updated README, roadmap, boundaries, knowledge model, node contract, and review checklist for a preparation-only wave
+- updated README, roadmap, boundaries, knowledge model, node contract, and review checklist for a preparation-only phase
 
 ## Highest-risk checklist items
 
@@ -18,7 +18,7 @@
 ## Interpretive or unresolved points
 
 - the current explicit gate is manual Zarathustra entry
-- wider world-thought expansion is still a live later seed rather than an active wave
+- wider world-thought expansion is still a live later candidate rather than an active phase
 - no new source, concept, lineage, or context example nodes were added in this preparation step
 
 ## Follow-up boundary

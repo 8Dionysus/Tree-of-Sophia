@@ -5,7 +5,7 @@ This file applies to Deep Research packet metadata for `ToS/philosophy/`.
 ## Role
 
 This directory records a non-authoritative AI-generated research packet that
-can help seed the philosophy domain branch. It preserves capture identity and
+can help grow the philosophy domain branch. It preserves capture identity and
 child-page pointers without treating Notion, GPT output, or UI labels as
 philosophical source authority.
 
@@ -24,8 +24,8 @@ philosophical source authority.
 ## Boundary Routes
 
 - Keep capture page names in metadata, not in path names.
-- Never cite this packet as a source witness, author, school, work, or canon
-  authority.
+- Cite source authority from real source witnesses, authors, works, editions,
+  translations, or reviewed canon surfaces.
 - Route branch-shaped philosophical material into `ToS/philosophy/`.
 - Route claims that need authority to real source witnesses, works, editions,
   translations, or reviewed canon surfaces.

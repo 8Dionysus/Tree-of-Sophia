@@ -2,14 +2,14 @@
 
 ## What changed
 
-- added `ToS/doctrine/CONTEXT_COMPOST.md` as the fourth-wave doctrinal route for `raw -> note -> synthesis -> principle -> canon`
+- added `ToS/doctrine/CONTEXT_COMPOST.md` as the fourth-phase doctrinal route for `raw -> note -> synthesis -> principle -> canon`
 - updated `README.md` so the compost route appears in the public start path and overview
 - updated `ToS/doctrine/KNOWLEDGE_MODEL.md` so compost becomes an explicit part of the ToS architecture
 - updated `ToS/doctrine/REVIEW_CHECKLIST.md` so manual review now checks compost-specific risks
 
 ## Checklist focus
 
-Most at risk in this wave:
+Most at risk in this phase:
 - source traceability
 - ToS versus AoA ownership boundary
 - layered meaning versus polished flattening
@@ -28,7 +28,7 @@ Checklist readout:
 
 - the compost route is still doctrinal and doc-driven rather than executable
 - `WitnessTrace` enters ToS as raw context, not as a claim that runtime instrumentation is solved
-- `TOS-SEED-03`, `TOS-SEED-05`, and `TOS-SEED-08` remain later growth work rather than being silently absorbed into this wave
+- `TOS-GROWTH-03`, `TOS-GROWTH-05`, and `TOS-GROWTH-08` remain later growth work rather than being silently absorbed into this phase
 
 ## Follow-up ownership
 

@@ -1,6 +1,6 @@
 # Source Node Template
 
-This document records the current sixth-wave ToS scaffold for source nodes.
+This document records the current sixth-phase ToS scaffold for source nodes.
 
 The point is not to force every source into one rigid mold.
 The point is to give the first public source-node surface a reviewable minimum shape.
@@ -17,7 +17,7 @@ A source-node scaffold should expose at least:
 - `relations`
 - `interpretation_layers`
 
-These fields should remain visibly tied to the first-wave node contract.
+These fields should remain visibly tied to the first-phase node contract.
 
 In a bounded multilingual source entry, a source node may also expose:
 

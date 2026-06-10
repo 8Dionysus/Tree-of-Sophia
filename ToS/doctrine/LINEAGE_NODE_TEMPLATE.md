@@ -1,6 +1,6 @@
 # Lineage Node Template
 
-This document records the current seventh-wave ToS scaffold for lineage nodes.
+This document records the current seventh-phase ToS scaffold for lineage nodes.
 
 The point is not to open a complete lineage ontology.
 The point is to give one bounded branch pilot a reviewable lineage-facing form.
@@ -37,4 +37,4 @@ This template is for a bounded pilot route:
 - one small cluster
 - one explicit reviewable path
 
-It does not yet claim a full branch taxonomy or a wider expansion wave.
+It does not yet claim a full branch taxonomy or a wider expansion phase.

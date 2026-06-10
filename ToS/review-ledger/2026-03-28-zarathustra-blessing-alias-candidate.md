@@ -1,4 +1,4 @@
-# Zarathustra Blessing Alias Seed
+# Zarathustra Blessing Alias Candidate
 
 Date: 2026-03-28
 
@@ -12,7 +12,7 @@ At the same time, the wording now carries an explicit future-pressure note.
 `reciprocal` risks sounding too symmetrical, reactive, or exchange-like for the
 deeper movement that later Zarathustra passages may clarify.
 
-This note plants a bounded alias-seed rather than rewriting current canon ahead
+This note plants a bounded alias candidate rather than rewriting current canon ahead
 of evidence.
 
 ## Current wording under pressure
@@ -36,7 +36,7 @@ The pressure point is that `reciprocal` can be misread as:
 
 That is narrower and more transactional than the route may later support.
 
-## Seeded future articulation
+## Future Articulation Candidate
 
 Preferred future alias:
 
@@ -66,7 +66,7 @@ Activate only if a later Zarathustra review pass shows that:
 ## Current posture
 
 - current canonical node remains unchanged
-- this alias is `seed_only`
+- this alias is `candidate_only`
 - this note is a future-growth guide, not live canon
 - if activated later, the change should be routed through explicit review and
   doctrine updates rather than silently patched into the current node

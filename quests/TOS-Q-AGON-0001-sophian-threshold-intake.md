@@ -1,6 +1,6 @@
 # TOS-Q-AGON-0001-sophian-threshold-intake
 
-Plant Agon Wave XVIII `Sophian Threshold` surfaces for `Tree-of-Sophia`.
+Plant Agon `Sophian Threshold` review surfaces for `Tree-of-Sophia`.
 
 Acceptance:
 - builder `--check` passes;

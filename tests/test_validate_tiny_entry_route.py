@@ -96,6 +96,23 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             any("## Source-first re-entry" in message for _, message in issues)
         )
 
+    def test_readme_command_text_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            readme_path = repo_root / "README.md"
+            write_text(
+                readme_path,
+                readme_path.read_text(encoding="utf-8")
+                + "\nRun `python scripts/validate_tiny_entry_route.py` here.\n",
+            )
+
+            issues = validate_tiny_entry_route.run_validation(repo_root)
+
+        self.assertTrue(
+            any("route surface should not carry command text" in message for _, message in issues)
+        )
+
     def test_review_checklist_missing_validator_phrase_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"

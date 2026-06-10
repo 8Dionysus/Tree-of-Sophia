@@ -1,6 +1,6 @@
 # Pre-Expansion Soil
 
-This document records the current eighth-wave ToS doctrine for pre-expansion soil work.
+This document records the current eighth-phase ToS doctrine for pre-expansion soil work.
 
 The wider world-thought horizon remains real.
 It is simply not active yet.
@@ -9,7 +9,7 @@ It is simply not active yet.
 
 ToS may prepare the soil for later expansion without pretending that expansion has begun.
 
-Allowed preparation in this wave includes:
+Allowed preparation in this phase includes:
 
 - context-node template law
 - manual corpus-entry gating
@@ -26,9 +26,9 @@ It helps ToS:
 - avoid fake plurality claims with no new source movement beneath them
 - make later context work legible before later corpus growth arrives
 
-## What this wave does not do
+## What this phase does not do
 
-This wave does not:
+This phase does not:
 
 - add a second family
 - add new branch nodes

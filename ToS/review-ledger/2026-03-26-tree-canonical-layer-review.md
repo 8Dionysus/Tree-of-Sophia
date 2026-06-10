@@ -3,9 +3,9 @@
 ## What changed
 
 - added `ToS/source-witnesses/`, `ToS/candidate-intake/`, and `ToS/canon/` as explicit repository layers
-- seeded `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/` with
+- planted `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/` with
   the current trilingual Zarathustra donor witness file
-- seeded `ToS/canon/` with the canonical authored Zarathustra source node plus the
+- planted `ToS/canon/` with the canonical authored Zarathustra source node plus the
   current `becoming` and `overcoming` concept companions
 - reframed `ToS/public-compatibility/` as the current public compatibility seam rather than the
   canonical home of the authored tree

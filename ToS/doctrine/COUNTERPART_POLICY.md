@@ -1,6 +1,6 @@
 # Counterpart Policy
 
-This document records the current third-wave ToS policy for counterpart mapping without collapse.
+This document records the current third-phase ToS policy for counterpart mapping without collapse.
 
 It is separate from [PRACTICE_BRANCH](PRACTICE_BRANCH.md).
 `PRACTICE_BRANCH.md` explains why a neighboring genealogy of practices can be recognized conceptually.

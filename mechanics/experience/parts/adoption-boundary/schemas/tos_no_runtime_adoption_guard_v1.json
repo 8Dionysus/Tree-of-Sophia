@@ -72,7 +72,7 @@
     "payload": {
       "type": "object",
       "required": [
-        "wave",
+        "review_phase",
         "repo",
         "pattern_ref",
         "owner_surface",
@@ -84,7 +84,7 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "wave": {
+        "review_phase": {
           "type": "string"
         },
         "repo": {

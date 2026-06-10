@@ -7,6 +7,14 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+### Changed
+
+- compacted root `README.md`, `AGENTS.md`, `DESIGN.md`, `DESIGN.AGENTS.md`,
+  `BOUNDARIES.md`, and `ROADMAP.md` into route-oriented owner surfaces while
+  keeping the current ToS root-entry and export contracts visible
+- relaxed root-doc validation pressure so README and ROADMAP route to owner
+  surfaces instead of carrying command inventories or script-path lists
+
 ## [0.2.2] - 2026-04-23
 
 ### Summary
@@ -141,7 +149,7 @@ This changelog entry uses the release-prep merge date.
 - `CHANGELOG.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `CONTRIBUTING.md`
 - `ToS/doctrine/TINY_ENTRY_ROUTE.md` as the first public doctrine note for the tree-first tiny-entry seam
 - `ToS/contracts/tos-tiny-entry-route.schema.json` and `ToS/public-compatibility/tos_tiny_entry_route.example.json`
-- `ToS/review-ledger/2026-03-23-tree-first-tiny-entry-review.md` for the manual review result of this wave
+- `ToS/review-ledger/2026-03-23-tree-first-tiny-entry-review.md` for the manual review result of this phase
 - bounded witness-provenance fields and optional segment locators in the public multilingual source-node contract
 - `ToS/review-ledger/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md`
 - `ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md`

@@ -23,9 +23,9 @@ witness authority, doctrine, canon, or final graph truth.
 
 ## Boundary Routes
 
-- Do not call these packets source witnesses.
-- Do not cite AI-generated packet material as author, work, school, doctrine,
-  or canon authority.
+- Classify these packets as research leads, not source witnesses.
+- Cite author, work, school, doctrine, and canon authority from source-owned
+  or reviewed surfaces.
 - Keep capture containers and UI titles as metadata only.
 - Route philosophical structure into `ToS/philosophy/` only after branch review.
 - Route authority claims to real source witnesses, published works, editions,

@@ -1,107 +1,125 @@
-# Tree of Sophia (ToS)
+# Tree of Sophia
 
-Tree of Sophia is a source-first living knowledge architecture for philosophy and world thought. It traces texts, concepts, contexts, and lineages across time and cultures while keeping source-linked authority visible as the tree grows.
+`Tree-of-Sophia` is the source-first philosophical tree of the AoA ecosystem.
+It is where texts, works, concepts, lineages, contexts, and reviewed relations
+become legible without being replaced by runtime, proof, memory, routing, or
+downstream graph machinery.
 
-It is not just a notes repository, not just a graph, and not just a retrieval substrate. It is the architectural root where source-linked meaning should stay legible as the wider ecosystem grows around it.
+AoA gives the wider organism its philosophical-engineering center. ToS carries
+the highest meaning-bearing aim: grow the tree of philosophy from sources,
+through review, into nodes and graphs that can be inspected, challenged, and
+continued.
 
-This repository currently carries four public layers:
-
-- `ToS/source-witnesses/` for primary witness and source material
-- `ToS/candidate-intake/` for candidate structure that stays visibly provisional
-- `ToS/canon/` for canonical authored nodes, relations, and vocabulary governance
-- `ToS/public-compatibility/` and `ToS/derived-exports/` for bounded public compatibility and downstream-safe export seams
+The tree should grow. The tree wants to grow. Growth is not accumulation:
+growth is a branch that can show its root.
 
 > Current release: `v0.2.2`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
-## Start here
+## What This Repository Does
 
-Use the shortest route by need:
+| Function | Surface |
+| --- | --- |
+| Repository authority | [CHARTER](CHARTER.md) |
+| System form | [DESIGN](DESIGN.md) |
+| Agent-facing form | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
+| Owner boundaries | [BOUNDARIES](BOUNDARIES.md) |
+| Agent route law and checks | [AGENTS](AGENTS.md), then the nearest nested `AGENTS.md` |
+| ToS source home | [ToS](ToS/README.md) |
+| Philosophical growth tree | [ToS/philosophy](ToS/philosophy/) |
+| Zarathustra golden route | [ToS/zarathustra](ToS/zarathustra/) |
+| Doctrine and node law | [ToS/doctrine](ToS/doctrine/) |
+| Canon and reviewed node surfaces | [ToS/canon](ToS/canon/) |
+| Repeatable ToS operations | [mechanics](mechanics/README.md) |
+| Decisions and durable rationale | [docs/decisions](docs/decisions/README.md) |
+| Quests and obligations | [QUESTBOOK](QUESTBOOK.md), [quests](quests/) |
+
+This repository is strongest when it keeps meaning source-owned and makes the
+next branch route obvious. It is weakest when the root README becomes an
+inventory, a validator sheet, or a substitute for the source home.
+
+## Start Here
+
+Read only the route that matches the work.
+
+| Need | Route |
+| --- | --- |
+| Shortest honest overview | this README -> [CHARTER](CHARTER.md) -> [DESIGN](DESIGN.md) -> [ToS](ToS/README.md) |
+| Decide whether something belongs here | [CHARTER](CHARTER.md) -> [BOUNDARIES](BOUNDARIES.md) |
+| Work as an agent | [AGENTS](AGENTS.md), then the nearest nested route card |
+| Change doctrine, node shape, or source law | [ToS/doctrine](ToS/doctrine/) and [ToS/AGENTS](ToS/AGENTS.md) |
+| Add or review source-facing material | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch route |
+| Change mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, and active part route |
+| Change public/export seams | source surface -> builder/export route -> generated companion -> local validator |
+| Run validation | [AGENTS](AGENTS.md#verify) and [scripts](scripts/AGENTS.md) |
+| Change direction | [ROADMAP](ROADMAP.md) |
+| Explain why a boundary changed | [docs/decisions](docs/decisions/README.md) |
+
+- current direction: [ROADMAP](ROADMAP.md)
+
+## Current Public Route
+
+The current bounded route keeps `README.md` as the public `tos-root` and routes through a source-owned tiny-entry seam before any downstream export.
 
 - if you are new here and want the one real current public route: [ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) and [ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)
 - if you want the compact machine-facing companion to that same root path: `ToS/derived-exports/root_entry_map.min.json`
 - if you need the bounded downstream export seam for that route: [mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)
-- if you want to verify the current bounded route: [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md), `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, `python -m unittest discover -s tests`, and [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST](mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md) for surfaces outside the current validator perimeter
-- mission and source-of-truth boundaries: [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md)
-- knowledge model and interpretation law: [ToS/doctrine/KNOWLEDGE_MODEL](ToS/doctrine/KNOWLEDGE_MODEL.md) and [ToS/doctrine/NODE_CONTRACT](ToS/doctrine/NODE_CONTRACT.md)
-- current direction: [ROADMAP](ROADMAP.md)
-- durable route, boundary, validator, or export rationale: [docs/decisions](docs/decisions/README.md), `python scripts/generate_decision_indexes.py --check`, and `python scripts/validate_decision_records.py`
-- growth mechanics and curation posture: [mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST](mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md), [ToS/doctrine/CALIBRATION_AXIS](ToS/doctrine/CALIBRATION_AXIS.md), [mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION](mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md), [mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE](mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md), and [mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE](mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md)
-- scaffold wave and review posture: [ToS/doctrine/IDENTIFIER_DISCIPLINE](ToS/doctrine/IDENTIFIER_DISCIPLINE.md), [ToS/doctrine/SOURCE_NODE_TEMPLATE](ToS/doctrine/SOURCE_NODE_TEMPLATE.md), [ToS/doctrine/CONCEPT_NODE_TEMPLATE](ToS/doctrine/CONCEPT_NODE_TEMPLATE.md), [ToS/doctrine/LINEAGE_NODE_TEMPLATE](ToS/doctrine/LINEAGE_NODE_TEMPLATE.md), [ToS/doctrine/CONTEXT_NODE_TEMPLATE](ToS/doctrine/CONTEXT_NODE_TEMPLATE.md), [ToS/doctrine/TABULAR_BASE_CONTRACT](ToS/doctrine/TABULAR_BASE_CONTRACT.md), [ToS/doctrine/RELATION_PACK_CONTRACT](ToS/doctrine/RELATION_PACK_CONTRACT.md), [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST](mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md), `python scripts/validate_tiny_entry_route.py`, and `python scripts/validate_kag_export.py`
 
-For the wider scaffold family, continue through the remaining `*_NODE_TEMPLATE.md` docs in `docs/` after the identifier discipline and first template surfaces.
+The tiny-entry seam is not a second canon. It is a public orientation path that
+returns to ToS-authored authority surfaces. The bounded export seam may serve
+`aoa-kag` and graph consumers, but it does not become ToS authority.
 
-## How to verify the current route
+## Layer Check
 
-Use this order:
+| Question | Owner route |
+| --- | --- |
+| What may ToS claim? | [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) |
+| What is the current form of the tree? | [DESIGN](DESIGN.md), [ToS](ToS/README.md), [ToS/philosophy](ToS/philosophy/) |
+| What is currently being proved? | [ROADMAP](ROADMAP.md) |
+| What owns a source, node, work, concept, lineage, or relation? | nearest authored ToS surface, branch manifest, doctrine card, or canon file |
+| What owns a recurring operation? | [mechanics](mechanics/README.md), then package and part cards |
+| What owns generated companions? | the source surface and builder that produced them |
+| What owns runtime, proof, memory, stack, KAG substrate, or federation logic? | the neighboring AoA repository named by [BOUNDARIES](BOUNDARIES.md) |
 
-1. [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) for ownership and non-ownership.
-2. `ToS/derived-exports/root_entry_map.min.json` and [ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) for the route shape from `README.md` to capsule, authority, and bounded hop.
-3. `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` for the canonical authored source node.
-4. `ToS/public-compatibility/source_node.example.json` and `ToS/public-compatibility/concept_node.example.json` for the current public compatibility mirrors.
-5. `python scripts/build_root_entry_map.py --check`, `python scripts/validate_root_entry_map.py`, `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded validator and test battery, then [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST](mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md) if your change falls outside that perimeter.
+## Validation Route
 
-## Route by need
+Executable authority belongs in [AGENTS](AGENTS.md#verify), [scripts](scripts/AGENTS.md),
+and local route cards. This README chooses the route; it does not run it.
 
-- current canonical authority for the bounded public route: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` and `ToS/canon/concept/becoming/node.json`
-- canonical authored tree and registries: `ToS/canon/` and `ToS/canon/registries/*.csv`
-- source witness and provisional intake: `ToS/source-witnesses/`, `ToS/candidate-intake/`, and [mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE](mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md)
-- node-template scaffold family: [ToS/doctrine/SOURCE_NODE_TEMPLATE](ToS/doctrine/SOURCE_NODE_TEMPLATE.md), [ToS/doctrine/CONCEPT_NODE_TEMPLATE](ToS/doctrine/CONCEPT_NODE_TEMPLATE.md), [ToS/doctrine/LINEAGE_NODE_TEMPLATE](ToS/doctrine/LINEAGE_NODE_TEMPLATE.md), [ToS/doctrine/CONTEXT_NODE_TEMPLATE](ToS/doctrine/CONTEXT_NODE_TEMPLATE.md), [ToS/doctrine/PRINCIPLE_NODE_TEMPLATE](ToS/doctrine/PRINCIPLE_NODE_TEMPLATE.md), [ToS/doctrine/EVENT_NODE_TEMPLATE](ToS/doctrine/EVENT_NODE_TEMPLATE.md), [ToS/doctrine/STATE_NODE_TEMPLATE](ToS/doctrine/STATE_NODE_TEMPLATE.md), [ToS/doctrine/SUPPORT_NODE_TEMPLATE](ToS/doctrine/SUPPORT_NODE_TEMPLATE.md), [ToS/doctrine/ANALOGY_NODE_TEMPLATE](ToS/doctrine/ANALOGY_NODE_TEMPLATE.md), and [ToS/doctrine/SYNTHESIS_NODE_TEMPLATE](ToS/doctrine/SYNTHESIS_NODE_TEMPLATE.md)
-- bounded public compatibility and export surfaces: [ToS/public-compatibility/README](ToS/public-compatibility/README.md), [ToS/derived-exports/README](ToS/derived-exports/README.md), `ToS/derived-exports/kag_export.json`, `ToS/derived-exports/kag_export.min.json`, and [mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)
-- review posture and bounded change checks: `python scripts/validate_tiny_entry_route.py`, `python scripts/validate_kag_export.py`, and `python -m unittest discover -s tests` for the current bounded route, plus [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST](mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md) and `ToS/review-ledger/` for broader boundary-sensitive changes outside the current validator perimeter
-- durable rationale lookup: [docs/decisions](docs/decisions/README.md) and generated decision indexes under `docs/decisions/indexes/`
+## Core Districts
 
-## What ToS owns
+| District | Use for |
+| --- | --- |
+| [ToS](ToS/README.md) | source home, doctrine, philosophy tree, canon, review ledger, and public routes |
+| [mechanics](mechanics/README.md) | repeatable ToS operations and part-local contracts |
+| [docs](docs/README.md) | decisions, root references, and durable rationale |
+| [schemas](schemas/) and [examples](examples/) | public-safe contracts and examples when present |
+| [generated](generated/) and [ToS/derived-exports](ToS/derived-exports/) | derived companions tied back to source |
+| [scripts](scripts/AGENTS.md) and [tests](tests/) | deterministic builders, validators, and regression checks |
+| [manifests](manifests/) and [quests](quests/) | recurrence hooks and durable obligations |
 
-Tree of Sophia is the canonical home for:
+Generated files are companions, not authority. Source witnesses, doctrine,
+canon, branch manifests, mechanics, decisions, builders, validators, and review
+records keep the meaning reviewable.
 
-- source-first knowledge architecture for the tree
-- source discipline, interpretation law, and contributor curation rules
-- primary witness and source files that ground canonical authored routes
-- candidate intake material that stays visibly provisional
-- canonical authored tree nodes, relations, and vocabulary governance
-- bounded public entry and export seams that remain subordinate to the canonical tree
+## Neighbor Organs
 
-## What does not belong here
+| Neighbor | Relationship |
+| --- | --- |
+| [Agents-of-Abyss](../Agents-of-Abyss/) | philosophical-engineering center and ecosystem law |
+| `aoa-kag` | downstream knowledge substrate and retrieval/graph projection consumer |
+| `abyss-stack` | runtime and visualization stack for serving the tree |
+| `aoa-memo` | durable memory and recall layer |
+| `aoa-evals` | proof and evaluation organ |
+| `aoa-sdk` | typed helper and control-plane access layer |
 
-This repository should not become the main home for:
+## Working Rule
 
-- runtime, deployment, storage, or service posture
-- general agent workflow machinery
-- infrastructure configuration
-- eval harnesses that are not specifically about ToS knowledge claims
-- derived KAG projections presented as authored source truth
-- flat note dumps detached from provenance
+Grow ToS by making the next source route clearer.
 
-## Repository layers
-
-The working distinction matters:
-
-- `ToS/source-witnesses/` grounds authority
-- `ToS/candidate-intake/` prepares candidate structure without becoming authority
-- `ToS/canon/` is the canonical authored layer
-- `ToS/public-compatibility/` is the current public compatibility seam
-- `ToS/derived-exports/` stays derived and downstream-facing
-
-Tree for orientation. Graph for relation. Source for authority.
-
-## Go here when...
-
-- you need the operational federation around ToS: [`Agents-of-Abyss`](https://github.com/8Dionysus/Agents-of-Abyss)
-- you need the runtime body beneath ToS and AoA: [`abyss-stack`](https://github.com/8Dionysus/abyss-stack)
-- you need derived, provenance-aware substrate work built from authoritative sources: [`aoa-kag`](https://github.com/8Dionysus/aoa-kag)
-- you need reusable engineering practice for knowledge operations: [`aoa-techniques`](https://github.com/8Dionysus/aoa-techniques)
-
-## Current contour
-
-The current public route is intentionally bounded. It opens one trilingual Zarathustra prologue entry, keeps `README.md` as the public `tos-root`, routes through a source-owned tiny-entry seam, preserves a public compatibility authority surface inside Tree of Sophia, and exposes one downstream-safe KAG export without replacing ToS authority.
-
-The current authored tree also carries the route-local principle, lineage, event, state, support, analogy, and synthesis surfaces needed to make that bounded path reviewable. The immediate task is to prove that route and its review posture before wider corpus movement broadens.
-
-## Guiding axis
-
-ToS is not a static archive. Its guiding axis is a living calibration of meaning: becoming, overcoming, creation of values, and affirmation of life. In the current architecture, *Thus Spoke Zarathustra* acts as a recurring calibration root for that axis.
-
-Use that axis as an interpretive compass, not as permission to flatten sources into one reading.
+Add material only where it improves traceability, review, branch structure, or
+graph readiness without weakening source authority. When detail belongs to a
+branch, mechanic, decision, roadmap, changelog, generated companion, validator,
+or neighboring organ, route it there instead of making this README carry it.
 
 ## License
 

@@ -1,152 +1,86 @@
 # ToS Roadmap
 
-This roadmap tracks the staged growth of Tree of Sophia as a source-first knowledge architecture.
+This roadmap tracks the staged growth of `Tree-of-Sophia` as a source-first
+philosophical tree.
 
-## Current phase
+## Current Phase
 
-ToS is now holding one bounded trilingual Zarathustra entry route, one tree-
-first tiny-entry seam, and one bounded export seam before wider corpus
-movement broadens.
+ToS is holding one bounded trilingual Zarathustra entry route, one tree-first
+tiny-entry seam, and one bounded export seam before wider corpus movement
+reopens.
 
-The immediate task is to prove one source-first trilingual prologue route with a shared `node_id`, explicit language roles, reviewable witness drift, and a stable `README.md -> capsule -> authority -> bounded hop` entry seam before wider world-thought expansion is reopened.
+The immediate task is to prove one source-first prologue route with a shared `node_id`,
+explicit language roles, reviewable witness drift, and a stable
+`README.md -> capsule -> authority -> bounded hop` entry seam.
 
-The export route should stay bounded and downstream: it may support `aoa-kag`
-handoff, but it must not become a new public entry authority for ToS.
+The export route stays downstream. It may support `aoa-kag`, graph readers, and
+future stack visualization, but it must not become a new ToS public authority.
 
-### Current release contour
+## Current release contour
 
-The live `v0.2.2` contour is a source-owned root-entry and export hardening
-wave. Its current checked surface is:
+The live `v0.2.2` contour is source-owned root-entry and export hardening:
 
-- public source-first orientation and boundaries:
-  `README.md`, `CHARTER.md`, `BOUNDARIES.md`,
-  `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`, and
+- public source-first orientation and boundaries: `README.md`, `CHARTER.md`,
+  `BOUNDARIES.md`, `ToS/doctrine/KNOWLEDGE_MODEL.md`,
+  `ToS/doctrine/NODE_CONTRACT.md`, and
   `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
 - source-owned zero-entry capsule and re-entry doctrine:
   `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`,
   `ToS/public-compatibility/tos_tiny_entry_route.example.json`,
-  `ToS/derived-exports/root_entry_map.min.json`, `scripts/build_root_entry_map.py`,
-  `scripts/validate_root_entry_map.py`, and
-  `scripts/validate_tiny_entry_route.py`
-- current trilingual authority and compatibility route:
+  and `ToS/derived-exports/root_entry_map.min.json`
+- routed-language witness handling and source-first re-entry:
   `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`,
   `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`,
   `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`,
   `ToS/public-compatibility/source_node.example.json`,
   `ToS/canon/concept/becoming/node.json`, and
   `ToS/public-compatibility/concept_node.example.json`
-- bounded downstream export seam:
-  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, `ToS/derived-exports/kag_export.json`,
-  `ToS/derived-exports/kag_export.min.json`, `scripts/generate_kag_export.py`, and
-  `scripts/validate_kag_export.py`
+- bounded export seam:
+  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`,
+  `ToS/derived-exports/kag_export.json`,
+  and `ToS/derived-exports/kag_export.min.json`
 
-This contour keeps routed-language witness handling and source-first re-entry
-inside ToS. Downstream KAG and routing consumers may use the seam, but they do
-not become ToS authority or widen the tree.
+This contour keeps the tiny-entry seam and bounded export seam subordinate to
+ToS-authored authority. Downstream KAG and routing consumers may use the seam;
+they do not widen the tree.
 
-## Phase 1: architectural baseline
+## Phase Path
 
-Goals:
-- publish the charter, boundaries, and knowledge model
-- make the source-first posture explicit
-- define the relationship between ToS, AoA, `aoa-kag`, and `abyss-stack`
-- resolve the old "graph or tree" ambiguity with a stable architectural statement
+| Phase | Direction | Exit Signal |
+| --- | --- | --- |
+| 1. architectural baseline | charter, boundaries, knowledge model, and source-first posture | contributors can say what ToS owns and what it routes away |
+| 2. corpus scaffold and templates | stable identifiers, source-node templates, concept-node templates, provenance conventions | first node surfaces are reviewable without opening broad corpus expansion |
+| 3. lineage and relation surfaces | works, concepts, contexts, and lineages become cross-linkable without losing root orientation | relations are explicit and branch-readable |
+| 4. derived handoff discipline | KAG/export/graph handoff is bounded and source-returning | generated views stay downstream companions |
+| 5. contributor and review workflow | human-reviewed synthesis and manual entry become repeatable | review can grow without hiding uncertainty |
+| 6. wider world-thought expansion | traditions, languages, eras, schools, works, and authors expand through branch topology | plurality grows without flattening into a list |
 
-Exit signals:
-- a contributor can tell what ToS owns
-- a coding agent can tell what ToS does not own
-- the public README no longer underspecifies the architecture
+## Active Subphases
 
-## Phase 2: corpus seed and templates
+| Subphase | Purpose |
+| --- | --- |
+| first corpus scaffold | define public `node_id` grammar and schema-backed source/concept examples |
+| bounded lineage pilot | prove one real small branch before cross-tradition expansion |
+| growth law trio | name deepening, new node creation, and branch formation as distinct movements |
+| pre-expansion soil | prepare context templates and manual corpus-entry gates |
+| bounded trilingual Zarathustra entry | keep German source authority with Russian working translation and English bridge translation |
+| tree-first tiny-entry seam | make the current public route legible without replacing authored node law |
 
-Goals:
-- introduce first source-node templates
-- define stable identifiers for source material and first conceptual layers
-- establish baseline conventions for node layering and provenance
+## Next Pressure
 
-## Phase 2a: first corpus scaffold
+The next durable widening should come from source-entry quality, branch
+topology, and review capacity, not from more generated surfaces.
 
-Goals:
-- define stable public `node_id` grammar
-- publish first source-node and concept-node templates
-- add one schema-backed worked example set without opening a branch pilot
-- keep manual review explicit for surfaces outside the current bounded public validator until wider coverage is genuinely needed
+When graph visualization enters through `abyss-stack`, ToS should provide
+source-owned corpus indexes, graph-readable exports, and layer switches. The
+stack should run and display the tree; ToS should own the philosophical source
+and structural truth.
 
-## Phase 3: lineage and relation surfaces
+## Standing Discipline
 
-Goals:
-- introduce compact lineage relations
-- keep cross-links explicit without losing rooted orientation
-- connect works, concepts, contexts, and lineages in a way that remains reviewable
-- clarify how a neighboring practice lineage can be acknowledged conceptually without importing AoA operational detail into ToS
-
-## Phase 3a: first bounded lineage pilot
-
-Goals:
-- publish a lineage-node template that fits the current compact contract
-- turn the calibration-family scaffold into one real small branch
-- keep the pilot visibly bounded and source-first
-- leave wider world-thought expansion for the next wave
-
-## Phase 4: derived handoff discipline
-
-Goals:
-- define clear export and handoff posture for `aoa-kag`
-- preserve distinction between ToS-authored material and downstream derived structures
-- support bounded retrieval and graph-ready work without weakening source authority
-
-## Phase 5: contributor and review workflow
-
-Goals:
-- make human-reviewed synthesis repeatable
-- define what counts as acceptable interpretation layers
-- keep source anchoring visible as the corpus broadens
-
-## Phase 5a: growth law trio
-
-Goals:
-- make the guiding axis explicit without turning it into a hidden monopoly of meaning
-- define AI-amplified but human-curated expansion as a visible review posture
-- define when ToS should deepen a node, create a node, or form a branch
-- keep these rules doctrinal and source-first before any heavier template or platform program
-
-## Phase 5b: pre-expansion soil before wider expansion
-
-Goals:
-- publish a first public context-node template
-- make manual corpus-entry gating explicit
-- harden the review route for preparation work that should not count as new tree movement
-- keep wider world-thought expansion later until maintainer-led source entry begins
-
-## Phase 5c: bounded trilingual Zarathustra entry
-
-Goals:
-- begin real manual source entry through the Zarathustra prologue
-- keep German source authority with Russian working translation and English bridge translation
-- prove one shared `node_id` with witness layers rather than parallel language trees
-- ground `becoming` and `overcoming` more explicitly in the same bounded route
-- keep wider world-thought expansion later until this route holds under review
-
-## Phase 5d: tree-first tiny-entry seam
-
-Goals:
-- publish one tiny-entry route that starts from `README.md` as the current public `tos-root`
-- keep orientation surfaces distinct from authority surfaces inside ToS
-- make the Zarathustra route legible to humans and smaller models without replacing authored node law
-- keep fallback surfaces inside ToS rather than delegating entry authority to downstream repositories
-- defer separate `context_node` tiny-entry expansion until the first route holds under review
-
-## Phase 6: wider world-thought expansion
-
-Goals:
-- expand across traditions, languages, and civilizational contexts
-- preserve plurality without losing structural coherence
-- let calibration roots guide interpretation without becoming a hidden monopoly of meaning
-
-## Standing discipline
-
-Across all phases:
-- keep sources explicit
-- keep provenance visible
-- keep lineage legible
-- keep derived systems downstream of authored truth
+- keep sources explicit;
+- keep provenance visible;
+- keep lineage legible;
+- keep branch topology stronger than flat buckets;
+- keep generated systems downstream of authored truth;
+- keep mechanics as organs of movement, not root-document clutter.

@@ -75,20 +75,20 @@ The scripts should serve the source-first route, not become a kingdom of their o
 
 ## Validation
 
-Run:
+Run the affected script directly. For broad or release-visible changes, run the
+repo gate:
 
 ```bash
-python scripts/validate_intake_pack.py
-python scripts/validate_tiny_entry_route.py
-python scripts/validate_philosophy_topology.py
-python scripts/validate_nested_agents.py
-python scripts/validate_tree_node_contracts.py
-python scripts/validate_tree_relation_pack.py
-python scripts/validate_tree_example_sync.py
-python scripts/generate_kag_export.py
-python scripts/validate_kag_export.py
-python scripts/build_tos_corpus_index.py --check
-python scripts/validate_tos_corpus_index.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
+python scripts/release_check.py
 ```
+
+Local owner routes:
+
+| Pressure | Route |
+| --- | --- |
+| public tiny entry | `python scripts/validate_tiny_entry_route.py` |
+| bounded KAG export | `python scripts/generate_kag_export.py` when inputs move, then `python scripts/validate_kag_export.py` |
+| corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
+| decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
+| source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
+| canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python scripts/validate_tree_relation_pack.py`, or `python scripts/validate_tree_example_sync.py` |

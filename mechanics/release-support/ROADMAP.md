@@ -1,13 +1,28 @@
 # Release Support Roadmap
 
+Release Support is planted as source-release posture. It helps public-facing
+ToS changes leave a clean route without turning release machinery into meaning.
+
 ## Current Contour
 
-Source Release Gate is planted around the repository release gate.
+- Keep source-release-gate around release-facing ToS surfaces and public claim
+  posture.
+- Keep release support below source, branch, canon, and decision authority.
+- Keep public support claims tied to the ToS surface they support.
 
 ## Next Work
 
-Add payload only when release receipts or support reports become repeated
-checked objects.
+- Clarify release support only when ToS repeatedly needs the same public
+  support posture, rollback posture, or downstream handoff.
+- Keep release direction in root/project surfaces and package future pressure
+  in package roadmaps.
+
+## When Time Comes
+
+- Add payload when release receipts or public support reports become repeated
+  reviewed objects.
+- Split release support only if public support, rollback posture, and
+  downstream handoff become separate operations.
 
 ## Out Of Scope
 

@@ -12,6 +12,7 @@ COMMANDS = [
     ("validate ToS source home", [sys.executable, "scripts/validate_tos_source_home.py"]),
     ("validate philosophy topology", [sys.executable, "scripts/validate_philosophy_topology.py"]),
     ("validate mechanics topology", [sys.executable, "scripts/validate_mechanics_topology.py"]),
+    ("validate active naming", [sys.executable, "scripts/validate_active_naming.py"]),
     ("check root entry map", [sys.executable, "scripts/build_root_entry_map.py", "--check"]),
     ("validate root entry map", [sys.executable, "scripts/validate_root_entry_map.py"]),
     ("check ToS corpus index", [sys.executable, "scripts/build_tos_corpus_index.py", "--check"]),

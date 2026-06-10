@@ -6,7 +6,7 @@ Version: 1.0.0
 
 Defines what v1.0 may submit to ToS as a dossier and what it may never write directly.
 
-This document belongs to the v1.0 installation and first sovereign release wave. It turns the experience program from forged seed into installable order: landing, migration, smoke testing, operator review, first live assistant office, governed release, rollback drill, replay audit, and post-release watch.
+This document belongs to the v1.0 installation and first sovereign release pass. It turns the experience program from forged candidate into installable order: landing, migration, smoke testing, operator review, first live assistant office, governed release, rollback drill, replay audit, and post-release watch.
 
 ## Owns
 
@@ -31,7 +31,7 @@ owner-local artifact
 
 ## Boundary Source
 
-Cross-layer release authority lives in [Agents-of-Abyss](https://github.com/8Dionysus/Agents-of-Abyss/blob/main/docs/EXPERIENCE_WAVE5_SOVEREIGN_OFFICE.md). This Tree-of-Sophia surface only states the source-owned intake boundary: dossiers and review notes may be prepared for review, but installation artifacts must not become direct runtime or canon writes.
+Cross-layer release authority lives in [Agents-of-Abyss](https://github.com/8Dionysus/Agents-of-Abyss/blob/main/mechanics/experience/parts/release-deployment/README.md). This Tree-of-Sophia surface only states the source-owned intake boundary: dossiers and review notes may be prepared for review, but installation artifacts must not become direct runtime or canon writes.
 
 ## Exit signal
 

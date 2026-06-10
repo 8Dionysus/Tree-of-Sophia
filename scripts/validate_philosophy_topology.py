@@ -153,9 +153,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         capture_container = research_packet.get("capture_container")
         if not isinstance(capture_container, dict) or not capture_container.get("page_id"):
             issues.append((entry, "capture_container.page_id is required"))
-        child_pages = research_packet.get("seed_child_pages")
+        child_pages = research_packet.get("branch_child_pages")
         if not isinstance(child_pages, list) or not child_pages:
-            issues.append((entry, "seed_child_pages must be a non-empty list"))
+            issues.append((entry, "branch_child_pages must be a non-empty list"))
 
     branch_manifests = manifest.get("branch_manifests")
     if not isinstance(branch_manifests, list) or not branch_manifests:

@@ -40,7 +40,7 @@ Additional node families may appear later, but they should be introduced explici
 
 ## Identifier discipline and first templates
 
-At the current corpus-scaffold wave, public node IDs should follow:
+At the current corpus-scaffold phase, public node IDs should follow:
 
 `tos.<node_type>.<slug[.subslug...]>`
 
@@ -61,7 +61,7 @@ See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SO
 
 ## First bounded lineage pilot
 
-At the current pilot wave, ToS may also turn the new scaffold into one real small branch.
+At the current pilot phase, ToS may also turn the new scaffold into one real small branch.
 
 This pilot should stay:
 
@@ -80,7 +80,7 @@ See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_P
 
 ## Pre-expansion soil before wider movement
 
-At the previous eighth-wave note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
+At the previous eighth-phase note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
 
 This preparation may include:
 
@@ -88,7 +88,7 @@ This preparation may include:
 - manual corpus-entry gating
 - review-route hardening for pre-expansion work
 
-This wave should stay:
+This phase should stay:
 
 - source-first
 - reviewable
@@ -301,7 +301,7 @@ It carries:
 
 ## Tree-first tiny-entry seam
 
-At the current wave, ToS may also publish one tree-first tiny-entry seam for humans and smaller models without replacing authored node law.
+At the current phase, ToS may also publish one tree-first tiny-entry seam for humans and smaller models without replacing authored node law.
 
 The current public chain is:
 
@@ -345,7 +345,7 @@ They should not be silently collapsed into one interchangeable surface.
 
 The current route-local workbook carrier at
 `ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
-may seed these layers, but it is not itself a canonical ToS surface.
+may candidate these layers, but it is not itself a canonical ToS surface.
 
 The current bounded Zarathustra route also keeps a deliberate split:
 
@@ -385,7 +385,7 @@ A node may carry several layers at once, including:
 
 The presence of multiple layers does not erase their distinction.
 
-At the first-wave baseline, every serious node should preserve at least:
+At the first-phase baseline, every serious node should preserve at least:
 
 - a source anchor
 - key terms or concepts
@@ -439,7 +439,7 @@ This keeps interpretation alive without letting it float free from source anchor
 
 ToS is primarily a knowledge architecture for the genealogy of ideas.
 
-At the current second-wave note, it may also recognize a neighboring genealogy of practices:
+At the current second-phase note, it may also recognize a neighboring genealogy of practices:
 - origin
 - mutation
 - adaptation
@@ -483,7 +483,7 @@ This route stays:
 - layered
 - reversible
 
-The current wave treats that route as doctrine, not as a full executable platform.
+The current phase treats that route as doctrine, not as a full executable platform.
 Operational ownership of the witness-producing route remains in AoA repositories.
 
 The named doctrinal objects for this route are:
@@ -492,10 +492,10 @@ The named doctrinal objects for this route are:
 - `DecayPolicy`
 - `CanonBundle`
 
-One compact worked path for the current pilot wave is:
+One compact worked path for the current pilot phase is:
 - `WitnessTrace -> Note -> Principle`
 
-That path gives ToS a disciplined digestion route without claiming that canonization or later growth seeds are already solved.
+That path gives ToS a disciplined digestion route without claiming that canonization or later growth growth candidates are already solved.
 
 See [CONTEXT_COMPOST](../../mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md)
 for the compact distillation route.
