@@ -31,7 +31,8 @@ adoption rules, read the local eval-port standard in `aoa-evals`.
 ## Validation
 
 ```bash
-python ../aoa-evals/scripts/validate_local_eval_port.py --target-root .
+AOA_EVALS_ROOT="${AOA_EVALS_ROOT:-../aoa-evals}"
+python "$AOA_EVALS_ROOT/scripts/validate_local_eval_port.py" --target-root .
 ```
 
 ## Closeout
