@@ -56,6 +56,15 @@ def check_path_components(relative_path: Path, metadata_only_labels: set[str], i
             issues.append((relative_path.as_posix(), f"metadata-only source label used as path component: {label}"))
 
 
+def repo_relative_resolved(repo_root: Path, relative_path: Path) -> Path | None:
+    root = repo_root.resolve()
+    resolved = (root / relative_path).resolve()
+    try:
+        return resolved.relative_to(root)
+    except ValueError:
+        return None
+
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -123,7 +132,14 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append((MANIFEST_PATH.as_posix(), "research_packet_routes entries must be non-empty strings"))
             continue
         packet_path = Path(entry)
-        if not packet_path.is_relative_to(RESEARCH_PACKET_ROOT):
+        normalized_packet_path = repo_relative_resolved(root, packet_path)
+        if packet_path.is_absolute() or ".." in packet_path.parts or normalized_packet_path is None:
+            issues.append((entry, "research packet routes must be normalized repo-relative paths under ToS/research-packets"))
+            continue
+        packet_path = normalized_packet_path
+        research_packet_root = (root.resolve() / RESEARCH_PACKET_ROOT).resolve()
+        resolved_packet_path = (root.resolve() / packet_path).resolve()
+        if not resolved_packet_path.is_relative_to(research_packet_root):
             issues.append((entry, "research packet routes must stay under ToS/research-packets"))
             continue
         if "source-witnesses" in packet_path.parts:
