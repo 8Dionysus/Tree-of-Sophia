@@ -19,6 +19,7 @@ The current contract files include:
 - `tos-node-contract.schema.json`
 - `tos-tiny-entry-route.schema.json`
 - `tos-corpus-index.schema.json`
+- `tos-source-home.schema.json`
 
 Any schema edit here is a public contract change.
 
