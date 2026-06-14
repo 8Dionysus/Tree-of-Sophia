@@ -46,6 +46,15 @@ def collect_metadata_only_path_labels(payload: dict[str, object]) -> set[str]:
         title = capture_container.get("original_title") or capture_container.get("title")
         if isinstance(title, str) and title:
             labels.add(slugify_label(title))
+    child_pages = payload.get("branch_child_pages")
+    if isinstance(child_pages, list):
+        for child_page in child_pages:
+            if isinstance(child_page, str):
+                labels.add(slugify_label(child_page))
+            elif isinstance(child_page, dict):
+                title = child_page.get("original_title") or child_page.get("title")
+                if isinstance(title, str) and title:
+                    labels.add(slugify_label(title))
     return {label for label in labels if label}
 
 
