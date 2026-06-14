@@ -208,8 +208,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             if not isinstance(role, str) or not role:
                 issues.append((entry, "role must be a non-empty string"))
 
-    for relative_path in Path("ToS").glob("**/*"):
-        check_path_components(relative_path, metadata_only_labels, issues)
+    tos_root = root / "ToS"
+    for path in tos_root.glob("**/*"):
+        check_path_components(path.relative_to(root), metadata_only_labels, issues)
 
     return issues
 

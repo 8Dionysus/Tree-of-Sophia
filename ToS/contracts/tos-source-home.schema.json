@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/tos-source-home.schema.json",
+  "title": "Tree of Sophia source-home manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "owner_repo",
+    "home",
+    "role",
+    "home_rules",
+    "branches",
+    "stronger_owner_routes"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/tos-source-home.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_source_home_v1"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "home": {
+      "const": "ToS/"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "home_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "branches": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/branch"
+      }
+    },
+    "stronger_owner_routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/strongerOwnerRoute"
+      }
+    }
+  },
+  "$defs": {
+    "repoRelativeSurface": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z0-9_-]+:)(?![A-Za-z]:[\\\\/])(?![\\\\/])(?!\\.\\.?[\\\\/])[A-Za-z0-9._/-]+$"
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "role",
+        "owner_surface",
+        "validators"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "path": {
+          "$ref": "#/$defs/repoRelativeSurface"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_surface": {
+          "$ref": "#/$defs/repoRelativeSurface"
+        },
+        "validators": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "strongerOwnerRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pressure",
+        "route"
+      ],
+      "properties": {
+        "pressure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

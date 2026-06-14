@@ -163,6 +163,22 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             issues,
         )
 
+    def test_path_component_sweep_uses_supplied_repo_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            write_text(repo_root / "ToS/rogue/fixture-child/README.md")
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "ToS/rogue/fixture-child",
+                "metadata-only source label used as path component: fixture-child",
+            ),
+            issues,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
