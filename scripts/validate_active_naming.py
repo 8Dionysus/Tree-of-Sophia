@@ -36,6 +36,7 @@ RETIRED_TOKENS = (
     "s" + "eed_pack",
 )
 RETIRED_TOKEN_PATTERN = r"(?:" + "|".join(re.escape(token) for token in RETIRED_TOKENS) + r")"
+PATH_REFERENCE_MARKER_PATTERN = r"(?:[-_/]|\d|\.(?=[A-Za-z0-9]))"
 PATH_TOKEN_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])(?:"
     + RETIRED_TOKEN_PATTERN
@@ -44,7 +45,7 @@ PATH_TOKEN_PATTERN = re.compile(
 )
 ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])"
-    r"(?=[A-Za-z0-9._/-]*(?:[-_/.]|\d))"
+    r"(?=[A-Za-z0-9._/-]*" + PATH_REFERENCE_MARKER_PATTERN + r")"
     r"[A-Za-z0-9._/-]*"
     + RETIRED_TOKEN_PATTERN
     + r"[A-Za-z0-9._/-]*"
