@@ -47,7 +47,12 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
                     "page_id": "fixture-page",
                     "title": "Fixture Packet",
                 },
-                "branch_child_pages": ["fixture-child"],
+                "branch_child_pages": [
+                    {
+                        "id": "fixture-child-page",
+                        "title": "Fixture Child",
+                    }
+                ],
             },
         )
         write_json(
@@ -126,6 +131,34 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             (
                 traversal_route,
                 "research packet routes must be normalized repo-relative paths under ToS/research-packets",
+            ),
+            issues,
+        )
+
+    def test_child_page_title_path_component_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            manifest_path = repo_root / "ToS/philosophy/philosophy.manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            branch_path = "ToS/philosophy/eras/fixture-child/branch.manifest.json"
+            manifest["branch_manifests"].append(branch_path)
+            write_json(manifest_path, manifest)
+            write_json(
+                repo_root / branch_path,
+                {
+                    "path": "ToS/philosophy/eras/fixture-child",
+                    "branch_id": "philosophy.fixture_child",
+                    "role": "fixture branch named from a child page title",
+                },
+            )
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                branch_path,
+                "metadata-only source label used as path component: fixture-child",
             ),
             issues,
         )
