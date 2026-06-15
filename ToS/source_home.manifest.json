@@ -17,9 +17,9 @@
       "path": "ToS/doctrine",
       "role": "ToS knowledge law, node contracts, templates, interpretation ladder, and route doctrine that belongs to authored meaning.",
       "owner_surface": "ToS/doctrine/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tos_source_home.py",
-        "python scripts/validate_nested_agents.py"
+      "validation_lanes": [
+        "source_home",
+        "route_docs"
       ]
     },
     {
@@ -27,9 +27,8 @@
       "path": "ToS/source-witnesses",
       "role": "Primary source-facing witness material and provenance-aware source files.",
       "owner_surface": "ToS/source-witnesses/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tiny_entry_route.py",
-        "python scripts/validate_kag_export.py"
+      "validation_lanes": [
+        "public_entry"
       ]
     },
     {
@@ -37,10 +36,9 @@
       "path": "ToS/zarathustra",
       "role": "Golden Zarathustra route branch for the current bounded prologue entry, public-entry capsule, and ToS axis orientation.",
       "owner_surface": "ToS/zarathustra/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tos_source_home.py",
-        "python scripts/validate_tiny_entry_route.py",
-        "python scripts/validate_kag_export.py"
+      "validation_lanes": [
+        "source_home",
+        "public_entry"
       ]
     },
     {
@@ -48,9 +46,9 @@
       "path": "ToS/research-packets",
       "role": "Non-authoritative AI-assisted or secondary research scaffolds that may feed philosophy branch review but never source, doctrine, canon, or graph authority.",
       "owner_surface": "ToS/research-packets/AGENTS.md",
-      "validators": [
-        "python scripts/validate_philosophy_topology.py",
-        "python scripts/validate_nested_agents.py"
+      "validation_lanes": [
+        "philosophy_topology",
+        "route_docs"
       ]
     },
     {
@@ -58,9 +56,10 @@
       "path": "ToS/philosophy",
       "role": "Domain-shaped growing philosophy tree: trunk law, era branches, tradition subtrees, local graph workbenches, and cross-thread navigation.",
       "owner_surface": "ToS/philosophy/AGENTS.md",
-      "validators": [
-        "python scripts/validate_philosophy_topology.py",
-        "python scripts/validate_nested_agents.py"
+      "validation_lanes": [
+        "philosophy_topology",
+        "route_docs",
+        "graph_exports"
       ]
     },
     {
@@ -68,8 +67,8 @@
       "path": "ToS/candidate-intake",
       "role": "Provisional extraction, tabular base material, and promotion ledgers.",
       "owner_surface": "ToS/candidate-intake/AGENTS.md",
-      "validators": [
-        "python scripts/validate_intake_pack.py"
+      "validation_lanes": [
+        "intake_contracts"
       ]
     },
     {
@@ -77,10 +76,8 @@
       "path": "ToS/canon",
       "role": "Canonical authored nodes, relation packs, and vocabulary registries.",
       "owner_surface": "ToS/canon/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tree_node_contracts.py",
-        "python scripts/validate_tree_relation_pack.py",
-        "python scripts/validate_tree_example_sync.py"
+      "validation_lanes": [
+        "canon_contracts"
       ]
     },
     {
@@ -88,9 +85,9 @@
       "path": "ToS/public-compatibility",
       "role": "ToS-owned public-safe compatibility mirrors, examples, and tiny-entry compatibility surfaces.",
       "owner_surface": "ToS/public-compatibility/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tree_example_sync.py",
-        "python scripts/validate_tiny_entry_route.py"
+      "validation_lanes": [
+        "canon_contracts",
+        "public_entry"
       ]
     },
     {
@@ -98,12 +95,10 @@
       "path": "ToS/derived-exports",
       "role": "ToS-owned generated downstream-facing exports and compact read models.",
       "owner_surface": "ToS/derived-exports/AGENTS.md",
-      "validators": [
-        "python scripts/build_root_entry_map.py --check",
-        "python scripts/validate_root_entry_map.py",
-        "python scripts/build_tos_corpus_index.py --check",
-        "python scripts/validate_tos_corpus_index.py",
-        "python scripts/validate_kag_export.py"
+      "validation_lanes": [
+        "generated_parity",
+        "graph_exports",
+        "public_entry"
       ]
     },
     {
@@ -111,9 +106,9 @@
       "path": "ToS/contracts",
       "role": "ToS-owned public schema contracts for ToS surfaces.",
       "owner_surface": "ToS/contracts/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tree_node_contracts.py",
-        "python scripts/validate_kag_export.py"
+      "validation_lanes": [
+        "canon_contracts",
+        "public_entry"
       ]
     },
     {
@@ -121,9 +116,9 @@
       "path": "ToS/review-ledger",
       "role": "Dated inspection notes and review evidence.",
       "owner_surface": "ToS/review-ledger/AGENTS.md",
-      "validators": [
-        "python scripts/validate_tos_source_home.py",
-        "python scripts/validate_nested_agents.py"
+      "validation_lanes": [
+        "source_home",
+        "route_docs"
       ]
     }
   ],

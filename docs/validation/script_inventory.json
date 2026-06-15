@@ -1,0 +1,228 @@
+{
+  "schema_version": "tos_script_inventory_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "docs/validation/README.md",
+  "command_authority": "docs/validation/validation_lanes.json",
+  "notes": [
+    "This inventory describes root scripts.",
+    "It is not command authority."
+  ],
+  "script_surfaces": [
+    {
+      "path": "scripts/build_root_entry_map.py",
+      "family": "generated_builder",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "writes": ["ToS/derived-exports/root_entry_map.min.json unless --check is used"],
+      "side_effects": "tracked generated read model"
+    },
+    {
+      "path": "scripts/build_tos_corpus_index.py",
+      "family": "generated_builder",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "writes": ["ToS/derived-exports/tos_corpus_index.min.json unless --check is used"],
+      "side_effects": "tracked generated corpus index for graph/read-model review"
+    },
+    {
+      "path": "scripts/build_tos_agon_threshold_intake_registry.py",
+      "family": "generated_builder",
+      "validation_lane": "generated_parity",
+      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
+      "writes": ["mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json unless --check is used"],
+      "side_effects": "tracked generated mechanics registry"
+    },
+    {
+      "path": "scripts/generate_decision_indexes.py",
+      "family": "generated_builder",
+      "validation_lane": "generated_parity",
+      "owner_surface": "docs/decisions/AGENTS.md",
+      "writes": ["docs/decisions/indexes/ unless --check is used"],
+      "side_effects": "tracked generated decision indexes"
+    },
+    {
+      "path": "scripts/generate_kag_export.py",
+      "family": "generated_builder",
+      "validation_lane": "public_entry",
+      "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "writes": ["ToS/derived-exports/kag_export.json", "ToS/derived-exports/kag_export.min.json"],
+      "side_effects": "tracked generated export"
+    },
+    {
+      "path": "scripts/release_check.py",
+      "family": "lane_runner",
+      "validation_lane": "release",
+      "owner_surface": "docs/validation/validation_lanes.json",
+      "writes": [],
+      "side_effects": "runs command sequence from lane authority"
+    },
+    {
+      "path": "scripts/validation_lanes.py",
+      "family": "lane_loader",
+      "validation_lane": "validation_authority",
+      "owner_surface": "docs/validation/validation_lanes.json",
+      "writes": [],
+      "side_effects": "loads and checks lane manifest"
+    },
+    {
+      "path": "scripts/root_entry_map_common.py",
+      "family": "builder_library",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/contracts/root-entry-map.schema.json",
+      "writes": [],
+      "side_effects": "library only"
+    },
+    {
+      "path": "scripts/tos_corpus_index_common.py",
+      "family": "builder_library",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/contracts/tos-corpus-index.schema.json",
+      "writes": [],
+      "side_effects": "library only"
+    },
+    {
+      "path": "scripts/sync_tree_examples.py",
+      "family": "compatibility_entrypoint",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/public-compatibility/AGENTS.md",
+      "writes": ["ToS/public-compatibility/*.example.json when sync is needed"],
+      "side_effects": "tracked compatibility mirrors"
+    },
+    {
+      "path": "scripts/tree_example_sync.py",
+      "family": "builder_library",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/public-compatibility/AGENTS.md",
+      "writes": [],
+      "side_effects": "library only"
+    },
+    {
+      "path": "scripts/validate_active_naming.py",
+      "family": "validator",
+      "validation_lane": "active_naming",
+      "owner_surface": "AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_decision_records.py",
+      "family": "validator",
+      "validation_lane": "generated_parity",
+      "owner_surface": "docs/decisions/AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_intake_pack.py",
+      "family": "validator",
+      "validation_lane": "intake_contracts",
+      "owner_surface": "ToS/candidate-intake/AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_kag_export.py",
+      "family": "validator",
+      "validation_lane": "public_entry",
+      "owner_surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_questbook_surface.py",
+      "family": "validator",
+      "validation_lane": "questbook_surface",
+      "owner_surface": "mechanics/questbook/AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_mechanics_topology.py",
+      "family": "validator",
+      "validation_lane": "mechanics_topology",
+      "owner_surface": "mechanics/topology.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_nested_agents.py",
+      "family": "validator",
+      "validation_lane": "route_docs",
+      "owner_surface": "DESIGN.AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_philosophy_topology.py",
+      "family": "validator",
+      "validation_lane": "philosophy_topology",
+      "owner_surface": "ToS/philosophy/philosophy.manifest.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_root_entry_map.py",
+      "family": "validator",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/contracts/root-entry-map.schema.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tiny_entry_route.py",
+      "family": "validator",
+      "validation_lane": "public_entry",
+      "owner_surface": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tos_agon_threshold_intake_registry.py",
+      "family": "validator",
+      "validation_lane": "generated_parity",
+      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tos_corpus_index.py",
+      "family": "validator",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/contracts/tos-corpus-index.schema.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tos_source_home.py",
+      "family": "validator",
+      "validation_lane": "source_home",
+      "owner_surface": "ToS/source_home.manifest.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tree_example_sync.py",
+      "family": "validator",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/public-compatibility/AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tree_node_contracts.py",
+      "family": "validator",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/contracts/tos-node-contract.schema.json",
+      "writes": [],
+      "side_effects": "validation output only"
+    },
+    {
+      "path": "scripts/validate_tree_relation_pack.py",
+      "family": "validator",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/canon/relations/AGENTS.md",
+      "writes": [],
+      "side_effects": "validation output only"
+    }
+  ]
+}

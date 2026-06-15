@@ -21,3 +21,7 @@
 ## 2026-06-10
 
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
+
+## 2026-06-13
+
+- [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)

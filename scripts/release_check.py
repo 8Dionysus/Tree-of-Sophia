@@ -3,26 +3,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+from validation_lanes import command_sequence
 
-COMMANDS = [
-    ("validate ToS source home", [sys.executable, "scripts/validate_tos_source_home.py"]),
-    ("validate philosophy topology", [sys.executable, "scripts/validate_philosophy_topology.py"]),
-    ("validate mechanics topology", [sys.executable, "scripts/validate_mechanics_topology.py"]),
-    ("validate active naming", [sys.executable, "scripts/validate_active_naming.py"]),
-    ("check root entry map", [sys.executable, "scripts/build_root_entry_map.py", "--check"]),
-    ("validate root entry map", [sys.executable, "scripts/validate_root_entry_map.py"]),
-    ("check ToS corpus index", [sys.executable, "scripts/build_tos_corpus_index.py", "--check"]),
-    ("validate ToS corpus index", [sys.executable, "scripts/validate_tos_corpus_index.py"]),
-    ("validate tiny entry route", [sys.executable, "scripts/validate_tiny_entry_route.py"]),
-    ("validate KAG export", [sys.executable, "scripts/validate_kag_export.py"]),
-    ("check decision indexes", [sys.executable, "scripts/generate_decision_indexes.py", "--check"]),
-    ("validate decision records", [sys.executable, "scripts/validate_decision_records.py"]),
-    ("run tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"]),
-]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+RELEASE_SEQUENCE = "release_check"
 
 
 def run_step(label: str, command: list[str]) -> int:
@@ -36,7 +22,7 @@ def run_step(label: str, command: list[str]) -> int:
 
 
 def main() -> int:
-    for label, command in COMMANDS:
+    for label, command in command_sequence(RELEASE_SEQUENCE, REPO_ROOT):
         exit_code = run_step(label, command)
         if exit_code != 0:
             return exit_code

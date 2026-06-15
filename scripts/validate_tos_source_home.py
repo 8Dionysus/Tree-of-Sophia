@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import TypeAlias
 
+from validation_lanes import load_manifest as load_validation_lanes
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = Path("ToS/source_home.manifest.json")
@@ -31,6 +33,7 @@ EXPECTED_BRANCHES = {
     "contracts": "ToS/contracts",
     "review_ledger": "ToS/review-ledger",
 }
+LANES_PATH = Path("docs/validation/validation_lanes.json")
 REQUIRED_HOME_README_FRAGMENTS = (
     "## Operating Card",
     "## Boundary Routes",
@@ -87,6 +90,19 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     if manifest is None:
         return issues
 
+    try:
+        lane_manifest = load_validation_lanes(root)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        issues.append((LANES_PATH.as_posix(), f"unable to load validation lanes: {exc}"))
+        lane_ids: set[str] = set()
+    else:
+        lanes = lane_manifest.get("lanes")
+        if isinstance(lanes, dict):
+            lane_ids = set(lanes)
+        else:
+            lane_ids = set()
+            issues.append((LANES_PATH.as_posix(), "lanes must be an object"))
+
     if manifest.get("schema_version") != "tos_source_home_v1":
         issues.append((MANIFEST_PATH.as_posix(), "schema_version must be tos_source_home_v1"))
     if manifest.get("owner_repo") != "Tree-of-Sophia":
@@ -107,7 +123,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         branch_id = branch.get("id")
         branch_path = branch.get("path")
         owner_surface = branch.get("owner_surface")
-        validators = branch.get("validators")
+        validation_lanes = branch.get("validation_lanes")
         if not isinstance(branch_id, str) or not branch_id:
             issues.append((MANIFEST_PATH.as_posix(), "branch id must be a non-empty string"))
             continue
@@ -126,8 +142,16 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.owner_surface must be a non-empty string"))
         elif not (root / owner_surface).is_file():
             issues.append((owner_surface, f"{branch_id}.owner_surface is missing"))
-        if not isinstance(validators, list) or not validators:
-            issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validators must be a non-empty list"))
+        if "validators" in branch:
+            issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validators must move to validation_lanes"))
+        if not isinstance(validation_lanes, list) or not validation_lanes:
+            issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validation_lanes must be a non-empty list"))
+        else:
+            for lane_id in validation_lanes:
+                if not isinstance(lane_id, str) or not lane_id:
+                    issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validation_lanes must contain strings"))
+                elif lane_id not in lane_ids:
+                    issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validation_lanes references missing lane {lane_id}"))
 
     missing = sorted(set(EXPECTED_BRANCHES) - set(seen))
     for branch_id in missing:

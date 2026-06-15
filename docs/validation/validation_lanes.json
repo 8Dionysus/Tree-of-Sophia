@@ -1,0 +1,413 @@
+{
+  "schema_version": "tos_validation_lanes_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "docs/validation/README.md",
+  "command_authority": "docs/validation/validation_lanes.json",
+  "notes": [
+    "This manifest is the executable command-authority surface for ToS validation lanes.",
+    "scripts/validation_lanes.py is a loader and checker only.",
+    "Inventories describe coverage and do not own command execution."
+  ],
+  "lanes": {
+    "validation_authority": {
+      "label": "validation authority",
+      "layer": "validation",
+      "mode": "blocking",
+      "owner_surface": "docs/validation/validation_lanes.json",
+      "purpose": "Check that named validation lanes remain structured, executable where intended, and separate from descriptive inventories.",
+      "command_sequence": "validation_authority",
+      "failure_route": "docs/validation/README.md",
+      "does_not_own": [
+        "source meaning",
+        "mechanic package topology",
+        "test assertions"
+      ]
+    },
+    "source_home": {
+      "label": "source home",
+      "layer": "source-home",
+      "mode": "blocking",
+      "owner_surface": "ToS/source_home.manifest.json",
+      "purpose": "Protect the ToS home as a branch-shaped philosophical source home.",
+      "command_sequence": "source_home",
+      "failure_route": "ToS/AGENTS.md",
+      "does_not_own": [
+        "mechanics package payloads",
+        "runtime graph projection",
+        "proof verdict authority"
+      ]
+    },
+    "philosophy_topology": {
+      "label": "philosophy topology",
+      "layer": "domain-topology",
+      "mode": "blocking",
+      "owner_surface": "ToS/philosophy/philosophy.manifest.json",
+      "purpose": "Protect the philosophy branch from flat imports, UI capture labels, and false source-witness authority.",
+      "command_sequence": "philosophy_topology",
+      "failure_route": "ToS/philosophy/AGENTS.md",
+      "does_not_own": [
+        "source witness truth",
+        "canon promotion",
+        "runtime visualization"
+      ]
+    },
+    "mechanics_topology": {
+      "label": "mechanics topology",
+      "layer": "mechanics",
+      "mode": "blocking",
+      "owner_surface": "mechanics/topology.json",
+      "purpose": "Protect mechanics packages, active parts, package-local legacy policy, and moved-path accounting.",
+      "command_sequence": "mechanics_topology",
+      "failure_route": "mechanics/AGENTS.md",
+      "does_not_own": [
+        "ToS authored meaning",
+        "root release publication",
+        "central proof authority"
+      ]
+    },
+    "active_naming": {
+      "label": "active naming",
+      "layer": "active-topology",
+      "mode": "blocking",
+      "owner_surface": "scripts/validate_active_naming.py",
+      "purpose": "Keep retired active path and id names out of current surfaces while allowing archive provenance.",
+      "command_sequence": "active_naming",
+      "failure_route": "AGENTS.md",
+      "does_not_own": [
+        "ordinary prose style",
+        "legacy archive content",
+        "historical changelog language"
+      ]
+    },
+    "generated_parity": {
+      "label": "generated parity",
+      "layer": "generated-read-model",
+      "mode": "blocking",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "purpose": "Verify generated read models, indexes, and registries against their source-owned builders.",
+      "command_sequence": "generated_parity",
+      "failure_route": "ToS/derived-exports/AGENTS.md",
+      "does_not_own": [
+        "source truth",
+        "canon authority",
+        "runtime graph caches"
+      ]
+    },
+    "canon_contracts": {
+      "label": "canon contracts",
+      "layer": "canon-contract",
+      "mode": "blocking",
+      "owner_surface": "ToS/canon/AGENTS.md",
+      "purpose": "Verify canonical node, relation, and public mirror contracts.",
+      "command_sequence": "canon_contracts",
+      "failure_route": "ToS/canon/AGENTS.md",
+      "does_not_own": [
+        "candidate promotion decision",
+        "source witness interpretation",
+        "mechanic process law"
+      ]
+    },
+    "intake_contracts": {
+      "label": "intake contracts",
+      "layer": "candidate-intake",
+      "mode": "blocking",
+      "owner_surface": "ToS/candidate-intake/AGENTS.md",
+      "purpose": "Verify candidate intake packets without promoting them to canon.",
+      "command_sequence": "intake_contracts",
+      "failure_route": "ToS/candidate-intake/AGENTS.md",
+      "does_not_own": [
+        "canon acceptance",
+        "source witness truth",
+        "public compatibility identity"
+      ]
+    },
+    "route_docs": {
+      "label": "route docs",
+      "layer": "agent-route-card",
+      "mode": "blocking",
+      "owner_surface": "scripts/validate_nested_agents.py",
+      "purpose": "Verify route-card structure without freezing ordinary prose as doctrine.",
+      "command_sequence": "route_docs",
+      "failure_route": "DESIGN.AGENTS.md",
+      "does_not_own": [
+        "philosophical doctrine",
+        "decision rationale",
+        "release command authority"
+      ]
+    },
+    "public_entry": {
+      "label": "public entry",
+      "layer": "public-compatibility",
+      "mode": "blocking",
+      "owner_surface": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
+      "purpose": "Protect the bounded public tiny-entry and KAG export seam.",
+      "command_sequence": "public_entry",
+      "failure_route": "ToS/zarathustra/AGENTS.md",
+      "does_not_own": [
+        "source witness text",
+        "canon identity",
+        "aoa-kag substrate semantics"
+      ]
+    },
+    "questbook_surface": {
+      "label": "questbook surface",
+      "layer": "mechanics-questbook",
+      "mode": "blocking",
+      "owner_surface": "mechanics/questbook/AGENTS.md",
+      "purpose": "Protect questbook obligations, public quest items, dispatch schemas, and compatibility examples without routing them through the KAG export validator.",
+      "command_sequence": "questbook_surface",
+      "failure_route": "mechanics/questbook/AGENTS.md",
+      "does_not_own": [
+        "philosophical source meaning",
+        "canon promotion",
+        "downstream task runtime"
+      ]
+    },
+    "eval_port": {
+      "label": "eval port",
+      "layer": "local-eval-port",
+      "mode": "advisory",
+      "owner_surface": "evals/AGENTS.md",
+      "purpose": "Keep ToS-local eval pressure visible while central verdict and scoring authority stay with aoa-evals.",
+      "focused_target": "evals/PORT.yaml via aoa-evals validate_local_eval_port.py when aoa-evals is in scope",
+      "failure_route": "evals/AGENTS.md",
+      "does_not_own": [
+        "central eval verdicts",
+        "proof doctrine",
+        "release blocking without explicit promotion"
+      ]
+    },
+    "graph_exports": {
+      "label": "graph exports",
+      "layer": "graph-readiness",
+      "mode": "blocking",
+      "owner_surface": "ToS/derived-exports/tos_corpus_index.min.json",
+      "purpose": "Verify corpus graph/read-model exports that abyss-stack can later project and visualize.",
+      "command_sequence": "graph_exports",
+      "failure_route": "ToS/derived-exports/AGENTS.md",
+      "does_not_own": [
+        "runtime visualization",
+        "MCP service authority",
+        "Neo4j or UI cache truth"
+      ]
+    },
+    "release": {
+      "label": "release",
+      "layer": "release",
+      "mode": "blocking",
+      "owner_surface": "docs/RELEASING.md",
+      "purpose": "Run the current bounded ToS release gate from explicit lane authority.",
+      "command_sequence": "release_check",
+      "entrypoint": "scripts/release_check.py",
+      "covers_lanes": [
+        "validation_authority",
+        "source_home",
+        "philosophy_topology",
+        "mechanics_topology",
+        "active_naming",
+        "generated_parity",
+        "public_entry",
+        "questbook_surface",
+        "route_docs"
+      ],
+      "failure_route": "docs/RELEASING.md",
+      "does_not_own": [
+        "GitHub publication",
+        "federation release audit",
+        "future graph runtime checks"
+      ]
+    }
+  },
+  "command_sequences": {
+    "validation_authority": [
+      {
+        "label": "validate validation lane manifest",
+        "command": ["python", "scripts/validation_lanes.py", "--check"]
+      }
+    ],
+    "source_home": [
+      {
+        "label": "validate ToS source home",
+        "command": ["python", "scripts/validate_tos_source_home.py"]
+      }
+    ],
+    "philosophy_topology": [
+      {
+        "label": "validate philosophy topology",
+        "command": ["python", "scripts/validate_philosophy_topology.py"]
+      }
+    ],
+    "mechanics_topology": [
+      {
+        "label": "validate mechanics topology",
+        "command": ["python", "scripts/validate_mechanics_topology.py"]
+      }
+    ],
+    "active_naming": [
+      {
+        "label": "validate active naming",
+        "command": ["python", "scripts/validate_active_naming.py"]
+      }
+    ],
+    "generated_parity": [
+      {
+        "label": "check root entry map",
+        "command": ["python", "scripts/build_root_entry_map.py", "--check"]
+      },
+      {
+        "label": "validate root entry map",
+        "command": ["python", "scripts/validate_root_entry_map.py"]
+      },
+      {
+        "label": "check ToS corpus index",
+        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
+      },
+      {
+        "label": "validate ToS corpus index",
+        "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check Agon threshold intake registry",
+        "command": ["python", "scripts/build_tos_agon_threshold_intake_registry.py", "--check"]
+      },
+      {
+        "label": "validate Agon threshold intake registry",
+        "command": ["python", "scripts/validate_tos_agon_threshold_intake_registry.py"]
+      },
+      {
+        "label": "check decision indexes",
+        "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
+      },
+      {
+        "label": "validate decision records",
+        "command": ["python", "scripts/validate_decision_records.py"]
+      }
+    ],
+    "canon_contracts": [
+      {
+        "label": "validate tree node contracts",
+        "command": ["python", "scripts/validate_tree_node_contracts.py"]
+      },
+      {
+        "label": "validate tree relation packs",
+        "command": ["python", "scripts/validate_tree_relation_pack.py"]
+      },
+      {
+        "label": "validate public example sync",
+        "command": ["python", "scripts/validate_tree_example_sync.py"]
+      }
+    ],
+    "intake_contracts": [
+      {
+        "label": "validate intake pack",
+        "command": ["python", "scripts/validate_intake_pack.py"]
+      }
+    ],
+    "route_docs": [
+      {
+        "label": "validate route-card structure",
+        "command": ["python", "scripts/validate_nested_agents.py"]
+      }
+    ],
+    "public_entry": [
+      {
+        "label": "validate tiny entry route",
+        "command": ["python", "scripts/validate_tiny_entry_route.py"]
+      },
+      {
+        "label": "validate KAG export",
+        "command": ["python", "scripts/validate_kag_export.py"]
+      }
+    ],
+    "questbook_surface": [
+      {
+        "label": "validate questbook surface",
+        "command": ["python", "scripts/validate_questbook_surface.py"]
+      }
+    ],
+    "graph_exports": [
+      {
+        "label": "check ToS corpus index",
+        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
+      },
+      {
+        "label": "validate ToS corpus index",
+        "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      }
+    ],
+    "release_check": [
+      {
+        "label": "validate validation lane manifest",
+        "command": ["python", "scripts/validation_lanes.py", "--check"]
+      },
+      {
+        "label": "validate ToS source home",
+        "command": ["python", "scripts/validate_tos_source_home.py"]
+      },
+      {
+        "label": "validate philosophy topology",
+        "command": ["python", "scripts/validate_philosophy_topology.py"]
+      },
+      {
+        "label": "validate mechanics topology",
+        "command": ["python", "scripts/validate_mechanics_topology.py"]
+      },
+      {
+        "label": "validate active naming",
+        "command": ["python", "scripts/validate_active_naming.py"]
+      },
+      {
+        "label": "check root entry map",
+        "command": ["python", "scripts/build_root_entry_map.py", "--check"]
+      },
+      {
+        "label": "validate root entry map",
+        "command": ["python", "scripts/validate_root_entry_map.py"]
+      },
+      {
+        "label": "check ToS corpus index",
+        "command": ["python", "scripts/build_tos_corpus_index.py", "--check"]
+      },
+      {
+        "label": "validate ToS corpus index",
+        "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check Agon threshold intake registry",
+        "command": ["python", "scripts/build_tos_agon_threshold_intake_registry.py", "--check"]
+      },
+      {
+        "label": "validate Agon threshold intake registry",
+        "command": ["python", "scripts/validate_tos_agon_threshold_intake_registry.py"]
+      },
+      {
+        "label": "validate tiny entry route",
+        "command": ["python", "scripts/validate_tiny_entry_route.py"]
+      },
+      {
+        "label": "validate KAG export",
+        "command": ["python", "scripts/validate_kag_export.py"]
+      },
+      {
+        "label": "validate questbook surface",
+        "command": ["python", "scripts/validate_questbook_surface.py"]
+      },
+      {
+        "label": "validate route-card structure",
+        "command": ["python", "scripts/validate_nested_agents.py"]
+      },
+      {
+        "label": "check decision indexes",
+        "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
+      },
+      {
+        "label": "validate decision records",
+        "command": ["python", "scripts/validate_decision_records.py"]
+      },
+      {
+        "label": "run tests",
+        "command": ["python", "-m", "unittest", "discover", "-s", "tests"]
+      }
+    ]
+  }
+}

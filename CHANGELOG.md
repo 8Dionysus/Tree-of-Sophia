@@ -14,6 +14,13 @@ Tracking starts with the community-docs baseline for this repository.
   keeping the current ToS root-entry and export contracts visible
 - relaxed root-doc validation pressure so README and ROADMAP route to owner
   surfaces instead of carrying command inventories or script-path lists
+- added explicit validation-lane command authority, script and test inventories,
+  and release-check delegation through `docs/validation/validation_lanes.json`
+- split Questbook obligation and dispatch validation into its own
+  `questbook_surface` lane while keeping KAG export validation focused on the
+  bounded export seam
+- reduced route-card and tiny-entry validators toward structural route tokens
+  instead of ordinary prose inventories
 
 ## [0.2.2] - 2026-04-23
 
