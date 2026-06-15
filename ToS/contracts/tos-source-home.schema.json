@@ -68,7 +68,7 @@
         "path",
         "role",
         "owner_surface",
-        "validators"
+        "validation_lanes"
       ],
       "properties": {
         "id": {
@@ -85,12 +85,12 @@
         "owner_surface": {
           "$ref": "#/$defs/repoRelativeSurface"
         },
-        "validators": {
+        "validation_lanes": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[a-z][a-z0-9_]*$"
           }
         }
       }

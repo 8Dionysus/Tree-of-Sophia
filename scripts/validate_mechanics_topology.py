@@ -121,297 +121,6 @@ EXPECTED_PACKAGES: dict[str, dict[str, object]] = {
 
 EXPECTED_ORDER = tuple(EXPECTED_PACKAGES)
 
-MOVED_TARGETS: dict[str, dict[str, tuple[tuple[str, str], ...]]] = {
-    "agon": {
-        "threshold-intake": (
-            (
-                "ToS/doctrine/TOS_AGON_THRESHOLD_INTAKE.md",
-                "mechanics/agon/parts/threshold-intake/docs/TOS_AGON_THRESHOLD_INTAKE.md",
-            ),
-            (
-                "ToS/contracts/tos-agon-threshold-intake.schema.json",
-                "mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json",
-            ),
-        ),
-        "canon-restraint": (
-            (
-                "ToS/doctrine/TOS_REJECTION_AND_BRANCHING.md",
-                "mechanics/agon/parts/canon-restraint/docs/TOS_REJECTION_AND_BRANCHING.md",
-            ),
-            (
-                "ToS/doctrine/TOS_CANON_RESTRAINT.md",
-                "mechanics/agon/parts/canon-restraint/docs/TOS_CANON_RESTRAINT.md",
-            ),
-            (
-                "ToS/doctrine/TOS_THRESHOLD_REVIEW_BOUNDARY.md",
-                "mechanics/agon/parts/canon-restraint/docs/TOS_THRESHOLD_REVIEW_BOUNDARY.md",
-            ),
-        ),
-        "threshold-registry": (
-            (
-                "ToS/contracts/tos-agon-threshold-intake-registry.schema.json",
-                "mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_agon_threshold_intake_registry.example.json",
-                "mechanics/agon/parts/threshold-registry/examples/tos_agon_threshold_intake_registry.example.json",
-            ),
-            (
-                "ToS/derived-exports/tos_agon_threshold_intake_registry.min.json",
-                "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
-            ),
-            (
-                "config/tos_agon_threshold_intakes.config.json",
-                "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
-            ),
-        ),
-        "landing-handoff": (
-            (
-                "ToS/doctrine/SOPHIAN_THRESHOLD_TOS_LANDING.md",
-                "mechanics/agon/parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md",
-            ),
-        ),
-    },
-    "audit": {
-        "review-ledger-route": (
-            (
-                "ToS/doctrine/REVIEW_CHECKLIST.md",
-                "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
-            ),
-        ),
-    },
-    "boundary-bridge": {
-        "derived-kag-seam": (
-            (
-                "ToS/doctrine/KAG_EXPORT.md",
-                "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-            ),
-        ),
-    },
-    "distillation": {
-        "source-compost": (
-            (
-                "ToS/doctrine/CONTEXT_COMPOST.md",
-                "mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md",
-            ),
-        ),
-    },
-    "experience": {
-        "candidate-review": (
-            (
-                "ToS/doctrine/AOA_EXPERIENCE_CANDIDATE_INTAKE_BOUNDARY.md",
-                "mechanics/experience/parts/candidate-review/docs/AOA_EXPERIENCE_CANDIDATE_INTAKE_BOUNDARY.md",
-            ),
-            (
-                "ToS/doctrine/TOS_CANDIDATE_DOSSIER_REVIEW.md",
-                "mechanics/experience/parts/candidate-review/docs/TOS_CANDIDATE_DOSSIER_REVIEW.md",
-            ),
-            (
-                "ToS/contracts/aoa_experience_candidate_dossier_v1.json",
-                "mechanics/experience/parts/candidate-review/schemas/aoa_experience_candidate_dossier_v1.json",
-            ),
-            (
-                "ToS/contracts/tos_intake_boundary_decision_v1.json",
-                "mechanics/experience/parts/candidate-review/schemas/tos_intake_boundary_decision_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/aoa_experience_candidate_dossier.example.json",
-                "mechanics/experience/parts/candidate-review/examples/aoa_experience_candidate_dossier.example.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_intake_boundary_decision.example.json",
-                "mechanics/experience/parts/candidate-review/examples/tos_intake_boundary_decision.example.json",
-            ),
-        ),
-        "adoption-boundary": (
-            (
-                "ToS/doctrine/TOS_ADOPTION_BOUNDARY_DOSSIER.md",
-                "mechanics/experience/parts/adoption-boundary/docs/TOS_ADOPTION_BOUNDARY_DOSSIER.md",
-            ),
-            (
-                "ToS/doctrine/NO_RUNTIME_ADOPTION_FROM_TOS.md",
-                "mechanics/experience/parts/adoption-boundary/docs/NO_RUNTIME_ADOPTION_FROM_TOS.md",
-            ),
-            (
-                "ToS/contracts/tos_adoption_boundary_dossier_v1.json",
-                "mechanics/experience/parts/adoption-boundary/schemas/tos_adoption_boundary_dossier_v1.json",
-            ),
-            (
-                "ToS/contracts/tos_no_runtime_adoption_guard_v1.json",
-                "mechanics/experience/parts/adoption-boundary/schemas/tos_no_runtime_adoption_guard_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_adoption_boundary_dossier.example.json",
-                "mechanics/experience/parts/adoption-boundary/examples/tos_adoption_boundary_dossier.example.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_no_runtime_adoption_guard.example.json",
-                "mechanics/experience/parts/adoption-boundary/examples/tos_no_runtime_adoption_guard.example.json",
-            ),
-        ),
-        "governance-boundary": (
-            (
-                "ToS/doctrine/GOVERNANCE_DOSSIER_INTAKE_BOUNDARY.md",
-                "mechanics/experience/parts/governance-boundary/docs/GOVERNANCE_DOSSIER_INTAKE_BOUNDARY.md",
-            ),
-            (
-                "ToS/doctrine/GOVERNANCE_PRECEDENT_DOSSIER_BOUNDARY.md",
-                "mechanics/experience/parts/governance-boundary/docs/GOVERNANCE_PRECEDENT_DOSSIER_BOUNDARY.md",
-            ),
-            (
-                "ToS/doctrine/TOS_GOVERNANCE_REVIEW_NOTE.md",
-                "mechanics/experience/parts/governance-boundary/docs/TOS_GOVERNANCE_REVIEW_NOTE.md",
-            ),
-            (
-                "ToS/doctrine/NO_DIRECT_POLIS_GOVERNANCE_WRITE.md",
-                "mechanics/experience/parts/governance-boundary/docs/NO_DIRECT_POLIS_GOVERNANCE_WRITE.md",
-            ),
-            (
-                "ToS/contracts/tos_governance_dossier_boundary_v1.json",
-                "mechanics/experience/parts/governance-boundary/schemas/tos_governance_dossier_boundary_v1.json",
-            ),
-            (
-                "ToS/contracts/tos_governance_review_note_v1.json",
-                "mechanics/experience/parts/governance-boundary/schemas/tos_governance_review_note_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_governance_dossier_boundary_v1.example.json",
-                "mechanics/experience/parts/governance-boundary/examples/tos_governance_dossier_boundary_v1.example.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_governance_review_note.example.json",
-                "mechanics/experience/parts/governance-boundary/examples/tos_governance_review_note.example.json",
-            ),
-        ),
-        "installation-boundary": (
-            (
-                "ToS/doctrine/INSTALLATION_DOSSIER_BOUNDARY.md",
-                "mechanics/experience/parts/installation-boundary/docs/INSTALLATION_DOSSIER_BOUNDARY.md",
-            ),
-            (
-                "ToS/doctrine/NO_DIRECT_EXPERIENCE_INSTALL_WRITE.md",
-                "mechanics/experience/parts/installation-boundary/docs/NO_DIRECT_EXPERIENCE_INSTALL_WRITE.md",
-            ),
-            (
-                "ToS/contracts/tos_installation_dossier_boundary_v1.json",
-                "mechanics/experience/parts/installation-boundary/schemas/tos_installation_dossier_boundary_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_installation_dossier_boundary_v1.example.json",
-                "mechanics/experience/parts/installation-boundary/examples/tos_installation_dossier_boundary_v1.example.json",
-            ),
-        ),
-        "service-office-boundary": (
-            (
-                "ToS/doctrine/SERVICE_DOSSIER_BOUNDARY.md",
-                "mechanics/experience/parts/service-office-boundary/docs/SERVICE_DOSSIER_BOUNDARY.md",
-            ),
-            (
-                "ToS/doctrine/NO_RUNTIME_OFFICE_WRITE.md",
-                "mechanics/experience/parts/service-office-boundary/docs/NO_RUNTIME_OFFICE_WRITE.md",
-            ),
-            (
-                "ToS/contracts/tos_service_dossier_boundary_v1.json",
-                "mechanics/experience/parts/service-office-boundary/schemas/tos_service_dossier_boundary_v1.json",
-            ),
-            (
-                "ToS/contracts/tos_no_runtime_office_write_guard_v1.json",
-                "mechanics/experience/parts/service-office-boundary/schemas/tos_no_runtime_office_write_guard_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_service_dossier_boundary_v1.example.json",
-                "mechanics/experience/parts/service-office-boundary/examples/tos_service_dossier_boundary_v1.example.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_no_runtime_office_write_guard_v1.example.json",
-                "mechanics/experience/parts/service-office-boundary/examples/tos_no_runtime_office_write_guard_v1.example.json",
-            ),
-        ),
-        "pattern-review": (
-            (
-                "ToS/doctrine/TOS_PATTERN_REVIEW_NOTE.md",
-                "mechanics/experience/parts/pattern-review/docs/TOS_PATTERN_REVIEW_NOTE.md",
-            ),
-            (
-                "ToS/contracts/tos_pattern_review_note_v1.json",
-                "mechanics/experience/parts/pattern-review/schemas/tos_pattern_review_note_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_pattern_review_note.example.json",
-                "mechanics/experience/parts/pattern-review/examples/tos_pattern_review_note.example.json",
-            ),
-        ),
-        "write-guards": (
-            (
-                "ToS/doctrine/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md",
-                "mechanics/experience/parts/write-guards/docs/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md",
-            ),
-            (
-                "ToS/doctrine/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md",
-                "mechanics/experience/parts/write-guards/docs/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md",
-            ),
-            (
-                "ToS/contracts/tos_no_direct_write_guard_v1.json",
-                "mechanics/experience/parts/write-guards/schemas/tos_no_direct_write_guard_v1.json",
-            ),
-            (
-                "ToS/public-compatibility/tos_no_direct_write_guard.example.json",
-                "mechanics/experience/parts/write-guards/examples/tos_no_direct_write_guard.example.json",
-            ),
-        ),
-    },
-    "growth-cycle": {
-        "branch-growth-cycle": (
-            (
-                "ToS/doctrine/GROWTH_STRUCTURE.md",
-                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md",
-            ),
-            (
-                "ToS/doctrine/HUMAN_CURATED_EXPANSION.md",
-                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md",
-            ),
-            (
-                "ToS/doctrine/PRE_EXPANSION_SOIL.md",
-                "mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md",
-            ),
-        ),
-    },
-    "questbook": {
-        "obligation-boundary": (
-            (
-                "ToS/doctrine/QUESTBOOK_TOS_INTEGRATION.md",
-                "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md",
-            ),
-        ),
-        "dispatch-contracts": (
-            (
-                "ToS/contracts/quest.schema.json",
-                "mechanics/questbook/parts/dispatch-contracts/schemas/quest.schema.json",
-            ),
-            (
-                "ToS/contracts/quest_dispatch.schema.json",
-                "mechanics/questbook/parts/dispatch-contracts/schemas/quest_dispatch.schema.json",
-            ),
-            (
-                "ToS/public-compatibility/quest_catalog.min.example.json",
-                "mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json",
-            ),
-            (
-                "ToS/public-compatibility/quest_dispatch.min.example.json",
-                "mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json",
-            ),
-        ),
-    },
-    "source-witnessing": {
-        "witness-route": (
-            (
-                "ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md",
-                "mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md",
-            ),
-        ),
-    },
-}
-
 
 def load_topology(repo_root: Path, issues: list[Issue]) -> dict[str, object] | None:
     path = repo_root / TOPOLOGY_PATH
@@ -468,16 +177,28 @@ def validate_moved_targets(repo_root: Path, issues: list[Issue], topology: dict[
         issues.append((TOPOLOGY_PATH.as_posix(), "moved_path_accounting must be an object"))
         return
 
-    for package, parts in MOVED_TARGETS.items():
-        package_accounting = moved_accounting.get(package)
-        if not isinstance(package_accounting, dict):
-            issues.append((TOPOLOGY_PATH.as_posix(), f"missing moved_path_accounting.{package}"))
+    moved_targets = topology.get("moved_path_targets")
+    if not isinstance(moved_targets, dict):
+        issues.append((TOPOLOGY_PATH.as_posix(), "moved_path_targets must be an object"))
+        return
+
+    accounted_old_paths: set[str] = set()
+    for package, parts in moved_accounting.items():
+        if not isinstance(parts, dict):
+            issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package} must be an object"))
             continue
-        for part, moves in parts.items():
-            old_paths = package_accounting.get(part)
-            if old_paths != [old for old, _ in moves]:
-                issues.append((TOPOLOGY_PATH.as_posix(), f"{package}.{part} moved path accounting drifted"))
-            for old_path, new_path in moves:
+        if package not in EXPECTED_PACKAGES:
+            issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package} is not a known package"))
+        for part, old_paths in parts.items():
+            if not isinstance(old_paths, list) or not all(isinstance(item, str) and item for item in old_paths):
+                issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package}.{part} must be a string list"))
+                continue
+            for old_path in old_paths:
+                accounted_old_paths.add(old_path)
+                new_path = moved_targets.get(old_path)
+                if not isinstance(new_path, str) or not new_path:
+                    issues.append((TOPOLOGY_PATH.as_posix(), f"{old_path} is missing a moved_path_targets entry"))
+                    continue
                 require_absent(
                     repo_root,
                     issues,
@@ -485,6 +206,13 @@ def validate_moved_targets(repo_root: Path, issues: list[Issue], topology: dict[
                     "mechanic-owned payload must stay in mechanics/, not the old ToS/root path",
                 )
                 require_file(repo_root, issues, new_path)
+
+    for old_path, new_path in moved_targets.items():
+        if not isinstance(old_path, str) or not isinstance(new_path, str):
+            issues.append((TOPOLOGY_PATH.as_posix(), "moved_path_targets keys and values must be strings"))
+            continue
+        if old_path not in accounted_old_paths:
+            issues.append((TOPOLOGY_PATH.as_posix(), f"{old_path} target is not listed in moved_path_accounting"))
 
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:

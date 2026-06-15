@@ -6,11 +6,12 @@ This file applies to the generator and validator tools under `scripts/`.
 
 Before editing tools here, read:
 1. the repository root `AGENTS.md`
-2. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
-3. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
-4. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
-5. `docs/decisions/AGENTS.md` when decision-index tooling is touched
-6. the schema, example, intake, decision, or tree surfaces the script actually touches
+2. `docs/validation/validation_lanes.json` for command authority
+3. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+4. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+5. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
+6. `docs/decisions/AGENTS.md` when decision-index tooling is touched
+7. the schema, example, intake, decision, or tree surfaces the script actually touches
 
 ## Local role
 
@@ -41,7 +42,7 @@ authority into Tree of Sophia.
 | owner | `scripts/AGENTS.md` and the exact script being changed |
 | next route | source surface -> script update -> generated artifact when needed -> validator |
 | tools | local Python scripts, unittest, schema files, generated parity checks |
-| check | affected script plus `python scripts/release_check.py` for broad changes |
+| check | affected script plus the release lane in `docs/validation/validation_lanes.json` for broad changes |
 
 ## Editing posture
 
@@ -62,6 +63,10 @@ Avoid:
 - turning validators into a runtime or orchestration control plane
 
 The scripts should serve the source-first route, not become a kingdom of their own.
+
+`scripts/release_check.py` is a runner for the `release_check` command sequence
+declared in `docs/validation/validation_lanes.json`. Keep command composition
+there, not as a hidden list inside Python code.
 
 ## Boundary Routes
 
@@ -88,6 +93,7 @@ Local owner routes:
 | --- | --- |
 | public tiny entry | `python scripts/validate_tiny_entry_route.py` |
 | bounded KAG export | `python scripts/generate_kag_export.py` when inputs move, then `python scripts/validate_kag_export.py` |
+| questbook surface | `python scripts/validate_questbook_surface.py` |
 | corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |

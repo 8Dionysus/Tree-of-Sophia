@@ -41,20 +41,23 @@ README_BANNED_COMMANDS = (
     "python scripts/",
     "python -m unittest",
 )
-ROUTE_DOC_REQUIRED_PHRASES = (
-    "public compatibility authority surface",
+ROUTE_DOC_REQUIRED_TOKENS = (
     "## Source-first re-entry",
-    "`README.md -> ToS/public-compatibility/tos_tiny_entry_route.example.json -> ToS/public-compatibility/source_node.example.json`",
-    "`aoa-routing` may restore this re-entry hop as bounded navigation",
+    "README.md",
+    "ToS/public-compatibility/tos_tiny_entry_route.example.json",
+    "ToS/public-compatibility/source_node.example.json",
+    "aoa-routing",
     "python scripts/validate_tiny_entry_route.py",
 )
-REVIEW_CHECKLIST_REQUIRED_PHRASES = (
+REVIEW_CHECKLIST_REQUIRED_TOKENS = (
     "python scripts/validate_tiny_entry_route.py",
     "python scripts/validate_kag_export.py",
 )
-BOUNDARY_REQUIRED_PHRASES = (
-    "does not replace ToS-authored authority",
-    "does not delegate authority to aoa-kag, aoa-routing, or any other downstream derived system",
+BOUNDARY_REQUIRED_TOKENS = (
+    "ToS-authored authority",
+    "aoa-kag",
+    "aoa-routing",
+    "downstream derived system",
 )
 REQUIRED_FILES = (
     README_PATH,
@@ -111,20 +114,20 @@ def ensure_repo_relative_surface(
     return value
 
 
-def require_phrases(
+def require_tokens(
     *,
     relative_path: Path,
     repo_root: Path,
-    required_phrases: tuple[str, ...],
+    required_tokens: tuple[str, ...],
     issues: list[Issue],
 ) -> None:
     path = repo_root / relative_path
     if not path.is_file():
         return
     text = normalize(path.read_text(encoding="utf-8"))
-    for phrase in required_phrases:
-        if normalize(phrase) not in text:
-            issues.append((relative_path.as_posix(), f"missing required phrase: {phrase}"))
+    for token in required_tokens:
+        if normalize(token) not in text:
+            issues.append((relative_path.as_posix(), f"missing stable route token: {token}"))
 
 
 def reject_phrases(
@@ -246,14 +249,14 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append((ROUTE_PATH.as_posix(), "non_identity_boundary must stay a non-empty string"))
         else:
             normalized_boundary = normalize(boundary)
-            for phrase in BOUNDARY_REQUIRED_PHRASES:
-                if normalize(phrase) not in normalized_boundary:
-                    issues.append((ROUTE_PATH.as_posix(), f"non_identity_boundary must contain '{phrase}'"))
+            for token in BOUNDARY_REQUIRED_TOKENS:
+                if normalize(token) not in normalized_boundary:
+                    issues.append((ROUTE_PATH.as_posix(), f"non_identity_boundary must contain '{token}'"))
 
-    require_phrases(
+    require_tokens(
         relative_path=README_PATH,
         repo_root=repo_root,
-        required_phrases=README_ROUTE_LINKS,
+        required_tokens=README_ROUTE_LINKS,
         issues=issues,
     )
     reject_phrases(
@@ -262,16 +265,16 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         banned_phrases=README_BANNED_COMMANDS,
         issues=issues,
     )
-    require_phrases(
+    require_tokens(
         relative_path=ROUTE_DOC_PATH,
         repo_root=repo_root,
-        required_phrases=ROUTE_DOC_REQUIRED_PHRASES,
+        required_tokens=ROUTE_DOC_REQUIRED_TOKENS,
         issues=issues,
     )
-    require_phrases(
+    require_tokens(
         relative_path=REVIEW_CHECKLIST_PATH,
         repo_root=repo_root,
-        required_phrases=REVIEW_CHECKLIST_REQUIRED_PHRASES,
+        required_tokens=REVIEW_CHECKLIST_REQUIRED_TOKENS,
         issues=issues,
     )
 

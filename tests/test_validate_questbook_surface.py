@@ -4,7 +4,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -12,7 +11,7 @@ SCRIPTS_ROOT = REPO_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-import validate_kag_export
+import validate_questbook_surface as questbook_validator
 
 
 def write_text(path: Path, content: str) -> None:
@@ -27,18 +26,18 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             (REPO_ROOT / "QUESTBOOK.md").read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / validate_kag_export.QUESTBOOK_INTEGRATION_PATH,
-            (REPO_ROOT / validate_kag_export.QUESTBOOK_INTEGRATION_PATH).read_text(encoding="utf-8"),
+            repo_root / questbook_validator.QUESTBOOK_INTEGRATION_PATH,
+            (REPO_ROOT / questbook_validator.QUESTBOOK_INTEGRATION_PATH).read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / validate_kag_export.QUEST_SCHEMA_PATH,
-            (REPO_ROOT / validate_kag_export.QUEST_SCHEMA_PATH).read_text(encoding="utf-8"),
+            repo_root / questbook_validator.QUEST_SCHEMA_PATH,
+            (REPO_ROOT / questbook_validator.QUEST_SCHEMA_PATH).read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / validate_kag_export.QUEST_DISPATCH_SCHEMA_PATH,
-            (REPO_ROOT / validate_kag_export.QUEST_DISPATCH_SCHEMA_PATH).read_text(encoding="utf-8"),
+            repo_root / questbook_validator.QUEST_DISPATCH_SCHEMA_PATH,
+            (REPO_ROOT / questbook_validator.QUEST_DISPATCH_SCHEMA_PATH).read_text(encoding="utf-8"),
         )
-        for quest_id in validate_kag_export.QUEST_IDS:
+        for quest_id in questbook_validator.QUEST_IDS:
             write_text(
                 repo_root / "quests" / f"{quest_id}.yaml",
                 (REPO_ROOT / "quests" / f"{quest_id}.yaml").read_text(
@@ -46,12 +45,12 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
         write_text(
-            repo_root / validate_kag_export.QUEST_CATALOG_EXAMPLE_PATH,
-            (REPO_ROOT / validate_kag_export.QUEST_CATALOG_EXAMPLE_PATH).read_text(encoding="utf-8"),
+            repo_root / questbook_validator.QUEST_CATALOG_EXAMPLE_PATH,
+            (REPO_ROOT / questbook_validator.QUEST_CATALOG_EXAMPLE_PATH).read_text(encoding="utf-8"),
         )
         write_text(
-            repo_root / validate_kag_export.QUEST_DISPATCH_EXAMPLE_PATH,
-            (REPO_ROOT / validate_kag_export.QUEST_DISPATCH_EXAMPLE_PATH).read_text(encoding="utf-8"),
+            repo_root / questbook_validator.QUEST_DISPATCH_EXAMPLE_PATH,
+            (REPO_ROOT / questbook_validator.QUEST_DISPATCH_EXAMPLE_PATH).read_text(encoding="utf-8"),
         )
 
     def test_valid_questbook_surface_passes(self) -> None:
@@ -59,18 +58,16 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                validate_kag_export.validate_questbook_surface()
+            questbook_validator.validate_questbook_surface(repo_root)
 
     def test_missing_integration_doc_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            (repo_root / validate_kag_export.QUESTBOOK_INTEGRATION_PATH).unlink()
+            (repo_root / questbook_validator.QUESTBOOK_INTEGRATION_PATH).unlink()
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md", str(context.exception))
 
@@ -80,9 +77,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             self.write_valid_surface(repo_root)
             (repo_root / "quests" / "TOS-Q-0003.yaml").unlink()
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("TOS-Q-0003.yaml", str(context.exception))
 
@@ -97,9 +93,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 .replace("repo: Tree-of-Sophia", "repo: aoa-kag"),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("repo must equal 'Tree-of-Sophia'", str(context.exception))
 
@@ -114,9 +109,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 .replace("id: TOS-Q-0004", "id: TOS-Q-9999"),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("id must equal 'TOS-Q-0004'", str(context.exception))
 
@@ -131,9 +125,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 .replace("public_safe: true", "public_safe: false"),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("public_safe must be true", str(context.exception))
 
@@ -148,9 +141,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 .replace("`TOS-Q-0004`", "`TOS-Q-XXXX`"),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("TOS-Q-0004", str(context.exception))
 
@@ -159,8 +151,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
             write_text(
-                repo_root / validate_kag_export.QUESTBOOK_INTEGRATION_PATH,
-                (repo_root / validate_kag_export.QUESTBOOK_INTEGRATION_PATH)
+                repo_root / questbook_validator.QUESTBOOK_INTEGRATION_PATH,
+                (repo_root / questbook_validator.QUESTBOOK_INTEGRATION_PATH)
                 .read_text(encoding="utf-8")
                 .replace(
                     "It is not the place where philosophical interpretation, authored knowledge, or source meaning becomes a task list.",
@@ -168,9 +160,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("philosophical interpretation, authored knowledge, or source meaning becomes a task list", str(context.exception))
 
@@ -179,8 +170,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
             write_text(
-                repo_root / validate_kag_export.QUEST_DISPATCH_EXAMPLE_PATH,
-                (repo_root / validate_kag_export.QUEST_DISPATCH_EXAMPLE_PATH)
+                repo_root / questbook_validator.QUEST_DISPATCH_EXAMPLE_PATH,
+                (repo_root / questbook_validator.QUEST_DISPATCH_EXAMPLE_PATH)
                 .read_text(encoding="utf-8")
                 .replace(
                     '"source_path": "quests/TOS-Q-0004.yaml"',
@@ -188,9 +179,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("quest_dispatch.min.example.json", str(context.exception))
 
@@ -207,9 +197,8 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         message = str(context.exception)
         self.assertIn("activation", message)
@@ -219,7 +208,7 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
-            dispatch_path = repo_root / validate_kag_export.QUEST_DISPATCH_EXAMPLE_PATH
+            dispatch_path = repo_root / questbook_validator.QUEST_DISPATCH_EXAMPLE_PATH
             write_text(
                 dispatch_path,
                 dispatch_path.read_text(encoding="utf-8").replace(
@@ -229,19 +218,18 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 ),
             )
 
-            with patch.object(validate_kag_export, "REPO_ROOT", repo_root):
-                with self.assertRaises(validate_kag_export.ValidationError) as context:
-                    validate_kag_export.validate_questbook_surface()
+            with self.assertRaises(questbook_validator.ValidationError) as context:
+                questbook_validator.validate_questbook_surface(repo_root)
 
         self.assertIn("quest_dispatch.schema.json", str(context.exception))
 
     def test_build_dispatch_entry_reports_missing_activation_mode(self) -> None:
-        quest_payload = validate_kag_export.read_yaml(REPO_ROOT / "quests" / "TOS-Q-0001.yaml")
+        quest_payload = questbook_validator.read_yaml(REPO_ROOT / "quests" / "TOS-Q-0001.yaml")
         self.assertIsInstance(quest_payload, dict)
         quest_payload["activation"] = {}
 
-        with self.assertRaises(validate_kag_export.ValidationError) as context:
-            validate_kag_export.build_expected_quest_dispatch_entry(
+        with self.assertRaises(questbook_validator.ValidationError) as context:
+            questbook_validator.build_expected_quest_dispatch_entry(
                 "TOS-Q-0001",
                 quest_payload,
             )

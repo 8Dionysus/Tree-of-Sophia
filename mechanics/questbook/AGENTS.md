@@ -29,7 +29,7 @@ into a task list.
 ## Validation
 
 ```bash
-python scripts/validate_kag_export.py
+python scripts/validate_questbook_surface.py
 python scripts/validate_mechanics_topology.py
 python scripts/validate_nested_agents.py
 ```

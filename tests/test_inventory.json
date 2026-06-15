@@ -1,0 +1,140 @@
+{
+  "schema_version": "tos_test_inventory_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "tests/AGENTS.md",
+  "command_authority": "docs/validation/validation_lanes.json",
+  "notes": [
+    "This inventory names what tests protect.",
+    "It is not command authority."
+  ],
+  "tests": [
+    {
+      "path": "tests/test_current_direction_routes.py",
+      "family": "root_front_door",
+      "validation_lane": "route_docs",
+      "owner_surface": "ROADMAP.md",
+      "protects": "root entrypoints keep current direction routed to ROADMAP.md",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_docs_verify_routes.py",
+      "family": "root_front_door",
+      "validation_lane": "route_docs",
+      "owner_surface": "README.md",
+      "protects": "README stays command-light and routes to validation owners",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_roadmap_parity.py",
+      "family": "release_contour",
+      "validation_lane": "route_docs",
+      "owner_surface": "ROADMAP.md",
+      "protects": "current release contour and root-entry surfaces",
+      "disposition": "keep; review release constants during release work"
+    },
+    {
+      "path": "tests/test_decision_indexes.py",
+      "family": "generated_parity",
+      "validation_lane": "generated_parity",
+      "owner_surface": "docs/decisions/AGENTS.md",
+      "protects": "decision index rendering and canonical decision ids",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_root_entry_map.py",
+      "family": "generated_parity",
+      "validation_lane": "generated_parity",
+      "owner_surface": "ToS/contracts/root-entry-map.schema.json",
+      "protects": "root entry map builder payload shape",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_tos_corpus_index.py",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/tos-corpus-index.schema.json",
+      "protects": "corpus index runtime boundary and emitted layers",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_tos_agon_threshold_intake_registry.py",
+      "family": "mechanics_generated_parity",
+      "validation_lane": "generated_parity",
+      "owner_surface": "mechanics/agon/parts/threshold-registry/README.md",
+      "protects": "Agon threshold registry generated payload and validator",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_tos_node_contract_schema.py",
+      "family": "schema_canon_contract",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "ToS/contracts/tos-node-contract.schema.json",
+      "protects": "ToS node contract schema and public examples",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_validate_tree_node_contracts.py",
+      "family": "validator_behavior",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "scripts/validate_tree_node_contracts.py",
+      "protects": "node contract validator duplicate-language behavior",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_validate_tiny_entry_route.py",
+      "family": "validator_behavior",
+      "validation_lane": "public_entry",
+      "owner_surface": "scripts/validate_tiny_entry_route.py",
+      "protects": "tiny-entry route validator behavior",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_validate_questbook_surface.py",
+      "family": "mechanics_validator_behavior",
+      "validation_lane": "questbook_surface",
+      "owner_surface": "scripts/validate_questbook_surface.py",
+      "protects": "questbook validator behavior for obligations, public quest YAML, dispatch schemas, and compatibility examples",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_intake_pack_validation.py",
+      "family": "validator_behavior",
+      "validation_lane": "intake_contracts",
+      "owner_surface": "scripts/validate_intake_pack.py",
+      "protects": "current candidate intake pack validates",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_validation_lanes.py",
+      "family": "command_authority",
+      "validation_lane": "validation_authority",
+      "owner_surface": "docs/validation/validation_lanes.json",
+      "protects": "lane manifest self-check, release_check delegation, and source-home lane ids",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_experience_boundary_batch3_contracts.py",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "mechanics/experience/AGENTS.md",
+      "protects": "experience candidate-review/adoption/write-guard/pattern-review schema contracts",
+      "disposition": "migration-era batch name; future rename candidate"
+    },
+    {
+      "path": "tests/test_experience_boundary_batch4_contracts.py",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "mechanics/experience/parts/governance-boundary/README.md",
+      "protects": "experience governance-boundary schema contracts",
+      "disposition": "migration-era batch name; future rename candidate"
+    },
+    {
+      "path": "tests/test_experience_boundary_batch5_contracts.py",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "canon_contracts",
+      "owner_surface": "mechanics/experience/AGENTS.md",
+      "protects": "experience installation/service-office schema contracts",
+      "disposition": "migration-era batch name; future rename candidate"
+    }
+  ]
+}
