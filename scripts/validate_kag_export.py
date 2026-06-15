@@ -16,12 +16,6 @@ from generate_kag_export import (
     build_kag_export_payload,
     encode_json,
 )
-from validate_intake_pack import run_validation as run_intake_pack_validation
-from validate_nested_agents import run_validation as run_nested_agents_validation
-from validate_tiny_entry_route import run_validation as run_tiny_entry_route_validation
-from validate_tree_example_sync import run_validation as run_tree_example_sync_validation
-from validate_tree_node_contracts import run_validation as run_tree_node_contracts_validation
-from validate_tree_relation_pack import run_validation as run_tree_relation_pack_validation
 
 
 class ValidationError(RuntimeError):
@@ -48,48 +42,6 @@ def validate_generated_text(path: Path, expected_text: str, *, label: str) -> No
         fail(f"{label} is missing at {path.relative_to(REPO_ROOT).as_posix()}")
     if actual_text != expected_text:
         fail(f"{label} is out of date; run python scripts/generate_kag_export.py")
-
-
-def validate_nested_agents_docs() -> None:
-    issues = run_nested_agents_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"nested AGENTS docs check failed:\n{details}")
-
-
-def validate_tree_example_sync() -> None:
-    issues = run_tree_example_sync_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"ToS/canon/example sync check failed:\n{details}")
-
-
-def validate_tiny_entry_route() -> None:
-    issues = run_tiny_entry_route_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"tiny-entry route check failed:\n{details}")
-
-
-def validate_tree_node_contracts() -> None:
-    issues = run_tree_node_contracts_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"tree node contract check failed:\n{details}")
-
-
-def validate_tree_relation_pack() -> None:
-    issues = run_tree_relation_pack_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"tree relation-pack check failed:\n{details}")
-
-
-def validate_intake_pack() -> None:
-    issues = run_intake_pack_validation(REPO_ROOT)
-    if issues:
-        details = "\n".join(f"- {location}: {message}" for location, message in issues)
-        fail(f"intake pack check failed:\n{details}")
 
 
 def validate_export_payload(payload: object) -> None:
@@ -188,12 +140,6 @@ def validate_export_payload(payload: object) -> None:
 
 def main() -> int:
     try:
-        validate_nested_agents_docs()
-        validate_intake_pack()
-        validate_tree_node_contracts()
-        validate_tree_relation_pack()
-        validate_tree_example_sync()
-        validate_tiny_entry_route()
         expected_payload = build_kag_export_payload()
         validate_generated_text(
             OUTPUT_PATH,
@@ -210,12 +156,6 @@ def main() -> int:
         print(f"[error] {exc}", file=sys.stderr)
         return 1
 
-    print("[ok] validated nested AGENTS docs surfaces")
-    print("[ok] validated v6.1 tabular base intake pack")
-    print("[ok] validated canonical tree node payloads against the node contract")
-    print("[ok] validated route-local canonical relation pack")
-    print("[ok] validated ToS/canon/example compatibility mirrors")
-    print("[ok] validated source-owned tiny-entry route surfaces")
     print("[ok] validated generated KAG export outputs are up to date")
     print("[ok] validated generated KAG export structure")
     return 0

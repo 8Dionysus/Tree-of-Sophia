@@ -19,6 +19,10 @@ Tracking starts with the community-docs baseline for this repository.
 - split Questbook obligation and dispatch validation into its own
   `questbook_surface` lane while keeping KAG export validation focused on the
   bounded export seam
+- moved canon and intake checks out of `validate_kag_export.py` and into the
+  explicit release lane command sequence
+- renamed migration-era Experience boundary batch tests by the mechanic
+  contracts they protect
 - reduced route-card and tiny-entry validators toward structural route tokens
   instead of ordinary prose inventories
 

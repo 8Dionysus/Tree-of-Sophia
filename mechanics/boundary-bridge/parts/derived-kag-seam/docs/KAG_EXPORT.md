@@ -46,8 +46,12 @@ python scripts/validate_kag_export.py
 python -m unittest discover -s tests
 ```
 
-`python scripts/validate_kag_export.py` also checks the nested local guidance surfaces for the current tiny export seam.
-`python -m unittest discover -s tests` strengthens the repo-local contract and schema coverage around that same bounded route.
+`python scripts/validate_kag_export.py` checks generated export parity and
+payload structure for this seam.
+The release lane pairs it with canon, intake, route-card, and public-entry
+validators when broader route assurance is needed.
+`python -m unittest discover -s tests` strengthens repo-local contract and
+schema coverage around that same bounded route.
 
 ## Regeneration
 

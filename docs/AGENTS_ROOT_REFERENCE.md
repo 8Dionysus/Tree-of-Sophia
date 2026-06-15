@@ -160,18 +160,14 @@ Summarize:
 
 ## Validation
 
-The current bounded read-only battery is:
+The active bounded battery routes through the validation lane manifest:
 
 ```bash
-python scripts/validate_tiny_entry_route.py
-python scripts/validate_kag_export.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python -m unittest discover -s tests
+python scripts/release_check.py
 ```
 
 `python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
-`python scripts/validate_kag_export.py` also checks nested local guidance in `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/candidate-intake/`, `ToS/contracts/`, `scripts/`, `ToS/source-witnesses/`, and `ToS/canon/`.
+`python scripts/validate_kag_export.py` checks generated export parity and payload structure. Canon, intake, public-example sync, route-card structure, and decision checks route through their own validators in `docs/validation/validation_lanes.json`.
 
 When the task falls outside that narrow validator seam:
 

@@ -30,6 +30,11 @@ The same command-pressure pattern also appeared in the public-entry lane:
 surfaces even though those surfaces belong to `mechanics/questbook/`, not to
 the KAG export seam.
 
+After the questbook split, the same hidden-aggregator shape remained inside
+`scripts/validate_kag_export.py`: canon contracts, intake contracts,
+public-example sync, tiny-entry route checks, and route-card structure still
+ran through a validator named for the KAG export seam.
+
 ## Decision
 
 Create `docs/validation/validation_lanes.json` as the executable command
@@ -52,6 +57,11 @@ Split questbook obligation and dispatch checks into
 `scripts/validate_questbook_surface.py` and route them through a
 `questbook_surface` lane. Keep `scripts/validate_kag_export.py` focused on the
 bounded KAG export seam.
+
+Keep canon and intake checks in their own lanes and make the release lane run
+them explicitly. The KAG export validator checks generated export parity and
+payload structure. Release-lane command composition owns canon, intake,
+route-card, and questbook coverage.
 
 Reduce the remaining tiny-entry prose checks to stable route tokens: headings,
 repo-relative surfaces, downstream boundary names, and validator entrypoints.
@@ -88,8 +98,11 @@ without making the inventory command authority.
 carrying the old-to-new map in code.
 
 `scripts/validate_questbook_surface.py` now owns the questbook surface check.
-The release lane runs it explicitly instead of receiving questbook coverage
-through the KAG export validator.
+The release lane runs questbook coverage as an explicit mechanics-local step.
+
+`canon_contracts` and `intake_contracts` are explicit release coverage. Their
+commands run from `docs/validation/validation_lanes.json`. The KAG export
+validator remains scoped to generated export parity and payload structure.
 
 `scripts/validate_tiny_entry_route.py` still protects the bounded public entry
 route, but it no longer treats ordinary explanatory sentences as required
@@ -101,6 +114,7 @@ authority.
 ## Source Surfaces
 
 - `docs/validation/README.md`
+- `docs/RELEASING.md`
 - `docs/validation/validation_lanes.json`
 - `docs/validation/validator_inventory.json`
 - `docs/validation/script_inventory.json`
@@ -112,9 +126,16 @@ authority.
 - `scripts/validate_tiny_entry_route.py`
 - `scripts/validate_kag_export.py`
 - `scripts/validate_questbook_surface.py`
+- `scripts/validate_intake_pack.py`
+- `scripts/validate_tree_node_contracts.py`
+- `scripts/validate_tree_relation_pack.py`
+- `scripts/validate_tree_example_sync.py`
 - `ToS/source_home.manifest.json`
 - `ToS/contracts/tos-source-home.schema.json`
 - `mechanics/topology.json`
+- `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+- `mechanics/experience/AGENTS.md`
 - `mechanics/questbook/AGENTS.md`
 - `mechanics/questbook/README.md`
 - `tests/AGENTS.md`
@@ -133,6 +154,10 @@ python scripts/validate_tos_source_home.py
 python -m unittest tests.test_tos_source_home_schema
 python scripts/validate_mechanics_topology.py
 python scripts/validate_nested_agents.py
+python scripts/validate_tree_node_contracts.py
+python scripts/validate_tree_relation_pack.py
+python scripts/validate_tree_example_sync.py
+python scripts/validate_intake_pack.py
 python scripts/validate_questbook_surface.py
 python scripts/generate_decision_indexes.py --check
 python scripts/validate_decision_records.py
