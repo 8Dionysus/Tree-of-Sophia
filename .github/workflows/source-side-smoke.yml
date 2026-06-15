@@ -29,6 +29,9 @@ jobs:
       - name: Run KAG export validator
         run: python scripts/validate_kag_export.py
 
+      - name: Run tree-node contract validator
+        run: python scripts/validate_tree_node_contracts.py
+
       - name: Run relation-pack validator
         run: python scripts/validate_tree_relation_pack.py
 
