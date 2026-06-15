@@ -154,7 +154,7 @@
       "layer": "mechanics-questbook",
       "mode": "blocking",
       "owner_surface": "mechanics/questbook/AGENTS.md",
-      "purpose": "Protect questbook obligations, public quest items, dispatch schemas, and compatibility examples without routing them through the KAG export validator.",
+      "purpose": "Protect questbook obligations, public quest items, dispatch schemas, and compatibility examples as a mechanics-local validation lane.",
       "command_sequence": "questbook_surface",
       "failure_route": "mechanics/questbook/AGENTS.md",
       "does_not_own": [
@@ -206,6 +206,8 @@
         "mechanics_topology",
         "active_naming",
         "generated_parity",
+        "canon_contracts",
+        "intake_contracts",
         "public_entry",
         "questbook_surface",
         "route_docs"
@@ -379,6 +381,22 @@
       {
         "label": "validate Agon threshold intake registry",
         "command": ["python", "scripts/validate_tos_agon_threshold_intake_registry.py"]
+      },
+      {
+        "label": "validate tree node contracts",
+        "command": ["python", "scripts/validate_tree_node_contracts.py"]
+      },
+      {
+        "label": "validate tree relation packs",
+        "command": ["python", "scripts/validate_tree_relation_pack.py"]
+      },
+      {
+        "label": "validate public example sync",
+        "command": ["python", "scripts/validate_tree_example_sync.py"]
+      },
+      {
+        "label": "validate intake pack",
+        "command": ["python", "scripts/validate_intake_pack.py"]
       },
       {
         "label": "validate tiny entry route",

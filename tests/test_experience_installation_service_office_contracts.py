@@ -9,14 +9,14 @@ from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ESCAPE_VALUE = "__batch5_not_allowed__"
+ESCAPE_VALUE = "__experience_installation_service_office_not_allowed__"
 
-BATCH5_CONTRACTS = (
+INSTALLATION_SERVICE_OFFICE_CONTRACTS = (
     ('tos_installation_dossier_boundary_v1', 'tos_installation_dossier_boundary_v1.json'),
     ('tos_no_runtime_office_write_guard_v1', 'tos_no_runtime_office_write_guard_v1.json'),
     ('tos_service_dossier_boundary_v1', 'tos_service_dossier_boundary_v1.json'),
 )
-BATCH5_PARTS = {
+INSTALLATION_SERVICE_OFFICE_PARTS = {
     "tos_installation_dossier_boundary_v1": "installation-boundary",
     "tos_no_runtime_office_write_guard_v1": "service-office-boundary",
     "tos_service_dossier_boundary_v1": "service-office-boundary",
@@ -31,7 +31,7 @@ def load_contract(stem: str, schema_file: str) -> tuple[dict[str, object], dict[
 
 
 def contract_paths(stem: str, schema_file: str) -> tuple[Path, Path]:
-    part = BATCH5_PARTS[stem]
+    part = INSTALLATION_SERVICE_OFFICE_PARTS[stem]
     base = ROOT / "mechanics" / "experience" / "parts" / part
     return base / "schemas" / schema_file, base / "examples" / f"{stem}.example.json"
 
@@ -244,32 +244,35 @@ def constrained_paths(schema: object, example: object, keyword: str, path: tuple
     return found
 
 
-class ExperienceBatch5ContractTests(unittest.TestCase):
+class ExperienceInstallationServiceOfficeContractTests(unittest.TestCase):
     def assert_invalid(self, schema: dict[str, object], value: object, label: str) -> None:
         errors = validation_errors(schema, value)
         self.assertTrue(errors, f"{label} unexpectedly validated")
 
-    def test_experience_batch5_examples_match_schemas(self) -> None:
-        self.assertTrue(BATCH5_CONTRACTS)
+    def test_experience_installation_service_office_examples_match_schemas(self) -> None:
+        self.assertTrue(INSTALLATION_SERVICE_OFFICE_CONTRACTS)
         missing_pairs: list[str] = []
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema_path, example_path = contract_paths(stem, schema_file)
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():
                 missing_pairs.append(f"{schema_path.relative_to(ROOT)} -> {example_path.relative_to(ROOT)}")
-        self.assertFalse(missing_pairs, "missing batch5 contract pair(s): " + ", ".join(missing_pairs))
+        self.assertFalse(
+            missing_pairs,
+            "missing installation/service-office contract pair(s): " + ", ".join(missing_pairs),
+        )
 
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             with self.subTest(stem=stem):
                 schema, example = load_contract(stem, schema_file)
                 Draft202012Validator.check_schema(schema)
                 errors = validation_errors(schema, example)
                 self.assertFalse(errors, f"{stem}: {errors[0].message}" if errors else stem)
 
-    def test_experience_batch5_schemas_reject_unknown_fields(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_unknown_fields(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in object_paths(example):
                 with self.subTest(stem=stem, path=path):
@@ -281,9 +284,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_wrong_types_for_every_field(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_wrong_types_for_every_field(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, value in walk_values(example):
                 with self.subTest(stem=stem, path=path):
@@ -293,9 +296,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_missing_required_fields(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_missing_required_fields(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in required_paths(schema, example):
                 with self.subTest(stem=stem, path=path):
@@ -305,9 +308,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_bad_array_items(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_bad_array_items(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in array_paths(example):
                 with self.subTest(stem=stem, path=path):
@@ -322,9 +325,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_empty_strings(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_empty_strings(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in string_paths(example):
                 with self.subTest(stem=stem, path=path):
@@ -334,9 +337,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_const_escapes(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_const_escapes(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, _constraint in constrained_paths(schema, example, "const"):
                 with self.subTest(stem=stem, path=path):
@@ -347,9 +350,9 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_enum_escapes(self) -> None:
+    def test_experience_installation_service_office_schemas_reject_enum_escapes(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH5_CONTRACTS:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, _constraint in constrained_paths(schema, example, "enum"):
                 with self.subTest(stem=stem, path=path):
@@ -360,8 +363,8 @@ class ExperienceBatch5ContractTests(unittest.TestCase):
                     exercised += 1
         self.assertGreater(exercised, 0)
 
-    def test_experience_batch5_schemas_reject_numeric_bound_escapes(self) -> None:
-        for stem, schema_file in BATCH5_CONTRACTS:
+    def test_experience_installation_service_office_schemas_reject_numeric_bound_escapes(self) -> None:
+        for stem, schema_file in INSTALLATION_SERVICE_OFFICE_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, value in walk_values(example):
                 if not isinstance(value, (int, float)) or isinstance(value, bool):

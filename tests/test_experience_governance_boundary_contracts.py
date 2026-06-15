@@ -9,14 +9,13 @@ from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ENUM_ESCAPE_VALUE = "__batch4_not_allowed__"
+ENUM_ESCAPE_VALUE = "__experience_governance_boundary_not_allowed__"
 
-BATCH4_CONTRACTS = (
+GOVERNANCE_BOUNDARY_CONTRACTS = (
     ('tos_governance_review_note', 'tos_governance_review_note_v1.json'),
     ('tos_governance_dossier_boundary_v1', 'tos_governance_dossier_boundary_v1.json'),
 )
-BATCH4_BASE = ROOT / "mechanics" / "experience" / "parts" / "governance-boundary"
-
+GOVERNANCE_BOUNDARY_BASE = ROOT / "mechanics" / "experience" / "parts" / "governance-boundary"
 
 
 def load_contract(stem: str, schema_file: str) -> tuple[dict[str, object], dict[str, object]]:
@@ -27,7 +26,10 @@ def load_contract(stem: str, schema_file: str) -> tuple[dict[str, object], dict[
 
 
 def contract_paths(stem: str, schema_file: str) -> tuple[Path, Path]:
-    return BATCH4_BASE / "schemas" / schema_file, BATCH4_BASE / "examples" / f"{stem}.example.json"
+    return (
+        GOVERNANCE_BOUNDARY_BASE / "schemas" / schema_file,
+        GOVERNANCE_BOUNDARY_BASE / "examples" / f"{stem}.example.json",
+    )
 
 
 def validation_errors(schema: dict[str, object], value: dict[str, object]) -> list[object]:
@@ -194,32 +196,32 @@ def constrained_paths(schema: object, example: object, keyword: str, path: tuple
     return found
 
 
-class ExperienceBatch4ContractTests(unittest.TestCase):
+class ExperienceGovernanceBoundaryContractTests(unittest.TestCase):
     def assert_invalid(self, schema: dict[str, object], value: dict[str, object], label: str) -> None:
         errors = validation_errors(schema, value)
         self.assertTrue(errors, f"{label} unexpectedly validated")
 
-    def test_experience_batch4_examples_match_schemas(self) -> None:
-        self.assertTrue(BATCH4_CONTRACTS)
+    def test_experience_governance_boundary_examples_match_schemas(self) -> None:
+        self.assertTrue(GOVERNANCE_BOUNDARY_CONTRACTS)
         missing_pairs: list[str] = []
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema_path, example_path = contract_paths(stem, schema_file)
             if not schema_path.exists():
                 missing_pairs.append(f"{example_path.relative_to(ROOT)} -> {schema_path.relative_to(ROOT)}")
             if not example_path.exists():
                 missing_pairs.append(f"{schema_path.relative_to(ROOT)} -> {example_path.relative_to(ROOT)}")
-        self.assertFalse(missing_pairs, "missing batch4 contract pair(s): " + ", ".join(missing_pairs))
+        self.assertFalse(missing_pairs, "missing governance-boundary contract pair(s): " + ", ".join(missing_pairs))
 
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             with self.subTest(stem=stem):
                 schema, example = load_contract(stem, schema_file)
                 Draft202012Validator.check_schema(schema)
                 errors = validation_errors(schema, example)
                 self.assertFalse(errors, f"{stem}: {errors[0].message}" if errors else stem)
 
-    def test_experience_batch4_schemas_reject_unknown_fields(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_unknown_fields(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in object_paths(example):
                 exercised += 1
@@ -229,11 +231,11 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                     self.assertIsInstance(target, dict)
                     target["contract_escape"] = "loose-field"
                     self.assert_invalid(schema, mutated, f"{stem} unknown field at {path}")
-        self.assertGreater(exercised, 0, "no batch4 object fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary object fields were exercised")
 
-    def test_experience_batch4_schemas_reject_wrong_types_for_every_field(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_wrong_types_for_every_field(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, value in walk_values(example):
                 exercised += 1
@@ -241,11 +243,11 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                     mutated = copy.deepcopy(example)
                     set_path(mutated, path, wrong_type_value(value))
                     self.assert_invalid(schema, mutated, f"{stem} wrong type at {path}")
-        self.assertGreater(exercised, 0, "no batch4 fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary fields were exercised")
 
-    def test_experience_batch4_schemas_reject_missing_required_fields(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_missing_required_fields(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in required_paths(schema, example):
                 exercised += 1
@@ -253,11 +255,11 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                     mutated = copy.deepcopy(example)
                     delete_path(mutated, path)
                     self.assert_invalid(schema, mutated, f"{stem} missing required field at {path}")
-        self.assertGreater(exercised, 0, "no batch4 required fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary required fields were exercised")
 
-    def test_experience_batch4_schemas_reject_bad_array_items(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_bad_array_items(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path in array_paths(example):
                 value = get_path(example, path)
@@ -274,11 +276,11 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                         mutated = copy.deepcopy(example)
                         set_path(mutated, path, [""])
                         self.assert_invalid(schema, mutated, f"{stem} empty string array item at {path}")
-        self.assertGreater(exercised, 0, "no batch4 array fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary array fields were exercised")
 
-    def test_experience_batch4_schemas_reject_const_escapes(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_const_escapes(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, _const_value in constrained_paths(schema, example, "const"):
                 if not path:
@@ -288,11 +290,11 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                     mutated = copy.deepcopy(example)
                     set_path(mutated, path, const_escape_value(get_path(example, path)))
                     self.assert_invalid(schema, mutated, f"{stem} const escape at {path}")
-        self.assertGreater(exercised, 0, "no batch4 const fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary const fields were exercised")
 
-    def test_experience_batch4_schemas_reject_enum_escapes(self) -> None:
+    def test_experience_governance_boundary_schemas_reject_enum_escapes(self) -> None:
         exercised = 0
-        for stem, schema_file in BATCH4_CONTRACTS:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, _enum_values in constrained_paths(schema, example, "enum"):
                 if not path:
@@ -302,10 +304,10 @@ class ExperienceBatch4ContractTests(unittest.TestCase):
                     mutated = copy.deepcopy(example)
                     set_path(mutated, path, ENUM_ESCAPE_VALUE)
                     self.assert_invalid(schema, mutated, f"{stem} enum escape at {path}")
-        self.assertGreater(exercised, 0, "no batch4 enum fields were exercised")
+        self.assertGreater(exercised, 0, "no governance-boundary enum fields were exercised")
 
-    def test_experience_batch4_schemas_reject_invalid_numeric_ranges(self) -> None:
-        for stem, schema_file in BATCH4_CONTRACTS:
+    def test_experience_governance_boundary_schemas_reject_invalid_numeric_ranges(self) -> None:
+        for stem, schema_file in GOVERNANCE_BOUNDARY_CONTRACTS:
             schema, example = load_contract(stem, schema_file)
             for path, value in walk_values(example):
                 if not isinstance(value, (int, float)) or isinstance(value, bool):

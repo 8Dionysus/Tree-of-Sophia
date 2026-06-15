@@ -24,16 +24,8 @@ See also:
 `docs/validation/validation_lanes.json`. That manifest is the command-authority
 surface; inventories only describe coverage.
 
-The current bounded route battery includes:
-
-- `python scripts/validation_lanes.py --check`
-- `python scripts/build_root_entry_map.py --check`
-- `python scripts/validate_root_entry_map.py`
-- `python scripts/build_tos_agon_threshold_intake_registry.py --check`
-- `python scripts/validate_tos_agon_threshold_intake_registry.py`
-- `python scripts/validate_tiny_entry_route.py`
-- `python scripts/validate_kag_export.py`
-- `python scripts/validate_questbook_surface.py`
-- `python scripts/generate_decision_indexes.py --check`
-- `python scripts/validate_decision_records.py`
-- `python -m unittest discover -s tests`
+The current bounded route battery covers validation authority, source-home and
+mechanics topology, generated parity, canon contracts, intake contracts, public
+entry, questbook surface, route-card structure, decision records, and repo-local
+tests. Keep the exact command order in the lane manifest, then run it through
+`python scripts/release_check.py`.
