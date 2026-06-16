@@ -163,6 +163,46 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             issues,
         )
 
+    def test_child_page_current_title_path_component_fails_when_original_title_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            research_packet_path = (
+                repo_root / "ToS/research-packets/deep-research/philosophy/research.manifest.json"
+            )
+            research_packet = json.loads(research_packet_path.read_text(encoding="utf-8"))
+            research_packet["branch_child_pages"] = [
+                {
+                    "id": "fixture-child-page",
+                    "original_title": "Original Child",
+                    "title": "Renamed Child",
+                }
+            ]
+            write_json(research_packet_path, research_packet)
+            manifest_path = repo_root / "ToS/philosophy/philosophy.manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            branch_path = "ToS/philosophy/eras/renamed-child/branch.manifest.json"
+            manifest["branch_manifests"].append(branch_path)
+            write_json(manifest_path, manifest)
+            write_json(
+                repo_root / branch_path,
+                {
+                    "path": "ToS/philosophy/eras/renamed-child",
+                    "branch_id": "philosophy.renamed_child",
+                    "role": "fixture branch named from a current child page title",
+                },
+            )
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                branch_path,
+                "metadata-only source label used as path component: renamed-child",
+            ),
+            issues,
+        )
+
     def test_path_component_sweep_uses_supplied_repo_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
