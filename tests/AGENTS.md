@@ -28,8 +28,10 @@ material, create doctrine, or replace eval/proof authority.
 - Keep eval verdicts, scoring doctrine, and proof authority with `aoa-evals`.
 - Keep generated drift checks routed through builders and validators before
   broad test runs.
-- Treat migration-era names such as batch labels as inventory facts to improve
-  later, not as future topology.
+- Keep mechanics-local schema tests in mechanics-local validation lanes rather
+  than routing them through canon by convenience.
+- Treat migration-era names as inventory facts to improve later, not as future
+  topology.
 
 ## Validation
 

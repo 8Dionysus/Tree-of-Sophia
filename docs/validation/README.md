@@ -26,6 +26,8 @@ Inventories describe coverage. They are not command authority.
   `ToS/**/AGENTS.md`.
 - Mechanics checks route to `mechanics/topology.json` and package-local
   `PARTS.md`, `PROVENANCE.md`, and `ROADMAP.md`.
+- Mechanics-local contract tests route to the owning mechanic lane before
+  broader repo tests.
 - Generated parity checks route from source surface to builder to generated
   artifact to validator.
 - Test topology routes to `tests/AGENTS.md` and `tests/test_inventory.json`.
