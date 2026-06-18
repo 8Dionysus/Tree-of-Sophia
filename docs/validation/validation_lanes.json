@@ -65,6 +65,20 @@
         "central proof authority"
       ]
     },
+    "experience_contracts": {
+      "label": "experience contracts",
+      "layer": "mechanics-experience",
+      "mode": "blocking",
+      "owner_surface": "mechanics/experience/AGENTS.md",
+      "purpose": "Verify Experience boundary packet schemas and examples as mechanics-local contracts, not canon contracts.",
+      "command_sequence": "experience_contracts",
+      "failure_route": "mechanics/experience/AGENTS.md",
+      "does_not_own": [
+        "ToS canon acceptance",
+        "runtime activation",
+        "office or service authority"
+      ]
+    },
     "active_naming": {
       "label": "active naming",
       "layer": "active-topology",
@@ -204,8 +218,10 @@
         "source_home",
         "philosophy_topology",
         "mechanics_topology",
+        "experience_contracts",
         "active_naming",
         "generated_parity",
+        "graph_exports",
         "canon_contracts",
         "intake_contracts",
         "public_entry",
@@ -243,6 +259,12 @@
       {
         "label": "validate mechanics topology",
         "command": ["python", "scripts/validate_mechanics_topology.py"]
+      }
+    ],
+    "experience_contracts": [
+      {
+        "label": "validate Experience contracts",
+        "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_experience_*_contracts.py"]
       }
     ],
     "active_naming": [
@@ -353,6 +375,10 @@
       {
         "label": "validate mechanics topology",
         "command": ["python", "scripts/validate_mechanics_topology.py"]
+      },
+      {
+        "label": "validate Experience contracts",
+        "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_experience_*_contracts.py"]
       },
       {
         "label": "validate active naming",

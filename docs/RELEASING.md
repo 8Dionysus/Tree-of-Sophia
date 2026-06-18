@@ -25,7 +25,7 @@ See also:
 surface; inventories only describe coverage.
 
 The current bounded route battery covers validation authority, source-home and
-mechanics topology, generated parity, canon contracts, intake contracts, public
-entry, questbook surface, route-card structure, decision records, and repo-local
-tests. Keep the exact command order in the lane manifest, then run it through
-`python scripts/release_check.py`.
+mechanics topology, Experience contracts, generated parity, graph exports,
+canon contracts, intake contracts, public entry, questbook surface, route-card
+structure, decision records, and repo-local tests. Keep the exact command order
+in the lane manifest, then run it through `python scripts/release_check.py`.

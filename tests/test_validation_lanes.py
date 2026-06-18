@@ -28,6 +28,30 @@ class ValidationLanesTestCase(unittest.TestCase):
     def test_lane_manifest_validates(self) -> None:
         self.assertEqual(validation_lanes.validate_manifest(REPO_ROOT), [])
 
+    def test_test_inventory_uses_known_validation_lanes(self) -> None:
+        lanes = json.loads((REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8"))[
+            "lanes"
+        ]
+        test_inventory = json.loads((REPO_ROOT / "tests" / "test_inventory.json").read_text(encoding="utf-8"))[
+            "tests"
+        ]
+
+        for test_entry in test_inventory:
+            with self.subTest(path=test_entry["path"]):
+                self.assertIn(test_entry["validation_lane"], lanes)
+
+    def test_release_covers_blocking_validation_lanes(self) -> None:
+        manifest = json.loads((REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8"))
+        lanes = manifest["lanes"]
+        release_coverage = set(lanes["release"]["covers_lanes"])
+        blocking_lanes = {
+            lane_id
+            for lane_id, lane in lanes.items()
+            if lane_id != "release" and lane.get("mode") == "blocking"
+        }
+
+        self.assertEqual(blocking_lanes - release_coverage, set())
+
     def test_release_check_has_no_hidden_command_list(self) -> None:
         self.assertNotIn("COMMANDS =", release_check_source)
         self.assertIn("command_sequence(RELEASE_SEQUENCE", release_check_source)

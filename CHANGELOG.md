@@ -23,6 +23,8 @@ Tracking starts with the community-docs baseline for this repository.
   explicit release lane command sequence
 - renamed migration-era Experience boundary batch tests by the mechanic
   contracts they protect
+- moved Experience boundary contract tests into an explicit mechanics-local
+  `experience_contracts` validation lane
 - reduced route-card and tiny-entry validators toward structural route tokens
   instead of ordinary prose inventories
 

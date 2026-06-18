@@ -26,6 +26,8 @@ authority.
 
 ## Validation
 
+Focused lane: `experience_contracts` in `docs/validation/validation_lanes.json`.
+
 ```bash
 python scripts/validate_mechanics_topology.py
 python -m unittest discover -s tests -p 'test_experience_*_contracts.py'

@@ -63,6 +63,12 @@ them explicitly. The KAG export validator checks generated export parity and
 payload structure. Release-lane command composition owns canon, intake,
 route-card, and questbook coverage.
 
+Keep Experience boundary contract tests in an `experience_contracts` lane. They
+protect mechanics-local schemas and examples, not ToS canon contracts.
+
+Keep blocking release coverage explicit. A validation-lane test checks that
+blocking lanes are named in the release lane coverage list.
+
 Reduce the remaining tiny-entry prose checks to stable route tokens: headings,
 repo-relative surfaces, downstream boundary names, and validator entrypoints.
 
@@ -104,6 +110,13 @@ The release lane runs questbook coverage as an explicit mechanics-local step.
 commands run from `docs/validation/validation_lanes.json`. The KAG export
 validator remains scoped to generated export parity and payload structure.
 
+`experience_contracts` is explicit release coverage for mechanics-local
+Experience schema contracts. Experience tests no longer sit under
+`canon_contracts` in the test inventory.
+
+`graph_exports` is named in release coverage because the release command
+sequence already checks and validates the ToS corpus index.
+
 `scripts/validate_tiny_entry_route.py` still protects the bounded public entry
 route, but it no longer treats ordinary explanatory sentences as required
 authority.
@@ -140,6 +153,9 @@ authority.
 - `mechanics/questbook/README.md`
 - `tests/AGENTS.md`
 - `tests/test_inventory.json`
+- `tests/test_experience_candidate_adoption_write_guard_contracts.py`
+- `tests/test_experience_governance_boundary_contracts.py`
+- `tests/test_experience_installation_service_office_contracts.py`
 - `tests/test_validation_lanes.py`
 - `tests/test_validate_questbook_surface.py`
 - `tests/test_tos_source_home_schema.py`
@@ -153,6 +169,7 @@ python scripts/validation_lanes.py --check
 python scripts/validate_tos_source_home.py
 python -m unittest tests.test_tos_source_home_schema
 python scripts/validate_mechanics_topology.py
+python -m unittest discover -s tests -p 'test_experience_*_contracts.py'
 python scripts/validate_nested_agents.py
 python scripts/validate_tree_node_contracts.py
 python scripts/validate_tree_relation_pack.py

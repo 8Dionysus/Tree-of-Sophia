@@ -115,7 +115,7 @@
     {
       "path": "tests/test_experience_candidate_adoption_write_guard_contracts.py",
       "family": "mechanics_schema_contract",
-      "validation_lane": "canon_contracts",
+      "validation_lane": "experience_contracts",
       "owner_surface": "mechanics/experience/AGENTS.md",
       "protects": "experience candidate-review/adoption/write-guard/pattern-review schema contracts",
       "disposition": "keep"
@@ -123,7 +123,7 @@
     {
       "path": "tests/test_experience_governance_boundary_contracts.py",
       "family": "mechanics_schema_contract",
-      "validation_lane": "canon_contracts",
+      "validation_lane": "experience_contracts",
       "owner_surface": "mechanics/experience/parts/governance-boundary/README.md",
       "protects": "experience governance-boundary schema contracts",
       "disposition": "keep"
@@ -131,7 +131,7 @@
     {
       "path": "tests/test_experience_installation_service_office_contracts.py",
       "family": "mechanics_schema_contract",
-      "validation_lane": "canon_contracts",
+      "validation_lane": "experience_contracts",
       "owner_surface": "mechanics/experience/AGENTS.md",
       "protects": "experience installation/service-office schema contracts",
       "disposition": "keep"
