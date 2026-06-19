@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[5]
 SOURCE_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "source_node.example.json"
 CONCEPT_NODE_PATH = REPO_ROOT / "ToS" / "public-compatibility" / "concept_node.example.json"
 TINY_ENTRY_ROUTE_PATH = REPO_ROOT / "ToS" / "zarathustra" / "public-entry" / "TINY_ENTRY_ROUTE.md"

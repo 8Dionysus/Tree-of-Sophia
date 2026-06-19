@@ -7,11 +7,12 @@ This file applies to the generator and validator tools under `scripts/`.
 Before editing tools here, read:
 1. the repository root `AGENTS.md`
 2. `docs/validation/validation_lanes.json` for command authority
-3. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
-4. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
-5. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
-6. `docs/decisions/AGENTS.md` when decision-index tooling is touched
-7. the schema, example, intake, decision, or tree surfaces the script actually touches
+3. `docs/validation/SCRIPT_TOPOLOGY.md` and `docs/validation/script_inventory.json`
+4. `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
+5. `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+6. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
+7. `docs/decisions/AGENTS.md` when decision-index tooling is touched
+8. the schema, example, intake, decision, or tree surfaces the script actually touches
 
 ## Local role
 
@@ -68,6 +69,12 @@ The scripts should serve the source-first route, not become a kingdom of their o
 declared in `docs/validation/validation_lanes.json`. Keep command composition
 there, not as a hidden list inside Python code.
 
+Every active file under `*/scripts/*` must stay represented in
+`docs/validation/script_inventory.json`. That inventory describes owner,
+source truth, side effects, lane posture, CI inclusion, and focused test target;
+it does not execute commands or promote advisory skill helpers into release
+authority.
+
 ## Boundary Routes
 
 - Canonical source for authored meaning routes to `ToS/canon/` and
@@ -92,9 +99,9 @@ Local owner routes:
 | Pressure | Route |
 | --- | --- |
 | public tiny entry | `python scripts/validate_tiny_entry_route.py` |
-| bounded KAG export | `python scripts/generate_kag_export.py` when inputs move, then `python scripts/validate_kag_export.py` |
-| questbook surface | `python scripts/validate_questbook_surface.py` |
+| bounded KAG export | `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py` when inputs move, then `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` |
+| questbook surface | `python mechanics/questbook/scripts/validate_questbook_surface.py` |
 | corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
-| canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python scripts/validate_tree_relation_pack.py`, or `python scripts/validate_tree_example_sync.py` |
+| canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

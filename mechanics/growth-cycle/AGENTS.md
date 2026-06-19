@@ -4,12 +4,13 @@ This card applies to `mechanics/growth-cycle/`.
 
 ## Role
 
-Growth Cycle routes repeated ToS growth movement without confusing growth with
-quantity or graph sprawl.
+Growth Cycle routes repeated ToS growth movement from witness pressure toward
+reviewed branch structure.
 
-## Boundary
+## Boundary Routes
 
-The package owns the operation around growth, not the branch content itself.
+The package owns the growth operation. Branch content routes to the owning ToS
+branch and graph expansion routes through the graph-promotion path.
 
 ## Validation
 

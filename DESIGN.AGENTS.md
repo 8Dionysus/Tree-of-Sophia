@@ -10,8 +10,8 @@ and verification.
 
 ## Thesis
 
-Agents work better in ToS when each card tells them where they are in the
-tree, what authority they are touching, and how to move without flattening
+Agents work better in ToS when each card tells them where they are in the tree,
+what authority they are touching, and where to move next without flattening
 source, branch, doctrine, mechanics, and generated companions into one pile.
 
 ## Card Shape
@@ -31,7 +31,7 @@ Add local details only where they change action.
 
 ## Agent Topology
 
-| Surface | Agent function |
+| Surface | Function |
 | --- | --- |
 | root `AGENTS.md` | repository route law and cross-surface orientation |
 | `ToS/AGENTS.md` | source-home route law for philosophical growth |
@@ -53,16 +53,8 @@ Good agent movement in ToS:
    and export surfaces;
 4. make the smallest coherent change;
 5. run the narrowest relevant check or manual review route;
-6. report what changed, what was verified, what was not verified, and where the
-   next branch should continue.
-
-## Authority
-
-Agent instructions guide movement. They do not create philosophical authority.
-
-Source witnesses, doctrine, canon, branch manifests, review ledgers, mechanics,
-decisions, builders, validators, and tests each carry different authority. A
-good card routes among them instead of absorbing them.
+6. report changed surfaces, validation, skipped checks, residual risk, and the
+   next route.
 
 ## Writing Law
 
@@ -71,28 +63,17 @@ good card routes among them instead of absorbing them.
 - keep commands in route-law or validation surfaces, not everywhere;
 - avoid old session labels as durable topology;
 - write what to do and where to go next;
-- keep "do not" lines only when they protect a real boundary that cannot be
-  expressed as a positive route.
+- keep negative rules only when a real boundary cannot be expressed as a
+  positive route.
 
-## Good Agent Cards
+## Bad Signals
 
-Good cards make the next action boringly clear:
-
-- "source material routes to this branch, then this review surface";
-- "generated output returns to this source and builder";
-- "this mechanic part owns this operation, with this validation";
-- "this pressure belongs to another AoA organ."
-
-## Bad Agent Cards
-
-Bad cards create noise:
-
-- long lists of inherited prohibitions;
+- long inherited prohibition lists;
 - generic wisdom without owner paths;
 - validation commands copied into every surface;
-- route names that come from temporary UI or session labels;
-- claims that make generated files, scripts, or validators stronger than
-  source-owned meaning.
+- route names from temporary UI or session labels;
+- generated files, scripts, or validators made stronger than source-owned
+  meaning.
 
 ## Relationship to DESIGN
 

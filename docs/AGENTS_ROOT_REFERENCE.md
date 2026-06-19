@@ -167,15 +167,15 @@ python scripts/release_check.py
 ```
 
 `python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
-`python scripts/validate_kag_export.py` checks generated export parity and payload structure. Canon, intake, public-example sync, route-card structure, and decision checks route through their own validators in `docs/validation/validation_lanes.json`.
+`python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checks generated export parity and payload structure. Canon, intake, public-example sync, route-card structure, and decision checks route through their own validators in `docs/validation/validation_lanes.json`.
 
 When the task falls outside that narrow validator seam:
 
 - use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` as the default manual review route
-- if you change canonical tree mirrors, run `python scripts/validate_tree_example_sync.py`
+- if you change canonical tree mirrors, run `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py`
 - if you change the current tiny-entry route, run `python scripts/validate_tiny_entry_route.py`
 - if you add durable route, boundary, validator, export, or source-discipline rationale, run `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py`
-- if you change export inputs or generation logic, run `python scripts/generate_kag_export.py`, then `python scripts/validate_tiny_entry_route.py`, then `python scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
+- if you change export inputs or generation logic, run `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`, then `python scripts/validate_tiny_entry_route.py`, then `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`, and then `python -m unittest discover -s tests`
 - if the task is mainly interpretive or structural outside the current validator perimeter, say that manual review was used instead of pretending automatic proof exists
 
 Do not claim checks you did not run.

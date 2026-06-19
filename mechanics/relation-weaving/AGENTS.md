@@ -7,14 +7,15 @@ This card applies to `mechanics/relation-weaving/`.
 Relation Weaving is a ToS-local operation around graph fragments and canonical
 relation promotion.
 
-## Boundary
+## Boundary Routes
 
-This package does not own graph objects. `ToS/philosophy/graph-workbench/` and
-`ToS/canon/relations/` own the material.
+Graph fragments route through `ToS/philosophy/graph-workbench/`; canonical
+relations route through `ToS/canon/relations/`. This package owns promotion
+operation between those surfaces.
 
 ## Validation
 
 ```bash
 python scripts/validate_mechanics_topology.py
-python scripts/validate_tree_relation_pack.py
+python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
 ```

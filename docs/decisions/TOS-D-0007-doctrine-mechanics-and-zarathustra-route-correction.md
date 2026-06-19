@@ -57,8 +57,8 @@ not treat the old `ToS/doctrine/` pile as a truth source.
 `scripts/validate_tos_source_home.py` now recognizes `ToS/zarathustra/` as a
 source-home branch.
 
-`scripts/validate_tiny_entry_route.py`, `scripts/generate_kag_export.py`,
-`scripts/validate_kag_export.py`, and root-entry map generation now point to
+`scripts/validate_tiny_entry_route.py`, `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`,
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`, and root-entry map generation now point to
 the Zarathustra route branch instead of `ToS/doctrine/`.
 
 Mechanic part route cards now point to their part-owned docs instead of using
@@ -81,7 +81,7 @@ validators use the new owner surfaces.
 - `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
 - `scripts/validate_tos_source_home.py`
 - `scripts/validate_tiny_entry_route.py`
-- `scripts/validate_kag_export.py`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
 - `scripts/validate_nested_agents.py`
 
 ## Validation
@@ -92,7 +92,7 @@ Run:
 python scripts/validate_mechanics_topology.py
 python scripts/validate_tos_source_home.py
 python scripts/validate_tiny_entry_route.py
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 python scripts/validate_nested_agents.py
 python scripts/generate_decision_indexes.py
 python scripts/generate_decision_indexes.py --check

@@ -65,6 +65,20 @@
         "central proof authority"
       ]
     },
+    "mechanics_local": {
+      "label": "mechanics local",
+      "layer": "mechanics-local",
+      "mode": "blocking",
+      "owner_surface": "mechanics/AGENTS.md",
+      "purpose": "Discover and run mechanic package-local and part-local tests, builder checks, and validators from the owning mechanics homes.",
+      "command_sequence": "mechanics_local",
+      "failure_route": "mechanics/AGENTS.md",
+      "does_not_own": [
+        "ToS authored meaning",
+        "root-generated parity outside part homes",
+        "runtime execution policy"
+      ]
+    },
     "experience_contracts": {
       "label": "experience contracts",
       "layer": "mechanics-experience",
@@ -218,6 +232,7 @@
         "source_home",
         "philosophy_topology",
         "mechanics_topology",
+        "mechanics_local",
         "experience_contracts",
         "active_naming",
         "generated_parity",
@@ -264,7 +279,7 @@
     "experience_contracts": [
       {
         "label": "validate Experience contracts",
-        "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_experience_*_contracts.py"]
+        "command": ["python", "-m", "unittest", "discover", "-s", "mechanics/experience/tests", "-p", "test*.py"]
       }
     ],
     "active_naming": [
@@ -291,14 +306,6 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
-        "label": "check Agon threshold intake registry",
-        "command": ["python", "scripts/build_tos_agon_threshold_intake_registry.py", "--check"]
-      },
-      {
-        "label": "validate Agon threshold intake registry",
-        "command": ["python", "scripts/validate_tos_agon_threshold_intake_registry.py"]
-      },
-      {
         "label": "check decision indexes",
         "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
       },
@@ -314,11 +321,11 @@
       },
       {
         "label": "validate tree relation packs",
-        "command": ["python", "scripts/validate_tree_relation_pack.py"]
+        "command": ["python", "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"]
       },
       {
         "label": "validate public example sync",
-        "command": ["python", "scripts/validate_tree_example_sync.py"]
+        "command": ["python", "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"]
       }
     ],
     "intake_contracts": [
@@ -340,13 +347,13 @@
       },
       {
         "label": "validate KAG export",
-        "command": ["python", "scripts/validate_kag_export.py"]
+        "command": ["python", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"]
       }
     ],
     "questbook_surface": [
       {
         "label": "validate questbook surface",
-        "command": ["python", "scripts/validate_questbook_surface.py"]
+        "command": ["python", "mechanics/questbook/scripts/validate_questbook_surface.py"]
       }
     ],
     "graph_exports": [
@@ -377,8 +384,12 @@
         "command": ["python", "scripts/validate_mechanics_topology.py"]
       },
       {
+        "label": "run mechanics-local checks",
+        "command": ["python", "scripts/run_mechanics_local_tests.py"]
+      },
+      {
         "label": "validate Experience contracts",
-        "command": ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_experience_*_contracts.py"]
+        "command": ["python", "-m", "unittest", "discover", "-s", "mechanics/experience/tests", "-p", "test*.py"]
       },
       {
         "label": "validate active naming",
@@ -401,24 +412,16 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
-        "label": "check Agon threshold intake registry",
-        "command": ["python", "scripts/build_tos_agon_threshold_intake_registry.py", "--check"]
-      },
-      {
-        "label": "validate Agon threshold intake registry",
-        "command": ["python", "scripts/validate_tos_agon_threshold_intake_registry.py"]
-      },
-      {
         "label": "validate tree node contracts",
         "command": ["python", "scripts/validate_tree_node_contracts.py"]
       },
       {
         "label": "validate tree relation packs",
-        "command": ["python", "scripts/validate_tree_relation_pack.py"]
+        "command": ["python", "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py"]
       },
       {
         "label": "validate public example sync",
-        "command": ["python", "scripts/validate_tree_example_sync.py"]
+        "command": ["python", "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py"]
       },
       {
         "label": "validate intake pack",
@@ -430,11 +433,11 @@
       },
       {
         "label": "validate KAG export",
-        "command": ["python", "scripts/validate_kag_export.py"]
+        "command": ["python", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"]
       },
       {
         "label": "validate questbook surface",
-        "command": ["python", "scripts/validate_questbook_surface.py"]
+        "command": ["python", "mechanics/questbook/scripts/validate_questbook_surface.py"]
       },
       {
         "label": "validate route-card structure",
@@ -451,6 +454,12 @@
       {
         "label": "run tests",
         "command": ["python", "-m", "unittest", "discover", "-s", "tests"]
+      }
+    ],
+    "mechanics_local": [
+      {
+        "label": "run mechanics-local checks",
+        "command": ["python", "scripts/run_mechanics_local_tests.py"]
       }
     ]
   }

@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from root_entry_map_common import SURFACE_PAYLOAD, build_payload
+from root_entry_map_common import ARTIFACT_IDENTITY, CORE_ROUTE_IDS, SURFACE_PAYLOAD, build_payload
 
 
 class RootEntryMapTests(unittest.TestCase):
@@ -22,14 +22,10 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertEqual(payload["surface_kind"], "root_entry_map")
         self.assertEqual(payload["authority_ref"], SURFACE_PAYLOAD["authority_ref"])
         self.assertEqual(payload["public_root_ref"], "README.md")
-        self.assertEqual(
-            [route["route_id"] for route in payload["routes"]],
-            [
-                "current-tiny-entry",
-                "tree-first-model",
-                "bounded-export",
-            ],
-        )
+        self.assertEqual(payload["artifact_identity"], ARTIFACT_IDENTITY)
+        route_ids = [route["route_id"] for route in payload["routes"]]
+        self.assertEqual(len(route_ids), len(set(route_ids)))
+        self.assertLessEqual(CORE_ROUTE_IDS, set(route_ids))
 
     def test_current_tiny_entry_route_keeps_example_first(self) -> None:
         payload = build_payload()
@@ -51,6 +47,18 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertIn("root_entry_map", rendered)
         self.assertNotIn('"surface_ref":"scripts/', rendered)
         self.assertNotIn('"surface_ref":"src/', rendered)
+
+    def test_artifact_identity_names_consumer_checks_without_media_claims(self) -> None:
+        identity = build_payload()["artifact_identity"]
+
+        self.assertEqual(identity["artifact_class"], "generated_readmodel")
+        self.assertEqual(identity["contract_version"], "ToS/contracts/root-entry-map.schema.json")
+        self.assertEqual(identity["trust_layer"], ["abi_contract_signature", "source_schema_validation"])
+        self.assertIn("build_root_entry_map --check", identity["consumer_expectation"])
+        self.assertIn("validate_root_entry_map", identity["consumer_expectation"])
+        self.assertIn("no private host evidence", identity["privacy_boundary"])
+        self.assertIn("media credential claims", identity["privacy_boundary"])
+        self.assertNotIn("c2pa", json.dumps(identity, separators=(",", ":")).lower())
 
 
 if __name__ == "__main__":

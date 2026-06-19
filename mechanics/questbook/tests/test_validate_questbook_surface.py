@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_ROOT = REPO_ROOT / "scripts"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SCRIPTS_ROOT = REPO_ROOT / "mechanics" / "questbook" / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
@@ -146,7 +146,7 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
 
         self.assertIn("TOS-Q-0004", str(context.exception))
 
-    def test_operational_boundary_phrase_missing_fails(self) -> None:
+    def test_core_boundary_section_missing_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"
             self.write_valid_surface(repo_root)
@@ -155,15 +155,15 @@ class ValidateQuestbookSurfaceTestCase(unittest.TestCase):
                 (repo_root / questbook_validator.QUESTBOOK_INTEGRATION_PATH)
                 .read_text(encoding="utf-8")
                 .replace(
-                    "It is not the place where philosophical interpretation, authored knowledge, or source meaning becomes a task list.",
-                    "It is a convenience layer for adjacent tasks.",
+                    "## Core boundary",
+                    "## Convenience boundary",
                 ),
             )
 
             with self.assertRaises(questbook_validator.ValidationError) as context:
                 questbook_validator.validate_questbook_surface(repo_root)
 
-        self.assertIn("philosophical interpretation, authored knowledge, or source meaning becomes a task list", str(context.exception))
+        self.assertIn("## Core boundary", str(context.exception))
 
     def test_example_projection_drift_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

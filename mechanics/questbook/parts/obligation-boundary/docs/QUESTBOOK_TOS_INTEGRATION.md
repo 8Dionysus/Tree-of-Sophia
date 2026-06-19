@@ -42,5 +42,5 @@ Use stable anchors such as:
 If a ToS obligation touches interpretation or source meaning directly, it should usually stay outside `QUESTBOOK.md`.
 If it touches the architecture of identifiers, boundaries, growth law, source-to-tree intake, source-first compatibility debts, or derived export seams, a quest may be appropriate.
 
-The quest examples under `ToS/public-compatibility/` are compatibility artifacts only.
+The quest examples under `mechanics/questbook/parts/dispatch-contracts/examples/` are compatibility artifacts only.
 They do not replace authored doctrine and they do not become a live router input.

@@ -32,8 +32,8 @@ entry surface remains a compatibility mirror for the current tiny-entry seam.
 
 - `ToS/derived-exports/kag_export.json`
 - `ToS/derived-exports/kag_export.min.json`
-- `scripts/generate_kag_export.py`
-- `scripts/validate_kag_export.py`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
 
 If you edit supporting surfaces in `docs/`, `ToS/public-compatibility/`, `ToS/derived-exports/`, `ToS/contracts/`, or `scripts/`, also follow the nested `AGENTS.md` in that directory.
 
@@ -42,11 +42,11 @@ If you edit supporting surfaces in `docs/`, `ToS/public-compatibility/`, `ToS/de
 For the current bounded export seam without regeneration, use:
 
 ```bash
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 python -m unittest discover -s tests
 ```
 
-`python scripts/validate_kag_export.py` checks generated export parity and
+`python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checks generated export parity and
 payload structure for this seam.
 The release lane pairs it with canon, intake, route-card, and public-entry
 validators when broader route assurance is needed.
@@ -58,8 +58,8 @@ schema coverage around that same bounded route.
 If you change export inputs or generation logic, use:
 
 ```bash
-python scripts/validate_tree_example_sync.py
-python scripts/generate_kag_export.py
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 python -m unittest discover -s tests
 ```

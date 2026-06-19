@@ -4,80 +4,61 @@ This file applies to the `ToS/` source home.
 
 ## Role
 
-`ToS/` is the source-home organ for Tree of Sophia.
-It holds ToS-authored meaning, source witnesses, the golden Zarathustra route,
-non-authoritative research packets, candidate intake, canonical node and relation canon, public
-compatibility mirrors, derived exports, contracts, domain philosophy topology,
-and review ledgers as one tree-shaped home.
+`ToS/` is the source-home organ for Tree of Sophia. It holds authored
+philosophical meaning, witnesses, doctrine, Zarathustra, research packets,
+candidate intake, canon, public compatibility, derived exports, contracts, and
+review evidence as one tree-shaped home.
 
-Root repository files remain the public front door, release route, and
-repository-wide landing surface. `docs/decisions/` remains the durable
-decision rationale lane.
+Root files remain the public front door and landing surface. `docs/decisions/`
+keeps durable rationale.
 
 ## Operating Card
 
 | Field | Route |
 | --- | --- |
 | role | source-home organ for Tree of Sophia |
-| input | source witnesses, Zarathustra route surfaces, research packets, philosophy branches, candidate extraction, canon payloads, ToS-owned compatibility examples, generated exports, contracts, doctrine, and review notes |
-| output | a branch-shaped ToS surface with current owner guidance and validation |
-| owner | `ToS/AGENTS.md` for home law; nearest nested `AGENTS.md` for branch law; `ToS/source_home.manifest.json` for the branch inventory |
+| input | witness, doctrine, Zarathustra route, research packet, philosophy branch, candidate pass, canon object, compatibility mirror, export, contract, or review note |
+| output | branch-shaped ToS surface with visible owner, source posture, and validation route |
+| owner | `ToS/AGENTS.md` for home law; nearest nested `AGENTS.md` for branch law; `ToS/source_home.manifest.json` for branch inventory |
 | next route | witness or research packet -> zarathustra, philosophy, or candidate intake -> canon -> public compatibility -> derived export |
-| tools | source-home manifest, branch manifest, schema, generator, validator, and decision record when durable rationale is needed |
-| check | `python scripts/validate_tos_source_home.py`, `python scripts/validate_philosophy_topology.py`, `python scripts/validate_nested_agents.py` |
+| tools | branch manifest, schema, generator, validator, review checklist, or decision record when needed |
+| check | source-home, philosophy-topology, and route-card validators |
 
 ## Read First
 
-1. Root `AGENTS.md`
-2. `ToS/README.md`
-3. `ToS/source_home.manifest.json`
-4. `ToS/doctrine/KNOWLEDGE_MODEL.md`
-5. `ToS/doctrine/NODE_CONTRACT.md`
-6. The nearest nested `AGENTS.md` for the touched branch
+Use `ToS/README.md`, `ToS/source_home.manifest.json`,
+`ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md`, and the
+nearest nested `AGENTS.md` for the branch being touched.
 
-## Branches
+## Branch Routes
 
-| Branch | Input | Output |
-| --- | --- | --- |
-| `doctrine/` | ToS knowledge-law pressure, route posture, templates | current doctrine and review law |
-| `source-witnesses/` | primary source-facing material | provenance-aware witness surfaces |
-| `zarathustra/` | bounded Zarathustra route surfaces | golden route capsule and public-entry orientation |
-| `research-packets/` | AI-assisted or secondary research scaffolds | reviewable leads for philosophy branches |
-| `philosophy/` | branch-shaped philosophical domains, eras, regions, traditions, works, figures, concepts, transmissions | authored domain topology and local graph workbenches |
-| `candidate-intake/` | provisional extraction and tabular passes | reviewable candidate structure with explicit uncertainty |
-| `canon/` | reviewed authored objects and relation packs | canonical nodes, relations, and vocabulary registries |
-| `public-compatibility/` | public-safe mirrors and examples | compatibility examples and tiny-entry surfaces |
-| `derived-exports/` | generated projections from owned surfaces | downstream-facing read models |
-| `contracts/` | structural commitments for public ToS surfaces | schemas and public contracts |
-| `review-ledger/` | dated inspection evidence | review notes and provenance of prior checks |
+| Branch | Owns |
+| --- | --- |
+| `doctrine/` | knowledge law, node contracts, templates, interpretation posture |
+| `source-witnesses/` | source-facing witness material |
+| `zarathustra/` | current golden route orientation |
+| `research-packets/` | non-authoritative research scaffolds |
+| `philosophy/` | domain-shaped philosophical growth |
+| `candidate-intake/` | provisional extraction and promotion residue |
+| `canon/` | authored nodes, relations, and registries |
+| `public-compatibility/` | public-safe mirrors and tiny-entry examples |
+| `derived-exports/` | generated downstream read models |
+| `contracts/` | schemas and structural contracts |
+| `review-ledger/` | dated inspection evidence |
 
 ## Boundary Routes
 
-- Treat `ToS/` as one tree-shaped home with branch owner surfaces.
-- Keep philosophy, witness, Zarathustra route, research packet, intake, canon, compatibility,
-  export, and contract layers visible as different branches.
-- Keep `ToS/canon/` stronger than compatibility mirrors and derived exports.
-- Keep `ToS/source-witnesses/` stronger than candidate intake.
-- Keep `ToS/source-witnesses/` and `ToS/canon/` stronger than
-  `ToS/zarathustra/`; this branch orients the golden route without becoming the
-  source text or canonical node.
-- Keep `ToS/source-witnesses/` stronger than `ToS/research-packets/`.
-- Keep `ToS/philosophy/` as the domain-shaped growth branch. Flat imports route
-  to the witness or intake owner; provisional extraction routes to
+- Keep `ToS/` as one tree-shaped home with branch owner surfaces.
+- Keep source witnesses, doctrine, canon, compatibility, and exports distinct.
+- Keep `ToS/philosophy/` for domain growth; route provisional extraction to
   `ToS/candidate-intake/`.
-- Keep knowledge law in `ToS/doctrine/`; operational process docs route to
-  `mechanics/`; durable rationale remains in `docs/decisions/`.
-- Route active ToS-owned source surfaces into the source home instead of
-  recreating root-level active homes.
+- Route operational process to `mechanics/` and durable rationale to
+  `docs/decisions/`.
+- Route runtime, proof, memory, KAG substrate, federation, SDK, skill, and
+  technique authority to owning AoA repositories or layers.
+
 ## Validation
 
-For source-home topology changes, run:
-
-```bash
-python scripts/validate_tos_source_home.py
-python scripts/validate_philosophy_topology.py
-python scripts/validate_nested_agents.py
-```
-
-For route, canon, compatibility, contract, or export changes, continue with
-the owning validator named by the nested branch route card.
+Run the branch-local validator first. For source-home topology changes, use
+`scripts/validate_tos_source_home.py`, `scripts/validate_philosophy_topology.py`,
+and `scripts/validate_nested_agents.py`.

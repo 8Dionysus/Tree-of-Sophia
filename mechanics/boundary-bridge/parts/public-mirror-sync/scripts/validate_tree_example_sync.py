@@ -26,7 +26,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             issues.append(
                 (
                     rel,
-                    "out of sync with canonical tree; run python scripts/sync_tree_examples.py",
+                    "out of sync with canonical tree; run python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py",
                 )
             )
 

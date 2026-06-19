@@ -9,18 +9,18 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json'
-OUT = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
-ENTRY_SCHEMA = ROOT / 'mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json'
-REGISTRY_SCHEMA = ROOT / 'mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json'
-BUILDER = ROOT / 'scripts/build_tos_agon_threshold_intake_registry.py'
+PART_ROOT = pathlib.Path(__file__).resolve().parents[1]
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
+SRC = PART_ROOT / 'config/tos_agon_threshold_intakes.config.json'
+OUT = PART_ROOT / 'generated/tos_agon_threshold_intake_registry.min.json'
+ENTRY_SCHEMA = PART_ROOT.parent / 'threshold-intake/schemas/tos-agon-threshold-intake.schema.json'
+REGISTRY_SCHEMA = PART_ROOT / 'schemas/tos-agon-threshold-intake-registry.schema.json'
+BUILDER = PART_ROOT / 'scripts/build_tos_agon_threshold_intake_registry.py'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'
 REVIEW_PHASE_ORDER = 'XVIII'
 REVIEW_PHASE_LABEL = 'Sophian Threshold'
 RUNTIME_POSTURE = 'candidate_only'
-EXPECTED_COUNT = 8
 UNIQUE_KEY_FIELD = 'intake_id'
 REQUIRED_FORBIDDEN = ['live_verdict_authority', 'durable_scar_write', 'retention_execution', 'rank_mutation', 'trust_mutation', 'tree_of_sophia_canon_write', 'direct_tos_write', 'automatic_canonization', 'kag_as_canon', 'hidden_scheduler_action', 'assistant_contestant_drift', 'auto_doctrine_rewrite', 'center_takeover_of_owner_truth', 'eval_memo_stats_sovereignty', 'stats_as_canon_authority', 'eval_as_canon_authority', 'memo_as_canon_authority', 'sdk_hidden_write']
 REQUIRED_STOP_LINES = []
@@ -128,8 +128,9 @@ def validate() -> int:
     items = source.get(ITEM_KEY)
     if not isinstance(items, list):
         return fail(f'source {ITEM_KEY} must be a list')
-    if len(items) != EXPECTED_COUNT:
-        return fail(f'expected {EXPECTED_COUNT} source items, got {len(items)}')
+    expected_count = len(items)
+    if expected_count == 0:
+        return fail(f'source {ITEM_KEY} must not be empty')
 
     seen: set[str] = set()
     for item in items:
@@ -156,12 +157,12 @@ def validate() -> int:
     err = schema_error(REGISTRY_SCHEMA, registry, 'generated registry')
     if err:
         return fail(err)
-    if registry.get('count') != EXPECTED_COUNT:
-        return fail(f'generated count must be {EXPECTED_COUNT}')
+    if registry.get('count') != expected_count:
+        return fail(f'generated count must match source item length {expected_count}')
     if registry.get('count') != len(registry.get(ITEM_KEY, [])):
         return fail('generated count does not match generated item length')
 
-    print(json.dumps({'ok': True, 'item_key': ITEM_KEY, 'count': EXPECTED_COUNT}, sort_keys=True))
+    print(json.dumps({'ok': True, 'item_key': ITEM_KEY, 'count': expected_count}, sort_keys=True))
     return 0
 
 

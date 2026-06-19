@@ -20,18 +20,18 @@ LEGACY_ROOT_HOMES = (
     Path("generated"),
     Path("schemas"),
 )
-EXPECTED_BRANCHES = {
-    "doctrine": "ToS/doctrine",
-    "source_witnesses": "ToS/source-witnesses",
-    "zarathustra": "ToS/zarathustra",
-    "research_packets": "ToS/research-packets",
-    "philosophy": "ToS/philosophy",
-    "candidate_intake": "ToS/candidate-intake",
-    "canon": "ToS/canon",
-    "public_compatibility": "ToS/public-compatibility",
-    "derived_exports": "ToS/derived-exports",
-    "contracts": "ToS/contracts",
-    "review_ledger": "ToS/review-ledger",
+CORE_BRANCH_IDS = {
+    "doctrine",
+    "source_witnesses",
+    "zarathustra",
+    "research_packets",
+    "philosophy",
+    "candidate_intake",
+    "canon",
+    "public_compatibility",
+    "derived_exports",
+    "contracts",
+    "review_ledger",
 }
 LANES_PATH = Path("docs/validation/validation_lanes.json")
 REQUIRED_HOME_README_FRAGMENTS = (
@@ -46,6 +46,10 @@ BANNED_HOME_README_MARKERS = (
 )
 
 Issue: TypeAlias = tuple[str, str]
+
+
+def expected_branch_path(branch_id: str) -> str:
+    return f"ToS/{branch_id.replace('_', '-')}"
 
 
 def load_manifest(repo_root: Path, issues: list[Issue]) -> dict[str, object] | None:
@@ -130,10 +134,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         if branch_id in seen:
             issues.append((MANIFEST_PATH.as_posix(), f"duplicate branch id {branch_id}"))
         seen[branch_id] = str(branch_path)
-        expected_path = EXPECTED_BRANCHES.get(branch_id)
-        if expected_path is None:
-            issues.append((MANIFEST_PATH.as_posix(), f"unexpected branch id {branch_id}"))
-            continue
+        expected_path = expected_branch_path(branch_id)
         if branch_path != expected_path:
             issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.path must be {expected_path}"))
         if not (root / expected_path).is_dir():
@@ -153,9 +154,9 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                 elif lane_id not in lane_ids:
                     issues.append((MANIFEST_PATH.as_posix(), f"{branch_id}.validation_lanes references missing lane {lane_id}"))
 
-    missing = sorted(set(EXPECTED_BRANCHES) - set(seen))
+    missing = sorted(CORE_BRANCH_IDS - set(seen))
     for branch_id in missing:
-        issues.append((MANIFEST_PATH.as_posix(), f"missing branch id {branch_id}"))
+        issues.append((MANIFEST_PATH.as_posix(), f"missing core branch id {branch_id}"))
 
     return issues
 

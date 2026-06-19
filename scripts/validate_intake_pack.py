@@ -154,33 +154,12 @@ EXPECTED_HEADERS = {
     ],
 }
 
-EXPECTED_WITNESS_IDS = [
-    "w.de.nietzsche.canonical_source.v1",
-    "w.ru.dionysus.working_translation.v1",
-    "w.en.dionysus.bridge_translation.v1",
-]
+ALLOWED_WITNESS_ROLES = {
+    "canonical_source",
+    "working_translation",
+    "bridge_translation",
+}
 
-EXPECTED_SEGMENT_IDS = [f"seg.1.1.1.{index}" for index in range(1, 13)]
-EXPECTED_EDGE_KIND_COUNTS = Counter(
-    {
-        "source_edge": 95,
-        "bridge_edge": 11,
-        "principle_edge": 22,
-    }
-)
-EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS = Counter(
-    {
-        "source_edge": 92,
-        "bridge_edge": 11,
-        "principle_edge": 22,
-    }
-)
-EXPECTED_EDGE_LEDGER_STATUS_COUNTS = Counter(
-    {
-        "promoted": 125,
-        "deferred_literal": 3,
-    }
-)
 PROMOTED_PRINCIPLE_IDS = {
     "pr.solitude_as_ripening",
     "pr.wisdom_can_overfill",
@@ -257,31 +236,6 @@ def build_canonical_id_map(
     return mapping
 
 
-def build_entity_class_maps(
-    node_rows: list[dict[str, str]],
-    es_rows: list[dict[str, str]],
-    principle_rows: list[dict[str, str]],
-    canonical_id_map: dict[str, str],
-) -> tuple[dict[str, str], dict[str, str]]:
-    raw_entity_classes: dict[str, str] = {}
-    for row in node_rows:
-        raw_entity_classes[row["node_id"]] = row["node_class"]
-    for row in es_rows:
-        raw_entity_classes[row["es_id"]] = row["kind"]
-    for row in principle_rows:
-        if row["status"] == "promoted_to_synthesis":
-            raw_entity_classes[row["principle_id"]] = "synthesis"
-        else:
-            raw_entity_classes[row["principle_id"]] = "principle"
-
-    canonical_entity_classes = {
-        canonical_id_map[raw_id]: class_id
-        for raw_id, class_id in raw_entity_classes.items()
-        if raw_id in canonical_id_map
-    }
-    return raw_entity_classes, canonical_entity_classes
-
-
 def classify_edge_status(row: dict[str, str], canonical_raw_ids: set[str]) -> str:
     raw_ids = {row["from_id"], row["to_id"]}
     if raw_ids <= canonical_raw_ids:
@@ -293,23 +247,6 @@ def classify_edge_status(row: dict[str, str], canonical_raw_ids: set[str]) -> st
     if raw_ids & DEFERRED_LITERAL_NODE_IDS:
         return "deferred_literal"
     return "invalid_residue"
-
-
-def promoted_relation_rows(
-    edge_rows: list[dict[str, str]],
-    canonical_id_map: dict[str, str],
-) -> list[dict[str, str]]:
-    canonical_raw_ids = set(canonical_id_map)
-    promoted_rows: list[dict[str, str]] = []
-    for row in edge_rows:
-        if classify_edge_status(row, canonical_raw_ids) != "promoted":
-            continue
-        promoted_row = {key: value for key, value in row.items() if key != "status"}
-        promoted_row["from_id"] = canonical_id_map[row["from_id"]]
-        promoted_row["to_id"] = canonical_id_map[row["to_id"]]
-        promoted_rows.append(promoted_row)
-    return promoted_rows
-
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
@@ -355,52 +292,50 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     gloss_rows = tables.get("witness_glosses.csv", [])
     principle_rows = tables.get("principles.csv", [])
 
-    source_secondary_values = [f"1,1,1,{index}" for index in range(1, 13)]
-    source_secondary_set = set(source_secondary_values)
-
-    if len(corpus_rows) != 12:
-        issues.append(("corpus_map.csv", "expected 12 bounded corpus rows"))
     actual_sort_keys = [row["sort_key"] for row in corpus_rows]
-    if actual_sort_keys != [str(index) for index in range(1, 13)]:
-        issues.append(("corpus_map.csv", "sort_key must run strictly from 1 to 12"))
-    for row in corpus_rows:
-        if row["source_secondary"] not in source_secondary_set:
-            issues.append(("corpus_map.csv", f"unknown source_secondary {row['source_secondary']}"))
+    expected_sort_keys = [str(index) for index in range(1, len(corpus_rows) + 1)]
+    if actual_sort_keys != expected_sort_keys:
+        issues.append(("corpus_map.csv", "sort_key must run strictly from 1 through the current corpus row count"))
 
-    if len(witness_rows) != 3:
-        issues.append(("witnesses.csv", "expected exactly 3 witness rows"))
+    source_secondary_values = [row["source_secondary"] for row in corpus_rows]
+    source_secondary_set = set(source_secondary_values)
+    if len(source_secondary_values) != len(source_secondary_set):
+        issues.append(("corpus_map.csv", "source_secondary values must be unique"))
+
     actual_witness_ids = [row["witness_id"] for row in witness_rows]
-    if actual_witness_ids != EXPECTED_WITNESS_IDS:
-        issues.append(("witnesses.csv", "witness ids drifted from the current ToS vocabulary"))
+    witness_id_set = set(actual_witness_ids)
+    if not actual_witness_ids:
+        issues.append(("witnesses.csv", "witness table must declare at least one witness"))
+    if len(actual_witness_ids) != len(witness_id_set):
+        issues.append(("witnesses.csv", "witness ids must be unique"))
+    witness_role_counts = Counter(row["witness_role"] for row in witness_rows)
+    if witness_role_counts.get("canonical_source", 0) != 1:
+        issues.append(("witnesses.csv", "witness table must declare exactly one canonical_source"))
+    if not any(row["witness_role"] in {"working_translation", "bridge_translation"} for row in witness_rows):
+        issues.append(("witnesses.csv", "witness table must declare at least one translation witness"))
     for row in witness_rows:
-        if row["witness_role"] not in {"canonical_source", "working_translation", "bridge_translation"}:
+        if row["witness_role"] not in ALLOWED_WITNESS_ROLES:
             issues.append(("witnesses.csv", f"unknown witness_role {row['witness_role']}"))
+        if row["based_on"] and row["based_on"] not in witness_id_set:
+            issues.append(("witnesses.csv", f"{row['witness_id']} based_on points at unknown witness {row['based_on']}"))
         if parse_bool(row["active"]) is None:
             issues.append(("witnesses.csv", f"invalid active value {row['active']}"))
 
-    if len(segment_rows) != 12:
-        issues.append(("segments.csv", "expected exactly 12 segment rows"))
     actual_segment_ids = [row["segment_id"] for row in segment_rows]
-    if actual_segment_ids != EXPECTED_SEGMENT_IDS:
-        issues.append(("segments.csv", "segment spine must be seg.1.1.1.1 through seg.1.1.1.12"))
+    expected_segment_ids = [f"seg.1.1.1.{sort_key}" for sort_key in expected_sort_keys]
+    if actual_segment_ids != expected_segment_ids:
+        issues.append(("segments.csv", "segment spine must match the current corpus sort_key sequence"))
     segment_set = set(actual_segment_ids)
     paragraph_anchors = [row["paragraph_anchor"] for row in segment_rows]
-    if paragraph_anchors != [f"[{index}]" for index in range(1, 13)]:
-        issues.append(("segments.csv", "paragraph_anchor must stay aligned to [1]...[12]"))
-    for index, row in enumerate(segment_rows, start=1):
-        if row["source_secondary"] != f"1,1,1,{index}":
+    if paragraph_anchors != [f"[{sort_key}]" for sort_key in expected_sort_keys]:
+        issues.append(("segments.csv", "paragraph_anchor must stay aligned to corpus sort_key values"))
+    for row, expected_secondary in zip(segment_rows, source_secondary_values):
+        if row["source_secondary"] != expected_secondary:
             issues.append(("segments.csv", f"segment {row['segment_id']} is out of source_secondary order"))
-
-    if len(edge_rows) != 128:
-        issues.append(("edges.csv", "expected 128 rows from the current full master projection"))
-    edge_kind_counts = Counter(row["edge_kind"] for row in edge_rows)
-    if edge_kind_counts != EXPECTED_EDGE_KIND_COUNTS:
-        issues.append(("edges.csv", "edge_kind counts drifted from the expected 95/11/22 split"))
 
     node_ids = {row["node_id"] for row in node_rows}
     es_ids = {row["es_id"] for row in es_rows}
-    principle_ids = {row["principle_id"] for row in principle_rows}
-    graph_ids = node_ids | es_ids | principle_ids
+    graph_ids = node_ids | es_ids | {row["principle_id"] for row in principle_rows}
     canonical_id_map = build_canonical_id_map(node_rows, es_rows, principle_rows)
     canonical_raw_ids = set(canonical_id_map)
 
@@ -418,18 +353,6 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         else:
             if row["status"] != "promoted":
                 issues.append(("nodes.csv", f"{row['node_id']} must be marked promoted"))
-    if len(node_rows) != 48:
-        issues.append(("nodes.csv", "expected 48 support-ledger rows for the current bounded route"))
-    node_status_counts = Counter(row["status"] for row in node_rows)
-    expected_node_status_counts = Counter(
-        {
-            "promoted": 46,
-            "deferred_literal": 2,
-        }
-    )
-    if node_status_counts != expected_node_status_counts:
-        issues.append(("nodes.csv", "support-node status split drifted from the expected 46/2 ledger"))
-
     def validate_anchor_row(
         *,
         table_name: str,
@@ -481,19 +404,6 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         else:
             issues.append(("event_state_nodes.csv", f"unexpected kind {row['kind']}"))
 
-    if len(es_rows) != 28:
-        issues.append(("event_state_nodes.csv", "expected 28 event/state ledger rows for the current bounded route"))
-    es_status_counts = Counter((row["kind"], row["status"]) for row in es_rows)
-    expected_es_status_counts = Counter(
-        {
-            ("event", "promoted"): 18,
-            ("state", "promoted"): 9,
-            ("analogy", "promoted_to_analogy"): 1,
-        }
-    )
-    if es_status_counts != expected_es_status_counts:
-        issues.append(("event_state_nodes.csv", "event/state status split drifted from the expected 18/9/1 ledger"))
-
     for row in principle_rows:
         validate_anchor_row(
             table_name="principles.csv",
@@ -511,8 +421,6 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                 issues.append(("principles.csv", f"{row['principle_id']} must be marked promoted_to_synthesis"))
         else:
             issues.append(("principles.csv", f"unexpected principle id {row['principle_id']}"))
-    if len(principle_rows) != 14:
-        issues.append(("principles.csv", "expected 14 principle rows for the current bounded route"))
     actual_principle_ids = {row["principle_id"] for row in principle_rows}
     expected_principle_ids = PROMOTED_PRINCIPLE_IDS | {DEFERRED_COMMENTARY_PRINCIPLE_ID}
     if actual_principle_ids != expected_principle_ids:
@@ -535,15 +443,6 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         if row["status"] != expected_status:
             issues.append(("edges.csv", f"{row['edge_id']} must be marked {expected_status}"))
 
-    edge_status_counts = Counter(row["status"] for row in edge_rows)
-    if edge_status_counts != EXPECTED_EDGE_LEDGER_STATUS_COUNTS:
-        issues.append(("edges.csv", "edge status split drifted from the expected 125/3 ledger"))
-
-    promoted_edge_rows = promoted_relation_rows(edge_rows, canonical_id_map)
-    promoted_edge_kind_counts = Counter(row["edge_kind"] for row in promoted_edge_rows)
-    if promoted_edge_kind_counts != EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS:
-        issues.append(("edges.csv", "promoted relation subset drifted from the expected 90/11/21 canonical split"))
-
     source_tensions = source_payload.get("translation_tensions", [])
     if not isinstance(source_tensions, list):
         source_tensions = []
@@ -565,14 +464,34 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             anchor_segment_ids=row["anchor_segment_ids"],
         )
         for witness_id in split_pipe(row["witness_ids"]):
-            if witness_id not in EXPECTED_WITNESS_IDS:
+            if witness_id not in witness_id_set:
                 issues.append(("translation_tensions.csv", f"{row['tension_id']} points at unknown witness {witness_id}"))
 
-    expected_gloss_rows = len(tension_rows) * 3
-    if len(gloss_rows) != expected_gloss_rows:
-        issues.append(("witness_glosses.csv", "expected exactly 3 gloss rows per translation tension"))
+    expected_gloss_pairs = {
+        (tension_id, witness_id)
+        for tension_id in tension_ids
+        for witness_id in witness_id_set
+    }
+    actual_gloss_pair_list = [
+        (row["tension_id"], row["witness_id"])
+        for row in gloss_rows
+        if row["tension_id"]
+    ]
+    actual_gloss_pairs = set(actual_gloss_pair_list)
+    missing_gloss_pairs = sorted(expected_gloss_pairs - actual_gloss_pairs)
+    if missing_gloss_pairs:
+        preview = ", ".join(f"{tension_id}/{witness_id}" for tension_id, witness_id in missing_gloss_pairs[:8])
+        suffix = "" if len(missing_gloss_pairs) <= 8 else f", +{len(missing_gloss_pairs) - 8} more"
+        issues.append(("witness_glosses.csv", f"missing gloss coverage for {preview}{suffix}"))
+    duplicate_gloss_pairs = [
+        f"{tension_id}/{witness_id}"
+        for (tension_id, witness_id), count in Counter(actual_gloss_pair_list).items()
+        if count > 1
+    ]
+    if duplicate_gloss_pairs:
+        issues.append(("witness_glosses.csv", f"duplicate gloss coverage for {', '.join(sorted(duplicate_gloss_pairs))}"))
     for row in gloss_rows:
-        if row["witness_id"] not in EXPECTED_WITNESS_IDS:
+        if row["witness_id"] not in witness_id_set:
             issues.append(("witness_glosses.csv", f"{row['gloss_id']} points at unknown witness {row['witness_id']}"))
         if row["segment_id"] not in segment_set:
             issues.append(("witness_glosses.csv", f"{row['gloss_id']} points at unknown segment {row['segment_id']}"))

@@ -10,7 +10,7 @@
 | owner | `mechanics/questbook/parts/obligation-boundary/` |
 | next route | root `QUESTBOOK.md` or root `quests/` when public records change |
 | tools | boundary doc and questbook route card |
-| check | `python scripts/validate_questbook_surface.py`; `python scripts/validate_mechanics_topology.py` |
+| check | `python mechanics/questbook/scripts/validate_questbook_surface.py`; `python scripts/validate_mechanics_topology.py` |
 
 ## Payload
 

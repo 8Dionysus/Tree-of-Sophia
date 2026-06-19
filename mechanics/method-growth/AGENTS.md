@@ -7,10 +7,10 @@ This card applies to `mechanics/method-growth/`.
 Method Growth routes ToS templates, validators, and relation methods as they
 mature from local scaffold into stable method.
 
-## Boundary
+## Boundary Routes
 
-The package does not own canonical content. It owns method maturation around
-ToS source surfaces.
+Canonical content routes to `ToS/canon/`. This package owns method maturation
+around templates, validators, relation forms, and source-facing scaffolds.
 
 ## Validation
 

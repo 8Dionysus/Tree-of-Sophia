@@ -137,7 +137,7 @@ class ValidateTinyEntryRouteTestCase(unittest.TestCase):
             issues = validate_tiny_entry_route.run_validation(repo_root)
 
         self.assertTrue(
-            any("python scripts/validate_tiny_entry_route.py" in message for _, message in issues)
+            any("scripts/validate_tiny_entry_route.py" in message for _, message in issues)
         )
 
 

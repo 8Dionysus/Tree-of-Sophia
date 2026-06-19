@@ -6,14 +6,15 @@ This card applies to `mechanics/canon-formation/`.
 
 Canon Formation is a ToS-local operation around reviewed promotion into canon.
 
-## Boundary
+## Boundary Routes
 
-This package does not store canon. Canon lives in `ToS/canon/`.
+Reviewed promotion routes to `ToS/canon/`. This package owns the promotion
+operation around canonical nodes, relations, and registries.
 
 ## Validation
 
 ```bash
 python scripts/validate_mechanics_topology.py
 python scripts/validate_tree_node_contracts.py
-python scripts/validate_tree_relation_pack.py
+python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
 ```

@@ -75,6 +75,12 @@ only in packages that actually need archive accounting.
 `mechanics/topology.json` becomes the checked machine map for active packages,
 parts, class, status, and legacy eligibility.
 
+Mechanics route cards use the same route-to-owner posture as the ToS source
+home: role, operating card where the route is complex, boundary routes, and
+validation. Package cards name where material travels next instead of copying
+root-level prohibitions or turning old correction pressure into permanent
+agent doctrine.
+
 `scripts/validate_mechanics_topology.py` rejects:
 
 - missing shared or ToS-local packages;
@@ -91,6 +97,7 @@ next route, tools, and check.
 
 - `mechanics/README.md`
 - `mechanics/AGENTS.md`
+- `mechanics/*/AGENTS.md`
 - `mechanics/topology.json`
 - `mechanics/agon/`
 - `mechanics/experience/`

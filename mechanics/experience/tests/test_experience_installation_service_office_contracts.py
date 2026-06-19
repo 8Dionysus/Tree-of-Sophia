@@ -8,7 +8,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 ESCAPE_VALUE = "__experience_installation_service_office_not_allowed__"
 
 INSTALLATION_SERVICE_OFFICE_CONTRACTS = (

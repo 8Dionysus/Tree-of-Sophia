@@ -4,12 +4,13 @@ This card applies to `mechanics/rpg/`.
 
 ## Role
 
-RPG is a bounded reflection layer for route progression. In ToS it can describe
-reading progress, but it cannot become a game skin over philosophy.
+RPG is a bounded reflection layer for route progression and reading progress in
+ToS.
 
-## Boundary
+## Boundary Routes
 
-No gameplay authority, hidden scoring, rank mutation, or canon authority.
+Gameplay authority, scoring, rank mutation, and canon authority route to their
+owning surfaces. This package owns progression reflection only.
 
 ## Validation
 

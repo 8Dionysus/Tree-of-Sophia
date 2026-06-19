@@ -15,8 +15,9 @@ own owner surfaces.
 | Surface | Role |
 | --- | --- |
 | `validation_lanes.json` | executable command authority for named validation lanes |
-| `validator_inventory.json` | descriptive map of validators to owner surfaces and failure routes |
-| `script_inventory.json` | descriptive map of root scripts to script families and side effects |
+| `script_inventory.json` | descriptive map of active `*/scripts/*` surfaces to owners, lanes, and side effects |
+| `SCRIPT_TOPOLOGY.md` | descriptive map of script homes, families, side effects, and lane posture |
+| `../testing/TEST_TOPOLOGY.md` | descriptive map of test homes, families, and failure routes |
 
 Inventories describe coverage. They are not command authority.
 
@@ -30,7 +31,12 @@ Inventories describe coverage. They are not command authority.
   broader repo tests.
 - Generated parity checks route from source surface to builder to generated
   artifact to validator.
-- Test topology routes to `tests/AGENTS.md` and `tests/test_inventory.json`.
+- Script topology routes to `SCRIPT_TOPOLOGY.md` and `script_inventory.json`.
+  Validator scripts are covered there as script organs; a separate validator
+  registry only becomes useful after ToS grows a distinct validator-module
+  surface.
+- Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
+  and `tests/test_inventory.json`.
 - Local eval pressure routes to `evals/`, while proof authority stays with
   `aoa-evals`.
 
