@@ -18,6 +18,35 @@ VALIDATION_REFS = (
     "tests/test_root_entry_map.py",
 )
 FORBIDDEN_LOW_CONTEXT_PREFIXES = ("src/", "scripts/")
+ARTIFACT_IDENTITY = {
+    "artifact_class": "generated_readmodel",
+    "surface_state": "public_generated_root_entry_surface",
+    "owner_repo": "Tree-of-Sophia",
+    "authority_ref": "ToS/derived-exports/AGENTS.md",
+    "producer": "scripts/build_root_entry_map.py from scripts/root_entry_map_common.py",
+    "consumer_expectation": (
+        "consumers verify schema_version, schema_ref, owner_repo, authority_ref, route refs, "
+        "and build_root_entry_map --check plus validate_root_entry_map before treating this "
+        "capsule as usable root-entry orientation"
+    ),
+    "privacy_boundary": (
+        "public route and derived-export references only; no private host evidence, session "
+        "memory, source corpora dumps, runtime graph state, or media credential claims"
+    ),
+    "content_identity": (
+        "ToS/derived-exports/root_entry_map.min.json rebuilt from scripts/root_entry_map_common.py "
+        "and compared by build_root_entry_map --check"
+    ),
+    "abi_epoch": "tos_root_entry_map_v1",
+    "contract_version": SCHEMA_REF,
+    "trust_layer": ["abi_contract_signature", "source_schema_validation"],
+    "verification": [
+        "python scripts/build_root_entry_map.py --check",
+        "python scripts/validate_root_entry_map.py",
+        "python -m unittest tests/test_root_entry_map.py",
+    ],
+    "action": "ADD_CONSUMER_EXPECTATION",
+}
 
 SURFACE_PAYLOAD = {
     "schema_version": "tos_root_entry_map_v1",
@@ -53,6 +82,13 @@ ROUTES = (
         "surface_ref": "ToS/derived-exports/kag_export.min.json",
         "verification_refs": ["mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md", "ToS/public-compatibility/source_node.example.json"],
     },
+)
+CORE_ROUTE_IDS = frozenset(
+    {
+        "current-tiny-entry",
+        "tree-first-model",
+        "bounded-export",
+    }
 )
 
 
@@ -120,6 +156,7 @@ def build_payload() -> dict[str, object]:
 
     payload = {
         **SURFACE_PAYLOAD,
+        "artifact_identity": dict(ARTIFACT_IDENTITY),
         "routes": routes,
     }
     validate_payload_schema(payload)

@@ -125,6 +125,6 @@ See
 `python scripts/build_root_entry_map.py --check`,
 `python scripts/validate_root_entry_map.py`,
 `python scripts/validate_tiny_entry_route.py`,
-`python scripts/validate_kag_export.py`, and
+`python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`, and
 [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md](../../../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
 for the current validator and manual-review route for this bounded seam.

@@ -6,10 +6,10 @@ This card applies to `mechanics/recurrence/`.
 
 Recurrence routes return to calibration after ToS route drift.
 
-## Boundary
+## Boundary Routes
 
-Zarathustra remains a source/canon axis in `ToS/`, not a mechanics package.
-This package owns the return operation only.
+Zarathustra routes as a source/canon axis in `ToS/`. This package owns the
+calibration return operation after route drift.
 
 ## Validation
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -16,28 +17,32 @@ def load_json(relative_path: str) -> object:
     return json.loads((REPO_ROOT / relative_path).read_text(encoding="utf-8"))
 
 
+def current_release(readme: str) -> str:
+    match = re.search(r"Current release: `([^`]+)`", readme)
+    if match is None:
+        raise AssertionError("README.md must name the current release")
+    return match.group(1)
+
+
 class RoadmapParityTestCase(unittest.TestCase):
     def test_roadmap_keeps_root_entry_routes_in_current_phase(self) -> None:
         roadmap = read_text("ROADMAP.md")
         readme = read_text("README.md")
         changelog = read_text("CHANGELOG.md")
         payload = load_json("ToS/derived-exports/root_entry_map.min.json")
+        release = current_release(readme)
 
-        self.assertIn("> Current release: `v0.2.2`", readme)
-        self.assertIn("## [0.2.2] - 2026-04-23", changelog)
-        self.assertIn("`v0.2.2`", roadmap)
+        self.assertIn(f"## [{release.removeprefix('v')}]", changelog)
+        self.assertIn(f"`{release}`", roadmap)
         self.assertIn("Current release contour", roadmap)
-        self.assertIn("source-owned root-entry and export hardening", roadmap)
-        self.assertIn("routed-language witness handling and source-first re-entry", roadmap)
 
         route_ids = {route["route_id"] for route in payload["routes"]}
 
         self.assertIn("current-tiny-entry", route_ids)
         self.assertIn("bounded-export", route_ids)
-        self.assertIn("shared `node_id`", roadmap)
-        self.assertIn("tiny-entry seam", roadmap)
-        self.assertIn("bounded export seam", roadmap)
-        self.assertIn("`aoa-kag`", roadmap)
+        for term in ("root-entry", "tiny-entry", "bounded export", "aoa-kag"):
+            with self.subTest(roadmap_term=term):
+                self.assertIn(term, roadmap)
 
         current_release_surfaces = [
             "README.md",

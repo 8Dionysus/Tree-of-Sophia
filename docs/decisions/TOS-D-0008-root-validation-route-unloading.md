@@ -60,6 +60,17 @@ first, executable authority in route cards and validation surfaces.
 
 `README.md` no longer carries the current bounded validation battery.
 
+Root entrypoint docs now keep distinct jobs:
+
+- `README.md` is the public route map;
+- `AGENTS.md` is the agent execution route;
+- `DESIGN.md` is the system-shape note;
+- `DESIGN.AGENTS.md` is the route-card shape note;
+- `ROADMAP.md` is the current contour and next pressure.
+
+Detailed branch, mechanics, validation, test, release, and decision surfaces
+own their local maps instead of being duplicated in root docs.
+
 `scripts/validate_tiny_entry_route.py` now checks README route links and bans
 command text in README.
 
@@ -78,6 +89,8 @@ nested-agent validator topology refactor remains future work.
 - `README.md`
 - `AGENTS.md`
 - `ROADMAP.md`
+- `DESIGN.md`
+- `DESIGN.AGENTS.md`
 - `CONTRIBUTING.md`
 - `scripts/AGENTS.md`
 - `scripts/validate_tiny_entry_route.py`

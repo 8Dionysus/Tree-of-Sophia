@@ -7,10 +7,11 @@ This card applies to `mechanics/antifragility/`.
 Antifragility keeps ToS source-first growth able to refuse weak expansion,
 prune bad structure, and preserve plurality under pressure.
 
-## Boundary
+## Boundary Routes
 
-This package does not delete source material, rewrite canon, or turn stress
-signals into proof. It routes resilience work back to source review.
+Source material routes to `ToS/source-witnesses/`, canon movement routes to
+`ToS/canon/`, and proof verdicts route to proof owners. This package owns
+resilience posture and source-review return.
 
 ## Validation
 

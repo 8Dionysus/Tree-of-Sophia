@@ -10,7 +10,7 @@ import yaml
 from jsonschema import Draft202012Validator, exceptions
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 QUESTBOOK_PATH = Path("QUESTBOOK.md")
 QUESTBOOK_INTEGRATION_PATH = (
@@ -35,20 +35,27 @@ QUEST_IDS = (
     "TOS-Q-0004",
 )
 QUESTBOOK_REQUIRED_TOKENS = (
-    "operational obligations that belong to `Tree-of-Sophia`",
-    "philosophical truth claims as backlog items",
-    "collapsing ToS meaning into AoA operational language",
+    "Use it for:",
+    "Do not use it for:",
+    "## Frontier",
+    "## Near",
+    "## Latent / parked",
+    "## Backing files",
     "mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json",
-    "reviewable compatibility examples",
+    "mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json",
 )
 QUESTBOOK_FORBIDDEN_TOKENS = ("ATM10-Agent", "aoa-sdk")
 QUESTBOOK_INTEGRATION_REQUIRED_TOKENS = (
-    "operational obligations in the source-first knowledge architecture",
-    "philosophical interpretation, authored knowledge, or source meaning becomes a task list",
-    "source, identifier, and node-template hardening",
-    "bounded ToS to `aoa-kag` bridge requests",
-    "compatibility artifacts only",
-    "do not replace authored doctrine",
+    "## Core boundary",
+    "## Good uses in ToS",
+    "## Bad uses in ToS",
+    "## Good anchors in this repo",
+    "## Initial posture",
+    "QUESTBOOK.md",
+    "CHARTER.md",
+    "BOUNDARIES.md",
+    "ToS/doctrine/KNOWLEDGE_MODEL.md",
+    "mechanics/questbook/parts/dispatch-contracts/examples/",
 )
 QUESTBOOK_INTEGRATION_FORBIDDEN_TOKENS = ("ATM10-Agent", "aoa-sdk")
 CLOSED_QUEST_STATES = {"done", "dropped"}

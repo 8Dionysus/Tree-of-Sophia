@@ -30,12 +30,12 @@ EXPECTED_BOUNDED_HOP = CONCEPT_NODE_PATH.as_posix()
 EXPECTED_FALLBACK = KNOWLEDGE_MODEL_PATH.as_posix()
 LEGACY_HOP_FIELD = "lineage_or_context_hop"
 
-README_ROUTE_LINKS = (
-    "[ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md)",
-    "[ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)",
+README_ROUTE_REFS = (
+    ROUTE_DOC_PATH.as_posix(),
+    CAPSULE_PATH.as_posix(),
     "ToS/derived-exports/root_entry_map.min.json",
-    "[mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)",
-    "[AGENTS](AGENTS.md#verify)",
+    "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+    "AGENTS.md#verify",
 )
 README_BANNED_COMMANDS = (
     "python scripts/",
@@ -47,11 +47,11 @@ ROUTE_DOC_REQUIRED_TOKENS = (
     "ToS/public-compatibility/tos_tiny_entry_route.example.json",
     "ToS/public-compatibility/source_node.example.json",
     "aoa-routing",
-    "python scripts/validate_tiny_entry_route.py",
+    "scripts/validate_tiny_entry_route.py",
 )
 REVIEW_CHECKLIST_REQUIRED_TOKENS = (
-    "python scripts/validate_tiny_entry_route.py",
-    "python scripts/validate_kag_export.py",
+    "scripts/validate_tiny_entry_route.py",
+    "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
 )
 BOUNDARY_REQUIRED_TOKENS = (
     "ToS-authored authority",
@@ -256,7 +256,7 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     require_tokens(
         relative_path=README_PATH,
         repo_root=repo_root,
-        required_tokens=README_ROUTE_LINKS,
+        required_tokens=README_ROUTE_REFS,
         issues=issues,
     )
     reject_phrases(

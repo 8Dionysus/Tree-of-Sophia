@@ -6,10 +6,11 @@ This card applies to `mechanics/release-support/`.
 
 Release Support keeps ToS release-facing checks source-home aware.
 
-## Boundary
+## Boundary Routes
 
-Release support does not define ToS meaning or GitHub publication truth by
-itself. It routes checked state transitions.
+ToS meaning routes to source-owned surfaces. GitHub publication truth routes
+through the landing and release owners. This package owns checked state
+transition support.
 
 ## Validation
 

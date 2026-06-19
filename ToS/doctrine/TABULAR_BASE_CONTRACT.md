@@ -169,8 +169,8 @@ Run:
 
 ```bash
 python scripts/validate_intake_pack.py
-python scripts/validate_tree_relation_pack.py
-python scripts/validate_tree_example_sync.py
-python scripts/generate_kag_export.py
-python scripts/validate_kag_export.py
+python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
+python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 ```

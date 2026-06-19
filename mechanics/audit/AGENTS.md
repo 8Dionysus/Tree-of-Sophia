@@ -4,13 +4,14 @@ This card applies to `mechanics/audit/`.
 
 ## Role
 
-Audit routes source-home inspection evidence without turning review notes into
-canon or proof verdicts.
+Audit routes source-home inspection evidence to the review surface that can act
+on it.
 
-## Boundary
+## Boundary Routes
 
-Review evidence remains evidence. It does not become source truth, proof
-authority, or automatic remediation.
+Review evidence routes to source review, decision rationale, or the affected
+mechanic. Source truth, proof authority, and remediation authority stay with
+their owning surfaces.
 
 ## Validation
 

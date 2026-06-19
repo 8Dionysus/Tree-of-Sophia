@@ -14,13 +14,14 @@ It holds:
 
 ## Editing posture
 
-Treat these files as canonical authored tree law, not as raw candidate tables.
+Treat these files as canonical authored tree law; raw candidate tables route to
+`ToS/candidate-intake/`.
 Keep each `node.json` bounded to one event surface.
 Keep the source route explicit in `source_anchor`.
-Keep event nodes source-linked, route-local, and dynamic rather than inflating
-them into free-floating principles.
+Keep event nodes source-linked, route-local, and dynamic; distilled claims
+route to principle nodes after review.
 Keep `ToS/public-compatibility/event_node.example.json` aligned with the worked canonical
-mirror rather than creating a second canon.
+mirror as a compatibility surface.
 
 ## Validation
 
@@ -28,7 +29,7 @@ Run:
 
 ```bash
 python scripts/validate_tree_node_contracts.py
-python scripts/validate_tree_example_sync.py
-python scripts/generate_kag_export.py
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 ```

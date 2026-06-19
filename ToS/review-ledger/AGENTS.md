@@ -7,22 +7,26 @@ This file applies to dated review notes under `ToS/review-ledger/`.
 `ToS/review-ledger/` preserves inspection notes, review outcomes, and migration
 evidence for ToS surfaces.
 
-Review notes can explain what was inspected. They do not overrule current
-doctrine, source witnesses, canon, contracts, or decision records.
+## Operating Card
 
-## Boundaries
+| Field | Route |
+| --- | --- |
+| role | dated review evidence surface |
+| input | inspection note, review outcome, migration evidence, or branch-check record |
+| output | dated note that explains what was inspected and where current authority lives |
+| owner | `ToS/review-ledger/AGENTS.md` and the dated review note |
+| next route | review note -> owning doctrine/source/canon/contract/decision surface when authority must move |
+| tools | review checklist, source-home validator, route-card validator |
+| check | source-home and route-card validators for moved review surfaces |
+
+## Boundary Routes
 
 - Keep entries dated and surface-specific.
-- Do not use a review note as current doctrine.
-- Do not promote archive or review-only examples into active compatibility
-  surfaces without changing the owning branch.
+- Route current doctrine to `ToS/doctrine/`.
 - Route durable rationale to `docs/decisions/`.
+- Route active compatibility examples to `ToS/public-compatibility/`.
 
 ## Validation
 
-For review-ledger moves or edits, run:
-
-```bash
-python scripts/validate_tos_source_home.py
-python scripts/validate_nested_agents.py
-```
+Use `scripts/validate_tos_source_home.py` and
+`scripts/validate_nested_agents.py` for review-ledger moves or route changes.

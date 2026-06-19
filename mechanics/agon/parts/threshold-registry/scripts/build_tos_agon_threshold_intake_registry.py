@@ -8,9 +8,10 @@ import pathlib
 import sys
 from typing import Any
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-SRC = ROOT / 'mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json'
-OUT = ROOT / 'mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json'
+PART_ROOT = pathlib.Path(__file__).resolve().parents[1]
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
+SRC = PART_ROOT / 'config/tos_agon_threshold_intakes.config.json'
+OUT = PART_ROOT / 'generated/tos_agon_threshold_intake_registry.min.json'
 ITEM_KEY = 'threshold_intakes'
 REGISTRY_ID = 'tos.agon_threshold_intake.registry.v1'
 REVIEW_PHASE_ORDER = 'XVIII'
@@ -34,10 +35,10 @@ def load_source() -> dict[str, Any]:
     }
     for field, expected in expected_metadata.items():
         if data.get(field) != expected:
-            raise ValueError(f'{field} must be {expected!r} in {SRC.relative_to(ROOT)}')
+            raise ValueError(f'{field} must be {expected!r} in {SRC.relative_to(REPO_ROOT)}')
     items = data.get(ITEM_KEY)
     if not isinstance(items, list):
-        raise ValueError(f'{ITEM_KEY} must be a list in {SRC.relative_to(ROOT)}')
+        raise ValueError(f'{ITEM_KEY} must be a list in {SRC.relative_to(REPO_ROOT)}')
     return data
 
 
@@ -67,7 +68,7 @@ def main() -> int:
     text = json.dumps(registry, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n'
     if args.check:
         if not OUT.exists():
-            print(f'missing generated registry: {OUT.relative_to(ROOT)}', file=sys.stderr)
+            print(f'missing generated registry: {OUT.relative_to(REPO_ROOT)}', file=sys.stderr)
             return 1
         if OUT.read_text(encoding='utf-8') != text:
             print('generated registry drift: run builder without --check', file=sys.stderr)

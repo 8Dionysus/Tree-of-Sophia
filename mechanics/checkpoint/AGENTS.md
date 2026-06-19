@@ -4,13 +4,12 @@ This card applies to `mechanics/checkpoint/`.
 
 ## Role
 
-Checkpoint preserves review return points without becoming memory truth or a
-second source home.
+Checkpoint preserves review return points for ToS work.
 
-## Boundary
+## Boundary Routes
 
-Checkpoints route back to ToS surfaces. They do not own canon, memory, or
-runtime state.
+Checkpoints route back to ToS surfaces. Canon routes to `ToS/canon/`; memory
+truth and runtime state route to their stronger owners.
 
 ## Validation
 

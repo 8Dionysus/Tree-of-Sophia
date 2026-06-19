@@ -6,10 +6,10 @@ This card applies to `mechanics/source-witnessing/`.
 
 Source Witnessing is a ToS-local operation around witness route discipline.
 
-## Boundary
+## Boundary Routes
 
-This package does not store witness material. `ToS/source-witnesses/` owns
-the witness branch.
+Witness material routes to `ToS/source-witnesses/`. This package owns witness
+route discipline before branch or canon movement.
 
 ## Validation
 

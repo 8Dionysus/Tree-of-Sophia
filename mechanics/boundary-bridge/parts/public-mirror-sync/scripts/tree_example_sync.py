@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[5]
 
 TREE_SOURCE_NODE_REL = Path(
     "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json"

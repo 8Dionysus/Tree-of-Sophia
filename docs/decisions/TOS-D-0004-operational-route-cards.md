@@ -93,6 +93,11 @@ labels from non-authoritative research packet metadata, rejects the old
 AI/Notion-as-source-witness route, and avoids hard-coding prior bad path names
 as topology.
 
+The `ToS/*/AGENTS.md` branch cards now use the same compact route shape: local
+role, operating card, boundary routes, and validation route. Repeated read-first
+lists, inherited prohibitions, and branch inventories route to the source home,
+nearest owner card, or validator instead of being copied into each branch.
+
 ## Source Surfaces
 
 - `ToS/README.md`
@@ -102,6 +107,14 @@ as topology.
 - `ToS/philosophy/philosophy.manifest.json`
 - `ToS/research-packets/AGENTS.md`
 - `ToS/research-packets/deep-research/philosophy/AGENTS.md`
+- `ToS/candidate-intake/AGENTS.md`
+- `ToS/canon/AGENTS.md`
+- `ToS/contracts/AGENTS.md`
+- `ToS/derived-exports/AGENTS.md`
+- `ToS/doctrine/AGENTS.md`
+- `ToS/public-compatibility/AGENTS.md`
+- `ToS/source-witnesses/AGENTS.md`
+- `ToS/zarathustra/AGENTS.md`
 - `ToS/research-packets/deep-research/philosophy/research.manifest.json`
 - `ToS/research-packets/deep-research/philosophy/pages/2b6778a4-3758-80ee-bbe5-dc8387858f3c/capture.meta.json`
 - `scripts/validate_nested_agents.py`

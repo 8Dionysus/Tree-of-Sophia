@@ -26,9 +26,12 @@ The current public export surfaces are:
 
 - `kag_export.json`
 - `kag_export.min.json`
+- `root_entry_map.min.json`
 - `tos_corpus_index.min.json`
 
 They summarize the current Zarathustra route for downstream consumers while pointing back to ToS-owned authority and compatibility surfaces.
+The root entry map is the machine-facing entry capsule for consumers that need
+schema-checked root-route orientation before touching downstream exports.
 The corpus index covers the whole `ToS/` home as a derived resource map so
 `abyss-stack` can project and visualize the corpus without owning ToS meaning.
 
@@ -39,6 +42,8 @@ Use:
 - `../../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
 - `../zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `../public-compatibility/source_node.example.json`
-- `python scripts/validate_kag_export.py`
+- `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+- `python scripts/build_root_entry_map.py --check`
+- `python scripts/validate_root_entry_map.py`
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`

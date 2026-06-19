@@ -13,12 +13,10 @@ narrows the lane.
 source witnesses, doctrine, nodes, relations, branch growth, canon formation,
 public entry seams, and bounded export seams for downstream consumers.
 
-This card keeps agent work inside that role and routes to `README.md`,
-`CHARTER.md`, `DESIGN.md`, `DESIGN.AGENTS.md`, `BOUNDARIES.md`, `ToS/`,
-mechanics packages, source files, decisions, builders, validators, and local
-owner truth when those surfaces own the answer.
+Root `AGENTS.md` routes work. It does not replace `ToS/`, `mechanics/`,
+decision records, validators, or neighboring AoA owners.
 
-## Operating Map
+## Operating Card
 
 | Field | Route |
 | --- | --- |
@@ -30,104 +28,54 @@ owner truth when those surfaces own the answer.
 
 ## Read Before Editing
 
-For first orientation:
+For orientation, read only the route you need:
 
-1. `README.md`
-2. `ROADMAP.md`
-3. `CHARTER.md`
-4. `DESIGN.md`
-5. `DESIGN.AGENTS.md`
-6. `BOUNDARIES.md`
-7. `ToS/README.md`
-8. `mechanics/README.md`
+| Work | First route |
+| --- | --- |
+| overview or repository identity | [README](README.md), [CHARTER](CHARTER.md), [BOUNDARIES](BOUNDARIES.md) |
+| current direction | [ROADMAP](ROADMAP.md) |
+| system shape | [DESIGN](DESIGN.md) |
+| agent-surface shape | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
+| ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
+| golden Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
+| mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, active part route |
+| decision rationale | [docs/decisions](docs/decisions/README.md) |
+| preserved old root rule | [docs/AGENTS_ROOT_REFERENCE](docs/AGENTS_ROOT_REFERENCE.md) |
 
-For actual edits:
-
-1. this `AGENTS.md`
-2. nearest nested `AGENTS.md` for every touched path
-3. the route-mode surface from the table below
-4. the nearest source file, branch manifest, doctrine card, mechanic part,
-   schema, builder, validator, test, or generated-source owner
-5. the narrowest relevant validator before broader gates
-
-Use `docs/AGENTS_ROOT_REFERENCE.md` only to audit preserved root-reference rules.
-If a preserved rule still governs current work, move it to the owning surface
-instead of re-bloating this card.
-
-## Route Modes
-
-| Route mode | Use when | First surface |
-| --- | --- | --- |
-| `first-reading` | you need the shortest honest overview | [README](README.md) |
-| `authority-boundary` | repository authority, owner split, or source-of-truth pressure changes | [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) |
-| `system-design` | tree form, source/generated posture, or repository shape changes | [DESIGN](DESIGN.md) |
-| `agent-surface-design` | route-card shape or agent guidance changes | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
-| `source-home` | ToS source home, doctrine, philosophy tree, canon, review ledger, or branch topology changes | [ToS/AGENTS](ToS/AGENTS.md) |
-| `zarathustra-route` | golden Zarathustra entry, trilingual capsule, public tiny entry, or current root route changes | [ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
-| `mechanic-change` | repeatable operation topology, package route, part contract, provenance, or validation changes | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, and active part route |
-| `derived-export` | generated downstream read models, KAG handoff, corpus index, or export seam changes | source surface -> builder -> generated output -> validator |
-| `direction-change` | roadmap, release contour, future trigger, or repo-level direction changes | [ROADMAP](ROADMAP.md) |
-| `decision-rationale` | durable route, boundary, workflow, public-contract, or topology rationale changes | [docs/decisions](docs/decisions/README.md) |
-| `root-reference-audit` | a preserved old root rule must be inspected | [docs/AGENTS_ROOT_REFERENCE](docs/AGENTS_ROOT_REFERENCE.md) |
+For actual edits, read the nearest nested `AGENTS.md`, the owning source file
+or manifest, and the narrowest relevant validator before broader gates.
 
 ## Boundary Law
 
-- Authored ToS surfaces own ToS meaning. Generated, exported, compact, public,
-  graph, runtime, and downstream surfaces support or transport meaning.
-- Mechanics are organs of operation: package and part-local machines for
-  repeatable movement. Keep the root and `ToS/` home clear of scripts, tests,
-  validators, and generic process notes.
-- Zarathustra is the current golden route. Treat it as a high-pressure source
-  branch rather than a generic canon bucket.
-- Source witnesses, doctrine, canon, branch manifests, review ledgers,
-  decisions, builders, validators, and tests each keep different kinds of
-  authority. Keep those layers separated and routed.
-- Route runtime, proof, memory, stack, KAG substrate, federation, playbook,
-  skill, and technique authority to the owning AoA repository or layer.
+- Authored ToS surfaces own ToS meaning.
+- Generated, exported, compact, public, graph, runtime, and downstream surfaces
+  support or transport meaning.
+- Mechanics are organs of repeatable movement, not a second source home.
+- Zarathustra is the current golden route, not a generic sample.
+- Runtime, proof, memory, stack, KAG substrate, federation, playbook, skill,
+  and technique authority route to their owning AoA repositories or layers.
 
-## Decision Review
+## Change Companions
 
-After structural, ownership, workflow, route-law, validator-authority,
-public-contract, export, graph, mechanic, or topology changes, check whether
-future agents need a decision record to understand why the path was chosen.
-Use [docs/decisions](docs/decisions/README.md) for the local rule.
+When a source-backed change moves, update only the smallest matching companions:
+root or source-home docs, `ROADMAP.md`, `CHANGELOG.md`, decision records,
+generated outputs, builders, validators, or tests. If no durable rationale
+moved, say that no new decision record was needed.
 
-If no new decision is needed, say so in closeout.
+Use `docs/AGENTS_ROOT_REFERENCE.md` only to audit preserved root-reference
+rules. If a preserved rule still governs current work, move it to the owning
+surface instead of re-bloating this card.
 
-## GitHub Landing Workflow
+## Landing Route
 
-Root `AGENTS.md` owns the repository-wide branch, PR, CI, and merge route.
-`.github/AGENTS.md` owns GitHub-native files that support it.
-
-When the user asks to commit, push, and merge in this repository:
-
-1. Start from a branch based on current `origin/main`. If the worktree is dirty,
-   inventory it first and carry forward only the intended diff.
-2. Commit the intended change with a message that names the changed surface.
-3. Push the branch and open a pull request that states changed surfaces,
-   validation run, skipped checks, and remaining risk.
-4. Wait for GitHub checks. If a check fails, fix the branch and wait for the
-   new result.
-5. Merge through GitHub after green validation, then fast-forward local `main`
-   and confirm the worktree state before closeout.
+When the user asks for landing, use a branch based on current `origin/main`,
+commit the intended diff, push, open a PR, wait for GitHub checks, merge after
+green validation, then fast-forward local `main`. `.github/AGENTS.md` owns
+GitHub-native file details; `docs/RELEASING.md` owns release publication
+guidance.
 
 If GitHub status or merge permissions cannot be observed, report the exact
 blocker instead of guessing.
-
-## Update Surfaces
-
-When a source-backed change moves, update the smallest matching companions:
-
-- root or source-home docs when public route or owner posture changes;
-- `ROADMAP.md` when current direction, phase, or release contour changes;
-- `CHANGELOG.md` when release-visible behavior, validation, public docs, or
-  generated surfaces change;
-- decision records when future agents need the rationale;
-- generated outputs, builders, validators, and tests when their source-backed
-  contract actually moved.
-
-Leave scripts, validators, and tests untouched unless the current change moves
-a checked contract. Validator topology is its own future refactor.
 
 ## Route Away When
 
@@ -141,9 +89,8 @@ a checked contract. Validator topology is its own future refactor.
 
 ## Verify
 
-For root docs, route-card, current contour, public route, and bounded export
-changes, run the narrowest relevant check first. Use the broad gate only when
-the change crosses owner surfaces or release-visible contracts.
+Use the narrowest relevant check first. Use the broad gate when the change
+crosses owner surfaces or release-visible contracts.
 
 Broad gate:
 
@@ -155,18 +102,14 @@ Current public route and export spot checks:
 
 ```bash
 python scripts/validate_tiny_entry_route.py
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 ```
 
 Use [scripts/AGENTS](scripts/AGENTS.md) for script-local owner routes and
-targeted generator checks. Use [docs/decisions](docs/decisions/README.md) when
-the change creates durable route, boundary, validator, export, or source
-rationale.
-
-For interpretive, structural, or boundary-sensitive changes outside that
-perimeter, use:
-
-`mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
+targeted generator checks. Use
+`mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
+interpretive, structural, or boundary-sensitive changes outside validator
+coverage.
 
 ## Report
 

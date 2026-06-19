@@ -5,10 +5,19 @@
 ## canon promotion
 
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
+- [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
 ## command authority
 
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+- [TOS-D-0010 - Test Topology Coverage](../TOS-D-0010-test-topology-coverage.md) (`docs/decisions/TOS-D-0010-test-topology-coverage.md`)
+- [TOS-D-0011 - Script Topology Coverage](../TOS-D-0011-script-topology-coverage.md) (`docs/decisions/TOS-D-0011-script-topology-coverage.md`)
+- [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
+- [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
+- [TOS-D-0014 - Derived KAG Seam Local Scripts](../TOS-D-0014-derived-kag-seam-local-scripts.md) (`docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md`)
+- [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+- [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
+- [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
 ## compatibility boundary
 
@@ -26,6 +35,7 @@
 
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+- [TOS-D-0014 - Derived KAG Seam Local Scripts](../TOS-D-0014-derived-kag-seam-local-scripts.md) (`docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md`)
 
 ## instruction topology
 
@@ -43,6 +53,12 @@
 ## mechanics symmetry
 
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
+- [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
+- [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
+- [TOS-D-0014 - Derived KAG Seam Local Scripts](../TOS-D-0014-derived-kag-seam-local-scripts.md) (`docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md`)
+- [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+- [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
+- [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
 ## metadata boundary
 
@@ -64,6 +80,18 @@
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+- [TOS-D-0010 - Test Topology Coverage](../TOS-D-0010-test-topology-coverage.md) (`docs/decisions/TOS-D-0010-test-topology-coverage.md`)
+- [TOS-D-0011 - Script Topology Coverage](../TOS-D-0011-script-topology-coverage.md) (`docs/decisions/TOS-D-0011-script-topology-coverage.md`)
+- [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
+- [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
+- [TOS-D-0014 - Derived KAG Seam Local Scripts](../TOS-D-0014-derived-kag-seam-local-scripts.md) (`docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md`)
+- [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+- [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
+- [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
+
+## public compatibility
+
+- [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
 
 ## route-card structure
 
@@ -72,6 +100,16 @@
 ## route-law
 
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
+
+## script topology
+
+- [TOS-D-0011 - Script Topology Coverage](../TOS-D-0011-script-topology-coverage.md) (`docs/decisions/TOS-D-0011-script-topology-coverage.md`)
+- [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
+- [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
+- [TOS-D-0014 - Derived KAG Seam Local Scripts](../TOS-D-0014-derived-kag-seam-local-scripts.md) (`docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md`)
+- [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+- [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
+- [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
 ## source-first authority
 
@@ -88,6 +126,13 @@
 
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
 
+## test topology
+
+- [TOS-D-0010 - Test Topology Coverage](../TOS-D-0010-test-topology-coverage.md) (`docs/decisions/TOS-D-0010-test-topology-coverage.md`)
+- [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
+- [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
+- [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+
 ## validation route
 
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
@@ -99,3 +144,5 @@
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0008 - Root Validation Route Unloading](../TOS-D-0008-root-validation-route-unloading.md) (`docs/decisions/TOS-D-0008-root-validation-route-unloading.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
+- [TOS-D-0010 - Test Topology Coverage](../TOS-D-0010-test-topology-coverage.md) (`docs/decisions/TOS-D-0010-test-topology-coverage.md`)
+- [TOS-D-0011 - Script Topology Coverage](../TOS-D-0011-script-topology-coverage.md) (`docs/decisions/TOS-D-0011-script-topology-coverage.md`)

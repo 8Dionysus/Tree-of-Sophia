@@ -13,7 +13,6 @@ These surfaces are:
 - route-local
 - carried as `edges.csv`
 - rewritten to canonical `tos.*` ids
-- rewritten to canonical tos.* ids
 - kept registry-first through registered predicates
 
 Raw intake ledgers stay in `ToS/candidate-intake/`; node payloads stay in the
@@ -32,7 +31,7 @@ aliases.
 Run:
 
 ```bash
-python scripts/validate_tree_relation_pack.py
+python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
 python scripts/validate_intake_pack.py
-python scripts/validate_kag_export.py
+python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 ```

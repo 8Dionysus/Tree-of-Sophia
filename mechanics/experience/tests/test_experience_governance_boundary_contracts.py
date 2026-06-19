@@ -8,7 +8,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 ENUM_ESCAPE_VALUE = "__experience_governance_boundary_not_allowed__"
 
 GOVERNANCE_BOUNDARY_CONTRACTS = (

@@ -8,7 +8,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 EXPERIENCE_CANDIDATE_ADOPTION_WRITE_GUARD_STEMS = (
     "aoa_experience_candidate_dossier",
     "tos_adoption_boundary_dossier",

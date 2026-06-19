@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import sys
-from collections import Counter
 from pathlib import Path
 
+ROOT_SCRIPTS = Path(__file__).resolve().parents[5] / "scripts"
+if str(ROOT_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(ROOT_SCRIPTS))
+
 from validate_intake_pack import (
-    EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS,
     REPO_ROOT,
     build_canonical_id_map,
-    build_entity_class_maps,
-    promoted_relation_rows,
     read_csv,
     split_pipe,
 )
@@ -58,6 +58,47 @@ EXPECTED_CLASS_HEADERS = [
 Issue = tuple[str, str]
 
 
+def build_canonical_entity_classes(
+    node_rows: list[dict[str, str]],
+    es_rows: list[dict[str, str]],
+    principle_rows: list[dict[str, str]],
+    canonical_id_map: dict[str, str],
+) -> dict[str, str]:
+    raw_entity_classes: dict[str, str] = {}
+    for row in node_rows:
+        raw_entity_classes[row["node_id"]] = row["node_class"]
+    for row in es_rows:
+        raw_entity_classes[row["es_id"]] = row["kind"]
+    for row in principle_rows:
+        if row["status"] == "promoted_to_synthesis":
+            raw_entity_classes[row["principle_id"]] = "synthesis"
+        else:
+            raw_entity_classes[row["principle_id"]] = "principle"
+
+    return {
+        canonical_id_map[raw_id]: class_id
+        for raw_id, class_id in raw_entity_classes.items()
+        if raw_id in canonical_id_map
+    }
+
+
+def project_promoted_relation_rows(
+    edge_rows: list[dict[str, str]],
+    canonical_id_map: dict[str, str],
+) -> list[dict[str, str]]:
+    promoted_rows: list[dict[str, str]] = []
+    for row in edge_rows:
+        if row["status"] != "promoted":
+            continue
+        if row["from_id"] not in canonical_id_map or row["to_id"] not in canonical_id_map:
+            continue
+        promoted_row = {key: value for key, value in row.items() if key != "status"}
+        promoted_row["from_id"] = canonical_id_map[row["from_id"]]
+        promoted_row["to_id"] = canonical_id_map[row["to_id"]]
+        promoted_rows.append(promoted_row)
+    return promoted_rows
+
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -88,20 +129,13 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
     _, edge_rows = read_csv(intake_dir / "edges.csv")
 
     canonical_id_map = build_canonical_id_map(node_rows, es_rows, principle_rows)
-    _, canonical_entity_classes = build_entity_class_maps(
+    canonical_entity_classes = build_canonical_entity_classes(
         node_rows,
         es_rows,
         principle_rows,
         canonical_id_map,
     )
-    expected_rows = promoted_relation_rows(edge_rows, canonical_id_map)
-
-    if len(relation_rows) != 125:
-        issues.append((relation_pack_path.relative_to(root).as_posix(), "canonical relation pack must contain exactly 125 promoted edges"))
-
-    edge_kind_counts = Counter(row["edge_kind"] for row in relation_rows)
-    if edge_kind_counts != EXPECTED_PROMOTED_RELATION_EDGE_KIND_COUNTS:
-        issues.append((relation_pack_path.relative_to(root).as_posix(), "edge_kind counts drifted from the expected 90/11/21 split"))
+    expected_rows = project_promoted_relation_rows(edge_rows, canonical_id_map)
 
     if relation_rows != expected_rows:
         issues.append((relation_pack_path.relative_to(root).as_posix(), "canonical relation pack drifted from the promoted intake projection"))

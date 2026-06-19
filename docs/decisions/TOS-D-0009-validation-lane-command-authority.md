@@ -26,12 +26,12 @@ inside Python code, which made the validator act partly as the manifest it was
 supposed to check.
 
 The same command-pressure pattern also appeared in the public-entry lane:
-`scripts/validate_kag_export.py` checked questbook obligation and dispatch
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checked questbook obligation and dispatch
 surfaces even though those surfaces belong to `mechanics/questbook/`, not to
 the KAG export seam.
 
 After the questbook split, the same hidden-aggregator shape remained inside
-`scripts/validate_kag_export.py`: canon contracts, intake contracts,
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`: canon contracts, intake contracts,
 public-example sync, tiny-entry route checks, and route-card structure still
 ran through a validator named for the KAG export seam.
 
@@ -40,22 +40,27 @@ ran through a validator named for the KAG export seam.
 Create `docs/validation/validation_lanes.json` as the executable command
 authority for named ToS validation lanes.
 
-Keep `docs/validation/validator_inventory.json`,
-`docs/validation/script_inventory.json`, and `tests/test_inventory.json` as
-descriptive coverage maps only. They do not own command execution.
+Keep `docs/validation/script_inventory.json` and `tests/test_inventory.json`
+as descriptive coverage maps only. Validator scripts are represented by
+`script_inventory.json`. A separate validator-module surface would be the
+trigger for a separate validator registry. Inventories do not own command
+execution.
 
 Make `scripts/release_check.py` load the `release_check` command sequence from
 the lane manifest. Move source-home branch validation from shell commands to
 lane ids. Keep mechanics moved-path target data in `mechanics/topology.json`
-and make the validator check that manifest data.
+and make the validator check that manifest data. Keep the mechanics package
+roster, active parts, and `legacy_required` flags in `mechanics/topology.json`;
+`scripts/validate_mechanics_topology.py` checks the map against the filesystem
+rather than preserving a second package list in Python.
 
 Refactor `scripts/validate_nested_agents.py` into a structural route-card
 checker: required files, headings, operating-card fields where present, and
 stable path or id references. Exact ordinary prose is not authority.
 
 Split questbook obligation and dispatch checks into
-`scripts/validate_questbook_surface.py` and route them through a
-`questbook_surface` lane. Keep `scripts/validate_kag_export.py` focused on the
+`mechanics/questbook/scripts/validate_questbook_surface.py` and route them through a
+`questbook_surface` lane. Keep `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` focused on the
 bounded KAG export seam.
 
 Keep canon and intake checks in their own lanes and make the release lane run
@@ -71,6 +76,13 @@ blocking lanes are named in the release lane coverage list.
 
 Reduce the remaining tiny-entry prose checks to stable route tokens: headings,
 repo-relative surfaces, downstream boundary names, and validator entrypoints.
+
+## Supersession Note
+
+`TOS-D-0013` supersedes the Experience test-home details in this record. The
+`experience_contracts` lane now runs package-local tests under
+`mechanics/experience/tests/`, and mechanics-local discovery is handled by
+`scripts/run_mechanics_local_tests.py`.
 
 ## Rationale
 
@@ -96,6 +108,11 @@ surface for validation lanes.
 `ToS/source_home.manifest.json` records `validation_lanes` per branch instead
 of shell commands.
 
+`scripts/validate_tos_source_home.py` protects the current core ToS branches,
+but it no longer treats the branch roster as closed. New source-home branches
+may enter through `ToS/source_home.manifest.json` when their path, owner
+surface, and validation lanes are declared.
+
 `tests/AGENTS.md` and `tests/test_inventory.json` identify what tests protect
 without making the inventory command authority.
 
@@ -103,12 +120,23 @@ without making the inventory command authority.
 `scripts/validate_mechanics_topology.py` checks those targets instead of
 carrying the old-to-new map in code.
 
-`scripts/validate_questbook_surface.py` now owns the questbook surface check.
+The mechanics topology validator also no longer carries a hardcoded package
+roster. Package, part, status, class, and legacy eligibility data live in
+`mechanics/topology.json` and are checked against the live package directories.
+
+`mechanics/questbook/scripts/validate_questbook_surface.py` now owns the questbook surface check.
 The release lane runs questbook coverage as an explicit mechanics-local step.
 
 `canon_contracts` and `intake_contracts` are explicit release coverage. Their
 commands run from `docs/validation/validation_lanes.json`. The KAG export
 validator remains scoped to generated export parity and payload structure.
+The intake validator protects table shape, source linkage, promotion residue,
+registry parity, and graph connectivity without preserving row-count snapshots
+as a second canon.
+
+The intake witness vocabulary is read from `witnesses.csv`. Translation
+tension and gloss coverage checks derive from that table instead of a
+hardcoded witness-id list.
 
 `experience_contracts` is explicit release coverage for mechanics-local
 Experience schema contracts. Experience tests no longer sit under
@@ -129,7 +157,6 @@ authority.
 - `docs/validation/README.md`
 - `docs/RELEASING.md`
 - `docs/validation/validation_lanes.json`
-- `docs/validation/validator_inventory.json`
 - `docs/validation/script_inventory.json`
 - `scripts/validation_lanes.py`
 - `scripts/release_check.py`
@@ -137,12 +164,12 @@ authority.
 - `scripts/validate_nested_agents.py`
 - `scripts/validate_mechanics_topology.py`
 - `scripts/validate_tiny_entry_route.py`
-- `scripts/validate_kag_export.py`
-- `scripts/validate_questbook_surface.py`
+- `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+- `mechanics/questbook/scripts/validate_questbook_surface.py`
 - `scripts/validate_intake_pack.py`
 - `scripts/validate_tree_node_contracts.py`
-- `scripts/validate_tree_relation_pack.py`
-- `scripts/validate_tree_example_sync.py`
+- `mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`
+- `mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py`
 - `ToS/source_home.manifest.json`
 - `ToS/contracts/tos-source-home.schema.json`
 - `mechanics/topology.json`
@@ -153,11 +180,11 @@ authority.
 - `mechanics/questbook/README.md`
 - `tests/AGENTS.md`
 - `tests/test_inventory.json`
-- `tests/test_experience_candidate_adoption_write_guard_contracts.py`
-- `tests/test_experience_governance_boundary_contracts.py`
-- `tests/test_experience_installation_service_office_contracts.py`
+- `mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py`
+- `mechanics/experience/tests/test_experience_governance_boundary_contracts.py`
+- `mechanics/experience/tests/test_experience_installation_service_office_contracts.py`
 - `tests/test_validation_lanes.py`
-- `tests/test_validate_questbook_surface.py`
+- `mechanics/questbook/tests/test_validate_questbook_surface.py`
 - `tests/test_tos_source_home_schema.py`
 
 ## Validation
@@ -169,13 +196,13 @@ python scripts/validation_lanes.py --check
 python scripts/validate_tos_source_home.py
 python -m unittest tests.test_tos_source_home_schema
 python scripts/validate_mechanics_topology.py
-python -m unittest discover -s tests -p 'test_experience_*_contracts.py'
+python -m unittest discover -s mechanics/experience/tests -p 'test*.py'
 python scripts/validate_nested_agents.py
 python scripts/validate_tree_node_contracts.py
-python scripts/validate_tree_relation_pack.py
-python scripts/validate_tree_example_sync.py
+python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
+python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
 python scripts/validate_intake_pack.py
-python scripts/validate_questbook_surface.py
+python mechanics/questbook/scripts/validate_questbook_surface.py
 python scripts/generate_decision_indexes.py --check
 python scripts/validate_decision_records.py
 python scripts/release_check.py

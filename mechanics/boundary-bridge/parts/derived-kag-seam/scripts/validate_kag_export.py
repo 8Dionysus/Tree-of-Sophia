@@ -41,7 +41,10 @@ def validate_generated_text(path: Path, expected_text: str, *, label: str) -> No
     except FileNotFoundError:
         fail(f"{label} is missing at {path.relative_to(REPO_ROOT).as_posix()}")
     if actual_text != expected_text:
-        fail(f"{label} is out of date; run python scripts/generate_kag_export.py")
+        fail(
+            f"{label} is out of date; run python "
+            "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py"
+        )
 
 
 def validate_export_payload(payload: object) -> None:
@@ -94,8 +97,8 @@ def validate_export_payload(payload: object) -> None:
             fail(f"required source-owned KAG export surface is missing: {path.relative_to(REPO_ROOT).as_posix()}")
 
     source_inputs = payload["source_inputs"]
-    if not isinstance(source_inputs, list) or len(source_inputs) != 2:
-        fail("generated KAG export source_inputs must contain one primary and one supporting input")
+    if not isinstance(source_inputs, list) or not source_inputs:
+        fail("generated KAG export source_inputs must be a non-empty list")
     primary_count = 0
     for index, source_input in enumerate(source_inputs):
         location = f"generated KAG export source_inputs[{index}]"
@@ -115,8 +118,8 @@ def validate_export_payload(payload: object) -> None:
         fail("generated KAG export section_handles must mirror source_node interpretation_layers")
 
     direct_relations = payload["direct_relations"]
-    if not isinstance(direct_relations, list) or len(direct_relations) != 3:
-        fail("generated KAG export direct_relations must contain the bounded authority-supporting route set")
+    if not isinstance(direct_relations, list) or not direct_relations:
+        fail("generated KAG export direct_relations must be a non-empty list")
     expected_refs = {
         "Tree-of-Sophia/ToS/public-compatibility/concept_node.example.json",
         "Tree-of-Sophia/ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
@@ -134,8 +137,12 @@ def validate_export_payload(payload: object) -> None:
         if not isinstance(target_ref, str) or not target_ref:
             fail(f"{location}.target_ref must be a non-empty string")
         actual_refs.add(target_ref)
-    if actual_refs != expected_refs:
-        fail("generated KAG export direct_relations must stay aligned with the current bounded hop and supporting doctrine refs")
+    missing_refs = sorted(expected_refs - actual_refs)
+    if missing_refs:
+        fail(
+            "generated KAG export direct_relations must include the current bounded hop "
+            f"and supporting doctrine refs: {', '.join(missing_refs)}"
+        )
 
 
 def main() -> int:

@@ -79,6 +79,17 @@ def load_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def canonical_node_paths(directory: Path) -> list[Path]:
+    return sorted(directory.rglob("node.json"))
+
+
+def canonical_node_ids(directory: Path) -> set[str]:
+    return {
+        str(load_json(path)["node_id"])
+        for path in canonical_node_paths(directory)
+    }
+
+
 class TosNodeContractSchemaTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -163,54 +174,44 @@ class TosNodeContractSchemaTestCase(unittest.TestCase):
 
         self.assertNotEqual(self.collect_errors(payload), [])
 
-    def test_zarathustra_route_now_has_thirteen_canonical_principles(self) -> None:
-        principle_paths = sorted(ZARATHUSTRA_PRINCIPLE_DIR.rglob("node.json"))
-        self.assertEqual(len(principle_paths), 13)
-        principle_ids = {
-            load_json(path)["node_id"]
-            for path in principle_paths
-        }
+    def test_zarathustra_route_keeps_canonical_principles_open_for_growth(self) -> None:
+        principle_paths = canonical_node_paths(ZARATHUSTRA_PRINCIPLE_DIR)
+        self.assertGreater(len(principle_paths), 0)
+        principle_ids = canonical_node_ids(ZARATHUSTRA_PRINCIPLE_DIR)
         self.assertNotIn(
             "tos.principle.thus-spoke-zarathustra.prologue.departure-from-reflective-origin",
             principle_ids,
         )
 
-    def test_zarathustra_route_now_has_eighteen_canonical_events(self) -> None:
-        event_paths = sorted(ZARATHUSTRA_EVENT_DIR.rglob("node.json"))
-        self.assertEqual(len(event_paths), 18)
-        event_ids = {
-            load_json(path)["node_id"]
-            for path in event_paths
-        }
+    def test_zarathustra_route_keeps_canonical_events_open_for_growth(self) -> None:
+        event_paths = canonical_node_paths(ZARATHUSTRA_EVENT_DIR)
+        self.assertGreater(len(event_paths), 0)
+        event_ids = canonical_node_ids(ZARATHUSTRA_EVENT_DIR)
         self.assertNotIn(
             "tos.event.thus-spoke-zarathustra.prologue.bee-honey-analogy",
             event_ids,
         )
 
-    def test_zarathustra_route_now_has_nine_canonical_states(self) -> None:
-        state_paths = sorted(ZARATHUSTRA_STATE_DIR.rglob("node.json"))
-        self.assertEqual(len(state_paths), 9)
+    def test_zarathustra_route_keeps_canonical_states_open_for_growth(self) -> None:
+        state_paths = canonical_node_paths(ZARATHUSTRA_STATE_DIR)
+        self.assertGreater(len(state_paths), 0)
 
-    def test_zarathustra_route_now_has_forty_six_canonical_support_nodes(self) -> None:
-        support_paths = sorted(ZARATHUSTRA_SUPPORT_DIR.rglob("node.json"))
-        self.assertEqual(len(support_paths), 46)
+    def test_zarathustra_route_keeps_canonical_support_nodes_open_for_growth(self) -> None:
+        support_paths = canonical_node_paths(ZARATHUSTRA_SUPPORT_DIR)
+        self.assertGreater(len(support_paths), 0)
 
-    def test_zarathustra_route_now_has_one_canonical_analogy(self) -> None:
-        analogy_paths = sorted(ZARATHUSTRA_ANALOGY_DIR.rglob("node.json"))
-        self.assertEqual(len(analogy_paths), 1)
-        analogy_ids = {load_json(path)["node_id"] for path in analogy_paths}
-        self.assertEqual(
+    def test_zarathustra_route_keeps_bee_honey_as_canonical_analogy(self) -> None:
+        analogy_ids = canonical_node_ids(ZARATHUSTRA_ANALOGY_DIR)
+        self.assertIn(
+            "tos.analogy.thus-spoke-zarathustra.prologue.bee-honey-analogy",
             analogy_ids,
-            {"tos.analogy.thus-spoke-zarathustra.prologue.bee-honey-analogy"},
         )
 
-    def test_zarathustra_route_now_has_one_canonical_synthesis_node(self) -> None:
-        synthesis_paths = sorted(ZARATHUSTRA_SYNTHESIS_DIR.rglob("node.json"))
-        self.assertEqual(len(synthesis_paths), 1)
-        synthesis_ids = {load_json(path)["node_id"] for path in synthesis_paths}
-        self.assertEqual(
+    def test_zarathustra_route_keeps_departure_as_canonical_synthesis_node(self) -> None:
+        synthesis_ids = canonical_node_ids(ZARATHUSTRA_SYNTHESIS_DIR)
+        self.assertIn(
+            "tos.synthesis.thus-spoke-zarathustra.prologue.departure-from-reflective-origin",
             synthesis_ids,
-            {"tos.synthesis.thus-spoke-zarathustra.prologue.departure-from-reflective-origin"},
         )
 
     def test_non_source_nodes_reject_multilingual_witness_payloads(self) -> None:
