@@ -302,6 +302,27 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "family": "release_validator",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/release-support/parts/artifact-bundles/README.md",
+      "source_truth": [
+        "mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json",
+        "ToS/derived-exports/root_entry_map.min.json",
+        "ToS/derived-exports/AGENTS.md"
+      ],
+      "reads": [
+        "mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json",
+        "ToS/derived-exports/*.json"
+      ],
+      "writes": [],
+      "side_effects": "temporary abyss-machine artifact bundle sidecars outside tracked source",
+      "validation_lane": "artifact_bundles",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/root_entry_map_common.py",
       "family": "projection_helper",
       "organ_lane": "shared-library",

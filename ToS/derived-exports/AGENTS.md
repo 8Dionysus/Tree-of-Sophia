@@ -35,3 +35,5 @@ ToS authority.
 Use the relevant builder `--check` and validator for the export touched:
 KAG export, root-entry map, corpus index, public mirror sync, or tiny-entry
 route.
+For release-facing generated readmodels, also run the OS Abyss artifact bundle
+validator under `mechanics/release-support/parts/artifact-bundles/scripts/`.

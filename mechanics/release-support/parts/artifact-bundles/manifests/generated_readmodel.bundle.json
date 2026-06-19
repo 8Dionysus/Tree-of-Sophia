@@ -1,0 +1,35 @@
+{
+  "schema": "abyss_machine_artifact_bundle_manifest_v1",
+  "id": "tree-of-sophia-generated-readmodel-bundle",
+  "artifact_class": "tree_of_sophia_generated_readmodel_bundle",
+  "owner_repo": "Tree-of-Sophia",
+  "policy_ref": "repo:abyss-machine/manifests/artifact_signature_policy.manifest.json",
+  "mode": "os_abyss_local",
+  "subject_repo_root": "../../../../..",
+  "artifact_identity": {
+    "artifact_class": "tree_of_sophia_generated_readmodel_bundle",
+    "abi_epoch": "tree_of_sophia_generated_readmodel_bundle_v1"
+  },
+  "abi_subject": {
+    "path": "ToS/derived-exports/root_entry_map.min.json",
+    "artifact_identity_pointer": "/artifact_identity"
+  },
+  "artifact_subjects": [
+    {
+      "path": "ToS/derived-exports/kag_export.json",
+      "role": "kag_export"
+    },
+    {
+      "path": "ToS/derived-exports/kag_export.min.json",
+      "role": "kag_export_min"
+    },
+    {
+      "path": "ToS/derived-exports/root_entry_map.min.json",
+      "role": "root_entry_map"
+    },
+    {
+      "path": "ToS/derived-exports/tos_corpus_index.min.json",
+      "role": "corpus_index"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ VALIDATION_REFS = (
 )
 FORBIDDEN_LOW_CONTEXT_PREFIXES = ("src/", "scripts/")
 ARTIFACT_IDENTITY = {
-    "artifact_class": "generated_readmodel",
+    "artifact_class": "tree_of_sophia_generated_readmodel_bundle",
     "surface_state": "public_generated_root_entry_surface",
     "owner_repo": "Tree-of-Sophia",
     "authority_ref": "ToS/derived-exports/AGENTS.md",
@@ -27,7 +27,7 @@ ARTIFACT_IDENTITY = {
     "consumer_expectation": (
         "consumers verify schema_version, schema_ref, owner_repo, authority_ref, route refs, "
         "and build_root_entry_map --check plus validate_root_entry_map before treating this "
-        "capsule as usable root-entry orientation"
+        "capsule as usable root-entry orientation, then verify the OS Abyss ABI bundle when release-facing"
     ),
     "privacy_boundary": (
         "public route and derived-export references only; no private host evidence, session "
@@ -37,7 +37,7 @@ ARTIFACT_IDENTITY = {
         "ToS/derived-exports/root_entry_map.min.json rebuilt from scripts/root_entry_map_common.py "
         "and compared by build_root_entry_map --check"
     ),
-    "abi_epoch": "tos_root_entry_map_v1",
+    "abi_epoch": "tree_of_sophia_generated_readmodel_bundle_v1",
     "contract_version": SCHEMA_REF,
     "trust_layer": ["abi_contract_signature", "source_schema_validation"],
     "verification": [

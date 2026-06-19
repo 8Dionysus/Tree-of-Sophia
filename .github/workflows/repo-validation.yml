@@ -22,5 +22,10 @@ jobs:
       - name: Install validator dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Fetch OS Abyss artifact verifier
+        run: git clone --depth 1 --branch main https://github.com/8Dionysus/abyss-machine.git "$RUNNER_TEMP/abyss-machine"
+
       - name: Run release audit
+        env:
+          ABYSS_MACHINE_REPO_ROOT: ${{ runner.temp }}/abyss-machine
         run: python scripts/release_check.py
