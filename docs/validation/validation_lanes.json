@@ -219,6 +219,20 @@
         "Neo4j or UI cache truth"
       ]
     },
+    "artifact_bundles": {
+      "label": "artifact bundles",
+      "layer": "release-artifact",
+      "mode": "blocking",
+      "owner_surface": "mechanics/release-support/parts/artifact-bundles/README.md",
+      "purpose": "Verify generated ToS readmodel exports through the OS Abyss artifact bundle verifier without promoting JSON exports to media credentials or release signatures.",
+      "command_sequence": "artifact_bundles",
+      "failure_route": "mechanics/release-support/parts/artifact-bundles/README.md",
+      "does_not_own": [
+        "ToS authored meaning",
+        "abyss-machine signing policy",
+        "public PDF/media credential publication"
+      ]
+    },
     "release": {
       "label": "release",
       "layer": "release",
@@ -237,6 +251,7 @@
         "active_naming",
         "generated_parity",
         "graph_exports",
+        "artifact_bundles",
         "canon_contracts",
         "intake_contracts",
         "public_entry",
@@ -366,6 +381,12 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       }
     ],
+    "artifact_bundles": [
+      {
+        "label": "validate OS Abyss generated readmodel artifact bundle",
+        "command": ["python", "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"]
+      }
+    ],
     "release_check": [
       {
         "label": "validate validation lane manifest",
@@ -410,6 +431,10 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "validate OS Abyss generated readmodel artifact bundle",
+        "command": ["python", "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py"]
       },
       {
         "label": "validate tree node contracts",

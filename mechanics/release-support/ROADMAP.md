@@ -7,6 +7,8 @@ ToS changes leave a clean route without turning release machinery into meaning.
 
 - Keep source-release-gate around release-facing ToS surfaces and public claim
   posture.
+- Keep artifact-bundles around generated export readmodels that need OS Abyss
+  ABI verification without turning JSON exports into media credentials.
 - Keep release support below source, branch, canon, and decision authority.
 - Keep public support claims tied to the ToS surface they support.
 

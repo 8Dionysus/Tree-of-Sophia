@@ -34,6 +34,8 @@ The root entry map is the machine-facing entry capsule for consumers that need
 schema-checked root-route orientation before touching downstream exports.
 The corpus index covers the whole `ToS/` home as a derived resource map so
 `abyss-stack` can project and visualize the corpus without owning ToS meaning.
+The current OS Abyss artifact bundle posture for these JSON readmodels is
+ABI-only and verified through `mechanics/release-support/parts/artifact-bundles/`.
 
 ## How to verify
 
@@ -47,3 +49,4 @@ Use:
 - `python scripts/validate_root_entry_map.py`
 - `python scripts/build_tos_corpus_index.py --check`
 - `python scripts/validate_tos_corpus_index.py`
+- `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`

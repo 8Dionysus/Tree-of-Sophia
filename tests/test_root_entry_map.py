@@ -51,11 +51,12 @@ class RootEntryMapTests(unittest.TestCase):
     def test_artifact_identity_names_consumer_checks_without_media_claims(self) -> None:
         identity = build_payload()["artifact_identity"]
 
-        self.assertEqual(identity["artifact_class"], "generated_readmodel")
+        self.assertEqual(identity["artifact_class"], "tree_of_sophia_generated_readmodel_bundle")
         self.assertEqual(identity["contract_version"], "ToS/contracts/root-entry-map.schema.json")
         self.assertEqual(identity["trust_layer"], ["abi_contract_signature", "source_schema_validation"])
         self.assertIn("build_root_entry_map --check", identity["consumer_expectation"])
         self.assertIn("validate_root_entry_map", identity["consumer_expectation"])
+        self.assertIn("OS Abyss ABI bundle", identity["consumer_expectation"])
         self.assertIn("no private host evidence", identity["privacy_boundary"])
         self.assertIn("media credential claims", identity["privacy_boundary"])
         self.assertNotIn("c2pa", json.dumps(identity, separators=(",", ":")).lower())
