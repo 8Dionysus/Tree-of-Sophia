@@ -56,7 +56,9 @@ not become ToS authority.
 | [evals](evals/README.md) | ToS-local eval pressure before central `aoa-evals` adoption |
 | [memo](memo/README.md) | tree-local memory candidates before reviewed `aoa-memo` landing |
 | [manifests](manifests/) | observe-only recurrence manifests for named ToS surfaces |
-| [Spark](Spark/AGENTS.md) | fast-loop lane for bounded micro-patches |
+
+Agent-facing companion lanes live under `.agents/`; Codex Spark work routes to
+`.agents/spark/` without becoming a public root organ.
 
 Generated files are companions. Source witnesses, doctrine, canon, branch
 manifests, mechanics, decisions, builders, validators, and review records keep

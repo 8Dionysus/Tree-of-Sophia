@@ -1,40 +1,54 @@
-# Spark Swarm Recipe — Tree-of-Sophia
+# Spark Swarm Recipe - Tree-of-Sophia
 
-Рекомендуемый путь назначения: `Spark/SWARM.md`
+Рекомендуемый путь назначения: `.agents/spark/SWARM.md`
 
 ## Для чего этот рой
-Используй Spark здесь только на doc-drift, source-traceability wording, node/lineage wording cleanup и micro-clarifications. Это canonical high-level statement ToS; рой не должен flatten interpretation into generic summaries и не должен подменять human-reviewed synthesis автоматическим gloss.
+
+Spark-рой здесь нужен для коротких правок вокруг source traceability,
+node/lineage wording, route hints и micro-clarifications. Он помогает быстро
+улучшить читаемость ToS-поверхности и передать дальше все, что требует
+доктринального, источниковедческого или архитектурного просмотра.
 
 ## Читать перед стартом
+
 - `README.md`
-- `touched docs only after README`
+- `.agents/AGENTS.md`
+- `.agents/spark/AGENTS.md`
+- ближайший owner surface для изменяемых файлов
 
 ## Форма роя
+
 - **Coordinator**: выбирает один high-level ToS seam
 - **Drift Auditor**: ищет drift в source traceability, node layering, lineage wording и repo routing
 - **Micro-Patcher**: делает минимальный patch
 - **Verifier**: делает manual consistency review и link/path check
-- **Boundary Keeper**: охраняет source traceability и distinction between raw material, semantic extraction and human-reviewed synthesis
+- **Boundary Keeper**: следит, чтобы raw material, semantic extraction и human-reviewed synthesis оставались разными слоями
 
 ## Параллельные дорожки
+
 - Lane A: wording drift or link cleanup
 - Lane B: source traceability / node layering / lineage wording
 - Lane C: manual consistency review
-- Не запускай больше одного пишущего агента на одну и ту же семью файлов.
 
-## Allowed
-- чинить micro-drift в high-level wording
-- прояснять source traceability и lineage relations
-- чинить links and route hints
-- делать minimal documentation polish that improves legibility
+Один пишущий агент работает с одной семьей файлов; остальные дорожки остаются
+аудиторскими или reviewer-дорожками.
 
-## Forbidden
-- переписывать философскую доктрину широкими мазками
-- сплющивать layered meaning into generic summaries
-- подменять human-reviewed synthesis автоматической интерпретацией
-- тащить derived KAG claims как source truth
+## Подходящие задачи
+
+- micro-drift in high-level wording
+- source traceability and lineage relation clarification
+- link and route-hint repair
+- minimal documentation polish that improves legibility
+
+## Escalation Routes
+
+- философская доктрина широкого масштаба -> ToS owner surfaces and human review
+- layered meaning synthesis across many sources -> slower ToS review path
+- derived KAG claims -> downstream KAG owner surfaces
+- operational federation or runtime substrate -> Agents-of-Abyss / abyss-stack owners
 
 ## Launch packet для координатора
+
 ```text
 We are working in Tree-of-Sophia with a one-repo one-swarm setup.
 Pick exactly one high-level seam:
@@ -52,8 +66,9 @@ Return:
 ```
 
 ## Промпт для Scout
+
 ```text
-Audit only. Do not edit.
+Audit only.
 Return:
 - exact wording or routing inconsistency
 - files involved
@@ -63,6 +78,7 @@ Return:
 ```
 
 ## Промпт для Builder
+
 ```text
 Make the smallest patch possible.
 Rules:
@@ -74,6 +90,7 @@ Rules:
 ```
 
 ## Промпт для Verifier
+
 ```text
 Do a manual consistency review.
 Minimum:
@@ -84,16 +101,18 @@ Report only checks you actually performed.
 ```
 
 ## Промпт для Boundary Keeper
+
 ```text
-Review only for anti-scope.
+Review the route boundary.
 Check:
 - this stayed a micro-patch
-- no doctrine-scale rewrite slipped in
-- no flattening into generic summaries
-- no downstream derived claim became source truth
+- doctrine-scale rewrite was routed away
+- layered meaning was preserved
+- downstream derived claims stayed downstream
 ```
 
 ## Verify
+
 ```bash
 # Manual review only
 # Re-read touched README/doc sections
@@ -102,10 +121,13 @@ Check:
 ```
 
 ## Done when
+
 - один high-level seam стал яснее без доктринального расползания
-- manual consistency review реально проведён и описан
+- manual consistency review реально проведен и описан
 - source traceability and layered meaning preserved
 - human-reviewed synthesis remains distinct from automation
 
 ## Handoff
-Если патч касается derived substrate or operational federation, follow-up почти всегда в `aoa-kag` или `Agents-of-Abyss`, а не тут.
+
+Если патч касается derived substrate or operational federation, follow-up почти
+всегда в `aoa-kag`, `abyss-stack` или `Agents-of-Abyss`, а не в ToS Spark.

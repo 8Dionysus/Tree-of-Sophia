@@ -18,7 +18,7 @@ ROUTE_ROOTS = (
     "evals",
     "memo",
     "manifests",
-    "Spark",
+    ".agents",
 )
 ROOT_ROUTE_CARDS = (
     Path("AGENTS.md"),
