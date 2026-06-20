@@ -37,7 +37,7 @@
     {
       "slug": "boundary-bridge",
       "class": "head-fed/local",
-      "status": "planted",
+      "status": "active",
       "active_parts": [
         "derived-kag-seam",
         "public-mirror-sync"
@@ -126,7 +126,7 @@
     {
       "slug": "relation-weaving",
       "class": "local",
-      "status": "planted",
+      "status": "active",
       "active_parts": [
         "graph-promotion"
       ],
@@ -135,7 +135,7 @@
     {
       "slug": "release-support",
       "class": "head-fed/local",
-      "status": "planted",
+      "status": "active",
       "active_parts": [
         "artifact-bundles",
         "source-release-gate"
@@ -176,10 +176,10 @@
         "ToS/contracts/tos-agon-threshold-intake-registry.schema.json",
         "ToS/public-compatibility/tos_agon_threshold_intake_registry.example.json",
         "ToS/derived-exports/tos_agon_threshold_intake_registry.min.json",
-        "config/tos_agon_threshold_intakes.config.json"
+        "config/tos_agon_threshold_intakes.seed.json"
       ],
       "landing-handoff": [
-        "ToS/doctrine/SOPHIAN_THRESHOLD_TOS_LANDING.md"
+        "ToS/doctrine/AGON_WAVE18_TOS_LANDING.md"
       ]
     },
     "audit": {
@@ -283,8 +283,8 @@
     "ToS/contracts/tos-agon-threshold-intake-registry.schema.json": "mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json",
     "ToS/public-compatibility/tos_agon_threshold_intake_registry.example.json": "mechanics/agon/parts/threshold-registry/examples/tos_agon_threshold_intake_registry.example.json",
     "ToS/derived-exports/tos_agon_threshold_intake_registry.min.json": "mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json",
-    "config/tos_agon_threshold_intakes.config.json": "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
-    "ToS/doctrine/SOPHIAN_THRESHOLD_TOS_LANDING.md": "mechanics/agon/parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md",
+    "config/tos_agon_threshold_intakes.seed.json": "mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json",
+    "ToS/doctrine/AGON_WAVE18_TOS_LANDING.md": "mechanics/agon/parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md",
     "ToS/doctrine/REVIEW_CHECKLIST.md": "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md",
     "ToS/doctrine/KAG_EXPORT.md": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
     "ToS/doctrine/CONTEXT_COMPOST.md": "mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md",
@@ -322,7 +322,7 @@
     "ToS/contracts/tos_pattern_review_note_v1.json": "mechanics/experience/parts/pattern-review/schemas/tos_pattern_review_note_v1.json",
     "ToS/public-compatibility/tos_pattern_review_note.example.json": "mechanics/experience/parts/pattern-review/examples/tos_pattern_review_note.example.json",
     "ToS/doctrine/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md": "mechanics/experience/parts/write-guards/docs/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md",
-    "ToS/doctrine/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md": "mechanics/experience/parts/write-guards/docs/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md",
+    "ToS/doctrine/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md": "mechanics/experience/parts/write-guards/docs/NO_DIRECT_GOVERNANCE_RUNTIME_WRITE.md",
     "ToS/contracts/tos_no_direct_write_guard_v1.json": "mechanics/experience/parts/write-guards/schemas/tos_no_direct_write_guard_v1.json",
     "ToS/public-compatibility/tos_no_direct_write_guard.example.json": "mechanics/experience/parts/write-guards/examples/tos_no_direct_write_guard.example.json",
     "ToS/doctrine/GROWTH_STRUCTURE.md": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md",

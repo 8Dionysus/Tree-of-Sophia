@@ -35,8 +35,8 @@ surfaces.
 
 - `source_secondary` stays in the form `1,1,1,n`
 - `paragraph_anchor` stays in the form `[n]`
-- `segment_id` now follows the active machine spine `seg.1.1.1.n`
-- older `zv1-*` route labels survive only as human-facing `working_name` memory
+- `segment_id` follows the active machine spine `seg.1.1.1.n`
+- `working_name` stays descriptive and does not carry retired route labels
 - already-canonical ToS ids may be reused where they already exist
 - candidate meaning nodes use `n.*`
 - candidate events and states use `ev.*` and `st.*`

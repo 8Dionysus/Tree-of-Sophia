@@ -27,6 +27,8 @@ Tracking starts with the community-docs baseline for this repository.
   `experience_contracts` validation lane
 - reduced route-card and tiny-entry validators toward structural route tokens
   instead of ordinary prose inventories
+- moved the Codex Spark fast-loop lane from root `Spark/` to
+  `.agents/spark/`, keeping Spark agent-facing rather than a public root organ
 
 ## [0.2.2] - 2026-04-23
 

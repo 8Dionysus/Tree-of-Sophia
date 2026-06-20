@@ -19,8 +19,8 @@ behavior. It is preserved here as former-path accounting.
 - `ToS/contracts/tos-agon-threshold-intake-registry.schema.json` -> `mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json`; status: `moved-to-active-part`
 - `ToS/public-compatibility/tos_agon_threshold_intake_registry.example.json` -> `mechanics/agon/parts/threshold-registry/examples/tos_agon_threshold_intake_registry.example.json`; status: `moved-to-active-part`
 - `ToS/derived-exports/tos_agon_threshold_intake_registry.min.json` -> `mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json`; status: `moved-to-active-part`
-- `config/tos_agon_threshold_intakes.seed.json` -> `mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.seed.json`; status: `moved-to-active-part`
+- `config/tos_agon_threshold_intakes.seed.json` -> `mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json`; status: `retired-active-name`
 
 ## Landing Handoff
 
-- `ToS/doctrine/AGON_WAVE18_TOS_LANDING.md` -> `mechanics/agon/parts/landing-handoff/docs/AGON_WAVE18_TOS_LANDING.md`; status: `moved-to-active-part`
+- `ToS/doctrine/AGON_WAVE18_TOS_LANDING.md` -> `mechanics/agon/parts/landing-handoff/docs/SOPHIAN_THRESHOLD_TOS_LANDING.md`; status: `retired-active-name`

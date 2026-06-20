@@ -50,6 +50,19 @@ around the philosophy home without moving the authored home into mechanics.
 | [`canon-formation`](canon-formation/README.md) | local | reviewed promotion into canonical nodes, relations, and registries |
 | [`relation-weaving`](relation-weaving/README.md) | local | graph-workbench fragments and relation-pack promotion |
 
+## Status Semantics
+
+`active` marks a mechanic that already protects a repeated current route:
+payload, owner split, part-local check, release-visible seam, or live source
+home contract.
+
+`planted` marks a named mechanic contour whose first part gives future pressure
+a route before it has enough repeated payload to become an active operation.
+
+Every package still names `active_parts` in `topology.json` because `parts/`
+is the operation vocabulary. The package status says how mature that operation
+is today.
+
 ## Root Contract
 
 Root `mechanics/` owns only:

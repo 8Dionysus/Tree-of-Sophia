@@ -4,7 +4,7 @@
 
 | Field | Route |
 | --- | --- |
-| status | `planted` |
+| status | `active` |
 | class | `head-fed/local` |
 | trigger | ToS material crosses into KAG, public compatibility, or sibling handoff |
 | input | source-owned export, public mirror, derived read model |

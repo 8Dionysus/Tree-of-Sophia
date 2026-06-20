@@ -4,7 +4,7 @@
 
 | Field | Route |
 | --- | --- |
-| status | `planted` |
+| status | `active` |
 | class | `head-fed/local` |
 | trigger | release-facing source-home, decision, generated, or validator surface changes |
 | input | release check, decision index, source-home validator |

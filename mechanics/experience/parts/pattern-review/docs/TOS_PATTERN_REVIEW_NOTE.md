@@ -1,8 +1,8 @@
 # TOS PATTERN REVIEW NOTE
 
-Version: v0.7
+Status: candidate
 Owner surface: `Tree-of-Sophia`
-Contract family: Experience Adoption Forge
+Part: `pattern-review`
 
 ## Purpose
 
@@ -39,4 +39,8 @@ Review notes for long-lived patterns.
 
 ## Notes
 
-This document belongs to the v0.7 downstream adoption pass. It assumes the v0.6 federation harvest has already approved a shared pattern, but it refuses to treat approval as automatic adoption. Adoption is a second sovereign act: local owner consent, compatibility, shadow proof, rollback path, retention watch, and kind-safe projection are required.
+This document belongs to the pattern-review part. It can inspect
+candidate-review and adoption-boundary outputs, but it does not convert review
+acceptance into adoption. Adoption remains a second sovereign act: local owner
+consent, compatibility, shadow proof, rollback path, retention watch, and
+kind-safe projection are required.

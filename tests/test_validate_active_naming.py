@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -23,6 +24,18 @@ def active_reference(text: str) -> str | None:
     return match.group(0) if match else None
 
 
+def old_route_prefix() -> str:
+    return "z" + "v"
+
+
+def old_experience_version(value: str) -> str:
+    return "v" + "0." + value
+
+
+def old_experience_ref() -> str:
+    return "experience." + old_experience_version("7") + ".adoption" + "_forge"
+
+
 class ValidateActiveNamingTests(unittest.TestCase):
     def test_terminal_sentence_period_is_not_path_or_id_marker(self) -> None:
         self.assertIsNone(active_reference(f"This was a {retired_s_token()}."))
@@ -39,6 +52,53 @@ class ValidateActiveNamingTests(unittest.TestCase):
         for text, expected in cases:
             with self.subTest(text=text):
                 self.assertEqual(active_reference(text), expected)
+
+    def test_route_labels_and_experience_pass_markers_are_retired(self) -> None:
+        cases = (
+            old_route_prefix() + "1-old-route",
+            old_experience_ref(),
+            "deployment" + "-" + "watchtower",
+            "federation " + "harvest",
+            "Adoption " + "Forge",
+            "CONSTITUTION" + "_" + "RUNTIME",
+        )
+        for text in cases:
+            with self.subTest(text=text):
+                self.assertIsNotNone(validate_active_naming.retired_content_issue(text))
+
+    def test_experience_pass_markers_are_route_scoped(self) -> None:
+        self.assertIsNotNone(validate_active_naming.retired_experience_pass_issue(old_experience_version("6")))
+        self.assertIsNotNone(validate_active_naming.retired_experience_pass_issue(old_experience_version("8.0")))
+        self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia v0.2.2"))
+        self.assertIsNone(validate_active_naming.retired_content_issue("Tree-of-Sophia " + old_experience_version("6")))
+        self.assertIsNone(validate_active_naming.retired_path_issue("mechanics/experience/parts/adoption-boundary/README.md"))
+
+    def test_mechanics_topology_checks_active_targets_not_historical_keys(self) -> None:
+        retired_path = "ToS/doctrine/NO_DIRECT_" + "CONSTITUTION" + "_" + "RUNTIME" + "_WRITE.md"
+        active_target = "mechanics/experience/parts/write-guards/docs/NO_DIRECT_GOVERNANCE_RUNTIME_WRITE.md"
+        payload = {
+            "schema_version": "tos_mechanics_topology_v2",
+            "owner_repo": "Tree-of-Sophia",
+            "root": "mechanics/",
+            "legacy_policy": "package-local-only-when-active-route-has-moved-path-or-raw-receipt-accounting",
+            "packages": [
+                {
+                    "slug": "experience",
+                    "class": "head-fed/local",
+                    "status": "active",
+                    "active_parts": ["write-guards"],
+                    "legacy_required": True,
+                }
+            ],
+            "moved_path_accounting": {"experience": {"write-guards": [retired_path]}},
+            "moved_path_targets": {retired_path: active_target},
+        }
+        text = validate_active_naming.active_content_text(
+            validate_active_naming.MECHANICS_TOPOLOGY_ROUTE,
+            json.dumps(payload),
+        )
+
+        self.assertIsNone(validate_active_naming.retired_content_issue(text))
 
 
 if __name__ == "__main__":

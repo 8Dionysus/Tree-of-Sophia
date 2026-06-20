@@ -3,17 +3,17 @@
   "kind": "tos_pattern_review_note",
   "version": "1.0",
   "status": "proposed",
-  "summary": "Example tos_pattern_review_note object for Experience Adoption Forge v0.7.",
+  "summary": "Example tos_pattern_review_note object for pattern-review.",
   "refs": {
     "source": "experience.shared_pattern_registry",
     "owner": "Tree-of-Sophia",
     "related": [
-      "experience.v0.6.federation_harvest",
-      "experience.v0.7.adoption_forge"
+      "experience.candidate_review",
+      "experience.pattern_review"
     ]
   },
   "payload": {
-    "review_phase": "v0.7",
+    "review_phase": "pattern-review",
     "repo": "Tree-of-Sophia",
     "pattern_ref": "pattern.shared.wrong_surface_to_owner_landing.v1",
     "owner_surface": "Tree-of-Sophia",

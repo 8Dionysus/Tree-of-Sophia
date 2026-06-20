@@ -16,6 +16,9 @@ ROUTE_ROOTS = (
     "scripts",
     "tests",
     "evals",
+    "memo",
+    "manifests",
+    ".agents",
 )
 ROOT_ROUTE_CARDS = (
     Path("AGENTS.md"),

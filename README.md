@@ -53,6 +53,12 @@ not become ToS authority.
 | [docs](docs/README.md) | decisions, releasing, root-reference receipts, and durable rationale |
 | [scripts](scripts/AGENTS.md) and [tests](tests/) | builders, validators, and regression checks |
 | [quests](quests/) and [QUESTBOOK](QUESTBOOK.md) | public quest items and obligation posture |
+| [evals](evals/README.md) | ToS-local eval pressure before central `aoa-evals` adoption |
+| [memo](memo/README.md) | tree-local memory candidates before reviewed `aoa-memo` landing |
+| [manifests](manifests/) | observe-only recurrence manifests for named ToS surfaces |
+
+Agent-facing companion lanes live under `.agents/`; Codex Spark work routes to
+`.agents/spark/` without becoming a public root organ.
 
 Generated files are companions. Source witnesses, doctrine, canon, branch
 manifests, mechanics, decisions, builders, validators, and review records keep

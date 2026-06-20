@@ -45,6 +45,13 @@ def require_absent(repo_root: Path, issues: list[Issue], relative_path: str, mes
         issues.append((relative_path, message))
 
 
+def read_text_if_file(repo_root: Path, relative_path: str) -> str | None:
+    path = repo_root / relative_path
+    if not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8")
+
+
 def discover_package_dirs(repo_root: Path) -> set[str]:
     mechanics_root = repo_root / "mechanics"
     if not mechanics_root.is_dir():
@@ -123,6 +130,7 @@ def validate_moved_targets(
         return
 
     accounted_old_paths: set[str] = set()
+    packages_with_moved_accounting: set[str] = set()
     for package, parts in moved_accounting.items():
         if not isinstance(parts, dict):
             issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package} must be an object"))
@@ -140,6 +148,8 @@ def validate_moved_targets(
             if not isinstance(old_paths, list) or not all(isinstance(item, str) and item for item in old_paths):
                 issues.append((TOPOLOGY_PATH.as_posix(), f"moved_path_accounting.{package}.{part} must be a string list"))
                 continue
+            if old_paths and package in packages:
+                packages_with_moved_accounting.add(package)
             for old_path in old_paths:
                 accounted_old_paths.add(old_path)
                 new_path = moved_targets.get(old_path)
@@ -156,6 +166,22 @@ def validate_moved_targets(
                     "mechanic-owned payload must stay in mechanics/, not the old ToS/root path",
                 )
                 require_file(repo_root, issues, new_path)
+                legacy_index = read_text_if_file(repo_root, f"mechanics/{package}/legacy/INDEX.md")
+                if legacy_index is not None:
+                    if old_path not in legacy_index:
+                        issues.append(
+                            (
+                                f"mechanics/{package}/legacy/INDEX.md",
+                                f"missing former path from moved_path_accounting: {old_path}",
+                            )
+                        )
+                    if new_path not in legacy_index:
+                        issues.append(
+                            (
+                                f"mechanics/{package}/legacy/INDEX.md",
+                                f"missing active target from moved_path_targets: {new_path}",
+                            )
+                        )
 
     for old_path, new_path in moved_targets.items():
         if not isinstance(old_path, str) or not isinstance(new_path, str):
@@ -163,6 +189,15 @@ def validate_moved_targets(
             continue
         if old_path not in accounted_old_paths:
             issues.append((TOPOLOGY_PATH.as_posix(), f"{old_path} target is not listed in moved_path_accounting"))
+
+    for package, entry in packages.items():
+        if entry.get("legacy_required") is True and package not in packages_with_moved_accounting:
+            issues.append(
+                (
+                    TOPOLOGY_PATH.as_posix(),
+                    f"{package}.legacy_required true requires moved_path_accounting entries",
+                )
+            )
 
 
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
