@@ -4,7 +4,7 @@
 
 | Field | Route |
 | --- | --- |
-| status | `planted` |
+| status | `active` |
 | class | `local` |
 | trigger | graph-workbench fragments need relation-pack review or promotion |
 | input | proposed node, proposed relation, branch fragment, promotion ledger |

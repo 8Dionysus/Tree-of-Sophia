@@ -1,6 +1,6 @@
 # Release Support Roadmap
 
-Release Support is planted as source-release posture. It helps public-facing
+Release Support is active as source-release posture. It helps public-facing
 ToS changes leave a clean route without turning release machinery into meaning.
 
 ## Current Contour

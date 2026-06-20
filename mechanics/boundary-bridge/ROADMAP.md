@@ -1,6 +1,6 @@
 # Boundary Bridge Roadmap
 
-Boundary Bridge is planted as the ToS derived-seam guard. It lets ToS hand
+Boundary Bridge is active as the ToS derived-seam guard. It lets ToS hand
 bounded read models outward without moving authority out of the tree.
 
 ## Current Contour

@@ -1,6 +1,6 @@
 # Relation Weaving Roadmap
 
-Relation Weaving is planted as the local graph-promotion contour. It protects
+Relation Weaving is active as the local graph-promotion contour. It protects
 the difference between a graph workbench fragment and a reviewed relation pack.
 
 ## Current Contour
