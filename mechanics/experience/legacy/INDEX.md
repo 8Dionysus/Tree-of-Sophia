@@ -57,6 +57,6 @@ behavior. It is preserved here as former-path accounting.
 ## Write Guards
 
 - `ToS/doctrine/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md` -> `mechanics/experience/parts/write-guards/docs/NO_DIRECT_ARENA_OR_EXPERIENCE_WRITE.md`; status: `moved-to-active-part`
-- `ToS/doctrine/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md` -> `mechanics/experience/parts/write-guards/docs/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md`; status: `moved-to-active-part`
+- `ToS/doctrine/NO_DIRECT_CONSTITUTION_RUNTIME_WRITE.md` -> `mechanics/experience/parts/write-guards/docs/NO_DIRECT_GOVERNANCE_RUNTIME_WRITE.md`; status: `retired-active-name`
 - `ToS/contracts/tos_no_direct_write_guard_v1.json` -> `mechanics/experience/parts/write-guards/schemas/tos_no_direct_write_guard_v1.json`; status: `moved-to-active-part`
 - `ToS/public-compatibility/tos_no_direct_write_guard.example.json` -> `mechanics/experience/parts/write-guards/examples/tos_no_direct_write_guard.example.json`; status: `moved-to-active-part`

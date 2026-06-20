@@ -1,4 +1,4 @@
-# NO DIRECT CONSTITUTION RUNTIME WRITE
+# NO DIRECT GOVERNANCE RUNTIME WRITE
 
 Tree-of-Sophia rejects direct runtime governance writes. It may receive dossiers after KAG/eval boundary.
 

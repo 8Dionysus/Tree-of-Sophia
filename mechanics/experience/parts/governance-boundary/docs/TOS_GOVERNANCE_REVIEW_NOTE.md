@@ -1,14 +1,16 @@
 # Tos Governance Review Note
 
-Status: candidate v0.8.0
+Status: candidate
 Repo landing: `Tree-of-Sophia`
-Layer: Experience Polis Governance
+Layer: Experience governance boundary
 
 ## Purpose
 
 Review note shape for ToS-facing governance dossiers.
 
-v0.8 adds a polis-governance contour around the experience mechanic. Earlier contract passes forged capture, distillation, certification, deployment, federation and adoption. This contract pass asks a harder question: **who may decide when those paths conflict?**
+The governance-boundary part asks who may decide when experience routes
+conflict. It receives reviewable dossiers and precedents, keeps authority
+explicit, and blocks hidden runtime or canon mutation.
 
 ## Local law
 
@@ -35,5 +37,5 @@ v0.8 adds a polis-governance contour around the experience mechanic. Earlier con
 - Agonic agents may contest, appeal and receive scars, but may not launder scars through assistant release paths.
 - Councils produce reviewable decisions, not hidden doctrine.
 - Vetoes and emergency stay orders require explicit authority and expiry.
-- Governance precedents may be harvested, but owner-local adoption still requires consent.
+- Governance precedents may be reviewed, but owner-local adoption still requires consent.
 - Tree-of-Sophia intake remains dossier-bound and never direct runtime governance write.

@@ -3,17 +3,17 @@
   "kind": "tos_no_runtime_adoption_guard",
   "version": "1.0",
   "status": "proposed",
-  "summary": "Example tos_no_runtime_adoption_guard object for Experience Adoption Forge v0.7.",
+  "summary": "Example tos_no_runtime_adoption_guard object for adoption-boundary.",
   "refs": {
     "source": "experience.shared_pattern_registry",
     "owner": "Tree-of-Sophia",
     "related": [
-      "experience.v0.6.federation_harvest",
-      "experience.v0.7.adoption_forge"
+      "experience.candidate_review",
+      "experience.adoption_boundary"
     ]
   },
   "payload": {
-    "review_phase": "v0.7",
+    "review_phase": "adoption-boundary",
     "repo": "Tree-of-Sophia",
     "pattern_ref": "pattern.shared.wrong_surface_to_owner_landing.v1",
     "owner_surface": "Tree-of-Sophia",

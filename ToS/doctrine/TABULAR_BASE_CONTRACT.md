@@ -60,9 +60,8 @@ The current machine spine for this route is:
 `seg.1.1.1.n`
 
 That spine is the only active machine-facing `segment_id` family for the
-bounded route.
-Older `zv1-*` route labels may remain as human-facing working names or review
-memory, but they are no longer the active segment-id surface.
+bounded route. Human-facing `working_name` values stay descriptive and do not
+carry retired route labels.
 
 The paragraph handle still remains visible as `[1]...[12]`, and the source
 anchor still remains visible as `source_secondary = 1,1,1,n`.

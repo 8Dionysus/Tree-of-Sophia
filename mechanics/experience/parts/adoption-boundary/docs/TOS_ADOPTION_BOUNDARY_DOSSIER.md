@@ -1,8 +1,8 @@
 # TOS ADOPTION BOUNDARY DOSSIER
 
-Version: v0.7
+Status: candidate
 Owner surface: `Tree-of-Sophia`
-Contract family: Experience Adoption Forge
+Part: `adoption-boundary`
 
 ## Purpose
 
@@ -39,4 +39,8 @@ How ToS material can inform dossiers without direct adoption.
 
 ## Notes
 
-This document belongs to the v0.7 downstream adoption pass. It assumes the v0.6 federation harvest has already approved a shared pattern, but it refuses to treat approval as automatic adoption. Adoption is a second sovereign act: local owner consent, compatibility, shadow proof, rollback path, retention watch, and kind-safe projection are required.
+This document belongs to the adoption-boundary part. It assumes
+candidate-review has accepted a shared pattern for review, but it refuses to
+treat review acceptance as automatic adoption. Adoption is a second sovereign
+act: local owner consent, compatibility, shadow proof, rollback path, retention
+watch, and kind-safe projection are required.

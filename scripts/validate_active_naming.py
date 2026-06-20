@@ -25,6 +25,7 @@ EXCLUDED_PARTS = {
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
+    "scripts/validate_active_naming.py",
 }
 RETIRED_TOKENS = (
     "w" + "ave",
@@ -52,6 +53,27 @@ ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+OLD_ROUTE_PREFIX = "z" + "v"
+RETIRED_ROUTE_LABEL_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9])" + OLD_ROUTE_PREFIX + r"\d+(?:[-_][A-Za-z0-9]+)+",
+    re.IGNORECASE,
+)
+RETIRED_VERSION_PASS_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9])" + "v" + r"0\.[6-9](?:\.\d+)?(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+RETIRED_EXPERIENCE_VERSION_REF_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9])experience\." + "v" + r"0\.",
+    re.IGNORECASE,
+)
+EXPERIENCE_ROUTE_PREFIX = "mechanics/experience/"
+RETIRED_NORMALIZED_LABELS = (
+    "deployment" + "-" + "watchtower",
+    "federation" + "-" + "harvest",
+    "adoption" + "-" + "forge",
+    "constitution" + "-" + "runtime",
+)
+NORMALIZED_SEPARATOR_PATTERN = re.compile(r"[_\s]+")
 
 
 def relative(path: Path) -> str:
@@ -63,23 +85,78 @@ def is_excluded(path: Path) -> bool:
     return rel.as_posix() in EXCLUDED_FILES or any(part in EXCLUDED_PARTS for part in rel.parts)
 
 
+def normalize_label_surface(value: str) -> str:
+    return NORMALIZED_SEPARATOR_PATTERN.sub("-", value).lower()
+
+
+def retired_normalized_label(value: str) -> str | None:
+    normalized = normalize_label_surface(value)
+    for label in RETIRED_NORMALIZED_LABELS:
+        if label in normalized:
+            return label
+    return None
+
+
+def retired_path_issue(value: str) -> str | None:
+    match = PATH_TOKEN_PATTERN.search(value)
+    if match:
+        return match.group(0)
+    match = RETIRED_ROUTE_LABEL_PATTERN.search(value)
+    if match:
+        return match.group(0)
+    marker = retired_normalized_label(value)
+    if marker:
+        return marker
+    return None
+
+
+def retired_content_issue(text: str) -> str | None:
+    match = ACTIVE_REFERENCE_PATTERN.search(text)
+    if match:
+        return match.group(0)
+    match = RETIRED_ROUTE_LABEL_PATTERN.search(text)
+    if match:
+        return match.group(0)
+    match = RETIRED_EXPERIENCE_VERSION_REF_PATTERN.search(text)
+    if match:
+        return match.group(0)
+    marker = retired_normalized_label(text)
+    if marker:
+        return marker
+    return None
+
+
+def retired_experience_pass_issue(value: str) -> str | None:
+    match = RETIRED_VERSION_PASS_PATTERN.search(value)
+    return match.group(0) if match else None
+
+
 def validate() -> list[str]:
     issues: list[str] = []
     for path in sorted(REPO_ROOT.rglob("*")):
         if is_excluded(path):
             continue
         rel = relative(path)
-        if PATH_TOKEN_PATTERN.search(rel):
-            issues.append(f"{rel}: retired active name in path")
+        path_issue = retired_path_issue(rel)
+        if path_issue:
+            issues.append(f"{rel}: retired active name in path: {path_issue}")
+        if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+            path_issue = retired_experience_pass_issue(rel)
+            if path_issue:
+                issues.append(f"{rel}: retired experience pass marker in path: {path_issue}")
         if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
             continue
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        match = ACTIVE_REFERENCE_PATTERN.search(text)
-        if match:
-            issues.append(f"{rel}: retired active path/id reference in content: {match.group(0)}")
+        content_issue = retired_content_issue(text)
+        if content_issue:
+            issues.append(f"{rel}: retired active path/id reference in content: {content_issue}")
+        if rel.startswith(EXPERIENCE_ROUTE_PREFIX):
+            content_issue = retired_experience_pass_issue(text)
+            if content_issue:
+                issues.append(f"{rel}: retired experience pass marker in content: {content_issue}")
     return issues
 
 
