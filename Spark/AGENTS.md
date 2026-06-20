@@ -1,4 +1,6 @@
-# Spark lane for Tree-of-Sophia
+# AGENTS.md
+
+## Applies To
 
 This file governs work on files under the `Spark/` subtree.
 
@@ -6,7 +8,13 @@ The root `AGENTS.md` remains authoritative for repository identity, ownership bo
 
 If `SWARM.md` exists in this directory, treat it as queue / swarm context. This `AGENTS.md` is the operating policy for Spark work.
 
-## Default Spark posture
+## Role
+
+`Spark/` is a fast-loop lane for bounded micro-patches and swarm context in
+Tree-of-Sophia. It serves source-traceability cleanup, route hints, and small
+clarifications while the root route card keeps repository authority.
+
+## Boundary Routes
 
 - Use Spark for short-loop work where a small diff is enough.
 - Start with a map: task, files, risks, and validation path.
@@ -30,6 +38,11 @@ If `SWARM.md` exists in this directory, treat it as queue / swarm context. This 
 - deep multi-text synthesis across many sources
 - new source interpretation leaps without clear grounding
 - flattening temporal, civilizational, or lineage context into generic summary
+
+## Validation
+
+Use the narrowest validator named by the touched owner surface. For purely
+Spark-local edits, do manual consistency review and route-card validation.
 
 ## Local done signal
 
