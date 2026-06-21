@@ -22,7 +22,15 @@
     "asserted_source_authority": "none"
   },
   "domain_branch": "ToS/philosophy",
-  "next_route": "research packet -> philosophy branch review -> source anchoring -> graph workbench -> canon review",
+  "next_route": "research packet -> branch review -> local branch skeleton -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export",
+  "packet_surfaces": [
+    "packet-contract.md",
+    "extraction-map.md",
+    "master-tables/",
+    "dossiers/",
+    "pages/"
+  ],
+  "empty_skeleton_policy": "contract and route surfaces may exist before corpus data import",
   "branch_child_pages": [
     {
       "id": "2fe778a4-3758-814b-88ff-c798b2ce57c2",

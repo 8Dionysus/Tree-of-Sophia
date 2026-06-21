@@ -75,6 +75,37 @@ def repo_relative_resolved(repo_root: Path, relative_path: Path) -> Path | None:
         return None
 
 
+def validate_route_list(
+    root: Path,
+    manifest_path: Path,
+    payload: dict[str, object],
+    key: str,
+    issues: list[Issue],
+    *,
+    required_parent: Path | None = None,
+) -> None:
+    entries = payload.get(key)
+    if entries is None:
+        return
+    if not isinstance(entries, list) or not all(isinstance(entry, str) and entry for entry in entries):
+        issues.append((manifest_path.as_posix(), f"{key} must be a list of non-empty strings"))
+        return
+    for entry in entries:
+        relative_path = Path(entry)
+        normalized_path = repo_relative_resolved(root, relative_path)
+        if relative_path.is_absolute() or ".." in relative_path.parts or normalized_path is None:
+            issues.append((entry, f"{key} entries must be normalized repo-relative paths"))
+            continue
+        if required_parent is not None:
+            parent_root = (root.resolve() / required_parent).resolve()
+            resolved_entry = (root.resolve() / normalized_path).resolve()
+            if not resolved_entry.is_relative_to(parent_root):
+                issues.append((entry, f"{key} entries must stay under {required_parent.as_posix()}"))
+                continue
+        if not (root / normalized_path).exists():
+            issues.append((entry, f"{key} entry is missing"))
+
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -131,6 +162,28 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
 
     if "source_witness_routes" in manifest:
         issues.append((MANIFEST_PATH.as_posix(), "source_witness_routes must not point to AI/Notion research packets"))
+
+    for key in ("mature_branch_shape", "promotion_pipeline"):
+        value = manifest.get(key)
+        if not isinstance(value, list) or not value or not all(isinstance(item, str) and item for item in value):
+            issues.append((MANIFEST_PATH.as_posix(), f"{key} must be a non-empty string list"))
+
+    validate_route_list(
+        root,
+        MANIFEST_PATH,
+        manifest,
+        "research_packet_contracts",
+        issues,
+        required_parent=Path("ToS/research-packets"),
+    )
+    validate_route_list(
+        root,
+        MANIFEST_PATH,
+        manifest,
+        "graph_view_routes",
+        issues,
+        required_parent=Path("ToS/philosophy/graph-workbench/views"),
+    )
 
     metadata_only_labels: set[str] = set()
     research_packet_routes = manifest.get("research_packet_routes")

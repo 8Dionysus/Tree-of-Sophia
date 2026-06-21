@@ -79,6 +79,21 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
                     "repository_paths_describe": ["philosophy branch"],
                     "metadata_only_inputs": ["capture titles"],
                 },
+                "mature_branch_shape": [
+                    "eras/<era>",
+                    "eras/<era>/regions/<region>",
+                    "eras/<era>/regions/<region>/traditions/<tradition>",
+                ],
+                "promotion_pipeline": [
+                    "research packet",
+                    "branch review",
+                    "local branch skeleton",
+                    "proposed nodes",
+                    "proposed relations",
+                    "relation pack",
+                    "canon promotion",
+                    "derived graph/export",
+                ],
                 "research_packet_routes": [
                     "ToS/research-packets/deep-research/philosophy/research.manifest.json"
                 ],
@@ -215,6 +230,26 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             (
                 "ToS/rogue/fixture-child",
                 "metadata-only source label used as path component: fixture-child",
+            ),
+            issues,
+        )
+
+    def test_graph_view_route_must_stay_under_graph_views(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            manifest_path = repo_root / "ToS/philosophy/philosophy.manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["graph_view_routes"] = ["ToS/philosophy/graph-workbench/rogue.graph.md"]
+            write_json(manifest_path, manifest)
+            write_text(repo_root / "ToS/philosophy/graph-workbench/rogue.graph.md")
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "ToS/philosophy/graph-workbench/rogue.graph.md",
+                "graph_view_routes entries must stay under ToS/philosophy/graph-workbench/views",
             ),
             issues,
         )

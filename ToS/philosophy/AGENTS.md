@@ -6,29 +6,35 @@ This file applies to the `ToS/philosophy/` domain tree.
 
 `ToS/philosophy/` is the growing domain branch for philosophy inside Tree of
 Sophia. It holds trunk, eras, regions, traditions, works, figures, concepts,
-transmissions, sources, and local graph workbenches as branch-shaped topology.
+corpora, archives, inscriptions, institutions, media, scripts, transmissions,
+controversies, sources, and local graph workbenches as branch-shaped topology.
 
 ## Operating Card
 
 | Field | Route |
 | --- | --- |
 | role | growing domain branch for philosophy |
-| input | era, region, tradition, work, figure, concept, source-corpus, transmission, research packet, or branch-graph material |
+| input | era, region, tradition, corpus, archive, inscription, work, figure, concept, institution, medium, script, transmission, controversy, source-corpus, research packet, or branch-graph material |
 | output | tree-shaped philosophical branch surface with evidence posture and local graph route |
 | owner | `ToS/philosophy/AGENTS.md`, `ToS/philosophy/README.md`, and `ToS/philosophy/philosophy.manifest.json` |
-| next route | source witness or research packet -> local domain branch -> source anchoring -> graph workbench -> canon review |
-| tools | branch manifests, research packet manifests, source witness routes, local ledgers, canon route cards |
+| next route | research packet or source witness -> branch review -> local branch skeleton -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export |
+| tools | trunk vocabularies, branch manifests, research packet contracts, source witness routes, graph view cards, local ledgers, canon route cards |
 | check | `scripts/validate_philosophy_topology.py` |
 
 ## Boundary Routes
 
 - Name paths by philosophical branch identity, not UI labels or packet titles.
 - Keep the main shape tree-first: trunk -> eras -> regions -> traditions ->
-  works, figures, concepts, transmissions, sources, graph fragments.
+  corpora, archives, inscriptions, works, figures, concepts, institutions,
+  media, scripts, transmissions, controversies, sources, graph fragments.
+- Treat corpora, archives, inscriptions, institutions, media, scripts,
+  transmissions, and controversies as first-class infrastructure for
+  philosophical growth.
 - Route AI-generated research scaffolds through
   `ToS/research-packets/deep-research/philosophy/`.
 - Route provisional extraction through `ToS/candidate-intake/`.
 - Route reviewed authored nodes and relation packs through `ToS/canon/`.
+- Keep graph views as projections over source-rooted branch growth.
 
 ## Validation
 
