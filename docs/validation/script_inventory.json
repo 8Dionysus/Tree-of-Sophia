@@ -316,7 +316,7 @@
         "ToS/derived-exports/*.json"
       ],
       "writes": [],
-      "side_effects": "temporary abyss-machine artifact bundle sidecars outside tracked source",
+      "side_effects": "temporary abyss-machine artifact bundle sidecars, registry read-model, and isolated subject-store materialization outside tracked source",
       "validation_lane": "artifact_bundles",
       "ci_inclusion": "release",
       "test_target": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",

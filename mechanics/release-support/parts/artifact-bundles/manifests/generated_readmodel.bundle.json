@@ -5,7 +5,14 @@
   "owner_repo": "Tree-of-Sophia",
   "policy_ref": "repo:abyss-machine/manifests/artifact_signature_policy.manifest.json",
   "mode": "os_abyss_local",
+  "public_safe": true,
+  "purpose": "Repo-local OS Abyss artifact bundle input for generated Tree-of-Sophia readmodels.",
   "subject_repo_root": "../../../../..",
+  "artifact_source": {
+    "kind": "generated_public_readmodel_bundle",
+    "content_identity_ref": "ToS/derived-exports/root_entry_map.min.json",
+    "source_paths_ref": "ToS/derived-exports/AGENTS.md"
+  },
   "artifact_identity": {
     "artifact_class": "tree_of_sophia_generated_readmodel_bundle",
     "abi_epoch": "tree_of_sophia_generated_readmodel_bundle_v1"
@@ -31,5 +38,37 @@
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
       "role": "corpus_index"
     }
+  ],
+  "lifecycle": {
+    "initial_state": "candidate",
+    "promotion_path": [
+      "candidate",
+      "built-local",
+      "manually-verified",
+      "release-ready",
+      "published",
+      "superseded",
+      "revoked"
+    ],
+    "latest_eligible_states": [
+      "manually-verified",
+      "release-ready",
+      "published"
+    ]
+  },
+  "consumer_contract": {
+    "stable_interface": "python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+    "consumer_expectation": "Downstream consumers select a tree_of_sophia_generated_readmodel_bundle from the registry latest read-model only after ABI verification and ToS source-first export validators pass; generated exports remain subordinate to authored ToS meaning.",
+    "registry_required": true
+  },
+  "consumer_command": [
+    "abyss-machine artifacts build-sidecars --manifest mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --bundle-dir BUNDLE_DIR",
+    "abyss-machine artifacts sign BUNDLE_DIR",
+    "abyss-machine artifacts verify BUNDLE_DIR",
+    "abyss-machine artifacts release-check BUNDLE_DIR",
+    "abyss-machine artifacts bundle-register BUNDLE_DIR --registry-dir REGISTRY_DIR --lifecycle-state release-ready --json",
+    "abyss-machine artifacts materialize-subjects BUNDLE_DIR --registry-dir REGISTRY_DIR --manifest mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --json",
+    "abyss-machine artifacts trust-gate --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --json",
+    "abyss-machine artifacts registry-latest --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --json"
   ]
 }
