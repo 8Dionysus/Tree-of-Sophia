@@ -1,10 +1,7 @@
 # Master Tables
 
-This directory is the empty route for future master-table research scaffolds.
+Prepared ToS master-table rows now live in
+`ToS/philosophy/atlas/master-tables/`.
 
-It may later hold table-level packet metadata, dispatch contracts, column
-definitions, and extraction notes. It should not receive table rows or prepared
-DOCX content until an explicit intake pass begins.
-
-Master-table material routes to `ToS/philosophy/` branch review before it can
-shape proposed nodes, proposed relations, canon, or exports.
+This research-packet directory remains only for capture context that belongs to
+the Deep Research packet route. It should not duplicate the atlas row spine.
