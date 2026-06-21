@@ -61,6 +61,30 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertIn("media credential claims", identity["privacy_boundary"])
         self.assertNotIn("c2pa", json.dumps(identity, separators=(",", ":")).lower())
 
+    def test_artifact_bundle_manifest_requires_registry_lifecycle(self) -> None:
+        manifest = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "mechanics"
+                / "release-support"
+                / "parts"
+                / "artifact-bundles"
+                / "manifests"
+                / "generated_readmodel.bundle.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertTrue(manifest["public_safe"])
+        self.assertEqual(manifest["artifact_source"]["kind"], "generated_public_readmodel_bundle")
+        self.assertEqual(manifest["lifecycle"]["initial_state"], "candidate")
+        self.assertIn("release-ready", manifest["lifecycle"]["promotion_path"])
+        self.assertTrue(manifest["consumer_contract"]["registry_required"])
+        command_text = "\n".join(manifest["consumer_command"])
+        self.assertIn("bundle-register", command_text)
+        self.assertIn("materialize-subjects", command_text)
+        self.assertIn("trust-gate", command_text)
+        self.assertIn("registry-latest", command_text)
+
 
 if __name__ == "__main__":
     unittest.main()

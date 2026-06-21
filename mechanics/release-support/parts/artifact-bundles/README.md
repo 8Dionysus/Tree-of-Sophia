@@ -23,3 +23,9 @@ Current controls are ABI-only for JSON readmodels. C2PA belongs to public
 PDF/media/visual exports when such an export exists; SLSA/in-toto and
 Sigstore/Cosign trigger only when a generated export becomes a published
 release/export bundle.
+
+The validator also writes a temporary OS Abyss bundle registry read-model,
+requires a `release-ready` latest record only after successful ABI verification,
+and rehearses rejection of corrupted ABI sidecars, private markers, unverified
+latest promotion, terminal revocation, consumer trust-gate selection, and
+isolated subject-store materialization.
