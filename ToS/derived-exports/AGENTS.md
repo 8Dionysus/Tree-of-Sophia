@@ -17,7 +17,7 @@ ToS authority.
 | output | generated export payloads and compact read models |
 | owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | KAG export generator/validator, corpus-index builder/validator, source validators |
+| tools | KAG export generator/validator, corpus-index builder/validator, philosophy-atlas projection builder/validator, source validators |
 | check | generated parity and export validation |
 
 ## Boundary Routes
@@ -29,11 +29,13 @@ ToS authority.
   repositories.
 - Let the corpus index cover `ToS/` as an index that returns to authored
   meaning.
+- Let the philosophy atlas projection expose atlas rows, prepared dossier
+  pressure, and graph-view routes as a derived read model for review.
 
 ## Validation
 
 Use the relevant builder `--check` and validator for the export touched:
-KAG export, root-entry map, corpus index, public mirror sync, or tiny-entry
-route.
+KAG export, root-entry map, corpus index, philosophy atlas projection, public
+mirror sync, or tiny-entry route.
 For release-facing generated readmodels, also run the OS Abyss artifact bundle
 validator under `mechanics/release-support/parts/artifact-bundles/scripts/`.

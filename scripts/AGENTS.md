@@ -33,6 +33,11 @@ checked whole-corpus index for graph review. They index the whole `ToS/` home
 as a derived resource map; they do not move runtime projection or visualization
 authority into Tree of Sophia.
 
+`build_philosophy_atlas_projection.py` and
+`validate_philosophy_atlas_projection.py` publish the first atlas-shaped
+tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
+visualization.
+
 ## Operating Card
 
 | Field | Route |
@@ -58,7 +63,6 @@ Prefer:
 Avoid:
 - network calls
 - hidden state
-- broad corpus automation
 - broad corpus automation without an explicit derived-export contract
 - discovery magic that blurs ownership
 - turning validators into a runtime or orchestration control plane
@@ -102,6 +106,7 @@ Local owner routes:
 | bounded KAG export | `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py` when inputs move, then `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` |
 | questbook surface | `python mechanics/questbook/scripts/validate_questbook_surface.py` |
 | corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
+| philosophy atlas projection | `python scripts/build_philosophy_atlas_projection.py --check` and `python scripts/validate_philosophy_atlas_projection.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

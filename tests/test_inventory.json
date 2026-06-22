@@ -227,6 +227,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_atlas_projection.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/philosophy-atlas-projection.schema.json",
+      "protects": "philosophy atlas projection counts, graph-view exposure, and runtime boundary",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_atlas_projection.py",
+      "failure_route": "Fix the philosophy-atlas projection schema, atlas source map, or builder before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_tos_node_contract_schema.py",
       "home": "tests",
       "home_scope": "root",
