@@ -321,6 +321,14 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
+        "label": "check philosophy atlas projection",
+        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy atlas projection",
+        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
+      },
+      {
         "label": "check decision indexes",
         "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
       },
@@ -379,6 +387,14 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check philosophy atlas projection",
+        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy atlas projection",
+        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
       }
     ],
     "artifact_bundles": [
@@ -431,6 +447,14 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check philosophy atlas projection",
+        "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy atlas projection",
+        "command": ["python", "scripts/validate_philosophy_atlas_projection.py"]
       },
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",

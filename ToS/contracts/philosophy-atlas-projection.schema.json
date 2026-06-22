@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/philosophy-atlas-projection.schema.json",
+  "title": "Tree of Sophia philosophy atlas projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "schema_ref",
+    "owner_repo",
+    "surface_kind",
+    "source_atlas_ref",
+    "runtime_projection_boundary",
+    "validation_refs",
+    "counts",
+    "nodes",
+    "edges",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_philosophy_atlas_projection_v1"
+    },
+    "schema_ref": {
+      "const": "ToS/contracts/philosophy-atlas-projection.schema.json"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "surface_kind": {
+      "const": "derived_philosophy_atlas_projection"
+    },
+    "source_atlas_ref": {
+      "const": "ToS/philosophy/atlas/atlas.manifest.json"
+    },
+    "runtime_projection_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_owner", "runtime_scope", "tos_authority_scope"],
+      "properties": {
+        "runtime_owner": {
+          "const": "abyss-stack"
+        },
+        "runtime_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "tos_authority_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "validation_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "node_type", "label", "source_ref", "properties"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edge_id", "from_id", "predicate_id", "to_id", "source_ref", "properties"],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predicate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "path", "message"],
+      "properties": {
+        "level": {
+          "enum": ["warning", "error"]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
