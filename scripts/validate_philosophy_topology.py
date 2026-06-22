@@ -184,6 +184,14 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         issues,
         required_parent=Path("ToS/philosophy/graph-workbench/views"),
     )
+    validate_route_list(
+        root,
+        MANIFEST_PATH,
+        manifest,
+        "atlas_routes",
+        issues,
+        required_parent=Path("ToS/philosophy/atlas"),
+    )
 
     metadata_only_labels: set[str] = set()
     research_packet_routes = manifest.get("research_packet_routes")

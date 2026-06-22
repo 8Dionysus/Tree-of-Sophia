@@ -15,11 +15,17 @@ local graph fragments.
 
 ```text
 philosophy/
+  atlas/
   trunk/
   eras/
   threads/
   graph-workbench/
 ```
+
+`atlas/` holds the prepared master-table row spine and A-series dossier index
+for the whole philosophy tree. It is the navigation body for ToS growth.
+Master-table patches should update the atlas directly and then route branch
+work through the owning era, region, or tradition.
 
 `trunk/` holds branch-wide law: evidence status, chronology posture, and naming
 rules. Its current vocabulary homes are:
@@ -101,6 +107,6 @@ region, tradition, corpus, archive, inscription, work, figure, concept,
 institution, medium, script, source corpus, transmission, controversy,
 decipherment route, or local graph route.
 
-AI-generated research packets can suggest branch leads, but they do not witness
-source authority. Claims that matter must be anchored later in real source
-witnesses, published works, editions, translations, or reviewed canon surfaces.
+Prepared atlas rows name ToS growth pressure. Historical source claims that
+matter must still be anchored later in real source witnesses, published works,
+editions, translations, or reviewed canon surfaces.

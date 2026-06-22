@@ -33,7 +33,10 @@
       "source-corpus",
       "transmission",
       "controversy",
-      "graph-route"
+      "graph-route",
+      "atlas",
+      "master-table row",
+      "dossier index"
     ],
     "metadata_only_inputs": [
       "capture page titles",
@@ -42,6 +45,7 @@
     ]
   },
   "primary_growth_order": [
+    "atlas",
     "trunk",
     "eras",
     "regions",
@@ -92,9 +96,10 @@
     "eras/<era>/regions/<region>/traditions/<tradition>/graph-workbench"
   ],
   "promotion_pipeline": [
-    "research packet",
-    "branch review",
+    "atlas row",
+    "branch growth",
     "local branch skeleton",
+    "local graph workbench",
     "proposed nodes",
     "proposed relations",
     "relation pack",
@@ -103,6 +108,12 @@
   ],
   "branch_manifests": [
     "ToS/philosophy/trunk/branch.manifest.json",
+    "ToS/philosophy/atlas/branch.manifest.json",
+    "ToS/philosophy/atlas/master-tables/branch.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-i/branch.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-ii/branch.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-iii/branch.manifest.json",
+    "ToS/philosophy/atlas/dossiers/branch.manifest.json",
     "ToS/philosophy/trunk/branch-law/branch.manifest.json",
     "ToS/philosophy/trunk/evidence-status/branch.manifest.json",
     "ToS/philosophy/trunk/chronology/branch.manifest.json",
@@ -166,5 +177,16 @@
     "ToS/philosophy/graph-workbench/views/epigraphic-network.graph.md",
     "ToS/philosophy/graph-workbench/views/lost-corpus.graph.md",
     "ToS/philosophy/graph-workbench/views/canon-promotion.graph.md"
+  ],
+  "atlas_routes": [
+    "ToS/philosophy/atlas/atlas.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+    "ToS/philosophy/atlas/master-tables/table-ii/table.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
+    "ToS/philosophy/atlas/master-tables/table-iii/table.manifest.json",
+    "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
+    "ToS/philosophy/atlas/dossiers/index.jsonl",
+    "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
   ]
 }

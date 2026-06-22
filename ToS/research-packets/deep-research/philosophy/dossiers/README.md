@@ -1,11 +1,8 @@
 # Dossiers
 
-This directory is the empty route for future philosophy research dossiers.
+Prepared A-series dossier shape is indexed in
+`ToS/philosophy/atlas/dossiers/`.
 
-A dossier may later gather non-authoritative analysis around a possible branch,
-corpus, institution, medium, concept, controversy, or transmission. It remains
-a research scaffold until source anchoring and branch review give it a stronger
-route.
-
-Dossiers do not replace source witnesses, doctrine, canon, or graph workbench
-surfaces.
+This research-packet directory remains only for packet capture context. It
+should not duplicate the atlas dossier index or pretend to be the philosophy
+tree itself.
