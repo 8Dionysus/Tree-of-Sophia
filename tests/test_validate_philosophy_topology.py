@@ -254,6 +254,26 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             issues,
         )
 
+    def test_graph_view_contract_route_must_stay_under_graph_views(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            manifest_path = repo_root / "ToS/philosophy/philosophy.manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["graph_view_contracts"] = ["ToS/philosophy/graph-workbench/rogue-contract.json"]
+            write_json(manifest_path, manifest)
+            write_json(repo_root / "ToS/philosophy/graph-workbench/rogue-contract.json", {"ok": True})
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "ToS/philosophy/graph-workbench/rogue-contract.json",
+                "graph_view_contracts entries must stay under ToS/philosophy/graph-workbench/views",
+            ),
+            issues,
+        )
+
     def test_atlas_route_must_stay_under_philosophy_atlas(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_root = Path(tmpdir) / "Tree-of-Sophia"

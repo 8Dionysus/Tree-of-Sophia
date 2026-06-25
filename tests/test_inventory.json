@@ -242,6 +242,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_graph_views.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/philosophy-graph-views.schema.json",
+      "protects": "philosophy graph-view catalog parity, lens filters, and downstream runtime boundary",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_graph_views.py",
+      "failure_route": "Fix the graph-view contract, generated catalog, or builder before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_tos_node_contract_schema.py",
       "home": "tests",
       "home_scope": "root",

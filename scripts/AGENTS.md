@@ -38,6 +38,10 @@ authority into Tree of Sophia.
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
 visualization.
 
+`build_philosophy_graph_views.py` and `validate_philosophy_graph_views.py`
+publish the graph-view switching catalog from source-owned view cards and
+`view-contracts.json`.
+
 ## Operating Card
 
 | Field | Route |
@@ -52,7 +56,7 @@ visualization.
 
 ## Editing posture
 
-Keep the pilot narrow to the current Zarathustra route.
+Keep each generator or validator narrow to its declared source route.
 
 Prefer:
 - explicit file dependencies
@@ -107,6 +111,7 @@ Local owner routes:
 | questbook surface | `python mechanics/questbook/scripts/validate_questbook_surface.py` |
 | corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
 | philosophy atlas projection | `python scripts/build_philosophy_atlas_projection.py --check` and `python scripts/validate_philosophy_atlas_projection.py` |
+| philosophy graph views | `python scripts/build_philosophy_graph_views.py --check` and `python scripts/validate_philosophy_graph_views.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

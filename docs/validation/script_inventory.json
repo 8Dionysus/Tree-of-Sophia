@@ -262,6 +262,32 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_philosophy_graph_views.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/AGENTS.md",
+      "source_truth": [
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "scripts/philosophy_graph_views_common.py",
+        "ToS/contracts/philosophy-graph-views.schema.json"
+      ],
+      "reads": [
+        "ToS/philosophy/graph-workbench/views/*.graph.md",
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/philosophy/trunk/graph-layers/README.md",
+        "ToS/derived-exports/philosophy_atlas_projection.min.json",
+        "ToS/contracts/philosophy-graph-views.schema.json"
+      ],
+      "writes": [
+        "ToS/derived-exports/philosophy_graph_views.min.json unless --check is used"
+      ],
+      "side_effects": "tracked generated philosophy graph-view catalog for downstream lens switching",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_philosophy_graph_views.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/generate_decision_indexes.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -447,6 +473,28 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_philosophy_atlas_projection.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/philosophy_graph_views_common.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/contracts/philosophy-graph-views.schema.json",
+      "source_truth": [
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/contracts/philosophy-graph-views.schema.json"
+      ],
+      "reads": [
+        "ToS/philosophy/graph-workbench/views/*.graph.md",
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/philosophy/trunk/graph-layers/README.md",
+        "ToS/derived-exports/philosophy_atlas_projection.min.json"
+      ],
+      "writes": [],
+      "side_effects": "library only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_philosophy_graph_views.py",
       "disposition": "keep"
     },
     {
@@ -699,6 +747,26 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_philosophy_atlas_projection.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_philosophy_graph_views.py",
+      "family": "projection_validator",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/philosophy-graph-views.schema.json",
+      "source_truth": [
+        "ToS/derived-exports/philosophy_graph_views.min.json",
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/contracts/philosophy-graph-views.schema.json"
+      ],
+      "reads": [
+        "ToS/derived-exports/philosophy_graph_views.min.json"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_philosophy_graph_views.py",
       "disposition": "keep"
     },
     {

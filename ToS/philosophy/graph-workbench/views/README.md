@@ -1,10 +1,14 @@
 # Graph Views
 
-`views/` holds empty graph-view route cards.
+`views/` holds graph-view route cards and the source-owned switching contract.
 
 Each view names a future visualization lens. It does not hold graph data, and
 it does not replace source witnesses, branch review, proposed nodes, proposed
 relations, canon relation packs, or derived exports.
+
+`view-contracts.json` maps those route cards to graph layers, current atlas
+projection filters, and future branch filters. It is source-owned input for the
+generated `ToS/derived-exports/philosophy_graph_views.min.json` catalog.
 
 ## Views
 

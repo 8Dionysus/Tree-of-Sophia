@@ -188,6 +188,14 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         root,
         MANIFEST_PATH,
         manifest,
+        "graph_view_contracts",
+        issues,
+        required_parent=Path("ToS/philosophy/graph-workbench/views"),
+    )
+    validate_route_list(
+        root,
+        MANIFEST_PATH,
+        manifest,
         "atlas_routes",
         issues,
         required_parent=Path("ToS/philosophy/atlas"),
