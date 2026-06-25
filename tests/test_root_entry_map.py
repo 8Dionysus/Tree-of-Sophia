@@ -79,11 +79,19 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertEqual(manifest["lifecycle"]["initial_state"], "candidate")
         self.assertIn("release-ready", manifest["lifecycle"]["promotion_path"])
         self.assertTrue(manifest["consumer_contract"]["registry_required"])
+        self.assertTrue(manifest["consumer_contract"]["subject_store_required"])
+        self.assertEqual(
+            manifest["consumer_contract"]["admission_gate"],
+            "fail_closed_consumer_admission",
+        )
         command_text = "\n".join(manifest["consumer_command"])
-        self.assertIn("bundle-register", command_text)
+        self.assertIn("evidence-promote", command_text)
         self.assertIn("materialize-subjects", command_text)
         self.assertIn("trust-gate", command_text)
         self.assertIn("registry-latest", command_text)
+        self.assertIn("--consumer-ref Tree-of-Sophia:generated-readmodel", command_text)
+        self.assertIn("--source-repo Tree-of-Sophia", command_text)
+        self.assertIn("--trust-root-mode host_managed", command_text)
 
 
 if __name__ == "__main__":

@@ -58,17 +58,20 @@
   },
   "consumer_contract": {
     "stable_interface": "python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
-    "consumer_expectation": "Downstream consumers select a tree_of_sophia_generated_readmodel_bundle from the registry latest read-model only after ABI verification and ToS source-first export validators pass; generated exports remain subordinate to authored ToS meaning.",
-    "registry_required": true
+    "consumer_expectation": "Downstream consumers select a tree_of_sophia_generated_readmodel_bundle from the registry latest read-model only after ABI verification, durable evidence promotion, materialized subject-store verification, source/trust-root matching, and ToS source-first export validators pass; generated exports remain subordinate to authored ToS meaning.",
+    "registry_required": true,
+    "subject_store_required": true,
+    "admission_gate": "fail_closed_consumer_admission",
+    "consumer_verdict": "allow_or_deny_required_before_use"
   },
   "consumer_command": [
     "abyss-machine artifacts build-sidecars --manifest mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --bundle-dir BUNDLE_DIR",
     "abyss-machine artifacts sign BUNDLE_DIR",
     "abyss-machine artifacts verify BUNDLE_DIR",
     "abyss-machine artifacts release-check BUNDLE_DIR",
-    "abyss-machine artifacts bundle-register BUNDLE_DIR --registry-dir REGISTRY_DIR --lifecycle-state release-ready --json",
-    "abyss-machine artifacts materialize-subjects BUNDLE_DIR --registry-dir REGISTRY_DIR --manifest mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --json",
-    "abyss-machine artifacts trust-gate --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --json",
-    "abyss-machine artifacts registry-latest --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --json"
+    "abyss-machine artifacts evidence-promote BUNDLE_DIR --registry-dir REGISTRY_DIR --lifecycle-state release-ready --consumer-ref Tree-of-Sophia:generated-readmodel --evidence-ref BUNDLE_DIR/artifact.verify.json --source-repo Tree-of-Sophia --source-ref mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --producer tree-of-sophia-generated-readmodel-builder --trust-root-mode host_managed --json",
+    "abyss-machine artifacts materialize-subjects BUNDLE_DIR --store-root SUBJECT_STORE_ROOT --registry-dir REGISTRY_DIR --manifest mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json --consumer-intent agent --source-repo Tree-of-Sophia --trust-root-mode host_managed --json",
+    "abyss-machine artifacts trust-gate --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --trust-root-mode host_managed --subject-digest SUBJECT_DIGEST --json",
+    "abyss-machine artifacts registry-latest --registry-dir REGISTRY_DIR --artifact-class tree_of_sophia_generated_readmodel_bundle --consumer-intent agent --source-repo Tree-of-Sophia --trust-root-mode host_managed --json"
   ]
 }

@@ -24,8 +24,13 @@ PDF/media/visual exports when such an export exists; SLSA/in-toto and
 Sigstore/Cosign trigger only when a generated export becomes a published
 release/export bundle.
 
-The validator also writes a temporary OS Abyss bundle registry read-model,
-requires a `release-ready` latest record only after successful ABI verification,
+The validator also promotes durable release-ready evidence with source and
+host-managed trust-root metadata, materializes an artifact subject store,
+requires an explicit agent-intent trust-gate allow decision before consumption,
 and rehearses rejection of corrupted ABI sidecars, private markers, unverified
 latest promotion, terminal revocation, consumer trust-gate selection, and
 isolated subject-store materialization.
+
+Generated bundle directories, registry records, subject stores, and sidecars
+are generated evidence under ignored `dist/` paths. They are not authored ToS
+meaning and are not checked into the repository.
