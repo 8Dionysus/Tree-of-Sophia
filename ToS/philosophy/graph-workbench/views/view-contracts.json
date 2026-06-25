@@ -1,0 +1,232 @@
+{
+  "schema_version": "tos_philosophy_graph_view_contracts_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "ToS/philosophy/graph-workbench/views/README.md",
+  "contract_role": "source-owned graph view switching map",
+  "source_view_root": "ToS/philosophy/graph-workbench/views",
+  "graph_layer_source_ref": "ToS/philosophy/trunk/graph-layers/README.md",
+  "atlas_projection_ref": "ToS/derived-exports/philosophy_atlas_projection.min.json",
+  "downstream_consumer": "abyss-stack",
+  "views": [
+    {
+      "view_id": "chronology",
+      "route_card": "ToS/philosophy/graph-workbench/views/chronology.graph.md",
+      "order": 10,
+      "graph_layers": ["historical-relation", "evidence-relation"],
+      "current_projection_filters": {
+        "node_types": ["master-table-row", "prepared-dossier"],
+        "predicates": ["contains_row", "has_prepared_dossier"],
+        "row_fields": ["formation", "fixation", "canonization", "row_order", "launch_order", "status", "confidence"],
+        "node_type_keys": ["preservation_state", "controversy"],
+        "relation_kind_keys": ["canonized_by", "contested_by", "preserved_in", "survives_as"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["event-node", "source-witness", "preservation-state", "controversy"],
+        "relation_kinds": ["attested_in", "preserved_by", "received_by", "contested_by"]
+      },
+      "layout_hint": "timeline-lanes",
+      "group_by": ["table_id", "status"],
+      "sort_fields": ["launch_order", "row_order", "formation", "fixation", "canonization"]
+    },
+    {
+      "view_id": "transmission",
+      "route_card": "ToS/philosophy/graph-workbench/views/transmission.graph.md",
+      "order": 20,
+      "graph_layers": ["transmission-relation", "source-relation", "historical-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-relation-kind", "atlas-node-type", "master-table-row"],
+        "predicates": ["has_relation_pressure", "has_node_type_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "source_document", "formation", "fixation"],
+        "node_type_keys": ["transmission_channel", "language_script", "institution", "text_corpus", "school_tradition"],
+        "relation_kind_keys": ["transmits_to", "receives_from", "translated_into", "commented_by", "influences"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["transmission-node", "language-script", "institution", "source-corpus"],
+        "relation_kinds": ["transmits_to", "receives_from", "translated_through", "copied_through", "commented_by"]
+      },
+      "layout_hint": "directed-corridors",
+      "group_by": ["relation_kind", "node_type_key"],
+      "sort_fields": ["row_order", "launch_order"]
+    },
+    {
+      "view_id": "source-evidence",
+      "route_card": "ToS/philosophy/graph-workbench/views/source-evidence.graph.md",
+      "order": 30,
+      "graph_layers": ["source-relation", "evidence-relation"],
+      "current_projection_filters": {
+        "node_types": ["master-table-row", "prepared-dossier", "atlas-node-type", "atlas-relation-kind"],
+        "predicates": ["has_prepared_dossier", "has_node_type_pressure", "has_relation_pressure"],
+        "row_fields": ["source_document", "source_section", "confidence", "status", "dossier_available"],
+        "node_type_keys": ["preservation_state", "frontier_case", "controversy", "medium", "text_corpus"],
+        "relation_kind_keys": ["contested_by", "preserved_in", "preserves_in", "fragments_preserved_by", "uncertain_relation"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["source-witness", "artifact", "preservation-state", "controversy"],
+        "relation_kinds": ["attested_in", "evidence_for", "preserved_by", "contested_by"]
+      },
+      "layout_hint": "evidence-dag",
+      "group_by": ["confidence", "status", "dossier_available"],
+      "sort_fields": ["confidence", "status", "row_order"]
+    },
+    {
+      "view_id": "concept-lineage",
+      "route_card": "ToS/philosophy/graph-workbench/views/concept-lineage.graph.md",
+      "order": 40,
+      "graph_layers": ["conceptual-relation", "canonical-relation", "candidate-relation"],
+      "current_projection_filters": {
+        "node_types": ["master-table-row", "prepared-dossier", "atlas-node-type", "atlas-relation-kind"],
+        "predicates": ["has_prepared_dossier", "has_node_type_pressure", "has_relation_pressure"],
+        "row_fields": ["research_node", "formation", "canonization", "status"],
+        "node_type_keys": ["concept", "genre", "school_tradition", "method"],
+        "relation_kind_keys": ["develops_concept", "transforms_concept", "belongs_to_genre", "commented_by", "polemicizes_with", "influences"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["concept-node", "problem-node", "work-node", "school-tradition"],
+        "relation_kinds": ["develops_from", "parallel_to", "contrasts_with", "commentary_on"]
+      },
+      "layout_hint": "semantic-lineage",
+      "group_by": ["node_type_key", "relation_kind"],
+      "sort_fields": ["formation", "canonization", "row_order"]
+    },
+    {
+      "view_id": "institution-media",
+      "route_card": "ToS/philosophy/graph-workbench/views/institution-media.graph.md",
+      "order": 50,
+      "graph_layers": ["historical-relation", "source-relation", "transmission-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "source_document", "formation", "fixation"],
+        "node_type_keys": ["institution", "medium", "language_script", "text_corpus", "transmission_channel"],
+        "relation_kind_keys": ["institutionalized_in", "uses_script", "uses_language", "preserved_in", "preserves_in"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["institution-node", "medium-node", "script-node", "archive-node"],
+        "relation_kinds": ["institutionalized_in", "uses_medium", "uses_script", "preserved_by"]
+      },
+      "layout_hint": "infrastructure-map",
+      "group_by": ["node_type_key", "relation_kind"],
+      "sort_fields": ["formation", "fixation", "row_order"]
+    },
+    {
+      "view_id": "script-decipherment",
+      "route_card": "ToS/philosophy/graph-workbench/views/script-decipherment.graph.md",
+      "order": 60,
+      "graph_layers": ["source-relation", "evidence-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "confidence", "status", "source_document"],
+        "node_type_keys": ["language_script", "medium", "frontier_case", "preservation_state", "controversy"],
+        "relation_kind_keys": ["uses_script", "uses_language", "contested_by", "uncertain_relation", "preserved_in"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["script-node", "artifact-node", "inscription-node", "decipherment-node", "controversy-node"],
+        "relation_kinds": ["deciphered_by", "partly_deciphered_as", "attested_in", "contested_by"]
+      },
+      "layout_hint": "uncertainty-route",
+      "group_by": ["confidence", "node_type_key"],
+      "sort_fields": ["status", "confidence", "row_order"]
+    },
+    {
+      "view_id": "imperial-multilingualism",
+      "route_card": "ToS/philosophy/graph-workbench/views/imperial-multilingualism.graph.md",
+      "order": 70,
+      "graph_layers": ["source-relation", "historical-relation", "transmission-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "source_document", "formation", "fixation"],
+        "node_type_keys": ["language_script", "institution", "medium", "text_corpus", "transmission_channel"],
+        "relation_kind_keys": ["uses_language", "uses_script", "translated_into", "institutionalized_in", "transmits_to", "receives_from"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["language-script", "version-node", "inscription-node", "decree-node", "archive-node"],
+        "relation_kinds": ["versioned_as", "translated_through", "written_in", "uses_script", "institutionalized_in"]
+      },
+      "layout_hint": "parallel-version-map",
+      "group_by": ["node_type_key", "relation_kind"],
+      "sort_fields": ["formation", "fixation", "row_order"]
+    },
+    {
+      "view_id": "ritual-law",
+      "route_card": "ToS/philosophy/graph-workbench/views/ritual-law.graph.md",
+      "order": 80,
+      "graph_layers": ["historical-relation", "conceptual-relation", "evidence-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "formation", "fixation", "status"],
+        "node_type_keys": ["concept", "genre", "institution", "text_corpus", "school_tradition"],
+        "relation_kind_keys": ["institutionalized_in", "develops_concept", "belongs_to_genre", "contested_by", "canonized_by"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["treaty-node", "decree-node", "ritual-node", "institution-node", "concept-node"],
+        "relation_kinds": ["legitimates", "ritualizes", "decreed_by", "belongs_to", "institutionalized_in", "contested_by"]
+      },
+      "layout_hint": "law-ritual-infrastructure",
+      "group_by": ["node_type_key", "relation_kind"],
+      "sort_fields": ["formation", "fixation", "row_order"]
+    },
+    {
+      "view_id": "epigraphic-network",
+      "route_card": "ToS/philosophy/graph-workbench/views/epigraphic-network.graph.md",
+      "order": 90,
+      "graph_layers": ["source-relation", "historical-relation", "transmission-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "source_document", "formation", "fixation"],
+        "node_type_keys": ["language_script", "medium", "institution", "transmission_channel", "text_corpus"],
+        "relation_kind_keys": ["uses_script", "uses_language", "transmits_to", "preserved_in", "survives_as"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["inscription-node", "artifact-node", "network-node", "language-script", "medium-node"],
+        "relation_kinds": ["inscribed_on", "written_in", "uses_script", "transmits_to", "mediated_through"]
+      },
+      "layout_hint": "distributed-public-writing",
+      "group_by": ["node_type_key", "relation_kind"],
+      "sort_fields": ["formation", "fixation", "row_order"]
+    },
+    {
+      "view_id": "lost-corpus",
+      "route_card": "ToS/philosophy/graph-workbench/views/lost-corpus.graph.md",
+      "order": 100,
+      "graph_layers": ["source-relation", "evidence-relation", "transmission-relation"],
+      "current_projection_filters": {
+        "node_types": ["prepared-dossier", "atlas-node-type", "atlas-relation-kind", "master-table-row"],
+        "predicates": ["has_node_type_pressure", "has_relation_pressure", "has_prepared_dossier"],
+        "row_fields": ["research_node", "confidence", "status", "source_document"],
+        "node_type_keys": ["preservation_state", "text_corpus", "transmission_channel", "frontier_case", "controversy"],
+        "relation_kind_keys": ["preserved_in", "preserves_in", "fragments_preserved_by", "survives_as", "contested_by", "uncertain_relation"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["corpus-node", "preservation-state", "edition-node", "controversy-node", "source-witness"],
+        "relation_kinds": ["lost_but_attested_by", "mediated_through", "preserved_by", "evidence_for"]
+      },
+      "layout_hint": "absence-evidence-route",
+      "group_by": ["confidence", "node_type_key"],
+      "sort_fields": ["status", "confidence", "row_order"]
+    },
+    {
+      "view_id": "canon-promotion",
+      "route_card": "ToS/philosophy/graph-workbench/views/canon-promotion.graph.md",
+      "order": 110,
+      "graph_layers": ["candidate-relation", "canonical-relation", "evidence-relation", "source-relation"],
+      "current_projection_filters": {
+        "node_types": ["master-table-row", "prepared-dossier", "atlas-node-type", "atlas-relation-kind", "graph-view"],
+        "predicates": ["has_prepared_dossier", "has_node_type_pressure", "has_relation_pressure", "contains_view"],
+        "row_fields": ["status", "confidence", "dossier_available", "research_node", "source_document"],
+        "node_type_keys": ["concept", "text_corpus", "genre", "school_tradition", "institution"],
+        "relation_kind_keys": ["canonized_by", "develops_concept", "belongs_to_genre", "contested_by", "uncertain_relation"]
+      },
+      "future_branch_filters": {
+        "node_kinds": ["research-packet-node", "candidate-node", "candidate-relation", "relation-pack", "canon-node"],
+        "relation_kinds": ["promoted_to", "reviewed_by", "canonized_by", "derived_as"]
+      },
+      "layout_hint": "promotion-flow",
+      "group_by": ["status", "dossier_available"],
+      "sort_fields": ["status", "confidence", "row_order"]
+    }
+  ]
+}

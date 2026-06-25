@@ -19,5 +19,6 @@ branch review
             -> derived graph/export
 ```
 
-Use `views/` to name graph lenses. Use `ToS/canon/` for reviewed authority and
-`ToS/derived-exports/` for generated readers.
+Use `views/` to name graph lenses and maintain their switching contract. Use
+`ToS/canon/` for reviewed authority and `ToS/derived-exports/` for generated
+readers.

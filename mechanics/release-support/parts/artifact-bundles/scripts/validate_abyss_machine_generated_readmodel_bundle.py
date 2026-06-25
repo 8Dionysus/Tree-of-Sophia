@@ -40,6 +40,7 @@ CONSUMER_REF = "Tree-of-Sophia:generated-readmodel"
 TRUST_ROOT_MODE = "host_managed"
 PRODUCER = "Tree-of-Sophia generated readmodel builder"
 EXPECTED_REQUIRED_CONTROLS = ["abi_signature"]
+REQUIRED_SUBJECT_STORE_BLOCKER = "required_artifact_subject_store_not_verified"
 
 
 def _candidate_abyss_machine_roots() -> list[Path]:
@@ -417,6 +418,38 @@ def _trust_gate_allow_latest(
     }
 
 
+def _trust_gate_denies_without_subject_store(
+    artifact_bundles: Any,
+    registry_dir: Path,
+    registry_roundtrip: dict[str, Any],
+) -> dict[str, Any]:
+    record = registry_roundtrip.get("promoted", {}).get("record", {})
+    trust_gate = artifact_bundles.trust_gate(
+        registry_dir,
+        artifact_class=ARTIFACT_CLASS,
+        subject_digest=str(record.get("subject_digest") or ""),
+        consumer_intent=CONSUMER_INTENT,
+        expected_source_repo=OWNER_REPO,
+        expected_trust_root_mode=TRUST_ROOT_MODE,
+    )
+    inspected_claims = trust_gate.get("inspected_claims", {})
+    return {
+        "ok": bool(
+            trust_gate.get("ok") is False
+            and trust_gate.get("verdict") == "deny"
+            and trust_gate.get("decision", {}).get("allow") is False
+            and REQUIRED_SUBJECT_STORE_BLOCKER in trust_gate.get("blockers", [])
+            and inspected_claims.get("registry_latest", {}).get("selected_record_is_latest") is True
+            and inspected_claims.get("controls", {}).get("required_controls_missing") == []
+            and inspected_claims.get("source", {}).get("source_repo_matched") is True
+            and inspected_claims.get("trust_root", {}).get("trust_root_mode_matched") is True
+            and inspected_claims.get("artifact_subject_store", {}).get("required") is True
+            and inspected_claims.get("artifact_subject_store", {}).get("ok") is False
+        ),
+        "trust_gate": trust_gate,
+    }
+
+
 def _verify_missing_abi(artifact_bundles: Any, abyss_repo_root: Path, bundle_dir: Path, tmp_root: Path) -> dict[str, Any]:
     candidate = _copy_bundle(bundle_dir, tmp_root / "missing-abi")
     path = candidate / artifact_bundles.ABI_SIDECAR
@@ -678,11 +711,10 @@ def _validate_in_bundle_dir(
         manifest=manifest,
         abyss_repo_root=abyss_repo_root,
     )
-    pre_materialization_gate = _trust_gate_allow_latest(
+    pre_materialization_gate = _trust_gate_denies_without_subject_store(
         artifact_bundles,
         registry_dir,
         registry,
-        require_subject_store=False,
     )
     materialized = artifact_bundles.materialize_artifact_subjects(
         bundle_dir,
