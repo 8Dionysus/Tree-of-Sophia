@@ -73,10 +73,26 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertIn("chronology", nodes["atlas-row:A01"]["view_ids"])
         self.assertTrue(nodes["atlas-row:A01"]["graph_layers"])
         self.assertIn("chronology", edges["edge:row:A01:has-dossier:A01"]["view_ids"])
-        self.assertIn("historical-relation", edges["edge:row:A01:has-dossier:A01"]["graph_layers"])
+        self.assertEqual(
+            set(edges["edge:row:A01:has-dossier:A01"]["graph_layers"]),
+            {"evidence-relation", "source-relation"},
+        )
         self.assertIn("candidate-node:table-i-a01-node-001", nodes)
+        self.assertIn("candidate-relation", nodes["candidate-node:table-i-a01-node-001"]["graph_layers"])
         self.assertIn("edge:candidate-relation:table-i-a01-relation-001", edges)
         self.assertIn("script-decipherment", edges["edge:candidate-relation:table-i-a01-relation-001"]["view_ids"])
+
+    def test_layer_counts_are_semantic_not_view_wide(self) -> None:
+        payload = self.load_projection()
+        layer_counts = {row["layer_id"]: row for row in payload["layer_counts"]}
+        self.assertLess(layer_counts["canonical-relation"]["edge_count"], layer_counts["candidate-relation"]["edge_count"])
+        self.assertLess(layer_counts["historical-relation"]["node_count"], layer_counts["evidence-relation"]["node_count"])
+        packets = {packet["view_id"]: packet for packet in payload["review_packets"]}
+        chronology_layers = {row["layer_id"]: row for row in packets["chronology"]["layer_counts"]}
+        self.assertNotEqual(
+            chronology_layers["evidence-relation"]["node_count"],
+            chronology_layers["historical-relation"]["node_count"],
+        )
 
     def test_clusters_preserve_membership_and_source_refs(self) -> None:
         payload = self.load_projection()

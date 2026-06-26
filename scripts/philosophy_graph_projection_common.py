@@ -27,6 +27,62 @@ VALIDATION_REFS = (
     "scripts/validate_philosophy_graph_projection.py",
     "tests/test_philosophy_graph_projection.py",
 )
+PREDICATE_GRAPH_LAYERS = {
+    "belongs_to_genre": {"conceptual-relation"},
+    "canonized_by": {"canonical-relation", "transmission-relation"},
+    "commented_by": {"transmission-relation"},
+    "contested_by": {"conceptual-relation", "evidence-relation"},
+    "contains_dossier": {"source-relation"},
+    "contains_row": {"source-relation"},
+    "contains_table": {"source-relation"},
+    "contains_view": {"source-relation"},
+    "develops_concept": {"conceptual-relation"},
+    "figure_anchor": {"historical-relation", "source-relation"},
+    "fragments_preserved_by": {"evidence-relation", "transmission-relation"},
+    "has_atlas": {"source-relation"},
+    "has_candidate_node": {"candidate-relation"},
+    "has_node_type_pressure": {"candidate-relation", "evidence-relation"},
+    "has_prepared_dossier": {"evidence-relation", "source-relation"},
+    "has_relation_pressure": {"candidate-relation", "evidence-relation"},
+    "has_section": {"source-relation"},
+    "has_view_section": {"source-relation"},
+    "influences": {"conceptual-relation", "historical-relation"},
+    "institutionalized_in": {"historical-relation"},
+    "polemicizes_with": {"conceptual-relation", "evidence-relation"},
+    "preserved_in": {"evidence-relation", "transmission-relation"},
+    "preserves_in": {"evidence-relation", "transmission-relation"},
+    "receives_from": {"transmission-relation"},
+    "survives_as": {"evidence-relation", "historical-relation", "transmission-relation"},
+    "translated_into": {"transmission-relation"},
+    "transforms_concept": {"conceptual-relation"},
+    "transmits_to": {"transmission-relation"},
+    "uncertain_relation": {"evidence-relation"},
+    "uses_language": {"source-relation"},
+    "uses_script": {"source-relation"},
+}
+NODE_TYPE_GRAPH_LAYERS = {
+    "atlas": {"source-relation"},
+    "atlas-node-type": {"source-relation"},
+    "atlas-relation-kind": {"source-relation"},
+    "atlas-section": {"source-relation"},
+    "candidate-endpoint": {"candidate-relation", "evidence-relation"},
+    "candidate-node": {"candidate-relation"},
+    "domain-root": {"source-relation"},
+    "graph-view": {"source-relation"},
+    "master-table": {"source-relation"},
+    "master-table-row": {"historical-relation", "source-relation"},
+    "prepared-dossier": {"evidence-relation", "source-relation"},
+    "view-section": {"source-relation"},
+}
+KNOWN_GRAPH_LAYERS = {
+    "source-relation",
+    "historical-relation",
+    "conceptual-relation",
+    "transmission-relation",
+    "evidence-relation",
+    "candidate-relation",
+    "canonical-relation",
+}
 
 
 def repo_ref(path: Path) -> str:
@@ -57,6 +113,35 @@ def _as_string_set(values: Any) -> set[str]:
     if not isinstance(values, list):
         return set()
     return {str(item) for item in values if isinstance(item, str) and item}
+
+
+def _node_semantic_layers(node: dict[str, Any]) -> set[str]:
+    layers = set(NODE_TYPE_GRAPH_LAYERS.get(str(node.get("node_type") or ""), {"source-relation"}))
+    properties = node.get("properties")
+    if isinstance(properties, dict):
+        if str(properties.get("canon_status") or "") == "pre-canon":
+            layers.add("candidate-relation")
+        if str(properties.get("authority_posture") or "").endswith("_candidate"):
+            layers.add("candidate-relation")
+        if str(properties.get("priority") or "").strip():
+            layers.add("evidence-relation")
+    return layers & KNOWN_GRAPH_LAYERS
+
+
+def _edge_semantic_layers(edge: dict[str, Any]) -> set[str]:
+    predicate = str(edge.get("predicate_id") or "")
+    layers = set(PREDICATE_GRAPH_LAYERS.get(predicate, {"source-relation"}))
+    properties = edge.get("properties")
+    if isinstance(properties, dict):
+        if str(properties.get("canon_status") or "") == "pre-canon":
+            layers.add("candidate-relation")
+        if str(properties.get("authority_posture") or "").endswith("_candidate"):
+            layers.add("candidate-relation")
+        if str(properties.get("endpoint_resolution") or "") == "unresolved":
+            layers.add("evidence-relation")
+        if str(properties.get("confidence") or "") in {"низкий", "low"}:
+            layers.add("evidence-relation")
+    return layers & KNOWN_GRAPH_LAYERS
 
 
 def _node_matches_filters(node: dict[str, Any], filters: dict[str, Any]) -> bool:
@@ -704,16 +789,29 @@ def build_payload() -> dict[str, Any]:
         view_id = str(view.get("view_id") or "")
         graph_layers = _as_string_set(view.get("graph_layers"))
         view_nodes, view_edges, view_diagnostics = _pick_view_material(view, atlas_nodes_by_id, atlas_edges)
+        view_node_layers: dict[str, set[str]] = {
+            str(node["node_id"]): _node_semantic_layers(node)
+            for node in view_nodes
+        }
+        view_edge_layers: dict[str, set[str]] = {}
+        for edge in view_edges:
+            edge_id = str(edge["edge_id"])
+            edge_layers = _edge_semantic_layers(edge)
+            view_edge_layers[edge_id] = edge_layers
+            for endpoint_key in ("from_id", "to_id"):
+                endpoint_id = str(edge.get(endpoint_key) or "")
+                if endpoint_id in view_node_layers:
+                    view_node_layers[endpoint_id].update(edge_layers)
         for node in view_nodes:
             node_id = str(node["node_id"])
             membership = node_membership.setdefault(node_id, {"view_ids": set(), "graph_layers": set()})
             membership["view_ids"].add(view_id)
-            membership["graph_layers"].update(graph_layers)
+            membership["graph_layers"].update(view_node_layers.get(node_id) or _node_semantic_layers(node))
         for edge in view_edges:
             edge_id = str(edge["edge_id"])
             membership = edge_membership.setdefault(edge_id, {"view_ids": set(), "graph_layers": set()})
             membership["view_ids"].add(view_id)
-            membership["graph_layers"].update(graph_layers)
+            membership["graph_layers"].update(view_edge_layers.get(edge_id) or _edge_semantic_layers(edge))
         diagnostics.extend(view_diagnostics)
         views.append(
             {
@@ -736,7 +834,7 @@ def build_payload() -> dict[str, Any]:
                     _projection_node(
                         node,
                         view_ids={view_id},
-                        graph_layers=graph_layers,
+                        graph_layers=view_node_layers.get(str(node["node_id"])) or _node_semantic_layers(node),
                     )
                     for node in view_nodes
                 ],
@@ -744,7 +842,7 @@ def build_payload() -> dict[str, Any]:
                     _projection_edge(
                         edge,
                         view_ids={view_id},
-                        graph_layers=graph_layers,
+                        graph_layers=view_edge_layers.get(str(edge["edge_id"])) or _edge_semantic_layers(edge),
                     )
                     for edge in view_edges
                 ],
