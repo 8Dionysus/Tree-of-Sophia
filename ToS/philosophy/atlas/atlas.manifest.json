@@ -1,40 +1,40 @@
 {
-  "schema_version": "tos_philosophy_atlas_v1",
   "atlas_id": "philosophy.atlas",
-  "path": "ToS/philosophy/atlas",
-  "role": "prepared atlas for ToS philosophy growth from master tables and A-series dossiers",
   "authority_posture": "project-prepared philosophy atlas; historical source witnesses are anchored inside future branch work",
+  "dossiers": {
+    "available_count": 30,
+    "graph_shape_summary": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
+    "path": "ToS/philosophy/atlas/dossiers/index.jsonl"
+  },
   "master_tables": [
     {
-      "table_id": "table-i",
-      "table_label": "Table I",
-      "source_document": "Таблица I для ToS.docx",
-      "row_count": 48,
       "manifest": "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
-      "rows": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+      "row_count": 48,
+      "rows": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+      "source_document": "Таблица I для ToS.docx",
+      "table_id": "table-i",
+      "table_label": "Table I"
     },
     {
-      "table_id": "table-ii",
-      "table_label": "Table II",
-      "source_document": "Таблица II для ToS.docx",
-      "row_count": 58,
       "manifest": "ToS/philosophy/atlas/master-tables/table-ii/table.manifest.json",
-      "rows": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"
+      "row_count": 58,
+      "rows": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
+      "source_document": "Таблица II для ToS.docx",
+      "table_id": "table-ii",
+      "table_label": "Table II"
     },
     {
-      "table_id": "table-iii",
-      "table_label": "Table III",
-      "source_document": "Таблица III ToS.docx",
-      "row_count": 84,
       "manifest": "ToS/philosophy/atlas/master-tables/table-iii/table.manifest.json",
-      "rows": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+      "row_count": 84,
+      "rows": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
+      "source_document": "Таблица III ToS.docx",
+      "table_id": "table-iii",
+      "table_label": "Table III"
     }
   ],
-  "total_master_rows": 190,
-  "dossiers": {
-    "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
-    "available_count": 10,
-    "graph_shape_summary": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
-  },
-  "next_growth": "row spine -> era/region/tradition branches -> local graph workbench -> authored canon relation packs"
+  "next_growth": "row spine -> era/region/tradition branches -> local graph workbench -> authored canon relation packs",
+  "path": "ToS/philosophy/atlas",
+  "role": "prepared atlas for ToS philosophy growth from master tables and A-series dossiers",
+  "schema_version": "tos_philosophy_atlas_v1",
+  "total_master_rows": 190
 }

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,8 @@ TOS_ROOT = REPO_ROOT / "ToS"
 PROJECTION_PATH = TOS_ROOT / "derived-exports" / "philosophy_atlas_projection.min.json"
 SCHEMA_REF = "ToS/contracts/philosophy-atlas-projection.schema.json"
 SOURCE_ATLAS_REF = "ToS/philosophy/atlas/atlas.manifest.json"
+CANDIDATE_NODES_REF = "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
+CANDIDATE_RELATIONS_REF = "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
 VALIDATION_REFS = (
     "scripts/build_philosophy_atlas_projection.py",
     "scripts/validate_philosophy_atlas_projection.py",
@@ -43,6 +46,12 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{repo_ref(path)}:{line_number} must contain a JSON object")
         rows.append(payload)
     return rows
+
+
+def load_optional_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return load_jsonl(path)
 
 
 def add_node(
@@ -121,6 +130,15 @@ def row_projection_fields(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def candidate_node_ref(candidate_id: str) -> str:
+    return f"candidate-node:{candidate_id}"
+
+
+def endpoint_ref(dossier_id: str, label: str) -> str:
+    digest = hashlib.sha1(f"{dossier_id}|{label}".encode("utf-8")).hexdigest()[:12]
+    return f"candidate-endpoint:{dossier_id}:{digest}"
+
+
 def load_schema() -> dict[str, Any]:
     return load_json(REPO_ROOT / SCHEMA_REF)
 
@@ -141,6 +159,8 @@ def build_payload() -> dict[str, Any]:
     graph_shape_path = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
     dossier_rows = load_jsonl(dossier_index_path)
     graph_shape = load_json(graph_shape_path)
+    candidate_nodes = load_optional_jsonl(REPO_ROOT / CANDIDATE_NODES_REF)
+    candidate_relations = load_optional_jsonl(REPO_ROOT / CANDIDATE_RELATIONS_REF)
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -346,6 +366,118 @@ def build_payload() -> dict[str, Any]:
             count=count,
         )
 
+    for candidate in candidate_nodes:
+        candidate_id = str(candidate.get("candidate_id") or "")
+        dossier_id = str(candidate.get("dossier_id") or "")
+        if not candidate_id:
+            diagnostics.append(
+                {
+                    "level": "warning",
+                    "path": CANDIDATE_NODES_REF,
+                    "message": "candidate node row without candidate_id was skipped",
+                }
+            )
+            continue
+        node_id = candidate_node_ref(candidate_id)
+        add_node(
+            nodes,
+            node_id,
+            "candidate-node",
+            str(candidate.get("label") or candidate_id),
+            CANDIDATE_NODES_REF,
+            candidate_id=candidate_id,
+            dossier_id=dossier_id,
+            atlas_row_id=candidate.get("atlas_row_id"),
+            branch_path=candidate.get("branch_path"),
+            original_node_id=candidate.get("original_node_id"),
+            original_node_type=candidate.get("node_kind"),
+            period=candidate.get("period"),
+            priority=candidate.get("priority"),
+            canon_status=candidate.get("canon_status"),
+            authority_posture=candidate.get("authority_posture"),
+            source_document=candidate.get("source_document"),
+        )
+        if dossier_id:
+            add_edge(
+                edges,
+                f"edge:dossier:{dossier_id}:candidate-node:{candidate_id}",
+                f"atlas-dossier:{dossier_id}",
+                "has_candidate_node",
+                node_id,
+                CANDIDATE_NODES_REF,
+            )
+
+    endpoint_nodes: set[str] = set()
+    for relation in candidate_relations:
+        candidate_id = str(relation.get("candidate_id") or "")
+        dossier_id = str(relation.get("dossier_id") or "")
+        relation_kind = str(relation.get("relation_kind") or "related_to")
+        source_candidate_id = relation.get("source_candidate_id")
+        target_candidate_id = relation.get("target_candidate_id")
+        source_label = str(relation.get("source_endpoint_label") or "source endpoint")
+        target_label = str(relation.get("target_endpoint_label") or "target endpoint")
+        if not candidate_id:
+            diagnostics.append(
+                {
+                    "level": "warning",
+                    "path": CANDIDATE_RELATIONS_REF,
+                    "message": "candidate relation row without candidate_id was skipped",
+                }
+            )
+            continue
+        if isinstance(source_candidate_id, str) and source_candidate_id:
+            from_id = candidate_node_ref(source_candidate_id)
+        else:
+            from_id = endpoint_ref(dossier_id, source_label)
+            if from_id not in endpoint_nodes:
+                endpoint_nodes.add(from_id)
+                add_node(
+                    nodes,
+                    from_id,
+                    "candidate-endpoint",
+                    source_label,
+                    CANDIDATE_RELATIONS_REF,
+                    dossier_id=dossier_id,
+                    branch_path=relation.get("branch_path"),
+                    endpoint_role="source",
+                    canon_status="pre-canon",
+                )
+        if isinstance(target_candidate_id, str) and target_candidate_id:
+            to_id = candidate_node_ref(target_candidate_id)
+        else:
+            to_id = endpoint_ref(dossier_id, target_label)
+            if to_id not in endpoint_nodes:
+                endpoint_nodes.add(to_id)
+                add_node(
+                    nodes,
+                    to_id,
+                    "candidate-endpoint",
+                    target_label,
+                    CANDIDATE_RELATIONS_REF,
+                    dossier_id=dossier_id,
+                    branch_path=relation.get("branch_path"),
+                    endpoint_role="target",
+                    canon_status="pre-canon",
+                )
+        add_edge(
+            edges,
+            f"edge:candidate-relation:{candidate_id}",
+            from_id,
+            relation_kind,
+            to_id,
+            CANDIDATE_RELATIONS_REF,
+            candidate_id=candidate_id,
+            dossier_id=dossier_id,
+            atlas_row_id=relation.get("atlas_row_id"),
+            branch_path=relation.get("branch_path"),
+            relation_label=relation.get("relation_label"),
+            confidence=relation.get("confidence"),
+            canon_status=relation.get("canon_status"),
+            authority_posture=relation.get("authority_posture"),
+            endpoint_resolution=relation.get("endpoint_resolution"),
+            comment=relation.get("comment"),
+        )
+
     views_root = REPO_ROOT / "ToS/philosophy/graph-workbench/views"
     for path in sorted(views_root.glob("*.graph.md")):
         view_id = path.stem.removesuffix(".graph")
@@ -386,6 +518,9 @@ def build_payload() -> dict[str, Any]:
             "dossiers": len(dossier_rows),
             "dossier_node_rows": int(graph_shape.get("node_row_count") or 0),
             "dossier_relation_rows": int(graph_shape.get("relation_row_count") or 0),
+            "candidate_nodes": len(candidate_nodes),
+            "candidate_relations": len(candidate_relations),
+            "candidate_endpoint_placeholders": len(endpoint_nodes),
             "graph_views": len(list(views_root.glob("*.graph.md"))),
             "nodes": len(nodes),
             "edges": len(edges),

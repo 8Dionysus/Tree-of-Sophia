@@ -62,18 +62,28 @@ def _as_string_set(values: Any) -> set[str]:
 def _node_matches_filters(node: dict[str, Any], filters: dict[str, Any]) -> bool:
     node_type = str(node.get("node_type") or "")
     label = str(node.get("label") or "")
+    properties = node.get("properties")
+    if not isinstance(properties, dict):
+        properties = {}
     if node_type in _as_string_set(filters.get("node_types")):
         return True
     if node_type == "atlas-node-type" and label in _as_string_set(filters.get("node_type_keys")):
         return True
     if node_type == "atlas-relation-kind" and label in _as_string_set(filters.get("relation_kind_keys")):
         return True
+    if node_type == "candidate-node":
+        node_type_keys = _as_string_set(filters.get("node_type_keys"))
+        if str(properties.get("original_node_type") or "") in node_type_keys:
+            return True
+    if node_type == "candidate-endpoint":
+        return "candidate-endpoint" in _as_string_set(filters.get("node_types"))
     return False
 
 
 def _edge_matches_filters(edge: dict[str, Any], selected_node_ids: set[str], filters: dict[str, Any]) -> bool:
     predicate = str(edge.get("predicate_id") or "")
-    if predicate not in _as_string_set(filters.get("predicates")):
+    allowed_predicates = _as_string_set(filters.get("predicates")) | _as_string_set(filters.get("relation_kind_keys"))
+    if predicate not in allowed_predicates:
         return False
     return str(edge.get("from_id") or "") in selected_node_ids or str(edge.get("to_id") or "") in selected_node_ids
 
@@ -386,6 +396,9 @@ def _candidate_to_canon_pressure(nodes: list[dict[str, Any]]) -> dict[str, int]:
         properties = node.get("properties")
         if node.get("node_type") == "master-table-row" and isinstance(properties, dict):
             status = _stringify_value(properties.get("status")) or "missing"
+            counter[status] += 1
+        if node.get("node_type") == "candidate-node" and isinstance(properties, dict):
+            status = _stringify_value(properties.get("canon_status")) or "pre-canon"
             counter[status] += 1
     return dict(sorted(counter.items()))
 

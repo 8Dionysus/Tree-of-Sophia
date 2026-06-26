@@ -315,6 +315,39 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/plant_table_i_prepared_dossiers.py",
+      "family": "source_topology_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/philosophy/AGENTS.md",
+      "source_truth": [
+        "operator-local prepared Table I DOCX corpus",
+        "ToS/philosophy/philosophy.manifest.json",
+        "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+      ],
+      "reads": [
+        "/home/dionysus/Загрузки/ToS/1.1/*.docx",
+        "/home/dionysus/Загрузки/ToS/1.2/*.docx",
+        "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+        "ToS/philosophy/philosophy.manifest.json"
+      ],
+      "writes": [
+        "ToS/philosophy/atlas/dossiers/*.jsonl",
+        "ToS/philosophy/atlas/dossiers/*.json",
+        "ToS/philosophy/atlas/master-tables/table-i/*.json*",
+        "ToS/philosophy/eras/**",
+        "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+        "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json",
+        "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md",
+        "ToS/philosophy/philosophy.manifest.json"
+      ],
+      "side_effects": "tracked Table I atlas, branch, source-anchor, and pre-canon graph source surfaces",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_philosophy_atlas_projection.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/generate_decision_indexes.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

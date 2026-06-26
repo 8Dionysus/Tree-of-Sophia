@@ -70,6 +70,9 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertTrue(nodes["atlas-row:A01"]["graph_layers"])
         self.assertIn("chronology", edges["edge:row:A01:has-dossier:A01"]["view_ids"])
         self.assertIn("historical-relation", edges["edge:row:A01:has-dossier:A01"]["graph_layers"])
+        self.assertIn("candidate-node:table-i-a01-node-001", nodes)
+        self.assertIn("edge:candidate-relation:table-i-a01-relation-001", edges)
+        self.assertIn("script-decipherment", edges["edge:candidate-relation:table-i-a01-relation-001"]["view_ids"])
 
     def test_clusters_preserve_membership_and_source_refs(self) -> None:
         payload = self.load_projection()
@@ -93,6 +96,7 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         canon = packets["canon-promotion"]
         self.assertEqual(canon["packet_id"], "review-packet:canon-promotion")
         self.assertIn("candidate_to_canon_pressure", canon)
+        self.assertGreater(canon["candidate_to_canon_pressure"].get("pre-canon", 0), 0)
         self.assertTrue(canon["recommended_human_review_route"].endswith("canon-promotion.graph.md"))
         chronology = packets["chronology"]
         self.assertLessEqual(len(chronology["cluster_summaries"]), 12)
