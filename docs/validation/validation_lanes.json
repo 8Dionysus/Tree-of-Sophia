@@ -337,6 +337,14 @@
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
       },
       {
+        "label": "check philosophy graph projection",
+        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy graph projection",
+        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
         "label": "check decision indexes",
         "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
       },
@@ -411,6 +419,14 @@
       {
         "label": "validate philosophy graph views",
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
+      },
+      {
+        "label": "check philosophy graph projection",
+        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy graph projection",
+        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
       }
     ],
     "artifact_bundles": [
@@ -479,6 +495,14 @@
       {
         "label": "validate philosophy graph views",
         "command": ["python", "scripts/validate_philosophy_graph_views.py"]
+      },
+      {
+        "label": "check philosophy graph projection",
+        "command": ["python", "scripts/build_philosophy_graph_projection.py", "--check"]
+      },
+      {
+        "label": "validate philosophy graph projection",
+        "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
       },
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",
