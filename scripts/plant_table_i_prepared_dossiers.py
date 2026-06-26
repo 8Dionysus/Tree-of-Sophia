@@ -16,9 +16,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from docx import Document
-
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOC_ROOT = Path("/home/dionysus/Загрузки/ToS")
 TABLE_I_ROWS = REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
@@ -266,9 +263,17 @@ def discover_docx() -> list[Path]:
     return paths
 
 
+def load_docx_document(path: Path) -> Any:
+    try:
+        from docx import Document
+    except ModuleNotFoundError as exc:
+        raise SystemExit("Install python-docx to plant prepared DOCX dossiers.") from exc
+    return Document(path)
+
+
 def parse_dossier(path: Path) -> Dossier:
     dossier_id = extract_dossier_id(path)
-    document = Document(path)
+    document = load_docx_document(path)
     paragraphs = [scrub(paragraph.text) for paragraph in document.paragraphs if scrub(paragraph.text)]
     title = paragraphs[0] if paragraphs else f"ToS Deep Research: {dossier_id}"
     node_rows: list[dict[str, Any]] = []
