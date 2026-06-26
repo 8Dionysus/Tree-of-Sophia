@@ -1,7 +1,8 @@
 # Antifragility Roadmap
 
-Antifragility is planted as ToS source-resilience posture. It exists to help
-the tree refuse bad growth, not to perform cleanup theater.
+Antifragility is planted as ToS source-resilience posture. It helps the tree
+turn stress into cleaner source, branch, and review routes instead of growing
+by accumulation.
 
 ## Current Contour
 
@@ -11,6 +12,8 @@ the tree refuse bad growth, not to perform cleanup theater.
   owner surfaces.
 - Keep this mechanic planted until repeated ToS cases need active
   source-resilience artifacts.
+- Keep graph and atlas expansion honest when volume, novelty, or weak source
+  posture pressures the tree toward premature synthesis.
 
 ## Next Work
 
@@ -21,11 +24,18 @@ the tree refuse bad growth, not to perform cleanup theater.
 
 ## When Time Comes
 
-- Add payload when repeated source-resilience cases need the same refusal,
-  pruning, or re-entry shape.
-- Split the planted part only when refusal, pruning, and re-entry become
-  distinct repeatable operations.
+Time has come when: repeated source-resilience cases need the same refusal,
+pruning, or re-entry shape.
+
+Move: add payload to `source-resilience` or split a narrower part for the
+recurring operation.
+
+Guardrail: pruning strengthens reviewability while source history stays
+accountable and proof verdicts stay with proof owners.
 
 ## Out Of Scope
 
-Deletion theater, proof verdicts, source erasure, and canon rewrites.
+- Deletion theater.
+- Proof verdicts.
+- Source erasure.
+- Canon rewrites.

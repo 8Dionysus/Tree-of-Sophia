@@ -1,8 +1,8 @@
 # Agon Roadmap
 
-Agon is active in ToS only as threshold routing. It receives pressure from the
-center, keeps that pressure candidate-shaped, and returns it to ToS review
-without granting canon write authority.
+Agon is active in ToS as threshold routing. It receives pressure from the
+center or local review, keeps that pressure candidate-shaped, and returns it to
+ToS source and canon routes without granting write authority.
 
 ## Current Contour
 
@@ -18,18 +18,26 @@ without granting canon write authority.
 ## Next Work
 
 - Clarify threshold classes only when new repeated ToS threshold pressure
-  cannot fit the current intake/restraint/registry/handoff parts.
+  outgrows the current intake/restraint/registry/handoff parts.
 - Keep candidate pressure routed to review before it touches canon, relation
   packs, or public compatibility.
+- Keep Table I and later graph-review pressure candidate-shaped when a proposed
+  node or relation tries to become authority too early.
 
 ## When Time Comes
 
-- Add a new Agon part when repeated threshold pressure needs a stable operation
-  that would make the current four parts less legible.
-- Move a threshold family closer to canon only after ToS source anchoring,
-  review posture, and canon ownership are explicit.
+Time has come when: repeated threshold pressure outgrows the current four
+parts.
+
+Move: add a narrower Agon part or refine the threshold registry.
+
+Guardrail: every output remains candidate, review, or handoff posture until
+the owning ToS source or canon surface accepts it.
 
 ## Out Of Scope
 
-Live arena protocol, rank mutation, automatic canonization, proof verdicts,
-runtime activation, SDK behavior, memory truth, and KAG substrate authority.
+- Live arena protocol.
+- Rank mutation.
+- Automatic canonization.
+- Proof verdicts, runtime activation, SDK behavior, memory truth, or KAG
+  substrate authority.

@@ -1,7 +1,8 @@
 # Audit Roadmap
 
-Audit is planted as ToS review visibility. It keeps review evidence findable
-without turning review notes into proof or source truth.
+Audit is planted as ToS review visibility. It keeps inspection evidence
+findable and routed without turning review notes into proof, source truth, or a
+parallel canon.
 
 ## Current Contour
 
@@ -10,6 +11,8 @@ without turning review notes into proof or source truth.
 - Keep audit output as evidence for a next route, not as final judgment.
 - Keep dated review notes in `ToS/review-ledger/`; mechanics only owns the
   repeatable route around them.
+- Keep graph-review packets and post-planting audits tied to the source branch
+  or graph-workbench surface they inspect.
 
 ## Next Work
 
@@ -19,11 +22,18 @@ without turning review notes into proof or source truth.
 
 ## When Time Comes
 
-- Add payload when ToS review evidence repeatedly needs the same inspection
-  packet, return route, or repair handoff.
-- Add a new part only when review-ledger routing and source-home inspection
-  stop being the same operation.
+Time has come when: ToS review evidence repeatedly needs the same inspection
+packet, return route, or repair handoff.
+
+Move: add a narrower audit part or a route note that keeps the evidence close
+to its owner surface.
+
+Guardrail: audit makes the next route visible; truth remains with source,
+canon, proof, or downstream owner surfaces.
 
 ## Out Of Scope
 
-Proof verdicts, source truth, runtime evidence authority, and hidden cleanup.
+- Proof verdicts.
+- Source truth.
+- Runtime evidence authority.
+- Hidden cleanup.

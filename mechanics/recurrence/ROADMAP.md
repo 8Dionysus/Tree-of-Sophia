@@ -9,6 +9,8 @@ after drift without inventing hidden continuity.
 - Keep re-entry anchored to a source, branch, canon, review, or decision
   surface.
 - Keep recurrence weaker than memory, runtime, and canon authority.
+- Keep atlas, graph, and roadmap drift returnable to the smallest source-owned
+  surface that can repair it.
 
 ## Next Work
 
@@ -18,10 +20,18 @@ after drift without inventing hidden continuity.
 
 ## When Time Comes
 
-- Add payload when recurrence records become repeated reviewed objects.
-- Split recurrence only if calibration return, branch re-entry, and source
-  re-anchoring become distinct operations.
+Time has come when: recurrence records become repeated reviewed objects or the
+same drift keeps returning through live ToS work.
+
+Move: add payload to `calibration-return` or split calibration return, branch
+re-entry, and source re-anchoring into narrower parts.
+
+Guardrail: recurrence restores route legibility through explicit anchors and
+return surfaces.
 
 ## Out Of Scope
 
-Hidden scheduler, automatic recursor, canon rewrite, and source-core relocation.
+- Hidden scheduler.
+- Automatic recursor.
+- Canon rewrite.
+- Source-core relocation.

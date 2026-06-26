@@ -1,7 +1,7 @@
 # Method Growth Roadmap
 
 Method Growth is planted as the method contour for ToS node, relation,
-template, and branch-law maturation.
+template, branch-law, and graph-review maturation.
 
 ## Current Contour
 
@@ -10,6 +10,8 @@ template, and branch-law maturation.
   tied to the source-home owner surface they affect.
 - Keep method growth practical: it should improve future movement, not produce
   generic methodology prose.
+- Keep graph-layer, evidence-status, and branch-manifest method changes close
+  to the trunk or branch surface they govern.
 
 ## Next Work
 
@@ -20,10 +22,17 @@ template, and branch-law maturation.
 
 ## When Time Comes
 
-- Add payload when method receipts become repeated reviewed objects.
-- Split node, relation, vocabulary, or branch-method work only when one shared
-  spine would hide the active owner route.
+Time has come when: method receipts become repeated reviewed objects or one
+shared spine starts hiding different owner routes.
+
+Move: add payload to `node-method-spine` or split node, relation, vocabulary,
+graph, or branch-method work into narrower parts.
+
+Guardrail: method grows from ToS work that happened; generic methodology stays
+outside this package.
 
 ## Out Of Scope
 
-Canon storage, proof verdicts, and generic methodology essays.
+- Canon storage.
+- Proof verdicts.
+- Generic methodology essays.
