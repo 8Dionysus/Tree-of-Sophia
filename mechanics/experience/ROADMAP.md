@@ -2,7 +2,7 @@
 
 Experience is active as boundary routing only. It keeps external adoption,
 installation, governance, service, pattern, and write pressure from turning ToS
-into runtime or federation authority.
+into runtime, office, or federation authority.
 
 ## Current Contour
 
@@ -12,6 +12,8 @@ into runtime or federation authority.
 - Keep each boundary family tied to the stronger owner that would receive any
   activation, proof, service, office, or runtime claim.
 - Keep ToS-owned meaning and canon outside Experience.
+- Keep public graph and atlas review experience bounded to route clarity, not
+  activation claims.
 
 ## Next Work
 
@@ -22,12 +24,18 @@ into runtime or federation authority.
 
 ## When Time Comes
 
-- Add a narrower part when a boundary family develops its own repeated payload
-  class and current parts would blur the owner route.
-- Retire or merge a part when its boundary pressure stops recurring as a
-  distinct operation.
+Time has come when: a boundary family develops repeated payloads that make the
+current owner route ambiguous.
+
+Move: refine that part, add a narrower part, or retire a part whose pressure no
+longer recurs.
+
+Guardrail: Experience may clarify adoption or interaction pressure; it may not
+activate runtime, office, proof, memory, or canon authority.
 
 ## Out Of Scope
 
-Live workspace runtime, office installation, service dispatch, proof verdicts,
-memory objects, SDK helpers, AoA federation law, and direct ToS canon mutation.
+- Live workspace runtime.
+- Office installation or service dispatch.
+- Proof verdicts, memory objects, SDK helpers, or AoA federation law.
+- Direct ToS canon mutation.

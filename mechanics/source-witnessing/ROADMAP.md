@@ -12,6 +12,9 @@ review, candidate extraction, and canon.
   repeatable route discipline, not witness storage.
 - Keep research packets outside source-witness authority until source anchoring
   and branch review happen.
+- Keep prepared atlas rows and Deep Research dossiers weaker than source
+  witnesses until they are anchored to editions, translations, corpora, or
+  published evidence.
 
 ## Next Work
 
@@ -22,11 +25,17 @@ review, candidate extraction, and canon.
 
 ## When Time Comes
 
-- Add payload only when witness-route receipts become repeated reviewed
-  objects.
-- Split witness movement only if source entry, translation posture, and
-  witness-to-branch handoff become distinct operations.
+Time has come when: witness-route receipts become repeated reviewed objects or
+the same source-corpus movement recurs across branches.
+
+Move: add payload to `witness-route` or split source entry, translation
+posture, and witness-to-branch handoff into narrower operations.
+
+Guardrail: source witnessing routes evidence; witness storage stays in
+`ToS/source-witnesses/` and translation posture stays below canon.
 
 ## Out Of Scope
 
-Witness storage in mechanics, translation-as-canon, and source erasure.
+- Witness storage in mechanics.
+- Translation-as-canon.
+- Source erasure.

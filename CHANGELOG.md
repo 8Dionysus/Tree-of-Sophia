@@ -29,6 +29,9 @@ Tracking starts with the community-docs baseline for this repository.
   instead of ordinary prose inventories
 - moved the Codex Spark fast-loop lane from root `Spark/` to
   `.agents/spark/`, keeping Spark agent-facing rather than a public root organ
+- reshaped root and package roadmap surfaces around AoA-style direction,
+  horizon posture, future triggers, and package-local growth pressure without
+  turning roadmaps into validation inventories or landing logs
 
 ## [0.2.2] - 2026-04-23
 
