@@ -14,6 +14,7 @@
     "validation_refs",
     "counts",
     "visibility_model",
+    "snapshot_review",
     "graph_layers",
     "layer_counts",
     "views",
@@ -84,6 +85,9 @@
     },
     "visibility_model": {
       "$ref": "#/$defs/visibility_model"
+    },
+    "snapshot_review": {
+      "$ref": "#/$defs/snapshot_review"
     },
     "graph_layers": {
       "type": "array",
@@ -229,6 +233,92 @@
         "source_ref": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "snapshot_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshot_schema_version", "current_snapshot", "diff_route"],
+      "properties": {
+        "snapshot_schema_version": {
+          "const": "tos_philosophy_graph_projection_snapshot_v1"
+        },
+        "current_snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["projection_fingerprint", "count_fingerprint", "view_fingerprints"],
+          "properties": {
+            "projection_fingerprint": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            "count_fingerprint": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            "view_fingerprints": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/view_fingerprint"
+              }
+            }
+          }
+        },
+        "diff_route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "changed_subgraph_available", "previous_snapshot_ref", "next_route"],
+          "properties": {
+            "mode": {
+              "const": "fingerprint-ready"
+            },
+            "changed_subgraph_available": {
+              "const": false
+            },
+            "previous_snapshot_ref": {
+              "type": ["string", "null"]
+            },
+            "next_route": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "view_fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["view_id", "fingerprint", "node_count", "edge_count", "cluster_count", "source_ref_count"],
+      "properties": {
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edge_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cluster_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },

@@ -25,6 +25,7 @@ PHILOSOPHY_MANIFEST = REPO_ROOT / "ToS/philosophy/philosophy.manifest.json"
 DOSSIER_INDEX = REPO_ROOT / "ToS/philosophy/atlas/dossiers/index.jsonl"
 DOSSIER_SUMMARY = REPO_ROOT / "ToS/philosophy/atlas/dossiers/graph-shape-summary.json"
 DOSSIER_BRANCH_MANIFEST = REPO_ROOT / "ToS/philosophy/atlas/dossiers/branch.manifest.json"
+PREPARED_DOSSIER_ROUTES = REPO_ROOT / "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
 SOURCE_ANCHOR_BACKLOG = REPO_ROOT / "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl"
 TERM_INDEX = REPO_ROOT / "ToS/philosophy/atlas/dossiers/term-index.jsonl"
 TRANSMISSION_BACKLOG = REPO_ROOT / "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl"
@@ -35,129 +36,31 @@ PROMOTION_LEDGER = REPO_ROOT / "ToS/philosophy/graph-workbench/promotion-ledger/
 OBSOLETE_GENERATED_BRANCH = REPO_ROOT / "ToS/philosophy/eras/bronze-age/regions/ancient-near-east"
 
 
-BRANCHES: dict[str, tuple[str, str]] = {
-    "A01": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
-        "proto-cuneiform accounting, metrology, lexical-list, and tablet rationality branch",
-    ),
-    "A02": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
-        "Old Babylonian school literature, wisdom, law, and scribal ethics branch",
-    ),
-    "A03": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/first-millennium-mesopotamian-scholarly-commentary",
-        "first-millennium Mesopotamian omen, medicine, astrology, and commentary branch",
-    ),
-    "A04": (
-        "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
-        "Egyptian sebayt, Ma'at, scribal ethics, and instruction branch",
-    ),
-    "A05": (
-        "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora",
-        "Egyptian mortuary, theological, and crisis-dialogic corpus branch",
-    ),
-    "A06": (
-        "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/late-egyptian-demotic-temple-scholarship",
-        "late Egyptian demotic temple scholarship and Hermetic-background branch",
-    ),
-    "A07": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-script-frontiers",
-        "proto-Elamite and Linear Elamite script-frontier branch",
-    ),
-    "A08": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-cuneiform-achaemenid-multilingualism",
-        "Elamite cuneiform and Achaemenid multilingual inscription branch",
-    ),
-    "A09": (
-        "ToS/philosophy/eras/bronze-age/regions/south-asia/traditions/indus-signs-seals-reconstruction",
-        "Indus signs, seals, and reconstruction-limit branch",
-    ),
-    "A10": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/hittite-state-ritual-writing",
-        "Hittite state, treaty, ritual, and archival writing branch",
-    ),
-    "A11": (
-        "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/ugaritic-alphabetic-levant",
-        "Ugaritic and early Northwest Semitic alphabetic Levant branch",
-    ),
-    "A12": (
-        "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary",
-        "Levantine wisdom, Hebrew-Aramaic documentary, and scribal tradition branch",
-    ),
-    "A13": (
-        "ToS/philosophy/eras/axial-age/regions/levant/traditions/second-temple-judean-scripturalization",
-        "Second Temple Judean scripturalization and commentary branch",
-    ),
-    "A14": (
-        "ToS/philosophy/eras/bronze-age/regions/east-asia/traditions/shang-early-zhou-oracle-bronze-writing",
-        "Shang and early Zhou oracle-bone, bronze, and royal writing branch",
-    ),
-    "A15": (
-        "ToS/philosophy/eras/axial-age/regions/east-asia/traditions/hundred-schools-warring-states",
-        "Spring and Autumn, Warring States, and Hundred Schools branch",
-    ),
-    "A16": (
-        "ToS/philosophy/eras/early-imperial-age/regions/east-asia/traditions/han-sui-imperial-confucianism",
-        "Han to Sui imperial Confucian canon, school, and statecraft branch",
-    ),
-    "A17": (
-        "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/vedic-brahmanical-upanishadic",
-        "Vedic, Brahmanical, ritual, and early Upanishadic branch",
-    ),
-    "A18": (
-        "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
-        "Shramana, early Buddhist, Jain, discipline, and renunciation branch",
-    ),
-    "A19": (
-        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/brahmanical-shastra-darshana",
-        "classical Brahmanical shastra and darshana branch",
-    ),
-    "A20": (
-        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/indian-buddhist-shastra",
-        "classical Indian Buddhist shastra and scholastic branch",
-    ),
-    "A21": (
-        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
-        "Theravada and written Pali canon branch",
-    ),
-    "A22": (
-        "ToS/philosophy/eras/axial-age/regions/iranian-world/traditions/avestan-achaemenid-inscriptional",
-        "ancient Iranian, Avestan, and Achaemenid inscriptional branch",
-    ),
-    "A23": (
-        "ToS/philosophy/eras/late-antiquity/regions/iranian-world/traditions/sasanian-avesta-pahlavi-scholastic",
-        "Sasanian Avesta and Pahlavi scholastic branch",
-    ),
-    "A35": (
-        "ToS/philosophy/eras/late-antiquity/regions/eastern-mediterranean-west-asia/traditions/hermetic-gnostic-mandaean-complexes",
-        "Hermetic, Gnostic, and Mandaean late-antique written complex branch",
-    ),
-    "A36": (
-        "ToS/philosophy/eras/late-antiquity/regions/west-asia-central-asia/traditions/manichaean-multilingual-corpus",
-        "Mani, Manichaeism, and the multilingual Manichaean corpus branch",
-    ),
-    "A37": (
-        "ToS/philosophy/eras/late-antiquity/regions/north-africa/traditions/coptic-egypt",
-        "Coptic Egyptian late-antique monastic, theological, and textual branch",
-    ),
-    "A40": (
-        "ToS/philosophy/eras/late-antiquity/regions/arabian-peninsula/traditions/south-north-arabian-epigraphy",
-        "South Arabian, Himyarite, and North Arabian epigraphic branch",
-    ),
-    "A41": (
-        "ToS/philosophy/eras/late-antiquity/regions/central-asia/traditions/central-asian-textual-corridor",
-        "Central Asian multilingual textual corridor branch",
-    ),
-    "A42": (
-        "ToS/philosophy/eras/late-antiquity/regions/east-asia/traditions/early-chinese-buddhism",
-        "early Chinese Buddhist translation, canon, and doctrinal reception branch",
-    ),
-    "A43": (
-        "ToS/philosophy/eras/late-antiquity/regions/southeast-asia/traditions/sanskrit-pali-inscriptions",
-        "early Southeast Asian Sanskrit and Pali inscriptional branch",
-    ),
-}
+def load_table_i_branches() -> dict[str, tuple[str, str]]:
+    payload = json.loads(PREPARED_DOSSIER_ROUTES.read_text(encoding="utf-8"))
+    packages = payload.get("packages")
+    if not isinstance(packages, dict):
+        raise ValueError("prepared-dossier-routes.json must expose packages")
+    table_i = packages.get("table-i")
+    if not isinstance(table_i, dict):
+        raise ValueError("prepared-dossier-routes.json must expose a table-i package")
+    routes = table_i.get("routes")
+    if not isinstance(routes, list):
+        raise ValueError("prepared-dossier-routes.json table-i.routes must be a list")
+    branches: dict[str, tuple[str, str]] = {}
+    for route in routes:
+        if not isinstance(route, dict):
+            raise ValueError("prepared dossier routes must be objects")
+        dossier_id = str(route.get("dossier_id") or "")
+        branch_path = str(route.get("branch_path") or "")
+        branch_role = str(route.get("branch_role") or "")
+        if not dossier_id or not branch_path or not branch_role:
+            raise ValueError("prepared dossier routes must carry dossier_id, branch_path, and branch_role")
+        branches[dossier_id] = (branch_path, branch_role)
+    return branches
 
+
+BRANCHES = load_table_i_branches()
 
 NODE_TABLE = ("Node ID", "Тип узла", "Название", "Период", "Связи", "Приоритет")
 RELATION_TABLE = ("Source node", "Relation", "Target node", "Комментарий", "Уверенность")
@@ -507,6 +410,7 @@ def update_atlas(dossiers: list[Dossier]) -> None:
 
     atlas_manifest = load_json(ATLAS_MANIFEST)
     atlas_manifest["dossiers"]["available_count"] = len(dossiers)
+    atlas_manifest["dossiers"]["route_map"] = repo_ref(PREPARED_DOSSIER_ROUTES)
     write_json(ATLAS_MANIFEST, atlas_manifest)
 
     dossier_branch = load_json(DOSSIER_BRANCH_MANIFEST)
@@ -514,6 +418,7 @@ def update_atlas(dossiers: list[Dossier]) -> None:
     dossier_branch["source_anchor_backlog"] = repo_ref(SOURCE_ANCHOR_BACKLOG)
     dossier_branch["term_index"] = repo_ref(TERM_INDEX)
     dossier_branch["transmission_backlog"] = repo_ref(TRANSMISSION_BACKLOG)
+    dossier_branch["prepared_dossier_routes"] = repo_ref(PREPARED_DOSSIER_ROUTES)
     write_json(DOSSIER_BRANCH_MANIFEST, dossier_branch)
 
 
@@ -796,6 +701,7 @@ def refresh_philosophy_manifest() -> None:
             repo_ref(SOURCE_ANCHOR_BACKLOG),
             repo_ref(TERM_INDEX),
             repo_ref(TRANSMISSION_BACKLOG),
+            repo_ref(PREPARED_DOSSIER_ROUTES),
         }
     )
     manifest["atlas_routes"] = sorted(atlas_routes)
@@ -812,6 +718,7 @@ def write_readmes() -> None:
         "| --- | --- |\n"
         "| `index.jsonl` | one entry per prepared A-series dossier |\n"
         "| `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |\n"
+        "| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |\n"
         "| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n"
         "| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n"
         "| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\n"

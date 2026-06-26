@@ -8,6 +8,7 @@ The first Table I planting records dossier identity, branch route, graph-row pre
 | --- | --- |
 | `index.jsonl` | one entry per prepared A-series dossier |
 | `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |
+| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |
 | `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |
 | `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |
 | `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |

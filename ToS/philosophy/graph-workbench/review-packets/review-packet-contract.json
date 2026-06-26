@@ -32,6 +32,9 @@
   "dense_hub_degree_threshold": 24,
   "changed_subgraph": {
     "available": false,
-    "reason": "no previous philosophy_graph_projection snapshot route is source-owned yet"
+    "reason": "no previous reviewed philosophy_graph_projection snapshot is committed yet",
+    "snapshot_mode": "current-view-fingerprint",
+    "current_snapshot_field": "snapshot_review.current_snapshot",
+    "comparison_key": "fingerprint"
   }
 }
