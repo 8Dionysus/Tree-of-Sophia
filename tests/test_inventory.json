@@ -257,6 +257,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_graph_projection.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/contracts/philosophy-graph-projection.schema.json",
+      "protects": "philosophy graph projection parity, edge endpoints, source refs, view membership, and runtime boundary",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_graph_projection.py",
+      "failure_route": "Fix the graph projection inputs, schema, builder, or view contracts before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_tos_node_contract_schema.py",
       "home": "tests",
       "home_scope": "root",

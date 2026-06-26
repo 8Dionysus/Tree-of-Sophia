@@ -30,6 +30,7 @@ The current public export surfaces are:
 - `tos_corpus_index.min.json`
 - `philosophy_atlas_projection.min.json`
 - `philosophy_graph_views.min.json`
+- `philosophy_graph_projection.min.json`
 
 They summarize the current Zarathustra route for downstream consumers while pointing back to ToS-owned authority and compatibility surfaces.
 The root entry map is the machine-facing entry capsule for consumers that need
@@ -40,6 +41,9 @@ The philosophy atlas projection turns `ToS/philosophy/atlas/` into a first
 reviewable tree/graph read model for visualization and graph switching.
 The philosophy graph view catalog turns source-owned view cards and
 `view-contracts.json` into downstream-readable lens filters for `abyss-stack`.
+The philosophy graph projection materializes the atlas projection and graph
+view catalog into source-ref-preserving node, edge, and view packets for
+runtime access planes without moving source authority out of ToS.
 The current OS Abyss artifact bundle posture for these JSON readmodels is
 ABI-only and verified through `mechanics/release-support/parts/artifact-bundles/`.
 
@@ -59,4 +63,6 @@ Use:
 - `python scripts/validate_philosophy_atlas_projection.py`
 - `python scripts/build_philosophy_graph_views.py --check`
 - `python scripts/validate_philosophy_graph_views.py`
+- `python scripts/build_philosophy_graph_projection.py --check`
+- `python scripts/validate_philosophy_graph_projection.py`
 - `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`

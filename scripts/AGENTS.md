@@ -42,6 +42,11 @@ visualization.
 publish the graph-view switching catalog from source-owned view cards and
 `view-contracts.json`.
 
+`build_philosophy_graph_projection.py` and
+`validate_philosophy_graph_projection.py` materialize the atlas projection and
+graph-view catalog into source-ref-preserving graph packets for downstream UI,
+MCP, and Neo4j access planes. They do not create runtime authority inside ToS.
+
 ## Operating Card
 
 | Field | Route |
@@ -112,6 +117,7 @@ Local owner routes:
 | corpus index | `python scripts/build_tos_corpus_index.py --check` and `python scripts/validate_tos_corpus_index.py` |
 | philosophy atlas projection | `python scripts/build_philosophy_atlas_projection.py --check` and `python scripts/validate_philosophy_atlas_projection.py` |
 | philosophy graph views | `python scripts/build_philosophy_graph_views.py --check` and `python scripts/validate_philosophy_graph_views.py` |
+| philosophy graph projection | `python scripts/build_philosophy_graph_projection.py --check` and `python scripts/validate_philosophy_graph_projection.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

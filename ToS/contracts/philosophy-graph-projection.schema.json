@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/philosophy-graph-projection.schema.json",
+  "title": "Tree of Sophia philosophy graph projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "schema_ref",
+    "owner_repo",
+    "surface_kind",
+    "source_refs",
+    "runtime_projection_boundary",
+    "validation_refs",
+    "counts",
+    "graph_layers",
+    "views",
+    "nodes",
+    "edges",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_philosophy_graph_projection_v1"
+    },
+    "schema_ref": {
+      "const": "ToS/contracts/philosophy-graph-projection.schema.json"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "surface_kind": {
+      "const": "derived_philosophy_graph_projection"
+    },
+    "source_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atlas_projection_ref", "graph_view_catalog_ref", "source_view_contract_ref"],
+      "properties": {
+        "atlas_projection_ref": {
+          "const": "ToS/derived-exports/philosophy_atlas_projection.min.json"
+        },
+        "graph_view_catalog_ref": {
+          "const": "ToS/derived-exports/philosophy_graph_views.min.json"
+        },
+        "source_view_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/views/view-contracts.json"
+        }
+      }
+    },
+    "runtime_projection_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_owner", "runtime_scope", "tos_authority_scope"],
+      "properties": {
+        "runtime_owner": {
+          "const": "abyss-stack"
+        },
+        "runtime_scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "tos_authority_scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "validation_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "graph_layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/graph_layer"
+      }
+    },
+    "views": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/view"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/projected_node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/projected_edge"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "$defs": {
+    "graph_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer_id", "use", "source_ref"],
+      "properties": {
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "view_id",
+        "title",
+        "source_ref",
+        "route_card",
+        "order",
+        "layout_hint",
+        "graph_layers",
+        "filters_applied",
+        "future_branch_filters",
+        "nodes",
+        "edges",
+        "source_refs",
+        "diagnostics"
+      ],
+      "properties": {
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_card": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "layout_hint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "filters_applied": {
+          "type": "object"
+        },
+        "future_branch_filters": {
+          "type": "object"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/projected_node"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/projected_edge"
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      }
+    },
+    "projected_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "label", "node_type", "graph_layers", "view_ids", "source_ref", "properties"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_layers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "view_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "projected_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edge_id", "from_id", "to_id", "predicate_id", "graph_layers", "view_ids", "source_ref", "properties"],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predicate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_layers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "view_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "path", "message"],
+      "properties": {
+        "level": {
+          "enum": ["warning", "error"]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
