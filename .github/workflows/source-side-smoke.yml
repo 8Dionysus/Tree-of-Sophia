@@ -27,16 +27,16 @@ jobs:
         run: python scripts/validate_tiny_entry_route.py
 
       - name: Run KAG export validator
-        run: python scripts/validate_kag_export.py
+        run: python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
 
       - name: Run tree-node contract validator
         run: python scripts/validate_tree_node_contracts.py
 
       - name: Run relation-pack validator
-        run: python scripts/validate_tree_relation_pack.py
+        run: python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
 
       - name: Run public example sync validator
-        run: python scripts/validate_tree_example_sync.py
+        run: python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
 
       - name: Run tests
         run: python -m unittest discover -s tests
