@@ -24,12 +24,21 @@ def main() -> int:
         raise SystemExit("philosophy graph projection must expose projected nodes")
     if int(counts.get("edges") or 0) == 0:
         raise SystemExit("philosophy graph projection must expose projected edges")
+    if int(counts.get("clusters") or 0) == 0:
+        raise SystemExit("philosophy graph projection must expose source-owned clusters")
+    if counts.get("review_packets") != 11:
+        raise SystemExit("philosophy graph projection must expose one review packet per graph view")
     if counts.get("diagnostics") != 0:
         raise SystemExit("philosophy graph projection must not contain diagnostics in the current atlas slice")
 
     boundary = current_payload.get("runtime_projection_boundary", {})
     if boundary.get("runtime_owner") != "abyss-stack":
         raise SystemExit("philosophy graph projection must keep runtime projection ownership in abyss-stack")
+    visibility = current_payload.get("visibility_model", {})
+    if visibility.get("default_payload_mode") != "cluster-first":
+        raise SystemExit("philosophy graph projection must default to cluster-first payloads")
+    if set(visibility.get("layer_ids", [])) != {layer.get("layer_id") for layer in current_payload.get("graph_layers", [])}:
+        raise SystemExit("visibility_model layer_ids must match graph_layers")
 
     node_ids = {node.get("node_id") for node in current_payload.get("nodes", []) if isinstance(node, dict)}
     for edge in current_payload.get("edges", []):
@@ -37,6 +46,14 @@ def main() -> int:
             raise SystemExit(f"{edge.get('edge_id')} has an endpoint outside the projection")
         if not edge.get("source_ref"):
             raise SystemExit(f"{edge.get('edge_id')} must preserve source_ref")
+    edge_ids = {edge.get("edge_id") for edge in current_payload.get("edges", []) if isinstance(edge, dict)}
+    for cluster in current_payload.get("clusters", []):
+        if not cluster.get("source_refs"):
+            raise SystemExit(f"{cluster.get('cluster_id')} must preserve source_refs")
+        if set(cluster.get("member_node_ids", [])) - node_ids:
+            raise SystemExit(f"{cluster.get('cluster_id')} has member nodes outside the projection")
+        if set(cluster.get("member_edge_ids", [])) - edge_ids:
+            raise SystemExit(f"{cluster.get('cluster_id')} has member edges outside the projection")
 
     views = {
         view.get("view_id"): view
@@ -54,6 +71,21 @@ def main() -> int:
     for view_id, view in views.items():
         if not view.get("source_refs"):
             raise SystemExit(f"{view_id} view must expose source_refs")
+        if not view.get("review_intent"):
+            raise SystemExit(f"{view_id} view must expose review_intent")
+
+    packets = {
+        packet.get("view_id"): packet
+        for packet in current_payload.get("review_packets", [])
+        if isinstance(packet, dict)
+    }
+    if set(packets) != set(views):
+        raise SystemExit("review packets must match graph view ids")
+    canon_packet = packets.get("canon-promotion", {})
+    if "candidate_to_canon_pressure" not in canon_packet:
+        raise SystemExit("canon-promotion packet must expose candidate_to_canon_pressure")
+    if not canon_packet.get("recommended_human_review_route"):
+        raise SystemExit("review packets must expose a human review route")
 
     print("[ok] validated ToS/derived-exports/philosophy_graph_projection.min.json")
     return 0

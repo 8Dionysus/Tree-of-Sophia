@@ -10,12 +10,14 @@
     "owner_repo",
     "surface_kind",
     "source_view_contract_ref",
+    "lens_review_contract_ref",
     "source_view_root",
     "atlas_projection_ref",
     "runtime_projection_boundary",
     "validation_refs",
     "counts",
     "graph_layers",
+    "default_lens_review_requirements",
     "views",
     "diagnostics"
   ],
@@ -34,6 +36,9 @@
     },
     "source_view_contract_ref": {
       "const": "ToS/philosophy/graph-workbench/views/view-contracts.json"
+    },
+    "lens_review_contract_ref": {
+      "const": "ToS/philosophy/graph-workbench/views/lens-review-contracts.json"
     },
     "source_view_root": {
       "const": "ToS/philosophy/graph-workbench/views"
@@ -89,6 +94,9 @@
         "$ref": "#/$defs/graph_layer"
       }
     },
+    "default_lens_review_requirements": {
+      "$ref": "#/$defs/default_lens_review_requirements"
+    },
     "views": {
       "type": "array",
       "minItems": 1,
@@ -140,7 +148,13 @@
         "future_branch_filters",
         "layout_hint",
         "group_by",
-        "sort_fields"
+        "sort_fields",
+        "review_intent",
+        "source_posture",
+        "evidence_posture",
+        "collapse_rule",
+        "ordering_hints",
+        "agent_packet_hint"
       ],
       "properties": {
         "view_id": {
@@ -206,6 +220,82 @@
         },
         "sort_fields": {
           "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "review_intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_posture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_posture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collapse_rule": {
+          "$ref": "#/$defs/collapse_rule"
+        },
+        "ordering_hints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "agent_packet_hint": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "default_lens_review_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_source_ref_expectations", "diagnostics_expected", "ui_mcp_payload_mode"],
+      "properties": {
+        "minimum_source_ref_expectations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diagnostics_expected": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ui_mcp_payload_mode": {
+          "const": "cluster-first"
+        }
+      }
+    },
+    "collapse_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_cluster_kinds", "expand_to"],
+      "properties": {
+        "default_cluster_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expand_to": {
+          "type": "array",
+          "minItems": 1,
           "items": {
             "type": "string",
             "minLength": 1

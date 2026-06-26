@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_philosophy_graph_review_packet_contract_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "ToS/philosophy/graph-workbench/review-packets/README.md",
+  "contract_role": "source-owned compact review packet shape for philosophy graph lenses",
+  "downstream_consumer": "abyss-stack",
+  "projection_ref": "ToS/derived-exports/philosophy_graph_projection.min.json",
+  "packet_fields": [
+    "packet_id",
+    "view_id",
+    "review_intent",
+    "active_filters",
+    "counts",
+    "layer_counts",
+    "cluster_summaries",
+    "weak_source_refs",
+    "unresolved_diagnostics",
+    "suspicious_dense_hubs",
+    "isolated_nodes",
+    "candidate_to_canon_pressure",
+    "changed_subgraph",
+    "recommended_human_review_route",
+    "source_refs"
+  ],
+  "default_limits": {
+    "cluster_summaries": 12,
+    "dense_hubs": 12,
+    "isolated_nodes": 20,
+    "weak_source_refs": 20,
+    "unresolved_diagnostics": 20
+  },
+  "dense_hub_degree_threshold": 24,
+  "changed_subgraph": {
+    "available": false,
+    "reason": "no previous philosophy_graph_projection snapshot route is source-owned yet"
+  }
+}

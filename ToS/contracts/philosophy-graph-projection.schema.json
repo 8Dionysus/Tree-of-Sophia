@@ -13,10 +13,15 @@
     "runtime_projection_boundary",
     "validation_refs",
     "counts",
+    "visibility_model",
     "graph_layers",
+    "layer_counts",
     "views",
     "nodes",
     "edges",
+    "clusters",
+    "review_packets",
+    "unresolved_review_surfaces",
     "diagnostics"
   ],
   "properties": {
@@ -35,7 +40,14 @@
     "source_refs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["atlas_projection_ref", "graph_view_catalog_ref", "source_view_contract_ref"],
+      "required": [
+        "atlas_projection_ref",
+        "graph_view_catalog_ref",
+        "source_view_contract_ref",
+        "lens_review_contract_ref",
+        "cluster_contract_ref",
+        "review_packet_contract_ref"
+      ],
       "properties": {
         "atlas_projection_ref": {
           "const": "ToS/derived-exports/philosophy_atlas_projection.min.json"
@@ -45,42 +57,23 @@
         },
         "source_view_contract_ref": {
           "const": "ToS/philosophy/graph-workbench/views/view-contracts.json"
+        },
+        "lens_review_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/views/lens-review-contracts.json"
+        },
+        "cluster_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+        },
+        "review_packet_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/review-packets/review-packet-contract.json"
         }
       }
     },
     "runtime_projection_boundary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["runtime_owner", "runtime_scope", "tos_authority_scope"],
-      "properties": {
-        "runtime_owner": {
-          "const": "abyss-stack"
-        },
-        "runtime_scope": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "tos_authority_scope": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      }
+      "$ref": "#/$defs/runtime_projection_boundary"
     },
     "validation_refs": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "$ref": "#/$defs/string_array"
     },
     "counts": {
       "type": "object",
@@ -89,11 +82,21 @@
         "minimum": 0
       }
     },
+    "visibility_model": {
+      "$ref": "#/$defs/visibility_model"
+    },
     "graph_layers": {
       "type": "array",
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/graph_layer"
+      }
+    },
+    "layer_counts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/layer_count"
       }
     },
     "views": {
@@ -117,6 +120,26 @@
         "$ref": "#/$defs/projected_edge"
       }
     },
+    "clusters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/cluster"
+      }
+    },
+    "review_packets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/review_packet"
+      }
+    },
+    "unresolved_review_surfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unresolved_review_surface"
+      }
+    },
     "diagnostics": {
       "type": "array",
       "items": {
@@ -125,6 +148,71 @@
     }
   },
   "$defs": {
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "runtime_projection_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_owner", "runtime_scope", "tos_authority_scope"],
+      "properties": {
+        "runtime_owner": {
+          "const": "abyss-stack"
+        },
+        "runtime_scope": {
+          "$ref": "#/$defs/string_array"
+        },
+        "tos_authority_scope": {
+          "$ref": "#/$defs/string_array"
+        }
+      }
+    },
+    "visibility_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_payload_mode",
+        "default_depth",
+        "default_limit",
+        "layer_ids",
+        "expand_returns",
+        "cluster_contract_ref",
+        "review_packet_contract_ref",
+        "lens_review_contract_ref"
+      ],
+      "properties": {
+        "default_payload_mode": {
+          "const": "cluster-first"
+        },
+        "default_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "default_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "layer_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "expand_returns": {
+          "$ref": "#/$defs/string_array"
+        },
+        "cluster_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+        },
+        "review_packet_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/review-packets/review-packet-contract.json"
+        },
+        "lens_review_contract_ref": {
+          "const": "ToS/philosophy/graph-workbench/views/lens-review-contracts.json"
+        }
+      }
+    },
     "graph_layer": {
       "type": "object",
       "additionalProperties": false,
@@ -144,6 +232,37 @@
         }
       }
     },
+    "layer_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer_id", "node_count", "edge_count", "view_count", "cluster_count", "source_ref_count"],
+      "properties": {
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edge_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "view_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cluster_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
     "view": {
       "type": "object",
       "additionalProperties": false,
@@ -157,6 +276,12 @@
         "graph_layers",
         "filters_applied",
         "future_branch_filters",
+        "review_intent",
+        "source_posture",
+        "evidence_posture",
+        "collapse_rule",
+        "ordering_hints",
+        "agent_packet_hint",
         "nodes",
         "edges",
         "source_refs",
@@ -188,18 +313,35 @@
           "minLength": 1
         },
         "graph_layers": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "filters_applied": {
           "type": "object"
         },
         "future_branch_filters": {
           "type": "object"
+        },
+        "review_intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_posture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_posture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collapse_rule": {
+          "$ref": "#/$defs/collapse_rule"
+        },
+        "ordering_hints": {
+          "$ref": "#/$defs/string_array"
+        },
+        "agent_packet_hint": {
+          "type": "string",
+          "minLength": 1
         },
         "nodes": {
           "type": "array",
@@ -214,17 +356,26 @@
           }
         },
         "source_refs": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "diagnostics": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/diagnostic"
           }
+        }
+      }
+    },
+    "collapse_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_cluster_kinds", "expand_to"],
+      "properties": {
+        "default_cluster_kinds": {
+          "$ref": "#/$defs/string_array"
+        },
+        "expand_to": {
+          "$ref": "#/$defs/string_array"
         }
       }
     },
@@ -246,18 +397,10 @@
           "minLength": 1
         },
         "graph_layers": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "view_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "source_ref": {
           "type": "string",
@@ -290,18 +433,10 @@
           "minLength": 1
         },
         "graph_layers": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "view_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/string_array"
         },
         "source_ref": {
           "type": "string",
@@ -309,6 +444,291 @@
         },
         "properties": {
           "type": "object"
+        }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cluster_id",
+        "cluster_kind",
+        "label",
+        "member_key",
+        "member_value",
+        "member_node_ids",
+        "member_edge_ids",
+        "view_ids",
+        "graph_layers",
+        "source_ref",
+        "source_refs",
+        "properties"
+      ],
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cluster_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "member_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "member_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "member_node_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "member_edge_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "view_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "graph_layers": {
+          "$ref": "#/$defs/string_array"
+        },
+        "source_ref": {
+          "const": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+        },
+        "source_refs": {
+          "$ref": "#/$defs/string_array"
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    },
+    "review_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_id",
+        "view_id",
+        "review_intent",
+        "active_filters",
+        "counts",
+        "layer_counts",
+        "cluster_summaries",
+        "weak_source_refs",
+        "unresolved_diagnostics",
+        "suspicious_dense_hubs",
+        "isolated_nodes",
+        "candidate_to_canon_pressure",
+        "changed_subgraph",
+        "recommended_human_review_route",
+        "source_refs"
+      ],
+      "properties": {
+        "packet_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "active_filters": {
+          "type": "object"
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "layer_counts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/view_layer_count"
+          }
+        },
+        "cluster_summaries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cluster_summary"
+          }
+        },
+        "weak_source_refs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "unresolved_diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unresolved_review_surface"
+          }
+        },
+        "suspicious_dense_hubs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dense_hub"
+          }
+        },
+        "isolated_nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/isolated_node"
+          }
+        },
+        "candidate_to_canon_pressure": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "changed_subgraph": {
+          "type": "object"
+        },
+        "recommended_human_review_route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_refs": {
+          "$ref": "#/$defs/string_array"
+        }
+      }
+    },
+    "view_layer_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer_id", "node_count", "edge_count", "cluster_count", "source_ref_count"],
+      "properties": {
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edge_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cluster_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cluster_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cluster_id", "cluster_kind", "label", "node_count", "edge_count", "source_ref_count"],
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cluster_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edge_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "dense_hub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "label", "degree", "source_ref"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "degree": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref": {
+          "type": "string"
+        }
+      }
+    },
+    "isolated_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "label", "source_ref"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string"
+        }
+      }
+    },
+    "unresolved_review_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface_id", "kind", "cluster_kind", "source_ref", "message", "future_member_keys"],
+      "properties": {
+        "surface_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "unresolved-cluster-family"
+        },
+        "cluster_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "const": "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "future_member_keys": {
+          "$ref": "#/$defs/string_array"
         }
       }
     },

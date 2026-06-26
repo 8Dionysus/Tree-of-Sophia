@@ -30,8 +30,16 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertEqual(counts["graph_layers"], 7)
         self.assertGreater(counts["nodes"], 0)
         self.assertGreater(counts["edges"], 0)
+        self.assertGreater(counts["clusters"], 0)
+        self.assertEqual(counts["review_packets"], 11)
+        self.assertGreaterEqual(counts["unresolved_review_surfaces"], 0)
         self.assertEqual(counts["diagnostics"], 0)
         self.assertEqual(payload["runtime_projection_boundary"]["runtime_owner"], "abyss-stack")
+        self.assertEqual(payload["visibility_model"]["default_payload_mode"], "cluster-first")
+        self.assertEqual(
+            set(payload["visibility_model"]["layer_ids"]),
+            {layer["layer_id"] for layer in payload["graph_layers"]},
+        )
 
     def test_every_projected_edge_endpoint_exists(self) -> None:
         payload = self.load_projection()
@@ -51,6 +59,8 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         source_evidence = views["source-evidence"]
         self.assertIn("evidence-relation", source_evidence["graph_layers"])
         self.assertGreater(len(source_evidence["source_refs"]), 0)
+        self.assertIn("research packets remain preparation", source_evidence["source_posture"])
+        self.assertIn("source-witness", source_evidence["collapse_rule"]["default_cluster_kinds"])
 
     def test_global_nodes_and_edges_carry_view_and_layer_membership(self) -> None:
         payload = self.load_projection()
@@ -60,6 +70,33 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertTrue(nodes["atlas-row:A01"]["graph_layers"])
         self.assertIn("chronology", edges["edge:row:A01:has-dossier:A01"]["view_ids"])
         self.assertIn("historical-relation", edges["edge:row:A01:has-dossier:A01"]["graph_layers"])
+
+    def test_clusters_preserve_membership_and_source_refs(self) -> None:
+        payload = self.load_projection()
+        node_ids = {node["node_id"] for node in payload["nodes"]}
+        edge_ids = {edge["edge_id"] for edge in payload["edges"]}
+        clusters = payload["clusters"]
+        self.assertGreater(len(clusters), 0)
+        kinds = {cluster["cluster_kind"] for cluster in clusters}
+        self.assertIn("region", kinds)
+        self.assertIn("source-witness", kinds)
+        for cluster in clusters:
+            self.assertTrue(cluster["source_refs"])
+            self.assertTrue(set(cluster["member_node_ids"]) <= node_ids)
+            self.assertTrue(set(cluster["member_edge_ids"]) <= edge_ids)
+
+    def test_review_packets_are_compact_view_packets(self) -> None:
+        payload = self.load_projection()
+        views = {view["view_id"]: view for view in payload["views"]}
+        packets = {packet["view_id"]: packet for packet in payload["review_packets"]}
+        self.assertEqual(set(packets), set(views))
+        canon = packets["canon-promotion"]
+        self.assertEqual(canon["packet_id"], "review-packet:canon-promotion")
+        self.assertIn("candidate_to_canon_pressure", canon)
+        self.assertTrue(canon["recommended_human_review_route"].endswith("canon-promotion.graph.md"))
+        chronology = packets["chronology"]
+        self.assertLessEqual(len(chronology["cluster_summaries"]), 12)
+        self.assertEqual(chronology["counts"]["weak_source_refs"], 0)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,114 @@
+{
+  "schema_version": "tos_philosophy_lens_review_contracts_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "ToS/philosophy/graph-workbench/views/README.md",
+  "contract_role": "source-owned per-lens review intent and UI/MCP consumption hints",
+  "downstream_consumer": "abyss-stack",
+  "view_contract_ref": "ToS/philosophy/graph-workbench/views/view-contracts.json",
+  "default_requirements": {
+    "minimum_source_ref_expectations": ["nodes", "edges", "clusters"],
+    "diagnostics_expected": ["missing-source-ref", "empty-view", "unresolved-cluster-family", "isolated-node", "dense-hub"],
+    "ui_mcp_payload_mode": "cluster-first"
+  },
+  "views": [
+    {
+      "view_id": "chronology",
+      "review_intent": "Review formation, fixation, canonization, preservation, and dating pressure without treating dates as settled verdicts.",
+      "source_posture": "Every visible row, dossier, cluster, and relation must route back to atlas rows or view contracts.",
+      "evidence_posture": "Surface confidence, status, dossier coverage, and dating uncertainty before concept synthesis.",
+      "collapse_rule": {"default_cluster_kinds": ["era", "region", "evidence-status", "canon-candidate-status"], "expand_to": ["rows", "dossiers", "source_refs"]},
+      "ordering_hints": ["launch_order", "row_order", "formation", "fixation", "canonization"],
+      "agent_packet_hint": "Bring chronology counts, weak source refs, unresolved era/tradition clusters, and top regional clusters."
+    },
+    {
+      "view_id": "transmission",
+      "review_intent": "Review movement through language, script, school, archive, translation, copying, commentary, and reception corridors.",
+      "source_posture": "Movement must stay tied to source documents, dossier rows, or later explicit transmission nodes.",
+      "evidence_posture": "Do not infer influence from movement alone; mark missing relation evidence as unresolved.",
+      "collapse_rule": {"default_cluster_kinds": ["corpus", "source-witness", "school-institution", "region"], "expand_to": ["relations", "source_refs"]},
+      "ordering_hints": ["row_order", "launch_order", "source_document"],
+      "agent_packet_hint": "Bring transmission clusters, relation-kind pressure, and any dense hubs that look like unreviewed influence claims."
+    },
+    {
+      "view_id": "source-evidence",
+      "review_intent": "Review source witnesses, preservation posture, controversy, and proof limits before downstream synthesis.",
+      "source_posture": "Source refs are first-class; research packets remain preparation, not source witnesses.",
+      "evidence_posture": "Prioritize confidence, status, dossier availability, and missing source refs.",
+      "collapse_rule": {"default_cluster_kinds": ["source-witness", "evidence-status", "corpus"], "expand_to": ["source_refs", "rows", "dossiers"]},
+      "ordering_hints": ["confidence", "status", "row_order"],
+      "agent_packet_hint": "Bring weak-source rows, unresolved evidence clusters, and source documents with sparse coverage."
+    },
+    {
+      "view_id": "concept-lineage",
+      "review_intent": "Review concept, problem, method, genre, contrast, analogy, and lineage pressure without flattening languages or institutions.",
+      "source_posture": "Concept clusters must preserve the row or future concept-node source that produced them.",
+      "evidence_posture": "Separate candidate conceptual pressure from canonical relation packs.",
+      "collapse_rule": {"default_cluster_kinds": ["concept-problem", "canon-candidate-status", "work", "corpus"], "expand_to": ["concept pressure", "rows", "source_refs"]},
+      "ordering_hints": ["formation", "canonization", "row_order"],
+      "agent_packet_hint": "Bring concept/problem clusters, candidate pressure, and any conceptual hubs that need human review."
+    },
+    {
+      "view_id": "institution-media",
+      "review_intent": "Review schools, temples, courts, libraries, archives, media, scripts, and institutions as load-bearing conditions.",
+      "source_posture": "Infrastructure claims must stay anchored to source documents or later institution/media nodes.",
+      "evidence_posture": "Mark institution and medium pressure as candidate until branch nodes or source witnesses mature.",
+      "collapse_rule": {"default_cluster_kinds": ["school-institution", "corpus", "region", "source-witness"], "expand_to": ["institution pressure", "rows", "source_refs"]},
+      "ordering_hints": ["formation", "fixation", "row_order"],
+      "agent_packet_hint": "Bring institution/media clusters and distinguish infrastructure pressure from canon."
+    },
+    {
+      "view_id": "script-decipherment",
+      "review_intent": "Review scripts, sign systems, artifacts, partial readings, decipherment, and uncertainty posture.",
+      "source_posture": "Frontier scripts and decipherment claims must never outrun source refs and uncertainty markers.",
+      "evidence_posture": "Prioritize confidence, controversy, preservation, and unresolved script evidence.",
+      "collapse_rule": {"default_cluster_kinds": ["evidence-status", "source-witness", "corpus", "region"], "expand_to": ["artifact/script pressure", "source_refs"]},
+      "ordering_hints": ["status", "confidence", "row_order"],
+      "agent_packet_hint": "Bring unresolved decipherment pressure and low-confidence source clusters."
+    },
+    {
+      "view_id": "imperial-multilingualism",
+      "review_intent": "Review parallel versions, administrative languages, translation regimes, and empire-scale writing systems.",
+      "source_posture": "Version and language claims must preserve source hierarchy and audience differences.",
+      "evidence_posture": "Do not make parallel versions equal in authority without source evidence.",
+      "collapse_rule": {"default_cluster_kinds": ["corpus", "region", "school-institution", "source-witness"], "expand_to": ["language/script pressure", "source_refs"]},
+      "ordering_hints": ["formation", "fixation", "row_order"],
+      "agent_packet_hint": "Bring language/script clusters and unresolved multilingual source posture."
+    },
+    {
+      "view_id": "ritual-law",
+      "review_intent": "Review treaty, oath, law, decree, ritual, legitimacy, and state action as philosophical infrastructure.",
+      "source_posture": "Ritual and law claims must remain tied to rows, inscriptions, dossiers, or later source witnesses.",
+      "evidence_posture": "Separate law/ritual thinking-in-action from generic religion or modern legal categories.",
+      "collapse_rule": {"default_cluster_kinds": ["concept-problem", "school-institution", "corpus", "region"], "expand_to": ["ritual/law pressure", "source_refs"]},
+      "ordering_hints": ["formation", "fixation", "row_order"],
+      "agent_packet_hint": "Bring law/ritual clusters and candidate-to-canon pressure."
+    },
+    {
+      "view_id": "epigraphic-network",
+      "review_intent": "Review inscriptions, cities, carriers, alphabetic handoffs, public writing, and distributed epigraphic networks.",
+      "source_posture": "Network claims must remain non-teleological and source-ref anchored.",
+      "evidence_posture": "Mark missing carriers, cities, and inscription evidence as unresolved rather than filling the graph.",
+      "collapse_rule": {"default_cluster_kinds": ["region", "source-witness", "corpus", "evidence-status"], "expand_to": ["network pressure", "source_refs"]},
+      "ordering_hints": ["formation", "fixation", "row_order"],
+      "agent_packet_hint": "Bring public-writing clusters and unresolved carrier/source gaps."
+    },
+    {
+      "view_id": "lost-corpus",
+      "review_intent": "Review lost, fragmentary, indirectly attested, or mediated corpora without inventing absent content.",
+      "source_posture": "Absence and mediation are visible facts; indirect witnesses must remain explicit.",
+      "evidence_posture": "Prioritize lost-corpus gaps, indirect evidence, low confidence, and missing dossier coverage.",
+      "collapse_rule": {"default_cluster_kinds": ["evidence-status", "source-witness", "corpus", "canon-candidate-status"], "expand_to": ["absence evidence", "source_refs"]},
+      "ordering_hints": ["confidence", "status", "row_order"],
+      "agent_packet_hint": "Bring absence-evidence clusters and weak source routes."
+    },
+    {
+      "view_id": "canon-promotion",
+      "review_intent": "Review movement from research scaffold through candidate pressure toward canon and derived exports.",
+      "source_posture": "Promotion pressure must not become canon unless reviewed in the canon route.",
+      "evidence_posture": "Separate candidate, reviewed, canonical, and generated export status.",
+      "collapse_rule": {"default_cluster_kinds": ["canon-candidate-status", "concept-problem", "source-witness", "corpus"], "expand_to": ["candidate rows", "proposed relations", "source_refs"]},
+      "ordering_hints": ["status", "confidence", "row_order"],
+      "agent_packet_hint": "Bring candidate-to-canon pressure, unresolved clusters, and human review route."
+    }
+  ]
+}
