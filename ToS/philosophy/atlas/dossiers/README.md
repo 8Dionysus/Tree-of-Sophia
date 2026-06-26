@@ -1,17 +1,15 @@
 # Dossiers
 
-`dossiers/` indexes the prepared A-series Deep Research documents for the
-philosophy atlas.
+`dossiers/` indexes the prepared A-series Deep Research documents for the philosophy atlas.
 
-This directory records the shape that is already present: document identity,
-table count, node-row count, relation-row count, node-type pressure, and
-relation-name pressure. Expansion into local graph workbench surfaces belongs
-to the next branch pass.
+The first Table I planting records dossier identity, branch route, graph-row pressure, source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.
 
 | Surface | Role |
 | --- | --- |
 | `index.jsonl` | one entry per prepared A-series dossier |
-| `graph-shape-summary.json` | aggregate node and relation vocabulary pressure |
+| `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |
+| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |
+| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |
+| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |
 
-The next real growth pass can choose a branch, open the matching dossier, and
-promote its rows into local graph workbench surfaces with source anchors.
+Branch bodies live under `ToS/philosophy/eras/...`, and pre-canon graph rows live under `ToS/philosophy/graph-workbench/`.
