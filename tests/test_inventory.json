@@ -272,6 +272,36 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_post_planting_audit.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/philosophy/graph-workbench/review-packets/README.md",
+      "protects": "post-planting audit parity, graph review readiness, and runtime-owner boundary",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_post_planting_audit.py",
+      "failure_route": "Fix the post-planting audit builder, review packet source route, or graph projection inputs before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_prepared_dossier_pipeline.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
+      "protects": "prepared dossier route-map readiness without opening unsupported master-table routes",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_prepared_dossier_pipeline.py",
+      "failure_route": "Fix the prepared dossier route map or planting entrypoint before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_tos_node_contract_schema.py",
       "home": "tests",
       "home_scope": "root",

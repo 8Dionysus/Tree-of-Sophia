@@ -345,6 +345,14 @@
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
       },
       {
+        "label": "check philosophy post-planting audit",
+        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
+      },
+      {
+        "label": "validate philosophy post-planting audit",
+        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
+      },
+      {
         "label": "check decision indexes",
         "command": ["python", "scripts/generate_decision_indexes.py", "--check"]
       },
@@ -427,6 +435,14 @@
       {
         "label": "validate philosophy graph projection",
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
+        "label": "check philosophy post-planting audit",
+        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
+      },
+      {
+        "label": "validate philosophy post-planting audit",
+        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
       }
     ],
     "artifact_bundles": [
@@ -503,6 +519,14 @@
       {
         "label": "validate philosophy graph projection",
         "command": ["python", "scripts/validate_philosophy_graph_projection.py"]
+      },
+      {
+        "label": "check philosophy post-planting audit",
+        "command": ["python", "scripts/build_philosophy_post_planting_audit.py", "--check"]
+      },
+      {
+        "label": "validate philosophy post-planting audit",
+        "command": ["python", "scripts/validate_philosophy_post_planting_audit.py"]
       },
       {
         "label": "validate OS Abyss generated readmodel artifact bundle",

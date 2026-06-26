@@ -47,6 +47,17 @@ publish the graph-view switching catalog from source-owned view cards and
 graph-view catalog into source-ref-preserving graph packets for downstream UI,
 MCP, and Neo4j access planes. They do not create runtime authority inside ToS.
 
+`build_philosophy_post_planting_audit.py` and
+`validate_philosophy_post_planting_audit.py` publish the compact Table I
+post-planting review packet from the planted atlas, branch, workbench, and
+graph projection surfaces. They check review readiness; they do not promote
+prepared dossier material to canon.
+
+`plant_prepared_dossiers.py` is the prepared-dossier planting entrypoint. It
+reports package readiness by default and delegates supported planting to the
+package implementation. `plant_table_i_prepared_dossiers.py` remains the Table I
+implementation until Table II or Table III receives its own dossier route map.
+
 ## Operating Card
 
 | Field | Route |
@@ -118,6 +129,7 @@ Local owner routes:
 | philosophy atlas projection | `python scripts/build_philosophy_atlas_projection.py --check` and `python scripts/validate_philosophy_atlas_projection.py` |
 | philosophy graph views | `python scripts/build_philosophy_graph_views.py --check` and `python scripts/validate_philosophy_graph_views.py` |
 | philosophy graph projection | `python scripts/build_philosophy_graph_projection.py --check` and `python scripts/validate_philosophy_graph_projection.py` |
+| philosophy post-planting audit | `python scripts/build_philosophy_post_planting_audit.py --check` and `python scripts/validate_philosophy_post_planting_audit.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

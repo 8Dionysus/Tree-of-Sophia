@@ -40,6 +40,10 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             set(payload["visibility_model"]["layer_ids"]),
             {layer["layer_id"] for layer in payload["graph_layers"]},
         )
+        self.assertEqual(payload["snapshot_review"]["snapshot_schema_version"], "tos_philosophy_graph_projection_snapshot_v1")
+        self.assertEqual(payload["snapshot_review"]["diff_route"]["mode"], "fingerprint-ready")
+        self.assertEqual(len(payload["snapshot_review"]["current_snapshot"]["projection_fingerprint"]), 64)
+        self.assertEqual(len(payload["snapshot_review"]["current_snapshot"]["view_fingerprints"]), 11)
 
     def test_every_projected_edge_endpoint_exists(self) -> None:
         payload = self.load_projection()
@@ -97,6 +101,8 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertEqual(canon["packet_id"], "review-packet:canon-promotion")
         self.assertIn("candidate_to_canon_pressure", canon)
         self.assertGreater(canon["candidate_to_canon_pressure"].get("pre-canon", 0), 0)
+        self.assertEqual(canon["changed_subgraph"]["snapshot_mode"], "current-view-fingerprint")
+        self.assertEqual(len(canon["changed_subgraph"]["current_view_fingerprint"]), 64)
         self.assertTrue(canon["recommended_human_review_route"].endswith("canon-promotion.graph.md"))
         chronology = packets["chronology"]
         self.assertLessEqual(len(chronology["cluster_summaries"]), 12)

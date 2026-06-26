@@ -195,6 +195,11 @@ def _stringify_value(value: Any) -> str | None:
     return None
 
 
+def _stable_digest(value: Any) -> str:
+    rendered = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+
+
 def _field_value(node: dict[str, Any], field: str) -> str | None:
     if field == "label":
         return _stringify_value(node.get("label"))
@@ -497,6 +502,23 @@ def _build_review_packets(
                 ),
             )
         ][: int(limits.get("cluster_summaries") or 12)]
+        current_view_fingerprint = _stable_digest(
+            {
+                "view_id": view_id,
+                "node_ids": sorted(str(node["node_id"]) for node in view_nodes),
+                "edge_ids": sorted(str(edge["edge_id"]) for edge in view_edges),
+                "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in view_clusters),
+                "graph_layers": view.get("graph_layers", []),
+                "source_refs": view.get("source_refs", []),
+            }
+        )
+        changed_subgraph_packet = dict(changed_subgraph)
+        changed_subgraph_packet.update(
+            {
+                "snapshot_mode": "current-view-fingerprint",
+                "current_view_fingerprint": current_view_fingerprint,
+            }
+        )
         packets.append(
             {
                 "packet_id": f"review-packet:{view_id}",
@@ -520,12 +542,77 @@ def _build_review_packets(
                 "suspicious_dense_hubs": dense_hubs,
                 "isolated_nodes": isolated_nodes,
                 "candidate_to_canon_pressure": _candidate_to_canon_pressure(view_nodes),
-                "changed_subgraph": changed_subgraph,
+                "changed_subgraph": changed_subgraph_packet,
                 "recommended_human_review_route": str(view.get("route_card") or ""),
                 "source_refs": view.get("source_refs", []),
             }
         )
     return packets
+
+
+def _build_snapshot_review(
+    *,
+    views: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+    clusters: list[dict[str, Any]],
+) -> dict[str, Any]:
+    clusters_by_view: dict[str, list[dict[str, Any]]] = {}
+    for cluster in clusters:
+        for view_id in cluster.get("view_ids", []):
+            clusters_by_view.setdefault(str(view_id), []).append(cluster)
+
+    view_fingerprints: list[dict[str, Any]] = []
+    for view in views:
+        view_id = str(view.get("view_id") or "")
+        view_nodes = view.get("nodes", [])
+        view_edges = view.get("edges", [])
+        view_clusters = clusters_by_view.get(view_id, [])
+        view_fingerprint_material = {
+            "view_id": view_id,
+            "node_ids": sorted(str(node["node_id"]) for node in view_nodes),
+            "edge_ids": sorted(str(edge["edge_id"]) for edge in view_edges),
+            "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in view_clusters),
+            "graph_layers": view.get("graph_layers", []),
+            "source_refs": view.get("source_refs", []),
+        }
+        view_fingerprints.append(
+            {
+                "view_id": view_id,
+                "fingerprint": _stable_digest(view_fingerprint_material),
+                "node_count": len(view_nodes),
+                "edge_count": len(view_edges),
+                "cluster_count": len(view_clusters),
+                "source_ref_count": len(view.get("source_refs", [])),
+            }
+        )
+
+    projection_material = {
+        "node_ids": sorted(str(node["node_id"]) for node in nodes),
+        "edge_ids": sorted(str(edge["edge_id"]) for edge in edges),
+        "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in clusters),
+        "view_fingerprints": view_fingerprints,
+    }
+    count_material = {
+        "views": len(views),
+        "nodes": len(nodes),
+        "edges": len(edges),
+        "clusters": len(clusters),
+    }
+    return {
+        "snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1",
+        "current_snapshot": {
+            "projection_fingerprint": _stable_digest(projection_material),
+            "count_fingerprint": _stable_digest(count_material),
+            "view_fingerprints": view_fingerprints,
+        },
+        "diff_route": {
+            "mode": "fingerprint-ready",
+            "changed_subgraph_available": False,
+            "previous_snapshot_ref": None,
+            "next_route": "compare current_snapshot against a previous reviewed philosophy graph projection snapshot",
+        },
+    }
 
 
 def _validate_cross_references(payload: dict[str, Any]) -> None:
@@ -699,6 +786,7 @@ def build_payload() -> dict[str, Any]:
         unresolved_review_surfaces=unresolved_review_surfaces,
         review_packet_contract=review_packet_contract,
     )
+    snapshot_review = _build_snapshot_review(views=views, nodes=nodes, edges=edges, clusters=clusters)
     cluster_contract_rules = cluster_contract.get("collapse_rules")
     if not isinstance(cluster_contract_rules, dict):
         raise ValueError("cluster-contracts.json collapse_rules must be an object")
@@ -751,6 +839,7 @@ def build_payload() -> dict[str, Any]:
             "review_packet_contract_ref": REVIEW_PACKET_CONTRACT_REF,
             "lens_review_contract_ref": LENS_REVIEW_CONTRACT_REF,
         },
+        "snapshot_review": snapshot_review,
         "graph_layers": graph_layers,
         "layer_counts": layer_counts,
         "views": views,

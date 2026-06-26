@@ -39,6 +39,16 @@ def main() -> int:
         raise SystemExit("philosophy graph projection must default to cluster-first payloads")
     if set(visibility.get("layer_ids", [])) != {layer.get("layer_id") for layer in current_payload.get("graph_layers", [])}:
         raise SystemExit("visibility_model layer_ids must match graph_layers")
+    snapshot = current_payload.get("snapshot_review", {})
+    current_snapshot = snapshot.get("current_snapshot", {}) if isinstance(snapshot, dict) else {}
+    if snapshot.get("snapshot_schema_version") != "tos_philosophy_graph_projection_snapshot_v1":
+        raise SystemExit("philosophy graph projection must expose snapshot review metadata")
+    if not isinstance(current_snapshot.get("projection_fingerprint"), str) or len(current_snapshot["projection_fingerprint"]) != 64:
+        raise SystemExit("snapshot review must expose a stable projection fingerprint")
+    if len(current_snapshot.get("view_fingerprints", [])) != counts.get("views"):
+        raise SystemExit("snapshot review must expose one fingerprint per graph view")
+    if snapshot.get("diff_route", {}).get("mode") != "fingerprint-ready":
+        raise SystemExit("snapshot review diff_route must be fingerprint-ready")
 
     node_ids = {node.get("node_id") for node in current_payload.get("nodes", []) if isinstance(node, dict)}
     for edge in current_payload.get("edges", []):
@@ -84,6 +94,8 @@ def main() -> int:
     canon_packet = packets.get("canon-promotion", {})
     if "candidate_to_canon_pressure" not in canon_packet:
         raise SystemExit("canon-promotion packet must expose candidate_to_canon_pressure")
+    if len(str(canon_packet.get("changed_subgraph", {}).get("current_view_fingerprint") or "")) != 64:
+        raise SystemExit("review packets must carry current view fingerprints for later changed-subgraph review")
     if not canon_packet.get("recommended_human_review_route"):
         raise SystemExit("review packets must expose a human review route")
 
