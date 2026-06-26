@@ -14,6 +14,7 @@ from jsonschema import Draft202012Validator
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOS_ROOT = REPO_ROOT / "ToS"
 SOURCE_VIEW_CONTRACT_REF = "ToS/philosophy/graph-workbench/views/view-contracts.json"
+LENS_REVIEW_CONTRACT_REF = "ToS/philosophy/graph-workbench/views/lens-review-contracts.json"
 SOURCE_VIEW_ROOT = "ToS/philosophy/graph-workbench/views"
 GRAPH_LAYER_SOURCE_REF = "ToS/philosophy/trunk/graph-layers/README.md"
 ATLAS_PROJECTION_REF = "ToS/derived-exports/philosophy_atlas_projection.min.json"
@@ -237,9 +238,65 @@ def validate_view_contract(
         raise ValueError(f"{view_id}.layout_hint must be a non-empty string")
 
 
+def require_object(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    return value
+
+
+def validate_lens_review_contract(contract: dict[str, Any], view_ids: set[str]) -> dict[str, dict[str, Any]]:
+    if contract.get("schema_version") != "tos_philosophy_lens_review_contracts_v1":
+        raise ValueError("lens-review-contracts.json must use tos_philosophy_lens_review_contracts_v1")
+    if contract.get("view_contract_ref") != SOURCE_VIEW_CONTRACT_REF:
+        raise ValueError(f"lens-review-contracts.json must point to {SOURCE_VIEW_CONTRACT_REF}")
+    if contract.get("downstream_consumer") != "abyss-stack":
+        raise ValueError("lens-review-contracts.json downstream_consumer must be abyss-stack")
+
+    default_requirements = require_object(contract.get("default_requirements"), "lens-review default_requirements")
+    require_string_list(
+        default_requirements.get("minimum_source_ref_expectations"),
+        "lens-review default_requirements.minimum_source_ref_expectations",
+    )
+    require_string_list(
+        default_requirements.get("diagnostics_expected"),
+        "lens-review default_requirements.diagnostics_expected",
+    )
+    if default_requirements.get("ui_mcp_payload_mode") != "cluster-first":
+        raise ValueError("lens-review ui_mcp_payload_mode must be cluster-first")
+
+    raw_reviews = contract.get("views")
+    if not isinstance(raw_reviews, list):
+        raise ValueError("lens-review-contracts.json views must be a list")
+    reviews: dict[str, dict[str, Any]] = {}
+    for raw_review in raw_reviews:
+        review = require_object(raw_review, "lens-review view")
+        view_id = review.get("view_id")
+        if not isinstance(view_id, str) or not view_id:
+            raise ValueError("lens-review view_id must be a non-empty string")
+        if view_id in reviews:
+            raise ValueError(f"duplicate lens-review view id: {view_id}")
+        for field in ("review_intent", "source_posture", "evidence_posture", "agent_packet_hint"):
+            if not isinstance(review.get(field), str) or not review[field]:
+                raise ValueError(f"{view_id}.{field} must be a non-empty string")
+        collapse_rule = require_object(review.get("collapse_rule"), f"{view_id}.collapse_rule")
+        require_string_list(collapse_rule.get("default_cluster_kinds"), f"{view_id}.collapse_rule.default_cluster_kinds")
+        require_string_list(collapse_rule.get("expand_to"), f"{view_id}.collapse_rule.expand_to")
+        require_string_list(review.get("ordering_hints"), f"{view_id}.ordering_hints")
+        reviews[view_id] = review
+
+    missing_reviews = sorted(view_ids - set(reviews))
+    extra_reviews = sorted(set(reviews) - view_ids)
+    if missing_reviews:
+        raise ValueError(f"lens-review-contracts.json is missing views: {', '.join(missing_reviews)}")
+    if extra_reviews:
+        raise ValueError(f"lens-review-contracts.json references unknown views: {', '.join(extra_reviews)}")
+    return reviews
+
+
 def build_payload() -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
     source_contract = load_json(REPO_ROOT / SOURCE_VIEW_CONTRACT_REF)
+    lens_review_contract = load_json(REPO_ROOT / LENS_REVIEW_CONTRACT_REF)
     atlas_projection = load_json(REPO_ROOT / ATLAS_PROJECTION_REF)
     philosophy_manifest = load_json(REPO_ROOT / "ToS/philosophy/philosophy.manifest.json")
     graph_layers = parse_graph_layers(REPO_ROOT / GRAPH_LAYER_SOURCE_REF)
@@ -257,6 +314,12 @@ def build_payload() -> dict[str, Any]:
     raw_views = source_contract.get("views")
     if not isinstance(raw_views, list):
         raise ValueError("view-contracts.json views must be a list")
+    raw_view_ids = {
+        str(raw_view.get("view_id"))
+        for raw_view in raw_views
+        if isinstance(raw_view, dict) and isinstance(raw_view.get("view_id"), str)
+    }
+    lens_reviews = validate_lens_review_contract(lens_review_contract, raw_view_ids)
 
     seen_view_ids: set[str] = set()
     views: list[dict[str, Any]] = []
@@ -274,6 +337,7 @@ def build_payload() -> dict[str, Any]:
             raise ValueError(f"duplicate graph view id: {view_id}")
         seen_view_ids.add(view_id)
         card = parse_view_card(REPO_ROOT / raw_view["route_card"])
+        lens_review = lens_reviews[view_id]
         views.append(
             {
                 "view_id": view_id,
@@ -290,6 +354,12 @@ def build_payload() -> dict[str, Any]:
                 "layout_hint": raw_view["layout_hint"],
                 "group_by": raw_view["group_by"],
                 "sort_fields": raw_view["sort_fields"],
+                "review_intent": lens_review["review_intent"],
+                "source_posture": lens_review["source_posture"],
+                "evidence_posture": lens_review["evidence_posture"],
+                "collapse_rule": lens_review["collapse_rule"],
+                "ordering_hints": lens_review["ordering_hints"],
+                "agent_packet_hint": lens_review["agent_packet_hint"],
             }
         )
 
@@ -318,6 +388,7 @@ def build_payload() -> dict[str, Any]:
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "derived_philosophy_graph_view_catalog",
         "source_view_contract_ref": SOURCE_VIEW_CONTRACT_REF,
+        "lens_review_contract_ref": LENS_REVIEW_CONTRACT_REF,
         "source_view_root": SOURCE_VIEW_ROOT,
         "atlas_projection_ref": ATLAS_PROJECTION_REF,
         "runtime_projection_boundary": {
@@ -338,9 +409,11 @@ def build_payload() -> dict[str, Any]:
             "views": len(views),
             "graph_layers": len(graph_layers),
             "atlas_projection_graph_views": len(projection["graph_view_ids"]),
+            "lens_review_contracts": len(lens_reviews),
             "diagnostics": len(diagnostics),
         },
         "graph_layers": graph_layers,
+        "default_lens_review_requirements": lens_review_contract["default_requirements"],
         "views": views,
         "diagnostics": diagnostics,
     }

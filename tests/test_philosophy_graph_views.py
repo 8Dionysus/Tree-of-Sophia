@@ -27,9 +27,15 @@ class PhilosophyGraphViewsTest(unittest.TestCase):
         payload = self.load_catalog()
         self.assertEqual(payload["counts"]["views"], 11)
         self.assertEqual(payload["counts"]["graph_layers"], 7)
+        self.assertEqual(payload["counts"]["lens_review_contracts"], 11)
         self.assertEqual(payload["counts"]["diagnostics"], 0)
         self.assertEqual(payload["runtime_projection_boundary"]["runtime_owner"], "abyss-stack")
         self.assertEqual(payload["atlas_projection_ref"], "ToS/derived-exports/philosophy_atlas_projection.min.json")
+        self.assertEqual(
+            payload["lens_review_contract_ref"],
+            "ToS/philosophy/graph-workbench/views/lens-review-contracts.json",
+        )
+        self.assertEqual(payload["default_lens_review_requirements"]["ui_mcp_payload_mode"], "cluster-first")
 
     def test_catalog_view_ids_match_atlas_projection_view_nodes(self) -> None:
         payload = self.load_catalog()
@@ -47,6 +53,8 @@ class PhilosophyGraphViewsTest(unittest.TestCase):
         views = {view["view_id"]: view for view in payload["views"]}
         self.assertIn("Shows translation, copying, commentary", views["transmission"]["lens"])
         self.assertIn("does not make research packets into source witnesses", views["source-evidence"]["boundary"])
+        self.assertIn("research packets remain preparation", views["source-evidence"]["source_posture"])
+        self.assertIn("candidate-to-canon pressure", views["canon-promotion"]["agent_packet_hint"])
 
     def test_catalog_exposes_useful_switching_filters(self) -> None:
         payload = self.load_catalog()
@@ -59,6 +67,10 @@ class PhilosophyGraphViewsTest(unittest.TestCase):
         self.assertIn("develops_concept", concept["relation_kind_keys"])
         canon_layers = set(views["canon-promotion"]["graph_layers"])
         self.assertTrue({"candidate-relation", "canonical-relation"} <= canon_layers)
+        canon_clusters = set(views["canon-promotion"]["collapse_rule"]["default_cluster_kinds"])
+        self.assertIn("canon-candidate-status", canon_clusters)
+        chronology_order = views["chronology"]["ordering_hints"]
+        self.assertIn("formation", chronology_order)
 
 
 if __name__ == "__main__":

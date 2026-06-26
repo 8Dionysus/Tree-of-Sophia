@@ -151,10 +151,12 @@
     "ToS/philosophy/threads/transmissions/branch.manifest.json",
     "ToS/philosophy/graph-workbench/branch.manifest.json",
     "ToS/philosophy/graph-workbench/proposed-nodes/branch.manifest.json",
-    "ToS/philosophy/graph-workbench/proposed-relations/branch.manifest.json",
-    "ToS/philosophy/graph-workbench/branch-fragments/branch.manifest.json",
-    "ToS/philosophy/graph-workbench/promotion-ledger/branch.manifest.json",
-    "ToS/philosophy/graph-workbench/views/branch.manifest.json"
+        "ToS/philosophy/graph-workbench/proposed-relations/branch.manifest.json",
+        "ToS/philosophy/graph-workbench/branch-fragments/branch.manifest.json",
+        "ToS/philosophy/graph-workbench/promotion-ledger/branch.manifest.json",
+        "ToS/philosophy/graph-workbench/views/branch.manifest.json",
+        "ToS/philosophy/graph-workbench/clusters/branch.manifest.json",
+        "ToS/philosophy/graph-workbench/review-packets/branch.manifest.json"
   ],
   "research_packet_routes": [
     "ToS/research-packets/deep-research/philosophy/research.manifest.json"
@@ -178,9 +180,16 @@
     "ToS/philosophy/graph-workbench/views/lost-corpus.graph.md",
     "ToS/philosophy/graph-workbench/views/canon-promotion.graph.md"
   ],
-  "graph_view_contracts": [
-    "ToS/philosophy/graph-workbench/views/view-contracts.json"
-  ],
+    "graph_view_contracts": [
+        "ToS/philosophy/graph-workbench/views/view-contracts.json",
+        "ToS/philosophy/graph-workbench/views/lens-review-contracts.json"
+    ],
+    "graph_cluster_contracts": [
+        "ToS/philosophy/graph-workbench/clusters/cluster-contracts.json"
+    ],
+    "graph_review_packet_contracts": [
+        "ToS/philosophy/graph-workbench/review-packets/review-packet-contract.json"
+    ],
   "atlas_routes": [
     "ToS/philosophy/atlas/atlas.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",

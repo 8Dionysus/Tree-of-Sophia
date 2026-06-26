@@ -1,0 +1,96 @@
+{
+  "schema_version": "tos_philosophy_graph_cluster_contracts_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_surface": "ToS/philosophy/graph-workbench/clusters/README.md",
+  "contract_role": "source-owned collapse model for large philosophy graph review",
+  "downstream_consumer": "abyss-stack",
+  "projection_ref": "ToS/derived-exports/philosophy_graph_projection.min.json",
+  "cluster_families": [
+    {
+      "cluster_kind": "era",
+      "label": "Era",
+      "current_member_keys": [],
+      "future_member_keys": ["eras/<era>", "formation", "fixation", "canonization"],
+      "review_use": "collapse very large chronology spans before drilling into rows, traditions, and sources"
+    },
+    {
+      "cluster_kind": "region",
+      "label": "Region",
+      "current_member_keys": [{"field": "properties.source_section", "node_types": ["master-table-row"]}],
+      "future_member_keys": ["eras/<era>/regions/<region>"],
+      "review_use": "group atlas rows by current source-section region until mature region branches exist"
+    },
+    {
+      "cluster_kind": "tradition",
+      "label": "Tradition",
+      "current_member_keys": [],
+      "future_member_keys": ["eras/<era>/regions/<region>/traditions/<tradition>"],
+      "review_use": "collapse branch traditions once mature tradition directories carry nodes and relations"
+    },
+    {
+      "cluster_kind": "corpus",
+      "label": "Corpus Or Prepared Source Document",
+      "current_member_keys": [{"field": "properties.source_document"}],
+      "future_member_keys": ["corpora/<corpus>", "source-corpora/<source-corpus>"],
+      "review_use": "group rows and dossier nodes by prepared source document or later corpus branch"
+    },
+    {
+      "cluster_kind": "school-institution",
+      "label": "School Or Institution",
+      "current_member_keys": [{"field": "label", "node_types": ["atlas-node-type"], "allowed_values": ["institution", "school_tradition"]}],
+      "future_member_keys": ["institutions/<institution>", "school-tradition"],
+      "review_use": "surface institutional pressure without making institutions canonical by projection"
+    },
+    {
+      "cluster_kind": "author-person",
+      "label": "Author Or Person",
+      "current_member_keys": [],
+      "future_member_keys": ["figures/<figure>", "author-node", "person-node"],
+      "review_use": "reserve collapse shape for authored philosophy growth without inventing figures from atlas rows"
+    },
+    {
+      "cluster_kind": "work",
+      "label": "Work Or Research Node",
+      "current_member_keys": [{"field": "properties.research_node", "node_types": ["master-table-row"]}],
+      "future_member_keys": ["works/<work>", "work-node"],
+      "review_use": "group current atlas rows by research node while preserving that these are not yet work canon"
+    },
+    {
+      "cluster_kind": "concept-problem",
+      "label": "Concept Or Problem",
+      "current_member_keys": [{"field": "label", "node_types": ["atlas-node-type"], "allowed_values": ["concept", "method", "genre"]}],
+      "future_member_keys": ["concepts/<concept>", "problem-node", "principle-node"],
+      "review_use": "surface conceptual pressure before mature concept nodes and canon relations exist"
+    },
+    {
+      "cluster_kind": "source-witness",
+      "label": "Source Ref Or Witness",
+      "current_member_keys": [{"field": "source_ref"}],
+      "future_member_keys": ["source-witnesses/<witness>", "sources/<source>"],
+      "review_use": "group every projected item by source_ref so collapse never hides provenance"
+    },
+    {
+      "cluster_kind": "evidence-status",
+      "label": "Evidence Status",
+      "current_member_keys": [
+        {"field": "properties.confidence", "node_types": ["master-table-row"]},
+        {"field": "properties.dossier_available", "node_types": ["master-table-row"]}
+      ],
+      "future_member_keys": ["evidence-status/<status>", "controversies/<controversy>"],
+      "review_use": "show confidence, dossier coverage, and weak evidence surfaces"
+    },
+    {
+      "cluster_kind": "canon-candidate-status",
+      "label": "Canon Or Candidate Status",
+      "current_member_keys": [{"field": "properties.status", "node_types": ["master-table-row"]}],
+      "future_member_keys": ["canon", "candidate-intake", "promotion-ledger"],
+      "review_use": "track candidate-to-canon pressure without promoting projection rows"
+    }
+  ],
+  "collapse_rules": {
+    "default_mode": "cluster-first",
+    "expand_returns": ["member_node_ids", "member_edge_ids", "source_refs"],
+    "stable_id_rule": "cluster:<cluster_kind>:<sha1 member key prefix>",
+    "runtime_payload_limit": 200
+  }
+}
