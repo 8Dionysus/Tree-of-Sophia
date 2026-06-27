@@ -15,7 +15,7 @@
   "source_owner": "Tree-of-Sophia",
   "provenance_mode": "strict_source_linked",
   "derived_method": "derived KAG seam validation receipt",
-  "generated_or_authored": "generated_from_source",
+  "generated_or_authored": "authored_control",
   "status": "active",
   "owner_return_route": {
     "repo": "Tree-of-Sophia",
@@ -25,15 +25,15 @@
   "freshness": {
     "mode": "validator_receipt",
     "state": "current",
-    "checked_ref": "scripts/validate_local_kag_provider.py"
+    "checked_ref": "kag/manifest.json"
   },
   "builder": {
-    "route": "python scripts/validate_local_kag_provider.py",
-    "surface": "scripts/validate_local_kag_provider.py"
+    "route": "local KAG provider authoring",
+    "surface": "kag/manifest.json"
   },
   "validator": {
-    "route": "local KAG provider validator",
-    "lane": "owner-local"
+    "route": "aoa-kag:scripts/validate_kag.py",
+    "lane": "local-kag"
   },
   "storage_posture": {
     "git_surface": "receipt",
@@ -42,6 +42,6 @@
   },
   "consumer_route": "aoa-kag registry",
   "receipt_kind": "validation",
-  "result": "valid",
+  "result": "current",
   "fallback_route": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
 }
