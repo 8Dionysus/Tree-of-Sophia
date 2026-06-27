@@ -1,0 +1,57 @@
+{
+  "schema_version": "aoa-local-kag-manifest-v1",
+  "repo": "Tree-of-Sophia",
+  "owner_surface": "kag/AGENTS.md",
+  "source_surfaces": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/kag_export.min.json",
+      "source_class": "tos_source",
+      "role": "primary",
+      "authority": "source_owned_export"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+      "source_class": "tos_source",
+      "role": "supporting",
+      "authority": "derived_readmodel"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "source_class": "tos_source",
+      "role": "owner_route",
+      "authority": "authored_source"
+    }
+  ],
+  "record_classes": ["node", "edge", "index", "projection", "receipt"],
+  "storage_posture": {
+    "git_surface": "portable_records",
+    "payload_class": "manifest",
+    "runtime_route": "source-repo"
+  },
+  "validation_routes": [
+    {
+      "route": "scripts/validate_local_kag_provider.py",
+      "lane": "owner-local"
+    },
+    {
+      "route": "scripts/release_check.py",
+      "lane": "release"
+    }
+  ],
+  "consumer_routes": ["aoa-kag registry", "abyss-stack federation mirror", "aoa-kag-mcp resource"],
+  "owner_return_routes": [
+    {
+      "repo": "Tree-of-Sophia",
+      "surface": "ToS/derived-exports/README.md",
+      "route_kind": "source_export"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "route_kind": "source_export"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": "aoa-local-kag-record-v1",
+  "repo": "Tree-of-Sophia",
+  "local_id": "index:tos:kag-source-surfaces",
+  "record_class": "index",
+  "source_refs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/README.md",
+      "source_class": "tos_source",
+      "role": "primary",
+      "authority": "authored_source"
+    }
+  ],
+  "source_owner": "Tree-of-Sophia",
+  "provenance_mode": "strict_source_linked",
+  "derived_method": "inventory over ToS provider records",
+  "generated_or_authored": "generated_from_source",
+  "status": "active",
+  "owner_return_route": {
+    "repo": "Tree-of-Sophia",
+    "surface": "ToS/derived-exports/README.md",
+    "route_kind": "source_export"
+  },
+  "freshness": {
+    "mode": "source_snapshot",
+    "state": "current",
+    "checked_ref": "ToS/derived-exports/README.md"
+  },
+  "builder": {
+    "route": "local KAG provider record",
+    "surface": "kag/manifest.json"
+  },
+  "validator": {
+    "route": "local KAG provider validator",
+    "lane": "owner-local"
+  },
+  "storage_posture": {
+    "git_surface": "portable_records",
+    "payload_class": "index",
+    "runtime_route": "source-repo"
+  },
+  "consumer_route": "aoa-kag registry",
+  "index_kind": "inventory",
+  "indexed_record_classes": ["node", "edge"],
+  "source_record_ids": [
+    "node:tos:kag-export",
+    "node:tos:derived-export-route",
+    "edge:tos-kag-export:returns-to-route"
+  ]
+}

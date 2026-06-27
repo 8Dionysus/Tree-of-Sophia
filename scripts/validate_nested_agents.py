@@ -17,6 +17,7 @@ ROUTE_ROOTS = (
     "tests",
     "evals",
     "memo",
+    "kag",
     "manifests",
     ".agents",
 )

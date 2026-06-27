@@ -758,6 +758,31 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/validate_local_kag_provider.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "kag/AGENTS.md",
+      "source_truth": [
+        "kag/manifest.json",
+        "kag/nodes/",
+        "kag/edges/",
+        "kag/indexes/",
+        "kag/projections/",
+        "kag/receipts/"
+      ],
+      "reads": [
+        "kag/manifest.json",
+        "kag/**/*.json",
+        "Tree-of-Sophia source refs named by KAG records"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "local_kag_provider",
+      "ci_inclusion": "release",
+      "test_target": "scripts/validate_local_kag_provider.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validate_mechanics_topology.py",
       "family": "source_validator",
       "organ_lane": "mechanics/package",
