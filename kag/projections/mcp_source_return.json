@@ -1,0 +1,58 @@
+{
+  "schema_version": "aoa-local-kag-record-v1",
+  "repo": "Tree-of-Sophia",
+  "local_id": "projection:mcp:tos-source-return",
+  "record_class": "projection",
+  "source_refs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/kag_export.min.json",
+      "source_class": "tos_source",
+      "role": "primary",
+      "authority": "source_owned_export"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+      "source_class": "tos_source",
+      "role": "supporting",
+      "authority": "derived_readmodel"
+    }
+  ],
+  "source_owner": "Tree-of-Sophia",
+  "provenance_mode": "strict_source_linked",
+  "derived_method": "MCP-readable source-return packet",
+  "generated_or_authored": "generated_from_source",
+  "status": "active",
+  "owner_return_route": {
+    "repo": "Tree-of-Sophia",
+    "surface": "ToS/derived-exports/README.md",
+    "route_kind": "source_export"
+  },
+  "freshness": {
+    "mode": "source_snapshot",
+    "state": "current",
+    "checked_ref": "ToS/derived-exports/philosophy_graph_projection.min.json"
+  },
+  "builder": {
+    "route": "local KAG provider record",
+    "surface": "kag/manifest.json"
+  },
+  "validator": {
+    "route": "local KAG provider validator",
+    "lane": "owner-local"
+  },
+  "storage_posture": {
+    "git_surface": "compact_readmodel",
+    "payload_class": "projection",
+    "runtime_route": "source-repo"
+  },
+  "consumer_route": "aoa-kag-mcp resource",
+  "projection_kind": "mcp_packet",
+  "source_record_ids": [
+    "node:tos:kag-export",
+    "node:tos:derived-export-route",
+    "index:tos:kag-source-surfaces"
+  ],
+  "consumer_shape": "resource exposes ToS export handles and derived graph projection refs"
+}

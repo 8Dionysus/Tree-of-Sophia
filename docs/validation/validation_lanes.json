@@ -177,6 +177,20 @@
         "aoa-kag substrate semantics"
       ]
     },
+    "local_kag_provider": {
+      "label": "local KAG provider",
+      "layer": "local-kag-provider",
+      "mode": "blocking",
+      "owner_surface": "kag/AGENTS.md",
+      "purpose": "Verify the repo-local KAG provider packet, source refs, record classes, and local record links before downstream KAG or MCP consumers read it.",
+      "command_sequence": "local_kag_provider",
+      "failure_route": "kag/AGENTS.md",
+      "does_not_own": [
+        "aoa-kag shared schema law",
+        "runtime graph storage",
+        "MCP service implementation"
+      ]
+    },
     "questbook_surface": {
       "label": "questbook surface",
       "layer": "mechanics-questbook",
@@ -255,6 +269,7 @@
         "canon_contracts",
         "intake_contracts",
         "public_entry",
+        "local_kag_provider",
         "questbook_surface",
         "route_docs"
       ],
@@ -395,6 +410,12 @@
       {
         "label": "validate KAG export",
         "command": ["python", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"]
+      }
+    ],
+    "local_kag_provider": [
+      {
+        "label": "validate local KAG provider",
+        "command": ["python", "scripts/validate_local_kag_provider.py"]
       }
     ],
     "questbook_surface": [
@@ -555,6 +576,10 @@
       {
         "label": "validate KAG export",
         "command": ["python", "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py"]
+      },
+      {
+        "label": "validate local KAG provider",
+        "command": ["python", "scripts/validate_local_kag_provider.py"]
       },
       {
         "label": "validate questbook surface",

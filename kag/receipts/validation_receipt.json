@@ -1,0 +1,47 @@
+{
+  "schema_version": "aoa-local-kag-record-v1",
+  "repo": "Tree-of-Sophia",
+  "local_id": "receipt:validation:tos-kag-provider",
+  "record_class": "receipt",
+  "source_refs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "scripts/validate_local_kag_provider.py",
+      "source_class": "tos_source",
+      "role": "primary",
+      "authority": "authored_source"
+    }
+  ],
+  "source_owner": "Tree-of-Sophia",
+  "provenance_mode": "strict_source_linked",
+  "derived_method": "derived KAG seam validation receipt",
+  "generated_or_authored": "generated_from_source",
+  "status": "active",
+  "owner_return_route": {
+    "repo": "Tree-of-Sophia",
+    "surface": "scripts/validate_local_kag_provider.py",
+    "route_kind": "validation"
+  },
+  "freshness": {
+    "mode": "validator_receipt",
+    "state": "current",
+    "checked_ref": "scripts/validate_local_kag_provider.py"
+  },
+  "builder": {
+    "route": "python scripts/validate_local_kag_provider.py",
+    "surface": "scripts/validate_local_kag_provider.py"
+  },
+  "validator": {
+    "route": "local KAG provider validator",
+    "lane": "owner-local"
+  },
+  "storage_posture": {
+    "git_surface": "receipt",
+    "payload_class": "receipt",
+    "runtime_route": "source-repo"
+  },
+  "consumer_route": "aoa-kag registry",
+  "receipt_kind": "validation",
+  "result": "valid",
+  "fallback_route": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
+}

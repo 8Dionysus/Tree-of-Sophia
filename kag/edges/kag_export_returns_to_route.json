@@ -1,0 +1,48 @@
+{
+  "schema_version": "aoa-local-kag-record-v1",
+  "repo": "Tree-of-Sophia",
+  "local_id": "edge:tos-kag-export:returns-to-route",
+  "record_class": "edge",
+  "source_refs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "source_class": "tos_source",
+      "role": "primary",
+      "authority": "authored_source"
+    }
+  ],
+  "source_owner": "Tree-of-Sophia",
+  "provenance_mode": "strict_source_linked",
+  "derived_method": "documented owner-return relation",
+  "generated_or_authored": "generated_from_source",
+  "status": "active",
+  "owner_return_route": {
+    "repo": "Tree-of-Sophia",
+    "surface": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+    "route_kind": "source_export"
+  },
+  "freshness": {
+    "mode": "source_snapshot",
+    "state": "current",
+    "checked_ref": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
+  },
+  "builder": {
+    "route": "local KAG provider record",
+    "surface": "kag/manifest.json"
+  },
+  "validator": {
+    "route": "local KAG provider validator",
+    "lane": "owner-local"
+  },
+  "storage_posture": {
+    "git_surface": "portable_records",
+    "payload_class": "edge",
+    "runtime_route": "source-repo"
+  },
+  "consumer_route": "aoa-kag registry",
+  "from_id": "node:tos:kag-export",
+  "to_id": "node:tos:derived-export-route",
+  "edge_kind": "returns_to",
+  "edge_trace": "derived KAG seam docs route consumers from the export capsule back to ToS-derived export sources"
+}
