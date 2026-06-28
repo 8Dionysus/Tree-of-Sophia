@@ -4,8 +4,9 @@
 `ToS/philosophy/`.
 
 It holds proposed nodes, proposed relations, branch fragments, promotion
-ledgers, and graph-view route cards. It does not hold canonical relation packs
-or generated downstream exports.
+ledgers, graph-view route cards, cluster contracts, and review packet
+contracts. It does not hold canonical relation packs or generated downstream
+exports.
 
 ## Route
 
@@ -22,3 +23,8 @@ branch review
 Use `views/` to name graph lenses and maintain their switching contract. Use
 `ToS/canon/` for reviewed authority and `ToS/derived-exports/` for generated
 readers.
+
+Use [PLANTING_INTERFACE](PLANTING_INTERFACE.md) when prepared master-table or
+A-series dossier material is ready to become graph-workbench matter. The
+interface keeps atlas rows, branch homes, proposed graph rows, source anchors,
+review packets, and derived projection handoff on one ToS-owned route.
