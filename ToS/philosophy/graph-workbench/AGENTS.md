@@ -33,6 +33,7 @@ projection.
 | `proposed-relations/` | pre-canon relation pressure |
 | `branch-fragments/` | local branch graph fragments before promotion |
 | `promotion-ledger/` | route from workbench pressure toward canon relation packs |
+| `PLANTING_INTERFACE.md` | source-owned packet route from prepared atlas/dossier material into graph-workbench review |
 
 ## Boundary
 
@@ -54,4 +55,3 @@ python scripts/build_philosophy_graph_projection.py --check
 python scripts/validate_philosophy_graph_projection.py
 python scripts/validate_philosophy_topology.py
 ```
-
