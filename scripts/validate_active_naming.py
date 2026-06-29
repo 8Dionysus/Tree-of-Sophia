@@ -26,6 +26,7 @@ EXCLUDED_PARTS = {
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
+    "kag/indexes/source_surface_index.json",
     "scripts/validate_active_naming.py",
 }
 MECHANICS_TOPOLOGY_ROUTE = "mechanics/topology.json"
