@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ REQUIRED_RECORD_FIELDS = {
     "storage_posture",
     "consumer_route",
 }
+REPO_LOCAL_SOURCE_INDEX = Path("kag/indexes/source_surface_index.json")
 
 
 class ValidationError(RuntimeError):
@@ -55,6 +57,14 @@ def read_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         fail(f"{path.relative_to(REPO_ROOT).as_posix()} must be a JSON object")
     return payload
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def source_refs_in(payload: Any):
@@ -123,6 +133,8 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
         records: list[dict[str, Any]] = []
         for path in paths:
             relative_path = path.relative_to(REPO_ROOT).as_posix()
+            if Path(relative_path) == REPO_LOCAL_SOURCE_INDEX:
+                continue
             record = read_json(path)
             missing = REQUIRED_RECORD_FIELDS - set(record)
             if missing:
@@ -141,6 +153,52 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
             records.append(record)
         groups[directory_name] = records
     return groups
+
+
+def validate_repo_local_source_index() -> None:
+    payload = read_json(REPO_ROOT / REPO_LOCAL_SOURCE_INDEX)
+    label = REPO_LOCAL_SOURCE_INDEX.as_posix()
+    if payload.get("schema_version") != "aoa-repo-local-kag-index-v1":
+        fail(f"{label} schema_version is invalid")
+    repo = payload.get("repo")
+    if not isinstance(repo, dict) or repo.get("name") != REPO_NAME:
+        fail(f"{label} repo.name is invalid")
+    records = payload.get("records")
+    if not isinstance(records, list) or not records:
+        fail(f"{label} must keep source records")
+    coverage = payload.get("coverage_summary")
+    if not isinstance(coverage, dict) or coverage.get("record_count") != len(records):
+        fail(f"{label} coverage_summary.record_count must match records")
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            fail(f"{label} record {index} must be an object")
+        identity = record.get("identity")
+        if not isinstance(identity, dict):
+            fail(f"{label} record {index} must keep identity")
+        if identity.get("repo") != REPO_NAME:
+            fail(f"{label} record {index} identity.repo is invalid")
+        source_path = identity.get("path")
+        if not isinstance(source_path, str) or not source_path:
+            fail(f"{label} record {index} must keep identity.path")
+        if Path(source_path) == REPO_LOCAL_SOURCE_INDEX:
+            fail(f"{label} must not index itself")
+        absolute_path = REPO_ROOT / source_path
+        if not absolute_path.is_file():
+            fail(f"{label} record path is missing: {source_path}")
+        expected_hash = sha256_file(absolute_path)
+        if identity.get("content_hash") != expected_hash:
+            fail(f"{label} content_hash drifted for {source_path}")
+        signs = record.get("signs")
+        if isinstance(signs, dict) and signs.get("digest") != expected_hash:
+            fail(f"{label} signs.digest drifted for {source_path}")
+        for ref in source_refs_in(record):
+            if ref.get("repo") != REPO_NAME:
+                fail(f"{label} source ref must stay inside {REPO_NAME}")
+            ref_path = ref.get("path")
+            if not isinstance(ref_path, str) or not ref_path:
+                fail(f"{label} source ref must keep a path")
+            if not (REPO_ROOT / ref_path).is_file():
+                fail(f"{label} source ref is missing: {ref_path}")
 
 
 def validate_links(groups: dict[str, list[dict[str, Any]]]) -> None:
@@ -180,6 +238,7 @@ def main() -> int:
         validate_manifest()
         groups = validate_records()
         validate_links(groups)
+        validate_repo_local_source_index()
     except ValidationError as exc:
         print(f"[error] {exc}")
         return 1
