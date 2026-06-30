@@ -7,6 +7,15 @@
     "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
     "route_map": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
   },
+  "multilingual_labels": {
+    "display_languages": [
+      "original",
+      "ru",
+      "en"
+    ],
+    "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
+    "role": "source-owned label companion for atlas and projection display fields"
+  },
   "master_tables": [
     {
       "manifest": "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",

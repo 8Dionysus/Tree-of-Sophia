@@ -44,6 +44,10 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertEqual(payload["snapshot_review"]["diff_route"]["mode"], "fingerprint-ready")
         self.assertEqual(len(payload["snapshot_review"]["current_snapshot"]["projection_fingerprint"]), 64)
         self.assertEqual(len(payload["snapshot_review"]["current_snapshot"]["view_fingerprints"]), 11)
+        self.assertEqual(
+            payload["content_language_contract"]["source_ref"],
+            "ToS/philosophy/atlas/multilingual/content-labels.json",
+        )
 
     def test_every_projected_edge_endpoint_exists(self) -> None:
         payload = self.load_projection()
@@ -107,6 +111,32 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertTrue(cluster["source_refs"])
             self.assertTrue(set(cluster["member_node_ids"]) <= node_ids)
             self.assertTrue(set(cluster["member_edge_ids"]) <= edge_ids)
+
+    def test_projected_nodes_and_clusters_carry_multilingual_labels(self) -> None:
+        payload = self.load_projection()
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        dossier = nodes["atlas-dossier:A01"]["multilingual"]
+        self.assertEqual(
+            dossier["label"]["en"],
+            "ToS Deep Research: A01 — Proto-Cuneiform and Accounting Ontologies",
+        )
+        self.assertEqual(
+            dossier["label"]["ru"],
+            "ToS Deep Research: A01 — Протоклинопись и учётные онтологии",
+        )
+        canon_cluster = next(
+            cluster for cluster in payload["clusters"]
+            if cluster["cluster_kind"] == "canon-candidate-status" and cluster["member_value"] == "A"
+        )
+        self.assertEqual(canon_cluster["multilingual"]["label"]["ru"], "Статус канона или кандидата: A")
+        corpus_cluster = next(
+            cluster for cluster in payload["clusters"]
+            if cluster["cluster_kind"] == "corpus" and "A01" in cluster["member_value"]
+        )
+        self.assertEqual(
+            corpus_cluster["multilingual"]["label"]["en"],
+            "Corpus Or Prepared Source Document: ToS Deep Research: A01 — Proto-Cuneiform and Accounting Ontologies.docx",
+        )
 
     def test_review_packets_are_compact_view_packets(self) -> None:
         payload = self.load_projection()

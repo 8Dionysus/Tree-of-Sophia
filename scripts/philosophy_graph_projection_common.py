@@ -11,6 +11,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from philosophy_multilingual_common import content_language_contract, multilingual_label
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOS_ROOT = REPO_ROOT / "ToS"
@@ -219,14 +221,22 @@ def _projection_node(
     view_ids: set[str],
     graph_layers: set[str],
 ) -> dict[str, Any]:
+    properties = atlas_node.get("properties") if isinstance(atlas_node.get("properties"), dict) else {}
     return {
         "node_id": atlas_node["node_id"],
         "label": atlas_node["label"],
+        "multilingual": atlas_node.get("multilingual")
+        if isinstance(atlas_node.get("multilingual"), dict)
+        else multilingual_label(
+            str(atlas_node["label"]),
+            str(atlas_node["source_ref"]),
+            {"node_type": atlas_node.get("node_type"), **properties},
+        ),
         "node_type": atlas_node["node_type"],
         "graph_layers": sorted(graph_layers),
         "view_ids": sorted(view_ids),
         "source_ref": atlas_node["source_ref"],
-        "properties": atlas_node.get("properties") if isinstance(atlas_node.get("properties"), dict) else {},
+        "properties": properties,
     }
 
 
@@ -389,11 +399,17 @@ def _build_clusters(
                         if isinstance(view_id, str) and view_id
                     }
                 )
+                cluster_label = f"{label}: {member_value}"
                 clusters.append(
                     {
                         "cluster_id": _stable_cluster_id(cluster_kind, field, member_value),
                         "cluster_kind": cluster_kind,
-                        "label": f"{label}: {member_value}",
+                        "label": cluster_label,
+                        "multilingual": multilingual_label(
+                            cluster_label,
+                            CLUSTER_CONTRACT_REF,
+                            {"cluster_kind": cluster_kind, "member_key": field, "member_value": member_value},
+                        ),
                         "member_key": field,
                         "member_value": member_value,
                         "member_node_ids": member_node_ids,
@@ -902,6 +918,7 @@ def build_payload() -> dict[str, Any]:
             "cluster_contract_ref": CLUSTER_CONTRACT_REF,
             "review_packet_contract_ref": REVIEW_PACKET_CONTRACT_REF,
         },
+        "content_language_contract": content_language_contract(),
         "runtime_projection_boundary": {
             "runtime_owner": "abyss-stack",
             "runtime_scope": [
