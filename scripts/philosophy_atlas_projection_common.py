@@ -10,6 +10,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from philosophy_multilingual_common import content_language_contract, multilingual_label
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOS_ROOT = REPO_ROOT / "ToS"
@@ -62,13 +64,15 @@ def add_node(
     source_ref: str,
     **properties: Any,
 ) -> None:
+    clean_properties = {key: value for key, value in properties.items() if value is not None}
     nodes.append(
         {
             "node_id": node_id,
             "node_type": node_type,
             "label": label,
+            "multilingual": multilingual_label(label, source_ref, {"node_type": node_type, **clean_properties}),
             "source_ref": source_ref,
-            "properties": {key: value for key, value in properties.items() if value is not None},
+            "properties": clean_properties,
         }
     )
 
@@ -498,6 +502,7 @@ def build_payload() -> dict[str, Any]:
         "owner_repo": "Tree-of-Sophia",
         "surface_kind": "derived_philosophy_atlas_projection",
         "source_atlas_ref": SOURCE_ATLAS_REF,
+        "content_language_contract": content_language_contract(),
         "runtime_projection_boundary": {
             "runtime_owner": "abyss-stack",
             "runtime_scope": [

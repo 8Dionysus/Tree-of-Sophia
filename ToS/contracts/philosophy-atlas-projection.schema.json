@@ -10,6 +10,7 @@
     "owner_repo",
     "surface_kind",
     "source_atlas_ref",
+    "content_language_contract",
     "runtime_projection_boundary",
     "validation_refs",
     "counts",
@@ -32,6 +33,9 @@
     },
     "source_atlas_ref": {
       "const": "ToS/philosophy/atlas/atlas.manifest.json"
+    },
+    "content_language_contract": {
+      "$ref": "#/$defs/content_language_contract"
     },
     "runtime_projection_boundary": {
       "type": "object",
@@ -96,7 +100,7 @@
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["node_id", "node_type", "label", "source_ref", "properties"],
+      "required": ["node_id", "node_type", "label", "multilingual", "source_ref", "properties"],
       "properties": {
         "node_id": {
           "type": "string",
@@ -109,6 +113,9 @@
         "label": {
           "type": "string",
           "minLength": 1
+        },
+        "multilingual": {
+          "$ref": "#/$defs/multilingual_label"
         },
         "source_ref": {
           "type": "string",
@@ -165,6 +172,120 @@
           "type": "string",
           "minLength": 1
         }
+      }
+    },
+    "content_language_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "source_ref",
+        "display_languages",
+        "required_translation_languages",
+        "original_language_rule",
+        "downstream_consumer_rule"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_multilingual_content_contract_v1"
+        },
+        "source_ref": {
+          "const": "ToS/philosophy/atlas/multilingual/content-labels.json"
+        },
+        "display_languages": {
+          "$ref": "#/$defs/string_array"
+        },
+        "required_translation_languages": {
+          "$ref": "#/$defs/string_array"
+        },
+        "original_language_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "downstream_consumer_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "multilingual_label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "label", "language", "translation_status", "source_ref"],
+      "properties": {
+        "schema_version": {
+          "const": "tos_multilingual_label_v1"
+        },
+        "label": {
+          "$ref": "#/$defs/localized_label"
+        },
+        "language": {
+          "$ref": "#/$defs/language_identity"
+        },
+        "translation_status": {
+          "$ref": "#/$defs/translation_status"
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "localized_label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original", "ru", "en"],
+      "properties": {
+        "original": {
+          "type": ["string", "null"]
+        },
+        "ru": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "language_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original_language", "original_script", "transliteration"],
+      "properties": {
+        "original_language": {
+          "type": ["string", "null"]
+        },
+        "original_script": {
+          "type": ["string", "null"]
+        },
+        "transliteration": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "translation_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original", "ru", "en"],
+      "properties": {
+        "original": {
+          "enum": ["source", "pending", "not_applicable"]
+        },
+        "ru": {
+          "enum": ["source", "reviewed", "draft"]
+        },
+        "en": {
+          "enum": ["source", "reviewed", "draft"]
+        }
+      }
+    },
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
       }
     }
   }

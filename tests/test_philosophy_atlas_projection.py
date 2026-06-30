@@ -34,6 +34,11 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
         self.assertEqual(payload["runtime_projection_boundary"]["runtime_owner"], "abyss-stack")
         self.assertEqual(payload["source_atlas_ref"], "ToS/philosophy/atlas/atlas.manifest.json")
+        self.assertEqual(
+            payload["content_language_contract"]["source_ref"],
+            "ToS/philosophy/atlas/multilingual/content-labels.json",
+        )
+        self.assertEqual(payload["content_language_contract"]["display_languages"], ["original", "ru", "en"])
 
     def test_projection_links_rows_to_available_dossiers(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -59,6 +64,27 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         node_ids = {node["node_id"] for node in payload["nodes"]}
         self.assertIn("graph-view:chronology", node_ids)
         self.assertIn("graph-view:transmission", node_ids)
+
+    def test_projection_exposes_source_owned_multilingual_labels(self) -> None:
+        payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
+        nodes = {node["node_id"]: node for node in payload["nodes"]}
+        philosophy = nodes["philosophy"]["multilingual"]
+        self.assertEqual(philosophy["label"]["ru"], "Философия")
+        self.assertEqual(philosophy["label"]["en"], "Philosophy")
+        self.assertEqual(philosophy["translation_status"]["original"], "not_applicable")
+        dossier = nodes["atlas-dossier:A01"]["multilingual"]
+        self.assertEqual(
+            dossier["label"]["ru"],
+            "ToS Deep Research: A01 — Протоклинопись и учётные онтологии",
+        )
+        self.assertEqual(
+            dossier["label"]["en"],
+            "ToS Deep Research: A01 — Proto-Cuneiform and Accounting Ontologies",
+        )
+        self.assertEqual(dossier["translation_status"]["en"], "reviewed")
+        concept = nodes["atlas-node-type:concept"]["multilingual"]
+        self.assertEqual(concept["label"]["ru"], "концепт")
+        self.assertEqual(concept["label"]["en"], "concept")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,288 @@
+{
+  "schema_version": "tos_philosophy_multilingual_labels_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_branch": "ToS/philosophy/atlas",
+  "source_posture": "source-owned language companion for prepared atlas projection labels; source witnesses and authored works remain stronger than this display ledger",
+  "display_languages": [
+    "original",
+    "ru",
+    "en"
+  ],
+  "required_translation_languages": [
+    "ru",
+    "en"
+  ],
+  "original_language_rule": "For works, text corpora, inscriptions, and source witnesses, future planting must preserve attested original title or mark the original slot pending; never invent original-language text from translation.",
+  "downstream_consumer_rule": "abyss-stack and other graph tools may select display language from generated multilingual fields, but Tree-of-Sophia remains source authority.",
+  "label_sets": {
+    "dossier_titles": {
+      "A01": {
+        "ru": "Протоклинопись и учётные онтологии",
+        "en": "Proto-Cuneiform and Accounting Ontologies"
+      },
+      "A02": {
+        "ru": "Старовавилонская школьная словесность, мудрость и право",
+        "en": "Old Babylonian School Literature, Wisdom, and Law"
+      },
+      "A03": {
+        "ru": "Месопотамия I тысячелетия до н.э. как узел omen-science, астрологии, медицины и комментария",
+        "en": "First-Millennium BCE Mesopotamia as a Node of Omen Science, Astrology, Medicine, and Commentary"
+      },
+      "A04": {
+        "ru": "Египетский sebayt, Маат и писцовая этика",
+        "en": "Egyptian Sebayt, Ma'at, and Scribal Ethics"
+      },
+      "A05": {
+        "ru": "Египетские погребально-теологические и кризисно-диалогические корпусы",
+        "en": "Egyptian Mortuary-Theological and Crisis-Dialogic Corpora"
+      },
+      "A06": {
+        "ru": "Позднеегипетская демотическая храмовая ученость и герметический фон",
+        "en": "Late Egyptian Demotic Temple Scholarship and the Hermetic Background"
+      },
+      "A07": {
+        "ru": "Элам: proto-Elamite и Linear Elamite frontier",
+        "en": "Elam: Proto-Elamite and the Linear Elamite Frontier"
+      },
+      "A08": {
+        "ru": "Эламский клинописный слой и ахеменидское трехъязычие",
+        "en": "The Elamite Cuneiform Layer and Achaemenid Trilingualism"
+      },
+      "A09": {
+        "ru": "Индская цивилизация, знаки, печати и предел реконструкции",
+        "en": "The Indus Civilization: Signs, Seals, and the Limits of Reconstruction"
+      },
+      "A10": {
+        "ru": "Хеттское государственно-ритуальное письмо",
+        "en": "Hittite State-Ritual Writing"
+      },
+      "A11": {
+        "ru": "Западная Азия — Угарит и ранний северо-западносемитский алфавитный мир",
+        "en": "West Asia: Ugarit and the Early Northwest Semitic Alphabetic World"
+      },
+      "A12": {
+        "ru": "Левантская мудростная литература и иврито-арамейский документальный мир",
+        "en": "Levantine Wisdom Literature and the Hebrew-Aramaic Documentary World"
+      },
+      "A13": {
+        "ru": "Вторая храмовая Иудея",
+        "en": "Second Temple Judea"
+      },
+      "A14": {
+        "ru": "Шан и ранний Чжоу",
+        "en": "Shang and Early Zhou"
+      },
+      "A15": {
+        "ru": "Чуньцю–Чжаньго и поле Ста школ",
+        "en": "Chunqiu-Zhanguo and the Field of the Hundred Schools"
+      },
+      "A16": {
+        "ru": "Восточная Азия — Имперское конфуцианство Хань–Суй",
+        "en": "East Asia: Imperial Confucianism from Han to Sui"
+      },
+      "A17": {
+        "ru": "Южная Азия — Ведийско-брахманическая традиция до и через ранние Упанишады",
+        "en": "South Asia: The Vedic-Brahmanical Tradition up to and through the Early Upanishads"
+      },
+      "A18": {
+        "ru": "Южная Азия — Шраманские традиции: ранний буддизм, джайнизм, дисциплина",
+        "en": "South Asia: Shramana Traditions, Early Buddhism, Jainism, and Discipline"
+      },
+      "A19": {
+        "ru": "Южная Азия — Классическая брахманическая шастра и даршаны",
+        "en": "South Asia: Classical Brahmanical Shastra and the Darshanas"
+      },
+      "A20": {
+        "ru": "Южная Азия — Классическая индийская буддийская шастра",
+        "en": "South Asia: Classical Indian Buddhist Shastra"
+      },
+      "A21": {
+        "ru": "Тхеравада и письменная фиксация палийского канона",
+        "en": "Theravada and the Written Fixation of the Pali Canon"
+      },
+      "A22": {
+        "ru": "Древний Иран, Авеста и ахеменидские царские надписи",
+        "en": "Ancient Iran, the Avesta, and Achaemenid Royal Inscriptions"
+      },
+      "A23": {
+        "ru": "Сасанидская Авеста и пехлевийская схоластика",
+        "en": "The Sasanian Avesta and Pahlavi Scholastic Node"
+      },
+      "A35": {
+        "ru": "Герметические, гностические и мандеистские письменные комплексы поздней античности",
+        "en": "Hermetic, Gnostic, and Mandaean Written Complexes of Late Antiquity"
+      },
+      "A36": {
+        "ru": "Мани / манихейство / многоязычный корпус",
+        "en": "Mani, Manichaeism, and the Multilingual Corpus"
+      },
+      "A37": {
+        "ru": "Коптский Египет поздней античности",
+        "en": "Coptic Egypt in Late Antiquity"
+      },
+      "A40": {
+        "ru": "Западная Азия — южноаравийская, химьяритская и североаравийская эпиграфика до ислама",
+        "en": "West Asia: South Arabian, Himyaritic, and North Arabian Epigraphy before Islam"
+      },
+      "A41": {
+        "ru": "Центральноазиатский текстовый коридор",
+        "en": "The Central Asian Textual Corridor"
+      },
+      "A42": {
+        "ru": "Восточная Азия — Ранний китайский буддизм",
+        "en": "East Asia: Early Chinese Buddhism"
+      },
+      "A43": {
+        "ru": "Ранняя Юго-Восточная Азия: санскритские и палийские инскрипции",
+        "en": "Early Southeast Asia: Sanskrit and Pali Inscriptions"
+      }
+    },
+    "exact_labels": {
+      "Philosophy": {
+        "ru": "Философия",
+        "en": "Philosophy"
+      },
+      "Philosophy Atlas": {
+        "ru": "Атлас философии",
+        "en": "Philosophy Atlas"
+      },
+      "Master Tables": {
+        "ru": "Мастер-таблицы",
+        "en": "Master Tables"
+      },
+      "Dossiers": {
+        "ru": "Досье",
+        "en": "Dossiers"
+      },
+      "Graph Views": {
+        "ru": "Графовые виды",
+        "en": "Graph Views"
+      },
+      "Era": {
+        "ru": "Эпоха",
+        "en": "Era"
+      },
+      "Region": {
+        "ru": "Регион",
+        "en": "Region"
+      },
+      "Tradition": {
+        "ru": "Традиция",
+        "en": "Tradition"
+      },
+      "Corpus Or Prepared Source Document": {
+        "ru": "Корпус или подготовленный исходный документ",
+        "en": "Corpus Or Prepared Source Document"
+      },
+      "School Or Institution": {
+        "ru": "Школа или институция",
+        "en": "School Or Institution"
+      },
+      "Author Or Person": {
+        "ru": "Автор или персона",
+        "en": "Author Or Person"
+      },
+      "Work Or Research Node": {
+        "ru": "Работа или исследовательский узел",
+        "en": "Work Or Research Node"
+      },
+      "Concept Or Problem": {
+        "ru": "Концепт или проблема",
+        "en": "Concept Or Problem"
+      },
+      "Source Ref Or Witness": {
+        "ru": "Источник или свидетель",
+        "en": "Source Ref Or Witness"
+      },
+      "Evidence Status": {
+        "ru": "Статус свидетельства",
+        "en": "Evidence Status"
+      },
+      "Canon Or Candidate Status": {
+        "ru": "Статус канона или кандидата",
+        "en": "Canon Or Candidate Status"
+      },
+      "concept": {
+        "ru": "концепт",
+        "en": "concept"
+      },
+      "genre": {
+        "ru": "жанр",
+        "en": "genre"
+      },
+      "method": {
+        "ru": "метод",
+        "en": "method"
+      },
+      "institution": {
+        "ru": "институция",
+        "en": "institution"
+      },
+      "school_tradition": {
+        "ru": "школьная традиция",
+        "en": "school tradition"
+      },
+      "true": {
+        "ru": "да",
+        "en": "true"
+      },
+      "false": {
+        "ru": "нет",
+        "en": "false"
+      },
+      "Table I": {
+        "ru": "Таблица I",
+        "en": "Table I"
+      },
+      "Table II": {
+        "ru": "Таблица II",
+        "en": "Table II"
+      },
+      "Table III": {
+        "ru": "Таблица III",
+        "en": "Table III"
+      },
+      "Таблица I для ToS": {
+        "ru": "Таблица I для ToS",
+        "en": "Table I for ToS"
+      },
+      "Таблица I для ToS.docx": {
+        "ru": "Таблица I для ToS.docx",
+        "en": "Table I for ToS.docx"
+      },
+      "Таблица II для ToS": {
+        "ru": "Таблица II для ToS",
+        "en": "Table II for ToS"
+      },
+      "Таблица II для ToS.docx": {
+        "ru": "Таблица II для ToS.docx",
+        "en": "Table II for ToS.docx"
+      },
+      "Таблица III ToS": {
+        "ru": "Таблица III ToS",
+        "en": "Table III ToS"
+      },
+      "Таблица III ToS.docx": {
+        "ru": "Таблица III ToS.docx",
+        "en": "Table III ToS.docx"
+      },
+      "Западная Азия и Северная Африка": {
+        "ru": "Западная Азия и Северная Африка",
+        "en": "West Asia and North Africa"
+      },
+      "Южная, Центральная, Восточная и Юго-Восточная Азия": {
+        "ru": "Южная, Центральная, Восточная и Юго-Восточная Азия",
+        "en": "South, Central, East, and Southeast Asia"
+      },
+      "Средиземноморье, позднеантичные мосты, Африка и Америка": {
+        "ru": "Средиземноморье, позднеантичные мосты, Африка и Америка",
+        "en": "The Mediterranean, Late-Antique Bridges, Africa, and the Americas"
+      }
+    }
+  },
+  "fallback_policy": {
+    "ru": "Use the source label when the prepared source row is Russian.",
+    "en": "Use reviewed exact labels first; otherwise emit a marked draft label from conservative phrase replacements so downstream tools can operate without treating the draft as canon.",
+    "original": "Preserve attested original or transliteration only when the source surface carries it; otherwise leave original null and mark original status pending or not_applicable."
+  }
+}
