@@ -34,6 +34,11 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
         self.assertEqual(payload["branch_audit"]["prepared_branch_count"], 30)
         self.assertEqual(payload["graph_workbench_audit"]["proposed_node_count"], 1040)
         self.assertEqual(payload["graph_workbench_audit"]["proposed_relation_count"], 986)
+        self.assertEqual(payload["graph_workbench_audit"]["language_packet_count"], 225)
+        self.assertEqual(
+            payload["graph_workbench_audit"]["language_packet_count"],
+            payload["graph_workbench_audit"]["text_bearing_node_count"],
+        )
 
     def test_audit_is_ready_for_first_graph_review(self) -> None:
         payload = self.load_audit()

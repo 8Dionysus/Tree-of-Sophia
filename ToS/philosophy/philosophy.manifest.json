@@ -7,13 +7,15 @@
     "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
     "ToS/philosophy/atlas/dossiers/term-index.jsonl",
     "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl",
-    "ToS/philosophy/atlas/multilingual/content-labels.json",
     "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
     "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
     "ToS/philosophy/atlas/master-tables/table-ii/table.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
-    "ToS/philosophy/atlas/master-tables/table-iii/table.manifest.json"
+    "ToS/philosophy/atlas/master-tables/table-iii/table.manifest.json",
+    "ToS/philosophy/atlas/multilingual/content-labels.json",
+    "ToS/philosophy/atlas/multilingual/language-registry.json",
+    "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
   ],
   "boundary_routes": {
     "canon_promotion": "ToS/canon",
@@ -25,11 +27,11 @@
   "branch_manifests": [
     "ToS/philosophy/atlas/branch.manifest.json",
     "ToS/philosophy/atlas/dossiers/branch.manifest.json",
-    "ToS/philosophy/atlas/multilingual/branch.manifest.json",
     "ToS/philosophy/atlas/master-tables/branch.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-i/branch.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-ii/branch.manifest.json",
     "ToS/philosophy/atlas/master-tables/table-iii/branch.manifest.json",
+    "ToS/philosophy/atlas/multilingual/branch.manifest.json",
     "ToS/philosophy/eras/axial-age/branch.manifest.json",
     "ToS/philosophy/eras/axial-age/regions/aegean-world/branch.manifest.json",
     "ToS/philosophy/eras/axial-age/regions/branch.manifest.json",
@@ -173,6 +175,7 @@
     "ToS/philosophy/graph-workbench/branch-fragments/branch.manifest.json",
     "ToS/philosophy/graph-workbench/branch.manifest.json",
     "ToS/philosophy/graph-workbench/clusters/branch.manifest.json",
+    "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json",
     "ToS/philosophy/graph-workbench/promotion-ledger/branch.manifest.json",
     "ToS/philosophy/graph-workbench/proposed-nodes/branch.manifest.json",
     "ToS/philosophy/graph-workbench/proposed-relations/branch.manifest.json",

@@ -3,8 +3,8 @@
 `graph-workbench/` is the pre-canon graph preparation branch for
 `ToS/philosophy/`.
 
-It holds proposed nodes, proposed relations, branch fragments, promotion
-ledgers, graph-view route cards, cluster contracts, and review packet
+It holds proposed nodes, proposed relations, language packets, branch fragments,
+promotion ledgers, graph-view route cards, cluster contracts, and review packet
 contracts. It does not hold canonical relation packs or generated downstream
 exports.
 
@@ -13,6 +13,7 @@ exports.
 ```text
 branch review
   -> proposed nodes
+    -> language packets
     -> proposed relations
       -> branch fragments
         -> promotion ledger

@@ -7,15 +7,6 @@
     "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
     "route_map": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
   },
-  "multilingual_labels": {
-    "display_languages": [
-      "original",
-      "ru",
-      "en"
-    ],
-    "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
-    "role": "source-owned label companion for atlas and projection display fields"
-  },
   "master_tables": [
     {
       "manifest": "ToS/philosophy/atlas/master-tables/table-i/table.manifest.json",
@@ -42,6 +33,15 @@
       "table_label": "Table III"
     }
   ],
+  "multilingual_labels": {
+    "display_languages": [
+      "original",
+      "ru",
+      "en"
+    ],
+    "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
+    "role": "source-owned label companion for atlas and projection display fields"
+  },
   "next_growth": "row spine -> era/region/tradition branches -> local graph workbench -> authored canon relation packs",
   "path": "ToS/philosophy/atlas",
   "role": "prepared atlas for ToS philosophy growth from master tables and A-series dossiers",

@@ -117,6 +117,7 @@
       "label_endpoint": 38,
       "matched_nodes": 948
     },
+    "language_packet_count": 225,
     "node_kind_top": {
       "civilization_literary_complex": 38,
       "concept": 171,
@@ -150,8 +151,10 @@
     "source_refs": [
       "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
       "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+      "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
       "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json"
-    ]
+    ],
+    "text_bearing_node_count": 225
   },
   "master_tables": {
     "table-i": {
@@ -402,6 +405,7 @@
     "dossier_summary": "ToS/philosophy/atlas/dossiers/graph-shape-summary.json",
     "graph_projection": "ToS/derived-exports/philosophy_graph_projection.min.json",
     "graph_views": "ToS/derived-exports/philosophy_graph_views.min.json",
+    "language_packets": "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
     "proposed_nodes": "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
     "proposed_relations": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
   },

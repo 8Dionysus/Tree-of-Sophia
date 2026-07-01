@@ -13,4 +13,6 @@ The first Table I planting records dossier identity, branch route, graph-row pre
 | `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |
 | `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |
 
+Text-bearing language packets for graph review live in `ToS/philosophy/graph-workbench/language-packets/` and follow `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`.
+
 Branch bodies live under `ToS/philosophy/eras/...`, and pre-canon graph rows live under `ToS/philosophy/graph-workbench/`.
