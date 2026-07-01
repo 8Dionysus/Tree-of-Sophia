@@ -9,6 +9,7 @@ This generated review packet checks the first prepared Table I planting against 
 - Prepared branches: 30
 - Proposed nodes: 1040
 - Proposed relations: 986
+- Text-bearing language packets: 225
 - Graph views: 11
 - Review packets: 11
 

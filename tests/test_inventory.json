@@ -272,6 +272,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_language_packets.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/philosophy/graph-workbench/language-packets/README.md",
+      "protects": "Table I text-bearing language packet generation and contract shape",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_language_packets.py",
+      "failure_route": "Fix the language-packet builder, generated packet surface, or multilingual contract before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_philosophy_multilingual_contract.py",
       "home": "tests",
       "home_scope": "root",

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from philosophy_multilingual_common import english_label, russian_label
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOC_ROOT = Path("/home/dionysus/Загрузки/ToS")
 TABLE_I_ROWS = REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
@@ -31,9 +33,15 @@ TERM_INDEX = REPO_ROOT / "ToS/philosophy/atlas/dossiers/term-index.jsonl"
 TRANSMISSION_BACKLOG = REPO_ROOT / "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl"
 PROPOSED_NODES = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
 PROPOSED_RELATIONS = REPO_ROOT / "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
+LANGUAGE_PACKETS = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
+LANGUAGE_PACKETS_MANIFEST = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/branch.manifest.json"
+LANGUAGE_PACKETS_README = REPO_ROOT / "ToS/philosophy/graph-workbench/language-packets/README.md"
+LANGUAGE_PACKET_CONTRACT_REF = "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+LANGUAGE_REGISTRY_REF = "ToS/philosophy/atlas/multilingual/language-registry.json"
 BRANCH_FRAGMENTS = REPO_ROOT / "ToS/philosophy/graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json"
 PROMOTION_LEDGER = REPO_ROOT / "ToS/philosophy/graph-workbench/promotion-ledger/table-i-prepared-dossiers.md"
 OBSOLETE_GENERATED_BRANCH = REPO_ROOT / "ToS/philosophy/eras/bronze-age/regions/ancient-near-east"
+TEXT_BEARING_NODE_KINDS = {"text_corpus"}
 
 
 def load_table_i_branches() -> dict[str, tuple[str, str]]:
@@ -507,8 +515,146 @@ def resolve_relation_endpoints(dossiers: list[Dossier]) -> tuple[list[dict[str, 
     return all_nodes, all_relations
 
 
+def _text_status_for_ru(label: str) -> tuple[str, str]:
+    translated, status = russian_label(label)
+    if re.search(r"[А-Яа-яЁё]", label):
+        return translated, status
+    if translated != label or status == "reviewed":
+        return translated, status
+    return translated, "pending"
+
+
+def _text_status_for_en(label: str) -> tuple[str, str]:
+    translated, status = english_label(label)
+    if status == "draft" and translated:
+        translated = translated[0].upper() + translated[1:]
+    return translated, status if translated != label or status != "source" else "source"
+
+
+def text_bearing_language_packet(row: dict[str, Any]) -> dict[str, Any]:
+    label = str(row.get("label") or "").strip()
+    ru, ru_status = _text_status_for_ru(label)
+    en, en_status = _text_status_for_en(label)
+    source_ref = repo_ref(LANGUAGE_PACKETS)
+    source_node_ref = str(row.get("source_ref") or repo_ref(PROPOSED_NODES))
+    source_refs = sorted({source_ref, source_node_ref, LANGUAGE_PACKET_CONTRACT_REF, LANGUAGE_REGISTRY_REF})
+    return {
+        "schema_version": "tos_philosophy_text_bearing_language_packet_v1",
+        "packet_id": f"language-packet:{row['candidate_id']}",
+        "node_ref": {
+            "id": row["candidate_id"],
+            "id_kind": "candidate_id",
+            "source_ref": source_node_ref,
+        },
+        "node_kind": row.get("node_kind"),
+        "branch_path": row.get("branch_path"),
+        "authority_posture": row.get("authority_posture"),
+        "canon_status": row.get("canon_status"),
+        "atlas_row_id": row.get("atlas_row_id"),
+        "dossier_id": row.get("dossier_id"),
+        "source_document": row.get("source_document"),
+        "source_row_index": row.get("source_row_index"),
+        "source_table_index": row.get("source_table_index"),
+        "source_label": label,
+        "source_ref": source_ref,
+        "source_refs": source_refs,
+        "language_registry_ref": LANGUAGE_REGISTRY_REF,
+        "text_bearing_nodes_contract_ref": LANGUAGE_PACKET_CONTRACT_REF,
+        "title_block": {
+            "original": {
+                "value": None,
+                "language": "und",
+                "script": "Zzzz",
+                "transliteration": None,
+                "attestation_status": "unknown",
+                "source_ref": source_node_ref,
+                "review_status": "pending_original_witness",
+            },
+            "ru": {
+                "value": ru,
+                "translation_status": ru_status,
+                "source_ref": source_node_ref,
+            },
+            "en": {
+                "value": en,
+                "translation_status": en_status,
+                "source_ref": source_node_ref,
+            },
+        },
+        "witness_block": {
+            "source_witnesses": [],
+            "witness_status": "pending_source_witness_anchor",
+            "required_next_fields": [
+                "witness_id",
+                "witness_kind",
+                "language",
+                "script",
+                "repository_or_corpus",
+                "source_ref",
+            ],
+        },
+        "relation_pressure": [
+            {
+                "predicate": "has_original_language",
+                "target_status": "unresolved",
+                "review_route": LANGUAGE_PACKET_CONTRACT_REF,
+            },
+            {
+                "predicate": "uses_script",
+                "target_status": "unresolved",
+                "review_route": LANGUAGE_PACKET_CONTRACT_REF,
+            },
+            {
+                "predicate": "has_witness",
+                "target_status": "unresolved",
+                "review_route": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+            },
+        ],
+    }
+
+
+def build_language_packets(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        text_bearing_language_packet(row)
+        for row in nodes
+        if str(row.get("node_kind") or "") in TEXT_BEARING_NODE_KINDS
+    ]
+
+
+def write_language_packet_surfaces(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    packets = build_language_packets(nodes)
+    write_jsonl(LANGUAGE_PACKETS, packets)
+    write_json(
+        LANGUAGE_PACKETS_MANIFEST,
+        {
+            "branch_id": "philosophy.graph-workbench.language-packets",
+            "path": "ToS/philosophy/graph-workbench/language-packets",
+            "role": "text-bearing language packets emitted by prepared dossier planting before canon promotion",
+            "contract_ref": LANGUAGE_PACKET_CONTRACT_REF,
+            "language_registry_ref": LANGUAGE_REGISTRY_REF,
+            "packet_count": len(packets),
+            "source_ref": repo_ref(LANGUAGE_PACKETS),
+        },
+    )
+    LANGUAGE_PACKETS_README.write_text(
+        "# Language Packets\n\n"
+        "`language-packets/` contains pre-canon language packets for text-bearing philosophy nodes.\n\n"
+        "The current Table I packet file is generated from prepared dossier proposed nodes. "
+        "It records original-language uncertainty, Russian and English display slots, witness posture, "
+        "and language/script relation pressure without promoting any source claim to canon.\n\n"
+        "| Surface | Role |\n"
+        "| --- | --- |\n"
+        "| `table-i-text-bearing-nodes.jsonl` | generated packets for Table I text-corpus candidates |\n"
+        f"| `{LANGUAGE_PACKET_CONTRACT_REF}` | packet contract |\n"
+        f"| `{LANGUAGE_REGISTRY_REF}` | language and script registry |\n",
+        encoding="utf-8",
+    )
+    return packets
+
+
 def write_graph_workbench(dossiers: list[Dossier]) -> None:
     nodes, relations = resolve_relation_endpoints(dossiers)
+    language_packets = write_language_packet_surfaces(nodes)
     write_jsonl(PROPOSED_NODES, nodes)
     write_jsonl(PROPOSED_RELATIONS, relations)
     write_json(
@@ -519,6 +665,8 @@ def write_graph_workbench(dossiers: list[Dossier]) -> None:
             "source_ref": repo_ref(DOSSIER_INDEX),
             "canon_status": "pre-canon",
             "branch_count": len(dossiers),
+            "language_packet_count": len(language_packets),
+            "language_packets_ref": repo_ref(LANGUAGE_PACKETS),
             "branches": [
                 {
                     "branch_path": BRANCHES[dossier.dossier_id][0],
@@ -543,6 +691,7 @@ def write_graph_workbench(dossiers: list[Dossier]) -> None:
         f"| prepared dossiers | {len(dossiers)} | atlas indexed |\n"
         f"| proposed nodes | {len(nodes)} | pre-canon graph workbench |\n"
         f"| proposed relations | {len(relations)} | pre-canon graph workbench |\n"
+        f"| text-bearing language packets | {len(language_packets)} | pre-canon multilingual review |\n"
         f"| branch fragments | {len(dossiers)} | era/region/tradition branch bodies |\n\n"
         "Promotion remains a later authored review step through ToS canon route cards.\n",
         encoding="utf-8",
@@ -702,6 +851,8 @@ def refresh_philosophy_manifest() -> None:
             repo_ref(TERM_INDEX),
             repo_ref(TRANSMISSION_BACKLOG),
             repo_ref(PREPARED_DOSSIER_ROUTES),
+            LANGUAGE_REGISTRY_REF,
+            LANGUAGE_PACKET_CONTRACT_REF,
         }
     )
     manifest["atlas_routes"] = sorted(atlas_routes)
@@ -722,6 +873,9 @@ def write_readmes() -> None:
         "| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n"
         "| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n"
         "| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\n"
+        "Text-bearing language packets for graph review live in "
+        "`ToS/philosophy/graph-workbench/language-packets/` and follow "
+        "`ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`.\n\n"
         "Branch bodies live under `ToS/philosophy/eras/...`, and pre-canon graph rows live under "
         "`ToS/philosophy/graph-workbench/`.\n",
         encoding="utf-8",
@@ -744,10 +898,23 @@ def write_readmes() -> None:
         "    source-anchor-backlog.jsonl\n"
         "    term-index.jsonl\n"
         "    transmission-backlog.jsonl\n"
+        "  multilingual/\n"
+        "    content-labels.json\n"
+        "    language-registry.json\n"
+        "    text-bearing-nodes.contract.json\n"
         "```\n\n"
         "The atlas is prepared navigation and growth pressure. Branch bodies live in "
         "`ToS/philosophy/eras/...`; pre-canon graph material lives in "
-        "`ToS/philosophy/graph-workbench/`; authored canon relation packs live in the canon route.\n",
+        "`ToS/philosophy/graph-workbench/`; authored canon relation packs live in the canon route.\n\n"
+        "`multilingual/` is a source-owned display companion for the atlas and generated "
+        "graph projections. It preserves the route rule that planted works must carry "
+        "their attested original form when available, plus Russian and English display "
+        "labels for review and downstream visualization.\n\n"
+        "For works, corpora, inscriptions, source witnesses, translations, versions, and "
+        "commentaries, `multilingual/text-bearing-nodes.contract.json` is the planting "
+        "contract. It keeps original-language title posture, transliteration, Russian "
+        "review text, English review/runtime text, witness posture, and graph relation "
+        "pressure in one source-owned packet shape.\n",
         encoding="utf-8",
     )
 

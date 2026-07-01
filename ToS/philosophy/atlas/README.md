@@ -26,13 +26,6 @@ atlas/
 
 The atlas is prepared navigation and growth pressure. Branch bodies live in `ToS/philosophy/eras/...`; pre-canon graph material lives in `ToS/philosophy/graph-workbench/`; authored canon relation packs live in the canon route.
 
-`multilingual/` is a source-owned display companion for the atlas and generated
-graph projections. It preserves the route rule that planted works must carry
-their attested original form when available, plus Russian and English display
-labels for review and downstream visualization.
+`multilingual/` is a source-owned display companion for the atlas and generated graph projections. It preserves the route rule that planted works must carry their attested original form when available, plus Russian and English display labels for review and downstream visualization.
 
-For works, corpora, inscriptions, source witnesses, translations, versions, and
-commentaries, `multilingual/text-bearing-nodes.contract.json` is the planting
-contract. It keeps original-language title posture, transliteration, Russian
-review text, English review/runtime text, witness posture, and graph relation
-pressure in one source-owned packet shape.
+For works, corpora, inscriptions, source witnesses, translations, versions, and commentaries, `multilingual/text-bearing-nodes.contract.json` is the planting contract. It keeps original-language title posture, transliteration, Russian review text, English review/runtime text, witness posture, and graph relation pressure in one source-owned packet shape.

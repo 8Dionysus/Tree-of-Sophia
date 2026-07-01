@@ -21,6 +21,7 @@ TERM_INDEX_PATH = PHILOSOPHY_ROOT / "atlas/dossiers/term-index.jsonl"
 TRANSMISSION_BACKLOG_PATH = PHILOSOPHY_ROOT / "atlas/dossiers/transmission-backlog.jsonl"
 PROPOSED_NODES_PATH = PHILOSOPHY_ROOT / "graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl"
 PROPOSED_RELATIONS_PATH = PHILOSOPHY_ROOT / "graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl"
+LANGUAGE_PACKETS_PATH = PHILOSOPHY_ROOT / "graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
 BRANCH_FRAGMENTS_PATH = PHILOSOPHY_ROOT / "graph-workbench/branch-fragments/table-i-prepared-dossier-branches.json"
 GRAPH_PROJECTION_PATH = TOS_ROOT / "derived-exports/philosophy_graph_projection.min.json"
 GRAPH_VIEWS_PATH = TOS_ROOT / "derived-exports/philosophy_graph_views.min.json"
@@ -73,6 +74,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Prepared branches: {branch['prepared_branch_count']}\n"
         f"- Proposed nodes: {graph['proposed_node_count']}\n"
         f"- Proposed relations: {graph['proposed_relation_count']}\n"
+        f"- Text-bearing language packets: {graph['language_packet_count']}\n"
         f"- Graph views: {projection['views']}\n"
         f"- Review packets: {projection['review_packets']}\n\n"
         "## Counts\n\n"
@@ -147,7 +149,11 @@ def _branch_audit(dossier_rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _graph_workbench_audit(proposed_nodes: list[dict[str, Any]], proposed_relations: list[dict[str, Any]]) -> dict[str, Any]:
+def _graph_workbench_audit(
+    proposed_nodes: list[dict[str, Any]],
+    proposed_relations: list[dict[str, Any]],
+    language_packets: list[dict[str, Any]],
+) -> dict[str, Any]:
     endpoint_resolution_counts = Counter(
         str(row.get("endpoint_resolution") or "missing") for row in proposed_relations
     )
@@ -157,6 +163,8 @@ def _graph_workbench_audit(proposed_nodes: list[dict[str, Any]], proposed_relati
     return {
         "proposed_node_count": len(proposed_nodes),
         "proposed_relation_count": len(proposed_relations),
+        "language_packet_count": len(language_packets),
+        "text_bearing_node_count": node_kind_counts.get("text_corpus", 0),
         "endpoint_resolution_counts": dict(sorted(endpoint_resolution_counts.items())),
         "node_kind_top": dict(node_kind_counts.most_common(12)),
         "relation_kind_top": dict(relation_kind_counts.most_common(12)),
@@ -165,6 +173,7 @@ def _graph_workbench_audit(proposed_nodes: list[dict[str, Any]], proposed_relati
         "source_refs": [
             repo_ref(PROPOSED_NODES_PATH),
             repo_ref(PROPOSED_RELATIONS_PATH),
+            repo_ref(LANGUAGE_PACKETS_PATH),
             repo_ref(BRANCH_FRAGMENTS_PATH),
         ],
     }
@@ -199,8 +208,9 @@ def build_payload() -> dict[str, Any]:
     transmission_rows = load_jsonl(TRANSMISSION_BACKLOG_PATH)
     proposed_nodes = load_jsonl(PROPOSED_NODES_PATH)
     proposed_relations = load_jsonl(PROPOSED_RELATIONS_PATH)
+    language_packets = load_jsonl(LANGUAGE_PACKETS_PATH)
     branch_audit = _branch_audit(dossier_rows)
-    graph_audit = _graph_workbench_audit(proposed_nodes, proposed_relations)
+    graph_audit = _graph_workbench_audit(proposed_nodes, proposed_relations, language_packets)
     projection_audit = _projection_audit()
 
     diagnostics: list[dict[str, str]] = []
@@ -232,6 +242,14 @@ def build_payload() -> dict[str, Any]:
                 "message": "graph projection contains diagnostics",
             }
         )
+    if graph_audit["language_packet_count"] != graph_audit["text_bearing_node_count"]:
+        diagnostics.append(
+            {
+                "level": "error",
+                "path": repo_ref(LANGUAGE_PACKETS_PATH),
+                "message": "text-bearing language packets do not match text-corpus proposed node count",
+            }
+        )
 
     error_count = sum(1 for item in diagnostics if item["level"] == "error")
     status = "ready_for_first_graph_review" if error_count == 0 else "blocked_by_audit_errors"
@@ -248,6 +266,7 @@ def build_payload() -> dict[str, Any]:
             "dossier_summary": repo_ref(DOSSIER_SUMMARY_PATH),
             "proposed_nodes": repo_ref(PROPOSED_NODES_PATH),
             "proposed_relations": repo_ref(PROPOSED_RELATIONS_PATH),
+            "language_packets": repo_ref(LANGUAGE_PACKETS_PATH),
             "branch_fragments": repo_ref(BRANCH_FRAGMENTS_PATH),
         },
         "runtime_projection_boundary": {

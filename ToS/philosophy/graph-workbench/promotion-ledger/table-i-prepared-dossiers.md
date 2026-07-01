@@ -7,6 +7,7 @@ This ledger records the first living planting of the prepared Table I corpus.
 | prepared dossiers | 30 | atlas indexed |
 | proposed nodes | 1040 | pre-canon graph workbench |
 | proposed relations | 986 | pre-canon graph workbench |
+| text-bearing language packets | 225 | pre-canon multilingual review |
 | branch fragments | 30 | era/region/tradition branch bodies |
 
 Promotion remains a later authored review step through ToS canon route cards.

@@ -22,13 +22,22 @@
   "packet_identity": {
     "required_fields": [
       "packet_id",
-      "candidate_id_or_node_id",
+      "node_ref",
       "node_kind",
       "branch_path",
       "authority_posture",
       "canon_status",
       "source_ref"
     ],
+    "node_ref": {
+      "required_fields": [
+        "id",
+        "id_kind",
+        "source_ref"
+      ],
+      "id_kind": "candidate_id | canonical_node_id",
+      "purpose": "Identify the text-bearing node without flattening pre-canon candidates and promoted canonical nodes into one ambiguous field."
+    },
     "optional_route_fields": [
       "atlas_row_id",
       "dossier_id",
@@ -169,5 +178,6 @@
     "multilingual.translation_status.ru",
     "multilingual.translation_status.en",
     "source_ref"
-  ]
+  ],
+  "current_generated_packet_surface": "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl"
 }
