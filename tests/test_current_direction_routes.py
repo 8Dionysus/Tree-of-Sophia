@@ -15,7 +15,7 @@ class CurrentDirectionRoutesTestCase(unittest.TestCase):
 
         self.assertTrue(roadmap_path.is_file())
         self.assertIn("[ROADMAP](ROADMAP.md)", readme)
-        self.assertIn("ROADMAP.md", agents)
+        self.assertIn("[ROADMAP](ROADMAP.md)", agents)
 
 
 if __name__ == "__main__":
