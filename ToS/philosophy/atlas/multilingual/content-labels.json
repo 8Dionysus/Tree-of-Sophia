@@ -14,6 +14,11 @@
   ],
   "original_language_rule": "For works, text corpora, inscriptions, and source witnesses, future planting must preserve attested original title or mark the original slot pending; never invent original-language text from translation.",
   "downstream_consumer_rule": "abyss-stack and other graph tools may select display language from generated multilingual fields, but Tree-of-Sophia remains source authority.",
+  "planting_contracts": {
+    "language_registry_ref": "ToS/philosophy/atlas/multilingual/language-registry.json",
+    "text_bearing_nodes_ref": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+  },
+  "text_bearing_node_rule": "Works, corpora, inscriptions, source witnesses, translations, versions, and commentaries use the text-bearing node language contract before graph promotion.",
   "label_sets": {
     "dossier_titles": {
       "A01": {

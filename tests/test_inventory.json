@@ -272,6 +272,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_philosophy_multilingual_contract.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "source_home_contract",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/philosophy/atlas/multilingual/README.md",
+      "protects": "philosophy multilingual registry and text-bearing node planting contract",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_philosophy_multilingual_contract.py",
+      "failure_route": "Fix the multilingual atlas route or contract files before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_philosophy_post_planting_audit.py",
       "home": "tests",
       "home_scope": "root",

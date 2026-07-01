@@ -44,12 +44,20 @@ A plantable packet carries these records as one route:
 | source anchor row | witness, corpus, edition, access, reliability, limitation, or source need |
 | term row | term, language, transliteration, meaning, ToS role |
 | transmission row | direction, transmitted matter, channel, confidence, next check |
+| text-bearing language packet | original title posture, language, script, transliteration, Russian label, English label, witness posture, translation/version relation pressure |
 | branch fragment | branch path, dossier id, local counts, source anchor count |
 | promotion ledger entry | planted counts and next promotion route |
 
 The packet is complete enough for graph review when every proposed node and
 relation can point back to a ToS source ref and every unresolved endpoint is
 visible as unresolved, not silently upgraded.
+
+Text-bearing packets are governed by
+`ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`. They are
+used for works, corpora, inscriptions, source witnesses, translations, versions,
+and commentaries. The original slot preserves only attested, traditional,
+normalized, or explicitly reconstructed source-language form; Russian and
+English slots carry review/runtime labels with their own status.
 
 ## Growth Route
 
@@ -58,6 +66,7 @@ master table row
   -> prepared dossier route
     -> branch home
       -> source anchor backlog
+      -> text-bearing language packet
       -> proposed nodes
       -> proposed relations
       -> branch fragment

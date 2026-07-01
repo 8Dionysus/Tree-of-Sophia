@@ -39,6 +39,14 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             "ToS/philosophy/atlas/multilingual/content-labels.json",
         )
         self.assertEqual(payload["content_language_contract"]["display_languages"], ["original", "ru", "en"])
+        self.assertEqual(
+            payload["content_language_contract"]["language_registry_ref"],
+            "ToS/philosophy/atlas/multilingual/language-registry.json",
+        )
+        self.assertEqual(
+            payload["content_language_contract"]["text_bearing_nodes_contract_ref"],
+            "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
+        )
 
     def test_projection_links_rows_to_available_dossiers(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
