@@ -48,6 +48,10 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             payload["content_language_contract"]["source_ref"],
             "ToS/philosophy/atlas/multilingual/content-labels.json",
         )
+        self.assertEqual(
+            payload["content_language_contract"]["text_bearing_nodes_contract_ref"],
+            "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
+        )
 
     def test_every_projected_edge_endpoint_exists(self) -> None:
         payload = self.load_projection()

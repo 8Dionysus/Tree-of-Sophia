@@ -1,0 +1,102 @@
+{
+  "schema_version": "tos_philosophy_language_registry_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_branch": "ToS/philosophy/atlas/multilingual",
+  "source_posture": "source-owned language registry for philosophy planting; language codes name review lanes and do not replace witness evidence",
+  "display_slots": [
+    {
+      "slot": "original",
+      "role": "attested, traditional, reconstructed, or normalized source-language form",
+      "required_for": [
+        "work",
+        "text_corpus",
+        "inscription",
+        "source_witness",
+        "translation",
+        "version"
+      ],
+      "fallback": "null with translation_status.original=pending"
+    },
+    {
+      "slot": "ru",
+      "role": "Russian review and operator language",
+      "required_for": [
+        "all_projected_nodes"
+      ],
+      "fallback": "source label when the prepared source row is already Russian"
+    },
+    {
+      "slot": "en",
+      "role": "English review, runtime, and public interoperability language",
+      "required_for": [
+        "all_projected_nodes"
+      ],
+      "fallback": "draft display label until reviewed translation is supplied"
+    }
+  ],
+  "language_code_policy": {
+    "primary_standard": "BCP 47 where useful; ISO 639 language code plus ISO 15924 script tag when script distinction matters",
+    "uncertain_code": "und",
+    "ancient_or_reconstructed_label_rule": "use the stable scholarly language name when a strict code would hide uncertainty",
+    "examples": [
+      "sux-Latn",
+      "akk-Xsux",
+      "egy-Egyp",
+      "cop-Copt",
+      "grc-Grek",
+      "la-Latn",
+      "sa-Deva",
+      "pi-Sinh",
+      "zh-Hant",
+      "fa-Arab",
+      "de-Latn",
+      "fr-Latn",
+      "ru-Cyrl",
+      "en-Latn"
+    ]
+  },
+  "script_code_policy": {
+    "primary_standard": "ISO 15924 where available",
+    "uncertain_code": "Zzzz",
+    "examples": [
+      "Xsux",
+      "Egyp",
+      "Copt",
+      "Grek",
+      "Latn",
+      "Deva",
+      "Brah",
+      "Sinh",
+      "Hani",
+      "Cyrl",
+      "Arab",
+      "Zzzz"
+    ]
+  },
+  "translation_statuses": [
+    "source",
+    "reviewed",
+    "draft",
+    "pending",
+    "contested",
+    "not_applicable"
+  ],
+  "attestation_statuses": [
+    "attested",
+    "traditional",
+    "normalized_scholarly",
+    "reconstructed",
+    "unknown",
+    "not_applicable"
+  ],
+  "title_roles": [
+    "original_title",
+    "transliteration",
+    "normalized_title",
+    "ru_title",
+    "en_title",
+    "short_label",
+    "catalog_id"
+  ],
+  "source_ref_rule": "Every non-null original title, translation, witness, edition, or language claim carries a ToS source_ref or a promoted external witness anchor."
+}

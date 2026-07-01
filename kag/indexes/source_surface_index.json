@@ -1,20 +1,94 @@
 {
+  "classification_summary": {
+    "artifact_kind": {
+      "asset": 50,
+      "config": 409,
+      "data_table": 12,
+      "dependency_manifest": 1,
+      "directory_marker": 4,
+      "document": 453,
+      "generated_readmodel": 9,
+      "index": 1,
+      "license": 1,
+      "manifest": 3,
+      "mechanics_surface": 2,
+      "owner_metadata": 2,
+      "projection": 1,
+      "receipt": 1,
+      "record_log": 39,
+      "schema": 28,
+      "script": 11,
+      "security": 1,
+      "source_code": 18,
+      "spreadsheet": 1,
+      "test": 27,
+      "validator": 22
+    },
+    "command_role": {
+      "builder": 9,
+      "lane_entrypoint": 1,
+      "none": 1036,
+      "script": 1,
+      "test": 27,
+      "validator": 22
+    },
+    "document_role": {
+      "agents": 53,
+      "audit": 5,
+      "boundary": 1,
+      "changelog": 1,
+      "decision": 25,
+      "design": 1,
+      "design_agents": 1,
+      "mechanics_doc": 36,
+      "none": 635,
+      "parts": 16,
+      "provenance": 16,
+      "readme": 116,
+      "roadmap": 17,
+      "testing_doc": 1,
+      "unknown_document": 171,
+      "validation_doc": 1
+    },
+    "mechanics_role": {
+      "legacy": 16,
+      "mechanic_package": 88,
+      "mechanic_part": 17,
+      "none": 894,
+      "part_doc": 56,
+      "part_schema": 15,
+      "part_script": 9,
+      "part_test": 1
+    },
+    "primary_kind": {
+      "artifact": 114,
+      "command": 60,
+      "document": 461,
+      "surface": 461
+    },
+    "surface_state": {
+      "authored_source": 1066,
+      "generated_readmodel": 13,
+      "legacy": 16,
+      "receipt": 1
+    }
+  },
   "coverage_summary": {
-    "command_count": 59,
-    "document_count": 460,
+    "command_count": 60,
+    "document_count": 461,
     "generated_count": 13,
-    "heading_count": 2398,
+    "heading_count": 2401,
     "mechanics_count": 202,
-    "record_count": 1092,
+    "record_count": 1096,
     "schema_count": 28,
     "script_count": 11,
-    "test_count": 26,
-    "unknown_count": 108,
+    "test_count": 27,
+    "unknown_count": 0,
     "validator_count": 22
   },
   "index_identity": {
     "artifact_kind": "source_surface_index",
-    "content_digest": "b171288e49bdd0244f63192a162be9cbb981a3f3baa4f49969d0bdb48dbbc373",
+    "content_digest": "300ba57c57b5f91a974e97a3110333609d1e637fe9de9961a8417dab07698787",
     "local_id": "index:repo-local:source-surfaces",
     "schema_ref": "aoa-kag:schemas/repo-local-kag-index.schema.json"
   },
@@ -406,8 +480,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -415,10 +489,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -493,8 +567,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -502,10 +576,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -1238,8 +1312,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -1247,10 +1321,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -1325,8 +1399,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -1334,10 +1408,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -1926,8 +2000,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -1935,10 +2009,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -2013,8 +2087,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -2022,10 +2096,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -3468,8 +3542,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -3477,10 +3551,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -3555,8 +3629,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -3564,10 +3638,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -4307,8 +4381,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -4316,10 +4390,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -4394,8 +4468,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -4403,10 +4477,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -4995,8 +5069,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -5004,10 +5078,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -5082,8 +5156,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -5091,10 +5165,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -5977,8 +6051,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -5986,10 +6060,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -6064,8 +6138,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -6073,10 +6147,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -6665,8 +6739,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -6674,10 +6748,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -6752,8 +6826,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -6761,10 +6835,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -7353,8 +7427,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -7362,10 +7436,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -7440,8 +7514,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -7449,10 +7523,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -8219,8 +8293,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -8228,10 +8302,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -8306,8 +8380,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -8315,10 +8389,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -9310,8 +9384,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -9319,10 +9393,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -9397,8 +9471,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -9406,10 +9480,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -9998,8 +10072,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -10007,10 +10081,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -10263,8 +10337,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -10272,10 +10346,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -11253,8 +11327,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -11262,10 +11336,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -11340,8 +11414,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -11349,10 +11423,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -11941,8 +12015,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -11950,10 +12024,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -12028,8 +12102,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -12037,10 +12111,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -12629,8 +12703,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -12638,10 +12712,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -12716,8 +12790,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -12725,10 +12799,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -13905,8 +13979,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -13914,10 +13988,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -13992,8 +14066,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -14001,10 +14075,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -15024,8 +15098,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -15033,10 +15107,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -15111,8 +15185,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -15120,10 +15194,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -15712,8 +15786,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -15721,10 +15795,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -15799,8 +15873,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -15808,10 +15882,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -17247,8 +17321,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -17256,10 +17330,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -17334,8 +17408,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -17343,10 +17417,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -18338,8 +18412,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -18347,10 +18421,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -18425,8 +18499,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -18434,10 +18508,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -19320,8 +19394,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -19329,10 +19403,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -19407,8 +19481,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -19416,10 +19490,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -20302,8 +20376,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -20311,10 +20385,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -20389,8 +20463,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -20398,10 +20472,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -21407,8 +21481,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -21416,10 +21490,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -21494,8 +21568,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -21503,10 +21577,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -22095,8 +22169,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -22104,10 +22178,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -22182,8 +22256,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -22191,10 +22265,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -23151,8 +23225,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -23160,10 +23234,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -23238,8 +23312,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "asset",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -23247,10 +23321,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "asset",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -24087,8 +24161,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "owner_metadata",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -24096,10 +24170,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "owner_metadata",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -24475,8 +24549,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "owner_metadata",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -24484,10 +24558,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "owner_metadata",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -26914,8 +26988,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "spreadsheet",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -26923,10 +26997,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "spreadsheet",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27131,8 +27205,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27140,10 +27214,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27218,8 +27292,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27227,10 +27301,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27305,8 +27379,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27314,10 +27388,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27392,8 +27466,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27401,10 +27475,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27479,8 +27553,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27488,10 +27562,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27566,8 +27640,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27575,10 +27649,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27653,8 +27727,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27662,10 +27736,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27740,8 +27814,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27749,10 +27823,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -27827,8 +27901,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -27836,10 +27910,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -31616,8 +31690,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -31625,10 +31699,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -31703,8 +31777,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -31712,10 +31786,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -31906,8 +31980,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "data_table",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -31915,10 +31989,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "data_table",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -37564,13 +37638,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "c86bb6145633eea426dce05b97210b1fecdc2db185a038c79217aa4bff325ddd",
+        "content_hash": "36f3145a390257ec3a0bd8c45361adad8d0446cd6d2aeb1a5a2c0cb8533f408d",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/contracts/philosophy-atlas-projection.schema.json:63d0c01db0",
         "mime": "application/json",
         "path": "ToS/contracts/philosophy-atlas-projection.schema.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 7047
+        "size_bytes": 7525
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -37603,7 +37677,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "c86bb6145633eea426dce05b97210b1fecdc2db185a038c79217aa4bff325ddd",
+        "digest": "36f3145a390257ec3a0bd8c45361adad8d0446cd6d2aeb1a5a2c0cb8533f408d",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -37653,13 +37727,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "ca318d6d1731ea6263ed09294d260f4048c80b36103154c21ee35b92662f6b5e",
+        "content_hash": "11212cb02eba30cd89a5666e64166204056056263dd95117271ee774a82a94f5",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/contracts/philosophy-graph-projection.schema.json:abeb414d69",
         "mime": "application/json",
         "path": "ToS/contracts/philosophy-graph-projection.schema.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 24004
+        "size_bytes": 24482
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -37692,7 +37766,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "ca318d6d1731ea6263ed09294d260f4048c80b36103154c21ee35b92662f6b5e",
+        "digest": "11212cb02eba30cd89a5666e64166204056056263dd95117271ee774a82a94f5",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -38693,13 +38767,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "45ad826ea3c6360ab27ca29235aabb90ca91ab3f27a07fd797dd0bd46c71edd6",
+        "content_hash": "bd1ef6b1ac34994069df7bd11eebd7a5ed67fdedb7ff60db60abec1034398912",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/derived-exports/philosophy_atlas_projection.min.json:625db34283",
         "mime": "application/json",
         "path": "ToS/derived-exports/philosophy_atlas_projection.min.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 2835624
+        "size_bytes": 2835994
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -38732,7 +38806,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "45ad826ea3c6360ab27ca29235aabb90ca91ab3f27a07fd797dd0bd46c71edd6",
+        "digest": "bd1ef6b1ac34994069df7bd11eebd7a5ed67fdedb7ff60db60abec1034398912",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -38782,13 +38856,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "6e79688fec8bd6c192ab54497366312c938c0bbc8683290c00b617a70a36a346",
+        "content_hash": "322641c3c7c442923d394028361b9b429abef11a907ac30bdc8e64b8a38269f0",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/derived-exports/philosophy_graph_projection.min.json:23c9f5a22d",
         "mime": "application/json",
         "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 19515646
+        "size_bytes": 19516016
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -38821,7 +38895,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "6e79688fec8bd6c192ab54497366312c938c0bbc8683290c00b617a70a36a346",
+        "digest": "322641c3c7c442923d394028361b9b429abef11a907ac30bdc8e64b8a38269f0",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -39049,13 +39123,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "30d15e5c8afabc10e79b998b85f55df63487e31b4a3bcc5e12f591389a148e9a",
+        "content_hash": "335766484e14bf034705c416eb495c13c5312ea82d926e7ce02527931863bea9",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/derived-exports/tos_corpus_index.min.json:5273da0cb2",
         "mime": "application/json",
         "path": "ToS/derived-exports/tos_corpus_index.min.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 387154
+        "size_bytes": 387913
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -39088,7 +39162,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "30d15e5c8afabc10e79b998b85f55df63487e31b4a3bcc5e12f591389a148e9a",
+        "digest": "335766484e14bf034705c416eb495c13c5312ea82d926e7ce02527931863bea9",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -42145,13 +42219,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "e1eb90dbb0f06aa2e0bb66cf2c618590898f0e9ecbc3729016bebe8133e0e843",
+        "content_hash": "00cfdd0f448483aa8dcfe6d79b51329182b84c39668428f5f3fdff8d4e57d0e5",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/readme.md:e85c37a04f",
         "mime": "text/markdown",
         "path": "ToS/philosophy/atlas/README.md",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 1028
+        "size_bytes": 1449
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -42199,7 +42273,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "e1eb90dbb0f06aa2e0bb66cf2c618590898f0e9ecbc3729016bebe8133e0e843",
+        "digest": "00cfdd0f448483aa8dcfe6d79b51329182b84c39668428f5f3fdff8d4e57d0e5",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -42671,8 +42745,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -42680,10 +42754,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -42847,8 +42921,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -42856,10 +42930,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -42934,8 +43008,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -42943,10 +43017,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -43021,8 +43095,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -43030,10 +43104,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -43381,8 +43455,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -43390,10 +43464,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -43646,8 +43720,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -43655,10 +43729,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -43911,8 +43985,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -43920,10 +43994,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -44087,6 +44161,115 @@
     {
       "abi": {
         "abi_epoch": "source",
+        "artifact_class": "document",
+        "compatibility": "stable",
+        "contract_version": "none",
+        "schema_version": "none"
+      },
+      "access": {
+        "scope": "public",
+        "secrets_risk": "none"
+      },
+      "artifact_kind": "document",
+      "classification": {
+        "confidence": "high",
+        "primary_kind": "document"
+      },
+      "code_role": "none",
+      "command_role": "none",
+      "consumer_route": {
+        "route_kind": "resource",
+        "surface": "aoa-kag-mcp"
+      },
+      "document_role": "readme",
+      "freshness": {
+        "checked_ref": "git-index-source-tree",
+        "mode": "source_snapshot",
+        "state": "current"
+      },
+      "identity": {
+        "content_hash": "b355f00970e21e6b673fba5a9f4b72a1a7f49090ad8af25f0b8a792f7b25e381",
+        "git_ref": "git-index-source-tree",
+        "id": "file:tos/philosophy/atlas/multilingual/readme.md:dabc83b15c",
+        "mime": "text/markdown",
+        "path": "ToS/philosophy/atlas/multilingual/README.md",
+        "repo": "Tree-of-Sophia",
+        "size_bytes": 960
+      },
+      "mechanics_role": "none",
+      "observed_form": "file",
+      "owner_return_route": {
+        "route_kind": "document_owner",
+        "surface": "ToS/philosophy/atlas/multilingual/README.md"
+      },
+      "provenance": {
+        "generated_by": "",
+        "materials": [],
+        "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
+        "source_refs": [
+          {
+            "authority": "authored_source",
+            "path": "ToS/philosophy/atlas/multilingual/README.md",
+            "repo": "Tree-of-Sophia",
+            "role": "primary"
+          }
+        ],
+        "validated_by": [
+          "aoa-kag:scripts/validate_kag.py"
+        ]
+      },
+      "refs": {
+        "heading_refs": [
+          {
+            "anchor": "multilingual-atlas",
+            "level": 1,
+            "line": 1,
+            "ref": "ToS/philosophy/atlas/multilingual/README.md#multilingual-atlas",
+            "title": "Multilingual Atlas"
+          },
+          {
+            "anchor": "shape",
+            "level": 2,
+            "line": 11,
+            "ref": "ToS/philosophy/atlas/multilingual/README.md#shape",
+            "title": "Shape"
+          },
+          {
+            "anchor": "route",
+            "level": 2,
+            "line": 20,
+            "ref": "ToS/philosophy/atlas/multilingual/README.md#route",
+            "title": "Route"
+          }
+        ],
+        "line_refs": [
+          "ToS/philosophy/atlas/multilingual/README.md:1"
+        ],
+        "path_ref": "ToS/philosophy/atlas/multilingual/README.md"
+      },
+      "signs": {
+        "attestation_ref": "",
+        "digest": "b355f00970e21e6b673fba5a9f4b72a1a7f49090ad8af25f0b8a792f7b25e381",
+        "signature_ref": "",
+        "verification_state": "digest-only"
+      },
+      "surface_state": "authored_source",
+      "toolchain": {
+        "detected_tools": [
+          "git",
+          "python"
+        ],
+        "owner_commands": [],
+        "required_tools": []
+      },
+      "validator_route": {
+        "route_kind": "source_fast",
+        "surface": "aoa-kag:scripts/validate_kag.py"
+      }
+    },
+    {
+      "abi": {
+        "abi_epoch": "source",
         "artifact_class": "config",
         "compatibility": "stable",
         "contract_version": "none",
@@ -44114,13 +44297,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "7aa0a0aff2eb5e4fc625369f1017a691511be7e443f539130b2fe98ff90acf2e",
+        "content_hash": "e08b2ffbf52affd0a4e6569286335171d804bd2ad5841b9ab49fcde399ab910d",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/multilingual/branch.manifest.json:d1fdb0e720",
         "mime": "application/json",
         "path": "ToS/philosophy/atlas/multilingual/branch.manifest.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 247
+        "size_bytes": 360
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -44153,7 +44336,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "7aa0a0aff2eb5e4fc625369f1017a691511be7e443f539130b2fe98ff90acf2e",
+        "digest": "e08b2ffbf52affd0a4e6569286335171d804bd2ad5841b9ab49fcde399ab910d",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -44203,13 +44386,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "de151e9267bc8152b57a10e2ee29dc3e062048b9d633f21a19498f3eb31a4181",
+        "content_hash": "0ca38373df6950fc69b2e220f6703f752d2aabccd83ab3f144f02e12ff97c578",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/multilingual/content-labels.json:5152a889b5",
         "mime": "application/json",
         "path": "ToS/philosophy/atlas/multilingual/content-labels.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 12071
+        "size_bytes": 12478
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -44242,7 +44425,185 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "de151e9267bc8152b57a10e2ee29dc3e062048b9d633f21a19498f3eb31a4181",
+        "digest": "0ca38373df6950fc69b2e220f6703f752d2aabccd83ab3f144f02e12ff97c578",
+        "signature_ref": "",
+        "verification_state": "digest-only"
+      },
+      "surface_state": "authored_source",
+      "toolchain": {
+        "detected_tools": [
+          "git",
+          "python"
+        ],
+        "owner_commands": [],
+        "required_tools": [
+          "jq"
+        ]
+      },
+      "validator_route": {
+        "route_kind": "source_fast",
+        "surface": "aoa-kag:scripts/validate_kag.py"
+      }
+    },
+    {
+      "abi": {
+        "abi_epoch": "source",
+        "artifact_class": "config",
+        "compatibility": "stable",
+        "contract_version": "none",
+        "schema_version": "tos_philosophy_language_registry_v1"
+      },
+      "access": {
+        "scope": "public",
+        "secrets_risk": "none"
+      },
+      "artifact_kind": "config",
+      "classification": {
+        "confidence": "high",
+        "primary_kind": "surface"
+      },
+      "code_role": "none",
+      "command_role": "none",
+      "consumer_route": {
+        "route_kind": "resource",
+        "surface": "aoa-kag-mcp"
+      },
+      "document_role": "none",
+      "freshness": {
+        "checked_ref": "git-index-source-tree",
+        "mode": "source_snapshot",
+        "state": "current"
+      },
+      "identity": {
+        "content_hash": "81df0e69b75216bbdb85f8db783f430ebee18756925ee9a00c14ea40e803e0df",
+        "git_ref": "git-index-source-tree",
+        "id": "file:tos/philosophy/atlas/multilingual/language-registry.json:23fcbd2ba0",
+        "mime": "application/json",
+        "path": "ToS/philosophy/atlas/multilingual/language-registry.json",
+        "repo": "Tree-of-Sophia",
+        "size_bytes": 2665
+      },
+      "mechanics_role": "none",
+      "observed_form": "file",
+      "owner_return_route": {
+        "route_kind": "source_owner",
+        "surface": "ToS/philosophy/atlas/multilingual/language-registry.json"
+      },
+      "provenance": {
+        "generated_by": "",
+        "materials": [],
+        "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
+        "source_refs": [
+          {
+            "authority": "authored_source",
+            "path": "ToS/philosophy/atlas/multilingual/language-registry.json",
+            "repo": "Tree-of-Sophia",
+            "role": "primary"
+          }
+        ],
+        "validated_by": [
+          "aoa-kag:scripts/validate_kag.py"
+        ]
+      },
+      "refs": {
+        "heading_refs": [],
+        "line_refs": [
+          "ToS/philosophy/atlas/multilingual/language-registry.json:1"
+        ],
+        "path_ref": "ToS/philosophy/atlas/multilingual/language-registry.json"
+      },
+      "signs": {
+        "attestation_ref": "",
+        "digest": "81df0e69b75216bbdb85f8db783f430ebee18756925ee9a00c14ea40e803e0df",
+        "signature_ref": "",
+        "verification_state": "digest-only"
+      },
+      "surface_state": "authored_source",
+      "toolchain": {
+        "detected_tools": [
+          "git",
+          "python"
+        ],
+        "owner_commands": [],
+        "required_tools": [
+          "jq"
+        ]
+      },
+      "validator_route": {
+        "route_kind": "source_fast",
+        "surface": "aoa-kag:scripts/validate_kag.py"
+      }
+    },
+    {
+      "abi": {
+        "abi_epoch": "source",
+        "artifact_class": "config",
+        "compatibility": "stable",
+        "contract_version": "none",
+        "schema_version": "tos_philosophy_text_bearing_nodes_language_contract_v1"
+      },
+      "access": {
+        "scope": "public",
+        "secrets_risk": "none"
+      },
+      "artifact_kind": "config",
+      "classification": {
+        "confidence": "high",
+        "primary_kind": "surface"
+      },
+      "code_role": "none",
+      "command_role": "none",
+      "consumer_route": {
+        "route_kind": "resource",
+        "surface": "aoa-kag-mcp"
+      },
+      "document_role": "none",
+      "freshness": {
+        "checked_ref": "git-index-source-tree",
+        "mode": "source_snapshot",
+        "state": "current"
+      },
+      "identity": {
+        "content_hash": "f5e40320db176d7605f9e3ba27b2d1b5abd4e4832d9d04c4268ab6917628240c",
+        "git_ref": "git-index-source-tree",
+        "id": "file:tos/philosophy/atlas/multilingual/text-bearing-nodes.contract.json:8cbaef351b",
+        "mime": "application/json",
+        "path": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
+        "repo": "Tree-of-Sophia",
+        "size_bytes": 5214
+      },
+      "mechanics_role": "none",
+      "observed_form": "file",
+      "owner_return_route": {
+        "route_kind": "source_owner",
+        "surface": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+      },
+      "provenance": {
+        "generated_by": "",
+        "materials": [],
+        "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
+        "source_refs": [
+          {
+            "authority": "authored_source",
+            "path": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
+            "repo": "Tree-of-Sophia",
+            "role": "primary"
+          }
+        ],
+        "validated_by": [
+          "aoa-kag:scripts/validate_kag.py"
+        ]
+      },
+      "refs": {
+        "heading_refs": [],
+        "line_refs": [
+          "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json:1"
+        ],
+        "path_ref": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+      },
+      "signs": {
+        "attestation_ref": "",
+        "digest": "f5e40320db176d7605f9e3ba27b2d1b5abd4e4832d9d04c4268ab6917628240c",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -45175,8 +45536,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -45184,10 +45545,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -45816,8 +46177,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -45825,10 +46186,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -46635,8 +46996,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -46644,10 +47005,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -47187,8 +47548,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -47196,10 +47557,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -47917,8 +48278,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -47926,10 +48287,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -48469,8 +48830,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -48478,10 +48839,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -49466,8 +49827,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -49475,10 +49836,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -50196,8 +50557,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -50205,10 +50566,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -50748,8 +51109,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -50757,10 +51118,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -51300,8 +51661,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -51309,10 +51670,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -52030,8 +52391,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -52039,10 +52400,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -52760,8 +53121,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -52769,10 +53130,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -53312,8 +53673,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -53321,10 +53682,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -53864,8 +54225,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -53873,10 +54234,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -54416,8 +54777,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -54425,10 +54786,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -54968,8 +55329,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -54977,10 +55338,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -55520,8 +55881,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -55529,10 +55890,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -56072,8 +56433,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -56081,10 +56442,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -56891,8 +57252,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -56900,10 +57261,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -57532,8 +57893,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -57541,10 +57902,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -58084,8 +58445,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -58093,10 +58454,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -58992,8 +59353,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -59001,10 +59362,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -59900,8 +60261,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -59909,10 +60270,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -60719,8 +61080,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -60728,10 +61089,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -61449,8 +61810,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -61458,10 +61819,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -62179,8 +62540,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -62188,10 +62549,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -62909,8 +63270,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -62918,10 +63279,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -63639,8 +64000,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -63648,10 +64009,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -64369,8 +64730,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -64378,10 +64739,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -65099,8 +65460,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -65108,10 +65469,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -65432,13 +65793,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "4a010ec9836d587b80007132ad23f7238bb959ee144777039488af31faa6345d",
+        "content_hash": "46ddf89126d078d9f35933a0ca1fb99d919e676c308c8fb67d5d1ee4e37186bf",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/graph-workbench/planting_interface.md:6e1757dbd5",
         "mime": "text/markdown",
         "path": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 4777
+        "size_bytes": 5405
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -65488,14 +65849,14 @@
           {
             "anchor": "growth-route",
             "level": 2,
-            "line": 54,
+            "line": 62,
             "ref": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md#growth-route",
             "title": "Growth Route"
           },
           {
             "anchor": "review-handoff",
             "level": 2,
-            "line": 86,
+            "line": 95,
             "ref": "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md#review-handoff",
             "title": "Review Handoff"
           }
@@ -65507,7 +65868,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "4a010ec9836d587b80007132ad23f7238bb959ee144777039488af31faa6345d",
+        "digest": "46ddf89126d078d9f35933a0ca1fb99d919e676c308c8fb67d5d1ee4e37186bf",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -66443,8 +66804,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -66452,10 +66813,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -66619,8 +66980,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "record_log",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -66628,10 +66989,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "record_log",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -83886,7 +84247,7 @@
         "surface": "kag/edges/kag_export_returns_to_route.json"
       },
       "provenance": {
-        "generated_by": "",
+        "generated_by": "kag/manifest.json",
         "materials": [],
         "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "source_refs": [
@@ -83975,7 +84336,7 @@
         "surface": "kag/indexes/provider_readiness_index.json"
       },
       "provenance": {
-        "generated_by": "",
+        "generated_by": "kag/manifest.json",
         "materials": [],
         "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "source_refs": [
@@ -84242,7 +84603,7 @@
         "surface": "kag/nodes/kag_export_capsule.json"
       },
       "provenance": {
-        "generated_by": "",
+        "generated_by": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py",
         "materials": [],
         "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "source_refs": [
@@ -84331,7 +84692,7 @@
         "surface": "kag/projections/mcp_source_return.json"
       },
       "provenance": {
-        "generated_by": "",
+        "generated_by": "kag/manifest.json",
         "materials": [],
         "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "source_refs": [
@@ -106849,8 +107210,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "directory_marker",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -106858,10 +107219,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "directory_marker",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -106936,8 +107297,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "directory_marker",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -106945,10 +107306,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "directory_marker",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -107112,8 +107473,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "directory_marker",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -107121,10 +107482,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "directory_marker",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -107199,7 +107560,7 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "receipt",
+        "artifact_class": "directory_marker",
         "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
@@ -107208,7 +107569,7 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "receipt",
+      "artifact_kind": "directory_marker",
       "classification": {
         "confidence": "high",
         "primary_kind": "artifact"
@@ -107246,7 +107607,7 @@
         "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
         "source_refs": [
           {
-            "authority": "generated_receipt",
+            "authority": "authored_source",
             "path": "memo/receipts/.gitkeep",
             "repo": "Tree-of-Sophia",
             "role": "primary"
@@ -107269,7 +107630,7 @@
         "signature_ref": "",
         "verification_state": "digest-only"
       },
-      "surface_state": "receipt",
+      "surface_state": "authored_source",
       "toolchain": {
         "detected_tools": [
           "git",
@@ -107737,8 +108098,8 @@
     {
       "abi": {
         "abi_epoch": "source",
-        "artifact_class": "unknown",
-        "compatibility": "unknown",
+        "artifact_class": "dependency_manifest",
+        "compatibility": "stable",
         "contract_version": "none",
         "schema_version": "none"
       },
@@ -107746,10 +108107,10 @@
         "scope": "public",
         "secrets_risk": "none"
       },
-      "artifact_kind": "unknown",
+      "artifact_kind": "dependency_manifest",
       "classification": {
-        "confidence": "low",
-        "primary_kind": "unknown"
+        "confidence": "high",
+        "primary_kind": "artifact"
       },
       "code_role": "none",
       "command_role": "none",
@@ -108892,13 +109253,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "4eb7c8c2549880cfd3f24a2b1d97cb196895d6a5581f9bd25a9d76a5f80c0b49",
+        "content_hash": "588c47475cf74240ced9a62a4a4759b9fcbaf649a092b333ed2b0e6d2b97d8da",
         "git_ref": "git-index-source-tree",
         "id": "file:scripts/philosophy_multilingual_common.py:e9bd98344d",
         "mime": "text/x-python",
         "path": "scripts/philosophy_multilingual_common.py",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 11840
+        "size_bytes": 12422
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -108931,7 +109292,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "4eb7c8c2549880cfd3f24a2b1d97cb196895d6a5581f9bd25a9d76a5f80c0b49",
+        "digest": "588c47475cf74240ced9a62a4a4759b9fcbaf649a092b333ed2b0e6d2b97d8da",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -111825,13 +112186,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "cd4a02da06400d914d1ba5431e2a832afc34b6807b75e3adc49a8c06ea46d23a",
+        "content_hash": "6b9ae6809c7900688b8d4317e9022c32af66cb8b7c92062ce3c519177dacc7f6",
         "git_ref": "git-index-source-tree",
         "id": "file:tests/test_inventory.json:4e4203d090",
         "mime": "application/json",
         "path": "tests/test_inventory.json",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 19279
+        "size_bytes": 19994
       },
       "mechanics_role": "none",
       "observed_form": "file",
@@ -111864,7 +112225,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "cd4a02da06400d914d1ba5431e2a832afc34b6807b75e3adc49a8c06ea46d23a",
+        "digest": "6b9ae6809c7900688b8d4317e9022c32af66cb8b7c92062ce3c519177dacc7f6",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -111914,13 +112275,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "0d569559e70e2f613253c5153d0ea7d193ce81f99a47c77c675472758dca34a9",
+        "content_hash": "c29ac984cebbf7e88e2462a4e0ce7b516edc2d11ccb9f2d4e0bded64f6a1a7ca",
         "git_ref": "git-index-source-tree",
         "id": "file:tests/test_philosophy_atlas_projection.py:32ee581d85",
         "mime": "text/x-python",
         "path": "tests/test_philosophy_atlas_projection.py",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 4538
+        "size_bytes": 4924
       },
       "mechanics_role": "none",
       "observed_form": "command",
@@ -111953,7 +112314,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "0d569559e70e2f613253c5153d0ea7d193ce81f99a47c77c675472758dca34a9",
+        "digest": "c29ac984cebbf7e88e2462a4e0ce7b516edc2d11ccb9f2d4e0bded64f6a1a7ca",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -112005,13 +112366,13 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "40bbad18895a5ed8be2da3cbf1a142275ebcc8dcd26453155e48fd181a5fa576",
+        "content_hash": "e17d79049b5b1620951dfa66a32bb41024cbd9f0f4d50bb246f662b5e5150774",
         "git_ref": "git-index-source-tree",
         "id": "file:tests/test_philosophy_graph_projection.py:221d2c7ffa",
         "mime": "text/x-python",
         "path": "tests/test_philosophy_graph_projection.py",
         "repo": "Tree-of-Sophia",
-        "size_bytes": 8483
+        "size_bytes": 8686
       },
       "mechanics_role": "none",
       "observed_form": "command",
@@ -112044,7 +112405,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "40bbad18895a5ed8be2da3cbf1a142275ebcc8dcd26453155e48fd181a5fa576",
+        "digest": "e17d79049b5b1620951dfa66a32bb41024cbd9f0f4d50bb246f662b5e5150774",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -112147,6 +112508,97 @@
         ],
         "owner_commands": [
           "python -m unittest tests/test_philosophy_graph_views.py"
+        ],
+        "required_tools": [
+          "python"
+        ]
+      },
+      "validator_route": {
+        "route_kind": "source_fast",
+        "surface": "aoa-kag:scripts/validate_kag.py"
+      }
+    },
+    {
+      "abi": {
+        "abi_epoch": "source",
+        "artifact_class": "test",
+        "compatibility": "stable",
+        "contract_version": "none",
+        "schema_version": "none"
+      },
+      "access": {
+        "scope": "public",
+        "secrets_risk": "none"
+      },
+      "artifact_kind": "test",
+      "classification": {
+        "confidence": "high",
+        "primary_kind": "command"
+      },
+      "code_role": "test",
+      "command_role": "test",
+      "consumer_route": {
+        "route_kind": "resource",
+        "surface": "aoa-kag-mcp"
+      },
+      "document_role": "none",
+      "freshness": {
+        "checked_ref": "git-index-source-tree",
+        "mode": "source_snapshot",
+        "state": "current"
+      },
+      "identity": {
+        "content_hash": "69dd02a92932f5aa60f5a79ed47303bb130e89aff50268d17f7b19b027d4dbe2",
+        "git_ref": "git-index-source-tree",
+        "id": "file:tests/test_philosophy_multilingual_contract.py:6980824c7e",
+        "mime": "text/x-python",
+        "path": "tests/test_philosophy_multilingual_contract.py",
+        "repo": "Tree-of-Sophia",
+        "size_bytes": 3171
+      },
+      "mechanics_role": "none",
+      "observed_form": "command",
+      "owner_return_route": {
+        "route_kind": "test_owner",
+        "surface": "tests/test_philosophy_multilingual_contract.py"
+      },
+      "provenance": {
+        "generated_by": "",
+        "materials": [],
+        "observed_by": "aoa-kag:scripts/generate_repo_local_kag_index.py",
+        "source_refs": [
+          {
+            "authority": "authored_source",
+            "path": "tests/test_philosophy_multilingual_contract.py",
+            "repo": "Tree-of-Sophia",
+            "role": "primary"
+          }
+        ],
+        "validated_by": [
+          "aoa-kag:scripts/validate_kag.py"
+        ]
+      },
+      "refs": {
+        "heading_refs": [],
+        "line_refs": [
+          "tests/test_philosophy_multilingual_contract.py:1"
+        ],
+        "path_ref": "tests/test_philosophy_multilingual_contract.py"
+      },
+      "signs": {
+        "attestation_ref": "",
+        "digest": "69dd02a92932f5aa60f5a79ed47303bb130e89aff50268d17f7b19b027d4dbe2",
+        "signature_ref": "",
+        "verification_state": "digest-only"
+      },
+      "surface_state": "authored_source",
+      "toolchain": {
+        "detected_tools": [
+          "git",
+          "python"
+        ],
+        "owner_commands": [
+          "python -m unittest tests/test_philosophy_multilingual_contract.py"
         ],
         "required_tools": [
           "python"

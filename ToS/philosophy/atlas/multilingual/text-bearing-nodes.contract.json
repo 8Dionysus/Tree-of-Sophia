@@ -1,0 +1,173 @@
+{
+  "schema_version": "tos_philosophy_text_bearing_nodes_language_contract_v1",
+  "owner_repo": "Tree-of-Sophia",
+  "owner_branch": "ToS/philosophy/atlas/multilingual",
+  "language_registry_ref": "ToS/philosophy/atlas/multilingual/language-registry.json",
+  "projection_label_ref": "ToS/philosophy/atlas/multilingual/content-labels.json",
+  "purpose": "Prepare every philosophy work, corpus, inscription, source witness, translation, version, and commentary for original-language, Russian, and English planting before graph promotion.",
+  "applies_to_node_kinds": [
+    "authored_work",
+    "text_corpus",
+    "inscription",
+    "source_witness",
+    "archive",
+    "commentary",
+    "translation",
+    "version",
+    "legal_ritual_text",
+    "school_text",
+    "epigraphic_record",
+    "prepared_research_work"
+  ],
+  "packet_identity": {
+    "required_fields": [
+      "packet_id",
+      "candidate_id_or_node_id",
+      "node_kind",
+      "branch_path",
+      "authority_posture",
+      "canon_status",
+      "source_ref"
+    ],
+    "optional_route_fields": [
+      "atlas_row_id",
+      "dossier_id",
+      "source_document",
+      "source_row_index",
+      "source_table_index"
+    ]
+  },
+  "title_block": {
+    "required_slots": [
+      "original",
+      "ru",
+      "en"
+    ],
+    "fields": {
+      "original": {
+        "value": "attested, traditional, reconstructed, or normalized source-language title; null when absent",
+        "language": "BCP 47/ISO-style code or stable scholarly language label",
+        "script": "ISO 15924 script code or stable scholarly script label",
+        "transliteration": "scholarly transliteration when original script is unavailable or hard to display",
+        "attestation_status": "attested | traditional | normalized_scholarly | reconstructed | unknown | not_applicable",
+        "source_ref": "source surface or witness anchor for the original-language claim"
+      },
+      "ru": {
+        "value": "Russian title or review label",
+        "translation_status": "source | reviewed | draft | pending | contested",
+        "source_ref": "source surface for the Russian display choice"
+      },
+      "en": {
+        "value": "English title or review label",
+        "translation_status": "source | reviewed | draft | pending | contested",
+        "source_ref": "source surface for the English display choice"
+      }
+    }
+  },
+  "witness_block": {
+    "source_witnesses": [
+      "manuscript",
+      "inscription",
+      "tablet",
+      "edition",
+      "critical_edition",
+      "translation",
+      "digital_corpus",
+      "catalog_record"
+    ],
+    "required_fields_when_known": [
+      "witness_id",
+      "witness_kind",
+      "language",
+      "script",
+      "date_or_period",
+      "repository_or_corpus",
+      "source_ref",
+      "reliability_note"
+    ],
+    "uncertainty_fields": [
+      "dating_status",
+      "authorship_status",
+      "title_status",
+      "transmission_status",
+      "preservation_status"
+    ]
+  },
+  "relation_emission": [
+    {
+      "predicate": "has_original_language",
+      "from": "text-bearing node",
+      "to": "language/script node"
+    },
+    {
+      "predicate": "uses_script",
+      "from": "text-bearing node",
+      "to": "script node"
+    },
+    {
+      "predicate": "has_witness",
+      "from": "work or corpus",
+      "to": "source witness"
+    },
+    {
+      "predicate": "has_translation",
+      "from": "work or corpus",
+      "to": "translation/version node"
+    },
+    {
+      "predicate": "is_version_of",
+      "from": "version or translation node",
+      "to": "work or corpus"
+    },
+    {
+      "predicate": "preserved_in",
+      "from": "text-bearing node",
+      "to": "archive, corpus, institution, manuscript family, or inscription context"
+    },
+    {
+      "predicate": "commentary_on",
+      "from": "commentary node",
+      "to": "work, corpus, school text, or doctrine node"
+    }
+  ],
+  "planting_route": [
+    "source row or dossier proposes a text-bearing node",
+    "language packet records original/ru/en title slots and witness posture",
+    "graph-workbench emits language, script, witness, version, and translation relation pressure",
+    "review packet exposes pending, draft, contested, and unresolved language claims",
+    "canon promotion may stabilize authored node fields and relation packs",
+    "derived projections expose multilingual labels without making downstream runtime authoritative"
+  ],
+  "review_lanes": {
+    "operator_review": [
+      "ru",
+      "original",
+      "witness posture"
+    ],
+    "public_runtime_review": [
+      "en",
+      "ru",
+      "source_ref"
+    ],
+    "philological_review": [
+      "original",
+      "language",
+      "script",
+      "transliteration",
+      "attestation_status",
+      "witness_block"
+    ]
+  },
+  "downstream_projection_fields": [
+    "multilingual.label.original",
+    "multilingual.label.ru",
+    "multilingual.label.en",
+    "multilingual.language.original_language",
+    "multilingual.language.original_script",
+    "multilingual.language.transliteration",
+    "multilingual.translation_status.original",
+    "multilingual.translation_status.ru",
+    "multilingual.translation_status.en",
+    "source_ref"
+  ]
+}

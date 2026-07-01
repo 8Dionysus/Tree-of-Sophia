@@ -17,6 +17,9 @@ LEDGER_PATH = REPO_ROOT / LEDGER_REF
 
 def content_language_contract() -> dict[str, Any]:
     ledger = load_label_ledger()
+    planting_contracts = ledger.get("planting_contracts")
+    if not isinstance(planting_contracts, dict):
+        planting_contracts = {}
     return {
         "schema_version": "tos_multilingual_content_contract_v1",
         "source_ref": LEDGER_REF,
@@ -24,6 +27,15 @@ def content_language_contract() -> dict[str, Any]:
         "required_translation_languages": ledger["required_translation_languages"],
         "original_language_rule": ledger["original_language_rule"],
         "downstream_consumer_rule": ledger["downstream_consumer_rule"],
+        "language_registry_ref": planting_contracts.get(
+            "language_registry_ref",
+            "ToS/philosophy/atlas/multilingual/language-registry.json",
+        ),
+        "text_bearing_nodes_contract_ref": planting_contracts.get(
+            "text_bearing_nodes_ref",
+            "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json",
+        ),
+        "text_bearing_node_rule": ledger["text_bearing_node_rule"],
     }
 
 

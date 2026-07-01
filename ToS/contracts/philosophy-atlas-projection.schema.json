@@ -183,7 +183,10 @@
         "display_languages",
         "required_translation_languages",
         "original_language_rule",
-        "downstream_consumer_rule"
+        "downstream_consumer_rule",
+        "language_registry_ref",
+        "text_bearing_nodes_contract_ref",
+        "text_bearing_node_rule"
       ],
       "properties": {
         "schema_version": {
@@ -203,6 +206,16 @@
           "minLength": 1
         },
         "downstream_consumer_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language_registry_ref": {
+          "const": "ToS/philosophy/atlas/multilingual/language-registry.json"
+        },
+        "text_bearing_nodes_contract_ref": {
+          "const": "ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json"
+        },
+        "text_bearing_node_rule": {
           "type": "string",
           "minLength": 1
         }
