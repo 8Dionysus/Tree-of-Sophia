@@ -88,7 +88,7 @@
   },
   "index_identity": {
     "artifact_kind": "source_surface_index",
-    "content_digest": "0b8b2dd98c9d9b8350e9762c0db6cdd9158db211711515689b07b9a1d4f28c06",
+    "content_digest": "5ae751454a7768cf6afd36dfb2a657390eb227d07fa723143ed3c75f91576911",
     "local_id": "index:repo-local:source-surfaces",
     "schema_ref": "aoa-kag:schemas/repo-local-kag-index.schema.json"
   },
@@ -24191,7 +24191,7 @@
         "content_hash": "b9d366203b52303ccb70476b7ae42100afeaa9a423c81415d282770248d68ebd",
         "git_ref": "git-index-source-tree",
         "id": "file:.github/codeowners:3d36a1bf06",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": ".github/CODEOWNERS",
         "repo": "Tree-of-Sophia",
         "size_bytes": 555
@@ -24398,7 +24398,7 @@
         "state": "current"
       },
       "identity": {
-        "content_hash": "210adc5323cf56604cd3b5d10a40fb51aa68ef52923c0d1f47cf78c08c795b00",
+        "content_hash": "e98c618f8170df0b6ae762f3df68c0a9160d0367a797102615b540f82b458954",
         "git_ref": "git-index-source-tree",
         "id": "file:.github/workflows/repo-validation.yml:3affb923d0",
         "mime": "application/yaml",
@@ -24437,7 +24437,7 @@
       },
       "signs": {
         "attestation_ref": "",
-        "digest": "210adc5323cf56604cd3b5d10a40fb51aa68ef52923c0d1f47cf78c08c795b00",
+        "digest": "e98c618f8170df0b6ae762f3df68c0a9160d0367a797102615b540f82b458954",
         "signature_ref": "",
         "verification_state": "digest-only"
       },
@@ -24579,7 +24579,7 @@
         "content_hash": "4655d914b2b8b6ab5a3fd3e859e9045effe14f6868eaa182cd8c49ff4e7cfe00",
         "git_ref": "git-index-source-tree",
         "id": "file:.gitignore:bc37d034ba",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": ".gitignore",
         "repo": "Tree-of-Sophia",
         "size_bytes": 40
@@ -25958,7 +25958,7 @@
         "content_hash": "0b81e2ea9cf9c447b3317b84e5bbaca9f3cf98a5d08ef8d754a3286f21c3392a",
         "git_ref": "git-index-source-tree",
         "id": "file:license:c693279643",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": "LICENSE",
         "repo": "Tree-of-Sophia",
         "size_bytes": 10775
@@ -42775,7 +42775,7 @@
         "content_hash": "14602f7c1a68ffeada35af41ffca16001d2c56e882276e0beb275e0f4739115a",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/dossiers/index.jsonl:5b17c0140b",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 36201
@@ -42951,7 +42951,7 @@
         "content_hash": "76f4c537bfeb14cdf9750cc8ce877ee7d85ebc81b0683355a481c93a4f23e1e3",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/dossiers/source-anchor-backlog.jsonl:1748c6f5f3",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 684390
@@ -43038,7 +43038,7 @@
         "content_hash": "6bc687cea17ebc34f3884b9be0231fcb87466ee6428bf56f384d6c823601ee6d",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/dossiers/term-index.jsonl:9868f4e07c",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/dossiers/term-index.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 369006
@@ -43125,7 +43125,7 @@
         "content_hash": "c3a30848dccd20ea5a2a5a1923b87dd296df781bc9f8b24ea2382fa7e669f30b",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/dossiers/transmission-backlog.jsonl:d5d43f2567",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/dossiers/transmission-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 309872
@@ -43485,7 +43485,7 @@
         "content_hash": "a07c0be1d73f202740a2312514bde8a7313bf8e90b7861e814f719d0a8bcf206",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/master-tables/table-i/rows.jsonl:1d9e03669c",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 221266
@@ -43750,7 +43750,7 @@
         "content_hash": "589be56fc4ae26b7b2c207c2765e7335c0c030a2bb2cab16d85674ed352d7677",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/master-tables/table-ii/rows.jsonl:98bc4ef4a3",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 234053
@@ -44015,7 +44015,7 @@
         "content_hash": "6abbdf4a71ea6b27fc989fe55bbc3fa56b3c0bb8880c7509558c7fdde31660bf",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/atlas/master-tables/table-iii/rows.jsonl:44c92d8050",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 272835
@@ -45566,7 +45566,7 @@
         "content_hash": "9fc394f1c22b145e862abf5baad164c01e5bce04dc834116abfd4bd3efb3cbfb",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/east-asia/traditions/hundred-schools-warring-states/sources/source-anchor-backlog.jsonl:cc46ff0d8f",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/east-asia/traditions/hundred-schools-warring-states/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 26571
@@ -46207,7 +46207,7 @@
         "content_hash": "1c8f88647225feb75360d518e2bca4758b37b5d5693bc123fe17226d0bd07fc7",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/iranian-world/traditions/avestan-achaemenid-inscriptional/sources/source-anchor-backlog.jsonl:fd07ab3f74",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/iranian-world/traditions/avestan-achaemenid-inscriptional/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 20609
@@ -47026,7 +47026,7 @@
         "content_hash": "8180531a4c0951fcfb9055849ac5867ac294b66d1f990dac49fdfb665a115d7b",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl:65140b1349",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 23056
@@ -47578,7 +47578,7 @@
         "content_hash": "8aa8dfe47fb24688b8559a2c31a3ee2274fc6d802e54e5c1188e162f5cf9508f",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/levant/traditions/second-temple-judean-scripturalization/sources/source-anchor-backlog.jsonl:4fa16d6f15",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/second-temple-judean-scripturalization/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 24898
@@ -48308,7 +48308,7 @@
         "content_hash": "f9b3666c25fb11db1ca05d0ba14e550925c5719a1b08aff74d8b4855c4042c5b",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/source-anchor-backlog.jsonl:48ce20d2d6",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 22613
@@ -48860,7 +48860,7 @@
         "content_hash": "5868400f136ac9822cbfa1e846f3dec61d895959cf75c18b1120a6ef8834026e",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/axial-age/regions/south-asia/traditions/vedic-brahmanical-upanishadic/sources/source-anchor-backlog.jsonl:57b2db55aa",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/vedic-brahmanical-upanishadic/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 26015
@@ -49857,7 +49857,7 @@
         "content_hash": "3ca9f9d98e133b2bb4055ac0041b552a7e1330efa05b159200d098b85925a974",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/east-asia/traditions/shang-early-zhou-oracle-bronze-writing/sources/source-anchor-backlog.jsonl:7782d56498",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/east-asia/traditions/shang-early-zhou-oracle-bronze-writing/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 23336
@@ -50587,7 +50587,7 @@
         "content_hash": "166c5873973f0644d568251866254c1cdc5aac1ad3a07b2e8b8017150076fe89",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl:d54539b6fe",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-mortuary-theological-dialogic-corpora/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 27890
@@ -51139,7 +51139,7 @@
         "content_hash": "168d9f16f0c83315051a4f28aee2495f07cdb796cd06239c170034e99fbf50d3",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl:a2c58515e0",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 22961
@@ -51691,7 +51691,7 @@
         "content_hash": "ee6315759496d30ed2207b4791cf38d5339bbf1e7f741c736b232ebaee035a3a",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/north-africa/traditions/late-egyptian-demotic-temple-scholarship/sources/source-anchor-backlog.jsonl:3cac313048",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/late-egyptian-demotic-temple-scholarship/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 22627
@@ -52421,7 +52421,7 @@
         "content_hash": "5379a220d46e6657d374ead809c56a59c3f482d0a8ca2af8eac144f228c51600",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/south-asia/traditions/indus-signs-seals-reconstruction/sources/source-anchor-backlog.jsonl:5a4f9e945e",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/south-asia/traditions/indus-signs-seals-reconstruction/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 25430
@@ -53151,7 +53151,7 @@
         "content_hash": "9bd8b3ef276806d0c1fe5496ddd4b6aba95a6a646d91fda2e228718f0f2d22c1",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-cuneiform-achaemenid-multilingualism/sources/source-anchor-backlog.jsonl:c11b61fc24",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-cuneiform-achaemenid-multilingualism/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 22826
@@ -53703,7 +53703,7 @@
         "content_hash": "88d33c89a4e3913017c2cd4e41be1798963c946dfc33b813cf5942b84b4e4050",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-script-frontiers/sources/source-anchor-backlog.jsonl:9445676831",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/elamite-script-frontiers/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 17288
@@ -54255,7 +54255,7 @@
         "content_hash": "e6390ceafba3b709f4b1e76ac16947117551f77471a894f8217c45192ff63abf",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/first-millennium-mesopotamian-scholarly-commentary/sources/source-anchor-backlog.jsonl:457c248529",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/first-millennium-mesopotamian-scholarly-commentary/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 24625
@@ -54807,7 +54807,7 @@
         "content_hash": "1344abe8a654d66de2bcd6ed5eadf2a9e9839361c4bfe000994aee8bcac989d7",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/hittite-state-ritual-writing/sources/source-anchor-backlog.jsonl:25b3758454",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/hittite-state-ritual-writing/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 14183
@@ -55359,7 +55359,7 @@
         "content_hash": "2a2ea347955a873dd3c9c3d5f006f01c9f904f5702119c4b8ac82a61e8179636",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl:4d44f3827f",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 25476
@@ -55911,7 +55911,7 @@
         "content_hash": "0e1fa3779512956f6debc8a6ad990ea9545b60031ceb86d45689843bb1eb2b3a",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl:ef87bf975c",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 22315
@@ -56463,7 +56463,7 @@
         "content_hash": "0c923d558438f926ea2fc47d0628ed2dc8d15741b92b6712fcc03db9f7e5e960",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/bronze-age/regions/west-asia/traditions/ugaritic-alphabetic-levant/sources/source-anchor-backlog.jsonl:74473f7f21",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/ugaritic-alphabetic-levant/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 27608
@@ -57282,7 +57282,7 @@
         "content_hash": "ced68779b204fe1f829a03ec500af362e3c9525b09ad5c50c7be8cd48b4ce42d",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/classical-south-asia/regions/south-asia/traditions/brahmanical-shastra-darshana/sources/source-anchor-backlog.jsonl:d6eb776887",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/brahmanical-shastra-darshana/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 23180
@@ -57923,7 +57923,7 @@
         "content_hash": "434d05fe83de6ad574dce26a6e849a832bc4d57436ea96d3252ed0e7f9a669c4",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/classical-south-asia/regions/south-asia/traditions/indian-buddhist-shastra/sources/source-anchor-backlog.jsonl:a5ebf91dee",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/indian-buddhist-shastra/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 25349
@@ -58475,7 +58475,7 @@
         "content_hash": "16957085fd36a186371b7dcf9aa6cad4a573c268dab707a95d50fdf0ddbbc4d1",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl:1910e2e45f",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 27779
@@ -59383,7 +59383,7 @@
         "content_hash": "07bc911ec89f102bac2d20a6ca6c88012000047a0b9faa883b9788cd098c5a2f",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/early-imperial-age/regions/east-asia/traditions/han-sui-imperial-confucianism/sources/source-anchor-backlog.jsonl:b5a3ccec9b",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/early-imperial-age/regions/east-asia/traditions/han-sui-imperial-confucianism/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 27866
@@ -60291,7 +60291,7 @@
         "content_hash": "9be041928be07a823a1e93652b6b56b98667b2abacb513ff1ac08be727b98ac1",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/arabian-peninsula/traditions/south-north-arabian-epigraphy/sources/source-anchor-backlog.jsonl:ed1d910030",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/arabian-peninsula/traditions/south-north-arabian-epigraphy/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 21736
@@ -61110,7 +61110,7 @@
         "content_hash": "febe5db7f081f59aa5b691a6532a9cf6762bf848c441eb3e9068465b4becc901",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/central-asia/traditions/central-asian-textual-corridor/sources/source-anchor-backlog.jsonl:b01f42939a",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/central-asia/traditions/central-asian-textual-corridor/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 10870
@@ -61840,7 +61840,7 @@
         "content_hash": "872d7f16bef4e97608b02cc158c035a913b8ebd97ed8aa2d79cec9bf749e8730",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/east-asia/traditions/early-chinese-buddhism/sources/source-anchor-backlog.jsonl:369e1bf8ce",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/east-asia/traditions/early-chinese-buddhism/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 20353
@@ -62570,7 +62570,7 @@
         "content_hash": "4028dc68982e5b0c308496e1f69c54f64078d1abddb6f6e87acc1c51e048ec71",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/eastern-mediterranean-west-asia/traditions/hermetic-gnostic-mandaean-complexes/sources/source-anchor-backlog.jsonl:95e2f973bb",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/eastern-mediterranean-west-asia/traditions/hermetic-gnostic-mandaean-complexes/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 23926
@@ -63300,7 +63300,7 @@
         "content_hash": "13e3b5c193d11682f3aa4075c2fcb1653499e28296ca49bc9f3789046bed89c7",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/iranian-world/traditions/sasanian-avesta-pahlavi-scholastic/sources/source-anchor-backlog.jsonl:90fa0874f1",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/iranian-world/traditions/sasanian-avesta-pahlavi-scholastic/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 21431
@@ -64030,7 +64030,7 @@
         "content_hash": "9191e2f4f9efa4ba71118fa43137aecb4722f1d38bfd14985acbc96b5b986b83",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/north-africa/traditions/coptic-egypt/sources/source-anchor-backlog.jsonl:29222c2c1d",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/north-africa/traditions/coptic-egypt/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 15620
@@ -64760,7 +64760,7 @@
         "content_hash": "702fec8f8cbd54fbc455e3450dca8c3404539701a945afed3c5e110a0de73b14",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/southeast-asia/traditions/sanskrit-pali-inscriptions/sources/source-anchor-backlog.jsonl:a196430fed",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/southeast-asia/traditions/sanskrit-pali-inscriptions/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 19914
@@ -65490,7 +65490,7 @@
         "content_hash": "c4bac62d29b5961e8bb946b57053112cd5060fda30b84d7ff4b73237310773ea",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/eras/late-antiquity/regions/west-asia-central-asia/traditions/manichaean-multilingual-corpus/sources/source-anchor-backlog.jsonl:973bfcd88d",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/eras/late-antiquity/regions/west-asia-central-asia/traditions/manichaean-multilingual-corpus/sources/source-anchor-backlog.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 26039
@@ -66745,7 +66745,7 @@
         "content_hash": "ee0daa8f347ce520da434fdda3960d9c182662f0ed1896f3dc5e2da336b32186",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl:fc315e37ea",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/graph-workbench/language-packets/table-i-text-bearing-nodes.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 607067
@@ -67105,7 +67105,7 @@
         "content_hash": "8b12f08c2b2d55652a5bc30ac5a1bb0697d18018a08fdfcaae8fe5fa0e2511a4",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl:0273223d72",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 818770
@@ -67281,7 +67281,7 @@
         "content_hash": "999c4f4d6e0fc07768f859c2dba462bdf3f69a9800ed4b64d4fbe92f14892689",
         "git_ref": "git-index-source-tree",
         "id": "file:tos/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl:2ceb1729cc",
-        "mime": "application/octet-stream",
+        "mime": "application/x-ndjson",
         "path": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
         "repo": "Tree-of-Sophia",
         "size_bytes": 967596
@@ -107513,7 +107513,7 @@
         "content_hash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
         "git_ref": "git-index-source-tree",
         "id": "file:memo/candidates/.gitkeep:7a4b28e1a9",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": "memo/candidates/.gitkeep",
         "repo": "Tree-of-Sophia",
         "size_bytes": 1
@@ -107600,7 +107600,7 @@
         "content_hash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
         "git_ref": "git-index-source-tree",
         "id": "file:memo/exports/.gitkeep:d77c10c9ba",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": "memo/exports/.gitkeep",
         "repo": "Tree-of-Sophia",
         "size_bytes": 1
@@ -107776,7 +107776,7 @@
         "content_hash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
         "git_ref": "git-index-source-tree",
         "id": "file:memo/local/.gitkeep:c612a98de6",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": "memo/local/.gitkeep",
         "repo": "Tree-of-Sophia",
         "size_bytes": 1
@@ -107863,7 +107863,7 @@
         "content_hash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
         "git_ref": "git-index-source-tree",
         "id": "file:memo/receipts/.gitkeep:eb3b036b02",
-        "mime": "application/octet-stream",
+        "mime": "text/plain",
         "path": "memo/receipts/.gitkeep",
         "repo": "Tree-of-Sophia",
         "size_bytes": 1

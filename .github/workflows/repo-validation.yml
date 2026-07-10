@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Check repo-local KAG source index
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@68891c232ff6f5ab3c0a40c4a68f7f373c51aab4
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@34dded920a832a529cd9a71cee37454e17b0a790
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
