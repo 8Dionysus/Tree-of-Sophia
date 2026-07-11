@@ -37,6 +37,12 @@ REQUIRED_RECORD_FIELDS = {
     "consumer_route",
 }
 REPO_LOCAL_SOURCE_INDEX = Path("kag/indexes/source_surface_index.json")
+REPO_LOCAL_INDEX_PATHS = {
+    REPO_LOCAL_SOURCE_INDEX,
+    Path("kag/indexes/repo_entity_index.json"),
+    Path("kag/indexes/repo_artifact_index.json"),
+    Path("kag/indexes/repo_event_index.json"),
+}
 
 
 class ValidationError(RuntimeError):
@@ -133,7 +139,7 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
         records: list[dict[str, Any]] = []
         for path in paths:
             relative_path = path.relative_to(REPO_ROOT).as_posix()
-            if Path(relative_path) == REPO_LOCAL_SOURCE_INDEX:
+            if Path(relative_path) in REPO_LOCAL_INDEX_PATHS:
                 continue
             record = read_json(path)
             missing = REQUIRED_RECORD_FIELDS - set(record)
