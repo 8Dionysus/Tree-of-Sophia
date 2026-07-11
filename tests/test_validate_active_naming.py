@@ -42,7 +42,10 @@ class ValidateActiveNamingTests(unittest.TestCase):
             "source_surface_index.json",
             "repo_entity_index.json",
             "repo_artifact_index.json",
+            "repo_anchor_index.json",
             "repo_event_index.json",
+            "repo_assertion_index.json",
+            "repo_relation_index.json",
         ):
             with self.subTest(filename=filename):
                 self.assertTrue(
