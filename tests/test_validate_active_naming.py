@@ -37,6 +37,20 @@ def old_experience_ref() -> str:
 
 
 class ValidateActiveNamingTests(unittest.TestCase):
+    def test_repository_kag_readmodels_are_outside_authored_naming_checks(self) -> None:
+        for filename in (
+            "source_surface_index.json",
+            "repo_entity_index.json",
+            "repo_artifact_index.json",
+            "repo_event_index.json",
+        ):
+            with self.subTest(filename=filename):
+                self.assertTrue(
+                    validate_active_naming.is_excluded(
+                        validate_active_naming.REPO_ROOT / "kag" / "indexes" / filename
+                    )
+                )
+
     def test_terminal_sentence_period_is_not_path_or_id_marker(self) -> None:
         self.assertIsNone(active_reference(f"This was a {retired_s_token()}."))
         self.assertIsNone(active_reference(f"the next {retired_w_token()}."))

@@ -26,6 +26,9 @@ EXCLUDED_PARTS = {
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
+    "kag/indexes/repo_artifact_index.json",
+    "kag/indexes/repo_entity_index.json",
+    "kag/indexes/repo_event_index.json",
     "kag/indexes/source_surface_index.json",
     "scripts/validate_active_naming.py",
 }

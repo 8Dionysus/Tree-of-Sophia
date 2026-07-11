@@ -20,7 +20,7 @@ source-linked records.
 | --- | --- |
 | node | KAG export capsule and derived export route |
 | edge | source export returns to the derived export route |
-| index | source surface inventory over local records |
+| index | repository source, entity, artifact, and event indexes |
 | projection | MCP-readable source-return packet |
 | receipt | validator receipt for the current export seam |
 
