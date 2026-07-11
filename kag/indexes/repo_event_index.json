@@ -1,0 +1,1097 @@
+{
+  "entries": [
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:4b27dd2e3f13a620b54e",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py",
+      "source_record_id": "file:.agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py:e1480fe2d2"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:6153e080f7ab28be826c",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-dry-run-first/scripts/preview_gap_check.py",
+      "source_record_id": "file:.agents/skills/aoa-dry-run-first/scripts/preview_gap_check.py:0ea89b83a2"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:e1c191987d9f64de7961",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-local-stack-bringup/scripts/bringup_contract.py",
+      "source_record_id": "file:.agents/skills/aoa-local-stack-bringup/scripts/bringup_contract.py:65fb7d4d41"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:456e11138c7457854048",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-local-stack-bringup/scripts/readiness_summary.py",
+      "source_record_id": "file:.agents/skills/aoa-local-stack-bringup/scripts/readiness_summary.py:b9778391e0"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:f17497b32cab7b1e788a",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-safe-infra-change/scripts/infra_change_contract.py",
+      "source_record_id": "file:.agents/skills/aoa-safe-infra-change/scripts/infra_change_contract.py:f074327882"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:6c219ff527c332922aa4",
+      "observation_state": "declared",
+      "path": ".agents/skills/aoa-safe-infra-change/scripts/risk_surface_scan.py",
+      "source_record_id": "file:.agents/skills/aoa-safe-infra-change/scripts/risk_surface_scan.py:4783038b81"
+    },
+    {
+      "event_kind": "workflow_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:feddcb6988cdc5e71103",
+      "observation_state": "declared",
+      "path": ".github/workflows/repo-validation.yml",
+      "source_record_id": "file:.github/workflows/repo-validation.yml:3affb923d0"
+    },
+    {
+      "event_kind": "workflow_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:2dc87d0685b63c368c18",
+      "observation_state": "declared",
+      "path": ".github/workflows/source-side-smoke.yml",
+      "source_record_id": "file:.github/workflows/source-side-smoke.yml:0060e88d9a"
+    },
+    {
+      "event_kind": "release_declaration",
+      "event_role": "declaration",
+      "heading_ref": {
+        "anchor": "021-2026-04-19",
+        "level": 2,
+        "line": 81,
+        "ref": "CHANGELOG.md#021-2026-04-19",
+        "title": "[0.2.1] - 2026-04-19"
+      },
+      "id": "event:repo:2ec9a5ba39acb7f8eefa",
+      "observation_state": "declared",
+      "path": "CHANGELOG.md",
+      "source_record_id": "file:changelog.md:06572a96a5"
+    },
+    {
+      "event_kind": "release_declaration",
+      "event_role": "declaration",
+      "heading_ref": {
+        "anchor": "022-2026-04-23",
+        "level": 2,
+        "line": 36,
+        "ref": "CHANGELOG.md#022-2026-04-23",
+        "title": "[0.2.2] - 2026-04-23"
+      },
+      "id": "event:repo:62a3712c58fcfd2ac288",
+      "observation_state": "declared",
+      "path": "CHANGELOG.md",
+      "source_record_id": "file:changelog.md:06572a96a5"
+    },
+    {
+      "event_kind": "release_declaration",
+      "event_role": "declaration",
+      "heading_ref": {
+        "anchor": "010-2026-04-01",
+        "level": 2,
+        "line": 152,
+        "ref": "CHANGELOG.md#010-2026-04-01",
+        "title": "[0.1.0] - 2026-04-01"
+      },
+      "id": "event:repo:7b5ae23ab792a84d82ff",
+      "observation_state": "declared",
+      "path": "CHANGELOG.md",
+      "source_record_id": "file:changelog.md:06572a96a5"
+    },
+    {
+      "event_kind": "release_declaration",
+      "event_role": "declaration",
+      "heading_ref": {
+        "anchor": "020-2026-04-10",
+        "level": 2,
+        "line": 111,
+        "ref": "CHANGELOG.md#020-2026-04-10",
+        "title": "[0.2.0] - 2026-04-10"
+      },
+      "id": "event:repo:ee6eef9f716ba3363072",
+      "observation_state": "declared",
+      "path": "CHANGELOG.md",
+      "source_record_id": "file:changelog.md:06572a96a5"
+    },
+    {
+      "event_kind": "release_lane",
+      "event_role": "declaration",
+      "heading_ref": {
+        "anchor": "unreleased",
+        "level": 2,
+        "line": 8,
+        "ref": "CHANGELOG.md#unreleased",
+        "title": "[Unreleased]"
+      },
+      "id": "event:repo:00f20b7d74fe732c87ad",
+      "observation_state": "declared",
+      "path": "CHANGELOG.md",
+      "source_record_id": "file:changelog.md:06572a96a5"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:4c9ec0653ebcdb193a68",
+      "observation_state": "declared",
+      "path": "docs/decisions/TEMPLATE.md",
+      "source_record_id": "file:docs/decisions/template.md:874770b824"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:987d85dfc5ef9134c037",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0001-source-first-decision-rationale-lane.md",
+      "source_record_id": "file:docs/decisions/tos-d-0001-source-first-decision-rationale-lane.md:6acc3f74e9"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:cc9219bf543ecef01f1c",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0002-tos-source-home-topology.md",
+      "source_record_id": "file:docs/decisions/tos-d-0002-tos-source-home-topology.md:ee36a79cb9"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:d26efeb2238c8726ef67",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0003-philosophy-domain-tree.md",
+      "source_record_id": "file:docs/decisions/tos-d-0003-philosophy-domain-tree.md:8fca476c35"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:1b30f4c4b1b965278f6d",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0004-operational-route-cards.md",
+      "source_record_id": "file:docs/decisions/tos-d-0004-operational-route-cards.md:20416001aa"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:82eaac1a452f849f2d35",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0005-mechanics-operation-topology.md",
+      "source_record_id": "file:docs/decisions/tos-d-0005-mechanics-operation-topology.md:989353d263"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:6d1d275b5caa90ffcb26",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0006-research-packet-authority-correction.md",
+      "source_record_id": "file:docs/decisions/tos-d-0006-research-packet-authority-correction.md:dc3f92b69b"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:7f71245400176fee3fb8",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md",
+      "source_record_id": "file:docs/decisions/tos-d-0007-doctrine-mechanics-and-zarathustra-route-correction.md:3ea97f0d2a"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:42f20d5e1b1df7dbe2a3",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0008-root-validation-route-unloading.md",
+      "source_record_id": "file:docs/decisions/tos-d-0008-root-validation-route-unloading.md:6e66029e9a"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:fc48bc8dacaac41c40e2",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0009-validation-lane-command-authority.md",
+      "source_record_id": "file:docs/decisions/tos-d-0009-validation-lane-command-authority.md:f83a57687b"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:4eea42ec5f10cd94bc03",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0010-test-topology-coverage.md",
+      "source_record_id": "file:docs/decisions/tos-d-0010-test-topology-coverage.md:621dde6153"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:22f76bc4f14b4422152f",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0011-script-topology-coverage.md",
+      "source_record_id": "file:docs/decisions/tos-d-0011-script-topology-coverage.md:545b46179d"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:c8f5b0c5874acce5b8e7",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md",
+      "source_record_id": "file:docs/decisions/tos-d-0012-agon-threshold-registry-part-local-route.md:f2cfdb5465"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:9a39ba2340fd7bec2e30",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0013-mechanics-local-test-homes.md",
+      "source_record_id": "file:docs/decisions/tos-d-0013-mechanics-local-test-homes.md:cf688549ce"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:423726b4e2f674038065",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0014-derived-kag-seam-local-scripts.md",
+      "source_record_id": "file:docs/decisions/tos-d-0014-derived-kag-seam-local-scripts.md:baa3aea114"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:30379163bd0da52f35f9",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0015-questbook-package-local-validator.md",
+      "source_record_id": "file:docs/decisions/tos-d-0015-questbook-package-local-validator.md:1a5100d7ef"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:9414a71fd7875f845427",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md",
+      "source_record_id": "file:docs/decisions/tos-d-0016-public-mirror-sync-bridge-part.md:b25ea8c967"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:f1e49eadebbb06c8070f",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md",
+      "source_record_id": "file:docs/decisions/tos-d-0017-relation-pack-graph-promotion-validator.md:05d9f05602"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:bbc6100a6026a6d782dd",
+      "observation_state": "declared",
+      "path": "docs/decisions/TOS-D-0018-codex-spark-agent-lane-home.md",
+      "source_record_id": "file:docs/decisions/tos-d-0018-codex-spark-agent-lane-home.md:9b06e0be1d"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:acd69bc8da3dbd3b551e",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-date.md",
+      "source_record_id": "file:docs/decisions/indexes/by-date.md:7f76a83a93"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:585101bafe75e7872cf3",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-guard.md",
+      "source_record_id": "file:docs/decisions/indexes/by-guard.md:8ae406686a"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:69362d2dd4175705bc42",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-number.md",
+      "source_record_id": "file:docs/decisions/indexes/by-number.md:02e6940a39"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:eaa059356da25e98b3a9",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-surface.md",
+      "source_record_id": "file:docs/decisions/indexes/by-surface.md:acd156903f"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:7f798add9b97014be3b8",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-tos-layer.md",
+      "source_record_id": "file:docs/decisions/indexes/by-tos-layer.md:d4919f4cba"
+    },
+    {
+      "event_kind": "decision_record",
+      "event_role": "declaration",
+      "heading_ref": null,
+      "id": "event:repo:caf5dbda6f3af2fa630d",
+      "observation_state": "declared",
+      "path": "docs/decisions/indexes/by-tree-class.md",
+      "source_record_id": "file:docs/decisions/indexes/by-tree-class.md:1604354dd5"
+    },
+    {
+      "event_kind": "validation_receipt",
+      "event_role": "receipt",
+      "heading_ref": null,
+      "id": "event:repo:40c4181e98308cd338e8",
+      "observation_state": "observed",
+      "path": "kag/receipts/validation_receipt.json",
+      "source_record_id": "file:kag/receipts/validation_receipt.json:8e616be0cd"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:ed3ccdc81a2ed37e800c",
+      "observation_state": "declared",
+      "path": "mechanics/agon/parts/threshold-registry/scripts/build_tos_agon_threshold_intake_registry.py",
+      "source_record_id": "file:mechanics/agon/parts/threshold-registry/scripts/build_tos_agon_threshold_intake_registry.py:c9fe72241d"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:c2f37c225f2b7b5f3601",
+      "observation_state": "declared",
+      "path": "mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py",
+      "source_record_id": "file:mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py:7359f85642"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:04df7e149cb673c5685b",
+      "observation_state": "declared",
+      "path": "mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py",
+      "source_record_id": "file:mechanics/agon/parts/threshold-registry/tests/test_tos_agon_threshold_intake_registry.py:2a3cf1eb73"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:abf2243f89d8e8b27c35",
+      "observation_state": "declared",
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py",
+      "source_record_id": "file:mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py:d73d267c39"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:8580f049848f88e6bf82",
+      "observation_state": "declared",
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py",
+      "source_record_id": "file:mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py:5cbb36a52e"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:8d9de80bc8b634151782",
+      "observation_state": "declared",
+      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py",
+      "source_record_id": "file:mechanics/boundary-bridge/parts/public-mirror-sync/scripts/sync_tree_examples.py:7ac205a7dc"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:b1a7d8a7bb2a5d0854f9",
+      "observation_state": "declared",
+      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/tree_example_sync.py",
+      "source_record_id": "file:mechanics/boundary-bridge/parts/public-mirror-sync/scripts/tree_example_sync.py:246880a09c"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:25e4d3ef936fc9f36ded",
+      "observation_state": "declared",
+      "path": "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py",
+      "source_record_id": "file:mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py:9076c04603"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:dc72386273b9546c9966",
+      "observation_state": "declared",
+      "path": "mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py",
+      "source_record_id": "file:mechanics/experience/tests/test_experience_candidate_adoption_write_guard_contracts.py:9be457e357"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:edc60296425d6217e369",
+      "observation_state": "declared",
+      "path": "mechanics/experience/tests/test_experience_governance_boundary_contracts.py",
+      "source_record_id": "file:mechanics/experience/tests/test_experience_governance_boundary_contracts.py:f3ead44381"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:5798a938627039ab2fd6",
+      "observation_state": "declared",
+      "path": "mechanics/experience/tests/test_experience_installation_service_office_contracts.py",
+      "source_record_id": "file:mechanics/experience/tests/test_experience_installation_service_office_contracts.py:7ec7272541"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:4e35edfe431aa9cae753",
+      "observation_state": "declared",
+      "path": "mechanics/questbook/scripts/validate_questbook_surface.py",
+      "source_record_id": "file:mechanics/questbook/scripts/validate_questbook_surface.py:885b89f918"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:fb479ea33f858fd7c9cc",
+      "observation_state": "declared",
+      "path": "mechanics/questbook/tests/test_validate_questbook_surface.py",
+      "source_record_id": "file:mechanics/questbook/tests/test_validate_questbook_surface.py:bd62d7e3fd"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:43ad5cd6065263dbaa89",
+      "observation_state": "declared",
+      "path": "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py",
+      "source_record_id": "file:mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py:c07ac00c55"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:9ebb33e1aca807b02463",
+      "observation_state": "declared",
+      "path": "mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py",
+      "source_record_id": "file:mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py:d0b60ff266"
+    },
+    {
+      "event_kind": "validation_receipt",
+      "event_role": "receipt",
+      "heading_ref": null,
+      "id": "event:repo:aa0c233164436b2a0462",
+      "observation_state": "observed",
+      "path": "memo/receipts/.gitkeep",
+      "source_record_id": "file:memo/receipts/.gitkeep:eb3b036b02"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:1ceed079bfc6a9a5b500",
+      "observation_state": "declared",
+      "path": "scripts/build_philosophy_atlas_projection.py",
+      "source_record_id": "file:scripts/build_philosophy_atlas_projection.py:fe9e1955be"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:5046aa72d5b05d1a6b44",
+      "observation_state": "declared",
+      "path": "scripts/build_philosophy_graph_projection.py",
+      "source_record_id": "file:scripts/build_philosophy_graph_projection.py:b3c9ce9ce2"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:fe2dd28fd81496bc355e",
+      "observation_state": "declared",
+      "path": "scripts/build_philosophy_graph_views.py",
+      "source_record_id": "file:scripts/build_philosophy_graph_views.py:85a630b7c9"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:178d00ad0711ea0b1ae5",
+      "observation_state": "declared",
+      "path": "scripts/build_philosophy_post_planting_audit.py",
+      "source_record_id": "file:scripts/build_philosophy_post_planting_audit.py:3e562d7a66"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:2f5087e9ff709537a9e1",
+      "observation_state": "declared",
+      "path": "scripts/build_root_entry_map.py",
+      "source_record_id": "file:scripts/build_root_entry_map.py:c37b2e487e"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:38871dc03a15bd39be1d",
+      "observation_state": "declared",
+      "path": "scripts/build_tos_corpus_index.py",
+      "source_record_id": "file:scripts/build_tos_corpus_index.py:1901e0de5e"
+    },
+    {
+      "event_kind": "generation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:9ea1808ef511374645b8",
+      "observation_state": "declared",
+      "path": "scripts/generate_decision_indexes.py",
+      "source_record_id": "file:scripts/generate_decision_indexes.py:9ee2698c6e"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:981b9a24d2802b1ecbc1",
+      "observation_state": "declared",
+      "path": "scripts/philosophy_atlas_projection_common.py",
+      "source_record_id": "file:scripts/philosophy_atlas_projection_common.py:8ce0e2fb9b"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:d29ad80b853c9a916e7a",
+      "observation_state": "declared",
+      "path": "scripts/philosophy_graph_projection_common.py",
+      "source_record_id": "file:scripts/philosophy_graph_projection_common.py:8b5efc6bfa"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:e98b778a89a9083e6481",
+      "observation_state": "declared",
+      "path": "scripts/philosophy_graph_views_common.py",
+      "source_record_id": "file:scripts/philosophy_graph_views_common.py:1d753ccf6d"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:711ba3174899d5bc95d2",
+      "observation_state": "declared",
+      "path": "scripts/philosophy_multilingual_common.py",
+      "source_record_id": "file:scripts/philosophy_multilingual_common.py:e9bd98344d"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:3084fc2563c361360c5f",
+      "observation_state": "declared",
+      "path": "scripts/philosophy_post_planting_audit_common.py",
+      "source_record_id": "file:scripts/philosophy_post_planting_audit_common.py:4708a10192"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:dcd7ed9f62454b1d95ae",
+      "observation_state": "declared",
+      "path": "scripts/plant_prepared_dossiers.py",
+      "source_record_id": "file:scripts/plant_prepared_dossiers.py:2ae26b8206"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:b00d40ddd88d70d9c965",
+      "observation_state": "declared",
+      "path": "scripts/plant_table_i_prepared_dossiers.py",
+      "source_record_id": "file:scripts/plant_table_i_prepared_dossiers.py:b3f19b38d9"
+    },
+    {
+      "event_kind": "validation_lane_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:9e9b833b5f4952d2b807",
+      "observation_state": "declared",
+      "path": "scripts/release_check.py",
+      "source_record_id": "file:scripts/release_check.py:070046d3ac"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:26fb22e8356e96eaacb5",
+      "observation_state": "declared",
+      "path": "scripts/root_entry_map_common.py",
+      "source_record_id": "file:scripts/root_entry_map_common.py:476f22326a"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:07cc4972ad523048f898",
+      "observation_state": "declared",
+      "path": "scripts/run_mechanics_local_tests.py",
+      "source_record_id": "file:scripts/run_mechanics_local_tests.py:a970d880fe"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:c96118eaee8b20421c64",
+      "observation_state": "declared",
+      "path": "scripts/tos_corpus_index_common.py",
+      "source_record_id": "file:scripts/tos_corpus_index_common.py:97fa071bce"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:4b2383c21c13d1419e5b",
+      "observation_state": "declared",
+      "path": "scripts/validate_active_naming.py",
+      "source_record_id": "file:scripts/validate_active_naming.py:ed30cb0d0c"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:7cbc89f66275548bfbd7",
+      "observation_state": "declared",
+      "path": "scripts/validate_decision_records.py",
+      "source_record_id": "file:scripts/validate_decision_records.py:20e04d231d"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:3019bc1b6d44d01b5ccb",
+      "observation_state": "declared",
+      "path": "scripts/validate_intake_pack.py",
+      "source_record_id": "file:scripts/validate_intake_pack.py:3066eedcae"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:65b7247904ed6e48edd2",
+      "observation_state": "declared",
+      "path": "scripts/validate_local_kag_provider.py",
+      "source_record_id": "file:scripts/validate_local_kag_provider.py:0052237d0b"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:6e5fa2f97eeca1519e61",
+      "observation_state": "declared",
+      "path": "scripts/validate_mechanics_topology.py",
+      "source_record_id": "file:scripts/validate_mechanics_topology.py:2914a033b8"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:ad78682632e03731d746",
+      "observation_state": "declared",
+      "path": "scripts/validate_nested_agents.py",
+      "source_record_id": "file:scripts/validate_nested_agents.py:5befe5bd63"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:9f6280168a43e26c8bc9",
+      "observation_state": "declared",
+      "path": "scripts/validate_philosophy_atlas_projection.py",
+      "source_record_id": "file:scripts/validate_philosophy_atlas_projection.py:dd7e861d04"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:77ee079002e934979830",
+      "observation_state": "declared",
+      "path": "scripts/validate_philosophy_graph_projection.py",
+      "source_record_id": "file:scripts/validate_philosophy_graph_projection.py:fd31637d17"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:93a132374f7785e2e4c1",
+      "observation_state": "declared",
+      "path": "scripts/validate_philosophy_graph_views.py",
+      "source_record_id": "file:scripts/validate_philosophy_graph_views.py:2f410c80cf"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:b7f6a68a3d1240a72215",
+      "observation_state": "declared",
+      "path": "scripts/validate_philosophy_post_planting_audit.py",
+      "source_record_id": "file:scripts/validate_philosophy_post_planting_audit.py:4fe120d8d4"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:99e746d2baa720a20de5",
+      "observation_state": "declared",
+      "path": "scripts/validate_philosophy_topology.py",
+      "source_record_id": "file:scripts/validate_philosophy_topology.py:b66fc06145"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:beabea1714db5bda5b0e",
+      "observation_state": "declared",
+      "path": "scripts/validate_root_entry_map.py",
+      "source_record_id": "file:scripts/validate_root_entry_map.py:009fc6d0c8"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:dd3ece1fbdf315716d89",
+      "observation_state": "declared",
+      "path": "scripts/validate_tiny_entry_route.py",
+      "source_record_id": "file:scripts/validate_tiny_entry_route.py:49858dd318"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:068a11c55b93ed7330d8",
+      "observation_state": "declared",
+      "path": "scripts/validate_tos_corpus_index.py",
+      "source_record_id": "file:scripts/validate_tos_corpus_index.py:dc36cccf7b"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:b5301d96f8e858b1cb36",
+      "observation_state": "declared",
+      "path": "scripts/validate_tos_source_home.py",
+      "source_record_id": "file:scripts/validate_tos_source_home.py:d522399607"
+    },
+    {
+      "event_kind": "validation_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:4970f1ba5b5e61dc6cfb",
+      "observation_state": "declared",
+      "path": "scripts/validate_tree_node_contracts.py",
+      "source_record_id": "file:scripts/validate_tree_node_contracts.py:a591433376"
+    },
+    {
+      "event_kind": "command_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:3c35ad977a47f027b625",
+      "observation_state": "declared",
+      "path": "scripts/validation_lanes.py",
+      "source_record_id": "file:scripts/validation_lanes.py:dda053a98d"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:2dee7a5dbc560d873363",
+      "observation_state": "declared",
+      "path": "tests/test_current_direction_routes.py",
+      "source_record_id": "file:tests/test_current_direction_routes.py:098f12afb4"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:4c7e5182c0d78bb44b1a",
+      "observation_state": "declared",
+      "path": "tests/test_decision_indexes.py",
+      "source_record_id": "file:tests/test_decision_indexes.py:b90af86566"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:1a3e374436352c6a1926",
+      "observation_state": "declared",
+      "path": "tests/test_docs_verify_routes.py",
+      "source_record_id": "file:tests/test_docs_verify_routes.py:aaf9ee4aef"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:521399da80292fe4e07e",
+      "observation_state": "declared",
+      "path": "tests/test_intake_pack_validation.py",
+      "source_record_id": "file:tests/test_intake_pack_validation.py:5f836479bd"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:75ebd705930e74907ab9",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_atlas_projection.py",
+      "source_record_id": "file:tests/test_philosophy_atlas_projection.py:32ee581d85"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:016c9d45c076220927ae",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_graph_projection.py",
+      "source_record_id": "file:tests/test_philosophy_graph_projection.py:221d2c7ffa"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:0849e852d82a17af19f8",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_graph_views.py",
+      "source_record_id": "file:tests/test_philosophy_graph_views.py:e362f0a772"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:ee6038f6d6f3b05271ed",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_language_packets.py",
+      "source_record_id": "file:tests/test_philosophy_language_packets.py:8f33a89b40"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:f779f4f996ee7649cda3",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_multilingual_contract.py",
+      "source_record_id": "file:tests/test_philosophy_multilingual_contract.py:6980824c7e"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:b7b155e5804aabb0c55d",
+      "observation_state": "declared",
+      "path": "tests/test_philosophy_post_planting_audit.py",
+      "source_record_id": "file:tests/test_philosophy_post_planting_audit.py:bf5d4a1767"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:6b07df59aee1a9f9f25a",
+      "observation_state": "declared",
+      "path": "tests/test_prepared_dossier_pipeline.py",
+      "source_record_id": "file:tests/test_prepared_dossier_pipeline.py:02c8587dd7"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:e86c1be195ad1f29dbb9",
+      "observation_state": "declared",
+      "path": "tests/test_roadmap_parity.py",
+      "source_record_id": "file:tests/test_roadmap_parity.py:574915dc67"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:5dda3c72d308d4d7657a",
+      "observation_state": "declared",
+      "path": "tests/test_root_entry_map.py",
+      "source_record_id": "file:tests/test_root_entry_map.py:942a6c0c91"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:8b5e0cc8ebf33dcc7f53",
+      "observation_state": "declared",
+      "path": "tests/test_script_topology.py",
+      "source_record_id": "file:tests/test_script_topology.py:6f0a306b0b"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:abf8ea9ba75d9d369315",
+      "observation_state": "declared",
+      "path": "tests/test_test_topology.py",
+      "source_record_id": "file:tests/test_test_topology.py:9474485b91"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:51ff3fc0c4db9efdec7e",
+      "observation_state": "declared",
+      "path": "tests/test_tos_corpus_index.py",
+      "source_record_id": "file:tests/test_tos_corpus_index.py:b5cce2c11c"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:ced2a1c0edfb1b230acc",
+      "observation_state": "declared",
+      "path": "tests/test_tos_node_contract_schema.py",
+      "source_record_id": "file:tests/test_tos_node_contract_schema.py:f91e17be6a"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:97830c3985bf3adc94c4",
+      "observation_state": "declared",
+      "path": "tests/test_tos_source_home_schema.py",
+      "source_record_id": "file:tests/test_tos_source_home_schema.py:21011ae652"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:71ef18a7f51f50cbad1e",
+      "observation_state": "declared",
+      "path": "tests/test_validate_active_naming.py",
+      "source_record_id": "file:tests/test_validate_active_naming.py:2351d13581"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:92756ed7f8fe8a37b648",
+      "observation_state": "declared",
+      "path": "tests/test_validate_philosophy_topology.py",
+      "source_record_id": "file:tests/test_validate_philosophy_topology.py:81f8c083f3"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:7c3811e962e2136a94e9",
+      "observation_state": "declared",
+      "path": "tests/test_validate_tiny_entry_route.py",
+      "source_record_id": "file:tests/test_validate_tiny_entry_route.py:4e828be185"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:a37d6633bdee4e6f970f",
+      "observation_state": "declared",
+      "path": "tests/test_validate_tree_node_contracts.py",
+      "source_record_id": "file:tests/test_validate_tree_node_contracts.py:22654b057f"
+    },
+    {
+      "event_kind": "test_run",
+      "event_role": "producer",
+      "heading_ref": null,
+      "id": "event:repo:2a5f6bd0eadc3c60ca49",
+      "observation_state": "declared",
+      "path": "tests/test_validation_lanes.py",
+      "source_record_id": "file:tests/test_validation_lanes.py:c1e0ad6bf8"
+    }
+  ],
+  "index_identity": {
+    "artifact_kind": "repository_event_index",
+    "content_digest": "d6605033c790de8bf06cf76cfab0c528fc3ce2806c658f1b69e7e49d150bb323",
+    "index_kind": "event",
+    "local_id": "index:repo-local:events",
+    "schema_ref": "aoa-kag:schemas/repo-local-kag-repository-index.schema.json"
+  },
+  "registry_output": {
+    "consumer": "aoa-kag-mcp",
+    "resource_shape": "repo-local-event-index",
+    "stable_fields": [
+      "id",
+      "event_kind",
+      "event_role",
+      "source_record_id",
+      "path",
+      "heading_ref"
+    ]
+  },
+  "repo": {
+    "git_ref": "git-index-source-tree",
+    "name": "Tree-of-Sophia",
+    "owner_type": "organ",
+    "root": "."
+  },
+  "schema_version": "aoa-repo-local-kag-repository-index-v1",
+  "source_index": {
+    "content_digest": "3b0dafd0c9c6e52cf82be1f9e4d3abf2e17893e60e91d6b583ddef38ea157e0b",
+    "local_id": "index:repo-local:source-surfaces",
+    "path": "kag/indexes/source_surface_index.json"
+  },
+  "summary": {
+    "entry_count": 113,
+    "kind_counts": {
+      "command_run": 19,
+      "decision_record": 25,
+      "generation_run": 9,
+      "release_declaration": 4,
+      "release_lane": 1,
+      "test_run": 28,
+      "validation_lane_run": 1,
+      "validation_receipt": 2,
+      "validation_run": 22,
+      "workflow_run": 2
+    }
+  }
+}
