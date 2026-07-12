@@ -217,7 +217,7 @@
     {"anchor_id":"aoa:tree-of-sophia:anchor:f4ab7ddd2b251f780de5c580","artifact_kind":"document","content_hash":"9960713d333a6d3d42161ab247f72c37e89d1833604211295b4745256c245016","id":"aoa:tree-of-sophia:artifact:f0cbd6aa0372f04d8e3ab075","lineage_path":".github/AGENTS.md","mime":"text/markdown","path":".github/AGENTS.md","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:43852c7b7b30fb12f3d4a069"},
     {"anchor_id":"aoa:tree-of-sophia:anchor:34cdf7b152c3208a1fe7ca74","artifact_kind":"owner_metadata","content_hash":"b9d366203b52303ccb70476b7ae42100afeaa9a423c81415d282770248d68ebd","id":"aoa:tree-of-sophia:artifact:3d36a1bf06148bc6ba1ce2ed","lineage_path":".github/CODEOWNERS","mime":"text/plain","path":".github/CODEOWNERS","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:e4baae7b7a92f97ddcc7bed6"},
     {"anchor_id":"aoa:tree-of-sophia:anchor:a5bd840630f8fb370374e340","artifact_kind":"document","content_hash":"96a1f619c3894dd4078f86656043cccfccd0a37f8c3dffb5c04c0a81521c89f3","id":"aoa:tree-of-sophia:artifact:b2496e80299b8c3150b19444","lineage_path":".github/pull_request_template.md","mime":"text/markdown","path":".github/pull_request_template.md","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:547fe7cede7fe7d36fc06454"},
-    {"anchor_id":"aoa:tree-of-sophia:anchor:0e135b7b56b30702b8f15379","artifact_kind":"config","content_hash":"293d0d3d02c0a9a13d07ad04255869c1f5691737d745588ed862f41db15c6e42","id":"aoa:tree-of-sophia:artifact:3affb923d04bc06217e2c3a1","lineage_path":".github/workflows/repo-validation.yml","mime":"application/yaml","path":".github/workflows/repo-validation.yml","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:80dfccc7c286f4d02c283e75"},
+    {"anchor_id":"aoa:tree-of-sophia:anchor:0e135b7b56b30702b8f15379","artifact_kind":"config","content_hash":"909d5abbd90e7ba4bd3349cfdd99908c3dca66a8da4016f78ae1a6886f03a1ae","id":"aoa:tree-of-sophia:artifact:3affb923d04bc06217e2c3a1","lineage_path":".github/workflows/repo-validation.yml","mime":"application/yaml","path":".github/workflows/repo-validation.yml","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:3347eedaede1327aed4cb972"},
     {"anchor_id":"aoa:tree-of-sophia:anchor:7fe883d0f5b4fffde42f6fb2","artifact_kind":"config","content_hash":"1d93e0e324b770fbe20ed49f22fdbbafcaac2578a429118e51554ca1ccbdc065","id":"aoa:tree-of-sophia:artifact:0060e88d9ab89214dcbffc6d","lineage_path":".github/workflows/source-side-smoke.yml","mime":"application/yaml","path":".github/workflows/source-side-smoke.yml","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:31621cd3d93a925ade8c8d07"},
     {"anchor_id":"aoa:tree-of-sophia:anchor:3d309d59c5e0bd767d4f2ea6","artifact_kind":"owner_metadata","content_hash":"4655d914b2b8b6ab5a3fd3e859e9045effe14f6868eaa182cd8c49ff4e7cfe00","id":"aoa:tree-of-sophia:artifact:bc37d034bad564583790a46f","lineage_path":".gitignore","mime":"text/plain","path":".gitignore","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:fe53283869643097aef5187b"},
     {"anchor_id":"aoa:tree-of-sophia:anchor:d85b09e8ad4511e034d5c7bf","artifact_kind":"document","content_hash":"d1c8289fe96a7ab39db7a1dedba6d6672bd2cd9228507fa44d2e10b2fe4f39c9","id":"aoa:tree-of-sophia:artifact:36a72687b6b4322369071168","lineage_path":"AGENTS.md#generation-2","mime":"text/markdown","path":"AGENTS.md","provenance_ref":"deterministic","surface_state":"authored_source","temporal_ref":"current","trust_ref":"deterministic","version_id":"aoa:tree-of-sophia:artifact-version:3e2c790d10abf7b479a66fd4"},
@@ -1103,7 +1103,7 @@
   ],
   "index_identity": {
     "artifact_kind": "repository_artifact_index",
-    "content_digest": "7a76b205fc64ba0ea30f0ac01c248170f78601788a5a400769badf93db95b2dc",
+    "content_digest": "eeb0f1ad7f6f72b5ee50928febad8747ace4bb8b9b26de53a7652f915f4f7558",
     "index_kind": "artifact",
     "local_id": "index:repo-local:artifacts",
     "schema_ref": "aoa-kag:schemas/repo-local-kag-repository-index.schema.json"
@@ -1189,7 +1189,7 @@
   },
   "schema_version": "aoa-repo-local-kag-repository-index-v2",
   "source_index": {
-    "content_digest": "1a1b905513cdd248d0738862b43b590d49a3119fe716c5b240e2ceb2931d429f",
+    "content_digest": "0a16314ab5bb098a6270d3ffa2cd5769e441f75badf3b5ef4e65e8edc6b64be0",
     "local_id": "index:repo-local:source-surfaces",
     "path": "kag/indexes/source_surface_index.json"
   },
