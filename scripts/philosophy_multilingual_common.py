@@ -13,6 +13,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LEDGER_REF = "ToS/philosophy/atlas/multilingual/content-labels.json"
 LEDGER_PATH = REPO_ROOT / LEDGER_REF
+_DRAFT_WORD_CHARS = r"0-9A-Za-zА-Яа-яЁё_"
 
 
 def content_language_contract() -> dict[str, Any]:
@@ -142,8 +143,12 @@ def _compound_label(value: str, language: str) -> tuple[str | None, str | None]:
     return f"{translated_prefix}: {translated_remainder}", status
 
 
+def _compile_draft_pattern(pattern: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<![{_DRAFT_WORD_CHARS}])(?:{pattern})(?![{_DRAFT_WORD_CHARS}])", re.IGNORECASE)
+
+
 _DRAFT_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
-    (re.compile(pattern, re.IGNORECASE), replacement)
+    (_compile_draft_pattern(pattern), replacement)
     for pattern, replacement in (
         (r"до\s*н\.?\s*э\.?", "BCE"),
         (r"н\.?\s*э\.?", "CE"),
@@ -168,7 +173,13 @@ _DRAFT_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         (r"школьная словесность", "school literature"),
         (r"мудрость", "wisdom"),
         (r"право|закон", "law"),
+        (r"нормативно", "normative"),
+        (r"государственно", "state"),
+        (r"ритуальн(?:ый|ая|ое|ые|ого|ой|ых|ым|ыми|ом|ую)", "ritual"),
         (r"ритуал", "ritual"),
+        (r"текстов(?:ый|ая|ое|ые|ого|ой|ых|ым|ыми|ом|ую)", "textual"),
+        (r"текст", "text"),
+        (r"письмо", "writing"),
         (r"храмовая ученость", "temple scholarship"),
         (r"ученость", "scholarship"),
         (r"комментарий", "commentary"),

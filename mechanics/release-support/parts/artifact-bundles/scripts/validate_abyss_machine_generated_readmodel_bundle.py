@@ -33,6 +33,7 @@ DEFAULT_SUBJECT = REPO_ROOT / "ToS" / "derived-exports" / "root_entry_map.min.js
 DEFAULT_BUNDLE_DIR = REPO_ROOT / "dist" / "abyss-artifact-bundle" / "tree-of-sophia-generated-readmodel"
 DEFAULT_REGISTRY_DIR = REPO_ROOT / "dist" / "abyss-artifact-registry" / "tree-of-sophia-generated-readmodel"
 DEFAULT_SUBJECT_STORE_ROOT = REPO_ROOT / "dist" / "abyss-artifact-subjects" / "tree-of-sophia-generated-readmodel"
+SAFE_CLEAN_MARKER = ".abyss-artifact-validator-output"
 ARTIFACT_CLASS = "tree_of_sophia_generated_readmodel_bundle"
 OWNER_REPO = "Tree-of-Sophia"
 CONSUMER_INTENT = "agent"
@@ -97,6 +98,29 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return payload
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _safe_rmtree_generated_dir(path: Path, *, label: str, safe_parent: Path) -> None:
+    if not path.exists():
+        return
+    resolved = path.resolve()
+    safe_root = safe_parent.resolve()
+    marker = path / SAFE_CLEAN_MARKER
+    if resolved == safe_root or not _is_relative_to(resolved, safe_root):
+        if not marker.is_file():
+            raise ValueError(
+                f"refusing to clean {label} outside safe generated root {safe_parent}: {path}; "
+                f"use --no-clean or place {SAFE_CLEAN_MARKER} in the target directory"
+            )
+    shutil.rmtree(path)
 
 
 def _portable_ref(path: Path) -> str:
@@ -382,6 +406,26 @@ def _registry_roundtrip_with_subject_store(
             os.environ[env_roots] = old_roots
 
 
+def _promoted_registry_record(
+    artifact_bundles: Any,
+    registry_dir: Path,
+    registry_roundtrip: dict[str, Any],
+) -> dict[str, Any]:
+    promoted = registry_roundtrip.get("promoted", {})
+    record = promoted.get("record") if isinstance(promoted, dict) else {}
+    if isinstance(record, dict) and record:
+        return record
+    promotion = promoted.get("promotion") if isinstance(promoted, dict) else {}
+    record_id = str(promotion.get("record_id") or "") if isinstance(promotion, dict) else ""
+    if not record_id:
+        return {}
+    registry = artifact_bundles.read_bundle_registry(registry_dir, artifact_class=ARTIFACT_CLASS)
+    for item in registry.get("records", []):
+        if isinstance(item, dict) and str(item.get("record_id") or "") == record_id:
+            return item
+    return {"record_id": record_id}
+
+
 def _trust_gate_allow_latest(
     artifact_bundles: Any,
     registry_dir: Path,
@@ -389,10 +433,11 @@ def _trust_gate_allow_latest(
     *,
     require_subject_store: bool = True,
 ) -> dict[str, Any]:
-    record = registry_roundtrip.get("promoted", {}).get("record", {})
+    record = _promoted_registry_record(artifact_bundles, registry_dir, registry_roundtrip)
     trust_gate = artifact_bundles.trust_gate(
         registry_dir,
         artifact_class=ARTIFACT_CLASS,
+        record_id=str(record.get("record_id") or ""),
         subject_digest=str(record.get("subject_digest") or ""),
         consumer_intent=CONSUMER_INTENT,
         expected_source_repo=OWNER_REPO,
@@ -423,10 +468,11 @@ def _trust_gate_denies_without_subject_store(
     registry_dir: Path,
     registry_roundtrip: dict[str, Any],
 ) -> dict[str, Any]:
-    record = registry_roundtrip.get("promoted", {}).get("record", {})
+    record = _promoted_registry_record(artifact_bundles, registry_dir, registry_roundtrip)
     trust_gate = artifact_bundles.trust_gate(
         registry_dir,
         artifact_class=ARTIFACT_CLASS,
+        record_id=str(record.get("record_id") or ""),
         subject_digest=str(record.get("subject_digest") or ""),
         consumer_intent=CONSUMER_INTENT,
         expected_source_repo=OWNER_REPO,
@@ -543,7 +589,11 @@ def _verify_terminal_registry_state(
     revoked_gate = artifact_bundles.trust_gate(
         registry_dir,
         artifact_class=ARTIFACT_CLASS,
-        record_id=str(release_ready.get("promoted", {}).get("record", {}).get("record_id") or ""),
+        record_id=str(
+            revoked.get("record", {}).get("record_id")
+            or revoked.get("promotion", {}).get("record_id")
+            or ""
+        ),
         consumer_intent=CONSUMER_INTENT,
         expected_source_repo=OWNER_REPO,
         expected_trust_root_mode=TRUST_ROOT_MODE,
@@ -680,12 +730,14 @@ def _validate_in_bundle_dir(
     artifact_bundles, abyss_machine_root, package_root = _import_artifact_bundles()
     _assert_manifest_contract_shape(manifest)
     _assert_public_safe_subjects(manifest, subject)
-    if clean and bundle_dir.exists():
-        shutil.rmtree(bundle_dir)
-    if clean and registry_dir.exists():
-        shutil.rmtree(registry_dir)
-    if clean and subject_store_root.exists():
-        shutil.rmtree(subject_store_root)
+    if clean:
+        _safe_rmtree_generated_dir(bundle_dir, label="bundle_dir", safe_parent=DEFAULT_BUNDLE_DIR.parent)
+        _safe_rmtree_generated_dir(registry_dir, label="registry_dir", safe_parent=DEFAULT_REGISTRY_DIR.parent)
+        _safe_rmtree_generated_dir(
+            subject_store_root,
+            label="subject_store_root",
+            safe_parent=DEFAULT_SUBJECT_STORE_ROOT.parent,
+        )
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     abyss_repo_root = abyss_machine_root or artifact_bundles.REPO_ROOT

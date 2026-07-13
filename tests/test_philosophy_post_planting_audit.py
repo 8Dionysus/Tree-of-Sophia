@@ -48,6 +48,18 @@ class PhilosophyPostPlantingAuditTest(unittest.TestCase):
         self.assertEqual(payload["graph_projection_audit"]["review_packets"], 11)
         self.assertTrue(payload["graph_projection_audit"]["snapshot_ready"])
 
+    def test_planting_interface_rebuilds_corpus_index_before_post_planting_audit(self) -> None:
+        text = (REPO_ROOT / "ToS/philosophy/graph-workbench/PLANTING_INTERFACE.md").read_text(encoding="utf-8")
+        recipe = [line.strip() for line in text.splitlines() if line.startswith("python scripts/")]
+
+        corpus_build = recipe.index("python scripts/build_tos_corpus_index.py")
+        corpus_validate = recipe.index("python scripts/validate_tos_corpus_index.py")
+        post_audit = recipe.index("python scripts/build_philosophy_post_planting_audit.py")
+
+        self.assertGreater(corpus_build, recipe.index("python scripts/build_philosophy_graph_projection.py"))
+        self.assertEqual(corpus_validate, corpus_build + 1)
+        self.assertGreater(post_audit, corpus_validate)
+
 
 if __name__ == "__main__":
     unittest.main()

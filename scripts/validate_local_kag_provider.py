@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -68,12 +69,34 @@ def read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def sha256_file(path: Path) -> str:
+def source_bytes(relative_path: Path, path: Path) -> bytes:
+    try:
+        return subprocess.run(
+            ("git", "show", f":{relative_path.as_posix()}"),
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return path.read_bytes()
+
+
+def sha256_source(relative_path: Path, path: Path) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
+    digest.update(source_bytes(relative_path, path))
     return digest.hexdigest()
+
+
+def repo_path(path_text: str, *, label: str) -> Path:
+    relative_path = Path(path_text)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        fail(f"{label} must stay inside {REPO_NAME}: {path_text}")
+    absolute_path = (REPO_ROOT / relative_path).resolve()
+    try:
+        absolute_path.relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        fail(f"{label} must stay inside {REPO_NAME}: {path_text}")
+    return absolute_path
 
 
 def source_refs_in(payload: Any):
@@ -105,7 +128,7 @@ def validate_source_refs(payload: Any, *, label: str) -> None:
         source_path = ref.get("path")
         if not isinstance(source_path, str) or not source_path:
             fail(f"{label} source ref must keep a path")
-        if not (REPO_ROOT / source_path).is_file():
+        if not repo_path(source_path, label=f"{label} source ref").is_file():
             fail(f"{label} source ref is missing: {source_path}")
 
 
@@ -136,7 +159,7 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
         directory = KAG_ROOT / directory_name
         if not directory.is_dir():
             fail(f"kag/{directory_name}/ must exist")
-        paths = sorted(directory.glob("*.json"))
+        paths = sorted(directory.rglob("*.json"))
         if not paths:
             fail(f"kag/{directory_name}/ must contain JSON records")
         records: list[dict[str, Any]] = []
@@ -191,10 +214,10 @@ def validate_repo_local_source_index() -> None:
             fail(f"{label} record {index} must keep identity.path")
         if Path(source_path) == REPO_LOCAL_SOURCE_INDEX:
             fail(f"{label} must not index itself")
-        absolute_path = REPO_ROOT / source_path
+        absolute_path = repo_path(source_path, label=f"{label} record path")
         if not absolute_path.is_file():
             fail(f"{label} record path is missing: {source_path}")
-        expected_hash = sha256_file(absolute_path)
+        expected_hash = sha256_source(Path(source_path), absolute_path)
         if identity.get("content_hash") != expected_hash:
             fail(f"{label} content_hash drifted for {source_path}")
         signs = record.get("signs")
@@ -206,7 +229,7 @@ def validate_repo_local_source_index() -> None:
             ref_path = ref.get("path")
             if not isinstance(ref_path, str) or not ref_path:
                 fail(f"{label} source ref must keep a path")
-            if not (REPO_ROOT / ref_path).is_file():
+            if not repo_path(ref_path, label=f"{label} source ref").is_file():
                 fail(f"{label} source ref is missing: {ref_path}")
 
 
@@ -238,7 +261,7 @@ def validate_links(groups: dict[str, list[dict[str, Any]]]) -> None:
         fallback_route = receipt.get("fallback_route")
         if not isinstance(fallback_route, str) or not fallback_route:
             fail(f"{receipt['local_id']} must keep fallback_route")
-        if not (REPO_ROOT / fallback_route).exists():
+        if not repo_path(fallback_route, label=f"{receipt['local_id']} fallback_route").exists():
             fail(f"{receipt['local_id']} fallback_route is missing: {fallback_route}")
 
 

@@ -377,6 +377,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_validate_local_kag_provider.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "local_kag_provider",
+      "owner_surface": "scripts/validate_local_kag_provider.py",
+      "protects": "local KAG provider nested record discovery, path containment, and source index hash parity",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_validate_local_kag_provider.py",
+      "failure_route": "Fix the local KAG provider records, source refs, or validator behavior before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validate_philosophy_topology.py",
       "home": "tests",
       "home_scope": "root",

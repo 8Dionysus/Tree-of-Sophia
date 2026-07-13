@@ -11,7 +11,16 @@ SCRIPTS = REPO_ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from philosophy_graph_projection_common import GRAPH_PROJECTION_PATH, build_payload, render_payload  # noqa: E402
+from philosophy_graph_projection_common import (  # noqa: E402
+    GRAPH_PROJECTION_PATH,
+    _edge_semantic_layers,
+    _node_matches_filters,
+    _stable_digest,
+    _view_fingerprint_material,
+    build_payload,
+    render_payload,
+)
+from philosophy_multilingual_common import english_label  # noqa: E402
 
 
 class PhilosophyGraphProjectionTest(unittest.TestCase):
@@ -116,6 +125,55 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             self.assertTrue(set(cluster["member_node_ids"]) <= node_ids)
             self.assertTrue(set(cluster["member_edge_ids"]) <= edge_ids)
 
+    def test_source_ref_clusters_only_include_edges_with_same_source_ref(self) -> None:
+        payload = build_payload()
+        edges = {edge["edge_id"]: edge for edge in payload["edges"]}
+        source_ref_clusters = [
+            cluster
+            for cluster in payload["clusters"]
+            if cluster["cluster_kind"] == "source-witness" and cluster["member_key"] == "source_ref"
+        ]
+
+        self.assertGreater(len(source_ref_clusters), 0)
+        for cluster in source_ref_clusters:
+            member_value = cluster["member_value"]
+            for edge_id in cluster["member_edge_ids"]:
+                edge = edges[edge_id]
+                edge_refs = {edge["source_ref"], *edge.get("source_refs", [])}
+                self.assertIn(member_value, edge_refs)
+
+    def test_atlas_key_filters_narrow_broad_node_types(self) -> None:
+        filters = {
+            "node_types": ["atlas-node-type", "atlas-relation-kind"],
+            "node_type_keys": ["concept"],
+            "relation_kind_keys": ["influences"],
+        }
+
+        self.assertTrue(
+            _node_matches_filters(
+                {"node_type": "atlas-node-type", "label": "concept", "properties": {}},
+                filters,
+            )
+        )
+        self.assertFalse(
+            _node_matches_filters(
+                {"node_type": "atlas-node-type", "label": "medium", "properties": {}},
+                filters,
+            )
+        )
+        self.assertTrue(
+            _node_matches_filters(
+                {"node_type": "atlas-relation-kind", "label": "influences", "properties": {}},
+                filters,
+            )
+        )
+        self.assertFalse(
+            _node_matches_filters(
+                {"node_type": "atlas-relation-kind", "label": "preserved_in", "properties": {}},
+                filters,
+            )
+        )
+
     def test_projected_nodes_and_clusters_carry_multilingual_labels(self) -> None:
         payload = self.load_projection()
         nodes = {node["node_id"]: node for node in payload["nodes"]}
@@ -142,6 +200,15 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
             "Corpus Or Prepared Source Document: ToS Deep Research: A01 — Proto-Cuneiform and Accounting Ontologies.docx",
         )
 
+    def test_draft_english_labels_preserve_russian_word_boundaries(self) -> None:
+        self.assertEqual(english_label("ритуал"), ("ritual", "draft"))
+        self.assertEqual(english_label("ритуальный"), ("ritual", "draft"))
+        self.assertEqual(english_label("нормативно-ритуальный текст"), ("normative-ritual text", "draft"))
+        self.assertEqual(
+            english_label("Хеттское государственно-ритуальное письмо"),
+            ("Hittite state-ritual writing", "draft"),
+        )
+
     def test_review_packets_are_compact_view_packets(self) -> None:
         payload = self.load_projection()
         views = {view["view_id"]: view for view in payload["views"]}
@@ -157,6 +224,48 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         chronology = packets["chronology"]
         self.assertLessEqual(len(chronology["cluster_summaries"]), 12)
         self.assertEqual(chronology["counts"]["weak_source_refs"], 0)
+
+    def test_low_confidence_russian_feminine_marks_evidence_relation(self) -> None:
+        layers = _edge_semantic_layers(
+            {
+                "edge_id": "edge:test",
+                "predicate_id": "influences",
+                "properties": {"confidence": "низкая"},
+            }
+        )
+
+        self.assertIn("evidence-relation", layers)
+
+    def test_view_fingerprint_material_changes_when_content_changes(self) -> None:
+        node = {
+            "node_id": "node:test",
+            "label": "Original label",
+            "node_type": "candidate-node",
+            "graph_layers": ["candidate-relation"],
+            "view_ids": ["test-view"],
+            "source_ref": "ToS/test.json",
+            "properties": {"canon_status": "pre-canon"},
+        }
+        material = _view_fingerprint_material(
+            view_id="test-view",
+            view_nodes=[node],
+            view_edges=[],
+            view_clusters=[],
+            graph_layers=["candidate-relation"],
+            source_refs=["ToS/test.json"],
+        )
+        changed_node = dict(node)
+        changed_node["label"] = "Changed label"
+        changed_material = _view_fingerprint_material(
+            view_id="test-view",
+            view_nodes=[changed_node],
+            view_edges=[],
+            view_clusters=[],
+            graph_layers=["candidate-relation"],
+            source_refs=["ToS/test.json"],
+        )
+
+        self.assertNotEqual(_stable_digest(material), _stable_digest(changed_material))
 
 
 if __name__ == "__main__":
