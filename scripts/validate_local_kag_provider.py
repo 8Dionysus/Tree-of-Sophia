@@ -41,7 +41,10 @@ REPO_LOCAL_INDEX_PATHS = {
     REPO_LOCAL_SOURCE_INDEX,
     Path("kag/indexes/repo_entity_index.json"),
     Path("kag/indexes/repo_artifact_index.json"),
+    Path("kag/indexes/repo_anchor_index.json"),
     Path("kag/indexes/repo_event_index.json"),
+    Path("kag/indexes/repo_assertion_index.json"),
+    Path("kag/indexes/repo_relation_index.json"),
 }
 
 
@@ -164,7 +167,7 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
 def validate_repo_local_source_index() -> None:
     payload = read_json(REPO_ROOT / REPO_LOCAL_SOURCE_INDEX)
     label = REPO_LOCAL_SOURCE_INDEX.as_posix()
-    if payload.get("schema_version") != "aoa-repo-local-kag-index-v1":
+    if payload.get("schema_version") != "aoa-repo-local-kag-index-v2":
         fail(f"{label} schema_version is invalid")
     repo = payload.get("repo")
     if not isinstance(repo, dict) or repo.get("name") != REPO_NAME:
