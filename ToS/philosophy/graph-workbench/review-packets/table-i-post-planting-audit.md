@@ -23,7 +23,7 @@ This generated review packet checks the first prepared Table I planting against 
 | terms | 564 |
 | transmissions | 353 |
 | projection nodes | 1305 |
-| projection edges | 1932 |
+| projection edges | 1929 |
 | clusters | 265 |
 
 ## Diagnostics

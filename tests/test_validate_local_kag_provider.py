@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_PATH = REPO_ROOT / "scripts" / "validate_local_kag_provider.py"
+
+
+def load_validator():
+    spec = importlib.util.spec_from_file_location("tos_validate_local_kag_provider", SCRIPT_PATH)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def valid_record(source_path: str) -> dict[str, object]:
+    return {
+        "schema_version": "aoa-local-kag-record-v1",
+        "repo": "Tree-of-Sophia",
+        "local_id": "node:test:nested",
+        "record_class": "node",
+        "source_refs": [
+            {
+                "repo": "Tree-of-Sophia",
+                "path": source_path,
+                "source_class": "tos_source",
+                "role": "primary",
+                "authority": "authored_source",
+            }
+        ],
+        "source_owner": "Tree-of-Sophia",
+        "provenance_mode": "strict_source_linked",
+        "derived_method": "test nested provider record",
+        "generated_or_authored": "authored_control",
+        "status": "active",
+        "owner_return_route": {
+            "repo": "Tree-of-Sophia",
+            "surface": source_path,
+            "route_kind": "authored_meaning",
+        },
+        "freshness": {
+            "mode": "source_snapshot",
+            "state": "current",
+            "checked_ref": source_path,
+        },
+        "builder": {
+            "route": "local KAG provider authoring",
+            "surface": "kag/nodes/topic/nested.json",
+        },
+        "validator": {
+            "route": "scripts/validate_local_kag_provider.py",
+            "lane": "owner-local",
+        },
+        "storage_posture": {
+            "git_surface": "portable_records",
+            "payload_class": "node",
+            "runtime_route": "source-repo",
+        },
+        "consumer_route": "aoa-kag registry",
+        "node_kind": "source_surface",
+        "label": "nested test record",
+    }
+
+
+def test_repo_path_rejects_absolute_and_parent_escape_paths() -> None:
+    validator = load_validator()
+
+    for path_text in ("/tmp/outside.md", "../outside.md", "kag/../README.md"):
+        with pytest.raises(validator.ValidationError):
+            validator.repo_path(path_text, label="test source ref")
+
+
+def test_validate_records_discovers_nested_provider_json(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    validator = load_validator()
+    source_path = "ToS/source.md"
+    (tmp_path / "ToS").mkdir()
+    (tmp_path / source_path).write_text("source\n", encoding="utf-8")
+    nested_dir = tmp_path / "kag" / "nodes" / "topic"
+    nested_dir.mkdir(parents=True)
+    (nested_dir / "nested.json").write_text(
+        json.dumps(valid_record(source_path), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(validator, "KAG_ROOT", tmp_path / "kag")
+    monkeypatch.setattr(validator, "RECORD_DIRS", {"nodes": "node"})
+
+    groups = validator.validate_records()
+
+    assert groups["nodes"][0]["local_id"] == "node:test:nested"

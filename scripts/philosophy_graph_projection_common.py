@@ -141,7 +141,7 @@ def _edge_semantic_layers(edge: dict[str, Any]) -> set[str]:
             layers.add("candidate-relation")
         if str(properties.get("endpoint_resolution") or "") == "unresolved":
             layers.add("evidence-relation")
-        if str(properties.get("confidence") or "") in {"низкий", "low"}:
+        if str(properties.get("confidence") or "").strip().lower() in {"низкий", "низкая", "низкое", "low"}:
             layers.add("evidence-relation")
     return layers & KNOWN_GRAPH_LAYERS
 
@@ -152,18 +152,20 @@ def _node_matches_filters(node: dict[str, Any], filters: dict[str, Any]) -> bool
     properties = node.get("properties")
     if not isinstance(properties, dict):
         properties = {}
-    if node_type in _as_string_set(filters.get("node_types")):
-        return True
-    if node_type == "atlas-node-type" and label in _as_string_set(filters.get("node_type_keys")):
-        return True
-    if node_type == "atlas-relation-kind" and label in _as_string_set(filters.get("relation_kind_keys")):
+    node_types = _as_string_set(filters.get("node_types"))
+    node_type_keys = _as_string_set(filters.get("node_type_keys"))
+    relation_kind_keys = _as_string_set(filters.get("relation_kind_keys"))
+    if node_type == "atlas-node-type" and node_type_keys:
+        return label in node_type_keys
+    if node_type == "atlas-relation-kind" and relation_kind_keys:
+        return label in relation_kind_keys
+    if node_type in node_types:
         return True
     if node_type == "candidate-node":
-        node_type_keys = _as_string_set(filters.get("node_type_keys"))
         if str(properties.get("original_node_type") or "") in node_type_keys:
             return True
     if node_type == "candidate-endpoint":
-        return "candidate-endpoint" in _as_string_set(filters.get("node_types"))
+        return "candidate-endpoint" in node_types
     return False
 
 
@@ -279,6 +281,15 @@ def _source_refs_from_items(items: list[dict[str, Any]]) -> list[str]:
     return sorted(refs)
 
 
+def _item_source_refs(item: dict[str, Any]) -> set[str]:
+    refs = set()
+    if isinstance(item.get("source_ref"), str) and item.get("source_ref"):
+        refs.add(str(item["source_ref"]))
+    if isinstance(item.get("source_refs"), list):
+        refs.update(str(ref) for ref in item["source_refs"] if isinstance(ref, str) and ref)
+    return refs
+
+
 def _stringify_value(value: Any) -> str | None:
     if value is None:
         return None
@@ -293,6 +304,39 @@ def _stringify_value(value: Any) -> str | None:
 def _stable_digest(value: Any) -> str:
     rendered = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+
+
+def _stable_item_material(item: dict[str, Any]) -> dict[str, Any]:
+    return {key: item[key] for key in sorted(item)}
+
+
+def _stable_items(items: list[dict[str, Any]], id_key: str) -> list[dict[str, Any]]:
+    return [
+        _stable_item_material(item)
+        for item in sorted(items, key=lambda item: str(item.get(id_key) or ""))
+    ]
+
+
+def _view_fingerprint_material(
+    *,
+    view_id: str,
+    view_nodes: list[dict[str, Any]],
+    view_edges: list[dict[str, Any]],
+    view_clusters: list[dict[str, Any]],
+    graph_layers: list[str],
+    source_refs: list[str],
+) -> dict[str, Any]:
+    return {
+        "view_id": view_id,
+        "node_ids": sorted(str(node["node_id"]) for node in view_nodes),
+        "edge_ids": sorted(str(edge["edge_id"]) for edge in view_edges),
+        "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in view_clusters),
+        "nodes": _stable_items(view_nodes, "node_id"),
+        "edges": _stable_items(view_edges, "edge_id"),
+        "clusters": _stable_items(view_clusters, "cluster_id"),
+        "graph_layers": graph_layers,
+        "source_refs": source_refs,
+    }
 
 
 def _field_value(node: dict[str, Any], field: str) -> str | None:
@@ -326,6 +370,15 @@ def _node_matches_member_key(node: dict[str, Any], member_key: dict[str, Any]) -
 def _stable_cluster_id(cluster_kind: str, member_key: str, member_value: str) -> str:
     digest = hashlib.sha1(f"{cluster_kind}|{member_key}|{member_value}".encode("utf-8")).hexdigest()[:12]
     return f"cluster:{cluster_kind}:{digest}"
+
+
+def _edge_matches_cluster_member(edge: dict[str, Any], field: str, member_value: str, member_node_set: set[str]) -> bool:
+    incident_to_member = str(edge.get("from_id")) in member_node_set or str(edge.get("to_id")) in member_node_set
+    if not incident_to_member:
+        return False
+    if field == "source_ref":
+        return member_value in _item_source_refs(edge)
+    return True
 
 
 def _build_clusters(
@@ -380,7 +433,7 @@ def _build_clusters(
                 member_edges = [
                     edge
                     for edge in edges
-                    if str(edge.get("from_id")) in member_node_set or str(edge.get("to_id")) in member_node_set
+                    if _edge_matches_cluster_member(edge, field, member_value, member_node_set)
                 ]
                 cluster_source_refs = _source_refs_from_items([*member_nodes, *member_edges])
                 graph_layers = sorted(
@@ -604,14 +657,14 @@ def _build_review_packets(
             )
         ][: int(limits.get("cluster_summaries") or 12)]
         current_view_fingerprint = _stable_digest(
-            {
-                "view_id": view_id,
-                "node_ids": sorted(str(node["node_id"]) for node in view_nodes),
-                "edge_ids": sorted(str(edge["edge_id"]) for edge in view_edges),
-                "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in view_clusters),
-                "graph_layers": view.get("graph_layers", []),
-                "source_refs": view.get("source_refs", []),
-            }
+            _view_fingerprint_material(
+                view_id=view_id,
+                view_nodes=view_nodes,
+                view_edges=view_edges,
+                view_clusters=view_clusters,
+                graph_layers=view.get("graph_layers", []),
+                source_refs=view.get("source_refs", []),
+            )
         )
         changed_subgraph_packet = dict(changed_subgraph)
         changed_subgraph_packet.update(
@@ -669,14 +722,14 @@ def _build_snapshot_review(
         view_nodes = view.get("nodes", [])
         view_edges = view.get("edges", [])
         view_clusters = clusters_by_view.get(view_id, [])
-        view_fingerprint_material = {
-            "view_id": view_id,
-            "node_ids": sorted(str(node["node_id"]) for node in view_nodes),
-            "edge_ids": sorted(str(edge["edge_id"]) for edge in view_edges),
-            "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in view_clusters),
-            "graph_layers": view.get("graph_layers", []),
-            "source_refs": view.get("source_refs", []),
-        }
+        view_fingerprint_material = _view_fingerprint_material(
+            view_id=view_id,
+            view_nodes=view_nodes,
+            view_edges=view_edges,
+            view_clusters=view_clusters,
+            graph_layers=view.get("graph_layers", []),
+            source_refs=view.get("source_refs", []),
+        )
         view_fingerprints.append(
             {
                 "view_id": view_id,

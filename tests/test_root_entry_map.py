@@ -80,6 +80,17 @@ class RootEntryMapTests(unittest.TestCase):
         self.assertIn("release-ready", manifest["lifecycle"]["promotion_path"])
         self.assertTrue(manifest["consumer_contract"]["registry_required"])
         self.assertTrue(manifest["consumer_contract"]["subject_store_required"])
+        subject_roles = {item["role"]: item["path"] for item in manifest["artifact_subjects"]}
+        self.assertEqual(
+            subject_roles["philosophy_graph_views"],
+            "ToS/derived-exports/philosophy_graph_views.min.json",
+        )
+        self.assertEqual(
+            subject_roles["philosophy_atlas_projection"],
+            "ToS/derived-exports/philosophy_atlas_projection.min.json",
+        )
+        self.assertTrue((Path(__file__).resolve().parents[1] / subject_roles["philosophy_graph_views"]).is_file())
+        self.assertTrue((Path(__file__).resolve().parents[1] / subject_roles["philosophy_atlas_projection"]).is_file())
         self.assertEqual(
             manifest["consumer_contract"]["admission_gate"],
             "fail_closed_consumer_admission",
