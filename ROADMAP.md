@@ -60,23 +60,26 @@ The current repository move is:
 
 ## Current release contour
 
-The live `v0.2.2` release contour is source-owned root-entry and export
-hardening:
+The live `v0.3.0` release contour grows the bounded root-entry line into a
+source-linked philosophy atlas and graph-review tree without widening canon:
 
 | Contour | Surfaces |
 | --- | --- |
-| public source-first orientation | `README.md`, `CHARTER.md`, `BOUNDARIES.md`, `ToS/doctrine/KNOWLEDGE_MODEL.md`, `ToS/doctrine/NODE_CONTRACT.md` |
-| tiny-entry/root-entry route | `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/public-compatibility/tos_tiny_entry_route.example.json`, `ToS/derived-exports/root_entry_map.min.json` |
-| trilingual source witness | `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`, `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`, `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json` |
-| bounded export | `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, `ToS/derived-exports/kag_export.json`, `ToS/derived-exports/kag_export.min.json` |
+| source-first orientation and public entry | `README.md`, `CHARTER.md`, `BOUNDARIES.md`, `ToS/source_home.manifest.json`, `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/derived-exports/root_entry_map.min.json` |
+| philosophy atlas and planted tree | `ToS/philosophy/atlas/`, `ToS/philosophy/eras/`, `ToS/philosophy/graph-workbench/branch-fragments/`, `ToS/philosophy/graph-workbench/promotion-ledger/` |
+| graph review and source-returning projection | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
+| multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
+| bounded export and downstream trust | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `mechanics/release-support/parts/artifact-bundles/`, `kag/` |
 
-This contour keeps the tiny-entry seam and bounded export seam subordinate to
-ToS-authored authority. Downstream KAG and routing consumers may use the seam;
-they do not widen the tree.
+This contour keeps atlas rows, planted dossiers, graph-workbench material,
+multilingual packets, KAG records, and generated readmodels subordinate to
+ToS-authored authority and explicit review. Downstream graph, KAG, routing, and
+runtime consumers may use the bounded seams; they do not widen the tree or
+promote material to canon.
 
 ## Current Growth Contour
 
-Post-release growth has opened the first philosophy-atlas and graph-review
+The current release has opened the first philosophy-atlas and graph-review
 contour without promoting that material to canon.
 
 | Anchor | Surface |
