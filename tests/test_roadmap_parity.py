@@ -32,7 +32,7 @@ class RoadmapParityTestCase(unittest.TestCase):
         payload = load_json("ToS/derived-exports/root_entry_map.min.json")
         release = current_release(readme)
 
-        self.assertEqual("v0.3.0", release)
+        self.assertEqual("v0.4.0", release)
         self.assertIn(f"## [{release.removeprefix('v')}]", changelog)
         self.assertIn(f"`{release}`", roadmap)
         self.assertIn("Current release contour", roadmap)

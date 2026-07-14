@@ -7,16 +7,63 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-14
+
+### Summary
+
+- This release adds a bounded owner-local statistics port for the Table I
+  prepared-dossier route while keeping shared statistical grammar and
+  cross-owner composition in `aoa-stats`.
+- Executable validation authority is now concentrated in the validation-lane
+  manifest, local route cards, and owner scripts instead of being repeated
+  through weaker explanatory Markdown.
+- The release was reconstructed from the complete post-`v0.3.0` Git range:
+  its single first-parent commit changed 57 paths with 1,286 additions and 628
+  deletions, and that 1/1 commit is accounted for below rather than inferred
+  only from the old `[Unreleased]` prose.
+
 ### Added
 
 - Added a root `stats/` port for the reference-only Table I prepared-dossier
   route ratio, preserving the complete row population, numerator and
   denominator, owner evidence, missingness, and authority ceiling.
+- Added the owner-delegating stats validator, regression coverage, CODEOWNERS
+  route, and CI checkout of the pinned `aoa-stats` contract owner.
 
 ### Changed
 
 - Centralized the local stats check in the executable validation-lane manifest
   and removed shell command blocks from ordinary Markdown documentation.
+- Refreshed root, doctrine, decision, mechanics, and validation routes so
+  runnable commands return to their executable owners or nearest route cards.
+- Regenerated the Table I corpus companion and all seven repository-local KAG
+  indexes after the authored and validation surfaces changed.
+
+### First-Parent Reconciliation (1/1)
+
+1. `0407ad4` — Add Tree of Sophia local stats port (#136).
+
+### Validation
+
+- Release preparation reconciled the exact `v0.3.0..0407ad4` first-parent
+  history and all 57 changed paths, including the stats contract, validation
+  authority cleanup, doctrine/decision routes, generated ToS companion, and
+  complete KAG index family.
+- The repository release gate validates source and mechanics topology,
+  validation-lane authority, generated parity, graph/canon/intake contracts,
+  the pinned central stats contract, and the full test suite.
+
+### Notes
+
+- The ratio is a reference measurement over an explicitly bounded local
+  population; it is not a quality verdict or a replacement for ToS review and
+  canon authority.
+- `aoa-stats` retains shared grammar and cross-owner composition, while
+  runtime, proof, memory, and graph-substrate authority remain with their
+  stronger owners.
+- Release-only version markers, changelog reconciliation, and regenerated
+  companions follow the one reconciled product commit and are described here
+  rather than misclassified as another product change.
 
 ## [0.3.0] - 2026-07-13
 
