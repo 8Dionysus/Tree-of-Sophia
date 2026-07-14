@@ -55,6 +55,7 @@ not become ToS authority.
 | [quests](quests/) and [QUESTBOOK](QUESTBOOK.md) | public quest items and obligation posture |
 | [evals](evals/README.md) | ToS-local eval pressure before central `aoa-evals` adoption |
 | [memo](memo/README.md) | tree-local memory candidates before reviewed `aoa-memo` landing |
+| [stats](stats/README.md) | owner-local measurements over explicitly bounded ToS populations |
 | [manifests](manifests/) | observe-only recurrence manifests for named ToS surfaces |
 
 Agent-facing companion lanes live under `.agents/`; Codex Spark work routes to
@@ -79,6 +80,7 @@ gate when a change crosses owner surfaces.
 | `aoa-kag` | downstream knowledge substrate and graph/retrieval consumer |
 | `aoa-memo` | memory and recall layer |
 | `aoa-evals` | proof and evaluation organ |
+| `aoa-stats` | shared statistical grammar and cross-owner composition below ToS authority |
 | `aoa-sdk` | typed helper and control-plane access layer |
 
 ## Working Rule

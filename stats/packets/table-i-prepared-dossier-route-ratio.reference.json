@@ -1,0 +1,82 @@
+{
+  "schema_version": "aoa_stats_measurement_packet_v1",
+  "contract_ref": "stats/port.manifest.json#/measurements/0",
+  "contract_version": "1.0.0",
+  "measurement_id": "Tree-of-Sophia/table-i-prepared-dossier-route-ratio",
+  "writer_repo": "Tree-of-Sophia",
+  "observation_id": "Tree-of-Sophia:table-i-prepared-dossier-route-ratio:66a1b9d6bbc05b4f",
+  "observed_at": "2026-07-14T02:37:56Z",
+  "object_ref": {
+    "kind": "table-i-atlas-row",
+    "id": "table-i:66a1b9d6bbc05b4f",
+    "version": "66a1b9d6bbc05b4fec696946730d173102ad0301"
+  },
+  "population": {
+    "id": "tree-of-sophia-table-i:66a1b9d6bbc05b4f",
+    "definition_ref": "stats/port.manifest.json#/measurements/0/population",
+    "size": 48
+  },
+  "sample": {
+    "size": 48,
+    "selection": "census of unique rows in the owner-validated Tree of Sophia Table I atlas"
+  },
+  "cohort": null,
+  "window": {
+    "id": "source-revision:66a1b9d6bbc05b4fec696946730d173102ad0301",
+    "start": "2026-07-14T02:37:56Z",
+    "end": "2026-07-14T02:37:56Z",
+    "temporality": "instant"
+  },
+  "dimensions": {},
+  "value": {
+    "status": "observed",
+    "kind": "ratio",
+    "unit": "1",
+    "number": 0.625,
+    "numerator": 30,
+    "denominator": 48
+  },
+  "uncertainty": {
+    "status": "not_applicable",
+    "sample_size": 48,
+    "method": "not_applicable",
+    "reason": "The reference observation is a census of the complete owner-validated Table I atlas population."
+  },
+  "provenance": {
+    "evidence_refs": [
+      {
+        "kind": "table-i-atlas-rows",
+        "ref": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl"
+      },
+      {
+        "kind": "prepared-dossier-route-map",
+        "ref": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json"
+      },
+      {
+        "kind": "owner-philosophy-validator",
+        "ref": "scripts/validate_philosophy_topology.py"
+      },
+      {
+        "kind": "owner-post-planting-audit-validator",
+        "ref": "scripts/validate_philosophy_post_planting_audit.py"
+      }
+    ],
+    "derivation_ref": "stats/README.md#current-reference-measurement",
+    "source_revision": "66a1b9d6bbc05b4fec696946730d173102ad0301"
+  },
+  "reporting_rule": {
+    "id": "Tree-of-Sophia/table-i-prepared-dossier-route-ratio/reference-census",
+    "version": "1.0.0"
+  },
+  "posture": {
+    "freshness": "current",
+    "live_state": "reference",
+    "privacy": "public",
+    "raw_content_included": false
+  },
+  "progress": {
+    "state": "terminal",
+    "completed": 48,
+    "total": 48
+  }
+}

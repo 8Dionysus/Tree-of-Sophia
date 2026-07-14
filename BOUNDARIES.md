@@ -20,6 +20,7 @@ remains authoritative for ToS meaning.
 | root authority, public orientation, direction | `README.md`, `CHARTER.md`, `DESIGN.md`, `ROADMAP.md` | `Agents-of-Abyss` only for ecosystem-level law |
 | repeatable ToS operation | `mechanics/` package and part cards | sibling mechanics only when the operation belongs outside ToS |
 | generated reader, compact index, public example, export | source surface -> builder -> generated/exported companion | source remains ToS-authored |
+| statistical question over a ToS population | `stats/` declaration and evidence-linked packet | `aoa-stats` owns shared grammar and cross-owner views, not ToS meaning |
 | KAG substrate, retrieval substrate, downstream graph handoff | bounded export route inside ToS | `aoa-kag` owns downstream substrate behavior |
 | runtime, service stack, visualization runtime | ToS supplies source/export material | `abyss-stack` owns serving and stack execution |
 | memory, proof, evaluation, routing, SDK, playbook, skill, technique | ToS may supply philosophical source or boundary input | owning AoA repository or layer |
@@ -30,10 +31,10 @@ Raw source material, research packets, source witnesses, doctrine, canon,
 public compatibility, generated exports, review notes, tests, and validators
 are different layers. They may connect, but they should not silently merge.
 
-Generated, public, graph-ready, and downstream-facing surfaces do not replace
-ToS-authored authority. A bounded route to `aoa-kag`, `aoa-routing`, or any
-other derived consumer does not delegate authority to aoa-kag, aoa-routing, or
-any other downstream derived system.
+Generated, public, statistical, graph-ready, and downstream-facing surfaces do
+not replace ToS-authored authority. A bounded route to `aoa-stats`, `aoa-kag`,
+`aoa-routing`, or any other derived consumer does not delegate authority to
+that downstream system.
 
 ## Growth Boundary
 

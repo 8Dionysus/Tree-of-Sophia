@@ -125,12 +125,7 @@ nearest owner card, or validator instead of being copied into each branch.
 
 Run:
 
-```bash
-python scripts/validate_tos_source_home.py
-python scripts/validate_philosophy_topology.py
-python scripts/validate_nested_agents.py
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Verification is owned by the source-home, philosophy-topology, route-doc,
+generated-parity, and release sequences in
+`docs/validation/validation_lanes.json`; decision regeneration routes through
+`docs/decisions/AGENTS.md`.

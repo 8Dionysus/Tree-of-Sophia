@@ -54,15 +54,13 @@ The lookup indexes under [indexes](indexes/README.md) are generated from that me
 
 Regenerate the read models after decision metadata changes:
 
-```bash
-python scripts/generate_decision_indexes.py
-```
+Regeneration routes through `scripts/generate_decision_indexes.py` under the
+operator guidance in `docs/decisions/AGENTS.md`.
 
 Check generated parity before closeout:
 
-```bash
-python scripts/generate_decision_indexes.py --check
-```
+Checked parity is owned by the `generated_parity` sequence in
+`docs/validation/validation_lanes.json`.
 
 ## Lookup Route
 

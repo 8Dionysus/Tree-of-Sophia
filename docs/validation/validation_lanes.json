@@ -191,6 +191,20 @@
         "MCP service implementation"
       ]
     },
+    "local_stats_port": {
+      "label": "local stats port",
+      "layer": "local-stats-port",
+      "mode": "blocking",
+      "owner_surface": "stats/port.manifest.json",
+      "purpose": "Verify the Tree of Sophia measurement declaration and reference packet against the shared aoa-stats protocol without widening either owner's authority.",
+      "command_sequence": "local_stats_port",
+      "failure_route": "stats/AGENTS.md",
+      "does_not_own": [
+        "philosophical meaning",
+        "graph review readiness",
+        "canon or eval verdicts"
+      ]
+    },
     "questbook_surface": {
       "label": "questbook surface",
       "layer": "mechanics-questbook",
@@ -270,6 +284,7 @@
         "intake_contracts",
         "public_entry",
         "local_kag_provider",
+        "local_stats_port",
         "questbook_surface",
         "route_docs"
       ],
@@ -416,6 +431,12 @@
       {
         "label": "validate local KAG provider",
         "command": ["python", "scripts/validate_local_kag_provider.py"]
+      }
+    ],
+    "local_stats_port": [
+      {
+        "label": "validate local stats port",
+        "command": ["python", "scripts/validate_local_stats_port.py"]
       }
     ],
     "questbook_surface": [
@@ -580,6 +601,10 @@
       {
         "label": "validate local KAG provider",
         "command": ["python", "scripts/validate_local_kag_provider.py"]
+      },
+      {
+        "label": "validate local stats port",
+        "command": ["python", "scripts/validate_local_stats_port.py"]
       },
       {
         "label": "validate questbook surface",

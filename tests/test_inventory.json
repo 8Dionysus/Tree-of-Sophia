@@ -392,6 +392,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_local_stats_port.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "owner_local_measurement",
+      "validation_lane": "local_stats_port",
+      "owner_surface": "stats/port.manifest.json",
+      "protects": "Table I route-ratio population, observed-zero and unknown semantics, evidence parity, and authority ceiling",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_local_stats_port.py",
+      "failure_route": "Fix the Table I atlas rows, prepared-dossier route map, local stats declaration, or reference packet before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validate_philosophy_topology.py",
       "home": "tests",
       "home_scope": "root",

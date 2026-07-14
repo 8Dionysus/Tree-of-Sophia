@@ -113,12 +113,9 @@ Check:
 
 ## Verify
 
-```bash
-# Manual review only
-# Re-read touched README/doc sections
-# Re-check edited links / route hints
-# Confirm source traceability, node layering, and lineage wording remained intact
-```
+Manual review covers the touched prose, edited links and route hints, source
+traceability, node layering, and lineage wording. The nearest route card owns
+the applicable executable check.
 
 ## Done when
 

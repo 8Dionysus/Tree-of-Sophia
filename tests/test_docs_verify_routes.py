@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -20,6 +21,14 @@ ROOT_ENTRY_MAP = "ToS/derived-exports/root_entry_map.min.json"
 ROOT_ENTRY_BUILDER = "scripts/build_root_entry_map.py"
 ROOT_ENTRY_VALIDATOR = "scripts/validate_root_entry_map.py"
 REVIEW_CHECKLIST = "mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md"
+FENCED_BLOCK_RE = re.compile(r"^```([^\n]*)\n(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
+SHELL_FENCE_LANGUAGES = {"bash", "console", "sh", "shell", "zsh"}
+COMMAND_LINE_RE = re.compile(
+    r"^\s*(?:\$\s+)?(?:python(?:3)?|pytest|bash|sh|zsh|git|make|uv|pip(?:3)?|npm|npx|node|cargo|go|docker|podman|systemctl|journalctl|curl|wget)(?=\s|$)"
+    r"|^\s*(?:\./|\.\./)[\w./-]+",
+    re.MULTILINE,
+)
+MARKDOWN_EXCLUDED_PARTS = {".git", "archive", "archives", "legacy"}
 
 
 def read_text(path: Path) -> str:
@@ -34,6 +43,21 @@ def assert_route_refs(testcase: unittest.TestCase, text: str, *refs: str) -> Non
 
 
 class DocsVerifyRoutesTestCase(unittest.TestCase):
+    def test_active_non_agent_markdown_has_no_command_blocks(self) -> None:
+        offenders: list[str] = []
+        for path in sorted(REPO_ROOT.rglob("*.md")):
+            relative = path.relative_to(REPO_ROOT)
+            if path.name == "AGENTS.md" or any(part in MARKDOWN_EXCLUDED_PARTS for part in relative.parts):
+                continue
+            for match in FENCED_BLOCK_RE.finditer(read_text(path)):
+                language = match.group(1).strip().lower().split(maxsplit=1)
+                language_id = language[0] if language else ""
+                if language_id in SHELL_FENCE_LANGUAGES or COMMAND_LINE_RE.search(match.group(2)):
+                    line = read_text(path).count("\n", 0, match.start()) + 1
+                    offenders.append(f"{relative.as_posix()}:{line}")
+
+        self.assertEqual([], offenders)
+
     def test_readme_keeps_source_first_route_links_ahead_of_export_seam(self) -> None:
         readme = read_text(README_PATH)
 

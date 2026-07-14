@@ -162,9 +162,8 @@ Summarize:
 
 The active bounded battery routes through the validation lane manifest:
 
-```bash
-python scripts/release_check.py
-```
+The current broad verification route is owned by `AGENTS.md#verify` and the
+`release_check` sequence in `docs/validation/validation_lanes.json`.
 
 `python scripts/validate_tiny_entry_route.py` keeps the current source-owned `tos-root` handoff, public compatibility authority vocabulary, and bounded re-entry posture explicit.
 `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checks generated export parity and payload structure. Canon, intake, public-example sync, route-card structure, and decision checks route through their own validators in `docs/validation/validation_lanes.json`.

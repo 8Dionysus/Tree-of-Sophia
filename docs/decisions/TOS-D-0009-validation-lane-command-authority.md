@@ -191,20 +191,7 @@ authority.
 
 Run:
 
-```bash
-python scripts/validation_lanes.py --check
-python scripts/validate_tos_source_home.py
-python -m unittest tests.test_tos_source_home_schema
-python scripts/validate_mechanics_topology.py
-python -m unittest discover -s mechanics/experience/tests -p 'test*.py'
-python scripts/validate_nested_agents.py
-python scripts/validate_tree_node_contracts.py
-python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python scripts/validate_intake_pack.py
-python mechanics/questbook/scripts/validate_questbook_surface.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-python -m unittest discover -s tests
-```
+The executable evidence for this decision is the current lane and
+`release_check` composition in `docs/validation/validation_lanes.json`.
+Decision-index regeneration remains an operator route in
+`docs/decisions/AGENTS.md`.

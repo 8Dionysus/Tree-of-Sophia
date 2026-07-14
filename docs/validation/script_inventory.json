@@ -807,6 +807,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/validate_local_stats_port.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "stats/AGENTS.md",
+      "source_truth": [
+        "stats/port.manifest.json",
+        "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
+        "aoa-stats:stats/measurement-contract/"
+      ],
+      "reads": [
+        "stats/port.manifest.json",
+        "stats/packets/*.json",
+        "AOA_STATS_ROOT or a compatible local aoa-stats checkout"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "local_stats_port",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_local_stats_port.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validate_mechanics_topology.py",
       "family": "source_validator",
       "organ_lane": "mechanics/package",

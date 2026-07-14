@@ -111,13 +111,11 @@ Packages without moved-path or raw-receipt accounting do not get empty
 
 ## Validation
 
-```bash
-python scripts/validate_mechanics_topology.py
-python scripts/validate_nested_agents.py
-```
+The `mechanics_topology` and `route_docs` sequences in
+`docs/validation/validation_lanes.json` own executable verification. Use
+`mechanics/AGENTS.md` for the focused operator route.
 
 For release-facing changes, run:
 
-```bash
-python scripts/release_check.py
-```
+Repository-wide verification routes through the `release_check` sequence in
+`docs/validation/validation_lanes.json` and its script entrypoint.

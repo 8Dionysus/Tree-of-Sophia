@@ -104,11 +104,6 @@ that overhead into a clear failure route instead of quiet topology decay.
 
 Run:
 
-```bash
-python -m unittest tests.test_test_topology
-python -m unittest tests.test_validation_lanes
-python -m unittest discover -s tests
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Executable evidence is owned by the test discovery and generated-parity steps
+inside `docs/validation/validation_lanes.json`; regeneration routes through
+`docs/decisions/AGENTS.md`.

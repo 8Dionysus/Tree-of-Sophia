@@ -105,9 +105,6 @@ nested-agent validator topology refactor remains future work.
 
 Run:
 
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Decision regeneration routes through `docs/decisions/AGENTS.md`; checked index
+parity, record validation, and broad verification are owned by
+`docs/validation/validation_lanes.json`.

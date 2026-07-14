@@ -44,12 +44,10 @@ Inventories describe coverage. They are not command authority.
 
 Run the lane manifest self-check before changing release command composition:
 
-```bash
-python scripts/validation_lanes.py --check
-```
+The `validation_authority` sequence in `validation_lanes.json` owns the
+manifest self-check.
 
 For release-facing changes use:
 
-```bash
-python scripts/release_check.py
-```
+The `release_check` sequence in `validation_lanes.json` owns broad command
+composition; `scripts/release_check.py` is its entrypoint.

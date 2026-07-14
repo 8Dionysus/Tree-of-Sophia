@@ -106,19 +106,7 @@ must treat those as the current repo-relative ToS paths.
 
 Run:
 
-```bash
-python scripts/validate_tos_source_home.py
-python scripts/validate_nested_agents.py
-python scripts/build_root_entry_map.py --check
-python scripts/validate_root_entry_map.py
-python scripts/validate_tiny_entry_route.py
-python scripts/validate_intake_pack.py
-python scripts/validate_tree_node_contracts.py
-python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python -m unittest discover -s tests
-```
+Verification is represented by the source-home, route-doc, generated-parity,
+public-entry, intake, canon, and release sequences in
+`docs/validation/validation_lanes.json`. Regeneration routes remain with their
+owning builders and `AGENTS.md` cards.

@@ -106,11 +106,7 @@ root authority in their existing owner surfaces.
 
 Run:
 
-```bash
-python scripts/validate_nested_agents.py
-python scripts/validate_active_naming.py
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Executable evidence is owned by the route-doc, active-naming,
+generated-parity, and release sequences in
+`docs/validation/validation_lanes.json`; regeneration routes through
+`docs/decisions/AGENTS.md`.

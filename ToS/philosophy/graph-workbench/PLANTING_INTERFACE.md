@@ -79,16 +79,10 @@ master table row
 
 Current supported entrypoint:
 
-```bash
-python scripts/plant_prepared_dossiers.py --readiness
-python scripts/plant_prepared_dossiers.py --table table-i --plant
-python scripts/build_philosophy_atlas_projection.py
-python scripts/build_philosophy_graph_views.py
-python scripts/build_philosophy_graph_projection.py
-python scripts/build_tos_corpus_index.py
-python scripts/validate_tos_corpus_index.py
-python scripts/build_philosophy_post_planting_audit.py
-```
+`scripts/plant_prepared_dossiers.py` owns readiness and planting orchestration.
+The projection, corpus-index, and post-planting builders own their generated
+outputs; `docs/validation/validation_lanes.json` owns checked verification
+order. Use `scripts/AGENTS.md` for the operator route.
 
 Future Table II and Table III planting should extend this route by adding their
 source-owned dossier route maps and packet extraction support, then publishing
