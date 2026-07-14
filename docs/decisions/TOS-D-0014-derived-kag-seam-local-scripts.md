@@ -83,13 +83,7 @@ replace `public_entry` command authority.
 
 Run:
 
-```bash
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-python scripts/validate_tiny_entry_route.py
-python scripts/run_mechanics_local_tests.py
-python -m unittest tests.test_script_topology tests.test_docs_verify_routes tests.test_validation_lanes
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+KAG export regeneration stays with the derived-KAG-seam part. Checked evidence
+is owned by the public-entry, mechanics-local, generated-parity, and release
+sequences in `docs/validation/validation_lanes.json`; decision regeneration
+routes through `docs/decisions/AGENTS.md`.

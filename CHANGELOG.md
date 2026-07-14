@@ -7,6 +7,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+### Added
+
+- Added a root `stats/` port for the reference-only Table I prepared-dossier
+  route ratio, preserving the complete row population, numerator and
+  denominator, owner evidence, missingness, and authority ceiling.
+
+### Changed
+
+- Centralized the local stats check in the executable validation-lane manifest
+  and removed shell command blocks from ordinary Markdown documentation.
+
 ## [0.3.0] - 2026-07-13
 
 ### Summary

@@ -41,10 +41,9 @@ If you edit supporting surfaces in `docs/`, `ToS/public-compatibility/`, `ToS/de
 
 For the current bounded export seam without regeneration, use:
 
-```bash
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-python -m unittest discover -s tests
-```
+Current verification is owned by
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`
+and the `public_entry` sequence in `docs/validation/validation_lanes.json`.
 
 `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py` checks generated export parity and
 payload structure for this seam.
@@ -57,9 +56,7 @@ schema coverage around that same bounded route.
 
 If you change export inputs or generation logic, use:
 
-```bash
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-python -m unittest discover -s tests
-```
+Regeneration is owned by
+`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py`
+after the public-mirror owner has synchronized its inputs. The nearest
+part-local `AGENTS.md` and the validation-lane manifest own the operator route.

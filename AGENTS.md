@@ -22,7 +22,7 @@ decision records, validators, or neighboring AoA owners.
 | --- | --- |
 | input | source material, philosophical node pressure, branch growth, route-law change, mechanic pressure, public seam, or graph/export handoff |
 | output | source-owned ToS surface, mechanic-local contract, generated companion, decision record, or stronger-owner handoff |
-| owner | authored surfaces under `ToS/`, repeatable operations under `mechanics/`, durable rationale under `docs/decisions/` |
+| owner | authored surfaces under `ToS/`, repeatable operations under `mechanics/`, owner-local measurements under `stats/`, durable rationale under `docs/decisions/` |
 | next route | nearest nested `AGENTS.md`, source branch, mechanic package, builder, validator, test, or sibling owner |
 | validation | [Verify](#verify), plus the nearest local route card |
 
@@ -39,6 +39,7 @@ For orientation, read only the route you need:
 | ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
 | golden Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
 | mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, active part route |
+| owner-local statistics | [stats/AGENTS](stats/AGENTS.md), then the atlas or branch evidence owner |
 | decision rationale | [docs/decisions](docs/decisions/README.md) |
 | preserved old root rule | [docs/AGENTS_ROOT_REFERENCE](docs/AGENTS_ROOT_REFERENCE.md) |
 
@@ -51,6 +52,8 @@ or manifest, and the narrowest relevant validator before broader gates.
 - Generated, exported, compact, public, graph, runtime, and downstream surfaces
   support or transport meaning.
 - Mechanics are organs of repeatable movement, not a second source home.
+- `stats/` measures bounded owner-local questions; `aoa-stats` owns the shared
+  statistical grammar, and neither surface authors philosophical meaning.
 - Zarathustra is the current golden route, not a generic sample.
 - Runtime, proof, memory, stack, KAG substrate, federation, playbook, skill,
   and technique authority route to their owning AoA repositories or layers.

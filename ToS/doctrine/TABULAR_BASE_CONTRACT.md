@@ -166,10 +166,7 @@ Their counts should always be regenerated from the current `edges.csv`.
 
 Run:
 
-```bash
-python scripts/validate_intake_pack.py
-python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/generate_kag_export.py
-python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
-```
+Executable verification is owned by the `intake_contracts`,
+`canon_contracts`, and `public_entry` sequences in
+`docs/validation/validation_lanes.json`. Regeneration routes through the
+owning builder named by the nearest mechanic-part `AGENTS.md`.

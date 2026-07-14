@@ -28,6 +28,7 @@ source-rooted growth.
 | canon | reviewed authored nodes, relations, and registries |
 | review ledger | accountable inspection before stronger movement |
 | mechanics | repeatable organs of operation |
+| `stats/` | owner-local measurements over declared ToS populations and evidence refs |
 | generated/exported companions | compact readers, public seams, graph/KAG handoffs, downstream views |
 
 The layers can touch. They should not collapse.
@@ -59,9 +60,10 @@ topology unless they name a real owner boundary.
 ## Authority
 
 ToS-authored source surfaces own ToS meaning. Generated files, compact indexes,
-public examples, validators, runtime readers, KAG exports, and graph views are
-companions. They help humans and machines navigate the tree; they do not author
-the tree.
+public examples, validators, owner-local statistics, runtime readers, KAG
+exports, and graph views are companions. They help humans and machines navigate
+the tree; they do not author the tree. `stats/` owns local questions and
+evidence handoffs; `aoa-stats` owns their shared measurement grammar.
 
 When another AoA organ owns the stronger truth, ToS routes to it.
 

@@ -10,6 +10,8 @@ jobs:
   release_audit:
     name: Repo Validation
     runs-on: ubuntu-latest
+    env:
+      AOA_STATS_REVISION: 9ae714d21f9ea13e7b67404e769ad42d31d36c8d
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -31,7 +33,17 @@ jobs:
       - name: Fetch OS Abyss artifact verifier
         run: git clone --depth 1 --branch main https://github.com/8Dionysus/abyss-machine.git "$RUNNER_TEMP/abyss-machine"
 
+      - name: Fetch pinned aoa-stats contract owner
+        env:
+          AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
+        run: |
+          git init --quiet "$AOA_STATS_ROOT"
+          git -C "$AOA_STATS_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-stats.git "$AOA_STATS_REVISION"
+          git -C "$AOA_STATS_ROOT" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$AOA_STATS_ROOT" rev-parse HEAD)" = "$AOA_STATS_REVISION"
+
       - name: Run release audit
         env:
           ABYSS_MACHINE_REPO_ROOT: ${{ runner.temp }}/abyss-machine
+          AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
         run: python scripts/release_check.py

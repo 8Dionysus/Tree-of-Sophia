@@ -18,6 +18,7 @@ ROUTE_ROOTS = (
     "evals",
     "memo",
     "kag",
+    "stats",
     "manifests",
     ".agents",
 )
@@ -109,6 +110,10 @@ REQUIRED_REFERENCES: dict[str, tuple[str, ...]] = {
         "python -m unittest discover -s tests",
     ),
     "evals/AGENTS.md": ("aoa-evals",),
+    "stats/AGENTS.md": (
+        "stats/port.manifest.json",
+        "aoa-stats",
+    ),
 }
 
 

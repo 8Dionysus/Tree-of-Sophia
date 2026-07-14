@@ -88,12 +88,7 @@ lanes together.
 
 Run:
 
-```bash
-python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py
-python scripts/validate_mechanics_topology.py
-python scripts/run_mechanics_local_tests.py
-python -m unittest tests.test_script_topology tests.test_docs_verify_routes tests.test_validation_lanes
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Executable evidence is owned by the canon-contract, mechanics-topology,
+mechanics-local, generated-parity, and release sequences in
+`docs/validation/validation_lanes.json`; regeneration routes through
+`docs/decisions/AGENTS.md`.

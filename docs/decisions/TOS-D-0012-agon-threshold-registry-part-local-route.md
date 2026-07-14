@@ -94,11 +94,7 @@ Root generated parity no longer owns the Agon threshold registry check. The
 
 Run:
 
-```bash
-python scripts/run_mechanics_local_tests.py
-python -m unittest tests.test_script_topology tests.test_test_topology tests.test_validation_lanes
-python scripts/validate_nested_agents.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Executable evidence is owned by the mechanics-local, route-doc,
+generated-parity, and release sequences in
+`docs/validation/validation_lanes.json`; regeneration routes through
+`docs/decisions/AGENTS.md`.

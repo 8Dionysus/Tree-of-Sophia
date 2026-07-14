@@ -86,12 +86,7 @@ when the operation becomes truly part-local.
 
 Run:
 
-```bash
-python mechanics/questbook/scripts/validate_questbook_surface.py
-python -m unittest discover -s mechanics/questbook/tests -p 'test*.py'
-python scripts/run_mechanics_local_tests.py
-python -m unittest tests.test_script_topology tests.test_test_topology tests.test_validation_lanes
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-python scripts/release_check.py
-```
+Executable evidence is owned by the questbook, mechanics-local,
+generated-parity, and release sequences in
+`docs/validation/validation_lanes.json`; regeneration routes through
+`docs/decisions/AGENTS.md`.

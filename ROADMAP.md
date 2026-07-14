@@ -89,6 +89,7 @@ contour without promoting that material to canon.
 | trunk law | `ToS/philosophy/trunk/branch-law/`, `chronology/`, `evidence-status/`, `graph-layers/`, `node-kinds/`, `relation-kinds/`, `source-posture/` |
 | Table I planting | `ToS/philosophy/atlas/master-tables/table-i/`, `ToS/philosophy/eras/`, `ToS/philosophy/graph-workbench/proposed-nodes/`, `proposed-relations/`, `branch-fragments/` |
 | graph review | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `promotion-ledger/` |
+| owner-local measurement | `stats/port.manifest.json`, `stats/packets/table-i-prepared-dossier-route-ratio.reference.json` |
 | downstream read models | `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
 | repeatable movement | `mechanics/`, package `PARTS.md`, package `ROADMAP.md`, and active part routes |
 

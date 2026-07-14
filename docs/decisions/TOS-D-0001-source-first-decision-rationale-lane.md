@@ -67,10 +67,8 @@ Generated indexes must stay derived from decision metadata and must not be hand-
 
 Run:
 
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-```
+The decision-lane operator route lives in `docs/decisions/AGENTS.md`; checked
+index parity and record validation live in the `generated_parity` sequence of
+`docs/validation/validation_lanes.json`.
 
 For this first landing, also run the nested guidance validator and the repository test suite because the lane adds new route-law and script surfaces.

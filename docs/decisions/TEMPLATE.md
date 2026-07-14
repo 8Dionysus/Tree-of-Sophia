@@ -44,10 +44,8 @@ Name what becomes easier, what remains constrained, and what future contributors
 
 Run:
 
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/generate_decision_indexes.py --check
-python scripts/validate_decision_records.py
-```
+Decision-index regeneration routes through `docs/decisions/AGENTS.md`.
+Checked index parity and record validation are owned by the
+`generated_parity` sequence in `docs/validation/validation_lanes.json`.
 
 Also run the validator for the owning surface the decision describes.
