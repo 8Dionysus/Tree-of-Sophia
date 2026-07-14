@@ -11,7 +11,7 @@ relations, and public routes that can be inspected and continued.
 The tree should grow. The tree wants to grow. Growth is not accumulation:
 growth is a branch that can show its root.
 
-> Current release: `v0.2.2`. See [CHANGELOG](CHANGELOG.md).
+> Current release: `v0.3.0`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
 ## Start Here
 

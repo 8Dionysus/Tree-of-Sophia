@@ -7,7 +7,62 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-13
+
+### Summary
+
+- This release grows `Tree-of-Sophia` from one hardened golden route into a
+  source-home-backed world-philosophy tree: the philosophy atlas, Table I
+  planting, graph workbench, review packets, multilingual contracts, and
+  source-returning projections now form one checked pre-canon contour.
+- Repository operations now have explicit source/mechanics topology,
+  decision rationale, validation-lane authority, local memo/eval/KAG ports,
+  portable support skills, and OS Abyss artifact trust without transferring
+  ToS meaning to runtime, proof, memory, or graph-substrate owners.
+- The release was reconstructed from Git and owner surfaces rather than from
+  the old `[Unreleased]` prose: all 70 first-parent commits from `v0.2.2`
+  through `359c817` are accounted for below, spanning 1,154 changed paths and
+  67,171 additions / 3,666 deletions. Only 7 of those 70 commits had touched
+  this changelog before release preparation.
+
+### Added
+
+- A canonical `ToS/` source home and philosophy tree with branch law, atlas
+  tables, era/region/tradition planting, prepared dossiers, source-anchor
+  backlogs, and graph-workbench surfaces that remain visibly pre-canon.
+- Whole-corpus, philosophy-atlas, graph-view, graph-projection, and
+  post-planting-audit builders, validators, schemas, tests, and derived
+  exports for review and downstream visualization handoff.
+- Semantic graph layers, review packets, clustering/view contracts, a
+  planting interface, Table I prepared branches, and runtime-readiness
+  packets that preserve source and promotion boundaries.
+- Multilingual atlas labels, language registry, text-bearing-node contract,
+  and generated language packets for reviewable language-aware planting.
+- A durable `TOS-D-####` decision-rationale lane with generated indexes and
+  fail-closed modeled-surface validation.
+- Explicit source-home and mechanics topology, operational nested route cards,
+  command-authoritative validation lanes, script/test inventories, and a
+  local eval port.
+- Local memo and KAG provider homes, including the canonical seven-index
+  repository family and source-return routes for downstream consumers.
+- A generated-readmodel artifact identity, OS Abyss bundle, evidence roots,
+  subject-store handoff, and consumer trust gate.
+- A checked portable `.agents/skills/` support foundation and session-growth
+  surfaces without making copied skills a ToS authority surface.
+
 ### Changed
+
+- Root and source-home guidance now routes contributors to the owning
+  philosophical branch, mechanic, decision, validator, or generated companion
+  instead of duplicating broad inventories in entrypoint docs.
+- Generated readmodels and graph packets now preserve source refs, semantic
+  layer meaning, multilingual labels, review posture, and deterministic
+  builder parity across the full philosophy contour.
+- Repo-local KAG publication now uses pinned deterministic full and
+  incremental parity checks and exposes entity, artifact, anchor, event,
+  assertion, and relation indexes alongside the source-surface index.
+- Canon, intake, Experience, Questbook, public-entry, graph-export, artifact,
+  decision, and route-card checks now execute from explicit owner lanes.
 
 - compacted root `README.md`, `AGENTS.md`, `DESIGN.md`, `DESIGN.AGENTS.md`,
   `BOUNDARIES.md`, and `ROADMAP.md` into route-oriented owner surfaces while
@@ -32,6 +87,116 @@ Tracking starts with the community-docs baseline for this repository.
 - reshaped root and package roadmap surfaces around AoA-style direction,
   horizon posture, future triggers, and package-local growth pressure without
   turning roadmaps into validation inventories or landing logs
+
+### Fixed
+
+- Restored strict ToS node-contract enforcement and source-side smoke canon
+  routes, including valid cron syntax.
+- Rejected path traversal through research packets, child-page label leakage,
+  unmodeled or malformed decision surfaces, and retired active naming.
+- Hardened dry-run helper shape handling, source-home scan scope, current
+  direction locks, semantic graph layers, generated projections, artifact
+  admission, and local KAG parity.
+
+### First-Parent Reconciliation (70/70)
+
+The ordered pre-release history is recorded explicitly so the 63 commits that
+were absent from the old changelog remain discoverable:
+
+1. `2e2c9e5` — Slim root AGENTS route card (#65).
+2. `adb90c0` — chore: retarget shared skill links to AbyssOS.
+3. `549ddae` — Install portable AoA skill foundation.
+4. `9aecd91` — Roll out session-growth skills and GitHub landing (#68).
+5. `5752259` — [codex] harden portable skills and traceability (#69).
+6. `7cae0d1` — Refresh session growth refs and readiness guard (#70).
+7. `a240784` — Guard dry run preview step shape (#71).
+8. `b934ed0` — Preserve dry run helper malformed shapes (#72).
+9. `ac83750` — Refresh shared AoA skill pack (#73).
+10. `7d0402a` — Refresh shared AoA skill pack (#74).
+11. `cd77aa4` — Close Tree-of-Sophia audit feedback (#75).
+12. `48cf342` — Restore strict ToS node contract (#76).
+13. `7a28de8` — Refresh aoa-summon skill export (#77).
+14. `0278961` — Refresh automation opportunity skill contracts (#78).
+15. `4f297b3` — Add memory route trigger law (#79).
+16. `6bba937` — Use canonical aoa-memo route label (#80).
+17. `40a44a4` — Add local memo port (#81).
+18. `d59766f` — Make memo validation route portable (#82).
+19. `5db2e28` — Add ToS decision rationale lane (#83).
+20. `aecfdbe` — Detect unmodeled decision lane surfaces (#84).
+21. `dcb43aa` — Honor modeled decision lane surfaces (#85).
+22. `130c436` — Normalize modeled decision surface paths (#86).
+23. `ee4abe8` — Require modeled surfaces to be explicit lists (#87).
+24. `b41f783` — Add ToS source home and philosophy tree (#88).
+25. `4163f0a` — Use operational route cards for ToS instructions (#89).
+26. `158a96d` — Refactor ToS mechanics topology (#90).
+27. `924542a` — Correct ToS authority and mechanics routing (#91).
+28. `a2ecee5` — Add ToS corpus index resource (#92).
+29. `d7603cc` — Unload ToS root validation routes.
+30. `3b65872` — Add local eval port skeleton.
+31. `8b53f39` — Tighten active naming path references (#95).
+32. `e92a7e2` — Reject traversing research packet routes (#96).
+33. `3844fd7` — Guard philosophy paths from child page labels.
+34. `e073eb8` — Add source home schema and root-scoped philosophy scan.
+35. `37743a1` — Add validation lane command authority (#99).
+36. `9bc702e` — Separate KAG export validation from release lanes (#100).
+37. `c54a20c` — Restore source-side smoke canon validators (#101).
+38. `efdb645` — Add node contract smoke validator (#102).
+39. `dfc1ae5` — Guard child page title metadata labels (#103).
+40. `cc0e325` — Add Experience contract validation lane (#104).
+41. `32c6f89` — Refactor ToS source home mechanics topology.
+42. `349b566` — Add OS Abyss readmodel artifact gate (#106).
+43. `9d71bc3` — Refactor ToS topology and Spark lane.
+44. `25bd6ff` — Add ToS graph-readiness skeleton (#108).
+45. `0ae78da` — Strengthen generated readmodel artifact trust profile (#109).
+46. `382abaf` — Add ToS philosophy atlas (#110).
+47. `5811bd9` — Add ToS philosophy atlas projection.
+48. `bb876c5` — Promote ToS readmodel evidence with trust roots (#112).
+49. `57d28d7` — Add ToS philosophy graph views.
+50. `44bff7d` — Add philosophy graph projection export (#114).
+51. `0496f56` — Add philosophy graph review contracts (#115).
+52. `2a79e5b` — Plant Table I prepared philosophy tree (#116).
+53. `3a7abdd` — Fix source-side smoke validator routes (#117).
+54. `6ec0545` — Fix source-side smoke cron syntax (#118).
+55. `7267bfd` — Prepare philosophy graph review runtime readiness (#119).
+56. `c85b51d` — Make philosophy graph layers semantic (#120).
+57. `038cead` — Align ToS roadmap surfaces.
+58. `c6151cc` — Add local KAG provider home (#122).
+59. `84372b1` — Align KAG provider validation route (#123).
+60. `afd4e1e` — Define philosophy graph planting interface (#124).
+61. `592f4b8` — Add repo-local KAG indexes (#125).
+62. `1b301cd` — Add ToS multilingual philosophy labels.
+63. `33d843e` — Add ToS multilingual planting contract (#127).
+64. `9763449` — Emit ToS text-bearing language packets (#128).
+65. `56a7109` — Strengthen current direction route lock (#129).
+66. `7e57c27` — Enforce repo-local KAG index parity (#130).
+67. `e868585` — Pin deterministic repo-local KAG index gate (#131).
+68. `c3633f4` — Add repository KAG index family (#132).
+69. `0b8312b` — Publish canonical repository KAG indexes (#133).
+70. `359c817` — Harden philosophy projections and local KAG parity (#134).
+
+### Validation
+
+- Release preparation reconciled the exact `v0.2.2..359c817` first-parent
+  history, changed-path inventory, source and mechanics topology, decisions,
+  atlas and graph sources, generated companions, local ports, artifact trust,
+  and KAG provider family rather than trusting `[Unreleased]` alone.
+- The release gate checks explicit validation authority, source/philosophy and
+  mechanics topology, mechanics-local and Experience contracts, active naming,
+  all generated graph/readmodel parity, OS Abyss artifact admission, canon and
+  intake contracts, public entry/export, local KAG and Questbook surfaces,
+  nested route cards, decisions, and the full repo-local test suite.
+
+### Notes
+
+- Atlas rows, planted Table I dossiers, graph-workbench nodes/relations, review
+  packets, multilingual packets, and derived projections remain source-linked
+  pre-canon or readmodel material until their owning review/canon routes
+  promote them.
+- Runtime visualization, proof verdicts, memory truth, shared KAG substrate,
+  and skill source authority stay with their stronger owners.
+- Release-only marker, guide, changelog, and regenerated-index commits follow
+  the 70 reconciled product and maintenance commits and are not hidden inside
+  that count.
 
 ## [0.2.2] - 2026-04-23
 
