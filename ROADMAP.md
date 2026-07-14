@@ -60,8 +60,9 @@ The current repository move is:
 
 ## Current release contour
 
-The live `v0.3.0` release contour grows the bounded root-entry line into a
-source-linked philosophy atlas and graph-review tree without widening canon:
+The live `v0.4.0` release contour grows the bounded root-entry line into a
+source-linked philosophy atlas and graph-review tree, then adds one bounded
+owner-local Table I reference measurement without widening canon:
 
 | Contour | Surfaces |
 | --- | --- |
@@ -70,6 +71,7 @@ source-linked philosophy atlas and graph-review tree without widening canon:
 | graph review and source-returning projection | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
 | multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
 | bounded export and downstream trust | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `mechanics/release-support/parts/artifact-bundles/`, `kag/` |
+| owner-local reference measurement | `stats/`, `scripts/validate_local_stats_port.py` |
 
 This contour keeps atlas rows, planted dossiers, graph-workbench material,
 multilingual packets, KAG records, and generated readmodels subordinate to
