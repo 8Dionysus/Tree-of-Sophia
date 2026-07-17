@@ -37,20 +37,17 @@ def old_experience_ref() -> str:
 
 
 class ValidateActiveNamingTests(unittest.TestCase):
-    def test_repository_kag_readmodels_are_outside_authored_naming_checks(self) -> None:
-        for filename in (
-            "source_surface_index.json",
-            "repo_entity_index.json",
-            "repo_artifact_index.json",
-            "repo_anchor_index.json",
-            "repo_event_index.json",
-            "repo_assertion_index.json",
-            "repo_relation_index.json",
+    def test_repository_kag_family_is_outside_authored_naming_checks(self) -> None:
+        for relative_path in (
+            "kag/indexes/index_family.manifest.json",
+            "kag/indexes/shards/source/00.jsonl",
+            "kag/indexes/shards/event/0.jsonl",
+            "kag/receipts/index_family_budget/digest.json",
         ):
-            with self.subTest(filename=filename):
+            with self.subTest(relative_path=relative_path):
                 self.assertTrue(
                     validate_active_naming.is_excluded(
-                        validate_active_naming.REPO_ROOT / "kag" / "indexes" / filename
+                        validate_active_naming.REPO_ROOT / relative_path
                     )
                 )
 
