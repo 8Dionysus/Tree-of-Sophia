@@ -26,15 +26,13 @@ EXCLUDED_PARTS = {
 }
 EXCLUDED_FILES = {
     "CHANGELOG.md",
-    "kag/indexes/repo_artifact_index.json",
-    "kag/indexes/repo_anchor_index.json",
-    "kag/indexes/repo_assertion_index.json",
-    "kag/indexes/repo_entity_index.json",
-    "kag/indexes/repo_event_index.json",
-    "kag/indexes/repo_relation_index.json",
-    "kag/indexes/source_surface_index.json",
+    "kag/indexes/index_family.manifest.json",
     "scripts/validate_active_naming.py",
 }
+GENERATED_KAG_PREFIXES = (
+    Path("kag/indexes/shards"),
+    Path("kag/receipts/index_family_budget"),
+)
 MECHANICS_TOPOLOGY_ROUTE = "mechanics/topology.json"
 RETIRED_TOKENS = (
     "w" + "ave",
@@ -91,7 +89,11 @@ def relative(path: Path) -> str:
 
 def is_excluded(path: Path) -> bool:
     rel = path.relative_to(REPO_ROOT)
-    return rel.as_posix() in EXCLUDED_FILES or any(part in EXCLUDED_PARTS for part in rel.parts)
+    return (
+        rel.as_posix() in EXCLUDED_FILES
+        or any(prefix == rel or prefix in rel.parents for prefix in GENERATED_KAG_PREFIXES)
+        or any(part in EXCLUDED_PARTS for part in rel.parts)
+    )
 
 
 def normalize_label_surface(value: str) -> str:

@@ -37,16 +37,8 @@ REQUIRED_RECORD_FIELDS = {
     "storage_posture",
     "consumer_route",
 }
-REPO_LOCAL_SOURCE_INDEX = Path("kag/indexes/source_surface_index.json")
-REPO_LOCAL_INDEX_PATHS = {
-    REPO_LOCAL_SOURCE_INDEX,
-    Path("kag/indexes/repo_entity_index.json"),
-    Path("kag/indexes/repo_artifact_index.json"),
-    Path("kag/indexes/repo_anchor_index.json"),
-    Path("kag/indexes/repo_event_index.json"),
-    Path("kag/indexes/repo_assertion_index.json"),
-    Path("kag/indexes/repo_relation_index.json"),
-}
+REPO_LOCAL_FAMILY_MANIFEST = Path("kag/indexes/index_family.manifest.json")
+REPO_LOCAL_BUDGET_RECEIPT_ROOT = Path("kag/receipts/index_family_budget")
 
 
 class ValidationError(RuntimeError):
@@ -164,8 +156,9 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
             fail(f"kag/{directory_name}/ must contain JSON records")
         records: list[dict[str, Any]] = []
         for path in paths:
-            relative_path = path.relative_to(REPO_ROOT).as_posix()
-            if Path(relative_path) in REPO_LOCAL_INDEX_PATHS:
+            relative = path.relative_to(REPO_ROOT)
+            relative_path = relative.as_posix()
+            if relative == REPO_LOCAL_FAMILY_MANIFEST or REPO_LOCAL_BUDGET_RECEIPT_ROOT in relative.parents:
                 continue
             record = read_json(path)
             missing = REQUIRED_RECORD_FIELDS - set(record)
@@ -187,50 +180,75 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
     return groups
 
 
-def validate_repo_local_source_index() -> None:
-    payload = read_json(REPO_ROOT / REPO_LOCAL_SOURCE_INDEX)
-    label = REPO_LOCAL_SOURCE_INDEX.as_posix()
-    if payload.get("schema_version") != "aoa-repo-local-kag-index-v2":
+def validate_repo_local_family() -> None:
+    payload = read_json(REPO_ROOT / REPO_LOCAL_FAMILY_MANIFEST)
+    label = REPO_LOCAL_FAMILY_MANIFEST.as_posix()
+    if payload.get("schema_version") != "aoa-repo-local-kag-family-manifest-v3":
         fail(f"{label} schema_version is invalid")
     repo = payload.get("repo")
     if not isinstance(repo, dict) or repo.get("name") != REPO_NAME:
         fail(f"{label} repo.name is invalid")
-    records = payload.get("records")
-    if not isinstance(records, list) or not records:
-        fail(f"{label} must keep source records")
-    coverage = payload.get("coverage_summary")
-    if not isinstance(coverage, dict) or coverage.get("record_count") != len(records):
-        fail(f"{label} coverage_summary.record_count must match records")
-    for index, record in enumerate(records):
-        if not isinstance(record, dict):
-            fail(f"{label} record {index} must be an object")
-        identity = record.get("identity")
-        if not isinstance(identity, dict):
-            fail(f"{label} record {index} must keep identity")
-        if identity.get("repo") != REPO_NAME:
-            fail(f"{label} record {index} identity.repo is invalid")
-        source_path = identity.get("path")
-        if not isinstance(source_path, str) or not source_path:
-            fail(f"{label} record {index} must keep identity.path")
-        if Path(source_path) == REPO_LOCAL_SOURCE_INDEX:
-            fail(f"{label} must not index itself")
-        absolute_path = repo_path(source_path, label=f"{label} record path")
-        if not absolute_path.is_file():
-            fail(f"{label} record path is missing: {source_path}")
-        expected_hash = sha256_source(Path(source_path), absolute_path)
-        if identity.get("content_hash") != expected_hash:
-            fail(f"{label} content_hash drifted for {source_path}")
-        signs = record.get("signs")
-        if isinstance(signs, dict) and signs.get("digest") != expected_hash:
-            fail(f"{label} signs.digest drifted for {source_path}")
-        for ref in source_refs_in(record):
-            if ref.get("repo") != REPO_NAME:
-                fail(f"{label} source ref must stay inside {REPO_NAME}")
-            ref_path = ref.get("path")
-            if not isinstance(ref_path, str) or not ref_path:
-                fail(f"{label} source ref must keep a path")
-            if not repo_path(ref_path, label=f"{label} source ref").is_file():
-                fail(f"{label} source ref is missing: {ref_path}")
+    shards = payload.get("shards")
+    if not isinstance(shards, list) or not shards:
+        fail(f"{label} must keep shards")
+    source_records = 0
+    for shard_index, shard in enumerate(shards):
+        if not isinstance(shard, dict):
+            fail(f"{label} shard {shard_index} must be an object")
+        shard_path_text = shard.get("path")
+        if not isinstance(shard_path_text, str) or not shard_path_text:
+            fail(f"{label} shard {shard_index} must keep path")
+        shard_relative = Path(shard_path_text)
+        if shard_relative.parts[:3] != ("kag", "indexes", "shards"):
+            fail(f"{label} shard {shard_index} must stay under kag/indexes/shards")
+        shard_path = repo_path(shard_path_text, label=f"{label} shard path")
+        shard_bytes = source_bytes(shard_relative, shard_path)
+        if shard.get("bytes") != len(shard_bytes):
+            fail(f"{label} bytes drifted for {shard_path_text}")
+        expected_digest = "sha256:" + hashlib.sha256(shard_bytes).hexdigest()
+        if shard.get("digest") != expected_digest:
+            fail(f"{label} digest drifted for {shard_path_text}")
+        lines = shard_bytes.splitlines()
+        if shard.get("records") != len(lines):
+            fail(f"{label} record count drifted for {shard_path_text}")
+        if shard.get("kind") != "source":
+            continue
+        source_records += len(lines)
+        for line_index, line in enumerate(lines, start=1):
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                fail(f"{shard_path_text}:{line_index} is invalid JSON: {exc}")
+            if not isinstance(record, dict) or record.get("_kind") != "source":
+                fail(f"{shard_path_text}:{line_index} must be a source record")
+            identity = record.get("identity")
+            if not isinstance(identity, dict) or identity.get("repo") != REPO_NAME:
+                fail(f"{shard_path_text}:{line_index} identity.repo is invalid")
+            source_path = identity.get("path")
+            if not isinstance(source_path, str) or not source_path:
+                fail(f"{shard_path_text}:{line_index} must keep identity.path")
+            if Path(source_path) == REPO_LOCAL_FAMILY_MANIFEST:
+                fail(f"{label} must not index itself")
+            absolute_path = repo_path(source_path, label=f"{label} record path")
+            if not absolute_path.is_file():
+                fail(f"{label} record path is missing: {source_path}")
+            expected_hash = sha256_source(Path(source_path), absolute_path)
+            if identity.get("content_hash") != expected_hash:
+                fail(f"{label} content_hash drifted for {source_path}")
+            signs = record.get("signs")
+            if isinstance(signs, dict) and signs.get("digest") != expected_hash:
+                fail(f"{label} signs.digest drifted for {source_path}")
+            for ref in source_refs_in(record):
+                if ref.get("repo") != REPO_NAME:
+                    fail(f"{label} source ref must stay inside {REPO_NAME}")
+                ref_path = ref.get("path")
+                if not isinstance(ref_path, str) or not ref_path:
+                    fail(f"{label} source ref must keep a path")
+                if not repo_path(ref_path, label=f"{label} source ref").is_file():
+                    fail(f"{label} source ref is missing: {ref_path}")
+    summary = payload.get("summary")
+    if not isinstance(summary, dict) or summary.get("source_records") != source_records:
+        fail(f"{label} summary.source_records must match source shards")
 
 
 def validate_links(groups: dict[str, list[dict[str, Any]]]) -> None:
@@ -270,7 +288,7 @@ def main() -> int:
         validate_manifest()
         groups = validate_records()
         validate_links(groups)
-        validate_repo_local_source_index()
+        validate_repo_local_family()
     except ValidationError as exc:
         print(f"[error] {exc}")
         return 1
