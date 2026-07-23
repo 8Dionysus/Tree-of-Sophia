@@ -13,6 +13,7 @@ Before editing tools here, read:
 6. `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md`
 7. `docs/decisions/AGENTS.md` when decision-index tooling is touched
 8. the schema, example, intake, decision, or tree surfaces the script actually touches
+9. `ToS/doctrine/CORPUS_FOUNDATION.md` and `ToS/source-witnesses/README.md` for source-witness catalog or validation work
 
 ## Local role
 
@@ -32,6 +33,13 @@ labels as repository topology.
 checked whole-corpus index for graph review. They index the whole `ToS/` home
 as a derived resource map; they do not move runtime projection or visualization
 authority into Tree of Sophia.
+
+`build_source_witness_catalog.py` and
+`validate_source_witness_foundation.py` protect the corpus evidence spine and
+tracked catalog. The release lane permits gitignored payload bytes to be absent
+from a public clone; an operator may add `--require-local-payloads` for the
+local laboratory. Passing this lane never implies that a human accepted the
+bibliography, text, rights, translation, or semantics.
 
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
@@ -132,4 +140,5 @@ Local owner routes:
 | philosophy post-planting audit | `python scripts/build_philosophy_post_planting_audit.py --check` and `python scripts/validate_philosophy_post_planting_audit.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
+| source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

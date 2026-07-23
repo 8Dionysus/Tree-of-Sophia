@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/laboratory-sample-plan.schema.json",
+  "title": "Tree of Sophia frozen laboratory sample plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sample_plan_id",
+    "work_ref",
+    "suite_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_variant_outputs",
+    "selection_maker",
+    "sampling_law",
+    "rights_posture",
+    "gold_layers",
+    "source_groups",
+    "review_status",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/laboratory-sample-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_laboratory_sample_plan_v1"},
+    "sample_plan_id": {"type": "string", "pattern": "^tos\\.sample-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "suite_ref": {"type": "string", "minLength": 1},
+    "status": {"enum": ["frozen", "superseded"]},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "frozen_before_variant_outputs": {"const": true},
+    "selection_maker": {"$ref": "#/$defs/maker"},
+    "sampling_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples_per_source", "gold_candidates_per_source", "strata", "selection_method", "prohibitions"],
+      "properties": {
+        "samples_per_source": {"const": 12},
+        "gold_candidates_per_source": {"const": 5},
+        "strata": {"type": "array", "minItems": 5, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "selection_method": {"type": "string", "minLength": 1},
+        "prohibitions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "rights_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_visibility", "tracked_surface", "local_content_root", "public_text_authorized"],
+      "properties": {
+        "content_visibility": {"const": "local_only"},
+        "tracked_surface": {"const": "metadata_anchors_digests_and_review_state_only"},
+        "local_content_root": {"type": "string", "minLength": 1},
+        "public_text_authorized": {"const": false}
+      }
+    },
+    "gold_layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_draft", "human_pass_1", "human_pass_2", "gold_truth_rule"],
+      "properties": {
+        "model_draft": {"enum": ["not_started", "in_progress", "complete"]},
+        "human_pass_1": {"enum": ["not_started", "in_progress", "complete"]},
+        "human_pass_2": {"enum": ["not_started", "in_progress", "complete"]},
+        "gold_truth_rule": {"const": "double_source_visible_human_acceptance_required"}
+      }
+    },
+    "source_groups": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/sourceGroup"}},
+    "review_status": {"enum": ["unreviewed", "partially_reviewed", "human_accepted", "superseded"]},
+    "review_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "plan_version": {"type": "integer", "minimum": 1},
+    "supersedes_plan_ref": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "tosId": {"type": "string", "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "method"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "method": {"type": "string", "minLength": 1}
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sample_id", "anchor_ref", "strata", "difficulty", "intended_experiment_families", "gold_candidate", "selection_rationale", "source_review_status"],
+      "properties": {
+        "sample_id": {"type": "string", "pattern": "^tos-sample-[a-z0-9-]+$"},
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "strata": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "difficulty": {"enum": ["ordinary", "hard", "adversarial"]},
+        "intended_experiment_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "retrieval", "graph", "llm-assistance", "golden-kernel-transfer"]}
+        },
+        "gold_candidate": {"type": "boolean"},
+        "selection_rationale": {"type": "string", "minLength": 1},
+        "source_review_status": {"enum": ["model_source_visible", "human_source_visible", "human_double_checked"]}
+      }
+    },
+    "sourceGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_ref", "file_sha256", "format", "sample_count", "samples"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "format": {"enum": ["pdf-vector-outline", "pdf-abbyy-text-layer", "epub-automatic-ocr"]},
+        "sample_count": {"const": 12},
+        "samples": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"$ref": "#/$defs/sample"}}
+      }
+    }
+  }
+}

@@ -2,6 +2,12 @@
 
 This document records the current eighth-phase ToS doctrine for pre-expansion soil work.
 
+This is an earlier bounded mechanics note. It does not yet define the future
+world-philosophy corpus-soil contract named by the Zarathustra golden-kernel
+architecture. That wider contract remains a separate next pass and must name
+source identity, witness, edition, language, time, place, address, and evidence
+status without treating bibliographic order as semantic canon.
+
 The wider world-thought horizon remains real.
 It is simply not active yet.
 

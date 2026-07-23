@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-07-22T22:37:48-06:00",
+  "capture_method": {
+    "maker_type": "software",
+    "name": "Internet Archive metadata API via curl",
+    "version": "curl 8.18.0"
+  },
+  "source_url": "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+  "item_page_url": "https://archive.org/details/NietzscheAlsoSprachZarathustra1893",
+  "metadata": {
+    "identifier": "NietzscheAlsoSprachZarathustra1893",
+    "identifier_ark": "ark:/13960/t9574r74x",
+    "title": "Also Sprach Zarathustra",
+    "creator": "Nietzsche, Friedrich Wilhelm, 1844-1900",
+    "date": "1893",
+    "language": "ger",
+    "publicdate": "2015-03-17 16:53:50",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/",
+    "scanner": "Internet Archive HTML5 Uploader 1.6.1",
+    "ppi": "600",
+    "ocr_converted": "abbyy-to-hocr 1.1.37",
+    "ocr_module_version": "0.0.21",
+    "pdf_degraded": "invalid-jp2-headers",
+    "item_size": 364358554
+  },
+  "file": {
+    "name": "Nietzsche_Also_sprach_Zarathustra_1893.pdf",
+    "format": "Image Container PDF",
+    "source": "original",
+    "size": 51456288,
+    "md5": "ca4fc412680cfcc98213f69761132ac6",
+    "sha1": "31322ef982e0b17594c57008b53843aedbcfb859",
+    "crc32": "48015f11"
+  },
+  "related_epub_file": {
+    "name": "Nietzsche_Also_sprach_Zarathustra_1893.epub",
+    "format": "EPUB",
+    "source": "derivative",
+    "size": 2017690,
+    "md5": "0f56595d01d5e6a4388a81bae8cbf340",
+    "sha1": "bdd8b3333eae2aa1a214723070a14a1b1fbb2132",
+    "crc32": "d28079a5"
+  },
+  "snapshot_status": "source-reported metadata; local fixity and forensic observations remain separate"
+}

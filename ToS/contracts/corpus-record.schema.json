@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json",
+  "title": "Tree of Sophia corpus identity record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_id",
+    "preferred_label",
+    "identity_status",
+    "source_refs",
+    "external_identifiers",
+    "same_as_posture",
+    "record_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_corpus_record_v1"
+    },
+    "record_type": {
+      "enum": ["agent", "work", "expression", "edition", "collection", "item"]
+    },
+    "record_id": {
+      "$ref": "#/$defs/tosId"
+    },
+    "preferred_label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variant_labels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "language", "source_ref", "status"],
+        "properties": {
+          "value": {"type": "string", "minLength": 1},
+          "language": {"$ref": "#/$defs/languageTagOrUnd"},
+          "source_ref": {"$ref": "#/$defs/sourceRef"},
+          "status": {"$ref": "#/$defs/assertionStatus"}
+        }
+      }
+    },
+    "identity_status": {
+      "enum": ["provisional", "verified", "disputed", "superseded"]
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceRef"}
+    },
+    "external_identifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scheme", "value", "source_ref", "status"],
+        "properties": {
+          "scheme": {"type": "string", "minLength": 1},
+          "value": {"type": "string", "minLength": 1},
+          "source_ref": {"$ref": "#/$defs/sourceRef"},
+          "status": {"$ref": "#/$defs/assertionStatus"}
+        }
+      }
+    },
+    "same_as_posture": {
+      "enum": ["not_assessed", "no_equivalence_claim", "candidate_equivalence", "reviewed_equivalence", "reviewed_distinct"]
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "language": {"$ref": "#/$defs/languageTagOrUnd"},
+    "expression_role": {
+      "enum": ["source_language", "translation", "adaptation", "critical_text", "other", "unknown"]
+    },
+    "responsibility_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "embodies_expression_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "edition_statement": {
+      "type": ["string", "null"]
+    },
+    "publication_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "collection_ref": {"$ref": "#/$defs/tosId"},
+    "membership_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "item_manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "notes": {"type": "string"},
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supersedes_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"record_type": {"const": "expression"}}},
+      "then": {"required": ["work_ref", "language", "expression_role", "responsibility_claim_refs"]}
+    },
+    {
+      "if": {"properties": {"record_type": {"const": "edition"}}},
+      "then": {"required": ["embodies_expression_refs", "publication_claim_refs"]}
+    },
+    {
+      "if": {"properties": {"record_type": {"const": "collection"}}},
+      "then": {"required": ["membership_claim_refs"]}
+    },
+    {
+      "if": {"properties": {"record_type": {"const": "item"}}},
+      "then": {"required": ["item_manifest_ref"]}
+    }
+  ],
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sourceRef": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "string", "format": "uri"}
+      ]
+    },
+    "assertionStatus": {
+      "enum": ["unverified", "verified", "disputed", "rejected", "superseded"]
+    },
+    "languageTagOrUnd": {
+      "type": "string",
+      "pattern": "^(und|[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$"
+    }
+  }
+}

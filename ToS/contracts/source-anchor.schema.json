@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-anchor.schema.json",
+  "title": "Tree of Sophia source anchor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "anchor_id",
+    "item_id",
+    "file_id",
+    "file_sha256",
+    "selectors",
+    "selector_method",
+    "status",
+    "provenance_event_ref",
+    "anchor_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_source_anchor_v1"},
+    "anchor_id": {"$ref": "#/$defs/tosId"},
+    "item_id": {"$ref": "#/$defs/tosId"},
+    "file_id": {"$ref": "#/$defs/tosId"},
+    "file_sha256": {"$ref": "#/$defs/sha256"},
+    "passage_id": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    },
+    "selectors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {"$ref": "#/$defs/structuralSelector"},
+          {"$ref": "#/$defs/textQuoteSelector"},
+          {"$ref": "#/$defs/textPositionSelector"},
+          {"$ref": "#/$defs/pageRegionSelector"},
+          {"$ref": "#/$defs/containerMemberSelector"}
+        ]
+      },
+      "contains": {
+        "oneOf": [
+          {"$ref": "#/$defs/structuralSelector"},
+          {"$ref": "#/$defs/textQuoteSelector"},
+          {"$ref": "#/$defs/pageRegionSelector"},
+          {"$ref": "#/$defs/containerMemberSelector"}
+        ]
+      }
+    },
+    "selector_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "method", "version"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed"]},
+        "method": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "configuration_ref": {"type": ["string", "null"]}
+      }
+    },
+    "status": {
+      "enum": ["proposed", "verified", "unresolved", "rejected", "superseded"]
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "anchor_version": {"type": "integer", "minimum": 1},
+    "supersedes_anchor_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    },
+    "review_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "structuralSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path"],
+      "properties": {
+        "type": {"const": "structural"},
+        "path": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "scheme": {"type": "string", "minLength": 1}
+      }
+    },
+    "textQuoteSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "exact", "text_layer_ref"],
+      "properties": {
+        "type": {"const": "text_quote"},
+        "exact": {"type": "string", "minLength": 1},
+        "prefix": {"type": "string"},
+        "suffix": {"type": "string"},
+        "text_layer_ref": {"type": "string", "minLength": 1},
+        "normalization": {"enum": ["none", "NFC", "NFD", "NFKC", "NFKD"]}
+      }
+    },
+    "textPositionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "start", "end", "text_layer_ref"],
+      "properties": {
+        "type": {"const": "text_position"},
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "text_layer_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "pageRegionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "page", "x", "y", "width", "height", "coordinate_space"],
+      "properties": {
+        "type": {"const": "page_region"},
+        "page": {"type": "integer", "minimum": 1},
+        "x": {"type": "number", "minimum": 0},
+        "y": {"type": "number", "minimum": 0},
+        "width": {"type": "number", "exclusiveMinimum": 0},
+        "height": {"type": "number", "exclusiveMinimum": 0},
+        "coordinate_space": {"enum": ["pixels", "points", "normalized_0_1"]},
+        "render_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "containerMemberSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "member_path", "member_sha256"],
+      "properties": {
+        "type": {"const": "container_member"},
+        "member_path": {"type": "string", "minLength": 1},
+        "member_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

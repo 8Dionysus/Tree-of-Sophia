@@ -47,7 +47,12 @@ branches can be read as graphs without losing their roots.
 
 The current repository move is:
 
-- keep Zarathustra as the golden source/canon axis, not a sample to dilute;
+- couple the world-philosophy corpus soil with Zarathustra as the first golden
+  source-to-canon learning kernel;
+- keep Zarathustra deep enough to teach observation, interpretation, refusal,
+  review, and promotion, not merely provide accepted labels;
+- transfer the kernel's method without imposing Nietzsche's ontology on other
+  branches;
 - keep the `root-entry` and `tiny-entry` seam inspectable for public entry;
 - grow `ToS/philosophy/` from atlas rows into era, region, tradition, corpus,
   work, figure, concept, institution, script, medium, source, and transmission
@@ -106,6 +111,15 @@ review the tree before canon promotion.
 | Current posture | `ToS/` is the source home; `ToS/philosophy/` is the expanding domain tree; Zarathustra remains the golden route. |
 | Next honest move | Keep branch growth attached to source anchors, review posture, and canon boundaries as the atlas expands. |
 | Guardrail | Authored philosophical meaning stays in source, branch, doctrine, review, and canon surfaces. |
+
+## Horizon: Golden Kernel And Corpus Soil
+
+| Field | Direction |
+| --- | --- |
+| Current posture | The bounded Zarathustra route proves several authored layers, while the philosophy atlas provides broad pre-canon corpus structure. The repository now names them as a golden kernel and corpus soil rather than unrelated tracks. |
+| Next honest move | Define the corpus-soil record and address spine, then define one reviewable gold-packet contract that carries observations, proposals, accepted/rejected/ambiguous outcomes, reviewer rationale, uncertainty, and version lineage through a real bounded Zarathustra slice. |
+| Transfer check | Test whether an agent can return to source, separate layers, refuse a bad label, and expose a missing distinction on unseen material before using the kernel across works. |
+| Guardrail | Stable evidence is foundational; semantic entities remain revisable. Lived witness remains first-person provenance, and Nietzsche-specific vocabulary is never a cross-corpus default. |
 
 ## Horizon: Philosophy Atlas And Branch Growth
 
@@ -166,6 +180,15 @@ trigger is real.
 - Plant the next atlas table when its prepared rows, route map, branch targets,
   and graph-workbench outputs can follow the Table I pattern without flattening
   the tree into a list.
+- Begin gold-packet implementation when the annotation-unit boundary, source
+  address, reviewer decision shape, negative/ambiguous examples, and version
+  lineage can all be exercised by one real bounded Zarathustra slice.
+- Begin corpus-soil implementation when work, witness, edition, language, time,
+  place, address, evidence status, and source-return rules can be stated without
+  smuggling interpretation into bibliographic order.
+- Attempt cross-work transfer only after an unseen-material eval can reward
+  source return, justified refusal, and schema-change pressure rather than
+  vocabulary agreement alone.
 - Promote the first Table I relation pack when review packets have exposed the
   candidate nodes, relation kinds, weak evidence, and branch-return route.
 - Add stronger source-witness routes when a prepared branch needs published

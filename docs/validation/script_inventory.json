@@ -192,6 +192,32 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_source_witness_catalog.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/**/agent.json",
+        "ToS/source-witnesses/**/work.json",
+        "ToS/source-witnesses/**/expression.json",
+        "ToS/source-witnesses/**/edition.json",
+        "ToS/source-witnesses/**/collection.json",
+        "ToS/source-witnesses/**/item.json",
+        "ToS/contracts/source-witness-catalog.schema.json"
+      ],
+      "reads": [
+        "tracked source-witness corpus identity records"
+      ],
+      "writes": [
+        "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used"
+      ],
+      "side_effects": "tracked generated source-witness navigation catalog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_root_entry_map.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -213,6 +239,30 @@
       "validation_lane": "generated_parity",
       "ci_inclusion": "release",
       "test_target": "tests/test_root_entry_map.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_source_witness_foundation.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/contracts/rights-record.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/source-witness-catalog.schema.json"
+      ],
+      "reads": [
+        "source-witness records, companions, generated catalog, and any present local payload bytes"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_source_witness_foundation.py",
       "disposition": "keep"
     },
     {

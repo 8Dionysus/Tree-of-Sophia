@@ -1,0 +1,1874 @@
+#!/usr/bin/env python3
+"""Validate the tracked source-witness evidence spine and optional local payloads.
+
+This validator proves contract shape, reference closure, generated catalog parity,
+and byte fixity. It does not prove bibliographic truth, OCR quality, translation
+quality, semantic correctness, rights clearance, or human review.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Iterable
+
+from jsonschema import FormatChecker
+from jsonschema.validators import validator_for
+
+from build_source_witness_catalog import (
+    CATALOG_ROOT,
+    RECORD_FILES,
+    SOURCE_BASENAMES,
+    SOURCE_ROOT,
+    CatalogBuildError,
+    check_outputs,
+    collect_records,
+    render_outputs,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_ROOT = Path("ToS/contracts")
+
+CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
+ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
+RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
+PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
+CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
+CATALOG_SCHEMA = CONTRACT_ROOT / "source-witness-catalog.schema.json"
+ANCHOR_SCHEMA = CONTRACT_ROOT / "source-anchor.schema.json"
+SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "laboratory-sample-plan.schema.json"
+OCR_VISUAL_SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "ocr-visual-sample-plan.schema.json"
+GOLD_STATUS_SCHEMA = CONTRACT_ROOT / "manual-gold-status.schema.json"
+TRANSLATION_SAMPLE_SCHEMA = CONTRACT_ROOT / "translation-sample-plan.schema.json"
+TRANSLATION_SOURCE_REVIEW_SCHEMA = (
+    CONTRACT_ROOT / "translation-source-review-plan.schema.json"
+)
+TRANSLATION_LABORATORY_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "translation-laboratory-plan.schema.json"
+)
+TRANSLATION_REFERENCE_REGISTER_SCHEMA = (
+    CONTRACT_ROOT / "translation-reference-register.schema.json"
+)
+TRANSLATION_PRE_DRAFT_ANALYSIS_SCHEMA = (
+    CONTRACT_ROOT / "translation-pre-draft-analysis.schema.json"
+)
+TRANSLATION_PACKET_SCHEMA = CONTRACT_ROOT / "translation-packet.schema.json"
+SEMANTIC_LADDER_PACKET_SCHEMA = CONTRACT_ROOT / "semantic-ladder-packet.schema.json"
+GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "golden-kernel-transfer-plan.schema.json"
+)
+SOURCE_GATED_EVALUATION_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "source-gated-evaluation-plan.schema.json"
+)
+MATERIAL_DISCOVERY_SCHEMA = CONTRACT_ROOT / "material-discovery-record.schema.json"
+ACCESS_REQUEST_SCHEMA = CONTRACT_ROOT / "access-request.schema.json"
+SERVER_IMPORT_SCHEMA = CONTRACT_ROOT / "server-import-contract.schema.json"
+RETRIEVAL_QUERY_SCHEMA = CONTRACT_ROOT / "retrieval-query-plan.schema.json"
+GRAPH_QUERY_SCHEMA = CONTRACT_ROOT / "graph-query-plan.schema.json"
+
+Issue = tuple[str, str]
+
+
+def _load_json(path: Path, repo_root: Path, issues: list[Issue]) -> dict[str, Any] | None:
+    relative = _relative(path, repo_root)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        issues.append((relative, "file is missing"))
+        return None
+    except (OSError, json.JSONDecodeError) as exc:
+        issues.append((relative, f"cannot read JSON: {exc}"))
+        return None
+    if not isinstance(payload, dict):
+        issues.append((relative, "JSON root must be an object"))
+        return None
+    return payload
+
+
+def _load_jsonl(path: Path, repo_root: Path, issues: list[Issue]) -> list[dict[str, Any]]:
+    relative = _relative(path, repo_root)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        issues.append((relative, "file is missing"))
+        return []
+    except OSError as exc:
+        issues.append((relative, f"cannot read JSONL: {exc}"))
+        return []
+
+    payloads: list[dict[str, Any]] = []
+    for number, line in enumerate(lines, start=1):
+        if not line.strip():
+            issues.append((f"{relative}:{number}", "blank JSONL line is not allowed"))
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            issues.append((f"{relative}:{number}", f"invalid JSON: {exc}"))
+            continue
+        if not isinstance(payload, dict):
+            issues.append((f"{relative}:{number}", "JSONL record must be an object"))
+            continue
+        payloads.append(payload)
+    return payloads
+
+
+def _relative(path: Path, repo_root: Path) -> str:
+    try:
+        return path.relative_to(repo_root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _schema_validator(schema_path: Path, repo_root: Path):
+    schema = json.loads((repo_root / schema_path).read_text(encoding="utf-8"))
+    validator_class = validator_for(schema)
+    validator_class.check_schema(schema)
+    return validator_class(schema, format_checker=FormatChecker()), schema
+
+
+def _validate_payload(
+    payload: object,
+    validator: Any,
+    location: str,
+    issues: list[Issue],
+) -> None:
+    for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.absolute_path)):
+        suffix = "".join(f"[{part!r}]" for part in error.absolute_path)
+        issues.append((f"{location}{suffix}", error.message))
+
+
+def _repo_ref_exists(repo_root: Path, ref: object) -> bool:
+    return isinstance(ref, str) and (not ref.startswith("ToS/") or (repo_root / ref).exists())
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _git_ignored(repo_root: Path, path: Path) -> bool | None:
+    if not (repo_root / ".git").exists():
+        return None
+    result = subprocess.run(
+        ("git", "check-ignore", "--quiet", "--", _relative(path, repo_root)),
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    return None
+
+
+def validate_payload_file(
+    repo_root: Path,
+    item_directory: Path,
+    payload_entry: dict[str, Any],
+    *,
+    require_local_payloads: bool,
+) -> list[Issue]:
+    """Validate one manifest payload entry; public clones may omit local bytes."""
+
+    issues: list[Issue] = []
+    location = _relative(item_directory / "item.manifest.json", repo_root)
+    relative_path = payload_entry.get("relative_path")
+    if not isinstance(relative_path, str):
+        return [(location, "payload relative_path is not a string")]
+
+    payload_path = item_directory / relative_path
+    if not payload_path.is_file():
+        if require_local_payloads:
+            issues.append((_relative(payload_path, repo_root), "required local payload is missing"))
+        return issues
+
+    expected_size = payload_entry.get("byte_size")
+    actual_size = payload_path.stat().st_size
+    if actual_size != expected_size:
+        issues.append(
+            (_relative(payload_path, repo_root), f"byte size {actual_size} != manifest {expected_size}")
+        )
+
+    expected_digest = payload_entry.get("sha256")
+    actual_digest = _sha256(payload_path)
+    if actual_digest != expected_digest:
+        issues.append(
+            (_relative(payload_path, repo_root), f"sha256 {actual_digest} != manifest {expected_digest}")
+        )
+
+    ignored = _git_ignored(repo_root, payload_path)
+    if ignored is False:
+        issues.append((_relative(payload_path, repo_root), "local payload is not ignored by Git"))
+    elif ignored is None and (repo_root / ".git").exists():
+        issues.append((_relative(payload_path, repo_root), "could not determine Git ignore posture"))
+    return issues
+
+
+def _validate_source_refs(repo_root: Path, payload: dict[str, Any], location: str, issues: list[Issue]) -> None:
+    refs: list[object] = []
+    for field in ("source_refs", "source_record_refs", "receipt_refs"):
+        value = payload.get(field, [])
+        if isinstance(value, list):
+            refs.extend(value)
+    for field in ("rights_ref", "provenance_ref", "forensic_report_ref", "item_manifest_ref"):
+        if field in payload:
+            refs.append(payload[field])
+    for ref in refs:
+        if not _repo_ref_exists(repo_root, ref):
+            issues.append((location, f"repository reference does not exist: {ref}"))
+
+
+def _record_paths(repo_root: Path) -> Iterable[Path]:
+    source_root = repo_root / SOURCE_ROOT
+    for basename in SOURCE_BASENAMES.values():
+        for path in sorted(source_root.rglob(basename)):
+            if CATALOG_ROOT in path.relative_to(repo_root).parents:
+                continue
+            yield path
+
+
+def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+
+    try:
+        corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
+        manifest_validator, _ = _schema_validator(ITEM_MANIFEST_SCHEMA, repo_root)
+        rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
+        provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
+        claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
+        anchor_validator, _ = _schema_validator(ANCHOR_SCHEMA, repo_root)
+        sample_plan_validator, _ = _schema_validator(SAMPLE_PLAN_SCHEMA, repo_root)
+        ocr_visual_sample_plan_validator, _ = _schema_validator(
+            OCR_VISUAL_SAMPLE_PLAN_SCHEMA,
+            repo_root,
+        )
+        gold_status_validator, _ = _schema_validator(GOLD_STATUS_SCHEMA, repo_root)
+        translation_sample_validator, _ = _schema_validator(TRANSLATION_SAMPLE_SCHEMA, repo_root)
+        translation_source_review_validator, _ = _schema_validator(
+            TRANSLATION_SOURCE_REVIEW_SCHEMA,
+            repo_root,
+        )
+        translation_laboratory_plan_validator, _ = _schema_validator(
+            TRANSLATION_LABORATORY_PLAN_SCHEMA,
+            repo_root,
+        )
+        translation_reference_register_validator, _ = _schema_validator(
+            TRANSLATION_REFERENCE_REGISTER_SCHEMA,
+            repo_root,
+        )
+        _schema_validator(TRANSLATION_PRE_DRAFT_ANALYSIS_SCHEMA, repo_root)
+        _schema_validator(TRANSLATION_PACKET_SCHEMA, repo_root)
+        _schema_validator(SEMANTIC_LADDER_PACKET_SCHEMA, repo_root)
+        golden_kernel_transfer_plan_validator, _ = _schema_validator(
+            GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA,
+            repo_root,
+        )
+        source_gated_evaluation_plan_validator, _ = _schema_validator(
+            SOURCE_GATED_EVALUATION_PLAN_SCHEMA,
+            repo_root,
+        )
+        material_discovery_validator, _ = _schema_validator(
+            MATERIAL_DISCOVERY_SCHEMA,
+            repo_root,
+        )
+        access_request_validator, _ = _schema_validator(ACCESS_REQUEST_SCHEMA, repo_root)
+        server_import_validator, _ = _schema_validator(SERVER_IMPORT_SCHEMA, repo_root)
+        retrieval_query_validator, _ = _schema_validator(RETRIEVAL_QUERY_SCHEMA, repo_root)
+        graph_query_validator, _ = _schema_validator(GRAPH_QUERY_SCHEMA, repo_root)
+        catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
+    except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
+        return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
+
+    records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
+    item_records: dict[str, tuple[dict[str, Any], Path]] = {}
+    for path in _record_paths(repo_root):
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        location = _relative(path, repo_root)
+        _validate_payload(payload, corpus_validator, location, issues)
+        _validate_source_refs(repo_root, payload, location, issues)
+        record_id = payload.get("record_id")
+        if isinstance(record_id, str):
+            if record_id in records_by_id:
+                issues.append((location, f"duplicate record_id: {record_id}"))
+            else:
+                records_by_id[record_id] = (payload, path)
+            if payload.get("record_type") == "item":
+                item_records[record_id] = (payload, path)
+
+    def require_record(ref: object, expected_type: str, location: str) -> None:
+        if not isinstance(ref, str):
+            return
+        target = records_by_id.get(ref)
+        if target is None:
+            issues.append((location, f"unresolved {expected_type} reference: {ref}"))
+        elif target[0].get("record_type") != expected_type:
+            issues.append((location, f"{ref} resolves to {target[0].get('record_type')}, expected {expected_type}"))
+
+    for record_id, (payload, path) in records_by_id.items():
+        location = _relative(path, repo_root)
+        if payload.get("record_type") == "expression":
+            require_record(payload.get("work_ref"), "work", location)
+        elif payload.get("record_type") == "edition":
+            for ref in payload.get("embodies_expression_refs", []):
+                require_record(ref, "expression", location)
+            if "collection_ref" in payload:
+                require_record(payload.get("collection_ref"), "collection", location)
+
+    event_ids: set[str] = set()
+    claim_ids: set[str] = set()
+    rights_ids: set[str] = set()
+    manifest_item_ids: set[str] = set()
+    item_edition_by_id: dict[str, str] = {}
+    file_owner_by_id: dict[str, str] = {}
+    file_digest_by_id: dict[str, str] = {}
+
+    for manifest_path in sorted((repo_root / SOURCE_ROOT).rglob("item.manifest.json")):
+        manifest = _load_json(manifest_path, repo_root, issues)
+        if manifest is None:
+            continue
+        location = _relative(manifest_path, repo_root)
+        _validate_payload(manifest, manifest_validator, location, issues)
+        _validate_source_refs(repo_root, manifest, location, issues)
+        item_id = manifest.get("item_id")
+        if isinstance(item_id, str):
+            manifest_item_ids.add(item_id)
+            require_record(item_id, "item", location)
+            embodiment_ref = manifest.get("embodiment_ref")
+            if isinstance(embodiment_ref, str):
+                item_edition_by_id[item_id] = embodiment_ref
+        require_record(manifest.get("embodiment_ref"), "edition", location)
+
+        item_directory = manifest_path.parent
+        rights_path = repo_root / str(manifest.get("rights_ref", ""))
+        rights = _load_json(rights_path, repo_root, issues)
+        if rights is not None:
+            rights_location = _relative(rights_path, repo_root)
+            _validate_payload(rights, rights_validator, rights_location, issues)
+            _validate_source_refs(repo_root, rights, rights_location, issues)
+            rights_id = rights.get("rights_id")
+            if isinstance(rights_id, str):
+                rights_ids.add(rights_id)
+            scopes = rights.get("scope_refs", [])
+            if item_id not in scopes:
+                issues.append((rights_location, f"scope_refs does not include item_id {item_id}"))
+            if rights.get("visibility") != manifest.get("visibility"):
+                issues.append((rights_location, "rights visibility differs from item manifest visibility"))
+
+        provenance_path = repo_root / str(manifest.get("provenance_ref", ""))
+        local_event_ids: set[str] = set()
+        for index, event in enumerate(_load_jsonl(provenance_path, repo_root, issues), start=1):
+            event_location = f"{_relative(provenance_path, repo_root)}:{index}"
+            _validate_payload(event, provenance_validator, event_location, issues)
+            _validate_source_refs(repo_root, event, event_location, issues)
+            event_id = event.get("event_id")
+            if isinstance(event_id, str):
+                if event_id in event_ids:
+                    issues.append((event_location, f"duplicate event_id: {event_id}"))
+                event_ids.add(event_id)
+                local_event_ids.add(event_id)
+        acquisition_ref = manifest.get("acquisition_event_ref")
+        if acquisition_ref not in local_event_ids:
+            issues.append((location, f"acquisition_event_ref is absent from provenance: {acquisition_ref}"))
+
+        fixity_path = item_directory / "fixity.sha256"
+        try:
+            actual_fixity = fixity_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            issues.append((_relative(fixity_path, repo_root), "fixity companion is missing"))
+            actual_fixity = ""
+        expected_lines: list[str] = []
+        file_ids: set[str] = set()
+        for payload_entry in manifest.get("payload_files", []):
+            if not isinstance(payload_entry, dict):
+                continue
+            expected_lines.append(f"{payload_entry.get('sha256')}  {payload_entry.get('relative_path')}")
+            file_id = payload_entry.get("file_id")
+            if isinstance(file_id, str):
+                file_ids.add(file_id)
+                if isinstance(item_id, str):
+                    existing_owner = file_owner_by_id.get(file_id)
+                    if existing_owner is not None and existing_owner != item_id:
+                        issues.append((location, f"file_id {file_id} belongs to multiple items"))
+                    file_owner_by_id[file_id] = item_id
+                file_digest = payload_entry.get("sha256")
+                if isinstance(file_digest, str):
+                    file_digest_by_id[file_id] = file_digest
+            issues.extend(
+                validate_payload_file(
+                    repo_root,
+                    item_directory,
+                    payload_entry,
+                    require_local_payloads=require_local_payloads,
+                )
+            )
+        expected_fixity = "\n".join(expected_lines) + ("\n" if expected_lines else "")
+        if actual_fixity and actual_fixity != expected_fixity:
+            issues.append((_relative(fixity_path, repo_root), "fixity companion differs from item manifest"))
+        if rights is not None:
+            rights_scopes = set(rights.get("scope_refs", []))
+            missing_file_scopes = sorted(file_ids - rights_scopes)
+            if missing_file_scopes:
+                issues.append((_relative(rights_path, repo_root), f"scope_refs omits payload files: {missing_file_scopes}"))
+
+    for item_id, (item, path) in item_records.items():
+        location = _relative(path, repo_root)
+        if item_id not in manifest_item_ids:
+            issues.append((location, "item record has no validated item.manifest.json"))
+        manifest_ref = item.get("item_manifest_ref")
+        if isinstance(manifest_ref, str):
+            manifest = _load_json(repo_root / manifest_ref, repo_root, issues)
+            if manifest is not None and manifest.get("item_id") != item_id:
+                issues.append((manifest_ref, f"manifest item_id does not match {item_id}"))
+
+    gold_roots = sorted(
+        path
+        for path in (repo_root / SOURCE_ROOT).rglob("gold-sets/*")
+        if path.is_dir()
+    )
+    seen_anchor_ids: set[str] = set()
+    for gold_root in gold_roots:
+        gold_location = _relative(gold_root, repo_root)
+        sample_path = gold_root / "sample-plan.json"
+        ocr_sample_path = gold_root / "ocr-visual-samples.json"
+        ocr_anchor_path = gold_root / "ocr-anchors.jsonl"
+        gold_status_path = gold_root / "gold-status.json"
+        translation_path = gold_root / "translation-samples.json"
+        translation_source_review_path = gold_root / "translation-source-review-plan.v2.json"
+        translation_laboratory_path = gold_root / "translation-laboratory-plan.v1.json"
+        translation_reference_register_path = (
+            gold_root / "translation-reference-register.v1.json"
+        )
+        transfer_path = gold_root / "transfer-samples.json"
+        semantic_samples_path = gold_root / "semantic-samples.json"
+        llm_tasks_path = gold_root / "llm-tasks.json"
+        retrieval_path = gold_root / "retrieval-queries.json"
+        graph_claims_path = gold_root / "graph-claims.jsonl"
+        graph_queries_path = gold_root / "graph-queries.json"
+        provenance_path = gold_root / "provenance.jsonl"
+        graph_provenance_path = gold_root / "graph-provenance.jsonl"
+        transfer_provenance_path = gold_root / "transfer-provenance.jsonl"
+        evaluation_provenance_path = gold_root / "evaluation-provenance.jsonl"
+        anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
+        if ocr_anchor_path.is_file():
+            anchor_paths.append(ocr_anchor_path)
+
+        sample_plan = _load_json(sample_path, repo_root, issues)
+        ocr_sample_plan = (
+            _load_json(ocr_sample_path, repo_root, issues)
+            if ocr_sample_path.is_file()
+            else None
+        )
+        gold_status = _load_json(gold_status_path, repo_root, issues)
+        translation_plan = _load_json(translation_path, repo_root, issues)
+        translation_source_review_plan = (
+            _load_json(translation_source_review_path, repo_root, issues)
+            if translation_source_review_path.is_file()
+            else None
+        )
+        translation_laboratory_plan = (
+            _load_json(translation_laboratory_path, repo_root, issues)
+            if translation_laboratory_path.is_file()
+            else None
+        )
+        translation_reference_register = (
+            _load_json(translation_reference_register_path, repo_root, issues)
+            if translation_reference_register_path.is_file()
+            else None
+        )
+        transfer_plan = _load_json(transfer_path, repo_root, issues)
+        semantic_samples_plan = _load_json(semantic_samples_path, repo_root, issues)
+        llm_tasks_plan = _load_json(llm_tasks_path, repo_root, issues)
+        retrieval_plan = _load_json(retrieval_path, repo_root, issues)
+        graph_query_plan = _load_json(graph_queries_path, repo_root, issues)
+        if sample_plan is not None:
+            _validate_payload(sample_plan, sample_plan_validator, _relative(sample_path, repo_root), issues)
+        if ocr_sample_plan is not None:
+            _validate_payload(
+                ocr_sample_plan,
+                ocr_visual_sample_plan_validator,
+                _relative(ocr_sample_path, repo_root),
+                issues,
+            )
+        if ocr_sample_path.is_file() != ocr_anchor_path.is_file():
+            issues.append(
+                (
+                    gold_location,
+                    "OCR visual sample plan and OCR anchor companion must either both exist or both be absent",
+                )
+            )
+        if gold_status is not None:
+            _validate_payload(gold_status, gold_status_validator, _relative(gold_status_path, repo_root), issues)
+        if translation_plan is not None:
+            _validate_payload(
+                translation_plan,
+                translation_sample_validator,
+                _relative(translation_path, repo_root),
+                issues,
+            )
+        if transfer_plan is not None:
+            _validate_payload(
+                transfer_plan,
+                golden_kernel_transfer_plan_validator,
+                _relative(transfer_path, repo_root),
+                issues,
+            )
+        for evaluation_path, evaluation_plan in (
+            (semantic_samples_path, semantic_samples_plan),
+            (llm_tasks_path, llm_tasks_plan),
+        ):
+            if evaluation_plan is not None:
+                _validate_payload(
+                    evaluation_plan,
+                    source_gated_evaluation_plan_validator,
+                    _relative(evaluation_path, repo_root),
+                    issues,
+                )
+        if translation_source_review_plan is not None:
+            review_location = _relative(translation_source_review_path, repo_root)
+            _validate_payload(
+                translation_source_review_plan,
+                translation_source_review_validator,
+                review_location,
+                issues,
+            )
+            supersedes = translation_source_review_plan.get("supersedes", {})
+            expected_plan_ref = _relative(translation_path, repo_root)
+            if supersedes.get("v1_plan_ref") != expected_plan_ref:
+                issues.append((review_location, "v2 source review plan does not cite its v1 plan"))
+            if translation_path.is_file() and supersedes.get("v1_plan_sha256") != _sha256(
+                translation_path
+            ):
+                issues.append((review_location, "v1 translation plan digest drifted"))
+            inspection_ref = supersedes.get("v1_inspection_ref")
+            inspection_path = repo_root / str(inspection_ref or "")
+            inspection = None
+            if not isinstance(inspection_ref, str) or not inspection_path.is_file():
+                issues.append((review_location, "v1 selector inspection reference is unresolved"))
+            else:
+                if supersedes.get("v1_inspection_sha256") != _sha256(inspection_path):
+                    issues.append((review_location, "v1 selector inspection digest drifted"))
+                inspection = _load_json(inspection_path, repo_root, issues)
+
+            units = translation_source_review_plan.get("units", [])
+            fragments = translation_plan.get("fragments", []) if translation_plan else []
+            inspection_records = inspection.get("records", []) if inspection else []
+            if len(units) != len(fragments) or len(units) != len(inspection_records):
+                issues.append(
+                    (review_location, "v2 units do not close over all v1 fragments and inspections")
+                )
+            strategy_counts = {
+                "confirm_visible_prose": 0,
+                "first_new_unit_after_tail": 0,
+                "first_prose_after_heading": 0,
+                "resolve_cross_page_boundary": 0,
+            }
+            strategy_keys = {
+                "confirm-visible-complete-prose-unit-without-reusing-v1-text": "confirm_visible_prose",
+                "identify-first-new-complete-prose-unit-using-page-triplet": "first_new_unit_after_tail",
+                "identify-first-prose-unit-after-visible-heading": "first_prose_after_heading",
+                "resolve-cross-page-boundary-before-unit-selection": "resolve_cross_page_boundary",
+            }
+            seen_review_ids: set[object] = set()
+            for index, (unit, fragment, inspection_record) in enumerate(
+                zip(units, fragments, inspection_records, strict=False),
+                start=1,
+            ):
+                if not all(isinstance(row, dict) for row in (unit, fragment, inspection_record)):
+                    continue
+                unit_id = unit.get("review_unit_id")
+                if unit_id in seen_review_ids:
+                    issues.append((review_location, f"duplicate review_unit_id: {unit_id}"))
+                seen_review_ids.add(unit_id)
+                expected_unit_id = f"tos-translation-source-review-v2-{index:03d}"
+                if unit_id != expected_unit_id:
+                    issues.append((review_location, f"unit {index} must be {expected_unit_id}"))
+                expected_fields = {
+                    "supersedes_fragment_id": fragment.get("fragment_id"),
+                    "context_anchor_ref": fragment.get("source_anchor_ref"),
+                    "container_member": fragment.get("container_member"),
+                    "member_sha256": fragment.get("member_sha256"),
+                    "v1_inspection_decision": inspection_record.get("decision"),
+                }
+                for key, expected in expected_fields.items():
+                    if unit.get(key) != expected:
+                        issues.append((review_location, f"{unit_id}.{key} drifted from v1 evidence"))
+                context = unit.get("visual_context", {})
+                current_page = int(fragment.get("page_member_index", -2)) + 1
+                if context != {
+                    "previous_pdf_page": current_page - 1,
+                    "current_pdf_page": current_page,
+                    "next_pdf_page": current_page + 1,
+                }:
+                    issues.append((review_location, f"{unit_id}.visual_context is not the exact page triplet"))
+
+                relevant_signals = [
+                    signal
+                    for signal in inspection_record.get("signals", [])
+                    if signal
+                    in {
+                        "heading-selected",
+                        "page-start-tail",
+                        "ocr-contamination",
+                        "page-start-boundary-unverified",
+                        "transcription-uncertain",
+                    }
+                ]
+                if inspection_record.get("decision") == "accept-with-limits":
+                    relevant_signals.insert(0, "candidate-usable-with-limits")
+                if unit.get("v1_failure_signals") != relevant_signals:
+                    issues.append((review_location, f"{unit_id}.v1_failure_signals drifted"))
+
+                strategy_key = strategy_keys.get(unit.get("selection_instruction"))
+                if strategy_key is not None:
+                    strategy_counts[strategy_key] += 1
+            if translation_source_review_plan.get("selection_strategy_counts") != strategy_counts:
+                issues.append((review_location, "selection_strategy_counts do not match v2 units"))
+
+            if translation_plan is not None:
+                if translation_source_review_plan.get("source_witness") != {
+                    "item_ref": translation_plan.get("source_item_ref"),
+                    "file_ref": translation_plan.get("source_file_ref"),
+                    "file_sha256": translation_plan.get("source_file_sha256"),
+                    "role": "automatic-ocr-derivative-not-source-truth",
+                }:
+                    issues.append((review_location, "v2 source witness drifted from v1 source identity"))
+                comparator = translation_source_review_plan.get("recognized_comparator", {})
+                v1_comparator = translation_plan.get("recognized_comparator", {})
+                for key in ("expression_ref", "item_ref", "visibility", "reveal_stage"):
+                    if comparator.get(key) != v1_comparator.get(key):
+                        issues.append((review_location, f"recognized comparator {key} drifted"))
+        if translation_laboratory_plan is not None:
+            laboratory_location = _relative(translation_laboratory_path, repo_root)
+            _validate_payload(
+                translation_laboratory_plan,
+                translation_laboratory_plan_validator,
+                laboratory_location,
+                issues,
+            )
+            source_gate = translation_laboratory_plan.get("source_review_gate", {})
+            if source_gate.get("review_plan_ref") != _relative(
+                translation_source_review_path,
+                repo_root,
+            ):
+                issues.append(
+                    (laboratory_location, "translation laboratory does not cite its v2 source-review plan")
+                )
+            if translation_source_review_path.is_file() and source_gate.get(
+                "review_plan_sha256"
+            ) != _sha256(translation_source_review_path):
+                issues.append((laboratory_location, "translation source-review plan digest drifted"))
+            if translation_plan is not None:
+                if translation_laboratory_plan.get("work_ref") != translation_plan.get("work_ref"):
+                    issues.append((laboratory_location, "translation laboratory work_ref drifted"))
+                if translation_laboratory_plan.get(
+                    "source_expression_ref"
+                ) != translation_plan.get("source_expression_ref"):
+                    issues.append(
+                        (laboratory_location, "translation laboratory source_expression_ref drifted")
+                    )
+                laboratory_comparator = translation_laboratory_plan.get(
+                    "recognized_comparator", {}
+                )
+                sample_comparator = translation_plan.get("recognized_comparator", {})
+                for key in ("expression_ref", "item_ref", "visibility"):
+                    if laboratory_comparator.get(key) != sample_comparator.get(key):
+                        issues.append(
+                            (laboratory_location, f"translation laboratory comparator {key} drifted")
+                        )
+            for ref_field in (
+                "translation_packet_schema_ref",
+                "semantic_ladder_schema_ref",
+            ):
+                ref = translation_laboratory_plan.get(ref_field)
+                if not isinstance(ref, str) or not (repo_root / ref).is_file():
+                    issues.append(
+                        (laboratory_location, f"translation laboratory {ref_field} is unresolved")
+                    )
+            accepted_units = source_gate.get("current_human_accepted_units")
+            if isinstance(accepted_units, int) and accepted_units < 30:
+                if translation_laboratory_plan.get("status") != (
+                    "frozen-blocked-on-human-source-acceptance"
+                ):
+                    issues.append(
+                        (laboratory_location, "pre-acceptance translation laboratory is not blocked")
+                    )
+                for lane_name, lane in translation_laboratory_plan.get(
+                    "blind_lanes", {}
+                ).items():
+                    if not isinstance(lane, dict) or lane.get("state") != (
+                        "blocked-on-source-acceptance"
+                    ):
+                        issues.append(
+                            (laboratory_location, f"pre-acceptance lane {lane_name} is not blocked")
+                        )
+                comparator = translation_laboratory_plan.get("recognized_comparator", {})
+                if comparator.get("visibility") != "sealed" or any(
+                    comparator.get(key) is not False
+                    for key in ("content_consulted", "content_emitted")
+                ):
+                    issues.append(
+                        (laboratory_location, "pre-acceptance comparator is not completely sealed")
+                    )
+        if translation_laboratory_plan is not None and translation_reference_register is None:
+            issues.append(
+                (
+                    gold_location,
+                    "translation laboratory has no translation-reference-register.v1.json",
+                )
+            )
+        if translation_reference_register is not None:
+            register_location = _relative(translation_reference_register_path, repo_root)
+            _validate_payload(
+                translation_reference_register,
+                translation_reference_register_validator,
+                register_location,
+                issues,
+            )
+
+            expected_laboratory_ref = _relative(translation_laboratory_path, repo_root)
+            if (
+                translation_reference_register.get("laboratory_plan_ref")
+                != expected_laboratory_ref
+            ):
+                issues.append(
+                    (register_location, "translation reference register does not cite its laboratory plan")
+                )
+            if translation_laboratory_plan is not None and (
+                translation_reference_register.get("work_ref")
+                != translation_laboratory_plan.get("work_ref")
+            ):
+                issues.append((register_location, "translation reference register work_ref drifted"))
+
+            entries = translation_reference_register.get("entries", [])
+            required_categories = set(
+                translation_reference_register.get("required_categories", [])
+            )
+            actual_categories: set[object] = set()
+            reference_ids: set[object] = set()
+            human_bibliographic_reviews = 0
+            human_rights_reviews = 0
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                reference_id = entry.get("reference_id")
+                if reference_id in reference_ids:
+                    issues.append(
+                        (register_location, f"duplicate translation reference_id: {reference_id}")
+                    )
+                reference_ids.add(reference_id)
+                actual_categories.add(entry.get("category"))
+
+                access = entry.get("access", {})
+                if isinstance(access, dict):
+                    access_state = access.get("access_state")
+                    request_required = access.get(
+                        "access_request_required_before_content_use"
+                    )
+                    contact_routes = access.get("contact_routes", [])
+                    request_state = access.get("request_state")
+                    if request_required is True and not contact_routes:
+                        issues.append(
+                            (register_location, f"{reference_id} requires access but has no contact route")
+                        )
+                    if request_required is True and request_state == (
+                        "not-required-for-web-consultation"
+                    ):
+                        issues.append(
+                            (register_location, f"{reference_id} suppresses its required access route")
+                        )
+                    if access_state in {"open-web", "open-download-candidate"} and (
+                        request_required is not False
+                    ):
+                        issues.append(
+                            (register_location, f"{reference_id} marks open consultation as request-gated")
+                        )
+
+                rights = entry.get("rights", {})
+                if isinstance(rights, dict):
+                    assessment = rights.get("assessment")
+                    if assessment == "declared-license" and not rights.get("license_uri"):
+                        issues.append(
+                            (register_location, f"{reference_id} declares a license without its URI")
+                        )
+                    if assessment in {"in-copyright", "copyright-not-evaluated"} and (
+                        rights.get("redistribution") == "authorized-with-conditions"
+                        or rights.get("derivative_use") == "allowed-with-conditions"
+                    ):
+                        issues.append(
+                            (register_location, f"{reference_id} grants reuse without a reviewed license")
+                        )
+
+                admission = entry.get("admission", {})
+                if isinstance(admission, dict):
+                    human_bibliographic_reviews += int(
+                        admission.get("human_bibliographic_review") is True
+                    )
+                    human_rights_reviews += int(admission.get("human_rights_review") is True)
+
+                tos_refs = entry.get("tos_refs", {})
+                if isinstance(tos_refs, dict):
+                    for record_ref in tos_refs.get("record_refs", []):
+                        if not isinstance(record_ref, str):
+                            continue
+                        known = (
+                            record_ref in rights_ids
+                            if record_ref.startswith("tos.rights.")
+                            else record_ref in records_by_id
+                        )
+                        if not known:
+                            issues.append(
+                                (register_location, f"{reference_id} has unresolved record ref: {record_ref}")
+                            )
+                    for path_ref in tos_refs.get("path_refs", []):
+                        if not isinstance(path_ref, str) or not (repo_root / path_ref).is_file():
+                            issues.append(
+                                (register_location, f"{reference_id} has unresolved path ref: {path_ref}")
+                            )
+
+            missing_categories = sorted(required_categories - actual_categories)
+            if missing_categories:
+                issues.append(
+                    (register_location, f"translation reference categories are missing: {missing_categories}")
+                )
+            coverage = translation_reference_register.get("coverage", {})
+            if isinstance(coverage, dict):
+                expected_coverage = {
+                    "required_category_count": len(required_categories),
+                    "entry_count": len(entries),
+                    "all_required_categories_present": not missing_categories,
+                    "content_admitted_entries": 0,
+                    "human_bibliographic_reviews": human_bibliographic_reviews,
+                    "human_rights_reviews": human_rights_reviews,
+                    "permission_requests_sent": 0,
+                }
+                if coverage != expected_coverage:
+                    issues.append(
+                        (register_location, "translation reference coverage summary drifted")
+                    )
+
+            if translation_laboratory_plan is not None:
+                comparator = translation_laboratory_plan.get("recognized_comparator", {})
+                comparator_expression = comparator.get("expression_ref")
+                comparator_item = comparator.get("item_ref")
+                comparator_entries = [
+                    entry
+                    for entry in entries
+                    if isinstance(entry, dict)
+                    and entry.get("category") == "recognized_ru_translation_candidate"
+                    and {
+                        comparator_expression,
+                        comparator_item,
+                    }.issubset(set(entry.get("tos_refs", {}).get("record_refs", [])))
+                ]
+                if len(comparator_entries) != 1:
+                    issues.append(
+                        (
+                            register_location,
+                            "sealed recognized comparator must resolve to exactly one reference entry",
+                        )
+                    )
+        if retrieval_plan is not None:
+            _validate_payload(
+                retrieval_plan,
+                retrieval_query_validator,
+                _relative(retrieval_path, repo_root),
+                issues,
+            )
+        if graph_query_plan is not None:
+            _validate_payload(
+                graph_query_plan,
+                graph_query_validator,
+                _relative(graph_queries_path, repo_root),
+                issues,
+            )
+
+        local_event_ids: set[str] = set()
+        local_events_by_id: dict[str, dict[str, Any]] = {}
+        graph_events: list[dict[str, Any]] = []
+        for local_provenance_path in (
+            provenance_path,
+            graph_provenance_path,
+            transfer_provenance_path,
+            evaluation_provenance_path,
+        ):
+            for index, event in enumerate(
+                _load_jsonl(local_provenance_path, repo_root, issues), start=1
+            ):
+                event_location = f"{_relative(local_provenance_path, repo_root)}:{index}"
+                _validate_payload(event, provenance_validator, event_location, issues)
+                _validate_source_refs(repo_root, event, event_location, issues)
+                event_id = event.get("event_id")
+                if isinstance(event_id, str):
+                    if event_id in event_ids:
+                        issues.append((event_location, f"duplicate event_id: {event_id}"))
+                    event_ids.add(event_id)
+                    local_event_ids.add(event_id)
+                    local_events_by_id[event_id] = event
+                if local_provenance_path == graph_provenance_path:
+                    graph_events.append(event)
+
+        anchors_by_id: dict[str, dict[str, Any]] = {}
+        for anchor_path in anchor_paths:
+            for index, anchor in enumerate(_load_jsonl(anchor_path, repo_root, issues), start=1):
+                anchor_location = f"{_relative(anchor_path, repo_root)}:{index}"
+                _validate_payload(anchor, anchor_validator, anchor_location, issues)
+                anchor_id = anchor.get("anchor_id")
+                if isinstance(anchor_id, str):
+                    if anchor_id in seen_anchor_ids:
+                        issues.append((anchor_location, f"duplicate anchor_id: {anchor_id}"))
+                    seen_anchor_ids.add(anchor_id)
+                    anchors_by_id[anchor_id] = anchor
+                item_ref = anchor.get("item_id")
+                file_ref = anchor.get("file_id")
+                if item_ref not in records_by_id:
+                    issues.append((anchor_location, f"unresolved item_id: {item_ref}"))
+                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                    issues.append((anchor_location, f"file_id {file_ref} does not belong to {item_ref}"))
+                if file_digest_by_id.get(str(file_ref)) != anchor.get("file_sha256"):
+                    issues.append((anchor_location, f"file_sha256 does not match manifest file {file_ref}"))
+                if anchor.get("provenance_event_ref") not in local_event_ids:
+                    issues.append((anchor_location, "anchor provenance_event_ref is absent from gold-set provenance"))
+
+        sample_ids: set[str] = set()
+        sample_bindings: dict[str, dict[str, Any]] = {}
+        gold_sample_ids: set[str] = set()
+        sample_anchor_ids: set[str] = set()
+        if sample_plan is not None:
+            groups = sample_plan.get("source_groups", [])
+            if len(groups) != 3:
+                issues.append((_relative(sample_path, repo_root), "sample plan must have exactly three source groups"))
+            for group in groups:
+                if not isinstance(group, dict):
+                    continue
+                item_ref = group.get("item_ref")
+                file_ref = group.get("file_ref")
+                samples = group.get("samples", [])
+                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                    issues.append((_relative(sample_path, repo_root), f"file_ref {file_ref} does not belong to {item_ref}"))
+                if file_digest_by_id.get(str(file_ref)) != group.get("file_sha256"):
+                    issues.append((_relative(sample_path, repo_root), f"file_sha256 differs from manifest file {file_ref}"))
+                if len(samples) != 12:
+                    issues.append((_relative(sample_path, repo_root), f"{item_ref} must have exactly 12 samples"))
+                group_gold = 0
+                for sample in samples:
+                    if not isinstance(sample, dict):
+                        continue
+                    sample_id = sample.get("sample_id")
+                    anchor_ref = sample.get("anchor_ref")
+                    if not isinstance(sample_id, str) or sample_id in sample_ids:
+                        issues.append((_relative(sample_path, repo_root), f"duplicate or invalid sample_id: {sample_id}"))
+                    elif isinstance(sample_id, str):
+                        sample_ids.add(sample_id)
+                        sample_bindings[sample_id] = {
+                            "sample": sample,
+                            "item_ref": item_ref,
+                            "file_ref": file_ref,
+                            "anchor_ref": anchor_ref,
+                        }
+                    if isinstance(anchor_ref, str):
+                        sample_anchor_ids.add(anchor_ref)
+                    anchor = anchors_by_id.get(str(anchor_ref))
+                    if anchor is None:
+                        issues.append((_relative(sample_path, repo_root), f"unresolved sample anchor: {anchor_ref}"))
+                    elif anchor.get("item_id") != item_ref or anchor.get("file_id") != file_ref:
+                        issues.append((_relative(sample_path, repo_root), f"sample anchor {anchor_ref} crosses its source group"))
+                    if sample.get("gold_candidate") is True:
+                        group_gold += 1
+                        if isinstance(sample_id, str):
+                            gold_sample_ids.add(sample_id)
+                if group_gold != 5:
+                    issues.append((_relative(sample_path, repo_root), f"{item_ref} must have exactly five gold candidates"))
+
+        if transfer_plan is not None:
+            transfer_location = _relative(transfer_path, repo_root)
+            source_sample_plan = transfer_plan.get("source_sample_plan", {})
+            if source_sample_plan.get("ref") != _relative(sample_path, repo_root):
+                issues.append(
+                    (transfer_location, "transfer plan does not cite the frozen source sample plan")
+                )
+            elif source_sample_plan.get("sha256") != _sha256(sample_path):
+                issues.append((transfer_location, "transfer source sample-plan digest drifted"))
+
+            target_source = transfer_plan.get("target_source", {})
+            target_item_ref = target_source.get("collection_item_ref")
+            target_file_ref = target_source.get("file_ref")
+            if file_owner_by_id.get(str(target_file_ref)) != target_item_ref:
+                issues.append(
+                    (transfer_location, "transfer target file does not belong to its collection item")
+                )
+            if file_digest_by_id.get(str(target_file_ref)) != target_source.get(
+                "file_sha256"
+            ):
+                issues.append((transfer_location, "transfer target file digest drifted"))
+            rights_record_ref = target_source.get("rights_record_ref")
+            rights_record = (
+                _load_json(repo_root / rights_record_ref, repo_root, issues)
+                if isinstance(rights_record_ref, str)
+                else None
+            )
+            if rights_record is not None:
+                if rights_record.get("assessment_status") != target_source.get(
+                    "rights_assessment_status"
+                ):
+                    issues.append(
+                        (transfer_location, "transfer target rights assessment drifted")
+                    )
+                if target_item_ref not in rights_record.get("scope_refs", []):
+                    issues.append(
+                        (transfer_location, "transfer target rights record omits its item")
+                    )
+
+            expected_transfer_ids = {
+                sample_id
+                for sample_id, binding in sample_bindings.items()
+                if "cross-work-transfer" in binding["sample"].get("strata", [])
+            }
+            actual_transfer_ids: set[str] = set()
+            for unit in transfer_plan.get("scouting_units", []):
+                if not isinstance(unit, dict):
+                    continue
+                sample_id = unit.get("sample_id")
+                if not isinstance(sample_id, str) or sample_id in actual_transfer_ids:
+                    issues.append(
+                        (transfer_location, f"duplicate or invalid transfer sample_id: {sample_id}")
+                    )
+                    continue
+                actual_transfer_ids.add(sample_id)
+                binding = sample_bindings.get(sample_id)
+                if binding is None:
+                    issues.append(
+                        (transfer_location, f"transfer scouting unit is not in sample plan: {sample_id}")
+                    )
+                    continue
+                expected_fields = {
+                    "anchor_ref": binding["anchor_ref"],
+                    "item_ref": binding["item_ref"],
+                    "file_ref": binding["file_ref"],
+                    "source_review_status": binding["sample"].get(
+                        "source_review_status"
+                    ),
+                }
+                for field, expected in expected_fields.items():
+                    if unit.get(field) != expected:
+                        issues.append(
+                            (transfer_location, f"{sample_id}.{field} drifted from sample plan")
+                        )
+                anchor = anchors_by_id.get(str(binding["anchor_ref"]))
+                page_selectors = [
+                    selector
+                    for selector in (anchor or {}).get("selectors", [])
+                    if isinstance(selector, dict) and selector.get("type") == "page_region"
+                ]
+                if len(page_selectors) != 1 or unit.get("page") != page_selectors[0].get(
+                    "page"
+                ):
+                    issues.append(
+                        (transfer_location, f"{sample_id}.page drifted from its exact anchor")
+                    )
+            if actual_transfer_ids != expected_transfer_ids:
+                issues.append(
+                    (
+                        transfer_location,
+                        "transfer scouting units do not close over the exact cross-work sample stratum",
+                    )
+                )
+
+            variant_labels = [
+                variant.get("label")
+                for variant in transfer_plan.get("variants", [])
+                if isinstance(variant, dict)
+            ]
+            if variant_labels != ["A", "B", "C"]:
+                issues.append((transfer_location, "transfer variants are not ordered A/B/C"))
+            expected_metrics = {
+                "annotation-accuracy",
+                "annotation-speed",
+                "manual-correction-minutes",
+                "traceable-proposal-rate",
+                "hallucinated-relation-rate",
+                "reusable-sign-utility",
+                "zarathustra-ontology-imposition-rate",
+                "machine-cost",
+            }
+            if set(transfer_plan.get("metrics", [])) != expected_metrics:
+                issues.append((transfer_location, "transfer metric set is incomplete"))
+
+            actual_gold_count = sum(
+                unit.get("gold_status") == "human_double_checked"
+                for unit in (gold_status or {}).get("units", [])
+                if isinstance(unit, dict)
+            )
+            kernel_gate = transfer_plan.get("kernel_evidence_gate", {})
+            if kernel_gate.get("human_double_checked_gold_units") != actual_gold_count:
+                issues.append((transfer_location, "transfer kernel gold count drifted"))
+            source_gate = (translation_laboratory_plan or {}).get(
+                "source_review_gate", {}
+            )
+            if kernel_gate.get("accepted_source_units") != source_gate.get(
+                "current_human_accepted_units"
+            ):
+                issues.append((transfer_location, "transfer accepted-source count drifted"))
+
+            transfer_event_ref = transfer_plan.get("provenance_event_ref")
+            transfer_event = local_events_by_id.get(str(transfer_event_ref))
+            if transfer_event is None:
+                issues.append(
+                    (transfer_location, "transfer provenance_event_ref is absent from gold-set provenance")
+                )
+            else:
+                transfer_output = next(
+                    (
+                        output
+                        for output in transfer_event.get("outputs", [])
+                        if isinstance(output, dict)
+                        and output.get("ref") == transfer_location
+                    ),
+                    None,
+                )
+                if transfer_output is None:
+                    issues.append((transfer_location, "transfer provenance omits its plan"))
+                elif transfer_output.get("sha256") != _sha256(transfer_path):
+                    issues.append((transfer_location, "transfer provenance digest drifted"))
+
+        expected_evaluation_plans = {
+            semantic_samples_path: (
+                semantic_samples_plan,
+                "semantic-annotation",
+                "tos-semantic-annotation-v1",
+            ),
+            llm_tasks_path: (
+                llm_tasks_plan,
+                "llm-assistance",
+                "tos-llm-assistance-v1",
+            ),
+        }
+        evaluation_event_refs: set[str] = set()
+        for evaluation_path, (
+            evaluation_plan,
+            expected_kind,
+            expected_experiment,
+        ) in expected_evaluation_plans.items():
+            if evaluation_plan is None:
+                continue
+            evaluation_location = _relative(evaluation_path, repo_root)
+            if evaluation_plan.get("plan_kind") != expected_kind:
+                issues.append((evaluation_location, "source-gated plan kind drifted"))
+            if evaluation_plan.get("experiment_id") != expected_experiment:
+                issues.append((evaluation_location, "source-gated experiment_id drifted"))
+
+            source_gate = evaluation_plan.get("source_gate", {})
+            expected_source_refs = {
+                "review_plan_ref": _relative(translation_source_review_path, repo_root),
+                "review_plan_sha256": _sha256(translation_source_review_path),
+                "laboratory_plan_ref": _relative(translation_laboratory_path, repo_root),
+                "laboratory_plan_sha256": _sha256(translation_laboratory_path),
+            }
+            for field, expected in expected_source_refs.items():
+                if source_gate.get(field) != expected:
+                    issues.append((evaluation_location, f"source gate {field} drifted"))
+            current_accepted = (translation_laboratory_plan or {}).get(
+                "source_review_gate", {}
+            ).get("current_human_accepted_units")
+            if source_gate.get("current_human_accepted_units") != current_accepted:
+                issues.append((evaluation_location, "source-gate accepted count drifted"))
+
+            human_gold_gate = evaluation_plan.get("human_gold_gate", {})
+            if human_gold_gate.get("gold_status_ref") != _relative(
+                gold_status_path,
+                repo_root,
+            ):
+                issues.append((evaluation_location, "human-gold status ref drifted"))
+            if human_gold_gate.get("gold_status_sha256") != _sha256(gold_status_path):
+                issues.append((evaluation_location, "human-gold status digest drifted"))
+            actual_gold_count = sum(
+                unit.get("gold_status") == "human_double_checked"
+                for unit in (gold_status or {}).get("units", [])
+                if isinstance(unit, dict)
+            )
+            if human_gold_gate.get("current_human_double_checked_units") != actual_gold_count:
+                issues.append((evaluation_location, "human-gold count drifted"))
+
+            event_ref = evaluation_plan.get("provenance_event_ref")
+            if isinstance(event_ref, str):
+                evaluation_event_refs.add(event_ref)
+            evaluation_event = local_events_by_id.get(str(event_ref))
+            if evaluation_event is None:
+                issues.append(
+                    (evaluation_location, "evaluation provenance_event_ref is absent")
+                )
+            else:
+                output = next(
+                    (
+                        candidate
+                        for candidate in evaluation_event.get("outputs", [])
+                        if isinstance(candidate, dict)
+                        and candidate.get("ref") == evaluation_location
+                    ),
+                    None,
+                )
+                if output is None:
+                    issues.append((evaluation_location, "evaluation provenance omits plan"))
+                elif output.get("sha256") != _sha256(evaluation_path):
+                    issues.append((evaluation_location, "evaluation provenance digest drifted"))
+        if len(evaluation_event_refs) != 1:
+            issues.append(
+                (gold_location, "semantic and LLM plans must share one frozen evaluation event")
+            )
+
+        ocr_sample_ids: set[str] = set()
+        ocr_plan_anchor_ids: set[str] = set()
+        if ocr_sample_plan is not None:
+            ocr_location = _relative(ocr_sample_path, repo_root)
+            expected_projection_ref = _relative(sample_path, repo_root)
+            if ocr_sample_plan.get("projection_of_plan_ref") != expected_projection_ref:
+                issues.append((ocr_location, "OCR visual plan does not project the frozen general sample plan"))
+
+            discovery_event_ref = ocr_sample_plan.get("source_discovery_event_ref")
+            if discovery_event_ref not in event_ids:
+                issues.append((ocr_location, "OCR source_discovery_event_ref is unresolved"))
+
+            projection_event_ref = ocr_sample_plan.get("provenance_event_ref")
+            projection_event = local_events_by_id.get(str(projection_event_ref))
+            if projection_event is None:
+                issues.append((ocr_location, "OCR provenance_event_ref is absent from gold-set provenance"))
+            else:
+                outputs_by_ref = {
+                    output.get("ref"): output
+                    for output in projection_event.get("outputs", [])
+                    if isinstance(output, dict) and isinstance(output.get("ref"), str)
+                }
+                for output_path in (ocr_sample_path, ocr_anchor_path):
+                    output_ref = _relative(output_path, repo_root)
+                    output = outputs_by_ref.get(output_ref)
+                    if output is None:
+                        issues.append((ocr_location, f"OCR provenance omits output: {output_ref}"))
+                    elif output.get("sha256") != _sha256(output_path):
+                        issues.append((ocr_location, f"OCR provenance digest differs: {output_ref}"))
+
+            render_ref = ocr_sample_plan.get("render_specification", {}).get("render_manifest_ref")
+            render_path = repo_root / str(render_ref)
+            try:
+                render_path.resolve().relative_to((gold_root / "local-content").resolve())
+            except ValueError:
+                issues.append((ocr_location, "OCR render manifest must stay under gold-set local-content"))
+            if _git_ignored(repo_root, render_path) is not True:
+                issues.append((ocr_location, "planned OCR render manifest is not inside the ignored local-content lane"))
+
+            for reference_item_ref in ocr_sample_plan.get(
+                "reference_witness_reveal_law", {}
+            ).get("reference_item_refs", []):
+                target = records_by_id.get(str(reference_item_ref))
+                if target is None or target[0].get("record_type") != "item":
+                    issues.append((ocr_location, f"unresolved OCR reference witness item: {reference_item_ref}"))
+
+            ocr_groups = ocr_sample_plan.get("source_groups", [])
+            if len(ocr_groups) != 3:
+                issues.append((ocr_location, "OCR visual plan must have exactly three source groups"))
+            ocr_group_ids: set[str] = set()
+            ocr_group_items: set[str] = set()
+            replacement_count = 0
+            for group in ocr_groups:
+                if not isinstance(group, dict):
+                    continue
+                group_id = group.get("group_id")
+                item_ref = group.get("item_ref")
+                file_ref = group.get("file_ref")
+                samples = group.get("samples", [])
+                if not isinstance(group_id, str) or group_id in ocr_group_ids:
+                    issues.append((ocr_location, f"duplicate or invalid OCR group_id: {group_id}"))
+                else:
+                    ocr_group_ids.add(group_id)
+                if not isinstance(item_ref, str) or item_ref in ocr_group_items:
+                    issues.append((ocr_location, f"duplicate or invalid OCR source item: {item_ref}"))
+                else:
+                    ocr_group_items.add(item_ref)
+                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                    issues.append((ocr_location, f"OCR file_ref {file_ref} does not belong to {item_ref}"))
+                if file_digest_by_id.get(str(file_ref)) != group.get("file_sha256"):
+                    issues.append((ocr_location, f"OCR file_sha256 differs from manifest file {file_ref}"))
+                if len(samples) != 12:
+                    issues.append((ocr_location, f"{item_ref} must have exactly 12 OCR samples"))
+
+                group_gold = 0
+                for sample in samples:
+                    if not isinstance(sample, dict):
+                        continue
+                    sample_id = sample.get("sample_id")
+                    source_sample_id = sample.get("source_sample_id")
+                    anchor_ref = sample.get("anchor_ref")
+                    page = sample.get("page")
+                    projection_change = sample.get("projection_change")
+                    if not isinstance(sample_id, str) or sample_id in ocr_sample_ids:
+                        issues.append((ocr_location, f"duplicate or invalid OCR sample_id: {sample_id}"))
+                    else:
+                        ocr_sample_ids.add(sample_id)
+                    if isinstance(anchor_ref, str):
+                        ocr_plan_anchor_ids.add(anchor_ref)
+                    if sample.get("gold_candidate") is True:
+                        group_gold += 1
+
+                    anchor = anchors_by_id.get(str(anchor_ref))
+                    if anchor is None:
+                        issues.append((ocr_location, f"unresolved OCR anchor: {anchor_ref}"))
+                    else:
+                        if anchor.get("item_id") != item_ref or anchor.get("file_id") != file_ref:
+                            issues.append((ocr_location, f"OCR anchor {anchor_ref} crosses its source group"))
+                        page_selectors = [
+                            selector
+                            for selector in anchor.get("selectors", [])
+                            if isinstance(selector, dict) and selector.get("type") == "page_region"
+                        ]
+                        if len(page_selectors) != 1:
+                            issues.append((ocr_location, f"OCR anchor {anchor_ref} must have one page selector"))
+                        else:
+                            page_selector = page_selectors[0]
+                            if page_selector.get("page") != page:
+                                issues.append((ocr_location, f"OCR sample page differs from anchor: {anchor_ref}"))
+                            whole_page_shape = (
+                                page_selector.get("x"),
+                                page_selector.get("y"),
+                                page_selector.get("width"),
+                                page_selector.get("height"),
+                                page_selector.get("coordinate_space"),
+                            )
+                            if whole_page_shape != (0, 0, 1, 1, "normalized_0_1"):
+                                issues.append((ocr_location, f"OCR anchor is not a full normalized page: {anchor_ref}"))
+
+                    source_binding = sample_bindings.get(str(source_sample_id))
+                    if source_binding is None:
+                        issues.append((ocr_location, f"OCR sample does not resolve to a frozen source sample: {source_sample_id}"))
+                        continue
+                    source_anchor = anchors_by_id.get(str(source_binding.get("anchor_ref")))
+                    if source_anchor is None:
+                        issues.append((ocr_location, f"OCR source sample anchor is unresolved: {source_sample_id}"))
+                        continue
+
+                    if projection_change == "same_visual_unit":
+                        if (
+                            source_binding.get("item_ref") != item_ref
+                            or source_binding.get("file_ref") != file_ref
+                            or source_binding.get("anchor_ref") != anchor_ref
+                        ):
+                            issues.append((ocr_location, f"same_visual_unit changed source binding: {sample_id}"))
+                    elif projection_change == "same_scan_page_for_epub_member":
+                        if source_binding.get("item_ref") == item_ref:
+                            issues.append((ocr_location, f"scan projection did not move to a distinct source item: {sample_id}"))
+                        if item_edition_by_id.get(str(source_binding.get("item_ref"))) != item_edition_by_id.get(str(item_ref)):
+                            issues.append((ocr_location, f"scan projection crosses edition identity: {sample_id}"))
+                        member_selector = next(
+                            (
+                                selector
+                                for selector in source_anchor.get("selectors", [])
+                                if isinstance(selector, dict) and selector.get("type") == "container_member"
+                            ),
+                            None,
+                        )
+                        member_path = member_selector.get("member_path") if isinstance(member_selector, dict) else None
+                        match = re.search(r"(?:^|/)page_(\d+)\.html$", str(member_path))
+                        if match is None or page != int(match.group(1)) + 1:
+                            issues.append((ocr_location, f"EPUB member to PDF page mapping differs: {sample_id}"))
+                    elif projection_change == "replacement_for_nonvisual_unit":
+                        replacement_count += 1
+                        if item_edition_by_id.get(str(source_binding.get("item_ref"))) != item_edition_by_id.get(str(item_ref)):
+                            issues.append((ocr_location, f"OCR replacement crosses edition identity: {sample_id}"))
+                        source_members = [
+                            selector.get("member_path")
+                            for selector in source_anchor.get("selectors", [])
+                            if isinstance(selector, dict) and selector.get("type") == "container_member"
+                        ]
+                        source_pages = [
+                            selector
+                            for selector in source_anchor.get("selectors", [])
+                            if isinstance(selector, dict) and selector.get("type") == "page_region"
+                        ]
+                        if source_members != ["EPUB/notice.html"] or source_pages or page != 2:
+                            issues.append((ocr_location, f"OCR replacement is not the declared notice-to-page-2 substitution: {sample_id}"))
+                    else:
+                        issues.append((ocr_location, f"unsupported OCR projection change: {projection_change}"))
+
+                if group_gold != 5:
+                    issues.append((ocr_location, f"{item_ref} must have exactly five OCR gold candidates"))
+
+            if len(ocr_sample_ids) != 36:
+                issues.append((ocr_location, "OCR visual plan must contain exactly 36 unique sample IDs"))
+            declared_replacements = ocr_sample_plan.get("projection_law", {}).get("replacement_count")
+            if replacement_count != declared_replacements:
+                issues.append((ocr_location, "actual OCR replacement count differs from projection law"))
+
+        if gold_status is not None:
+            status_ids = {
+                unit.get("sample_id")
+                for unit in gold_status.get("units", [])
+                if isinstance(unit, dict)
+            }
+            if status_ids != gold_sample_ids:
+                issues.append((_relative(gold_status_path, repo_root), "gold-status units differ from frozen gold candidates"))
+            for unit in gold_status.get("units", []):
+                if not isinstance(unit, dict):
+                    continue
+                if unit.get("gold_status") == "human_double_checked":
+                    for field in ("human_pass_1", "human_pass_2"):
+                        if unit.get(field, {}).get("status") != "complete":
+                            issues.append((_relative(gold_status_path, repo_root), f"{unit.get('sample_id')} claims gold without complete {field}"))
+
+        if translation_plan is not None:
+            fragment_ids: set[str] = set()
+            fragment_anchor_ids: set[str] = set()
+            fragments = translation_plan.get("fragments", [])
+            if len(fragments) != 30:
+                issues.append((_relative(translation_path, repo_root), "translation plan must freeze exactly 30 fragments"))
+            for fragment in fragments:
+                if not isinstance(fragment, dict):
+                    continue
+                fragment_id = fragment.get("fragment_id")
+                anchor_ref = fragment.get("source_anchor_ref")
+                if not isinstance(fragment_id, str) or fragment_id in fragment_ids:
+                    issues.append((_relative(translation_path, repo_root), f"duplicate or invalid fragment_id: {fragment_id}"))
+                elif isinstance(fragment_id, str):
+                    fragment_ids.add(fragment_id)
+                if isinstance(anchor_ref, str):
+                    fragment_anchor_ids.add(anchor_ref)
+                anchor = anchors_by_id.get(str(anchor_ref))
+                if anchor is None:
+                    issues.append((_relative(translation_path, repo_root), f"unresolved translation anchor: {anchor_ref}"))
+                    continue
+                member_selector = next(
+                    (
+                        selector
+                        for selector in anchor.get("selectors", [])
+                        if isinstance(selector, dict) and selector.get("type") == "container_member"
+                    ),
+                    None,
+                )
+                if not isinstance(member_selector, dict):
+                    issues.append((_relative(translation_path, repo_root), f"translation anchor lacks member selector: {anchor_ref}"))
+                elif (
+                    member_selector.get("member_path") != fragment.get("container_member")
+                    or member_selector.get("member_sha256") != fragment.get("member_sha256")
+                ):
+                    issues.append((_relative(translation_path, repo_root), f"fragment metadata differs from anchor: {anchor_ref}"))
+
+        retrieval_anchor_ids: set[str] = set()
+        if retrieval_plan is not None:
+            retrieval_location = _relative(retrieval_path, repo_root)
+            if retrieval_plan.get("provenance_event_ref") not in local_event_ids:
+                issues.append((retrieval_location, "retrieval provenance_event_ref is absent from gold-set provenance"))
+            query_ids: set[str] = set()
+            for query in retrieval_plan.get("queries", []):
+                if not isinstance(query, dict):
+                    continue
+                query_id = query.get("query_id")
+                if not isinstance(query_id, str) or query_id in query_ids:
+                    issues.append((retrieval_location, f"duplicate or invalid query_id: {query_id}"))
+                elif isinstance(query_id, str):
+                    query_ids.add(query_id)
+                for field in ("expected_source_anchor_refs", "hard_negative_anchor_refs"):
+                    for anchor_ref in query.get(field, []):
+                        if isinstance(anchor_ref, str):
+                            retrieval_anchor_ids.add(anchor_ref)
+                        if anchor_ref not in anchors_by_id:
+                            issues.append((retrieval_location, f"unresolved retrieval anchor: {anchor_ref}"))
+            if len(query_ids) != 20:
+                issues.append((retrieval_location, "retrieval query plan must contain exactly 20 unique IDs"))
+
+            content_ref = retrieval_plan.get("query_content_ref")
+            content_path = gold_root / str(content_ref)
+            try:
+                content_path.resolve().relative_to((gold_root / "local-content").resolve())
+            except ValueError:
+                issues.append((retrieval_location, "query content must stay under gold-set local-content"))
+            query_content = (
+                _load_json(content_path, repo_root, issues)
+                if content_path.is_file()
+                else None
+            )
+            if query_content is None and require_local_payloads and not content_path.is_file():
+                issues.append((_relative(content_path, repo_root), "required local retrieval query content is missing"))
+            if query_content is not None:
+                if _sha256(content_path) != retrieval_plan.get("query_content_sha256"):
+                    issues.append((_relative(content_path, repo_root), "query content digest differs from retrieval plan"))
+                if query_content.get("frozen_before_variant_outputs") is not True:
+                    issues.append((_relative(content_path, repo_root), "query content was not frozen before outputs"))
+                content_ids = {
+                    query.get("query_id")
+                    for query in query_content.get("queries", [])
+                    if isinstance(query, dict)
+                }
+                if content_ids != query_ids or len(query_content.get("queries", [])) != 20:
+                    issues.append((_relative(content_path, repo_root), "local query IDs differ from tracked retrieval plan"))
+            if _git_ignored(repo_root, content_path) is not True:
+                issues.append((_relative(content_path, repo_root), "local retrieval query content is not ignored"))
+
+        graph_claim_records = _load_jsonl(graph_claims_path, repo_root, issues)
+        graph_claim_ids: set[str] = set()
+        graph_predicates: set[str] = set()
+        graph_anchor_ids: set[str] = set()
+        for index, claim in enumerate(graph_claim_records, start=1):
+            claim_location = f"{_relative(graph_claims_path, repo_root)}:{index}"
+            _validate_payload(claim, claim_validator, claim_location, issues)
+            claim_id = claim.get("claim_id")
+            if not isinstance(claim_id, str) or claim_id in graph_claim_ids:
+                issues.append((claim_location, f"duplicate or invalid graph claim_id: {claim_id}"))
+            else:
+                graph_claim_ids.add(claim_id)
+                if claim_id in claim_ids:
+                    issues.append((claim_location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+            predicate = claim.get("predicate")
+            if isinstance(predicate, str):
+                graph_predicates.add(predicate)
+            for ref in [claim.get("subject_ref"), claim.get("object"), *claim.get("evidence_refs", [])]:
+                if isinstance(ref, str) and ref.startswith("tos.anchor."):
+                    graph_anchor_ids.add(ref)
+            if claim.get("provenance_event_ref") not in local_event_ids:
+                issues.append((claim_location, "graph claim provenance event is absent from the gold set"))
+            for evidence_ref in claim.get("evidence_refs", []):
+                if isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
+                    if not (repo_root / evidence_ref).exists():
+                        issues.append((claim_location, f"graph claim evidence path is missing: {evidence_ref}"))
+
+        known_graph_refs = (
+            set(records_by_id)
+            | set(anchors_by_id)
+            | event_ids
+            | rights_ids
+            | graph_claim_ids
+        )
+        for index, claim in enumerate(graph_claim_records, start=1):
+            claim_location = f"{_relative(graph_claims_path, repo_root)}:{index}"
+            subject_ref = claim.get("subject_ref")
+            if isinstance(subject_ref, str) and subject_ref.startswith("tos."):
+                if subject_ref not in known_graph_refs:
+                    issues.append((claim_location, f"unresolved graph claim subject_ref: {subject_ref}"))
+            object_ref = claim.get("object")
+            if isinstance(object_ref, str) and object_ref.startswith("tos."):
+                if object_ref not in known_graph_refs:
+                    issues.append((claim_location, f"unresolved graph claim object: {object_ref}"))
+            for alternative_ref in claim.get("alternative_claim_refs", []):
+                if alternative_ref not in graph_claim_ids:
+                    issues.append((claim_location, f"unresolved graph alternative claim: {alternative_ref}"))
+
+        graph_query_ids: set[str] = set()
+        if graph_query_plan is not None:
+            graph_location = _relative(graph_queries_path, repo_root)
+            expected_claim_set_ref = _relative(graph_claims_path, repo_root)
+            if graph_query_plan.get("claim_set_ref") != expected_claim_set_ref:
+                issues.append((graph_location, "graph query plan claim_set_ref does not own graph-claims.jsonl"))
+            if _sha256(graph_claims_path) != graph_query_plan.get("claim_set_sha256"):
+                issues.append((graph_location, "graph claim-set digest differs from graph query plan"))
+            if set(graph_query_plan.get("graph_layers", [])) != {
+                "bibliographic",
+                "textual",
+                "provenance",
+                "interpretive",
+            }:
+                issues.append((graph_location, "graph query plan must keep exactly four logical layers"))
+            if set(graph_query_plan.get("allowed_predicates", [])) != graph_predicates:
+                issues.append((graph_location, "allowed graph predicates differ from frozen claims"))
+            for query in graph_query_plan.get("queries", []):
+                if not isinstance(query, dict):
+                    continue
+                query_id = query.get("query_id")
+                if not isinstance(query_id, str) or query_id in graph_query_ids:
+                    issues.append((graph_location, f"duplicate or invalid graph query_id: {query_id}"))
+                else:
+                    graph_query_ids.add(query_id)
+                missing_claims = sorted(set(query.get("expected_claim_refs", [])) - graph_claim_ids)
+                if missing_claims:
+                    issues.append((graph_location, f"graph query references claims outside frozen set: {missing_claims}"))
+                operation = query.get("operation")
+                parameters = query.get("parameters", {})
+                if operation == "claim_family":
+                    family_root_ref = parameters.get("seed_claim_ref") if isinstance(parameters, dict) else None
+                    if family_root_ref not in graph_claim_ids:
+                        issues.append((graph_location, f"graph claim-family root is unresolved: {family_root_ref}"))
+            if len(graph_query_ids) != 10:
+                issues.append((graph_location, "graph query plan must contain exactly 10 unique IDs"))
+
+        for event in graph_events:
+            event_location = _relative(graph_provenance_path, repo_root)
+            for output in event.get("outputs", []):
+                if not isinstance(output, dict):
+                    continue
+                ref = output.get("ref")
+                digest = output.get("sha256")
+                if isinstance(ref, str) and ref.startswith("ToS/"):
+                    output_path = repo_root / ref
+                    if not output_path.is_file():
+                        issues.append((event_location, f"graph provenance output is missing: {ref}"))
+                    elif isinstance(digest, str) and _sha256(output_path) != digest:
+                        issues.append((event_location, f"graph provenance output digest differs: {ref}"))
+
+        referenced_anchor_ids = sample_anchor_ids | ocr_plan_anchor_ids | retrieval_anchor_ids | graph_anchor_ids | {
+            fragment.get("source_anchor_ref")
+            for fragment in (translation_plan or {}).get("fragments", [])
+            if isinstance(fragment, dict)
+        }
+        unreferenced = sorted(set(anchors_by_id) - referenced_anchor_ids)
+        if unreferenced:
+            issues.append((gold_location, f"unreferenced anchors: {unreferenced}"))
+
+        local_content = gold_root / "local-content"
+        route_card = local_content / "README.md"
+        if not route_card.is_file():
+            issues.append((_relative(route_card, repo_root), "local-content route card is missing"))
+        elif _git_ignored(repo_root, route_card) is True:
+            issues.append((_relative(route_card, repo_root), "local-content route card must remain tracked"))
+        if local_content.is_dir():
+            for local_path in local_content.rglob("*"):
+                if local_path.is_file() and local_path != route_card:
+                    if _git_ignored(repo_root, local_path) is not True:
+                        issues.append((_relative(local_path, repo_root), "restricted local-content file is not ignored"))
+
+    boundary_event_paths = [
+        repo_root / SOURCE_ROOT / "access-requests/provenance.jsonl",
+        repo_root / SOURCE_ROOT / "server-import/provenance.jsonl",
+    ]
+    for provenance_path in boundary_event_paths:
+        for index, event in enumerate(
+            _load_jsonl(provenance_path, repo_root, issues),
+            start=1,
+        ):
+            location = f"{_relative(provenance_path, repo_root)}:{index}"
+            _validate_payload(event, provenance_validator, location, issues)
+            _validate_source_refs(repo_root, event, location, issues)
+            event_id = event.get("event_id")
+            if isinstance(event_id, str):
+                if event_id in event_ids:
+                    issues.append((location, f"duplicate event_id: {event_id}"))
+                event_ids.add(event_id)
+
+    discovery_root = repo_root / SOURCE_ROOT / "discovery/runs"
+    for path in sorted(discovery_root.glob("*.json")):
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        location = _relative(path, repo_root)
+        _validate_payload(payload, material_discovery_validator, location, issues)
+        channels = [item for item in payload.get("channels", []) if isinstance(item, dict)]
+        channel_ids = [item.get("channel_id") for item in channels]
+        sequences = [item.get("sequence") for item in channels]
+        if len(channel_ids) != len(set(channel_ids)):
+            issues.append((location, "discovery channel IDs are not unique"))
+        if len(sequences) != len(set(sequences)):
+            issues.append((location, "discovery channel sequence values are not unique"))
+        general_web_sequences = [
+            item.get("sequence")
+            for item in channels
+            if item.get("channel_type") == "general-web-search"
+        ]
+        if general_web_sequences and max(sequences, default=0) != max(general_web_sequences):
+            issues.append((location, "general web search is not the final discovery channel"))
+        result_ids: set[str] = set()
+        for channel in channels:
+            ranks = [
+                result.get("rank")
+                for result in channel.get("results", [])
+                if isinstance(result, dict)
+            ]
+            if ranks != list(range(1, len(ranks) + 1)):
+                issues.append(
+                    (
+                        location,
+                        f"discovery result order for {channel.get('channel_id')} is not contiguous from rank 1",
+                    )
+                )
+            result_ids.update(
+                result.get("result_id")
+                for result in channel.get("results", [])
+                if isinstance(result, dict) and isinstance(result.get("result_id"), str)
+            )
+        selected = set(payload.get("selected_result_ids", []))
+        rejected = set(payload.get("rejected_result_ids", []))
+        if selected & rejected:
+            issues.append((location, "discovery result is both selected and rejected"))
+        unresolved_results = (selected | rejected) - result_ids
+        if unresolved_results:
+            issues.append((location, f"discovery decision references unknown results: {sorted(unresolved_results)}"))
+        comparison_ids = {
+            item.get("channel_id")
+            for item in payload.get("channel_comparison", [])
+            if isinstance(item, dict)
+        }
+        if comparison_ids != set(channel_ids):
+            issues.append((location, "discovery channel comparison does not cover the exact channel set"))
+
+    access_root = repo_root / SOURCE_ROOT / "access-requests"
+    for path in sorted((access_root / "public-ledger").glob("*.json")):
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        location = _relative(path, repo_root)
+        _validate_payload(payload, access_request_validator, location, issues)
+        for event_ref in payload.get("provenance_event_refs", []):
+            if event_ref not in event_ids:
+                issues.append((location, f"unresolved access-request provenance event: {event_ref}"))
+    private_root = access_root / "private"
+    private_route_card = private_root / "README.md"
+    if not private_route_card.is_file():
+        issues.append((_relative(private_route_card, repo_root), "private correspondence route card is missing"))
+    elif _git_ignored(repo_root, private_route_card) is True:
+        issues.append((_relative(private_route_card, repo_root), "private correspondence route card must remain tracked"))
+    if private_root.is_dir():
+        for private_path in private_root.rglob("*"):
+            if private_path.is_file() and private_path != private_route_card:
+                if _git_ignored(repo_root, private_path) is not True:
+                    issues.append((_relative(private_path, repo_root), "private correspondence file is not ignored"))
+
+    manifest_paths = sorted((repo_root / SOURCE_ROOT).rglob("item.manifest.json"))
+    expected_manifest_refs = {_relative(path, repo_root) for path in manifest_paths}
+    planned_manifest_refs: set[str] = set()
+    for path in sorted((repo_root / SOURCE_ROOT / "server-import/plans").glob("*.json")):
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        location = _relative(path, repo_root)
+        _validate_payload(payload, server_import_validator, location, issues)
+        manifest_evidence = payload.get("manifest", {})
+        manifest_ref = manifest_evidence.get("ref") if isinstance(manifest_evidence, dict) else None
+        if isinstance(manifest_ref, str):
+            planned_manifest_refs.add(manifest_ref)
+            manifest_path = repo_root / manifest_ref
+            manifest = _load_json(manifest_path, repo_root, issues)
+            if manifest is not None:
+                if _sha256(manifest_path) != manifest_evidence.get("sha256"):
+                    issues.append((location, "server plan manifest digest drifted"))
+                if manifest.get("item_id") != payload.get("item_ref"):
+                    issues.append((location, "server plan item_ref differs from item manifest"))
+                expected_payload_files = [
+                    {
+                        "file_ref": entry.get("file_id"),
+                        "relative_path": entry.get("relative_path"),
+                        "byte_size": entry.get("byte_size"),
+                        "sha256": entry.get("sha256"),
+                        "verified": True,
+                    }
+                    for entry in manifest.get("payload_files", [])
+                    if isinstance(entry, dict)
+                ]
+                if payload.get("payload_files") != expected_payload_files:
+                    issues.append((location, "server plan payload inventory differs from item manifest"))
+                rights_policy = payload.get("rights_policy", {})
+                rights_ref = rights_policy.get("rights_record_ref") if isinstance(rights_policy, dict) else None
+                if rights_ref != manifest.get("rights_ref"):
+                    issues.append((location, "server plan rights record differs from item manifest"))
+                elif isinstance(rights_ref, str):
+                    rights_path = repo_root / rights_ref
+                    if not rights_path.is_file():
+                        issues.append((location, f"server plan rights record is missing: {rights_ref}"))
+                    elif _sha256(rights_path) != rights_policy.get("rights_record_sha256"):
+                        issues.append((location, "server plan rights-record digest drifted"))
+        for event_ref in payload.get("provenance_event_refs", []):
+            if event_ref not in event_ids:
+                issues.append((location, f"unresolved server-plan provenance event: {event_ref}"))
+    if planned_manifest_refs != expected_manifest_refs:
+        issues.append(
+            (
+                _relative(repo_root / SOURCE_ROOT / "server-import/plans", repo_root),
+                "server plan coverage differs from the exact current item-manifest set",
+            )
+        )
+
+    membership_claim_ids: set[str] = set()
+    for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("membership-claims.jsonl")):
+        for index, claim in enumerate(_load_jsonl(claim_path, repo_root, issues), start=1):
+            location = f"{_relative(claim_path, repo_root)}:{index}"
+            _validate_payload(claim, claim_validator, location, issues)
+            claim_id = claim.get("claim_id")
+            if isinstance(claim_id, str):
+                if claim_id in claim_ids:
+                    issues.append((location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+                membership_claim_ids.add(claim_id)
+            for field in ("subject_ref", "object"):
+                ref = claim.get(field)
+                if isinstance(ref, str) and ref.startswith("tos.") and ref not in records_by_id:
+                    issues.append((location, f"unresolved claim {field}: {ref}"))
+            event_ref = claim.get("provenance_event_ref")
+            if isinstance(event_ref, str) and event_ref not in event_ids:
+                issues.append((location, f"unresolved provenance_event_ref: {event_ref}"))
+
+    for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "collection"):
+        location = _relative(path, repo_root)
+        missing = sorted(set(payload.get("membership_claim_refs", [])) - membership_claim_ids)
+        if missing:
+            issues.append((location, f"unresolved membership claims: {missing}"))
+
+    try:
+        collect_records(repo_root)
+        expected_outputs = render_outputs(repo_root)
+        for message in check_outputs(repo_root, expected_outputs):
+            issues.append((CATALOG_ROOT.as_posix(), message))
+    except CatalogBuildError as exc:
+        issues.append((CATALOG_ROOT.as_posix(), str(exc)))
+
+    catalog_manifest_path = repo_root / CATALOG_ROOT / "catalog.manifest.json"
+    catalog_manifest = _load_json(catalog_manifest_path, repo_root, issues)
+    if catalog_manifest is not None:
+        _validate_payload(
+            catalog_manifest,
+            catalog_validator,
+            _relative(catalog_manifest_path, repo_root),
+            issues,
+        )
+    entry_schema = catalog_schema.get("$defs", {}).get("entry")
+    if isinstance(entry_schema, dict):
+        entry_class = validator_for(entry_schema)
+        entry_class.check_schema(entry_schema)
+        entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
+        for filename in RECORD_FILES.values():
+            catalog_path = repo_root / CATALOG_ROOT / filename
+            for index, entry in enumerate(_load_jsonl(catalog_path, repo_root, issues), start=1):
+                _validate_payload(
+                    entry,
+                    entry_validator,
+                    f"{_relative(catalog_path, repo_root)}:{index}",
+                    issues,
+                )
+
+    return issues
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
+    parser.add_argument(
+        "--require-local-payloads",
+        action="store_true",
+        help="fail when local gitignored source bytes are absent",
+    )
+    args = parser.parse_args(argv)
+
+    issues = validate_foundation(
+        args.repo_root,
+        require_local_payloads=args.require_local_payloads,
+    )
+    if issues:
+        print("Source-witness foundation validation failed.", file=sys.stderr)
+        for location, message in issues:
+            print(f"- {location}: {message}", file=sys.stderr)
+        return 1
+
+    payload_posture = "required and fixity-checked" if args.require_local_payloads else "optional; present bytes fixity-checked"
+    print(f"[ok] validated source-witness evidence spine ({payload_posture})")
+    print("[boundary] mechanics only: bibliographic, textual, rights, translation, semantic, and review truth remain human-evidence questions")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

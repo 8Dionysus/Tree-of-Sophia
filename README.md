@@ -11,6 +11,13 @@ relations, and public routes that can be inspected and continued.
 The tree should grow. The tree wants to grow. Growth is not accumulation:
 growth is a branch that can show its root.
 
+The current architecture couples two growth fronts: a world-philosophy corpus
+soil that orders the written inheritance, and *Thus Spoke Zarathustra* as the
+first golden growth kernel that makes one complete source-to-review path
+learnable. The kernel transfers method, evidence discipline, and review
+judgment—not Nietzsche's ontology as a universal schema. See
+[Zarathustra Golden Growth Kernel](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md).
+
 > Current release: `v0.4.0`. See [CHANGELOG](CHANGELOG.md) for release notes.
 
 ## Start Here
@@ -21,15 +28,31 @@ growth is a branch that can show its root.
 | Authority boundary | [CHARTER](CHARTER.md) and [BOUNDARIES](BOUNDARIES.md) |
 | Agent work | [AGENTS](AGENTS.md), then the nearest nested `AGENTS.md` |
 | ToS source home | [ToS](ToS/README.md) |
+| Corpus evidence foundation | [corpus doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) and [source-witness corpus](ToS/source-witnesses/README.md) |
 | Philosophy domain tree | [ToS/philosophy](ToS/philosophy/) |
-| Current golden route | [ToS/zarathustra](ToS/zarathustra/) |
+| Golden growth kernel | [ToS/zarathustra](ToS/zarathustra/) and [kernel contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) |
 | Doctrine, node law, canon | [ToS/doctrine](ToS/doctrine/) and [ToS/canon](ToS/canon/) |
 | Repeatable operations | [mechanics](mechanics/README.md) |
 | Current direction | [ROADMAP](ROADMAP.md) |
 | Durable rationale | [docs/decisions](docs/decisions/README.md) |
+| Current foundation research | [foundation laboratory packet](ToS/research-packets/foundation-laboratory-2026-07/README.md) |
 
 This README chooses the route. It is not the source home, validator sheet, or
 branch inventory.
+
+## Foundation Before Semantics
+
+ToS does build on what can remain stable, but stability has layers. The first
+foundation is an evidence spine: work and witness identity, immutable acquired
+bytes, fixity, provenance, rights, a durable passage or page-region address,
+and append-only review history. An occurrence can be stable at that address.
+Its lemma, etymology, translation, sense, motif, concept, and relations remain
+versioned claims that can deepen without losing the source beneath them.
+
+The local source payload lives in a narrowly gitignored item directory under
+`ToS/source-witnesses/`. The public repository retains catalogs, manifests,
+checksums, forensic reports, rights posture, provenance, contracts, and review
+evidence. Search and graph surfaces are rebuilt from those stronger records.
 
 ## Current Public Route
 

@@ -1,0 +1,533 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-laboratory-plan.schema.json",
+  "title": "Tree of Sophia blind translation laboratory plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "experiment_id",
+    "work_ref",
+    "source_expression_ref",
+    "source_review_gate",
+    "workflow_order",
+    "stage_states",
+    "blind_lanes",
+    "recognized_comparator",
+    "analysis_requirements",
+    "evaluation_axes",
+    "model_candidates",
+    "model_law",
+    "personal_read_aloud_layer",
+    "translation_packet_schema_ref",
+    "semantic_ladder_schema_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_accepted_source_and_drafts",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-laboratory-plan.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_translation_laboratory_plan_v1"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.translation-laboratory-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "experiment_id": {
+      "const": "tos-translation-foundation-v1"
+    },
+    "work_ref": {
+      "$ref": "#/$defs/tosId"
+    },
+    "source_expression_ref": {
+      "$ref": "#/$defs/tosId"
+    },
+    "source_review_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_plan_ref",
+        "review_plan_sha256",
+        "interface_manifest_sha256",
+        "interface_page_set_sha256",
+        "review_unit_count",
+        "current_human_accepted_units",
+        "acceptance_evidence_ref",
+        "required_acceptance",
+        "automatic_text_admissible",
+        "gate_state"
+      ],
+      "properties": {
+        "review_plan_ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "review_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "interface_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "interface_page_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_unit_count": {
+          "const": 30
+        },
+        "current_human_accepted_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "acceptance_evidence_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/repoRelativePath"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_acceptance": {
+          "const": "thirty-real-human-two-pass-source-visible-decisions"
+        },
+        "automatic_text_admissible": {
+          "const": false
+        },
+        "gate_state": {
+          "enum": [
+            "blocked-awaiting-real-human-source-review",
+            "partially-reviewed-still-blocked",
+            "accepted-for-independent-blind-lanes"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "current_human_accepted_units": {
+                "const": 30
+              }
+            },
+            "required": [
+              "current_human_accepted_units"
+            ]
+          },
+          "then": {
+            "properties": {
+              "gate_state": {
+                "const": "accepted-for-independent-blind-lanes"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "gate_state": {
+                "enum": [
+                  "blocked-awaiting-real-human-source-review",
+                  "partially-reviewed-still-blocked"
+                ]
+              },
+              "acceptance_evidence_ref": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "workflow_order": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "prefixItems": [
+        { "const": "exact_source_anchor" },
+        { "const": "accepted_diplomatic_transcription" },
+        { "const": "morphology" },
+        { "const": "syntax" },
+        { "const": "polysemy_unusual_forms_and_repetition" },
+        { "const": "historical_german_senses" },
+        { "const": "sourced_etymology" },
+        { "const": "intra_zarathustra_parallels" },
+        { "const": "nietzsche_corpus_parallels" },
+        { "const": "evidenced_allusions_idioms_and_cultural_links" },
+        { "const": "literal_interlinear" },
+        { "const": "independent_human_ai_alternatives_and_ai_human_drafts" },
+        { "const": "recognized_comparator_reveal" },
+        { "const": "aligned_comparison" },
+        { "const": "post_reveal_change_ledger" },
+        { "const": "reasoned_adjudication" },
+        { "const": "preserve_alternatives_and_rejections" }
+      ],
+      "items": false
+    },
+    "stage_states": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_source_anchor",
+        "accepted_diplomatic_transcription",
+        "morphology",
+        "syntax",
+        "polysemy_unusual_forms_and_repetition",
+        "historical_german_senses",
+        "sourced_etymology",
+        "intra_zarathustra_parallels",
+        "nietzsche_corpus_parallels",
+        "evidenced_allusions_idioms_and_cultural_links",
+        "literal_interlinear",
+        "independent_human_ai_alternatives_and_ai_human_drafts",
+        "recognized_comparator_reveal",
+        "aligned_comparison",
+        "post_reveal_change_ledger",
+        "reasoned_adjudication",
+        "preserve_alternatives_and_rejections"
+      ],
+      "properties": {
+        "exact_source_anchor": { "$ref": "#/$defs/stageState" },
+        "accepted_diplomatic_transcription": { "$ref": "#/$defs/stageState" },
+        "morphology": { "$ref": "#/$defs/stageState" },
+        "syntax": { "$ref": "#/$defs/stageState" },
+        "polysemy_unusual_forms_and_repetition": { "$ref": "#/$defs/stageState" },
+        "historical_german_senses": { "$ref": "#/$defs/stageState" },
+        "sourced_etymology": { "$ref": "#/$defs/stageState" },
+        "intra_zarathustra_parallels": { "$ref": "#/$defs/stageState" },
+        "nietzsche_corpus_parallels": { "$ref": "#/$defs/stageState" },
+        "evidenced_allusions_idioms_and_cultural_links": { "$ref": "#/$defs/stageState" },
+        "literal_interlinear": { "$ref": "#/$defs/stageState" },
+        "independent_human_ai_alternatives_and_ai_human_drafts": { "$ref": "#/$defs/stageState" },
+        "recognized_comparator_reveal": { "$ref": "#/$defs/stageState" },
+        "aligned_comparison": { "$ref": "#/$defs/stageState" },
+        "post_reveal_change_ledger": { "$ref": "#/$defs/stageState" },
+        "reasoned_adjudication": { "$ref": "#/$defs/stageState" },
+        "preserve_alternatives_and_rejections": { "$ref": "#/$defs/stageState" }
+      }
+    },
+    "blind_lanes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_only",
+        "ai_only",
+        "ai_alternatives",
+        "ai_human"
+      ],
+      "properties": {
+        "human_only": { "$ref": "#/$defs/humanLane" },
+        "ai_only": { "$ref": "#/$defs/aiLane" },
+        "ai_alternatives": { "$ref": "#/$defs/alternativeLane" },
+        "ai_human": { "$ref": "#/$defs/mixedLane" }
+      }
+    },
+    "recognized_comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression_ref",
+        "item_ref",
+        "visibility",
+        "content_consulted",
+        "content_emitted",
+        "reveal_requires_frozen_lanes",
+        "post_reveal_changes_required"
+      ],
+      "properties": {
+        "expression_ref": { "$ref": "#/$defs/tosId" },
+        "item_ref": { "$ref": "#/$defs/tosId" },
+        "visibility": {
+          "enum": ["sealed", "revealed-after-independent-freeze"]
+        },
+        "content_consulted": { "type": "boolean" },
+        "content_emitted": { "type": "boolean" },
+        "reveal_requires_frozen_lanes": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["human_only", "ai_only", "ai_human"]
+          }
+        },
+        "post_reveal_changes_required": { "const": true }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "visibility": { "const": "sealed" } },
+            "required": ["visibility"]
+          },
+          "then": {
+            "properties": {
+              "content_consulted": { "const": false },
+              "content_emitted": { "const": false }
+            }
+          }
+        }
+      ]
+    },
+    "analysis_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "historical_german_sources_required",
+        "etymology_external_sources_required",
+        "model_memory_is_not_etymological_evidence",
+        "recurrence_scopes",
+        "allusions_require_evidence_or_unresolved_status",
+        "literal_interlinear_required",
+        "every_claim_returns_to_source_page"
+      ],
+      "properties": {
+        "historical_german_sources_required": { "const": true },
+        "etymology_external_sources_required": { "const": true },
+        "model_memory_is_not_etymological_evidence": { "const": true },
+        "recurrence_scopes": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["section", "work", "nietzsche-corpus"]
+          }
+        },
+        "allusions_require_evidence_or_unresolved_status": { "const": true },
+        "literal_interlinear_required": { "const": true },
+        "every_claim_returns_to_source_page": { "const": true }
+      }
+    },
+    "evaluation_axes": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "primary_meaning",
+          "secondary_meanings",
+          "etymological_connection",
+          "polysemy",
+          "terminological_consistency",
+          "recurring_signs",
+          "metaphor",
+          "image",
+          "syntax",
+          "rhythm",
+          "spoken_pronounceability",
+          "intentional_strangeness",
+          "cultural_allusion",
+          "omissions",
+          "additions",
+          "stylistic_smoothing",
+          "unjustified_embellishment",
+          "recognized_translation_influence",
+          "decision_explainability"
+        ]
+      }
+    },
+    "model_candidates": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/modelCandidate"
+      }
+    },
+    "model_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_owner",
+        "local_only_until_new_rights_review",
+        "exact_model_runtime_prompt_and_decoding_receipts",
+        "no_accepted_etymology_without_external_source",
+        "no_model_self_promotion",
+        "resident_baselines_before_downloads"
+      ],
+      "properties": {
+        "runtime_owner": { "const": "abyss-stack" },
+        "local_only_until_new_rights_review": { "const": true },
+        "exact_model_runtime_prompt_and_decoding_receipts": { "const": true },
+        "no_accepted_etymology_without_external_source": { "const": true },
+        "no_model_self_promotion": { "const": true },
+        "resident_baselines_before_downloads": { "const": true }
+      }
+    },
+    "personal_read_aloud_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "maker_must_be_user",
+        "separate_from_philological_review",
+        "philological_authority"
+      ],
+      "properties": {
+        "state": {
+          "enum": ["blocked-on-source-acceptance", "available", "completed"]
+        },
+        "maker_must_be_user": { "const": true },
+        "separate_from_philological_review": { "const": true },
+        "philological_authority": { "const": false }
+      }
+    },
+    "translation_packet_schema_ref": { "$ref": "#/$defs/repoRelativePath" },
+    "semantic_ladder_schema_ref": { "$ref": "#/$defs/repoRelativePath" },
+    "status": {
+      "enum": [
+        "frozen-blocked-on-human-source-acceptance",
+        "frozen-ready-for-independent-lanes",
+        "superseded"
+      ]
+    },
+    "frozen_at": { "type": "string", "format": "date-time" },
+    "frozen_before_accepted_source_and_drafts": { "const": true },
+    "authority_boundary": { "type": "string", "minLength": 40 }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stageState": {
+      "enum": [
+        "prepared-unaccepted",
+        "blocked-on-source-acceptance",
+        "not-started",
+        "in-progress",
+        "frozen",
+        "sealed",
+        "completed",
+        "superseded"
+      ]
+    },
+    "humanLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "real_human_required",
+        "ai_assistance_prohibited",
+        "recognized_comparator_visible",
+        "freeze_required_before_comparator"
+      ],
+      "properties": {
+        "state": { "$ref": "#/$defs/laneState" },
+        "real_human_required": { "const": true },
+        "ai_assistance_prohibited": { "const": true },
+        "recognized_comparator_visible": { "const": false },
+        "freeze_required_before_comparator": { "const": true }
+      }
+    },
+    "aiLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "model_receipt_required",
+        "recognized_comparator_visible",
+        "external_sources_required_for_etymology",
+        "freeze_required_before_comparator"
+      ],
+      "properties": {
+        "state": { "$ref": "#/$defs/laneState" },
+        "model_receipt_required": { "const": true },
+        "recognized_comparator_visible": { "const": false },
+        "external_sources_required_for_etymology": { "const": true },
+        "freeze_required_before_comparator": { "const": true }
+      }
+    },
+    "alternativeLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "minimum_independent_machine_alternatives",
+        "preserve_all_alternatives",
+        "recognized_comparator_visible"
+      ],
+      "properties": {
+        "state": { "$ref": "#/$defs/laneState" },
+        "minimum_independent_machine_alternatives": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "preserve_all_alternatives": { "const": true },
+        "recognized_comparator_visible": { "const": false }
+      }
+    },
+    "mixedLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "real_human_required",
+        "independent_human_and_ai_drafts_required",
+        "intervention_attribution_required",
+        "recognized_comparator_visible",
+        "freeze_required_before_comparator"
+      ],
+      "properties": {
+        "state": { "$ref": "#/$defs/laneState" },
+        "real_human_required": { "const": true },
+        "independent_human_and_ai_drafts_required": { "const": true },
+        "intervention_attribution_required": { "const": true },
+        "recognized_comparator_visible": { "const": false },
+        "freeze_required_before_comparator": { "const": true }
+      }
+    },
+    "laneState": {
+      "enum": [
+        "blocked-on-source-acceptance",
+        "blocked-on-independent-drafts",
+        "ready",
+        "in-progress",
+        "frozen",
+        "superseded"
+      ]
+    },
+    "modelCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "state",
+        "role",
+        "runtime",
+        "license_posture",
+        "download_required"
+      ],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 2 },
+        "state": {
+          "enum": [
+            "first-wave-resident",
+            "conditional-resident",
+            "conditional-download",
+            "license-gated",
+            "deferred",
+            "restricted-research-only"
+          ]
+        },
+        "role": { "type": "string", "minLength": 5 },
+        "runtime": { "type": "string", "minLength": 2 },
+        "license_posture": { "type": "string", "minLength": 2 },
+        "download_required": { "type": "boolean" }
+      }
+    }
+  }
+}

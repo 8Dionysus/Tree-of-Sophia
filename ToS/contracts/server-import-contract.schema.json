@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "title": "Tree of Sophia future server import contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "server_import_id",
+    "item_ref",
+    "manifest",
+    "payload_files",
+    "rights_policy",
+    "access_class",
+    "allowed_derivatives",
+    "payload_transfer_authorized",
+    "operator_transfer_approval",
+    "server_import_status",
+    "publication_status",
+    "server_receipt_refs",
+    "takedown",
+    "provenance_event_refs",
+    "server_copy_is_authority",
+    "automatic_checkout_payload_discovery_allowed",
+    "contract_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json"
+    },
+    "schema_version": {"const": "tos_server_import_contract_v1"},
+    "server_import_id": {
+      "type": "string",
+      "pattern": "^tos\\.server-import\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "item_ref": {"$ref": "#/$defs/tosId"},
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256", "verified"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "verified": {"type": "boolean"}
+      }
+    },
+    "payload_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_ref", "relative_path", "byte_size", "sha256", "verified"],
+        "properties": {
+          "file_ref": {"$ref": "#/$defs/tosId"},
+          "relative_path": {"type": "string", "pattern": "^payload/(?!\\.\\.?$)[^/]+$"},
+          "byte_size": {"type": "integer", "minimum": 1},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "verified": {"type": "boolean"}
+        }
+      }
+    },
+    "rights_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rights_record_ref",
+        "rights_record_sha256",
+        "assessment_status",
+        "review_status",
+        "jurisdictions_reviewed",
+        "permission_or_license_refs",
+        "expires_at",
+        "recheck_before_transfer"
+      ],
+      "properties": {
+        "rights_record_ref": {"$ref": "#/$defs/repoRef"},
+        "rights_record_sha256": {"$ref": "#/$defs/sha256"},
+        "assessment_status": {
+          "enum": ["public-domain-reviewed", "open-licensed", "permission-granted", "research-only", "restricted", "rights-unknown", "rejected"]
+        },
+        "review_status": {"enum": ["unreviewed", "human-reviewed", "legal-reviewed"]},
+        "jurisdictions_reviewed": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 2}
+        },
+        "permission_or_license_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "recheck_before_transfer": {"const": true}
+      }
+    },
+    "access_class": {"enum": ["deny", "metadata-only", "controlled-research", "public-payload"]},
+    "allowed_derivatives": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ocr", "transcription", "page_images", "snippets", "lexical_index", "embeddings", "alignments", "translations", "annotations", "search_projection", "graph_projection"],
+      "properties": {
+        "ocr": {"$ref": "#/$defs/derivativePermission"},
+        "transcription": {"$ref": "#/$defs/derivativePermission"},
+        "page_images": {"$ref": "#/$defs/derivativePermission"},
+        "snippets": {"$ref": "#/$defs/derivativePermission"},
+        "lexical_index": {"$ref": "#/$defs/derivativePermission"},
+        "embeddings": {"$ref": "#/$defs/derivativePermission"},
+        "alignments": {"$ref": "#/$defs/derivativePermission"},
+        "translations": {"$ref": "#/$defs/derivativePermission"},
+        "annotations": {"$ref": "#/$defs/derivativePermission"},
+        "search_projection": {"$ref": "#/$defs/derivativePermission"},
+        "graph_projection": {"$ref": "#/$defs/derivativePermission"}
+      }
+    },
+    "payload_transfer_authorized": {"type": "boolean"},
+    "operator_transfer_approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved", "approved_by_real_human", "approved_at", "approval_ref"],
+      "properties": {
+        "approved": {"type": "boolean"},
+        "approved_by_real_human": {"type": "boolean"},
+        "approved_at": {"type": ["string", "null"], "format": "date-time"},
+        "approval_ref": {"type": ["string", "null"]}
+      }
+    },
+    "server_import_status": {
+      "enum": ["not-evaluated", "blocked-rights", "approved-not-uploaded", "imported", "withdrawn", "takedown-pending", "deleted"]
+    },
+    "publication_status": {"enum": ["not-published", "metadata-only", "controlled", "public-payload", "withdrawn"]},
+    "server_receipt_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "takedown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["public_contact_url", "procedure_ref", "disable_supported", "delete_supported", "last_reviewed_at"],
+      "properties": {
+        "public_contact_url": {"type": "string", "format": "uri"},
+        "procedure_ref": {"type": "string", "minLength": 1},
+        "disable_supported": {"const": true},
+        "delete_supported": {"const": true},
+        "last_reviewed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "provenance_event_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "server_copy_is_authority": {"const": false},
+    "automatic_checkout_payload_discovery_allowed": {"const": false},
+    "contract_version": {"type": "integer", "minimum": 1},
+    "supersedes_server_import_ref": {
+      "oneOf": [
+        {"type": "string", "pattern": "^tos\\.server-import\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"access_class": {"enum": ["deny", "metadata-only"]}},
+        "required": ["access_class"]
+      },
+      "then": {
+        "properties": {
+          "payload_transfer_authorized": {"const": false},
+          "operator_transfer_approval": {
+            "properties": {"approved": {"const": false}}
+          },
+          "server_import_status": {"enum": ["not-evaluated", "blocked-rights", "withdrawn", "takedown-pending", "deleted"]},
+          "publication_status": {"enum": ["not-published", "metadata-only", "withdrawn"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"server_import_status": {"const": "imported"}}, "required": ["server_import_status"]},
+      "then": {
+        "properties": {
+          "manifest": {"properties": {"verified": {"const": true}}},
+          "payload_files": {"items": {"properties": {"verified": {"const": true}}}},
+          "payload_transfer_authorized": {"const": true},
+          "operator_transfer_approval": {
+            "properties": {
+              "approved": {"const": true},
+              "approved_by_real_human": {"const": true},
+              "approved_at": {"type": "string", "format": "date-time"},
+              "approval_ref": {"type": "string", "minLength": 1}
+            }
+          },
+          "server_receipt_refs": {"minItems": 1},
+          "rights_policy": {
+            "properties": {"review_status": {"enum": ["human-reviewed", "legal-reviewed"]}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"access_class": {"const": "public-payload"}}, "required": ["access_class"]},
+      "then": {
+        "properties": {
+          "rights_policy": {
+            "properties": {
+              "assessment_status": {"enum": ["public-domain-reviewed", "open-licensed", "permission-granted"]},
+              "review_status": {"enum": ["human-reviewed", "legal-reviewed"]},
+              "permission_or_license_refs": {"minItems": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"operator_transfer_approval": {"properties": {"approved": {"const": false}}}}},
+      "then": {
+        "properties": {
+          "operator_transfer_approval": {
+            "properties": {
+              "approved_by_real_human": {"const": false},
+              "approved_at": {"type": "null"},
+              "approval_ref": {"type": "null"}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+    "derivativePermission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "conditions"],
+      "properties": {
+        "state": {"enum": ["allowed", "conditional", "prohibited", "unknown"]},
+        "conditions": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

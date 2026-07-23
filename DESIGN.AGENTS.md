@@ -56,6 +56,26 @@ Good agent movement in ToS:
 6. report changed surfaces, validation, skipped checks, residual risk, and the
    next route.
 
+## Golden-Kernel Work Cards
+
+Agent guidance for a Zarathustra gold slice must be operational rather than
+merely inspirational. The nearest card should let the agent determine:
+
+| Field | Required answer |
+| --- | --- |
+| artifact class | witness, doctrine, contract, candidate, review receipt, canon object, mirror, or derived output |
+| authority input | exact source and stable address from which work begins |
+| output posture | observation, proposal, accepted, rejected, deferred, ambiguous, or derived |
+| authorship | what a human authored, what an agent proposed, and what remains unreviewed |
+| owner handoff | the next concrete owner path and the condition for entering it |
+| regeneration | which public, graph, KAG, or compact companions move only after authored input changes |
+| transfer probe | how unseen material may reject the vocabulary or expose a missing contract distinction |
+
+Cards must not call a payload gold merely because it is deterministic or
+accepted. Source anchors, layer posture, review rationale, uncertainty,
+negative or unresolved examples, and version lineage are part of the
+engineering route.
+
 ## Writing Law
 
 - prefer route cards over essays;

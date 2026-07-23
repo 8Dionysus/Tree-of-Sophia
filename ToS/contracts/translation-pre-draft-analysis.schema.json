@@ -1,0 +1,571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-pre-draft-analysis.schema.json",
+  "title": "Tree of Sophia blind translation pre-draft analysis packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "experiment_id",
+    "work_ref",
+    "source_expression_ref",
+    "source_anchor_refs",
+    "source_review_evidence",
+    "source_forms",
+    "target_language",
+    "lane",
+    "blindness",
+    "maker",
+    "reference_register",
+    "analysis_order",
+    "stages",
+    "all_claims_return_to_source",
+    "frequency_is_not_semantic_sufficiency",
+    "model_memory_is_not_etymological_evidence",
+    "rights_and_visibility",
+    "packet_status",
+    "provenance_event_refs",
+    "authority_boundary",
+    "packet_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-pre-draft-analysis.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_translation_pre_draft_analysis_v1"
+    },
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.translation-pre-draft-analysis\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "experiment_id": {"const": "tos-translation-foundation-v1"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_expression_ref": {"$ref": "#/$defs/tosId"},
+    "source_anchor_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "source_review_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "review_receipt_refs",
+        "accepted_diplomatic_sha256",
+        "pass_1_performed_by_real_human",
+        "pass_2_performed_by_real_human",
+        "pass_timestamps_distinct",
+        "source_acceptance"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        },
+        "review_receipt_refs": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "accepted_diplomatic_sha256": {"$ref": "#/$defs/sha256"},
+        "pass_1_performed_by_real_human": {"const": true},
+        "pass_2_performed_by_real_human": {"const": true},
+        "pass_timestamps_distinct": {"const": true},
+        "source_acceptance": {"const": "accept"}
+      }
+    },
+    "source_forms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diplomatic",
+        "diplomatic_sha256",
+        "normalized",
+        "normalization_posture",
+        "normalization_event_ref"
+      ],
+      "properties": {
+        "diplomatic": {"type": "string", "minLength": 1},
+        "diplomatic_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized": {"type": "string", "minLength": 1},
+        "normalization_posture": {
+          "enum": ["none", "NFC-only", "editorial-normalization-proposed"]
+        },
+        "normalization_event_ref": {"$ref": "#/$defs/tosId"}
+      }
+    },
+    "target_language": {"const": "ru"},
+    "lane": {
+      "enum": ["human_only", "ai_only", "ai_alternative"]
+    },
+    "blindness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recognized_comparator_visible",
+        "recognized_comparator_consulted",
+        "other_lane_analysis_visible",
+        "other_lane_drafts_visible",
+        "translation_draft_created"
+      ],
+      "properties": {
+        "recognized_comparator_visible": {"const": false},
+        "recognized_comparator_consulted": {"const": false},
+        "other_lane_analysis_visible": {"const": false},
+        "other_lane_drafts_visible": {"const": false},
+        "translation_draft_created": {"const": false}
+      }
+    },
+    "maker": {"$ref": "#/$defs/packetMaker"},
+    "reference_register": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256",
+        "status",
+        "content_admission_is_per_citation"
+      ],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"const": "researched-not-content-admitted"},
+        "content_admission_is_per_citation": {"const": true}
+      }
+    },
+    "analysis_order": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        {"const": "morphology"},
+        {"const": "syntax"},
+        {"const": "polysemy_unusual_forms_and_repetition"},
+        {"const": "historical_german_senses"},
+        {"const": "sourced_etymology"},
+        {"const": "intra_zarathustra_parallels"},
+        {"const": "nietzsche_corpus_parallels"},
+        {"const": "evidenced_allusions_idioms_and_cultural_links"},
+        {"const": "literal_interlinear"}
+      ],
+      "items": false
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        {"$ref": "#/$defs/morphologyStage"},
+        {"$ref": "#/$defs/syntaxStage"},
+        {"$ref": "#/$defs/polysemyStage"},
+        {"$ref": "#/$defs/historicalSenseStage"},
+        {"$ref": "#/$defs/etymologyStage"},
+        {"$ref": "#/$defs/intraWorkStage"},
+        {"$ref": "#/$defs/authorCorpusStage"},
+        {"$ref": "#/$defs/allusionStage"},
+        {"$ref": "#/$defs/interlinearStage"}
+      ],
+      "items": false
+    },
+    "all_claims_return_to_source": {"const": true},
+    "frequency_is_not_semantic_sufficiency": {"const": true},
+    "model_memory_is_not_etymological_evidence": {"const": true},
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "restricted_source_text_redistribution",
+        "reference_rights_inherited_per_citation",
+        "public_metadata_separate"
+      ],
+      "properties": {
+        "visibility": {"const": "local-only"},
+        "restricted_source_text_redistribution": {"const": false},
+        "reference_rights_inherited_per_citation": {"const": true},
+        "public_metadata_separate": {"const": true}
+      }
+    },
+    "packet_status": {
+      "enum": [
+        "preparing",
+        "blocked",
+        "frozen-ready-for-lane-draft",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "provenance_event_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "authority_boundary": {
+      "const": "blind pre-draft linguistic and philological evidence only; this packet contains no translation draft, recognized comparator content, accepted etymology without citation, semantic sign decision, or graph claim"
+    },
+    "packet_version": {"type": "integer", "minimum": 1},
+    "supersedes_packet_ref": {
+      "anyOf": [
+        {"type": "string", "pattern": "^tos\\.translation-pre-draft-analysis\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"lane": {"const": "human_only"}}},
+      "then": {
+        "properties": {
+          "maker": {
+            "properties": {
+              "maker_type": {"const": "human"},
+              "performed_by_real_human": {"const": true},
+              "ai_assistance_used": {"const": false},
+              "human_editing_used": {"const": true},
+              "model_refs": {"maxItems": 0},
+              "runtime_receipt_refs": {"maxItems": 0}
+            }
+          },
+          "stages": {
+            "items": {
+              "properties": {
+                "findings": {
+                  "items": {
+                    "properties": {
+                      "maker": {
+                        "properties": {
+                          "maker_type": {"const": "human"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lane": {"enum": ["ai_only", "ai_alternative"]}
+        }
+      },
+      "then": {
+        "properties": {
+          "maker": {
+            "properties": {
+              "maker_type": {"const": "model"},
+              "performed_by_real_human": {"const": false},
+              "ai_assistance_used": {"const": true},
+              "human_editing_used": {"const": false},
+              "model_refs": {"minItems": 1},
+              "runtime_receipt_refs": {"minItems": 1}
+            }
+          },
+          "stages": {
+            "items": {
+              "properties": {
+                "findings": {
+                  "items": {
+                    "properties": {
+                      "maker": {
+                        "properties": {
+                          "maker_type": {
+                            "enum": ["model", "software"]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {"const": "frozen-ready-for-lane-draft"}
+        }
+      },
+      "then": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}},
+              {"properties": {"status": {"const": "frozen"}}}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^ToS/[A-Za-z0-9._/-]+$"
+    },
+    "packetMaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maker_type",
+        "agent_ref",
+        "performed_by_real_human",
+        "ai_assistance_used",
+        "human_editing_used",
+        "model_refs",
+        "runtime_receipt_refs"
+      ],
+      "properties": {
+        "maker_type": {"enum": ["human", "model"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "performed_by_real_human": {"type": "boolean"},
+        "ai_assistance_used": {"type": "boolean"},
+        "human_editing_used": {"type": "boolean"},
+        "model_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "runtime_receipt_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "citation_id",
+        "reference_entry_id",
+        "locator",
+        "evidence_url",
+        "accessed_at",
+        "rights_posture",
+        "content_stored"
+      ],
+      "properties": {
+        "citation_id": {
+          "type": "string",
+          "pattern": "^tos-citation\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "reference_entry_id": {
+          "type": "string",
+          "pattern": "^tos-ref\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "locator": {"type": "string", "minLength": 1},
+        "evidence_url": {"type": "string", "format": "uri"},
+        "accessed_at": {"type": "string", "format": "date-time"},
+        "rights_posture": {"type": "string", "minLength": 1},
+        "content_stored": {
+          "enum": ["citation-only", "short-local-note", "local-research-excerpt"]
+        },
+        "excerpt_sha256": {
+          "anyOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "findingMaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "software", "imported-source"]},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "statement",
+        "source_anchor_refs",
+        "reference_entry_ids",
+        "citations",
+        "epistemic_status",
+        "confidence",
+        "maker",
+        "provenance_event_ref",
+        "review_status"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "pattern": "^tos-finding\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "statement": {"type": "string", "minLength": 1},
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tosId"}
+        },
+        "reference_entry_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos-ref\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        },
+        "citations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/citation"}
+        },
+        "epistemic_status": {
+          "enum": ["observed", "sourced", "proposed", "disputed", "unresolved"]
+        },
+        "confidence": {"enum": ["low", "medium", "high", "not-applicable"]},
+        "maker": {"$ref": "#/$defs/findingMaker"},
+        "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+        "review_status": {
+          "enum": ["unreviewed", "human-reviewed", "rejected", "ambiguous", "deferred"]
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "status",
+        "findings",
+        "source_return_verified",
+        "frozen_at",
+        "review_status"
+      ],
+      "properties": {
+        "stage": {"type": "string"},
+        "status": {"enum": ["not-started", "blocked", "proposed", "frozen", "rejected"]},
+        "findings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/finding"}
+        },
+        "source_return_verified": {"type": "boolean"},
+        "frozen_at": {
+          "anyOf": [
+            {"type": "string", "format": "date-time"},
+            {"type": "null"}
+          ]
+        },
+        "review_status": {
+          "enum": ["unreviewed", "human-reviewed", "rejected", "ambiguous", "deferred"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "frozen"}}},
+          "then": {
+            "properties": {
+              "findings": {"minItems": 1},
+              "source_return_verified": {"const": true},
+              "frozen_at": {"type": "string", "format": "date-time"}
+            }
+          }
+        }
+      ]
+    },
+    "morphologyStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "morphology"}}}
+      ]
+    },
+    "syntaxStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "syntax"}}}
+      ]
+    },
+    "polysemyStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "polysemy_unusual_forms_and_repetition"}}}
+      ]
+    },
+    "historicalSenseStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "historical_german_senses"}}}
+      ]
+    },
+    "etymologyStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {
+          "properties": {
+            "stage": {"const": "sourced_etymology"},
+            "findings": {
+              "items": {
+                "allOf": [
+                  {"$ref": "#/$defs/finding"},
+                  {
+                    "properties": {
+                      "reference_entry_ids": {"minItems": 1},
+                      "citations": {"minItems": 1}
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "intraWorkStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "intra_zarathustra_parallels"}}}
+      ]
+    },
+    "authorCorpusStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "nietzsche_corpus_parallels"}}}
+      ]
+    },
+    "allusionStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "evidenced_allusions_idioms_and_cultural_links"}}}
+      ]
+    },
+    "interlinearStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "literal_interlinear"}}}
+      ]
+    }
+  }
+}

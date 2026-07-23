@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-source-review-plan.schema.json",
+  "title": "Tree of Sophia source-visible translation source review plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "review_plan_id",
+    "experiment_id",
+    "work_ref",
+    "source_expression_ref",
+    "source_witness",
+    "visual_witness",
+    "supersedes",
+    "status",
+    "frozen_at",
+    "frozen_before_v2_candidate_text",
+    "unit_count",
+    "selection_strategy_counts",
+    "recognized_comparator",
+    "review_protocol",
+    "review_questions",
+    "units",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-source-review-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_translation_source_review_plan_v2"},
+    "review_plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.translation-source-review-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "experiment_id": {"const": "tos-translation-foundation-v1"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_expression_ref": {"$ref": "#/$defs/tosId"},
+    "source_witness": {"$ref": "#/$defs/witness"},
+    "visual_witness": {"$ref": "#/$defs/witness"},
+    "supersedes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v1_plan_ref",
+        "v1_plan_sha256",
+        "v1_inspection_ref",
+        "v1_inspection_sha256",
+        "v1_inspection_id",
+        "disposition"
+      ],
+      "properties": {
+        "v1_plan_ref": {"$ref": "#/$defs/repoRef"},
+        "v1_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "v1_inspection_ref": {"$ref": "#/$defs/repoRef"},
+        "v1_inspection_sha256": {"$ref": "#/$defs/sha256"},
+        "v1_inspection_id": {"type": "string", "minLength": 1},
+        "disposition": {"const": "retain-v1-as-negative-baseline"}
+      }
+    },
+    "status": {"const": "frozen-awaiting-real-human-source-selection"},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "frozen_before_v2_candidate_text": {"const": true},
+    "unit_count": {"const": 30},
+    "selection_strategy_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirm_visible_prose",
+        "first_new_unit_after_tail",
+        "first_prose_after_heading",
+        "resolve_cross_page_boundary"
+      ],
+      "properties": {
+        "confirm_visible_prose": {"const": 8},
+        "first_new_unit_after_tail": {"const": 2},
+        "first_prose_after_heading": {"const": 19},
+        "resolve_cross_page_boundary": {"const": 1}
+      }
+    },
+    "recognized_comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression_ref",
+        "item_ref",
+        "visibility",
+        "content_consulted",
+        "reveal_stage"
+      ],
+      "properties": {
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "visibility": {"const": "sealed"},
+        "content_consulted": {"const": false},
+        "reveal_stage": {
+          "const": "after_human_ai_and_ai-human_independent_drafts_are_frozen"
+        }
+      }
+    },
+    "review_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_1",
+        "pass_2",
+        "same_person_allowed",
+        "human_presence_required",
+        "v1_candidate_visible",
+        "read_aloud_after_status"
+      ],
+      "properties": {
+        "pass_1": {
+          "const": "source-visible layout boundary and diplomatic glyph transcription"
+        },
+        "pass_2": {
+          "const": "independent source-visible punctuation lineation and boundary verification"
+        },
+        "same_person_allowed": {"type": "boolean"},
+        "human_presence_required": {"const": true},
+        "v1_candidate_visible": {"const": false},
+        "read_aloud_after_status": {"const": "human-double-checked"}
+      }
+    },
+    "review_questions": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "units": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "items": {"$ref": "#/$defs/unit"}
+    },
+    "authority_boundary": {
+      "const": "model-proposed source-visible review routing only; no sentence boundary, diplomatic transcription, translation, or gold status exists until real human passes are recorded"
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^ToS/[A-Za-z0-9._/-]+$"
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_ref", "file_sha256", "role"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "role": {
+          "enum": [
+            "automatic-ocr-derivative-not-source-truth",
+            "source-visible-scan-witness"
+          ]
+        }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "supersedes_fragment_id",
+        "context_anchor_ref",
+        "container_member",
+        "member_sha256",
+        "visual_context",
+        "layout_posture",
+        "selection_instruction",
+        "v1_inspection_decision",
+        "v1_failure_signals",
+        "reuse_v1_candidate",
+        "diplomatic_transcription_status",
+        "human_source_acceptance",
+        "recognized_comparator_visible"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        },
+        "supersedes_fragment_id": {
+          "type": "string",
+          "pattern": "^tos-translation-fragment-[0-9]{3}$"
+        },
+        "context_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "container_member": {
+          "type": "string",
+          "pattern": "^EPUB/page_[0-9]+\\.html$"
+        },
+        "member_sha256": {"$ref": "#/$defs/sha256"},
+        "visual_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["previous_pdf_page", "current_pdf_page", "next_pdf_page"],
+          "properties": {
+            "previous_pdf_page": {"type": "integer", "minimum": 1},
+            "current_pdf_page": {"type": "integer", "minimum": 2},
+            "next_pdf_page": {"type": "integer", "minimum": 3}
+          }
+        },
+        "layout_posture": {
+          "enum": [
+            "prose-at-page-start",
+            "prose-continuation-at-page-start",
+            "chapter-or-section-opening",
+            "boundary-uncertain"
+          ]
+        },
+        "selection_instruction": {
+          "enum": [
+            "confirm-visible-complete-prose-unit-without-reusing-v1-text",
+            "identify-first-new-complete-prose-unit-using-page-triplet",
+            "identify-first-prose-unit-after-visible-heading",
+            "resolve-cross-page-boundary-before-unit-selection"
+          ]
+        },
+        "v1_inspection_decision": {
+          "enum": ["accept-with-limits", "reject", "uncertain"]
+        },
+        "v1_failure_signals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "heading-selected",
+              "page-start-tail",
+              "ocr-contamination",
+              "page-start-boundary-unverified",
+              "transcription-uncertain",
+              "candidate-usable-with-limits"
+            ]
+          }
+        },
+        "reuse_v1_candidate": {"const": false},
+        "diplomatic_transcription_status": {"const": "not-started"},
+        "human_source_acceptance": {"const": false},
+        "recognized_comparator_visible": {"const": false}
+      }
+    }
+  }
+}

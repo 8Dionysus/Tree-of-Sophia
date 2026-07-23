@@ -6,6 +6,12 @@ movement through *Thus Spoke Zarathustra*.
 It now also serves as the first public worked capsule for the ToS tiny-entry
 seam.
 
+It is one source-addressed slice inside the golden growth kernel, not yet a
+complete gold annotation packet. A complete packet must add explicit
+observation/proposal layers, rejected or unresolved alternatives, reviewer
+rationale, uncertainty, and version lineage without weakening this witness
+route.
+
 The point is not to open three language trees at once.
 The point is to begin one source-first route that stays bounded, reviewable, and
 honest about language roles.
@@ -86,7 +92,7 @@ trilingual markdown surface whose current public labels are:
 
 The source file now lives at:
 
-- `ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md`
+- `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md`
 
 The authority surface should keep this provenance visible.
 That means each witness block may expose:

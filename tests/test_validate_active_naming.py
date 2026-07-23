@@ -67,6 +67,36 @@ class ValidateActiveNamingTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(active_reference(text), expected)
 
+    def test_exact_corpus_domain_identifiers_are_not_retired_routes(self) -> None:
+        for reference in (
+            "seed_claim_ref",
+            "may_seed_drafts",
+            "may_seed_gold",
+            "first-wave",
+            "first-wave-resident",
+        ):
+            with self.subTest(reference=reference):
+                self.assertIsNotNone(active_reference(reference))
+                self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+
+    def test_domain_identifier_exceptions_are_exact_and_content_only(self) -> None:
+        for reference in (
+            retired_s_token() + "_claim_route",
+            "may_" + retired_s_token() + "_runtime",
+            "second-" + retired_w_token() + "-resident",
+            "first-" + retired_w_token() + "-runtime",
+        ):
+            with self.subTest(reference=reference):
+                self.assertIsNotNone(validate_active_naming.retired_content_issue(reference))
+
+        for relative_path in (
+            "ToS/" + retired_s_token() + "_claim_ref/record.json",
+            "ToS/may_" + retired_s_token() + "_gold/record.json",
+            "ToS/first-" + retired_w_token() + "/record.json",
+        ):
+            with self.subTest(relative_path=relative_path):
+                self.assertIsNotNone(validate_active_naming.retired_path_issue(relative_path))
+
     def test_route_labels_and_experience_pass_markers_are_retired(self) -> None:
         cases = (
             old_route_prefix() + "1-old-route",

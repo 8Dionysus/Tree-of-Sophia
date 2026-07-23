@@ -56,7 +56,7 @@ class RoadmapParityTestCase(unittest.TestCase):
             "ToS/public-compatibility/tos_tiny_entry_route.example.json",
             "ToS/derived-exports/root_entry_map.min.json",
             "ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md",
-            "ToS/source-witnesses/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/Z_1_1_1_de_ru_en.md",
+            "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
             "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
             "ToS/public-compatibility/source_node.example.json",
             "ToS/canon/concept/becoming/node.json",

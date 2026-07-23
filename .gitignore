@@ -2,3 +2,16 @@ __pycache__/
 .pytest_cache/
 *.pyc
 dist/
+
+# Local immutable corpus bytes. Catalogs, manifests, fixity, provenance,
+# rights, forensic reports, review state, and rights-safe alignments remain
+# tracked; restricted source or derivative text remains local.
+/ToS/source-witnesses/works/**/items/*/payload/*
+/ToS/source-witnesses/collections/**/items/*/payload/*
+/ToS/source-witnesses/works/**/gold-sets/*/local-content/*
+!/ToS/source-witnesses/works/**/gold-sets/*/local-content/README.md
+
+# Private access-request correspondence and personal/confidential attachments.
+# Only the boundary route card remains tracked.
+/ToS/source-witnesses/access-requests/private/*
+!/ToS/source-witnesses/access-requests/private/README.md

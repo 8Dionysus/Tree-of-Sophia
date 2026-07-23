@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/sign-annotation.schema.json",
+  "title": "Tree of Sophia sign annotation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "annotation_id",
+    "sign_layer",
+    "anchor_refs",
+    "body",
+    "maker",
+    "provenance_event_ref",
+    "epistemic_status",
+    "review_status",
+    "annotation_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_sign_annotation_v1"},
+    "annotation_id": {"$ref": "#/$defs/tosId"},
+    "sign_layer": {
+      "enum": [
+        "occurrence",
+        "form",
+        "lemma",
+        "morphology",
+        "compound_structure",
+        "recurrence_membership",
+        "lexical_sense",
+        "etymology",
+        "translation_relation",
+        "motif_or_sign",
+        "concept_candidate"
+      ]
+    },
+    "assertion_layer": {
+      "enum": [
+        "textual_observation",
+        "linguistic_analysis",
+        "translation_alignment",
+        "translation_judgment",
+        "semantic_interpretation",
+        "scholarly_report"
+      ]
+    },
+    "anchor_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "body": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "source_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceRef"}
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed", "imported_source"]},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "epistemic_status": {
+      "enum": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"]
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "meaning"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0, "maximum": 1},
+        "meaning": {"const": "maker_declared_uncertainty_not_truth_probability"}
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {"type": "object", "minProperties": 1}
+    },
+    "review_status": {
+      "enum": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"]
+    },
+    "review_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "annotation_version": {"type": "integer", "minimum": 1},
+    "supersedes_annotation_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"sign_layer": {"enum": ["occurrence", "form"]}}},
+      "then": {"properties": {"assertion_layer": {"const": "textual_observation"}}, "required": ["assertion_layer"]}
+    },
+    {
+      "if": {"properties": {"sign_layer": {"enum": ["lemma", "morphology", "compound_structure", "recurrence_membership", "lexical_sense", "etymology"]}}},
+      "then": {"required": ["assertion_layer", "source_refs"]}
+    }
+  ],
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sourceRef": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "string", "format": "uri"}
+      ]
+    }
+  }
+}

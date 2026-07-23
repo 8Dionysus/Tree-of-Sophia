@@ -21,6 +21,49 @@ The practical rule is simple:
 
 **Tree for orientation. Graph for relation. Source for authority.**
 
+## Corpus soil and golden growth kernel
+
+ToS grows through two coupled fronts.
+
+The world-philosophy corpus soil provides ordered source identity across works,
+witnesses, editions, languages, time, place, traditions, and transmission. It
+is the broad foundation from which branches can grow, but its order and
+metadata are not yet interpretation.
+
+*Thus Spoke Zarathustra* is the first golden growth kernel. Its purpose is to
+make one complete path unusually legible:
+
+`source witness -> stable address -> observation -> semantic proposal -> relation/context -> human review -> canon -> derived view`
+
+What transfers from the kernel is the method of source return, layer
+distinction, proposal, refusal, uncertainty, review, and promotion. Nietzsche's
+ontology and the current calibration vocabulary do not become a universal
+schema for other works or traditions.
+
+The stable layer is an evidence spine: witness identity and provenance,
+addressable text, source-near observations, evidence status, and versioned
+review history. Concept boundaries, semantic entities, relations, and
+interpretations remain revisable and contestable without losing that spine.
+
+A gold example therefore includes more than an accepted label. It should keep
+accepted, rejected, ambiguous, and counter-reading outcomes with their source
+anchors and reviewer rationale. Agents learn the path of judgment rather than
+only its final surface.
+
+The route also admits lived witness as an authored first-person provenance
+layer. Lived witness may explain sustained attention and salience, but it
+remains distinct from primary text, bibliographic evidence, scholarship,
+interpretation, and canon.
+
+See [GOLDEN_GROWTH_KERNEL](../zarathustra/GOLDEN_GROWTH_KERNEL.md) for the
+current architecture and preparation boundary.
+
+The detailed identity, fixity, address, sign, assertion, translation, rights,
+and projection boundary is defined by
+[CORPUS_FOUNDATION](CORPUS_FOUNDATION.md). Its central distinction is that
+stable IDs preserve continuity of evidence-bearing records; they do not make
+semantic interpretations immutable.
+
 ## Node families
 
 ToS may grow multiple node families. At the public baseline, the most important are:
@@ -516,6 +559,11 @@ In the current public architecture, *Thus Spoke Zarathustra* serves as a recurri
 That axis should guide curation and reading posture without becoming a hidden monopoly of meaning.
 It is an orienting calibration, not a license to force every text into one thesis.
 
+The calibration axis and the golden growth kernel are not identical. The
+kernel is golden because it exposes a deeply reviewed source-to-canon method;
+the axis remains one interpretive gravity inside that route. Only the method
+is intended for cross-corpus transfer.
+
 See [CALIBRATION_AXIS](CALIBRATION_AXIS.md) for the compact rule and guardrails.
 
 ## Human-curated, AI-amplified expansion
@@ -525,6 +573,8 @@ ToS may use AI to amplify growth, but not to replace human judgment.
 AI may assist with:
 
 - extraction
+- source-near observation proposals
+- annotation-layer classification
 - clustering
 - cross-link suggestions
 - contrast proposals
@@ -536,6 +586,11 @@ Human-reviewed curation still owns:
 - node judgment
 - final interpretive stance
 - principle or canon-facing promotion
+
+For golden-kernel work, agent output should preserve proposal provenance and
+should be evaluated on source return, layer discipline, justified refusal,
+uncertainty, and response to unseen material. Agreement with the current
+vocabulary is not sufficient evidence of successful transfer.
 
 This keeps AI visible as an amplifier rather than a hidden sovereign author.
 

@@ -37,6 +37,20 @@
         "proof verdict authority"
       ]
     },
+    "source_witness_foundation": {
+      "label": "source witness foundation",
+      "layer": "source-witness-evidence-spine",
+      "mode": "blocking",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "purpose": "Protect corpus identities, tracked source-item companions, local-payload fixity posture, and generated catalog parity without claiming human truth.",
+      "command_sequence": "source_witness_foundation",
+      "failure_route": "ToS/source-witnesses/AGENTS.md",
+      "does_not_own": [
+        "bibliographic or textual truth",
+        "rights clearance",
+        "translation or semantic judgment"
+      ]
+    },
     "philosophy_topology": {
       "label": "philosophy topology",
       "layer": "domain-topology",
@@ -272,6 +286,7 @@
       "covers_lanes": [
         "validation_authority",
         "source_home",
+        "source_witness_foundation",
         "philosophy_topology",
         "mechanics_topology",
         "mechanics_local",
@@ -307,6 +322,16 @@
       {
         "label": "validate ToS source home",
         "command": ["python", "scripts/validate_tos_source_home.py"]
+      }
+    ],
+    "source_witness_foundation": [
+      {
+        "label": "check source-witness catalog parity",
+        "command": ["python", "scripts/build_source_witness_catalog.py", "--check"]
+      },
+      {
+        "label": "validate source-witness evidence spine",
+        "command": ["python", "scripts/validate_source_witness_foundation.py"]
       }
     ],
     "philosophy_topology": [
@@ -501,6 +526,14 @@
       {
         "label": "validate ToS source home",
         "command": ["python", "scripts/validate_tos_source_home.py"]
+      },
+      {
+        "label": "check source-witness catalog parity",
+        "command": ["python", "scripts/build_source_witness_catalog.py", "--check"]
+      },
+      {
+        "label": "validate source-witness evidence spine",
+        "command": ["python", "scripts/validate_source_witness_foundation.py"]
       },
       {
         "label": "validate philosophy topology",

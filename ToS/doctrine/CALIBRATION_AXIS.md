@@ -44,6 +44,21 @@ Do not use calibration to:
 
 Calibration is a compass, not a proof.
 
+## Golden-kernel distinction
+
+The calibration axis is not what makes the Zarathustra route a transferable
+golden kernel.
+
+The kernel is transferable because it should expose the complete
+source-to-review method: stable address, observation, proposal, ambiguity,
+counter-reading, review, promotion, and return to source. Becoming,
+overcoming, creation of values, and affirmation of life remain interpretive
+gravity for this route; they are not default labels for every other work or
+tradition.
+
+If a new source resists this vocabulary, preserve the resistance and review
+the contract. Do not score forced agreement as successful transfer.
+
 ## Curation posture
 
 When calibration is active, keep the route explicit:

@@ -7,6 +7,21 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+### Added
+
+- Added the Zarathustra golden-growth-kernel architecture and accepted
+  `TOS-D-0019`, preserving the founder-borne five-year lived provenance while
+  keeping lived witness below source, scholarly, and canon authority.
+
+### Changed
+
+- Coupled the world-philosophy corpus-soil direction to a first complete
+  Zarathustra learning cycle across root design, source-home doctrine, roadmap,
+  route cards, and review law.
+- Clarified that agents transfer source-return and review method—not
+  Nietzsche's ontology—and that gold material must preserve rejected,
+  ambiguous, and counter-reading outcomes rather than accepted labels alone.
+
 ## [0.4.0] - 2026-07-14
 
 ### Summary

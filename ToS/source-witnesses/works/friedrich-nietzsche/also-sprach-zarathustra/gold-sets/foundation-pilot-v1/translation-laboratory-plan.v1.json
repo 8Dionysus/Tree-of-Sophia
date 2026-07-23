@@ -1,0 +1,229 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/translation-laboratory-plan.schema.json",
+  "schema_version": "tos_translation_laboratory_plan_v1",
+  "plan_id": "tos.translation-laboratory-plan.zarathustra-foundation-v1",
+  "experiment_id": "tos-translation-foundation-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "source_expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+  "source_review_gate": {
+    "review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
+    "interface_manifest_sha256": "8db6f88131355e858b861696899ae5edc37b238ec31493d898c559153010850c",
+    "interface_page_set_sha256": "b4b0faa670693c4db07a1f6eed3bde3d9191c0cc24168139f39cdf64144ea038",
+    "review_unit_count": 30,
+    "current_human_accepted_units": 0,
+    "acceptance_evidence_ref": null,
+    "required_acceptance": "thirty-real-human-two-pass-source-visible-decisions",
+    "automatic_text_admissible": false,
+    "gate_state": "blocked-awaiting-real-human-source-review"
+  },
+  "workflow_order": [
+    "exact_source_anchor",
+    "accepted_diplomatic_transcription",
+    "morphology",
+    "syntax",
+    "polysemy_unusual_forms_and_repetition",
+    "historical_german_senses",
+    "sourced_etymology",
+    "intra_zarathustra_parallels",
+    "nietzsche_corpus_parallels",
+    "evidenced_allusions_idioms_and_cultural_links",
+    "literal_interlinear",
+    "independent_human_ai_alternatives_and_ai_human_drafts",
+    "recognized_comparator_reveal",
+    "aligned_comparison",
+    "post_reveal_change_ledger",
+    "reasoned_adjudication",
+    "preserve_alternatives_and_rejections"
+  ],
+  "stage_states": {
+    "exact_source_anchor": "prepared-unaccepted",
+    "accepted_diplomatic_transcription": "blocked-on-source-acceptance",
+    "morphology": "blocked-on-source-acceptance",
+    "syntax": "blocked-on-source-acceptance",
+    "polysemy_unusual_forms_and_repetition": "blocked-on-source-acceptance",
+    "historical_german_senses": "blocked-on-source-acceptance",
+    "sourced_etymology": "blocked-on-source-acceptance",
+    "intra_zarathustra_parallels": "blocked-on-source-acceptance",
+    "nietzsche_corpus_parallels": "blocked-on-source-acceptance",
+    "evidenced_allusions_idioms_and_cultural_links": "blocked-on-source-acceptance",
+    "literal_interlinear": "blocked-on-source-acceptance",
+    "independent_human_ai_alternatives_and_ai_human_drafts": "blocked-on-source-acceptance",
+    "recognized_comparator_reveal": "sealed",
+    "aligned_comparison": "not-started",
+    "post_reveal_change_ledger": "not-started",
+    "reasoned_adjudication": "not-started",
+    "preserve_alternatives_and_rejections": "not-started"
+  },
+  "blind_lanes": {
+    "human_only": {
+      "state": "blocked-on-source-acceptance",
+      "real_human_required": true,
+      "ai_assistance_prohibited": true,
+      "recognized_comparator_visible": false,
+      "freeze_required_before_comparator": true
+    },
+    "ai_only": {
+      "state": "blocked-on-source-acceptance",
+      "model_receipt_required": true,
+      "recognized_comparator_visible": false,
+      "external_sources_required_for_etymology": true,
+      "freeze_required_before_comparator": true
+    },
+    "ai_alternatives": {
+      "state": "blocked-on-source-acceptance",
+      "minimum_independent_machine_alternatives": 2,
+      "preserve_all_alternatives": true,
+      "recognized_comparator_visible": false
+    },
+    "ai_human": {
+      "state": "blocked-on-source-acceptance",
+      "real_human_required": true,
+      "independent_human_and_ai_drafts_required": true,
+      "intervention_attribution_required": true,
+      "recognized_comparator_visible": false,
+      "freeze_required_before_comparator": true
+    }
+  },
+  "recognized_comparator": {
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+    "visibility": "sealed",
+    "content_consulted": false,
+    "content_emitted": false,
+    "reveal_requires_frozen_lanes": [
+      "human_only",
+      "ai_only",
+      "ai_human"
+    ],
+    "post_reveal_changes_required": true
+  },
+  "analysis_requirements": {
+    "historical_german_sources_required": true,
+    "etymology_external_sources_required": true,
+    "model_memory_is_not_etymological_evidence": true,
+    "recurrence_scopes": [
+      "section",
+      "work",
+      "nietzsche-corpus"
+    ],
+    "allusions_require_evidence_or_unresolved_status": true,
+    "literal_interlinear_required": true,
+    "every_claim_returns_to_source_page": true
+  },
+  "evaluation_axes": [
+    "primary_meaning",
+    "secondary_meanings",
+    "etymological_connection",
+    "polysemy",
+    "terminological_consistency",
+    "recurring_signs",
+    "metaphor",
+    "image",
+    "syntax",
+    "rhythm",
+    "spoken_pronounceability",
+    "intentional_strangeness",
+    "cultural_allusion",
+    "omissions",
+    "additions",
+    "stylistic_smoothing",
+    "unjustified_embellishment",
+    "recognized_translation_influence",
+    "decision_explainability"
+  ],
+  "model_candidates": [
+    {
+      "candidate_id": "gemma-4-e2b-gguf",
+      "state": "first-wave-resident",
+      "role": "low-cost blind general-model baseline",
+      "runtime": "llama.cpp",
+      "license_posture": "resident model card reviewed for bounded research",
+      "download_required": false
+    },
+    {
+      "candidate_id": "gemma-4-e4b-gguf",
+      "state": "first-wave-resident",
+      "role": "stronger same-family blind challenger",
+      "runtime": "llama.cpp",
+      "license_posture": "resident model card reviewed for bounded research",
+      "download_required": false
+    },
+    {
+      "candidate_id": "qwen3-4b-int4-openvino",
+      "state": "first-wave-resident",
+      "role": "different-family and runtime blind challenger",
+      "runtime": "OpenVINO",
+      "license_posture": "resident Apache-compatible model route",
+      "download_required": false
+    },
+    {
+      "candidate_id": "qwen3-8b-int4-openvino",
+      "state": "conditional-resident",
+      "role": "capacity challenger after smaller-model error taxonomy",
+      "runtime": "OpenVINO",
+      "license_posture": "resident Apache-compatible model route",
+      "download_required": false
+    },
+    {
+      "candidate_id": "qwen3.5-4b",
+      "state": "conditional-download",
+      "role": "fresh small independent challenger after resident evidence",
+      "runtime": "to-be-frozen after conversion study",
+      "license_posture": "Apache 2.0 model card; refresh before acquisition",
+      "download_required": true
+    },
+    {
+      "candidate_id": "translategemma-4b",
+      "state": "license-gated",
+      "role": "specialized machine-translation challenger",
+      "runtime": "to-be-frozen after license and context review",
+      "license_posture": "gated license not yet accepted for this laboratory",
+      "download_required": true
+    },
+    {
+      "candidate_id": "madlad-400-3b",
+      "state": "deferred",
+      "role": "older specialized multilingual translation baseline",
+      "runtime": "CTranslate2 or Transformers after conversion proof",
+      "license_posture": "Apache 2.0 model; freshness and conversion route deferred",
+      "download_required": true
+    },
+    {
+      "candidate_id": "eurollm-1.7b",
+      "state": "deferred",
+      "role": "compact European-language control",
+      "runtime": "Transformers or CTranslate2 after compatibility proof",
+      "license_posture": "model revision and license must be refreshed before acquisition",
+      "download_required": true
+    },
+    {
+      "candidate_id": "nllb",
+      "state": "restricted-research-only",
+      "role": "noncommercial research reference only",
+      "runtime": "CTranslate2 only after rights admission",
+      "license_posture": "research/noncommercial restriction; excluded from default path",
+      "download_required": true
+    }
+  ],
+  "model_law": {
+    "runtime_owner": "abyss-stack",
+    "local_only_until_new_rights_review": true,
+    "exact_model_runtime_prompt_and_decoding_receipts": true,
+    "no_accepted_etymology_without_external_source": true,
+    "no_model_self_promotion": true,
+    "resident_baselines_before_downloads": true
+  },
+  "personal_read_aloud_layer": {
+    "state": "blocked-on-source-acceptance",
+    "maker_must_be_user": true,
+    "separate_from_philological_review": true,
+    "philological_authority": false
+  },
+  "translation_packet_schema_ref": "ToS/contracts/translation-packet.schema.json",
+  "semantic_ladder_schema_ref": "ToS/contracts/semantic-ladder-packet.schema.json",
+  "status": "frozen-blocked-on-human-source-acceptance",
+  "frozen_at": "2026-07-23T14:42:00Z",
+  "frozen_before_accepted_source_and_drafts": true,
+  "authority_boundary": "this plan freezes order, blindness, evidence requirements, candidate posture, and current blocking state; it contains no accepted German, human translation, AI translation, semantic sign, or comparator content"
+}

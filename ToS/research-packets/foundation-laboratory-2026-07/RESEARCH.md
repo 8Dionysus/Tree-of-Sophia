@@ -1,0 +1,764 @@
+# Corpus Foundation, Semantics, and Laboratory Research
+
+Status: non-authoritative research synthesis
+Snapshot: 2026-07-22
+Scope: corpus identity, source witnesses, provenance, anchors, signs,
+translation, annotation, retrieval, graph projection, discovery, and rights
+
+## Outcome first
+
+The proposed foundation is a source-returnable, claim-bearing corpus rather
+than a graph of prematurely frozen concepts.
+
+The minimum useful unit is not `concept:overman`. It is closer to:
+
+```text
+digital item + digest
+  + edition and expression identity
+  + durable passage/region address
+  + exact observed form
+  + observation or assertion type
+  + agent and method provenance
+  + review state and history
+```
+
+This permits stable signs without pretending that their meanings are
+immutable. For example, the occurrence of `Übermensch` in a fixed German
+witness at a fixed passage is evidence. A proposed lemma, semantic sense,
+etymology, Russian equivalent, motif membership, or relation to another
+passage is a separately identified assertion. It may be accepted, split,
+revised, disputed, or rejected without changing the witness.
+
+The graph is therefore a projection of reviewed claims, not the container of
+truth. Search indexes are also rebuildable projections. The tracked corpus
+catalog, contracts, claims, decisions, and receipts remain authoritative.
+
+## Research method
+
+Sources were examined in the requested order. Primary standards, official
+documentation, official model cards, official repositories, and publisher
+paper pages were preferred. Freshness was treated as evidence to evaluate,
+not as an automatic rank.
+
+The investigation also inspected the three proposed local witnesses without
+altering them. Their bytes, structure, and extractability materially shaped
+the recommendations.
+
+---
+
+## Layer I — classical standards and official documentation
+
+### 1. Bibliographic and object identity
+
+[IFLA Library Reference Model (LRM), 2024 edition](https://repository.ifla.org/items/214c74cb-c075-4428-a138-39f8d06c55aa)
+provides the durable distinction between Work, Expression, Manifestation, and
+Item. ToS should adapt this distinction internally because a philosophical
+work, a German text state, a 2007 Russian edition, and one acquired PDF are
+not the same object.
+
+[LRMoo 1.0](https://repository.ifla.org/items/94aedb49-2d6e-4a6d-9974-f33abb7e3c0e)
+connects the bibliographic model to event-centric cultural-heritage modeling.
+It is useful where creation, translation, publication, digitization, and
+acquisition need explicit events.
+
+[BIBFRAME 2.0](https://www.loc.gov/bibframe/docs/bibframe2-model.html) is a
+necessary library-data crosswalk, especially for external catalog exchange.
+It should not be the sole internal authority because its operational
+Work/Instance/Item shape is less expressive than the edition, translation,
+and textual-witness distinctions required here.
+
+[CIDOC CRM version history](https://cidoc-crm.org/versions-of-the-cidoc-crm)
+shows 7.3.1 as the current official release in this snapshot. CRM/LRMoo should
+guide event and cultural-object interoperability, not force the first local
+storage representation.
+
+**Decision:** internal identities follow a local LRM-shaped profile; external
+BIBFRAME and LRMoo/CRM mappings are explicit projections.
+
+### 2. Addressing text and pages
+
+[Canonical Text Services URNs 2.0.rc.1](https://cite-architecture.github.io/ctsurn_spec/)
+offer a valuable, technology-independent pattern for work hierarchies and
+scholarly passage citation. The specification is an old release candidate,
+so ToS should borrow the principle, not claim CTS conformance.
+
+[TEI P5 4.11 stand-off markup](https://tei-c.org/release/doc/tei-p5-doc/en/html/ref-standOff.html)
+separates annotations from the base text. [TEI critical apparatus](https://tei-c.org/release/doc/tei-p5-doc/en/html/TC.html)
+supports lemmas, readings, witnesses, and external apparatus. These patterns
+fit editions, alternative readings, and translation comparison.
+
+[W3C Web Annotation Data Model](https://www.w3.org/TR/annotation-model/)
+supplies targets, selectors, bodies, motivations, and provenance-friendly
+annotation objects. Text position selectors alone are too fragile; quote and
+structural selectors should travel with them.
+
+[IIIF Presentation API 3.0](https://iiif.io/api/presentation/3.0/) models a
+page-like Canvas and regions on it. This gives scanned pages and PDF-rendered
+surfaces a durable visual fallback when OCR changes.
+
+**Decision:** an anchor combines a local structural passage ID, exact quote
+with prefix/suffix, witness-version digest, and, when present, page/Canvas and
+region coordinates. Byte or character offsets are conveniences, never the
+only address.
+
+### 3. Provenance, preservation, identity, and normalization
+
+[PROV-O](https://www.w3.org/TR/prov-o/) distinguishes entities, activities,
+and agents. [PREMIS 3.0](https://www.loc.gov/standards/premis/v3/index.html)
+adds preservation events, objects, agents, and rights. Together they cover
+acquisition, extraction, OCR, correction, normalization, alignment,
+translation, annotation, review, and export without collapsing them into one
+opaque pipeline run.
+
+[BagIt, RFC 8493](https://www.rfc-editor.org/info/rfc8493/) provides a simple
+transfer-package pattern with manifests. The local corpus need not be a Bag
+internally, but every future server upload should be able to emit or accept a
+BagIt-like inventory with checksums and receipts.
+
+[SPDX 3.0.1 AI profile](https://spdx.github.io/spdx-spec/v3.0.1/model/AI/AI/)
+is relevant to model and dataset bills of materials. It does not replace
+work-level copyright research.
+
+[JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) permits claim packets to stay
+reviewable JSON while carrying resolvable graph semantics.
+
+[SHACL 1.0](https://www.w3.org/TR/shacl/) is the stable validation baseline.
+[SHACL 1.2 Core](https://www.w3.org/TR/shacl12-core/) is still a draft in this
+snapshot and must not silently become the contract baseline.
+
+[Unicode Normalization UAX #15, Unicode 17](https://unicode.org/reports/tr15/)
+supports NFC for a normalized text layer. Original bytes and diplomatic text
+must remain unnormalized so typography, historical spelling, decomposed
+characters, and OCR behavior are not erased.
+
+### 4. Document formats and OCR interchange
+
+[EPUB 3.3](https://www.w3.org/TR/epub-33/) is the applicable publication
+standard; the recommendation was republished in January 2026 without making
+automatically generated OCR reliable.
+
+[OCR-D METS conventions and workflows](https://ocr-d.de/en/workflows),
+[ALTO XML](https://altoxml.github.io/), and
+[PAGE XML](https://primaresearch.org/tools) establish useful patterns for
+page, region, line, word, coordinates, confidence, and processing steps.
+ToS should accept PAGE/ALTO as laboratory interchange while keeping its own
+source item and anchor identities above either format.
+
+### 5. Lexical, semantic, translation, and rights description
+
+[OntoLex-Lemon](https://www.w3.org/2016/04/ontolex/) supplies useful
+LexicalEntry, Form, Sense, and translation/relation patterns. It is a W3C
+Community Group report, not a W3C Recommendation. It can guide a lexical
+projection but must not turn a disputed philosophical sense into an
+authoritative dictionary fact.
+
+[MQM 2.0](https://themqm.org/error-types-2/typology/) supplies a current,
+explicit translation error typology. ToS should extend it with literary and
+philosophical dimensions rather than treating one MQM score as truth.
+
+[W3C ITS 2.0](https://www.w3.org/TR/its20/) includes translation provenance
+and localization-quality issue metadata and supports stand-off use.
+
+[ISO 17100:2015](https://www.iso.org/standard/59149.html) was under revision
+at the snapshot date and explicitly excludes raw machine translation plus
+post-editing from its scope. ToS must not claim ISO 17100 compliance. Its
+separation of translation and independent revision remains a useful human
+process principle.
+
+[RightsStatements.org](https://rightsstatements.org/en/statements/) gives
+standardized rights categories, while [ODRL 2.2](https://www.w3.org/TR/odrl-model/)
+can express permissions, prohibitions, duties, and constraints. A rights
+statement records a researched posture; it does not manufacture permission.
+
+### Classical-layer synthesis
+
+The stable floor has four different kinds of stability:
+
+| Kind | Stable object | What may change |
+| --- | --- | --- |
+| fixity | acquired item bytes and digest | a later item is a new version/item |
+| identity | persistent work/expression/edition/item IDs | metadata assertions about them |
+| address | passage/region identity within a declared witness version | offsets and derived segmentation |
+| history | append-only proposal/review/preservation events | current accepted state |
+
+Concepts and semantics do not belong in the fixity column. They become durable
+through identity, evidence, version history, and review, not through a claim
+that interpretation has ended.
+
+---
+
+## Layer II — leading papers and established tools
+
+### OCR and document structure
+
+- [DocLayNet](https://arxiv.org/abs/2206.01062) established a large,
+  human-annotated layout-analysis benchmark across diverse document classes.
+- [Docling technical report](https://research.ibm.com/publications/docling-technical-report)
+  describes document conversion that keeps layout and reading order.
+- [eScriptorium](https://escriptorium.eu/about/) and
+  [OCR4all](https://arxiv.org/abs/1909.04032) represent mature
+  human-in-the-loop historical OCR/transcription paths.
+- [OCR-D and OCR4all integration](https://ceur-ws.org/Vol-2981/short2.pdf)
+  demonstrates why standardized page/workflow exchange matters.
+- [PreP-OCR](https://aclanthology.org/2025.acl-long.749/) treats OCR
+  post-correction as an evaluated model problem rather than harmless cleanup.
+- [LLM post-OCR correction](https://aclanthology.org/2024.lt4hala-1.14/) and
+  [CuReD](https://aclanthology.org/2024.ml4al-1.14/) show potential but also
+  reinforce that corrections need aligned before/after evidence.
+
+The leading-tool conclusion is a staged path: native extraction first,
+layout-aware parsing second, OCR only where needed, model correction only as
+a proposal, and visible-source review before promotion.
+
+### Translation and evaluation
+
+- [MQM expert evaluation](https://aclanthology.org/2021.tacl-1.87/) supports
+  explicit expert error annotation and demonstrates the importance of
+  context.
+- [COMET](https://aclanthology.org/2020.emnlp-main.213/) is a strong learned
+  MT metric, but remains a metric rather than an adjudicator.
+- [Literary translation with document context](https://aclanthology.org/2023.wmt-1.41/)
+  shows that critical errors can be missed by sentence-local evaluation.
+- [Multi-aspect translation evaluation](https://aclanthology.org/2024.tacl-1.13/)
+  supports separate dimensions rather than a single opaque score.
+- [Literary Translation Evaluation with Humans and LLMs](https://aclanthology.org/2025.naacl-long.548/)
+  finds that generic automatic metrics and unmodified MQM are inadequate for
+  literary translation; expert best-worst judgments are more discriminating.
+- [NLLB](https://arxiv.org/abs/2207.04672) and
+  [MADLAD-400](https://arxiv.org/abs/2309.04662) are useful multilingual MT
+  baselines, but license, domain, context, and hardware fit must be evaluated
+  separately.
+
+ToS therefore needs a translation packet containing original text,
+diplomatic and normalized forms, interlinear gloss, etymological notes,
+independent AI/human drafts, recognized translation comparators, error labels,
+and adjudication. Fluency, faithfulness, semantics, terminology, rhythm,
+imagery, ambiguity, and intervention are separate axes.
+
+### Alignment
+
+[Vecalign](https://aclanthology.org/D19-1136/) provides a linear-time
+sentence-alignment method based on bilingual sentence embeddings. It is a
+useful proposal generator after structural divisions are aligned. It cannot
+decide that two philosophically non-equivalent sentences are equivalent.
+
+The preferred order is edition structure, headings and paragraphs first;
+sentence embeddings second; token/phrase alignment third; human acceptance
+last. One-to-many, many-to-one, omission, addition, reordering, and
+unresolved mappings must be first-class states.
+
+### Retrieval
+
+- [BEIR](https://arxiv.org/abs/2104.08663) demonstrates that retrieval models
+  often fail to generalize across domains.
+- [MTEB](https://arxiv.org/abs/2210.07316) and
+  [MMTEB](https://proceedings.iclr.cc/paper_files/paper/2025/hash/fc0e3f908a2116ba529ad0a1530a3675-Abstract-Conference.html)
+  establish broad and multilingual embedding evaluation.
+- [MIRACL](https://aclanthology.org/2023.tacl-1.63/) is a multilingual
+  retrieval benchmark relevant to German/Russian/English search.
+- [BGE-M3](https://aclanthology.org/2024.findings-acl.137/) combines dense,
+  sparse, and multi-vector retrieval modes.
+- [ColPali](https://arxiv.org/abs/2407.01449) motivates page-image retrieval
+  when OCR loses layout or visual evidence.
+
+No public benchmark represents ToS questions. A tiny expert-authored query
+set with exact relevant passages, hard lexical distractors, implicit semantic
+matches, and explicit non-matches is required before choosing an index.
+
+### Annotation and knowledge representation
+
+- [INCEpTION](https://aclanthology.org/C18-2002/) provides customizable span,
+  relation, chain, recommender, agreement, and curation workflows.
+- [CATMA](https://catma.de/) supports exploratory, qualitative literary
+  annotation and TEI export.
+- [Nanopublications](https://arxiv.org/abs/1809.06532) provide an assertion,
+  provenance, and publication-info pattern suitable for small reviewable
+  claims.
+- [GraphRAG](https://arxiv.org/abs/2404.16130) shows the utility of graph-based
+  retrieval summaries but does not justify giving a generated graph source
+  authority.
+
+The current official [INCEpTION documentation](https://inception-project.github.io/documentation/)
+exposes multi-user annotation, curation, knowledge bases, agreement, custom
+layers, and recommenders. Its built-in versioning remains operational support,
+not the ToS canonical record. [CATMA 7](https://catma.de/documentation/technology-and-versions/)
+uses a Git-backed project representation and remains a valuable qualitative
+counterpoint. Both should export into ToS claim packets; neither owns canon.
+
+---
+
+## Layer III — freshest relevant evidence and current software
+
+### Fresh papers that change the method
+
+The following 2026 results are especially consequential:
+
+- [From OCR to Analysis: Tracking Correction Provenance in Digital Humanities Pipelines](https://aclanthology.org/volumes/2026.nlp4dh-1/)
+  makes span-level correction type, source, confidence, and revision history
+  first-class because different correction paths change later entity and
+  interpretive results.
+- [Matching Meaning at Scale: Evaluating Semantic Search for 18th-Century Intellectual History through Locke](https://aclanthology.org/volumes/2026.nlp4dh-1/)
+  finds implicit reception that lexical search misses, while also exposing
+  lexical gatekeeping and requiring an expert relevance taxonomy.
+- [Scaling Sentence Similarity for Classical Tibetan](https://aclanthology.org/volumes/2026.nlp4dh-1/)
+  shows that silver ensembles and LLM committees become useful only when
+  bounded by domain gold data.
+- [HisDoc-OCR](https://aclanthology.org/2026.findings-acl.301/) reports
+  historically dangerous VLM OCR behavior: language priors can hallucinate
+  plausible text and introduce semantic drift. Visual grounding cannot be
+  optional.
+- [Beyond Literal Mapping](https://aclanthology.org/2026.acl-long.205/) shows
+  inconsistent evaluation of non-literal translation by metrics and LLM
+  judges.
+- [Beyond Reproduction](https://aclanthology.org/2026.findings-acl.2030/)
+  separates textual comprehension from creative reproduction; fluent output
+  can remain literal or contextually wrong.
+- [Fluency and Faithfulness](https://aclanthology.org/2026.nlp4dh-1.17/)
+  reports a real trade-off between the two and sensitivity to segment length.
+- [Degree Zero of Translation](https://aclanthology.org/2026.latechclfl-1.22/)
+  uses an interlinear baseline to make translator intervention measurable.
+- [Better Literary Translation](https://aclanthology.org/2026.acl-industry.22/)
+  supports multi-aspect refinement but also reports that preference
+  optimization can degrade results.
+- [GraphRefine](https://aclanthology.org/2026.acl-long.1353/) shows that
+  extracted knowledge graphs require delete/edit/rewrite refinement. ToS must
+  preserve superseded and rejected proposals instead of silently mutating
+  graph truth.
+- [Stoic LLM](https://aclanthology.org/volumes/2026.nlp4dh-1/) shows that a few
+  hundred high-fidelity examples can align a small model while important
+  philosophical failure modes persist. This supports a small golden kernel
+  and rejects automatic ontology transfer.
+
+These results converge on the planned manual laboratory: small gold before
+scale; visible correction provenance; multiple evaluation dimensions; blind
+independent drafts where possible; explicit rejections; and no LLM-as-judge
+promotion gate.
+
+### Current OCR and document software
+
+At the snapshot date:
+
+- [PaddleOCR 3.7.0](https://github.com/PaddlePaddle/PaddleOCR/releases/tag/v3.7.0)
+  is the current June 2026 release. PP-OCRv6 does not cover Russian in this
+  release, so it is not a fair main route for the German/Russian packet. The
+  admitted C route instead uses `PP-OCRv5_server_det` with
+  `latin_PP-OCRv5_mobile_rec` for German and
+  `eslav_PP-OCRv5_mobile_rec` for Russian, as listed in the official
+  [multilingual PP-OCRv5 documentation](https://paddlepaddle.github.io/PaddleOCR/latest/en/version3.x/algorithm/PP-OCRv5/PP-OCRv5_multi_languages.html).
+  PaddleOCR-VL remains a separate structure/VLM candidate, not a trusted
+  transcriber and not OCR C.
+- [Tesseract 5.5.2](https://github.com/tesseract-ocr/tesseract/releases/tag/5.5.2)
+  remains the deterministic classical A baseline and can emit plain text,
+  hOCR, TSV, and ALTO. Fedora 44 currently carries 5.5.2 plus German and
+  Russian 4.1.0 language packs, but the laboratory must still isolate and
+  checksum the binary and `traineddata` rather than mutate the host.
+- [Kraken 7.0.2](https://github.com/mittagessen/kraken/releases/tag/7.0.2)
+  plus [Party](https://github.com/mittagessen/party) at commit
+  `c2589b1b515ed690f883c6afaef6c01ce29bf72d` is the trainable historical-print
+  B route. The exact multilingual Party v4 model is
+  [Zenodo 10.5281/zenodo.20642057](https://zenodo.org/records/20642057), not the
+  older concept record linked by some documentation. Its reported held-out
+  German and Russian CER values are model-card context, not evidence on ToS.
+  The model mixes public and access-restricted/private training witnesses and
+  inconsistent transcription conventions, so any later fine-tuning or
+  transfer requires a dataset-level provenance and normalization audit.
+- Kraken 7.0.2 is also a security-sensitive freeze: its release pins
+  Lightning 2.6.1 after compromised 2.6.2/2.6.3 packages. The laboratory must
+  resolve that exact safe dependency rather than accept an unconstrained
+  newest version.
+- [OCRmyPDF 17.8.1](https://github.com/ocrmypdf/OCRmyPDF/releases/tag/v17.8.1)
+  may package a winning OCR stream into a searchable derivative. It is not a
+  recognition contestant or rasterizer, and a derived PDF must never replace
+  the source item.
+- [Docling 2.114.0](https://github.com/docling-project/docling/releases/tag/v2.114.0)
+  was released 2026-07-20. Versions before 2.91 are excluded because of
+  [CVE-2026-44022](https://nvd.nist.gov/vuln/detail/CVE-2026-44022).
+  [Docling pipeline guidance](https://docling-project.github.io/docling/examples/agent_skill/docling-document-intelligence/pipelines/)
+  supports standard, hybrid, and VLM paths; forcing available backend text is
+  safer than gratuitous OCR.
+
+### Current local-model and runtime direction
+
+- [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)
+  is a compact multilingual embedding candidate already present locally.
+- [gte-multilingual-base](https://huggingface.co/Alibaba-NLP/gte-multilingual-base)
+  is a 305M, 75-language historical challenger. Its repository was last
+  modified in July 2025 and its documented SentenceTransformers route asks
+  callers to enable remote model code, so it is not the best independent C
+  route for this host.
+- [BGE-M3](https://huggingface.co/BAAI/bge-m3) remains an important
+  dense+sparse+multi-vector reference, but its roughly 2.27 GB weight artifact
+  and multi-mode integration would add both storage and a second experimental
+  variable to this 24-passage pilot.
+- [Granite Embedding 311M Multilingual R2](https://huggingface.co/ibm-granite/granite-embedding-311m-multilingual-r2)
+  is the selected independent text challenger for Retrieval C. IBM published
+  the repository in April 2026, updated it in May 2026, and documents Apache
+  2.0 licensing, more than 200 languages, explicit German/Russian training
+  improvements, 32K input support, CLS pooling, L2 normalization, and official
+  OpenVINO exports. The accompanying [R2 paper](https://arxiv.org/abs/2605.13521)
+  and [owner repository](https://github.com/ibm-granite/granite-embedding-models)
+  make this a fresher, independent family than the resident Qwen baseline.
+- [Qwen3-VL-Embedding-2B](https://huggingface.co/Qwen/Qwen3-VL-Embedding-2B)
+  is a 2026 visual-document retrieval challenger, but its weight and added
+  modality require evidence before download. It is not substituted for the
+  text challenger: visual retrieval needs a separately frozen page-image query
+  plan and image relevance judgments.
+- [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) is the plausible fresh
+  small general-model challenger. Its very large default context should be
+  reduced locally.
+- [Qwen3.6](https://github.com/QwenLM/Qwen3.6) begins at a much larger total
+  weight even for the 35B-A3B mixture; it is not a first-wave fit for this
+  machine.
+- [Gemma 4 E2B](https://huggingface.co/google/gemma-4-E2B-it) and
+  [Gemma 4 E4B](https://huggingface.co/google/gemma-4-E4B-it) are current
+  small open-weight candidates already represented by host GGUFs.
+- [TranslateGemma 4B](https://huggingface.co/google/translategemma-4b-it) is a
+  specialized, license-gated translation candidate with a short input limit;
+  it belongs after the license and baseline gates, not in the default path.
+- [OpenVINO 2026.2](https://docs.openvino.ai/2026/about-openvino/release-notes-openvino.html)
+  supports current Intel CPU/GPU/NPU inference families. The
+  [NPU guide](https://docs.openvino.ai/2026/openvino-workflow-generative/inference-with-genai/inference-with-genai-on-npu.html)
+  requires compatible low-bit conversion and model-specific constraints.
+- [llama.cpp SYCL](https://github.com/ggml-org/llama.cpp/blob/master/docs/backend/SYCL.md)
+  supports Intel GPU, while [llama.cpp](https://github.com/ggml-org/llama.cpp)
+  also exposes Vulkan and an evolving OpenVINO backend.
+
+Fresh model availability does not displace existing resident models. A new
+artifact enters only after the resident route has produced a concrete result
+and an independent-family comparison is required by the frozen A/B/C method.
+
+#### Retrieval C admission frozen before execution
+
+The Retrieval C method is frozen as IBM
+`granite-embedding-311m-multilingual-r2` at repository revision
+`44399559930365213510b1ee2eb15ded83374f0e`. Only the official quantized
+OpenVINO IR, tokenizer, pooling/configuration files, model card, and license
+metadata are admitted. The remote dry run reports about 350 MB for that
+selected set, rather than the approximately 4.1 GB full repository containing
+duplicate PyTorch, ONNX, and full-precision OpenVINO exports.
+
+The executed route uses the host's OpenVINO 2026.2 on CPU, a small isolated
+tokenizer runtime, owner-routed cache and runtime roots, and no remote-code
+execution. The selected 11 files total 348,082,051 bytes. This selection was
+based on recency, license, language fit, independent model family, official
+Intel artifact, and bounded storage—not on unseen Retrieval C quality. The
+same frozen 20 queries, 24 non-empty passages, anchors, and manual review
+protocol used by A/B remain authoritative. Two post-freeze executions produced
+identical indexes and rankings, but human relevance remains unreviewed.
+BGE-M3 and gte-multilingual-base stay documented comparators;
+Qwen3-VL-Embedding-2B stays deferred to the distinct visual-search experiment.
+
+### Current graph and retrieval stores
+
+- [PyOxigraph 0.5.9](https://pypi.org/project/pyoxigraph/), released
+  2026-06-18, is the exact reviewed and installed Python binding for the
+  lightweight MIT/Apache Oxigraph RDF/SPARQL engine. Its
+  [current API](https://pyoxigraph.readthedocs.io/en/stable/) supports
+  in-memory and disk stores, named graphs, and SPARQL 1.1. The project itself
+  still warns that development is active and query evaluation is not yet
+  optimized, so the successful 13-claim pilot cannot establish large-corpus
+  maturity.
+- [Neo4j operations documentation](https://neo4j.com/docs/operations-manual/current/)
+  governs the service route. The laboratory actually used the resident Neo4j
+  5.26.26 Community service; that makes it a useful property-graph trial but
+  does not provide isolated store costing or the multi-user authorization
+  posture needed for a canon authority.
+- [Qdrant releases](https://github.com/qdrant/qdrant/releases) make it a
+  current vector-index candidate. It remains a retrieval projection only.
+
+RDF-star 1.2 is not adopted as the authoritative claim model while its
+specification and quoted-triple semantics remain less stable than explicit
+claim resources. JSON-LD claim packets with explicit assertion identity,
+provenance, review, and named-graph projection are safer.
+
+---
+
+## Local source-ground inspection
+
+The three operator-provided files were inspected read-only. A future tracked
+forensic record must preserve the same facts with acquisition receipts.
+
+### 2007 Antonovsky volume
+
+Source path basename: `Так говорил Заратустра П Антоновского.pdf`
+
+- 162,778,307 bytes; SHA-256
+  `49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2`.
+- PDF 1.7, 432 A4 pages, not encrypted, not tagged.
+- CorelDRAW/Corel PDF metadata; visible title page identifies volume 4 of the
+  thirteen-volume complete works, *Thus Spoke Zarathustra*, translated by
+  Yu. M. Antonovsky, Cultural Revolution, Moscow, 2007.
+- No fonts and no usable text layer; `pdftotext` yields only one form-feed byte
+  per page. The visible letters are vector outlines.
+- This is a structure/rendering/OCR case, not a native-PDF extraction case.
+
+### 1996 collected works, volume 2
+
+Source path basename: `Ницше собрание сочинений.pdf`
+
+- 24,126,572 bytes; SHA-256
+  `ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa`.
+- `file` incorrectly reports four pages; PDF-aware inspection reports 831
+  pages. This is a concrete warning against shallow format validators.
+- ABBYY FineReader 10/iTextSharp provenance, 835 image objects and a hidden
+  OCR text layer; approximately 3,573,309 extracted bytes.
+- Visible metadata identifies *Works in Two Volumes*, volume 2, Mysl,
+  Moscow, 1996, with editor K. A. Svasyan and several translators including
+  Yu. M. Antonovsky.
+- The OCR contains spacing and character confusions and must be compared to
+  page images before it can anchor claims.
+
+### 1893 German EPUB derivative
+
+Source path basename: `Nietzsche_Also_sprach_Zarathustra_1893.epub`
+
+- 2,017,690 bytes; SHA-256
+  `adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de`.
+- ZIP integrity passes; EPUB 3 container with 541 entries, 529 page XHTML
+  files and five images.
+- Generated by Internet Archive `hocr-to-epub`; the package explicitly warns
+  of automated OCR, reading-order, structure, and character errors.
+- OPF metadata has a UUID and accessibility warning but lacks usable title,
+  author, language, edition, publication, and source identifiers; navigation
+  is empty.
+- Page text identifies a Google scan from Cornell University and contains
+  obvious OCR residue. The `1893` filename is a lead, not verified edition
+  metadata.
+- This is a born-derived OCR/structure/provenance-recovery case, not a clean
+  digital original.
+
+Together these items deliberately exercise three different failure surfaces:
+vector-outline PDF, image-plus-OCR PDF, and automatically segmented OCR EPUB.
+
+---
+
+## Material discovery and rights research
+
+### Discovery sources
+
+- [Nietzsche Source eKGWB](https://doc.nietzschesource.org/en/ekgwb) provides
+  critically edited Colli/Montinari text with stable addresses. Its
+  [CC BY-NC-ND 4.0 posture](https://doc.nietzschesource.org/en/rights) allows
+  consultation and citation but prevents treating it as a freely modifiable
+  derivative corpus without permission.
+- [Nietzsche-Wörterbuch](https://www.degruyterbrill.com/serial/nietzwtb-b/html)
+  records occurrences, senses, contexts, history, and reception. Access is
+  restricted through Nietzsche Online/De Gruyter and should become a concrete
+  written access-request case.
+- [DNB SRU](https://www.dnb.de/EN/sru) is a free bibliographic/authority API;
+  [DNB SPARQL beta](https://wiki.dnb.de/spaces/LINKEDDATASERVICE/pages/449878933/DNB%2BSPARQL%2BService%2BBETA)
+  adds a current linked-data route.
+- [KVK](https://www.bibliothek.kit.edu/english/kvk-help.php) is a meta-search,
+  not the source catalog. ToS must preserve the originating catalog record.
+- [WorldCat Search API 2.0](https://www.oclc.org/developer/api/oclc-apis/worldcat-search-api.en.html)
+  requires an eligible subscription and should be optional.
+- [Europeana licensing framework](https://pro.europeana.eu/page/europeana-licensing-framework)
+  separates object-content rights from metadata rights.
+- [Google Books API](https://developers.google.com/books/docs/v1/reference/volumes)
+  exposes country-dependent viewability and public-domain flags; these are
+  discovery evidence, not a global rights judgment.
+- [Internet Archive metadata](https://doc-tools.readthedocs.io/en/ia-test-gsod/metadata.html)
+  is useful catalog evidence but does not grant rights by itself.
+- [HathiTrust copyright review](https://help.hathitrust.universityofcalifornia.edu/support/solutions/articles/9000207726--1-introduction)
+  combines algorithms and human review, illustrating why publication date
+  alone is insufficient.
+- [Project Gutenberg terms](https://www.gutenberg.org/policy/terms_of_use.html)
+  warn non-US users to determine local legal status and direct automation to
+  mirrors/offline catalogs.
+- [MediaWiki Action API](https://www.mediawiki.org/wiki/API%3AAction_API/en)
+  and [German Wikisource dumps](https://dumps.wikimedia.org/dewikisource/latest/)
+  offer reproducible discovery and acquisition routes when item licensing is
+  compatible.
+
+### Required discovery chain
+
+```text
+search lead
+  -> originating bibliographic or authority record
+    -> digital-object record
+      -> edition and item reconciliation
+        -> jurisdiction-aware rights determination
+          -> access route or written request
+            -> immutable acquisition receipt
+```
+
+No system may infer `public domain` only from a date, a repository badge, a
+download link, or a filename. Unknown and conflicting rights are valid states.
+
+---
+
+## Foundation model proposed for contract work
+
+### Corpus identity classes
+
+| Class | Purpose |
+| --- | --- |
+| `work` | intellectual work independent of one language or carrier |
+| `expression` | language/textual state, including original or translation |
+| `edition` | edited/published manifestation with editor, publisher, date, and apparatus |
+| `item` | one physical or digital copy/container |
+| `file` | immutable acquired byte sequence with digest and media type |
+| `source-event` | discovery, access decision, acquisition, verification, or preservation event |
+| `passage` | citable structural node in a declared witness version |
+| `region` | visual page/canvas region supporting or recovering a passage |
+
+### Text-bearing layers
+
+| Layer | Mutation rule | Authority posture |
+| --- | --- | --- |
+| source bytes | immutable | forensic item evidence |
+| rendered page | reproducible derivative | visual source-return surface |
+| diplomatic transcription/OCR | append new revision | source-near proposal until reviewed |
+| normalized text | append new revision; NFC allowed | declared editorial derivative |
+| structural segmentation | versioned | address proposal, reviewable |
+| translation | versioned by translator/method | independent expression/proposal |
+| annotation | append/supersede | observation or interpretation by typed layer |
+| claim | append/supersede/reject | evidence-bearing assertion |
+| search/graph export | replaceable rebuild | non-authoritative projection |
+
+### Sign and semantic layers
+
+| Layer | Example | Review posture |
+| --- | --- | --- |
+| glyph/token occurrence | visible `Übermensch` at an anchor | source-near observation |
+| surface form | exact spelling/case/punctuation | source-near observation |
+| lemma/morphology | `Übermensch`, noun, singular | linguistic proposal/review |
+| recurrence set | occurrences grouped by declared rule | reproducible analysis plus review |
+| lexical sense | one contextual sense among alternatives | interpretive claim |
+| etymology | component/history/source-language account | sourced scholarly claim |
+| translation relation | source segment rendered by target segment | alignment plus translation claim |
+| motif/sign | recurring image or sign across passages | interpretive proposal |
+| concept | abstracted philosophical object | reviewed, contestable claim family |
+| relation | supports, contrasts, transforms, inherits, echoes | typed claim with evidence |
+
+Stable IDs apply at every layer. Stability of ID means continuity of the
+record, not infallibility of its content.
+
+### Claim packet minimum
+
+Every semantic or relational assertion should contain:
+
+- assertion ID and type;
+- subject, predicate, object or literal body;
+- source witness and anchor set;
+- exact supporting quote or visual region reference;
+- assertion layer: observation, linguistic analysis, bibliographic claim,
+  translation judgment, interpretation, or canon judgment;
+- maker: human, model, software, imported source, or mixed workflow;
+- method, version, prompt/configuration, and timestamp where applicable;
+- confidence as the maker's declared uncertainty, never truth probability;
+- review state, reviewer, rationale, alternatives, and counterevidence;
+- supersedes/superseded-by lineage;
+- rights and visibility constraints inherited from supporting material.
+
+---
+
+## Translation as an independent research branch
+
+AI, human, and AI+human translation can become one of ToS's highest-value
+organs only if their differences remain visible.
+
+### Required blind stages
+
+1. establish and verify the original-language segment;
+2. prepare morphology, literal gloss, etymological leads, and ambiguity notes
+   without exposing a recognized translation to the first translator;
+3. create an independent human, AI, or AI-assisted draft;
+4. reveal one or more recognized translations and compare them by aligned
+   segment;
+5. perform an independent revision that did not author the draft;
+6. adjudicate disagreements and record accepted, rejected, and unresolved
+   alternatives;
+7. publish a packet, not a single cleaned sentence.
+
+### Evaluation axes
+
+- source fidelity and omission/addition;
+- semantic force and logical relation;
+- key-term consistency without mechanical flattening;
+- etymological and morphological sensitivity;
+- ambiguity preserved, narrowed, or invented;
+- voice, register, rhythm, imagery, syntax, and punctuation;
+- intratextual recurrence and cross-passage resonance;
+- explicitation, domestication, interpretation, and other translator
+  interventions;
+- fluency separately from faithfulness;
+- reviewer confidence and unresolved risk.
+
+Automatic metrics may be recorded as diagnostics. They cannot promote a
+translation or settle an etymology.
+
+---
+
+## Experimental implications
+
+### A/B/C principle
+
+Every experiment uses the same frozen source sample and evaluation packet.
+`A`, `B`, and `C` are independently reproducible routes, not three prompts to
+one hidden service. Order is randomized or blinded when output style could
+reveal the method to a reviewer.
+
+### Minimum gold set
+
+The first gold set should be deliberately small and difficult:
+
+- pages with native OCR, no OCR, and corrupt OCR;
+- headings, prose, verse-like layout, quotation, italics, line numbers,
+  hyphenation, and page furniture;
+- German/Russian segment pairs containing recurrence, ambiguity, compound
+  words, metaphor, syntactic inversion, and recognized translation tension;
+- lexical queries and implicit semantic queries;
+- positive, negative, ambiguous, and counter-reading semantic examples;
+- relations that should be accepted, rejected, split, or left unresolved.
+
+### Manual review record
+
+For each item, reviewers see the rendered source region and all necessary
+context. They record error spans, severity, rationale, and whether the failure
+blocks downstream use. A second manual pass checks the first review on a
+sample. The validator only verifies that this evidence exists and is
+well-formed.
+
+---
+
+## Decisions supported now
+
+1. Build the corpus catalog and witness spine before mass semantic markup.
+2. Store source files locally under a narrow gitignored item route; track
+   catalogs, manifests, checksums, forensic reports, rights, and receipts.
+3. Treat all extracted text as a versioned derivative, even when a PDF already
+   contains OCR.
+4. Use structural + quote + digest + visual anchors; never offsets alone.
+5. Keep signs as a layered family from occurrence to interpretation.
+6. Keep claims explicit; keep graph and vector stores disposable.
+7. Start with resident models and runtimes; earn every download. The bounded
+   Granite R2 Retrieval C artifact is now earned by the already-executed
+   resident A/B comparison and the frozen independent-challenger requirement.
+8. Compare lexical, resident dense+rerank, and independent multilingual dense
+   retrieval on one ToS-authored query set; keep later hybrid fusion separate.
+9. Run a dedicated blind translation lab with interlinear and recognized
+   translation comparison.
+10. Preserve rejected and unresolved outputs as training and architectural
+    evidence.
+
+## Questions intentionally left for laboratory evidence
+
+- Can the vector-outline 2007 PDF be recovered more faithfully through direct
+  rasterization + Tesseract, PaddleOCR, or a layout/VLM route?
+- Is its visible typography sufficiently clean that OCR confidence predicts
+  real error, or does a manual sample expose systematic semantic corruption?
+- Does the 1996 ABBYY layer outperform fresh OCR after alignment to page
+  images?
+- Can the EPUB page sequence and sections be reconstructed from layout and
+  recurring headers without importing false structure?
+- Which multilingual embedding best retrieves German/Russian conceptual
+  parallels without erasing lexical evidence?
+- Do current small local models help with etymological and translation
+  proposals, or merely produce persuasive ungrounded prose?
+- Which annotation interface supports real human review without making its
+  internal database a new hidden authority?
+- Does RDF or property-graph projection improve inspection enough to justify
+  its operational cost over tracked claim packets plus a simple graph view?
+
+Those are experimental questions, not gaps to fill with confidence.
