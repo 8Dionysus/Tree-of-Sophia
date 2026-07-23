@@ -124,15 +124,8 @@ authority out of the tracked claim/review records.
 
 ## Validation
 
-Run:
-
-```bash
-python scripts/generate_decision_indexes.py
-python scripts/validate_source_witness_foundation.py
-python scripts/validate_tos_source_home.py
-python scripts/validate_nested_agents.py
-```
-
 Decision-index regeneration routes through `docs/decisions/AGENTS.md`.
+Catalog, source-foundation, source-home, and route-card checks route through
+`scripts/AGENTS.md` and the release lane declared by the validation manifest.
 The review checklist remains required for bibliographic, rights, translation,
 and semantic judgments outside validator authority.
