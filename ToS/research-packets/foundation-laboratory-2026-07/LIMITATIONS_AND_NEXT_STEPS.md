@@ -1,7 +1,7 @@
 # Foundation Limitations and Next Steps
 
-Status: mechanical foundation substantially prepared; human-evidence phases
-and final repository landing remain incomplete
+Status: mechanical foundation prepared and committed on local owner branches;
+human-evidence phases remain incomplete
 Snapshot: 2026-07-23
 
 ## Honest boundary
@@ -109,6 +109,27 @@ work. On this machine 100–105 °C is the monitored active range, values above
 105 °C enter watch, 106 °C is hot, and 109 °C is critical. The repository must
 not reintroduce a false 90 °C gate.
 
+## Mechanical closeout evidence
+
+- Tree of Sophia foundation source and contracts are committed as `d2f9bd7`;
+  route-law closeout and the portable KAG family are committed as `de76ef6`.
+- The Tree of Sophia release lane passed source-home, catalog, fixity,
+  contracts, active naming, derived parity, KAG-provider validation, and all
+  150 repository tests.
+- The `abyss-stack` laboratory is committed as `240ad09`, rebased on the
+  current `origin/main`, with all 57 laboratory tests and the full stack
+  validator passing.
+- Both owner worktrees are clean apart from deliberately ignored payload,
+  laboratory-content, cache, and test-cache paths. No source PDF, EPUB, model,
+  cache, or heavy run artifact entered Git.
+- External push, pull request, merge, server upload, access-request send, and
+  publication were not performed. Those actions require their own explicit
+  workflow or human authority.
+
+These results close the mechanical repository slice. They do not close any
+human-evidence row below and do not convert a passing validator into content
+quality.
+
 ## Dependency-ordered next steps
 
 ### 1. Complete the source-visible human gold
@@ -184,7 +205,7 @@ not reintroduce a false 90 °C gate.
 
 | Goal condition | Current state |
 | --- | --- |
-| safe repository preparation and preserved user work | mechanically prepared; final branch/commit/landing audit still required |
+| safe repository preparation and preserved user work | satisfied on local owner branches; commits and validation complete, no external push/merge performed |
 | speaking topology, source storage, manifests, fixity, provenance, rights | prepared and validated |
 | research, decision matrix, machine fit, A/B/C specifications | prepared; time-sensitive surfaces require refresh before future runs |
 | real pages and text manually checked | incomplete |
