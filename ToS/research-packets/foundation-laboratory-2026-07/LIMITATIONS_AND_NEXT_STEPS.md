@@ -20,7 +20,7 @@ fields. They are the next authority layer.
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
 | --- | --- | --- | --- |
-| 15-page OCR/structure gold | `HUMAN_REVIEW_WORKSHEET.md`, `gold-status.json`, local source pages | 0 / 15 double checked | model inspection cannot attest real-human source review |
+| 15-page OCR/structure gold | private 41-page packet, two blind workbooks, exact blank working JSONL, `HUMAN_GOLD_REVIEW_PACKET.md` | pass 1: 0; pass 2: 0; accepted: 0 | model inspection and mechanical fixity cannot attest real-human source review |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0 | diplomatic transcription and two independent passes require real people |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
@@ -119,6 +119,10 @@ not reintroduce a false 90 °C gate.
 - The `abyss-stack` laboratory is committed as `240ad09`, rebased on the
   current `origin/main`, with all 57 laboratory tests and the full stack
   validator passing.
+- The source-visible 15-page human-gold route is committed in `abyss-stack` as
+  `8bc3758`. Its strengthened suite passes all 59 laboratory tests, the full
+  stack validator, and `source-fast` when routed to the real `aoa-stats`
+  owner checkout.
 - Both owner worktrees are clean apart from deliberately ignored payload,
   laboratory-content, cache, and test-cache paths. No source PDF, EPUB, model,
   cache, or heavy run artifact entered Git.
@@ -140,8 +144,10 @@ quality.
 3. Complete independent pass 2 with distinct human identity and timestamps.
 4. Resolve every `reject`, `uncertain`, `defer`, or `accept-with-limits` state;
    only explicit final `accept` opens the source gate.
-5. Complete the 15-page OCR/structure diplomatic gold with two source-visible
-   passes and populate the manual error ledger.
+5. Open the pass-1 workbook and working copy recorded in
+   `HUMAN_GOLD_REVIEW_PACKET.md`; complete the 15-page OCR/structure
+   diplomatic gold with two source-visible passes by different humans and
+   populate the manual error ledger.
 
 ### 2. Manually verify the executed mechanical pilots
 

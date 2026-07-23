@@ -5,6 +5,13 @@ Status: prepared, no human reviews recorded.
 Use one copy per sample and per pass. Do not complete pass two from pass-one
 text alone; reopen the exact source page/member at full resolution.
 
+For the frozen 15-page OCR/structure gold, the preferred local interface is
+the two-workbook packet recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/HUMAN_GOLD_REVIEW_PACKET.md`.
+Its mutable working copy remains exactly blank. This Markdown worksheet is the
+content-free fallback and review-question reference; it is not evidence that a
+human pass occurred.
+
 ## Identity
 
 - reviewer identity:

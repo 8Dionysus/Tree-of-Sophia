@@ -26,6 +26,7 @@ and what must be tested manually.
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `OCR_ADMISSION.md` | What the sequential OCR A/B/C executions produced, which failures remain preserved, and what still blocks quality claims? |
+| `HUMAN_GOLD_REVIEW_PACKET.md` | Is the 15-page source-visible double-review interface real, blind, hash-closed, and still honestly 0/15? |
 | `RETRIEVAL_C_ADMISSION.md` | Which exact independent embedding challenger was frozen before C output, why, and with what artifact/comparability boundary? |
 | `STRUCTURE_RECOVERY_REPORT.md` | What did the first real Structure A runs produce, and what was rejected? |
 | `RETRIEVAL_COMPARISON_REPORT.md` | What do the executed lexical A and resident semantic/rerank B routes prove, disagree about, and leave for C and human judgment? |

@@ -135,6 +135,19 @@ must still perform pass 1 and an independent source-visible pass 2 before any
 German unit can be accepted. Full materialization evidence is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_SOURCE_REVIEW_V2.md`.
 
+The separate 15-page OCR/structure human-gold interface has also been
+materialized. It closes five frozen candidates per source over 41 unique
+previous/current/next-page renders at 300 DPI; all 15 current-page hashes and
+dimensions match the exact frozen OCR contestant inputs. Two deterministic
+blind workbooks and a 15-row blank JSONL contain no OCR output, model answer,
+embedded/reference OCR, recognized translation, human identity,
+transcription, or acceptance. The packet manifest SHA-256 is
+`a40f3d244fce19782c0c983634e37f252c36fdd6973def4ac01a3a633820c23d`.
+Its fail-closed gate remains at pass 1: 0, pass 2: 0, accepted: 0. Paths,
+artifact hashes, independent checks, and the real-human next action are
+recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/HUMAN_GOLD_REVIEW_PACKET.md`.
+
 ## Local content
 
 Restricted transcriptions, crops, prompts, drafts, and comparator text belong
