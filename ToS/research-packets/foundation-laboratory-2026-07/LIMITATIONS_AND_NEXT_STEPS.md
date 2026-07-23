@@ -71,9 +71,13 @@ contracts intentionally reject simulated human evidence.
   entire family.
 - OCR C has one full 36-page corrected run and a one-page repeat, not a second
   full-packet repeat.
-- Structure B/C, alignment A/B/C, translation A/B/C, semantic annotation
-  A/B/C, LLM assistance A/B/C, and golden-kernel transfer A/B/C have not been
-  executed as quality experiments.
+- Structure B has one corrected 36-unit Docling hybrid run and Structure C one
+  corrected 12-page PaddleOCR-VL run. Both have advisory source-visible model
+  inspections and real machine profiles, but neither has real-human quality
+  evidence or full-scope repeatability.
+- Alignment A/B/C, translation A/B/C, semantic annotation A/B/C, LLM
+  assistance A/B/C, and golden-kernel transfer A/B/C have not been executed
+  as quality experiments.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -123,6 +127,10 @@ not reintroduce a false 90 °C gate.
   `8bc3758`. Its strengthened suite passes all 59 laboratory tests, the full
   stack validator, and `source-fast` when routed to the real `aoa-stats`
   owner checkout.
+- Structure B/C runtime acquisition, provenance-routed Docling execution,
+  frozen PaddleOCR-VL selection, progress/receipt closure, and fail-closed
+  tests are committed in `abyss-stack` as `cc4e0da`. All 68 laboratory tests,
+  package validation, Python compilation, and the full stack validator pass.
 - Both owner worktrees are clean apart from deliberately ignored payload,
   laboratory-content, cache, and test-cache paths. No source PDF, EPUB, model,
   cache, or heavy run artifact entered Git.
@@ -222,7 +230,7 @@ quality.
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete |
 | quality, cost, speed, and human correction time | mechanical speed/cost recorded; human quality/correction incomplete |
-| A/B/C reproducibility | demonstrated for bounded mechanical slices only |
+| A/B/C reproducibility | demonstrated for bounded mechanical slices only; Structure B/C have one corrected full-scope run each under different frozen scopes, not repeated equal-scope quality runs |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |
 | limitations and continuation route explicit | satisfied by this document and the promotion ledger |

@@ -21,6 +21,8 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | --- | --- | --- | --- | --- | --- | --- |
 | native structure A, first | 36 units | real model-visible defect: XHTML head title added to body; human receipts 0 | 1.148 s | 32,759,808 peak RSS; 172,027 derived bytes | not measured | rejected revision; negative retained |
 | native structure A, corrected | 36 units | all anchors resolved; 12 outline-PDF pages falsely empty; inherited OCR defects; human receipts 0 | 1.228 s | 32,632,832 peak RSS; 172,489 derived bytes | not measured | retain with limits; no accepted text |
+| structure B / Docling hybrid R2 | 36 units; 12 per exact provenance-routed branch | six advisory inspections: 1 accept-with-limits, 5 reject; mechanical anchor resolution 1.0; structural quality not computable; human receipts 0 | 73.305 s runner; 29.466 units/min; 90.459 s owner wall | 1,582,149,632-byte child peak RSS; 3,250.324 MiB owner peak, zero swap; 1,267,021 artifact bytes | not measured | fast hybrid comparator; outputs unaccepted |
+| structure C / PaddleOCR-VL full R1 | frozen 12-page visual subset | six advisory inspections: 5 accept-with-limits, 1 reject; 164 blocks, zero empty pages; structural F1/reading-order accuracy absent; human receipts 0 | 5,672.930 s runner; 0.1269 pages/min; 5,687.198 s owner wall; page predictions 22.523–834.815 s | 9,674,465,280-byte child peak RSS; owner peak 10,694.297 MiB RAM + 1,005.258 MiB swap; 515,122 artifact bytes | not measured | high-cost challenger awaiting human gold; no winner |
 | OCR A / Tesseract R1 | 36 pages | six advisory inspections found substitutions, additions, marginal-number and reading-order defects; CER/WER absent | 40.15 s; 53.80 pages/min | about 126.7 MB child peak RSS | not measured | deterministic comparator only |
 | OCR A / Tesseract R2 | 36 pages | recognition set identical to R1; repeatability is not accuracy | 31.74 s; 68.04 pages/min | about 126.6 MB child peak RSS | not measured | deterministic comparator only |
 | OCR B / Kraken Party R1 | 27/36 pages; stopped | three advisory rejects and four accept-with-limits; omissions, duplication, invention, decoder-limit failure; no German conclusion | 3 h 50 m owner wall; 13 h 29 m CPU; 12,246.84 recognition s across completed pages | 3.7 GB memory peak; 809 MB swap peak | not measured | unchanged configuration rejected |
@@ -51,6 +53,9 @@ comparable:
 - OCR A R1/R2 supports deterministic recognition-set repeatability;
 - OCR C R3/R4 supports one-page repeatability under the corrected bounded
   method;
+- structure B has one corrected 36-unit run and structure C one corrected
+  12-page run; they establish execution and resource profiles, not
+  full-scope repeatability or an equal-scope winner;
 - retrieval C's two runs support exact ranking/index reproducibility;
 - corrected graph projections support lifecycle and trace-carriage comparison;
 - first and corrected revisions expose specific implementation defects.

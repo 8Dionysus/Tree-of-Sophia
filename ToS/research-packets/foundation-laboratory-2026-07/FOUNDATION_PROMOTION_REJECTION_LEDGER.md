@@ -32,6 +32,9 @@ The promotion authorities remain separate:
 | rights records | source-visible preliminary assessments | retain with limits | fail-closed local research and non-redistribution posture | jurisdiction-complete legal conclusion or publication permission |
 | native structure A, first run | real 36-unit run; XHTML head title copied into body | reject runner revision; preserve negative | defect evidence and reproduction lineage | structure or text candidate |
 | native structure A, corrected run | all 36 anchors resolved; 24 nonempty; outline PDF still empty; human receipts 0 | retain with limits | container inventory, anchors, EPUB body extraction, selected readable ABBYY mechanics | accepted text, structural F1, general transcription, quality winner |
+| structure B, first full attempt | pre-execution OCR-language resolution failed from sample-name heuristic; failed receipt retained | reject language route; preserve negative | fail-closed provenance regression case | content result or evidence against Docling |
+| structure B, corrected full run | exact item-to-expression language route; 36/36, zero partial success; six advisory inspections yielded 1 accept-with-limits and 5 reject; human receipts 0 | retain hybrid comparator awaiting human review | fast provenance-routed structure branches and machine-cost evidence | accepted output, structural quality, Docling family verdict, winner |
+| structure C, full visual run | frozen 12/12 pages; zero empty output; six advisory inspections yielded 5 accept-with-limits and 1 reject; about 95 minutes owner wall and 11,699.555 MiB owner footprint; human receipts 0 | retain high-cost challenger awaiting human review | independent visual structure evidence, exact runtime lineage, page-level cost profile | accepted transcription, structural F1, equal-scope comparison, winner |
 | OCR A / Tesseract | two mechanically identical 36-page recognition sets; advisory defects; human gold 0 | retain comparator only | deterministic classical baseline | OCR winner, accepted transcription, CER/WER |
 | OCR B / Kraken Party R1 | 27/36 pages; stopped after 3 h 50 m; repeated additions, omissions, decoder-limit failures | reject unchanged configuration; preserve negative | failure and machine-cost evidence | family-wide rejection of Kraken, quality result, rerun without new hypothesis |
 | OCR C / PaddleOCR | failed OOM route and dispatcher defect preserved; corrected full 36-page run completed; human gold 0 | retain challenger awaiting human review | mechanically viable independent pipeline and exact failure lineage | OCR winner, accepted transcription, formal quality |
@@ -60,15 +63,19 @@ The following failures are part of the result and must not be rewritten or
 deleted to make the laboratory look cleaner:
 
 1. native XHTML head-title contamination;
-2. OCR B's stopped high-cost unchanged configuration;
-3. OCR C's OOM configuration and dispatcher scope defect;
-4. translation selector v1's heading, page-tail, boundary, and OCR
+2. structure B's pre-execution language-routing failure and the accidentally
+   prepared but never executed wrong-output-root skeleton;
+3. structure C's blocked first full preflight, which produced stdout-only
+   safety evidence and no fabricated receipt;
+4. OCR B's stopped high-cost unchanged configuration;
+5. OCR C's OOM configuration and dispatcher scope defect;
+6. translation selector v1's heading, page-tail, boundary, and OCR
    contamination failures;
-5. retrieval's scan-furniture domination, dense-candidate omission, and
+7. retrieval's scan-furniture domination, dense-candidate omission, and
    target-language-policy failures;
-6. graph A's false traceability, graph B's identity/literal leak, and graph
+8. graph A's false traceability, graph B's identity/literal leak, and graph
    C's runtime-ownership failure;
-7. the golden-kernel transfer non-run and every absent metric.
+9. the golden-kernel transfer non-run and every absent metric.
 
 These are not incidental cleanup notes. They are evidence about where green
 mechanics diverged from source-visible reality.
