@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json",
+  "title": "Tree of Sophia evidence-bearing claim packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "claim_id",
+    "claim_type",
+    "assertion_layer",
+    "subject_ref",
+    "predicate",
+    "object",
+    "evidence_refs",
+    "maker",
+    "provenance_event_ref",
+    "epistemic_status",
+    "review_status",
+    "reviews",
+    "claim_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_claim_packet_v1"},
+    "claim_id": {"$ref": "#/$defs/tosId"},
+    "claim_type": {
+      "enum": ["bibliographic", "textual", "linguistic", "translation", "semantic", "relation", "rights", "lived_witness", "canon"]
+    },
+    "assertion_layer": {
+      "enum": [
+        "forensic_observation",
+        "bibliographic_assertion",
+        "textual_observation",
+        "linguistic_analysis",
+        "translation_alignment",
+        "translation_judgment",
+        "semantic_interpretation",
+        "scholarly_report",
+        "lived_witness",
+        "canon_judgment"
+      ]
+    },
+    "subject_ref": {"type": "string", "minLength": 1},
+    "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
+    "object": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "object", "minProperties": 1},
+        {"type": "array", "minItems": 1}
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "supporting_quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["anchor_ref", "exact"],
+        "properties": {
+          "anchor_ref": {"$ref": "#/$defs/tosId"},
+          "exact": {"type": "string", "minLength": 1},
+          "translation_posture": {"enum": ["source", "diplomatic", "normalized", "human_translation", "model_translation", "bridge_translation"]}
+        }
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed", "imported_source"]},
+        "agent_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "epistemic_status": {
+      "enum": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"]
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "meaning"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0, "maximum": 1},
+        "meaning": {"const": "maker_declared_uncertainty_not_truth_probability"}
+      }
+    },
+    "alternative_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "counterevidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "review_status": {
+      "enum": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"]
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["review_id", "reviewer_kind", "reviewer_ref", "decision", "rationale", "reviewed_at"],
+        "properties": {
+          "review_id": {"$ref": "#/$defs/tosId"},
+          "reviewer_kind": {"const": "human"},
+          "reviewer_ref": {"type": "string", "minLength": 1},
+          "decision": {"enum": ["accept", "accept_with_limits", "reject", "ambiguous", "defer", "supersede"]},
+          "rationale": {"type": "string", "minLength": 1},
+          "reviewed_at": {"type": "string", "format": "date-time"},
+          "counterreading": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "visibility": {
+      "enum": ["local_only", "research_group", "permission_requested", "public_metadata_only", "public"]
+    },
+    "claim_version": {"type": "integer", "minimum": 1},
+    "supersedes_claim_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_status": {"enum": ["accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"]}
+        }
+      },
+      "then": {
+        "properties": {"reviews": {"minItems": 1}}
+      }
+    }
+  ],
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    }
+  }
+}

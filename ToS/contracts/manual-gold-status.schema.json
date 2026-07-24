@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/manual-gold-status.schema.json",
+  "title": "Tree of Sophia source-visible gold status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gold_set_id", "sample_plan_ref", "content_visibility", "truth_rule", "units", "set_status", "status_version"],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/manual-gold-status.schema.json"
+    },
+    "schema_version": {"const": "tos_manual_gold_status_v1"},
+    "gold_set_id": {"type": "string", "pattern": "^tos\\.gold-set\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "sample_plan_ref": {"type": "string", "minLength": 1},
+    "content_visibility": {"const": "local_only"},
+    "truth_rule": {"const": "model_draft_is_never_human_gold_and_two_source_visible_human_passes_are_required"},
+    "units": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sample_id", "anchor_ref", "content_ref", "content_sha256", "model_draft", "human_pass_1", "human_pass_2", "gold_status"],
+        "properties": {
+          "sample_id": {"type": "string", "pattern": "^tos-sample-[a-z0-9-]+$"},
+          "anchor_ref": {"type": "string", "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+          "content_ref": {"type": "string", "minLength": 1},
+          "content_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+          "model_draft": {"$ref": "#/$defs/pass"},
+          "human_pass_1": {"$ref": "#/$defs/pass"},
+          "human_pass_2": {"$ref": "#/$defs/pass"},
+          "gold_status": {"enum": ["candidate", "model_draft_only", "human_pass_1", "human_double_checked", "rejected", "uncertain"]}
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"gold_status": {"const": "human_double_checked"}},
+              "required": ["gold_status"]
+            },
+            "then": {
+              "properties": {
+                "content_sha256": {"$ref": "#/$defs/sha256"},
+                "human_pass_1": {"$ref": "#/$defs/completedHumanPass"},
+                "human_pass_2": {"$ref": "#/$defs/completedHumanPass"}
+              }
+            }
+          }
+        ]
+      }
+    },
+    "set_status": {"enum": ["candidate", "model_drafts_in_progress", "awaiting_human_review", "human_double_checked", "superseded"]},
+    "status_version": {"type": "integer", "minimum": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"set_status": {"const": "human_double_checked"}},
+        "required": ["set_status"]
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "contains": {
+              "type": "object",
+              "properties": {"gold_status": {"const": "human_double_checked"}},
+              "required": ["gold_status"]
+            },
+            "minContains": 15,
+            "maxContains": 15
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "maker_ref", "completed_at", "receipt_ref"],
+      "properties": {
+        "status": {"enum": ["not_started", "in_progress", "complete", "rejected", "uncertain"]},
+        "maker_ref": {"type": ["string", "null"]},
+        "completed_at": {"type": ["string", "null"], "format": "date-time"},
+        "receipt_ref": {"type": ["string", "null"]}
+      }
+    },
+    "completedHumanPass": {
+      "type": "object",
+      "required": ["status", "maker_ref", "completed_at", "receipt_ref"],
+      "properties": {
+        "status": {"const": "complete"},
+        "maker_ref": {"type": "string", "minLength": 1},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "receipt_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

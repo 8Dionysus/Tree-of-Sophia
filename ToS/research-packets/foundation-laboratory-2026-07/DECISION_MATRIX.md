@@ -1,0 +1,260 @@
+# Foundation Laboratory Decision Matrix
+
+Status: research decision scaffold updated with bounded graph, retrieval, structure, and OCR A/B/C evidence; human decisions remain pending
+
+Snapshot: 2026-07-23
+
+## Decision vocabulary
+
+| State | Meaning |
+| --- | --- |
+| `baseline` | must enter the first comparison; simple or already resident |
+| `challenger` | enters the first comparison when dependencies are already available |
+| `conditional` | enters only after a stated evidence, storage, license, or machine gate |
+| `defer` | relevant later but not justified in the first bounded laboratory |
+| `exclude` | conflicts with authority, rights, security, or machine boundaries |
+
+Selection is provisional until manually reviewed A/B/C evidence exists.
+Popularity, a release date, benchmark rank, and a green validator are not
+promotion criteria.
+
+## Cross-cutting gates
+
+Every candidate must declare:
+
+- exact version, license, source URL, artifact digest, and installation route;
+- inputs and outputs, including whether source text leaves the machine;
+- CPU/GPU/NPU/runtime path and peak memory/storage expectations;
+- deterministic configuration or seed where possible;
+- wall time, operator time, output bytes, and failure count;
+- whether it can preserve page/segment coordinates and per-span provenance;
+- rollback/removal route;
+- manual sample and reviewer decision.
+
+Network APIs are excluded from the first private-witness tests. They may be
+evaluated later only with an explicit data-egress and rights decision.
+
+## Source acquisition and forensics
+
+| Candidate | Role | State | Why | Gate or risk |
+| --- | --- | --- | --- | --- |
+| `sha256sum`, `stat`, `file` | fixity and shallow type facts | baseline | resident and deterministic | `file` page counts are not authoritative |
+| Poppler `pdfinfo`, `pdffonts`, `pdfimages`, `pdftotext`, `pdftoppm` | PDF-aware structure and render probes | baseline | exposed the real differences among both PDFs | record Poppler version; extraction is not validation |
+| ZIP/EPUB container inspection | integrity, OPF, spine, navigation, resources | baseline | native and lossless for the EPUB container | XML/HTML parsing must remain untrusted-input safe |
+| BagIt-style package manifests | future transfer inventory | conditional | useful for server handoff and preservation | implement after local item contract stabilizes |
+| Apache Tika or broad magic extraction | generic metadata | defer | convenience does not beat format-specific first pass | extra dependency and shallow false confidence |
+
+## OCR and document structure
+
+| Candidate | Role | State | Machine fit | Principal risk | Intended comparison |
+| --- | --- | --- | --- | --- | --- |
+| existing ABBYY PDF text | sealed reference witness | baseline control | CPU, resident | hidden OCR may be badly wrong and would leak answers if inspected early | reveal only after independent A/B/C outputs are frozen |
+| direct same-edition EPUB XHTML extraction | sealed reference witness | baseline control | CPU, resident | OCR residue, false page structure, and answer leakage | use for post-freeze diagnosis, never as an OCR contestant |
+| Tesseract 5.5.2 + `deu`/`rus` 4.1.0 data | classical OCR | A executed twice; retained mechanical comparator | CPU; about 126.6-126.7 MB child peak RSS | page segmentation, Fraktur/old typography, punctuation, confidence miscalibration | A on the shared 36-page render manifest |
+| Kraken 7.0.2 + Party v4 | trainable historical-document recognition | B stopped at 27/36; unchanged configuration rejected | Python 3.12 CPU; 3.7 GB RAM and 809 MB swap peaks | decoder saturation, omissions/repetition, segmentation sensitivity, mixed training provenance | preserved negative evidence on identical frozen PNG bytes |
+| PaddleOCR 3.7 + PP-OCRv5 detector/language recognizers | independent multilingual pipeline | C exact one-page repeat plus one 36/36 run; awaits human review | Python 3.12 CPU; full run 4 GB RAM plus 136.8 MB swap peak | mixed-script substitutions, marginalia/furniture intrusion, reading-order defects | C on the identical frozen PNG bytes at explicit `960/max` |
+| Docling standard pipeline | layout and reading-order recovery | challenger | CPU/GPU possible | output plausibility may hide wrong structure | A/B structure comparison |
+| Docling hybrid with backend text forced | preserve native text while adding layout | challenger | CPU preferred | must be >=2.91 because of CVE-2026-44022 | 1996 PDF and EPUB-derived comparison |
+| Docling VLM pipeline | hard-page structure/OCR proposal | conditional | Intel GPU, narrow pages only | hallucinated text and semantic drift | C on adversarial gold pages |
+| PaddleOCR-VL 0.9B | compact VLM OCR/layout | conditional structure route | OpenVINO/Intel GPU feasibility first | historical-text hallucination and setup cost | hard-page structure test only, not OCR C |
+| OCRmyPDF 17.8.1 | searchable-PDF packaging | conditional secondary route | CPU | derived PDF can be mistaken for source | package only after an OCR route is retained |
+| eScriptorium | trainable transcription/HTR and review | defer | service footprint not yet justified | operational/database ownership | use if printed OCR cannot reach gold threshold |
+| OCR4all | historical OCR workflow | defer | CPU/service fit to be measured | training and workflow overhead | second-phase specialist comparison |
+| LLM-only transcription | OCR replacement | exclude | technically runnable | plausible hallucination without visual fidelity | may only propose correction to anchored OCR |
+
+### OCR A/B/C route
+
+- `A`: Tesseract 5.5.2 with language-specific `deu` or `rus` 4.1.0 data,
+  consuming the shared frozen page PNGs directly and emitting coordinates,
+  confidence, and an untouched diplomatic draft.
+- `B`: Kraken 7.0.2 baseline segmentation plus multilingual Party v4 at exact
+  commit/model revision, over the same PNG bytes.
+- `C`: PaddleOCR 3.7.0 with `PP-OCRv5_server_det` and the documented Latin or
+  East-Slavic PP-OCRv5 mobile recognizer, over the same PNG bytes.
+
+The 1893 German scan and both Russian PDFs contribute 12 full pages each. The
+render specification and all 36 PNG digests were frozen once before any route
+ran. Native/embedded text is neither A nor an input to A/B/C: ABBYY text and
+the same-edition EPUB OCR remain sealed reference witnesses while independent
+drafts and the human-gold lane are kept distinct. A has two complete frozen
+output sets, B has one deliberately stopped and frozen negative set, and C has
+an exact one-page repeat plus one complete frozen set. PP-OCRv6 lacks Russian
+in the current release, and visual-language models are kept out of this
+recognition comparison so that language coverage and hallucination are not
+confounded with the primary OCR question.
+
+## OCR correction and normalization
+
+| Candidate | State | Allowed use | Promotion boundary |
+| --- | --- | --- | --- |
+| deterministic Unicode NFC | baseline | normalized layer only | never rewrite source bytes/diplomatic text |
+| rule-based dehyphenation and furniture removal | baseline proposal | reversible span edits | manual review on gold sample |
+| dictionary/language-model correction | challenger | suggestion with before/after span and score | accepted correction needs source-region review |
+| local LLM correction | conditional | independent proposal with prompt/model digest | never overwrite OCR; preserve rejected proposal |
+| silent cleanup before evaluation | exclude | none | destroys error and provenance evidence |
+
+## Alignment of editions and translations
+
+| Candidate | Role | State | Why | Risk |
+| --- | --- | --- | --- | --- |
+| structural heading/paragraph alignment | coarse alignment | baseline | explainable and source-returnable | edition structure may differ |
+| length/punctuation/number cues | deterministic feature baseline | baseline | cheap and interpretable | fails on paraphrase/reordering |
+| Vecalign + multilingual embeddings | sentence proposal | challenger | established linear-time method | semantic similarity can hide non-equivalence |
+| Qwen3-Embedding-0.6B similarity | local alignment feature | baseline model | already resident; German/Russian capable | ToS-domain quality unknown |
+| adaptive/local alignment (Bertalign/AIlign family) | non-global monotonic challenger | conditional | may handle local omissions/reordering | dependency and reproducibility review first |
+| LLM-generated segment mapping | explanatory challenger | conditional | may describe omissions and shifts | persuasive invented alignments |
+| one-to-one forced alignment | exclude | none | erases omission, fusion, division, and reordering | architecturally false |
+
+Alignment records must support `1:1`, `1:n`, `n:1`, `n:m`, `omitted`,
+`added`, `reordered`, `uncertain`, and `rejected`.
+
+## Local LLM candidates
+
+| Candidate | State | First role | License/storage posture | Stop condition |
+| --- | --- | --- | --- | --- |
+| Gemma 4 E2B GGUF | baseline | low-cost extraction/translation proposal | resident host model, about 3.2 GB | cannot ground outputs on provided spans |
+| Gemma 4 E4B GGUF | baseline | stronger same-family challenger | resident host model, about 6.7 GB | memory pressure or no manual quality gain |
+| Qwen3 4B INT4 OpenVINO | challenger | different family/runtime | resident deployment model, about 2.3 GB plus existing cache | OpenVINO route cannot reproduce prompt/output receipt |
+| Qwen3 8B INT4 OpenVINO | conditional | capacity challenger | resident but about 4.9 GB plus cache | only if 4B/E4B errors justify it |
+| Phi-3.5 mini INT4 | conditional control | older small control | resident | no unique evidence contribution |
+| Qwen3.5-4B | conditional download | fresh 2026 small challenger | Apache 2.0 model card; storage preflight required | no material gain on manual gold set |
+| TranslateGemma 4B | conditional, license-gated | specialized MT challenger | gated license, about 8.6 GB BF16 source, short context | license not accepted or segment context insufficient |
+| MADLAD-400 3B | defer | multilingual MT baseline | older Apache model; conversion path aging | only if specialized baseline is needed |
+| EuroLLM 1.7B | defer | compact European-language MT/control | new model artifact required | resident models fail and storage gate passes |
+| NLLB | defer/restricted | research-only MT reference | non-commercial/research license posture | incompatible intended use or rights uncertainty |
+| Qwen3.6 35B-A3B and larger | exclude first wave | none | total weights are too large for justified local start | revisit only on different hardware/evidence |
+
+LLMs may propose transcriptions, structures, glosses, translations,
+etymological leads, annotations, and relations. They never self-promote them.
+
+## Translation methods
+
+| Route | Method | State | Human visibility |
+| --- | --- | --- | --- |
+| A | independent human or literal/interlinear draft from verified German, recognized translation hidden | baseline | translator identity and source aids recorded |
+| B | local LLM independent draft from the same verified German and context, recognized translation hidden | baseline | exact model/runtime/prompt recorded |
+| C | AI+human collaborative revision, still before recognized comparator reveal | challenger | every accepted intervention attributed |
+| comparator | Antоновsky and other recognized editions after drafts freeze | required | not scored as automatic truth |
+| adjudication | independent reviewer with aligned original, drafts, comparator, and context | required | reasoned accept/reject/uncertain decision |
+
+COMET or similar metrics may be added as diagnostics only after the manual
+packet exists. A metric-only translation route is excluded.
+
+## Embeddings
+
+| Candidate | State | Role | Cost/fit | Risk |
+| --- | --- | --- | --- | --- |
+| Qwen3-Embedding-0.6B INT8 OpenVINO | baseline | dense DE/RU/EN passages and alignment | already resident, about 612 MB | no ToS-domain proof yet |
+| Granite Embedding 311M Multilingual R2, revision `44399559930365213510b1ee2eb15ded83374f0e` | selected C, pre-output freeze | independent multilingual dense text challenger | Apache 2.0; official INT8 OpenVINO subset about 350 MB; 200+ languages with German/Russian emphasis; CPU route | no ToS-domain result yet; CLS/tokenization implementation must be proved exactly |
+| gte-multilingual-base | retain comparator, not selected | compact 75-language dense reference | about 305M parameters but July 2025 repository state | documented integration enables remote model code; may add no gain over resident model |
+| BGE-M3 | retain comparator, not selected | dense+sparse+multi-vector reference | roughly 2.27 GB model artifact | age, weight, and multiple retrieval modes would confound this single-method C run |
+| Qwen3-VL-Embedding-2B | defer to visual experiment | visual page retrieval | about 4+ GB BF16 source; Apache 2.0 | no frozen image-query sample yet; text-only evidence cannot evaluate its modality |
+| generic English-only embedding | exclude | none | poor source-language fit | would structurally privilege translation |
+
+## Retrieval and indexing
+
+| Candidate | Route | State | Authority posture | Evaluation focus |
+| --- | --- | --- | --- | --- |
+| exact ID/anchor lookup | identity | baseline | direct tracked corpus | perfect source return |
+| SQLite FTS5/BM25 or equivalent local lexical index | lexical A | baseline | rebuildable | names, compounds, citations, rare terms |
+| Qwen3 dense index | semantic B | baseline | rebuildable | implicit parallels and cross-language queries |
+| Granite R2 dense index | independent multilingual C | selected, method frozen before output | rebuildable isolated local projection | independent-family cross-language behavior on the identical query set |
+| lexical+dense rank fusion | later derived experiment | conditional | rebuildable but not an independent A/B/C method | recall gain can only be tested after component results are preserved |
+| Qdrant | vector-store implementation | conditional | projection only | filters, reproducibility, operational cost |
+| ColPali/page-image retrieval | visual challenger | defer/conditional | projection only | cases where OCR loses decisive visual evidence |
+| LLM answer without retrieval trace | exclude | none | no source-return path | unacceptable for corpus truth |
+
+The gold query set must contain exact lexical queries, paraphrases,
+cross-language questions, implicit conceptual relations, hard distractors,
+and questions with no relevant answer.
+
+## Annotation interfaces
+
+| Candidate | State | Strength | Limitation | ToS boundary |
+| --- | --- | --- | --- | --- |
+| tracked human-readable claim/review packets | baseline | diffable, durable, owner-visible | less ergonomic | authoritative record |
+| small local packet editor generated by lab | baseline implementation target | exact contract and source-region view | must not invent a second schema | writes/export packets only |
+| INCEpTION 41.x | challenger | spans, relations, agreement, recommenders, curation | service/database/version migration | export plus receipt; not canon owner |
+| CATMA 7 | challenger | qualitative/literary, exploratory tags, TEI export | project representation and service workflow | export plus receipt; not canon owner |
+| direct annotation inside graph database | exclude | visually tempting | makes projection hidden authority | graph remains downstream |
+
+INCEpTION and CATMA should be compared on the same tiny annotation packet,
+not installed permanently before workflow value is demonstrated.
+
+## Claims, provenance, and validation
+
+| Candidate | State | Role | Boundary |
+| --- | --- | --- | --- |
+| JSON/JSON-LD explicit claim resources | baseline | tracked canonical packet shape | human-readable fields remain primary |
+| PROV-O profile | baseline projection | entity/activity/agent provenance | local terms must be documented |
+| PREMIS-inspired event/rights fields | baseline profile | preservation and fixity history | not full repository certification |
+| JSON Schema | baseline | mechanics/shape validation | no semantic truth claim |
+| SHACL 1.0 | challenger | graph-projection shape validation | stable version only |
+| SHACL 1.2 draft-only features | defer | none in authority contract | standard not stable at snapshot |
+| RDF-star quoted triples as sole claim storage | exclude | none | semantics/version risk and poor review ergonomics |
+
+## Graph storage and visualization
+
+| Candidate | Route | State | Strength | Risk |
+| --- | --- | --- | --- | --- |
+| tracked explicit claims + generated JSON graph | authority/source | baseline | transparent, portable, diffable | custom projection code |
+| tracked explicit claims queried directly | graph A | baseline, executed | zero-database reference semantics; transparent and diffable | custom bounded query code; no multi-user service |
+| Neo4j Community 5.26.26 (resident) | graph B | challenger, executed | mature property graph; claim-first typed relationships; existing service | shared-store cost is not isolatable; community authorization and resident-service burden |
+| PyOxigraph 0.5.9 | graph C | challenger, executed | compact RDF/SPARQL; claim-specific named graphs; canonical N-Quads; exact isolated Store bytes | active development; tiny pilot does not prove large-query maturity |
+| Qdrant | retrieval adjunct | conditional | vector filtering/search | not a knowledge graph |
+| any graph DB as only copy of claims | exclude | none | deletes provenance and review authority | prohibited |
+
+The graph comparison asks whether each projection makes source-return,
+contradiction, lineage, ambiguity, and rejected alternatives more inspectable;
+raw traversal speed alone does not win.
+
+## Discovery and access
+
+| Candidate | State | Use | Rights boundary |
+| --- | --- | --- | --- |
+| DNB SRU and authority records | baseline | bibliographic identity | metadata terms still recorded |
+| DNB SPARQL beta | challenger | linked discovery | beta behavior versioned |
+| KVK | baseline lead source | locate originating catalogs | never cite KVK as owning record |
+| Nietzsche Source eKGWB | reference/permission target | critical text and stable addresses | CC BY-NC-ND; no derivative corpus assumption |
+| Nietzsche-Wörterbuch | access-request target | lexical/sense evidence | subscription/copyright restricted |
+| Europeana | conditional | item discovery | content and metadata rights separate |
+| Google Books / Internet Archive / HathiTrust | conditional | digital-item leads | repository availability is not permission |
+| Wikisource dumps / Gutenberg mirrors | conditional | reproducible acquisition where licensed | jurisdiction and item license checked |
+| scraping restricted viewer content | exclude | none | violates access and provenance boundary |
+
+## First-wave experiment set
+
+The first wave reuses resident models and runtimes where they answer the
+question. The OCR sequential gate was applied: Tesseract A was isolated and
+retained first, its evidence admitted Kraken/Party B, and B's preserved stop
+and unchanged-method rejection admitted PaddleOCR C. Every setup records its
+license, exact source and artifact digests, storage delta, runtime receipt, and
+removal route. Execution does not satisfy the still-human promotion rule.
+
+| Experiment | A | B | C |
+| --- | --- | --- | --- |
+| OCR | Tesseract 5.5.2 on shared render | Kraken 7.0.2 + Party v4 on same bytes | PaddleOCR 3.7 + multilingual PP-OCRv5 on same bytes |
+| structure recovery | deterministic page/heading rules | Docling standard/hybrid | one selected VLM route on hard pages |
+| correction | no correction | reversible rules | local LLM proposal |
+| alignment | structure/length cues | Vecalign + local embedding | LLM explanation/proposal |
+| translation | independent human/interlinear | resident E2B/E4B draft | AI+human revision |
+| semantic annotation | manual packet | INCEpTION export | CATMA export |
+| retrieval | lexical SQLite FTS5 | resident Qwen dense + Qdrant + reranker | independent Granite R2 multilingual dense |
+| graph | canonical JSON/JSONL claim records | resident Neo4j claim-first projection | PyOxigraph explicit-claim/named-graph projection |
+
+No experiment may change its sample after seeing results. Any necessary
+change creates a new run and receipt.
+
+## Promotion rule
+
+A candidate advances only if:
+
+1. its exact run is reproducible from a receipt;
+2. manual review finds a meaningful improvement on declared error classes;
+3. source-return and provenance remain intact;
+4. resource and operator cost are proportionate;
+5. license and rights posture are compatible;
+6. failures, rejected outputs, and unresolved cases remain visible;
+7. the gain survives a second manual check on a held-back sample.
+
+Otherwise it is deferred or rejected even if its aggregate metric is higher.

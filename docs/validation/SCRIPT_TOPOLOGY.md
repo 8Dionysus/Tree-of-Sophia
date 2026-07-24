@@ -62,6 +62,13 @@ execution, lane loading, mechanics-local discovery, and shared helpers. Root scr
 may be mechanics-owned by `owner_surface`, but a root location does not make the
 script repository-wide truth.
 
+The source-witness pair is deliberately split: `build_source_witness_catalog.py`
+projects tracked corpus identity records into a navigational catalog, while
+`validate_source_witness_foundation.py` checks schemas, reference closure,
+companions, catalog parity, and any locally present payload bytes. Neither tool
+can certify bibliographic truth, OCR quality, rights clearance, translation,
+semantics, or human acceptance.
+
 The current mechanics-local homes are:
 
 - `mechanics/agon/parts/threshold-registry/`, where the part owns its builder,

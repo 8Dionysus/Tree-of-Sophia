@@ -1,0 +1,118 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/laboratory-sample-plan.schema.json",
+  "schema_version": "tos_laboratory_sample_plan_v1",
+  "sample_plan_id": "tos.sample-plan.zarathustra-foundation-pilot-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "suite_ref": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-foundation-suite.v1.json",
+  "status": "frozen",
+  "frozen_at": "2026-07-22T18:15:27Z",
+  "frozen_before_variant_outputs": true,
+  "selection_maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "source-visible visual and container inspection before any A/B/C variant output"
+  },
+  "sampling_law": {
+    "samples_per_source": 12,
+    "gold_candidates_per_source": 5,
+    "strata": [
+      "bibliographic-and-rights-front-matter",
+      "table-of-contents-and-structure",
+      "opening-and-page-boundary",
+      "ordinary-prose",
+      "dense-or-dialogic-prose",
+      "song-poetry-or-unusual-punctuation",
+      "late-work-and-ending",
+      "technical-container-or-colophon",
+      "cross-work-transfer"
+    ],
+    "selection_method": "Purposeful stratification across source-specific failure modes, with five difficult gold candidates per source and no output-dependent replacement.",
+    "prohibitions": [
+      "do not replace a difficult sample after seeing variant output",
+      "do not treat native OCR text as source truth",
+      "do not call model-visible inspection human review",
+      "do not publish sampled source text while rights remain unreviewed"
+    ]
+  },
+  "rights_posture": {
+    "content_visibility": "local_only",
+    "tracked_surface": "metadata_anchors_digests_and_review_state_only",
+    "local_content_root": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content",
+    "public_text_authorized": false
+  },
+  "gold_layers": {
+    "model_draft": "not_started",
+    "human_pass_1": "not_started",
+    "human_pass_2": "not_started",
+    "gold_truth_rule": "double_source_visible_human_acceptance_required"
+  },
+  "source_groups": [
+    {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+      "file_ref": "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+      "file_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+      "format": "pdf-vector-outline",
+      "sample_count": 12,
+      "samples": [
+        {"sample_id": "tos-sample-antonovsky-p002", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p002", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Series-title page tests sparse centered typography and bibliographic hierarchy.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p003", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p003", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Work-title page fixes expression, translator, volume, place, and date evidence.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p004", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p004", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Dense credits, ISBN, editorial history, and copyright notices test small type and rights extraction.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p005", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p005", "strata": ["table-of-contents-and-structure"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Opening table-of-contents page tests hierarchy, page-number association, and reading order.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p007", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p007", "strata": ["table-of-contents-and-structure", "late-work-and-ending"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Later contents include multiple parts and apparatus boundaries with dense aligned numerals.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p011", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p011", "strata": ["opening-and-page-boundary", "ordinary-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "retrieval", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Prologue opening combines heading, numbered section, dialogue, line numbers, punctuation, and foundational recurrent signs.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p012", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p012", "strata": ["opening-and-page-boundary", "dense-or-dialogic-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation"], "gold_candidate": true, "selection_rationale": "Continuation across a page boundary tests dialogue, quotation nesting, italics, and line-number interference.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p050", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p050", "strata": ["ordinary-prose"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure", "semantic-annotation", "retrieval", "graph", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Ordinary chapter prose supplies a representative non-opening baseline.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p166", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p166", "strata": ["dense-or-dialogic-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "alignment", "semantic-annotation", "retrieval", "llm-assistance"], "gold_candidate": false, "selection_rationale": "Dense late-part prose includes italics, direct speech, em dashes, and conceptual recurrence.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p300", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p300", "strata": ["song-poetry-or-unusual-punctuation"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Verse-like layout stresses lineation, rhythm, punctuation, reading order, and spoken-form comparison.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p330", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p330", "strata": ["late-work-and-ending", "opening-and-page-boundary"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "semantic-annotation", "retrieval", "graph"], "gold_candidate": true, "selection_rationale": "The final work page tests ending detection, sparse lower-page text, emphasis, and work-to-apparatus boundary.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-antonovsky-p333", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p333", "strata": ["technical-container-or-colophon", "bibliographic-and-rights-front-matter"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "translation", "retrieval", "golden-kernel-transfer"], "gold_candidate": false, "selection_rationale": "Editor's afterword exposes translation provenance and intervention without being confused with Nietzsche's text.", "source_review_status": "model_source_visible"}
+      ]
+    },
+    {
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "format": "pdf-abbyy-text-layer",
+      "sample_count": 12,
+      "samples": [
+        {"sample_id": "tos-sample-mysl-p001", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p001", "strata": ["bibliographic-and-rights-front-matter", "technical-container-or-colophon"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Image-only cover tests mixed image/text assumptions inside an otherwise OCR-bearing PDF.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p003", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p003", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Collection title page fixes series, volume, publisher, place, and date.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p004", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p004", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": true, "selection_rationale": "Credits, translator list, ISBN, and copyright line expose OCR spacing and contributor-role errors.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p005", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p005", "strata": ["table-of-contents-and-structure"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Work title page tests nested collection-to-work structure.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p006", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p006", "strata": ["opening-and-page-boundary", "ordinary-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "retrieval", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Prologue opening provides recognized-translation and OCR comparison against both other witnesses.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p008", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008", "strata": ["dense-or-dialogic-prose"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "alignment", "translation", "semantic-annotation", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Visible OCR corruption, dialogue, and line-break hyphenation form a known hard case.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p100", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p100", "strata": ["ordinary-prose", "dense-or-dialogic-prose"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "semantic-annotation", "retrieval", "graph", "llm-assistance"], "gold_candidate": false, "selection_rationale": "Mid-work prose supplies representative running text and recurrent-sign context.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p166", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166", "strata": ["song-poetry-or-unusual-punctuation"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Seven Seals page combines song form, refrains, indentation, punctuation, and OCR-sensitive layout.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p237", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237", "strata": ["late-work-and-ending"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "semantic-annotation", "retrieval"], "gold_candidate": true, "selection_rationale": "Final work page tests ending recognition and transition to the next work.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p238", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p238", "strata": ["cross-work-transfer"], "difficulty": "ordinary", "intended_experiment_families": ["structure", "retrieval", "golden-kernel-transfer"], "gold_candidate": false, "selection_rationale": "Beyond Good and Evil title page is the first explicit out-of-kernel transfer boundary.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p407", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p407", "strata": ["cross-work-transfer"], "difficulty": "ordinary", "intended_experiment_families": ["structure", "retrieval", "golden-kernel-transfer"], "gold_candidate": false, "selection_rationale": "Genealogy of Morality title page tests reuse without imposing Zarathustra-specific semantics.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-mysl-p631", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p631", "strata": ["cross-work-transfer"], "difficulty": "ordinary", "intended_experiment_families": ["structure", "retrieval", "golden-kernel-transfer"], "gold_candidate": false, "selection_rationale": "Antichrist title page adds a distant-work transfer sample within the same physical item.", "source_review_status": "model_source_visible"}
+      ]
+    },
+    {
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+      "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "file_sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "format": "epub-automatic-ocr",
+      "sample_count": 12,
+      "samples": [
+        {"sample_id": "tos-sample-naumann-notice", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-notice", "strata": ["technical-container-or-colophon"], "difficulty": "ordinary", "intended_experiment_families": ["structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Generator notice states automatic-OCR limitations and must not be mistaken for source text.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-000", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-000", "strata": ["technical-container-or-colophon", "bibliographic-and-rights-front-matter"], "difficulty": "hard", "intended_experiment_families": ["structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Google/Cornell scan furniture tests source-provider evidence and non-work-content separation.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-043", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-043", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": true, "selection_rationale": "Publisher note contains historical orthography and edition evidence in dense running text.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-045", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-045", "strata": ["bibliographic-and-rights-front-matter"], "difficulty": "ordinary", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Edition title page fixes title, author, edition statement, and attached-material note.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-047", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-047", "strata": ["table-of-contents-and-structure"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Low-confidence first contents page stresses reading order and page-number association.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-049", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-049", "strata": ["table-of-contents-and-structure", "late-work-and-ending"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure", "retrieval"], "gold_candidate": false, "selection_rationale": "Later contents page crosses parts and ending chapters while retaining OCR noise.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-053", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-053", "strata": ["opening-and-page-boundary"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure"], "gold_candidate": false, "selection_rationale": "Sparse section-title page has extremely low OCR confidence and source furniture.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-055", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-055", "strata": ["opening-and-page-boundary", "ordinary-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "retrieval", "llm-assistance"], "gold_candidate": true, "selection_rationale": "German prologue opening carries historical orthography, dialogue, scan furniture, and translation-critical recurrence.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-059", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059", "strata": ["dense-or-dialogic-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "alignment", "translation", "semantic-annotation", "retrieval", "graph", "llm-assistance"], "gold_candidate": true, "selection_rationale": "The Uebermensch passage tests historical spelling, lexical identity, and semantic non-collapse.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-200", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-200", "strata": ["dense-or-dialogic-prose"], "difficulty": "hard", "intended_experiment_families": ["ocr", "alignment", "translation", "semantic-annotation", "retrieval", "llm-assistance"], "gold_candidate": false, "selection_rationale": "A page beginning mid-sentence tests page continuity, OCR furniture removal, and repeated gift/light imagery.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-380", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380", "strata": ["song-poetry-or-unusual-punctuation"], "difficulty": "adversarial", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "llm-assistance"], "gold_candidate": true, "selection_rationale": "Seven Seals song form tests lineation, refrain, historical orthography, and spoken rhythm.", "source_review_status": "model_source_visible"},
+        {"sample_id": "tos-sample-naumann-page-522", "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522", "strata": ["late-work-and-ending"], "difficulty": "hard", "intended_experiment_families": ["ocr", "structure", "alignment", "translation", "semantic-annotation", "retrieval", "graph"], "gold_candidate": true, "selection_rationale": "Final work page tests ending detection, emphatic punctuation, and separation from scan tail matter.", "source_review_status": "model_source_visible"}
+      ]
+    }
+  ],
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "plan_version": 1,
+  "supersedes_plan_ref": null
+}

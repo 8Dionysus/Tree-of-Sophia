@@ -60,6 +60,19 @@ ACTIVE_REFERENCE_PATTERN = re.compile(
     r"(?![A-Za-z0-9])",
     re.IGNORECASE,
 )
+# These exact content identifiers belong to the current corpus laboratory, not
+# to the retired route vocabulary. The exception is intentionally content
+# only: the same tokens remain forbidden in active filesystem paths, and every
+# near miss continues through the retired-name guard.
+ALLOWED_ACTIVE_CONTENT_REFERENCES = frozenset(
+    {
+        "first-wave",
+        "first-wave-resident",
+        "may_seed_drafts",
+        "may_seed_gold",
+        "seed_claim_ref",
+    }
+)
 OLD_ROUTE_PREFIX = "z" + "v"
 RETIRED_ROUTE_LABEL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])" + OLD_ROUTE_PREFIX + r"\d+(?:[-_][A-Za-z0-9]+)+",
@@ -122,9 +135,10 @@ def retired_path_issue(value: str) -> str | None:
 
 
 def retired_content_issue(text: str) -> str | None:
-    match = ACTIVE_REFERENCE_PATTERN.search(text)
-    if match:
-        return match.group(0)
+    for match in ACTIVE_REFERENCE_PATTERN.finditer(text):
+        reference = match.group(0)
+        if reference.lower() not in ALLOWED_ACTIVE_CONTENT_REFERENCES:
+            return reference
     match = RETIRED_ROUTE_LABEL_PATTERN.search(text)
     if match:
         return match.group(0)

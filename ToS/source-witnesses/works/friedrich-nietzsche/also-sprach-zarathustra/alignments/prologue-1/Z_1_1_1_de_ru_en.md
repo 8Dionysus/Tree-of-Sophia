@@ -3,6 +3,9 @@
 ### *Zarathustra’s Vorrede*, 1
 #### Deutsch / Русский / English
 
+> Corpus work: `tos.work.friedrich-nietzsche.also-sprach-zarathustra`.
+> Packet posture: authored bounded alignment witness, not an edition, critical
+> text, recognized translation, or completed translation-laboratory packet.
 > German block — canonical_source: Friedrich Nietzsche.
 > Russian block — working_translation: Dionysus.
 > English block — bridge_translation: Dionysus.

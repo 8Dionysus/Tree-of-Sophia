@@ -167,6 +167,21 @@
       "disposition": "keep; review release constants during release work"
     },
     {
+      "path": "tests/test_source_witness_foundation.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "protects": "source-witness schemas, reference closure, catalog parity, optional local-payload posture, and byte fixity",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "medium",
+      "focused_target": "tests/test_source_witness_foundation.py",
+      "failure_route": "Fix source-witness records, contracts, catalog builder, or foundation validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_root_entry_map.py",
       "home": "tests",
       "home_scope": "root",

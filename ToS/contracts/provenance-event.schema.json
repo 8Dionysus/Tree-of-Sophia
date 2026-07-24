@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/provenance-event.schema.json",
+  "title": "Tree of Sophia provenance event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "started_at",
+    "ended_at",
+    "agent_refs",
+    "inputs",
+    "outputs",
+    "method",
+    "status",
+    "event_version"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_provenance_event_v1"},
+    "event_id": {"$ref": "#/$defs/tosId"},
+    "event_type": {
+      "enum": [
+        "discovery",
+        "rights_assessment",
+        "access_request",
+        "acquisition",
+        "fixity_verification",
+        "forensic_inspection",
+        "render",
+        "container_unpack",
+        "native_extraction",
+        "ocr",
+        "correction",
+        "normalization",
+        "segmentation",
+        "alignment",
+        "translation",
+        "annotation",
+        "human_review",
+        "promotion",
+        "rejection",
+        "export",
+        "preservation",
+        "migration"
+      ]
+    },
+    "started_at": {"type": "string", "format": "date-time"},
+    "ended_at": {"type": "string", "format": "date-time"},
+    "agent_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/agentRef"}
+    },
+    "inputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/entityRef"}
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/entityRef"}
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "name", "version", "configuration"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed"]},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "artifact_digest": {
+          "anyOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        },
+        "runtime": {"type": ["string", "null"]},
+        "device": {"type": ["string", "null"]},
+        "configuration": {"type": "object"},
+        "prompt_or_instruction_ref": {"type": ["string", "null"]}
+      }
+    },
+    "status": {"enum": ["completed", "completed_with_warnings", "failed", "stopped", "superseded"]},
+    "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "receipt_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/repoRelativePath"}
+    },
+    "rights_basis_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "event_version": {"type": "integer", "minimum": 1},
+    "supersedes_event_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "agentRef": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"type": "string", "pattern": "^(human|software|model|service):[^\\s]+$"}
+      ]
+    },
+    "entityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "role"],
+      "properties": {
+        "ref": {
+          "anyOf": [
+            {"$ref": "#/$defs/tosId"},
+            {"$ref": "#/$defs/repoRelativePath"}
+          ]
+        },
+        "role": {"type": "string", "minLength": 1},
+        "sha256": {
+          "anyOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        }
+      }
+    }
+  }
+}

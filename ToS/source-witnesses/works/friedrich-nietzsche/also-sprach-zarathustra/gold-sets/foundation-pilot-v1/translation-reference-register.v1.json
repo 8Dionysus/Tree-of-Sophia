@@ -1,0 +1,1082 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/translation-reference-register.schema.json",
+  "schema_version": "tos_translation_reference_register_v1",
+  "register_id": "tos.translation-reference-register.zarathustra-foundation-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+  "research_snapshot": "2026-07-23",
+  "status": "researched-not-content-admitted",
+  "research_order": [
+    "classical-official-documentation",
+    "established-scholarly-resources",
+    "current-access-rights-and-version-surfaces"
+  ],
+  "selection_law": {
+    "reference_witness_is_not_ground_truth": true,
+    "bibliographic_identity_precedes_textual_equivalence": true,
+    "citation_permission_is_not_ingestion_permission": true,
+    "resource_license_does_not_replace_item_review": true,
+    "recognized_translation_stays_sealed_until_independent_lanes_freeze": true,
+    "model_memory_is_not_lexical_or_etymological_evidence": true,
+    "no_entry_is_accepted_translation_etymology_or_semantic_truth": true
+  },
+  "required_categories": [
+    "historical_dictionary",
+    "modern_dictionary",
+    "etymological_dictionary",
+    "historical_corpus",
+    "nietzsche_critical_edition",
+    "nietzsche_lexical_resource",
+    "recognized_ru_translation_candidate",
+    "additional_ru_translation_candidate",
+    "additional_en_translation_candidate"
+  ],
+  "entries": [
+    {
+      "reference_id": "tos-ref.woerterbuchnetz.1dwb",
+      "category": "historical_dictionary",
+      "research_tier": "classical-official-documentation",
+      "title": "Deutsches Wörterbuch von Jacob Grimm und Wilhelm Grimm, Erstausgabe (1DWB), via Wörterbuchnetz",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": [
+          "Berlin-Brandenburgische Akademie der Wissenschaften",
+          "Niedersächsische Akademie der Wissenschaften zu Göttingen",
+          "Trier Center for Digital Humanities"
+        ],
+        "publishers": [],
+        "authors": ["Jacob Grimm", "Wilhelm Grimm"],
+        "editors": [],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "printed first edition published 1854-1960",
+        "edition_or_version": "Wörterbuchnetz web surface reports version 01/25; exact article revision must be captured per consultation",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "resource-siglum", "value": "1DWB"}
+      ],
+      "primary_url": "https://woerterbuchnetz.de/",
+      "evidence_urls": [
+        "https://woerterbuchnetz.de/",
+        "https://fedora.dwds.de/de/lexik/"
+      ],
+      "scholarly_posture": "institutionally maintained historical German dictionary and a starting witness for period-sensitive senses, never a sufficient Nietzsche-specific interpretation",
+      "intended_uses": [
+        "historical-sense-evidence",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "dictionary article date and cited source range must be recorded per word",
+        "the digital presentation license was not established from the landing page",
+        "a dictionary sense does not establish Nietzsche's intended sense"
+      ],
+      "access": {
+        "access_state": "open-web",
+        "acquisition_state": "web-consultation-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": ["https://woerterbuchnetz.de/"],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "unknown",
+        "citation_requirements": [
+          "cite dictionary title, article headword, Wörterbuchnetz URL, displayed version, and access date"
+        ],
+        "rights_evidence_urls": ["https://woerterbuchnetz.de/"]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "citation-only-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "exact article and source citations are not yet selected",
+          "resource-specific reuse terms require human review"
+        ]
+      },
+      "notes": "Prefer article-level citation and preserve disagreement with modern and Nietzsche-specific resources."
+    },
+    {
+      "reference_id": "tos-ref.dwds.woerterbuch",
+      "category": "modern_dictionary",
+      "research_tier": "classical-official-documentation",
+      "title": "DWDS-Wörterbuch",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Berlin-Brandenburgische Akademie der Wissenschaften, Zentrum Sprache"],
+        "publishers": [],
+        "authors": [],
+        "editors": ["DWDS long-term project"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "contemporary German lexicographic project",
+        "edition_or_version": "continuously expanded; exact article revision must be frozen at consultation time",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "resource-name", "value": "DWDS-Wörterbuch"}
+      ],
+      "primary_url": "https://www.dwds.de/",
+      "evidence_urls": [
+        "https://fedora.dwds.de/de/lexik/",
+        "https://fedora.dwds.de/de/repo/"
+      ],
+      "scholarly_posture": "continuously maintained modern German meaning dictionary used as a control against anachronistic or obsolete readings",
+      "intended_uses": [
+        "modern-sense-control",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "modern definitions cannot substitute for late-nineteenth-century evidence",
+        "the exact online dictionary dataset license was not confirmed from the general repository policy",
+        "article revision must be snapshotted per use"
+      ],
+      "access": {
+        "access_state": "open-web",
+        "acquisition_state": "web-consultation-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": ["https://www.dwds.de/"],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "unknown",
+        "citation_requirements": [
+          "cite the DWDS article URL, article revision or access date, and owning BBAW project"
+        ],
+        "rights_evidence_urls": [
+          "https://fedora.dwds.de/de/repo/",
+          "https://fedora.dwds.de/de/imprint/"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "citation-only-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "article-level selection has not begun",
+          "modern meaning must be triangulated with historical witnesses"
+        ]
+      },
+      "notes": "Use as a modern control, not as the historical authority for Nietzsche's German."
+    },
+    {
+      "reference_id": "tos-ref.dwds.pfeifer-etymwb",
+      "category": "etymological_dictionary",
+      "research_tier": "classical-official-documentation",
+      "title": "Etymologisches Wörterbuch des Deutschen (EtymWB), Wolfgang Pfeifer project",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Berlin-Brandenburgische Akademie der Wissenschaften, Zentrum Sprache"],
+        "publishers": [],
+        "authors": ["Wolfgang Pfeifer and project contributors"],
+        "editors": ["DWDS lexicographic project"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "developed in the 1980s",
+        "edition_or_version": "over 22000 headwords and continuously supplemented and revised; exact article revision must be frozen",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "resource-siglum", "value": "EtymWB"}
+      ],
+      "primary_url": "https://www.dwds.de/",
+      "evidence_urls": [
+        "https://fedora.dwds.de/de/lexik/",
+        "https://fedora.dwds.de/de/repo/"
+      ],
+      "scholarly_posture": "institutionally maintained etymological reference candidate; every etymological statement still needs exact article citation and competing-source review",
+      "intended_uses": [
+        "etymology-evidence",
+        "historical-sense-evidence"
+      ],
+      "limits": [
+        "etymological reconstruction is not semantic intention",
+        "model paraphrase of an entry is not evidence",
+        "the exact resource license and article revision remain item-level questions"
+      ],
+      "access": {
+        "access_state": "open-web",
+        "acquisition_state": "web-consultation-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": ["https://www.dwds.de/"],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "unknown",
+        "citation_requirements": [
+          "cite EtymWB, the exact headword URL, revision or access date, and the BBAW owner"
+        ],
+        "rights_evidence_urls": [
+          "https://fedora.dwds.de/de/repo/",
+          "https://fedora.dwds.de/de/imprint/"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "citation-only-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no headword packet has been selected",
+          "a second etymological source is required for contested claims"
+        ]
+      },
+      "notes": "An accepted ToS etymology may cite this resource but can never be created from model memory alone."
+    },
+    {
+      "reference_id": "tos-ref.dta.historical-corpus",
+      "category": "historical_corpus",
+      "research_tier": "classical-official-documentation",
+      "title": "Deutsches Textarchiv (DTA)",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Berlin-Brandenburgische Akademie der Wissenschaften, Zentrum Sprache"],
+        "publishers": [],
+        "authors": [],
+        "editors": ["Deutsches Textarchiv project"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "German-language texts approximately 1600-1900",
+        "edition_or_version": "DTA corpus and DTABf documentation available in 2026; DTABf citation labels the documentation 2011-2025",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "resource-name", "value": "DTA"},
+        {"scheme": "encoding-profile", "value": "DTABf / TEI P5"}
+      ],
+      "primary_url": "https://fedora.dwds.de/de/corpus/",
+      "evidence_urls": [
+        "https://fedora.dwds.de/de/corpus/",
+        "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html",
+        "https://fedora.dwds.de/de/repo/"
+      ],
+      "scholarly_posture": "historical New High German reference-corpus candidate with text-image views, spelling-tolerant search, TEI P5 annotation, and downloadable records where rights permit",
+      "intended_uses": [
+        "historical-concordance",
+        "historical-sense-evidence",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "corpus frequency does not establish Nietzsche's sense",
+        "every selected document retains its own source and license",
+        "DTABf documentation license does not automatically license corpus texts or images"
+      ],
+      "access": {
+        "access_state": "open-download-candidate",
+        "acquisition_state": "web-consultation-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": ["https://fedora.dwds.de/de/corpus/"],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "per-item-review-required",
+        "derivative_use": "per-item-review-required",
+        "citation_requirements": [
+          "cite DTA, the exact document identifier and source edition, access date, and document-specific license"
+        ],
+        "rights_evidence_urls": [
+          "https://fedora.dwds.de/de/corpus/",
+          "https://fedora.dwds.de/de/repo/",
+          "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no period-matched comparison corpus slice has been frozen",
+          "document-level licenses and source editions remain unreviewed"
+        ]
+      },
+      "notes": "Use a declared late-nineteenth-century control slice and preserve source-image return for every cited occurrence."
+    },
+    {
+      "reference_id": "tos-ref.nietzsche-source.ekgwb",
+      "category": "nietzsche_critical_edition",
+      "research_tier": "established-scholarly-resources",
+      "title": "Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB)",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Nietzsche Source", "Association HyperNietzsche"],
+        "publishers": ["Nietzsche Source"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": ["Paolo D'Iorio", "Giorgio Colli", "Mazzino Montinari"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "digital form of KGW 1967- and KGB 1975-",
+        "edition_or_version": "digital critical edition with approximately 6600 incorporated philological corrections, stable sigla URLs, and XML-TEI encoding",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "edition-siglum", "value": "eKGWB"}
+      ],
+      "primary_url": "https://doc.nietzschesource.org/en/ekgwb",
+      "evidence_urls": [
+        "https://doc.nietzschesource.org/en/ekgwb",
+        "https://doc.nietzschesource.org/en/editions",
+        "https://doc.nietzschesource.org/en/rights"
+      ],
+      "scholarly_posture": "digital form of the Colli-Montinari German reference edition, suitable for exact citation, recurrence search, and critical comparison but not a replacement for the acquired scan witness",
+      "intended_uses": [
+        "critical-source-comparison",
+        "nietzsche-recurrence",
+        "word-index-routing",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "CC BY-NC-ND forbids derivative publication and commercial reuse without permission",
+        "search hits remain observations until source context is reviewed",
+        "ToS must cite the exact stable passage URL and keep its own source witness distinct"
+      ],
+      "access": {
+        "access_state": "open-web",
+        "acquisition_state": "web-consultation-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": ["https://doc.nietzschesource.org/en/rights"],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "declared-license",
+        "license_uri": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        "redistribution": "authorized-with-conditions",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "attribute Nietzsche Source and the editors, cite the exact stable eKGWB URL, and preserve the CC BY-NC-ND 4.0 notice"
+        ],
+        "rights_evidence_urls": ["https://doc.nietzschesource.org/en/rights"]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "citation-only-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no exact passage citations have been frozen",
+          "no-derivatives boundary excludes treating the edition as a freely transformable ToS corpus"
+        ]
+      },
+      "notes": "Primary candidate for critical cross-check and Nietzsche-wide recurrence lookup, with exact URL and license provenance on every use."
+    },
+    {
+      "reference_id": "tos-ref.degruyter.ksa-band-4",
+      "category": "nietzsche_critical_edition",
+      "research_tier": "established-scholarly-resources",
+      "title": "Sämtliche Werke. Kritische Studienausgabe (KSA), Band 4: Also sprach Zarathustra I-IV",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": [],
+        "publishers": ["De Gruyter", "Deutscher Taschenbuch Verlag"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": ["Giorgio Colli", "Mazzino Montinari"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "KSA second edition 1999",
+        "edition_or_version": "Band 4 print/digital publisher record for Zarathustra I-IV; exact accessed manifestation not acquired",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "edition-siglum", "value": "KSA 4"},
+        {"scheme": "DOI", "value": "10.1515/9783112419120"}
+      ],
+      "primary_url": "https://www.degruyterbrill.com/document/doi/10.1515/9783112419120-fm/html?lang=en",
+      "evidence_urls": [
+        "https://www.degruyterbrill.com/document/doi/10.1515/9783112419120-fm/html?lang=en",
+        "https://www.degruyterbrill.com/publication/dbid/nietzsche/downloadAsset/NIETZSCHE_Nietzsche_Titelliste.pdf"
+      ],
+      "scholarly_posture": "standard critical study edition candidate for print-page citation and apparatus comparison, subordinate to exact manifestation and access proof",
+      "intended_uses": [
+        "critical-source-comparison",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "publisher metadata is not access to the full critical text or apparatus",
+        "page references depend on the exact edition and manifestation",
+        "no content has been acquired for this laboratory"
+      ],
+      "access": {
+        "access_state": "institutional-or-purchase",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.degruyterbrill.com/publishing/for-librarians/online-resources/database-portals?lang=en"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "cite KSA volume, editors, edition, page or section, publisher, and DOI where applicable"
+        ],
+        "rights_evidence_urls": [
+          "https://www.degruyterbrill.com/document/doi/10.1515/9783112419120-fm/html?lang=en"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "exact manifestation and access path are not registered",
+          "content and reuse rights are not granted"
+        ]
+      },
+      "notes": "Retain as the conventional print citation route even when eKGWB supplies the digital critical comparison."
+    },
+    {
+      "reference_id": "tos-ref.degruyter.nietzsche-woerterbuch",
+      "category": "nietzsche_lexical_resource",
+      "research_tier": "established-scholarly-resources",
+      "title": "Nietzsche-Wörterbuch",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Nietzsche Research Group, Nijmegen"],
+        "publishers": ["De Gruyter"],
+        "authors": [],
+        "editors": ["Paul van Tongeren", "Gerd Schank", "Herman Siemens"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "volume 1 published 2005",
+        "edition_or_version": "four-volume project; approximately 300 Nietzsche terms planned, with new articles pre-published in Nietzsche Online",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "DOI", "value": "10.1515/9783110193923"},
+        {"scheme": "ISBN", "value": "978-3-11-017186-0"}
+      ],
+      "primary_url": "https://www.degruyterbrill.com/serial/nietzwtb-b/html",
+      "evidence_urls": [
+        "https://www.degruyterbrill.com/serial/nietzwtb-b/html",
+        "https://www.degruyterbrill.com/publication/dbid/nietzsche/downloadAsset/NIETZSCHE_Nietzsche_Konzept_Concept.pdf"
+      ],
+      "scholarly_posture": "Nietzsche-specific lexical research resource reporting occurrence counts, uses, senses, contexts, linguistic and philosophical history, scholarship, and reception",
+      "intended_uses": [
+        "nietzsche-recurrence",
+        "word-index-routing",
+        "historical-sense-evidence",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "coverage is selective rather than a complete word index",
+        "dictionary interpretation remains a scholarly witness rather than semantic truth",
+        "full content access and reuse terms are not established"
+      ],
+      "access": {
+        "access_state": "subscription-or-permission",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.degruyterbrill.com/serial/nietzwtb-b/html",
+          "mailto:nwb-feedback@degruyter.com"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "cite exact dictionary article, editors, volume or Nietzsche Online version, page or DOI, and access date"
+        ],
+        "rights_evidence_urls": ["https://www.degruyterbrill.com/serial/nietzwtb-b/html"]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "relevant articles and coverage have not been identified",
+          "access and reuse permission are unresolved"
+        ]
+      },
+      "notes": "Highest-priority specialized lexical witness after exact German source acceptance; preserve counter-readings and article scope."
+    },
+    {
+      "reference_id": "tos-ref.schlechta.nietzsche-index-1994",
+      "category": "nietzsche_lexical_resource",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Nietzsche-Index zu den Werken in drei Bänden",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Deutsche Nationalbibliothek", "Deutsche Digitale Bibliothek"],
+        "publishers": ["Büchergilde Gutenberg", "Hanser Verlag"],
+        "authors": ["Karl Schlechta"],
+        "editors": [],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "published 1994",
+        "edition_or_version": "517-page index bound to the Werke in drei Bänden; DDB metadata last updated 2026-02-17 and exposes only the table of contents",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "DNB", "value": "943560608"}
+      ],
+      "primary_url": "https://www.deutsche-digitale-bibliothek.de/item/XD3K74FMFSAJPHGMVDG5PJMCTRYD7FCR",
+      "evidence_urls": [
+        "https://www.deutsche-digitale-bibliothek.de/item/XD3K74FMFSAJPHGMVDG5PJMCTRYD7FCR",
+        "https://d-nb.info/943560608/04"
+      ],
+      "scholarly_posture": "edition-bound printed word-index candidate useful for comparison, not a current critical-edition concordance",
+      "intended_uses": [
+        "word-index-routing",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "index is bound to Schlechta's Werke in drei Bänden rather than KGW or KSA",
+        "only the table of contents is digitally available from the catalog surface",
+        "content license is attributed to Hanser and is not granted to ToS"
+      ],
+      "access": {
+        "access_state": "metadata-only",
+        "acquisition_state": "metadata-only",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.deutsche-digitale-bibliothek.de/item/XD3K74FMFSAJPHGMVDG5PJMCTRYD7FCR"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "metadata-only",
+        "license_uri": null,
+        "redistribution": "metadata-only",
+        "derivative_use": "unknown",
+        "citation_requirements": [
+          "cite Karl Schlechta, exact index edition, DNB identifier, and the owning source edition"
+        ],
+        "rights_evidence_urls": [
+          "https://www.deutsche-digitale-bibliothek.de/item/XD3K74FMFSAJPHGMVDG5PJMCTRYD7FCR"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "full index is not accessible from the discovered record",
+          "edition-specific bias must be measured against eKGWB and KSA",
+          "permission or lawful library access is required"
+        ]
+      },
+      "notes": "Useful as an explicit Wortindex comparator only after its edition boundary is made visible."
+    },
+    {
+      "reference_id": "tos-ref.degruyter.nietzsche-online",
+      "category": "nietzsche_lexical_resource",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Nietzsche Online",
+      "languages": ["de", "en"],
+      "responsibility": {
+        "institutions": [],
+        "publishers": ["De Gruyter Brill"],
+        "authors": ["Friedrich Nietzsche and secondary-work authors"],
+        "editors": ["Giorgio Colli", "Mazzino Montinari", "database editorial contributors"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "database launched in the early 2010s",
+        "edition_or_version": "publisher title list dated 2025-04-22 was the freshest enumerated content surface found; live entitlement and update state require recheck at access time",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "database-name", "value": "Nietzsche Online"}
+      ],
+      "primary_url": "https://www.degruyterbrill.com/publication/dbid/nietzsche/downloadAsset/NIETZSCHE_Nietzsche_Konzept_Concept.pdf",
+      "evidence_urls": [
+        "https://www.degruyterbrill.com/publication/dbid/nietzsche/downloadAsset/NIETZSCHE_Nietzsche_Konzept_Concept.pdf",
+        "https://www.degruyterbrill.com/publication/dbid/nietzsche/downloadAsset/NIETZSCHE_Nietzsche_Titelliste.pdf",
+        "https://www.degruyterbrill.com/publishing/for-librarians/online-resources/database-portals?lang=en"
+      ],
+      "scholarly_posture": "integrated publisher research database combining corrected critical text, variants, commentary, Nietzsche-Wörterbuch links, concordances, and secondary literature",
+      "intended_uses": [
+        "critical-source-comparison",
+        "nietzsche-recurrence",
+        "word-index-routing",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "concept documentation is not proof of current entitlement or exact live holdings",
+        "database content is subscription-controlled and in copyright",
+        "the 2025 title list must be refreshed before an experiment"
+      ],
+      "access": {
+        "access_state": "subscription-or-permission",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.degruyterbrill.com/publishing/for-librarians/online-resources/database-portals?lang=en",
+          "mailto:nietzsche-online@degruyter.com"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "cite the exact Nietzsche Online object, DOI or passage, content version, and access date"
+        ],
+        "rights_evidence_urls": [
+          "https://www.degruyterbrill.com/publishing/for-librarians/online-resources/database-portals?lang=en"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no subscription or institutional entitlement is registered",
+          "no content-use permission exists",
+          "live holdings and revision date require refresh"
+        ]
+      },
+      "notes": "Potentially the richest integrated route, but it enters only after lawful access, exact-version capture, and cost comparison against open eKGWB."
+    },
+    {
+      "reference_id": "tos-ref.ru.antonovsky-cultural-revolution-2007",
+      "category": "recognized_ru_translation_candidate",
+      "research_tier": "established-scholarly-resources",
+      "title": "Так говорил Заратустра, перевод Ю. М. Антоновского, научно отредактированная версия в полном собрании сочинений, том 4",
+      "languages": ["ru"],
+      "responsibility": {
+        "institutions": ["Институт философии Российской академии наук"],
+        "publishers": ["Культурная революция"],
+        "authors": ["Фридрих Ницше"],
+        "editors": ["Е. В. Ознобкина"],
+        "translators": ["Ю. М. Антоновский"]
+      },
+      "dating": {
+        "original_or_coverage_date": "Antonovsky translation lineage begins in the late nineteenth century; exact lineage is not yet established",
+        "edition_or_version": "Moscow, 2007, 432 pages, ISBN 978-5-250-06018-9; the edition states that the Antonovsky translation was newly edited and checked",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "ISBN", "value": "978-5-250-06018-9"},
+        {"scheme": "NEB-record", "value": "000199_000009_005395580"}
+      ],
+      "primary_url": "https://rusneb.ru/catalog/000199_000009_005395580/",
+      "evidence_urls": [
+        "https://rusneb.ru/catalog/000199_000009_005395580/"
+      ],
+      "scholarly_posture": "established Russian translation-lineage candidate in a scientifically edited collected-works volume; authoritative witness for comparison, never absolute ground truth",
+      "intended_uses": [
+        "translation-witness",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "the 2007 edited text is not assumed equivalent to 1898, 1911, 1996, or other Antonovsky editions",
+        "recognized-comparator content remains sealed until independent lanes freeze",
+        "local payload rights are unreviewed and redistribution is not authorized"
+      ],
+      "access": {
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://rusneb.ru/catalog/000199_000009_005395580/"
+        ],
+        "request_state": "blocked-pending-rights-route"
+      },
+      "rights": {
+        "assessment": "copyright-not-evaluated",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "local-research-only",
+        "citation_requirements": [
+          "cite translator, scientific editor, exact 2007 edition, volume, page, ISBN, and ToS item identity"
+        ],
+        "rights_evidence_urls": [
+          "https://rusneb.ru/catalog/000199_000009_005395580/",
+          "http://rightsstatements.org/vocab/CNE/1.0/"
+        ]
+      },
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+          "tos.rights.zarathustra-antonovsky-cultural-revolution-2007.operator-pdf"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json"
+        ]
+      },
+      "admission": {
+        "state": "rights-review-blocked",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "real human source review has accepted 0 of 30 German units",
+          "recognized comparator is sealed",
+          "translation-lineage equivalence is unresolved",
+          "human rights review and permission route are absent"
+        ]
+      },
+      "notes": "This is the current sealed comparator identity in the laboratory plan, not a pre-revealed answer key."
+    },
+    {
+      "reference_id": "tos-ref.ru.antonovsky-prometey-1911",
+      "category": "recognized_ru_translation_candidate",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Так говорил Заратустра: Книга для всех и ни для кого, перевод Ю. М. Антоновского, 4-е издание",
+      "languages": ["ru"],
+      "responsibility": {
+        "institutions": ["Российская государственная библиотека", "Национальная электронная библиотека"],
+        "publishers": ["Прометей"],
+        "authors": ["Фридрих Ницше"],
+        "editors": [],
+        "translators": ["Ю. М. Антоновский"]
+      },
+      "dating": {
+        "original_or_coverage_date": "published 1911",
+        "edition_or_version": "fourth edition, Saint Petersburg, VIII + 292 pages; full-view and PDF links are exposed by NEB",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "NEB-record", "value": "000199_000009_003693383"}
+      ],
+      "primary_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+      "evidence_urls": [
+        "https://rusneb.ru/catalog/000199_000009_003693383/"
+      ],
+      "scholarly_posture": "historical Antonovsky translation witness candidate suitable for lineage comparison with the edited 2007 expression",
+      "intended_uses": [
+        "translation-witness",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "free viewer or download availability is not by itself a completed rights assessment",
+        "the fourth edition must not be treated as textually identical to the 2007 scientific redaction",
+        "the item has not been acquired or fixity-registered by ToS"
+      ],
+      "access": {
+        "access_state": "open-download-candidate",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": [
+          "https://rusneb.ru/catalog/000199_000009_003693383/"
+        ],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "per-item-review-required",
+        "derivative_use": "per-item-review-required",
+        "citation_requirements": [
+          "cite translator, fourth-edition statement, publisher, year, page, NEB record, and exact acquired-item digest if later admitted"
+        ],
+        "rights_evidence_urls": [
+          "https://rusneb.ru/catalog/000199_000009_003693383/"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "rights statement and file-level terms require review before acquisition",
+          "translation-lineage relation to other Antonovsky editions is unreviewed",
+          "no fixity or source-item record exists in ToS"
+        ]
+      },
+      "notes": "High-value historical comparator because it can expose editorial change hidden by a shared translator label."
+    },
+    {
+      "reference_id": "tos-ref.ru.mysl-1996-volume-2",
+      "category": "additional_ru_translation_candidate",
+      "research_tier": "established-scholarly-resources",
+      "title": "Фридрих Ницше. Сочинения в двух томах. Том 2. Москва: Мысль, 1996",
+      "languages": ["ru"],
+      "responsibility": {
+        "institutions": ["Институт философии Российской академии наук"],
+        "publishers": ["Мысль"],
+        "authors": ["Фридрих Ницше"],
+        "editors": ["К. А. Свасьян"],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "published 1996",
+        "edition_or_version": "volume 2 of a two-volume collected edition; work-specific Zarathustra translator attribution remains pending source-visible review",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "ISBN", "value": "5-244-00854-2"},
+        {"scheme": "CiNii-NCID", "value": "BA35025034"}
+      ],
+      "primary_url": "https://ci.nii.ac.jp/ncid/BA35025034",
+      "evidence_urls": [
+        "https://ci.nii.ac.jp/ncid/BA35025034"
+      ],
+      "scholarly_posture": "additional Russian collected-edition witness candidate; bibliographic presence is supported, but the Zarathustra translator and textual equivalence are deliberately unresolved",
+      "intended_uses": [
+        "translation-witness",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "the volume lists multiple translators and does not yet prove the work-specific attribution",
+        "equivalence with the 2007 Antonovsky expression is not assumed",
+        "the local aggregate PDF is in copyright with no redistribution authorization"
+      ],
+      "access": {
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://ci.nii.ac.jp/ncid/BA35025034"
+        ],
+        "request_state": "blocked-pending-rights-route"
+      },
+      "rights": {
+        "assessment": "copyright-not-evaluated",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "local-research-only",
+        "citation_requirements": [
+          "cite exact volume, editor, publisher, year, page, work-specific translator once verified, and ToS item identity"
+        ],
+        "rights_evidence_urls": [
+          "https://ci.nii.ac.jp/ncid/BA35025034",
+          "http://rightsstatements.org/vocab/CNE/1.0/"
+        ]
+      },
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+          "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+          "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+          "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.json",
+          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.json",
+          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        ]
+      },
+      "admission": {
+        "state": "bibliographic-review-blocked",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "work-specific translator attribution requires manual title-page and contents review",
+          "candidate equivalence with other Russian expressions is unresolved",
+          "rights review and content-use permission are absent"
+        ]
+      },
+      "notes": "This entry exists to preserve uncertainty rather than to manufacture a second independent Russian translation."
+    },
+    {
+      "reference_id": "tos-ref.en.parkes-oup-2008",
+      "category": "additional_en_translation_candidate",
+      "research_tier": "established-scholarly-resources",
+      "title": "Thus Spoke Zarathustra: A Book for Everyone and Nobody, translated with introduction and notes by Graham Parkes",
+      "languages": ["en"],
+      "responsibility": {
+        "institutions": ["University of Oxford"],
+        "publishers": ["Oxford University Press"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": [],
+        "translators": ["Graham Parkes"]
+      },
+      "dating": {
+        "original_or_coverage_date": "translation first published in the 2000s",
+        "edition_or_version": "Oxford World's Classics paperback ISBN 9780199537099, publisher page dated 2008-11-14",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "ISBN", "value": "9780199537099"}
+      ],
+      "primary_url": "https://www.oup.com.au/books/general-interest/humanities-social-sciences/9780199537099",
+      "evidence_urls": [
+        "https://www.oup.com.au/books/general-interest/humanities-social-sciences/9780199537099"
+      ],
+      "scholarly_posture": "publisher-backed annotated English translation candidate emphasizing musicality and biblical and classical allusions",
+      "intended_uses": [
+        "translation-witness",
+        "allusion-notes",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "English is an additional witness and not the default bridge into Russian",
+        "publisher description cannot substitute for passage-level comparison",
+        "full translation is in copyright and has not been acquired"
+      ],
+      "access": {
+        "access_state": "institutional-or-purchase",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.oup.com.au/books/general-interest/humanities-social-sciences/9780199537099"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "cite translator, title, Oxford World's Classics edition, ISBN, page, and publication year"
+        ],
+        "rights_evidence_urls": [
+          "https://www.oup.com.au/books/general-interest/humanities-social-sciences/9780199537099"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "exact edition has not been acquired",
+          "content-use and quotation scope require rights review",
+          "passage-level suitability has not been manually tested"
+        ]
+      },
+      "notes": "Especially useful as an allusion and musicality comparator after the independent German-to-Russian lanes are frozen."
+    },
+    {
+      "reference_id": "tos-ref.en.del-caro-cambridge-2006",
+      "category": "additional_en_translation_candidate",
+      "research_tier": "established-scholarly-resources",
+      "title": "Nietzsche: Thus Spoke Zarathustra, translated by Adrian Del Caro and edited by Robert Pippin",
+      "languages": ["en"],
+      "responsibility": {
+        "institutions": ["University of Cambridge"],
+        "publishers": ["Cambridge University Press"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": ["Robert Pippin"],
+        "translators": ["Adrian Del Caro"]
+      },
+      "dating": {
+        "original_or_coverage_date": "first published 2006",
+        "edition_or_version": "Cambridge Texts in the History of Philosophy; corrected reprint 2012 and later printings are distinct manifestations",
+        "verified_at": "2026-07-23"
+      },
+      "identifiers": [
+        {"scheme": "DOI", "value": "10.1017/CBO9780511812095"},
+        {"scheme": "ISBN-paperback", "value": "9780521602617"},
+        {"scheme": "ISBN-hardback", "value": "9780521841719"}
+      ],
+      "primary_url": "https://www.cambridge.org/highereducation/books/nietzsche-thus-spoke-zarathustra/5E1FF7A96401587F59F12BDAEB9CEF93",
+      "evidence_urls": [
+        "https://www.cambridge.org/highereducation/books/nietzsche-thus-spoke-zarathustra/5E1FF7A96401587F59F12BDAEB9CEF93",
+        "https://assets.cambridge.org/97805218/41719/frontmatter/9780521841719_frontmatter.pdf"
+      ],
+      "scholarly_posture": "publisher-backed scholarly English translation candidate explicitly preserving poetic form and original versification",
+      "intended_uses": [
+        "translation-witness",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "English is a comparator rather than an intermediary ground truth",
+        "2006 first printing and corrected later printings must not be collapsed",
+        "full text access is entitlement-controlled and in copyright"
+      ],
+      "access": {
+        "access_state": "institutional-or-purchase",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.cambridge.org/highereducation/books/nietzsche-thus-spoke-zarathustra/5E1FF7A96401587F59F12BDAEB9CEF93"
+        ],
+        "request_state": "prepared-not-sent"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "cite translator, editor, exact printing or digital manifestation, DOI or ISBN, year, and page"
+        ],
+        "rights_evidence_urls": [
+          "https://assets.cambridge.org/97805218/41719/frontmatter/9780521841719_frontmatter.pdf"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "access-request-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "exact manifestation has not been acquired",
+          "access entitlement and permissible research use are unresolved",
+          "passage-level comparison has not begun"
+        ]
+      },
+      "notes": "Use to test preservation of versification and poetic form after independent lanes, alongside rather than instead of Parkes."
+    }
+  ],
+  "coverage": {
+    "required_category_count": 9,
+    "entry_count": 14,
+    "all_required_categories_present": true,
+    "content_admitted_entries": 0,
+    "human_bibliographic_reviews": 0,
+    "human_rights_reviews": 0,
+    "permission_requests_sent": 0
+  },
+  "authority_boundary": "research register only: entries are versioned reference candidates, not admitted corpus bytes, accepted dictionary senses, accepted etymologies, accepted translations, semantic truth, or permission grants"
+}

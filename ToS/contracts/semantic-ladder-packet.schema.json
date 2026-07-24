@@ -1,0 +1,754 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json",
+  "title": "Tree of Sophia source-grounded semantic ladder packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "work_ref",
+    "source_expression_ref",
+    "source_review_evidence",
+    "source_forms",
+    "candidate_ref",
+    "translation_evidence",
+    "stage_order",
+    "stages",
+    "frequency_is_not_sufficient",
+    "every_stage_returns_to_source_page",
+    "model_may_propose_but_not_confirm",
+    "manual_sign_decision_required_before_interpretation",
+    "packet_status",
+    "provenance_event_refs",
+    "authority_boundary",
+    "packet_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json"
+    },
+    "schema_version": {"const": "tos_semantic_ladder_packet_v2"},
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.semantic-ladder-packet\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_expression_ref": {"$ref": "#/$defs/tosId"},
+    "source_review_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "review_receipt_refs",
+        "accepted_diplomatic_sha256",
+        "pass_1_performed_by_real_human",
+        "pass_2_performed_by_real_human",
+        "pass_timestamps_distinct",
+        "source_acceptance"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        },
+        "review_receipt_refs": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "accepted_diplomatic_sha256": {"$ref": "#/$defs/sha256"},
+        "pass_1_performed_by_real_human": {"const": true},
+        "pass_2_performed_by_real_human": {"const": true},
+        "pass_timestamps_distinct": {"const": true},
+        "source_acceptance": {"const": "accept"}
+      }
+    },
+    "source_forms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["diplomatic", "diplomatic_sha256", "normalized", "normalized_sha256"],
+      "properties": {
+        "diplomatic": {"type": "string", "minLength": 1},
+        "diplomatic_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized": {"type": "string", "minLength": 1},
+        "normalized_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "candidate_ref": {"$ref": "#/$defs/tosId"},
+    "translation_evidence": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/translationEvidence"}
+    },
+    "stage_order": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "prefixItems": [
+        {"const": "exact_form"},
+        {"const": "frequency_and_concordance"},
+        {"const": "context"},
+        {"const": "morphology"},
+        {"const": "lemma"},
+        {"const": "recurrence_within_section"},
+        {"const": "recurrence_within_work"},
+        {"const": "recurrence_within_author_corpus"},
+        {"const": "translation_correspondences"},
+        {"const": "stable_sign_candidate"},
+        {"const": "manual_confirmation_or_rejection"},
+        {"const": "relations_between_signs"},
+        {"const": "conceptual_interpretations"},
+        {"const": "competing_readings"},
+        {"const": "graph_projection"}
+      ],
+      "items": false
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "prefixItems": [
+        {"$ref": "#/$defs/exactFormStage"},
+        {"$ref": "#/$defs/frequencyStage"},
+        {"$ref": "#/$defs/contextStage"},
+        {"$ref": "#/$defs/morphologyStage"},
+        {"$ref": "#/$defs/lemmaStage"},
+        {"$ref": "#/$defs/sectionRecurrenceStage"},
+        {"$ref": "#/$defs/workRecurrenceStage"},
+        {"$ref": "#/$defs/authorRecurrenceStage"},
+        {"$ref": "#/$defs/translationStage"},
+        {"$ref": "#/$defs/signCandidateStage"},
+        {"$ref": "#/$defs/manualConfirmationStage"},
+        {"$ref": "#/$defs/signRelationsStage"},
+        {"$ref": "#/$defs/conceptsStage"},
+        {"$ref": "#/$defs/counterreadingsStage"},
+        {"$ref": "#/$defs/graphStage"}
+      ],
+      "items": false
+    },
+    "frequency_is_not_sufficient": {"const": true},
+    "every_stage_returns_to_source_page": {"const": true},
+    "model_may_propose_but_not_confirm": {"const": true},
+    "manual_sign_decision_required_before_interpretation": {"const": true},
+    "packet_status": {
+      "enum": [
+        "preparing",
+        "observational-analysis",
+        "awaiting-manual-sign-decision",
+        "manual-sign-rejected",
+        "manual-sign-accepted",
+        "interpretive-analysis",
+        "graph-projected",
+        "superseded"
+      ]
+    },
+    "provenance_event_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
+    "authority_boundary": {
+      "const": "this packet preserves a source-returnable path from exact form to graph; frequency, model proposals, interpretations, and projections cannot confirm a stable sign without a real-human evidence-bearing decision"
+    },
+    "packet_version": {"type": "integer", "minimum": 1},
+    "supersedes_packet_ref": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^tos\\.semantic-ladder-packet\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+              {"properties": {"status": {"not": {"const": "human-accepted"}}}}
+            ]
+          }
+        },
+        "required": ["stages"]
+      },
+      "then": {"$ref": "#/$defs/downstreamBlocked"}
+    },
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "manual-sign-rejected"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+              {"properties": {"status": {"const": "human-rejected"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {
+            "enum": ["manual-sign-accepted", "interpretive-analysis", "graph-projected"]
+          }
+        },
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+              {"properties": {"status": {"const": "human-accepted"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "interpretive-analysis"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+              {"properties": {"status": {"$ref": "#/$defs/activeInterpretiveStatus"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "graph-projected"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "stages": {
+            "prefixItems": [
+              {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+              {"properties": {"status": {"$ref": "#/$defs/activeInterpretiveStatus"}}},
+              {"properties": {"status": {"$ref": "#/$defs/activeInterpretiveStatus"}}},
+              {"properties": {"status": {"$ref": "#/$defs/activeInterpretiveStatus"}}},
+              {"properties": {"status": {"const": "projected"}}}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "activeInterpretiveStatus": {
+      "enum": ["proposed", "source-observed", "human-accepted", "ambiguous", "deferred"]
+    },
+    "translationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "evidence_kind",
+        "ref",
+        "sha256",
+        "review_status",
+        "rights_ref",
+        "recognized_translation_is_ground_truth"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "pattern": "^tos-translation-evidence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "evidence_kind": {
+          "enum": ["translation-packet", "recognized-translation-witness", "aligned-translation-witness"]
+        },
+        "ref": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "review_status": {
+          "enum": ["unreviewed", "human-reviewed", "human-adjudicated", "rejected", "ambiguous"]
+        },
+        "rights_ref": {"$ref": "#/$defs/tosId"},
+        "recognized_translation_is_ground_truth": {"const": false}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maker_type",
+        "agent_ref",
+        "performed_by_real_human",
+        "ai_assistance_used",
+        "model_refs"
+      ],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed", "imported-source"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "performed_by_real_human": {"type": "boolean"},
+        "ai_assistance_used": {"type": "boolean"},
+        "model_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "status",
+        "source_anchor_refs",
+        "source_return_verified",
+        "body",
+        "maker",
+        "provenance_event_ref",
+        "review_status",
+        "blocker_refs"
+      ],
+      "properties": {
+        "stage": {"type": "string"},
+        "status": {
+          "enum": [
+            "not-started",
+            "blocked",
+            "proposed",
+            "source-observed",
+            "human-accepted",
+            "human-rejected",
+            "ambiguous",
+            "deferred",
+            "projected",
+            "superseded"
+          ]
+        },
+        "source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tosId"}
+        },
+        "source_return_verified": {"type": "boolean"},
+        "body": {"type": "object"},
+        "maker": {
+          "oneOf": [{"$ref": "#/$defs/maker"}, {"type": "null"}]
+        },
+        "provenance_event_ref": {
+          "oneOf": [{"$ref": "#/$defs/tosId"}, {"type": "null"}]
+        },
+        "review_status": {
+          "enum": [
+            "not-started",
+            "unreviewed",
+            "accepted",
+            "accepted-with-limits",
+            "rejected",
+            "ambiguous",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "blocker_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["not-started", "blocked"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "body": {"maxProperties": 0},
+              "source_return_verified": {"const": false}
+            }
+          },
+          "else": {
+            "properties": {
+              "body": {"minProperties": 1},
+              "maker": {"$ref": "#/$defs/maker"},
+              "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+              "source_return_verified": {"const": true},
+              "blocker_refs": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "blocked"}}, "required": ["status"]},
+          "then": {"properties": {"blocker_refs": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "not-started"}}, "required": ["status"]},
+          "then": {"properties": {"blocker_refs": {"maxItems": 0}}}
+        }
+      ]
+    },
+    "activeBodyCondition": {
+      "not": {
+        "properties": {"status": {"enum": ["not-started", "blocked"]}},
+        "required": ["status"]
+      }
+    },
+    "exactFormStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "exact_form"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": ["exact_form", "exact_form_sha256", "page_return_verified"],
+                "properties": {
+                  "exact_form": {"type": "string", "minLength": 1},
+                  "exact_form_sha256": {"$ref": "#/$defs/sha256"},
+                  "page_return_verified": {"const": true}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "frequencyStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "frequency_and_concordance"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": ["count", "concordance_refs", "counting_method_ref", "frequency_only_basis"],
+                "properties": {
+                  "count": {"type": "integer", "minimum": 0},
+                  "concordance_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "counting_method_ref": {"type": "string", "minLength": 1},
+                  "frequency_only_basis": {"const": false}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "contextStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "context"}}}
+      ]
+    },
+    "morphologyStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "morphology"}}}
+      ]
+    },
+    "lemmaStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "lemma"}}}
+      ]
+    },
+    "sectionRecurrenceStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "recurrence_within_section"}}}
+      ]
+    },
+    "workRecurrenceStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "recurrence_within_work"}}}
+      ]
+    },
+    "authorRecurrenceStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "recurrence_within_author_corpus"}}}
+      ]
+    },
+    "translationStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "translation_correspondences"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "translation_evidence_ids",
+                  "correspondence_claim_refs",
+                  "translation_differences_preserved",
+                  "recognized_translation_is_ground_truth"
+                ],
+                "properties": {
+                  "translation_evidence_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "correspondence_claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "translation_differences_preserved": {"const": true},
+                  "recognized_translation_is_ground_truth": {"const": false}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "signCandidateStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "stable_sign_candidate"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "candidate_statement",
+                  "occurrence_refs",
+                  "recurrence_evidence_refs",
+                  "context_variation_considered",
+                  "metaphorical_development_considered",
+                  "compositional_role_considered",
+                  "translation_divergence_considered",
+                  "negations_and_inversions_considered",
+                  "related_sign_leads_considered",
+                  "frequency_only_basis",
+                  "human_opinion_required",
+                  "proposed_status"
+                ],
+                "properties": {
+                  "candidate_statement": {"type": "string", "minLength": 1},
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/tosId"}
+                  },
+                  "recurrence_evidence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "context_variation_considered": {"const": true},
+                  "metaphorical_development_considered": {"const": true},
+                  "compositional_role_considered": {"const": true},
+                  "translation_divergence_considered": {"const": true},
+                  "negations_and_inversions_considered": {"const": true},
+                  "related_sign_leads_considered": {"const": true},
+                  "frequency_only_basis": {"const": false},
+                  "human_opinion_required": {"const": true},
+                  "proposed_status": {"const": "stable-sign-candidate-not-confirmed"}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "manualConfirmationStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "manual_confirmation_or_rejection"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "maker": {
+                "properties": {
+                  "maker_type": {"const": "human"},
+                  "performed_by_real_human": {"const": true}
+                }
+              },
+              "body": {
+                "required": [
+                  "decision",
+                  "sign_status_assigned",
+                  "rationale",
+                  "review_receipt_ref",
+                  "considered_evidence_refs",
+                  "decision_owned_by_real_human",
+                  "frequency_was_not_sole_basis",
+                  "ai_proposal_is_authority"
+                ],
+                "properties": {
+                  "decision": {
+                    "enum": ["accept", "accept-with-limits", "reject", "ambiguous", "defer"]
+                  },
+                  "sign_status_assigned": {"enum": ["stable-sign", "rejected", "unresolved"]},
+                  "rationale": {"type": "string", "minLength": 1},
+                  "review_receipt_ref": {"type": "string", "minLength": 1},
+                  "considered_evidence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"type": "string", "minLength": 1}
+                  },
+                  "decision_owned_by_real_human": {"const": true},
+                  "frequency_was_not_sole_basis": {"const": true},
+                  "ai_proposal_is_authority": {"const": false}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "body": {
+                "properties": {"decision": {"enum": ["accept", "accept-with-limits"]}},
+                "required": ["decision"]
+              }
+            },
+            "required": ["body"]
+          },
+          "then": {
+            "properties": {
+              "status": {"const": "human-accepted"},
+              "body": {"properties": {"sign_status_assigned": {"const": "stable-sign"}}}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "body": {
+                "properties": {"decision": {"const": "reject"}},
+                "required": ["decision"]
+              }
+            },
+            "required": ["body"]
+          },
+          "then": {
+            "properties": {
+              "status": {"const": "human-rejected"},
+              "body": {"properties": {"sign_status_assigned": {"const": "rejected"}}}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "body": {
+                "properties": {"decision": {"enum": ["ambiguous", "defer"]}},
+                "required": ["decision"]
+              }
+            },
+            "required": ["body"]
+          },
+          "then": {
+            "properties": {
+              "status": {"enum": ["ambiguous", "deferred"]},
+              "body": {"properties": {"sign_status_assigned": {"const": "unresolved"}}}
+            }
+          }
+        }
+      ]
+    },
+    "signRelationsStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "relations_between_signs"}}}
+      ]
+    },
+    "conceptsStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "conceptual_interpretations"}}}
+      ]
+    },
+    "counterreadingsStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "competing_readings"}}}
+      ]
+    },
+    "graphStage": {
+      "allOf": [
+        {"$ref": "#/$defs/stage"},
+        {"properties": {"stage": {"const": "graph_projection"}}},
+        {
+          "if": {"properties": {"status": {"const": "projected"}}, "required": ["status"]},
+          "then": {
+            "properties": {
+              "maker": {"properties": {"maker_type": {"const": "software"}}},
+              "body": {
+                "required": [
+                  "projection_ref",
+                  "projection_sha256",
+                  "claim_refs",
+                  "rebuildable_from_stronger_records",
+                  "projection_is_authority"
+                ],
+                "properties": {
+                  "projection_ref": {"type": "string", "minLength": 1},
+                  "projection_sha256": {"$ref": "#/$defs/sha256"},
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/tosId"}
+                  },
+                  "rebuildable_from_stronger_records": {"const": true},
+                  "projection_is_authority": {"const": false}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "downstreamBlocked": {
+      "properties": {
+        "stages": {
+          "prefixItems": [
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+            {"properties": {"status": {"enum": ["blocked", "not-started"]}}},
+            {"properties": {"status": {"enum": ["blocked", "not-started"]}}},
+            {"properties": {"status": {"enum": ["blocked", "not-started"]}}},
+            {"properties": {"status": {"enum": ["blocked", "not-started"]}}}
+          ]
+        }
+      }
+    }
+  }
+}

@@ -40,6 +40,7 @@ Use this checklist for changes to:
 - `mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md`
 - `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
 - `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
+- `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`
 - `ToS/public-compatibility/*.json`
 - `ToS/contracts/*.json`
 - new authored architecture notes
@@ -66,6 +67,12 @@ Walk the change in this order:
 16. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
 17. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
 18. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
+19. Check that golden-kernel work transfers source and review method rather than
+    Zarathustra-specific ontology or vocabulary.
+20. Check that lived witness remains visible as first-person provenance without
+    becoming primary text, scholarship, or canon authority.
+21. Check that a gold example preserves rejected or unresolved alternatives and
+    review rationale instead of exposing accepted labels alone.
 
 ## Checklist
 
@@ -100,6 +107,12 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If a tiny-entry route is present, does fallback stay inside ToS rather than pointing to `aoa-kag`, `aoa-routing`, or another downstream repository?
 - If a tiny-entry route is present, does it stay bounded to one real authored node plus one bounded hop?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
+- If golden-kernel transfer is mentioned, can a new source reject the current
+  vocabulary or force contract revision without being treated as an error?
+- If lived witness is present, is it distinct from source witness, textual
+  observation, scholarship, interpretation, and canon?
+- If gold material is present, are rejection, ambiguity, counter-reading,
+  reviewer rationale, and version lineage inspectable where applicable?
 - Are any new abstractions reversible and narrower than the material they summarize?
 - Does the change name uncertainty honestly where the source or interpretation remains contested?
 
@@ -122,6 +135,9 @@ Pause and revise before merge if any answer is `no` for:
 - manual-entry boundary collapse
 - tiny-entry capsule/authority collapse
 - downstream authority bleed into ToS entry
+- golden-kernel method collapsing into universal ontology
+- lived witness being promoted into source or canon authority
+- accepted-only gold material hiding refusal, ambiguity, or review rationale
 
 ## Review note
 

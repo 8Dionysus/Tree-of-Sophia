@@ -1,0 +1,31 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "preferred_label": "Also sprach Zarathustra",
+  "variant_labels": [
+    {
+      "value": "Так говорил Заратустра",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+      "status": "verified"
+    },
+    {
+      "value": "Thus Spoke Zarathustra",
+      "language": "en",
+      "source_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [],
+  "notes": "One work identity connects the German source and Russian translation expressions without treating their texts as identical.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

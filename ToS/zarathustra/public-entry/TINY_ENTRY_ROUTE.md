@@ -4,6 +4,12 @@ This document defines the first public tiny-entry seam for Tree of Sophia.
 
 The seam is meant to help humans and smaller models enter a bounded authored route without mistaking orientation for authority.
 
+This tiny-entry seam is the public entrance to the Zarathustra golden growth
+kernel; it is not the whole kernel and not a gold annotation packet. The full
+kernel must also preserve observation/proposal layers, rejected and unresolved
+readings, review rationale, version lineage, and the method-transfer boundary
+defined in `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`.
+
 ## Current public root
 
 At the current phase, the public `tos-root` is `README.md`.

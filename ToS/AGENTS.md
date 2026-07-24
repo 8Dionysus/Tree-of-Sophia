@@ -5,9 +5,9 @@ This file applies to the `ToS/` source home.
 ## Role
 
 `ToS/` is the source-home organ for Tree of Sophia. It holds authored
-philosophical meaning, witnesses, doctrine, Zarathustra, research packets,
-candidate intake, canon, public compatibility, derived exports, contracts, and
-review evidence as one tree-shaped home.
+philosophical meaning, witnesses, doctrine, the Zarathustra golden growth
+kernel, research packets, candidate intake, canon, public compatibility,
+derived exports, contracts, and review evidence as one tree-shaped home.
 
 Root files remain the public front door and landing surface. `docs/decisions/`
 keeps durable rationale.
@@ -36,7 +36,7 @@ nearest nested `AGENTS.md` for the branch being touched.
 | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation posture |
 | `source-witnesses/` | source-facing witness material |
-| `zarathustra/` | current golden route orientation |
+| `zarathustra/` | first golden growth kernel and current bounded route orientation |
 | `research-packets/` | non-authoritative research scaffolds |
 | `philosophy/` | domain-shaped philosophical growth |
 | `candidate-intake/` | provisional extraction and promotion residue |
@@ -45,6 +45,45 @@ nearest nested `AGENTS.md` for the branch being touched.
 | `derived-exports/` | generated downstream read models |
 | `contracts/` | schemas and structural contracts |
 | `review-ledger/` | dated inspection evidence |
+
+## Golden-Kernel Engineering Route
+
+When a change belongs to the Zarathustra kernel, classify the artifact before
+editing:
+
+| Artifact | Owner |
+| --- | --- |
+| primary text, edition, translation, or aligned witness | `source-witnesses/` |
+| annotation layer, semantic distinction, or promotion law | `doctrine/` |
+| machine-checkable payload shape | `contracts/` |
+| extracted observation or agent proposal | `candidate-intake/` |
+| accept, reject, defer, ambiguity, or counter-reading receipt | `review-ledger/` |
+| accepted authored node or relation | `canon/` |
+| public mirror | `public-compatibility/` |
+| graph, KAG, retrieval, or compact reader | `derived-exports/` |
+
+Do not bypass an intermediate owner because a downstream representation is
+easier to generate. A gold packet is not ready when only its accepted labels
+are reproducible; rejected and unresolved decisions must remain inspectable.
+
+## Corpus-Foundation Engineering Route
+
+For corpus intake and addressing, read
+`ToS/doctrine/CORPUS_FOUNDATION.md`, then
+`ToS/source-witnesses/README.md` and its `AGENTS.md`.
+
+Keep these boundaries visible:
+
+| Surface | Owner |
+| --- | --- |
+| identity, anchor, sign, assertion, and translation law | `doctrine/` |
+| tracked catalogs, object records, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
+| machine-checkable record shapes | `contracts/` |
+| extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |
+| host models, caches, runtimes, reservations, and large temporary data | `/etc/abyss-machine` and `/srv/abyss-machine` owner routes |
+
+Paths speak; IDs persist. Every derived layer cites the exact input digest and
+transformation event. Graph and retrieval stores remain disposable readers.
 
 ## Boundary Routes
 

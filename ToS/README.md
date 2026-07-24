@@ -11,8 +11,8 @@ home.
 | Path | Use For | Stronger Than |
 | --- | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation ladder, and authored route doctrine | review notes and generated readers |
-| `source-witnesses/` | primary source-facing witness material | intake, canon summaries, exports |
-| `zarathustra/` | golden route capsule and public-entry orientation for the bounded Zarathustra prologue path | generic orientation and generated readers |
+| `source-witnesses/` | tracked corpus catalog, work/expression/edition/item tree, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
+| `zarathustra/` | first golden growth kernel plus public-entry orientation for the bounded Zarathustra path | generic orientation and generated readers |
 | `research-packets/` | non-authoritative research scaffolds and capture metadata | philosophy branch review |
 | `philosophy/` | growing domain tree of philosophy: trunk, eras, regions, traditions, works, figures, concepts, transmissions, local graph workbenches | candidate intake and generated readers |
 | `candidate-intake/` | provisional extraction and promotion ledgers | generated exports |
@@ -37,6 +37,19 @@ current bounded Zarathustra route:
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
 prepare nodes and relation packs for review and promotion into `ToS/canon/`.
+
+The two contours are coupled rather than sequential substitutes. The
+world-philosophy branch prepares corpus soil; the Zarathustra kernel develops
+the first full source-to-canon learning path. See
+`ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md` for the transfer and authority
+boundary.
+
+The corpus soil is specified by
+`ToS/doctrine/CORPUS_FOUNDATION.md` and physically routed by
+`ToS/source-witnesses/README.md`. Only item payload bytes are gitignored;
+identity, catalogs, digests, provenance, rights, forensic evidence, anchors,
+and review remain tracked. Search, vector, graph, and KAG surfaces are
+rebuildable projections.
 
 ## Operating Card
 

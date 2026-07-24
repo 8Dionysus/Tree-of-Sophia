@@ -1,0 +1,223 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/graph-query-plan.schema.json",
+  "schema_version": "tos_graph_query_plan_v1",
+  "plan_id": "tos.graph-query-plan.zarathustra-foundation-pilot-v1",
+  "claim_set_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/graph-claims.jsonl",
+  "claim_set_sha256": "50f21b424c0f93b8824472c3340dd9d8c7635af4520a90fb58404e3f46db2319",
+  "frozen_at": "2026-07-23T02:17:40Z",
+  "frozen_before_variant_outputs": true,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "source-visible claim and graph-question selection before any graph variant output"
+  },
+  "graph_layers": [
+    "bibliographic",
+    "textual",
+    "provenance",
+    "interpretive"
+  ],
+  "allowed_predicates": [
+    "has_expression",
+    "contains_work",
+    "embodied_by",
+    "exemplified_by",
+    "acquired_by",
+    "selected_by",
+    "has_rights_record",
+    "may_align_with",
+    "alignment_status",
+    "may_share_recurrence_sign_with",
+    "sign_alignment_status"
+  ],
+  "queries": [
+    {
+      "query_id": "tos-graph-query-001",
+      "question": "Which frozen expression claims point outward from the Zarathustra work identity?",
+      "operation": "subject_predicate",
+      "parameters": {
+        "subject_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "predicate": "has_expression"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.work-has-de-expression",
+        "tos.claim.graph-foundation-v1.work-has-mysl-expression",
+        "tos.claim.graph-foundation-v1.work-has-antonovsky-2007-expression"
+      ],
+      "expected_node_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-002",
+      "question": "Which claim records Zarathustra membership in the Mysl aggregate volume?",
+      "operation": "subject_predicate",
+      "parameters": {
+        "subject_ref": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+        "predicate": "contains_work"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.mysl-collection-membership-snapshot"
+      ],
+      "expected_node_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-003",
+      "question": "Can the German digital item be reached from the work without collapsing work, expression, edition, and item identities?",
+      "operation": "path",
+      "parameters": {
+        "start_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "end_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "maximum_claim_hops": 3
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.work-has-de-expression",
+        "tos.claim.graph-foundation-v1.de-expression-embodied-by-naumann-edition",
+        "tos.claim.graph-foundation-v1.naumann-edition-exemplified-by-auto-epub"
+      ],
+      "expected_node_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-004",
+      "question": "Which acquisition event is asserted for the German auto-EPUB item?",
+      "operation": "subject_predicate",
+      "parameters": {
+        "subject_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "predicate": "acquired_by"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.naumann-item-acquired-by-event"
+      ],
+      "expected_node_refs": [
+        "tos.event.acquisition.naumann-1893-auto-epub.2026-07-22"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-005",
+      "question": "Which event selected the proposed German page-59 anchor?",
+      "operation": "subject_predicate",
+      "parameters": {
+        "subject_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+        "predicate": "selected_by"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.naumann-page-059-selected-by-segmentation"
+      ],
+      "expected_node_refs": [
+        "tos.event.segmentation.zarathustra-foundation-pilot-v1.2026-07-22"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-006",
+      "question": "Do the translation-alignment proposal and its deferred alternative both survive projection?",
+      "operation": "claim_family",
+      "parameters": {
+        "seed_claim_ref": "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-candidate"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-candidate",
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-deferred"
+      ],
+      "expected_node_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-007",
+      "question": "Do the recurrence-sign proposal and its deferred alternative both survive projection?",
+      "operation": "claim_family",
+      "parameters": {
+        "seed_claim_ref": "tos.claim.graph-foundation-v1.ring-recurrence-sign-candidate"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-candidate",
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-deferred"
+      ],
+      "expected_node_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380",
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-008",
+      "question": "Are bibliographic, textual, provenance, and interpretive claim layers still separately countable?",
+      "operation": "layer_inventory",
+      "parameters": {},
+      "expected_claim_refs": [],
+      "expected_node_refs": [
+        "bibliographic",
+        "textual",
+        "provenance",
+        "interpretive"
+      ],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-009",
+      "question": "Which claims remain unreviewed, without empty review arrays being mistaken for acceptance?",
+      "operation": "review_inventory",
+      "parameters": {
+        "review_status": "unreviewed"
+      },
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.work-has-de-expression",
+        "tos.claim.graph-foundation-v1.work-has-mysl-expression",
+        "tos.claim.graph-foundation-v1.work-has-antonovsky-2007-expression",
+        "tos.claim.graph-foundation-v1.mysl-collection-membership-snapshot",
+        "tos.claim.graph-foundation-v1.de-expression-embodied-by-naumann-edition",
+        "tos.claim.graph-foundation-v1.naumann-edition-exemplified-by-auto-epub",
+        "tos.claim.graph-foundation-v1.naumann-item-acquired-by-event",
+        "tos.claim.graph-foundation-v1.naumann-page-059-selected-by-segmentation",
+        "tos.claim.graph-foundation-v1.naumann-item-has-rights-record",
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-candidate",
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-deferred",
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-candidate",
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-deferred"
+      ],
+      "expected_node_refs": [],
+      "review_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-graph-query-010",
+      "question": "Can every projected assertion resolve to its claim, maker, provenance event, evidence references, and explicit review state?",
+      "operation": "traceability_inventory",
+      "parameters": {},
+      "expected_claim_refs": [
+        "tos.claim.graph-foundation-v1.work-has-de-expression",
+        "tos.claim.graph-foundation-v1.work-has-mysl-expression",
+        "tos.claim.graph-foundation-v1.work-has-antonovsky-2007-expression",
+        "tos.claim.graph-foundation-v1.mysl-collection-membership-snapshot",
+        "tos.claim.graph-foundation-v1.de-expression-embodied-by-naumann-edition",
+        "tos.claim.graph-foundation-v1.naumann-edition-exemplified-by-auto-epub",
+        "tos.claim.graph-foundation-v1.naumann-item-acquired-by-event",
+        "tos.claim.graph-foundation-v1.naumann-page-059-selected-by-segmentation",
+        "tos.claim.graph-foundation-v1.naumann-item-has-rights-record",
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-candidate",
+        "tos.claim.graph-foundation-v1.sinn-der-erde-alignment-deferred",
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-candidate",
+        "tos.claim.graph-foundation-v1.ring-recurrence-sign-deferred"
+      ],
+      "expected_node_refs": [],
+      "review_status": "model-proposed-awaiting-human"
+    }
+  ],
+  "human_judgment_status": "not_started",
+  "authority_boundary": "model-proposed graph questions and expectations only; no claim, relation, or projection is human accepted"
+}

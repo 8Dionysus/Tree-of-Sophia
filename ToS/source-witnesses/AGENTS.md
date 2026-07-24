@@ -5,24 +5,39 @@ This file applies to primary witness and source files under
 
 ## Role
 
-`ToS/source-witnesses/` holds raw source-facing witness material that grounds
-authored ToS routes: primary-language text, bridge translations, donor
-markdown, and provenance notes.
+`ToS/source-witnesses/` holds the corpus evidence spine that grounds authored
+ToS routes: work/expression/edition/item identity, immutable local payloads,
+primary-language text, translations, aligned witnesses, fixity, provenance,
+rights, and forensic evidence.
 
 ## Operating Card
 
 | Field | Route |
 | --- | --- |
 | role | primary witness and source-facing evidence surface |
-| input | primary-language text, bridge translation, donor markdown, source-page metadata, or provenance note |
-| output | reviewable witness surface with explicit source posture |
-| owner | `ToS/source-witnesses/AGENTS.md` and the nearest source-route file |
+| input | acquired item, primary-language text, translation, collection membership, source-page metadata, or provenance/rights evidence |
+| output | addressable reviewable witness surface with explicit identity, fixity, source, and rights posture |
+| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, tracked catalog, and nearest object record |
 | next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
 | tools | manual corpus gate, source route docs, witness manifests |
 | check | route validator when the witness feeds a current public or export surface |
 
 ## Boundary Routes
 
+- Read `README.md` and `ToS/doctrine/CORPUS_FOUNDATION.md` before adding or
+  moving corpus material.
+- Use the identity ladder `work -> expression -> edition -> item -> file`.
+  Route multi-work publications through `collections/` and evidence-bearing
+  membership claims.
+- Treat paths as navigation and tracked IDs as identity. Never merge two
+  objects only because their paths, titles, translators, or sampled text look
+  similar.
+- Keep only item `payload/` content gitignored. Track manifest, SHA-256,
+  provenance, rights, forensic report, and catalog entry.
+- Preserve original bytes. OCR, correction, normalization, segmentation, and
+  translation are new versioned layers and must cite the input digest.
+- Use structural + quote + digest + visual-region anchors; offsets alone are
+  not a durable source address.
 - Keep witness material distinct from philosophy branches, intake tables, canon
   nodes, and public mirrors.
 - Keep canonical-source, working-translation, and bridge-translation posture
@@ -30,8 +45,13 @@ markdown, and provenance notes.
 - Preserve translator, editor, donor, and uncertainty notes where they matter.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
+- Route extraction runtimes, model caches, benchmarks, and large working
+  derivatives to the `abyss-stack` laboratory and host storage owners.
 
 ## Validation
 
-Use the review checklist for broad witness edits. If the witness participates
-in the current bounded route, use tiny-entry and export validators.
+Use the source-foundation validator for catalog, object-record, payload-ignore,
+fixity, rights, and reference mechanics. Use the review checklist for source
+identity, edition, translation, rights, or interpretation judgments. If the
+witness participates in the current bounded route, also use tiny-entry and
+export validators.

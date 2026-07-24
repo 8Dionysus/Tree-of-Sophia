@@ -1,0 +1,221 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/golden-kernel-transfer-plan.schema.json",
+  "schema_version": "tos_golden_kernel_transfer_plan_v1",
+  "transfer_plan_id": "tos.transfer-plan.zarathustra-foundation-pilot-v1",
+  "experiment_ref": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-foundation-suite.v1.json#tos-golden-kernel-transfer-v1",
+  "kernel_work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "source_sample_plan": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/sample-plan.json",
+    "sha256": "a813f0a19361ccc773d1427ab696a76296993c999abb2ff35376bae422bbb9d1"
+  },
+  "target_source": {
+    "collection_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+    "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "file_sha256": "ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+    "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+    "rights_assessment_status": "copyright_not_evaluated"
+  },
+  "status": "blocked-not-run",
+  "frozen_at": "2026-07-23T23:35:00Z",
+  "frozen_before_variant_outputs": true,
+  "kernel_evidence_gate": {
+    "accepted_source_units": 0,
+    "human_double_checked_gold_units": 0,
+    "human_accepted_sign_packets": 0,
+    "human_accepted_translation_packets": 0,
+    "human_double_checked_target_units": 0,
+    "minimums": {
+      "accepted_source_units": 30,
+      "human_double_checked_gold_units": 15,
+      "human_accepted_sign_packets": 1,
+      "human_accepted_translation_packets": 1,
+      "human_double_checked_target_units": 20
+    },
+    "gate_status": "blocked",
+    "semantic_transfer_claim_authorized": false,
+    "blockers": [
+      "kernel German source acceptance is 0 of 30 translation units",
+      "kernel human-double-checked gold is 0 of 15 candidate units",
+      "human-accepted Zarathustra sign packets do not exist",
+      "human-accepted Zarathustra translation packets do not exist",
+      "content-bearing target excerpts and target-text manual gold are not frozen"
+    ]
+  },
+  "target_sampling_contract": {
+    "scouting_is_evaluation": false,
+    "required_target_works": [
+      "Beyond Good and Evil",
+      "On the Genealogy of Morality",
+      "The Antichrist"
+    ],
+    "minimum_content_units_total": 20,
+    "random_content_units": 10,
+    "hard_content_units": 10,
+    "required_unit_kinds": [
+      "ordinary-prose",
+      "dense-or-dialogic-prose",
+      "rhetorical-or-metaphorical-prose",
+      "page-boundary",
+      "hard-negative-for-kernel-sign"
+    ],
+    "content_units_frozen_before_variants": true,
+    "same_units_across_variants": true,
+    "target_gold_truth_rule": "two_independent_source_visible_human_passes_and_frozen_error_rubric",
+    "selection_prohibitions": [
+      "do not use title pages as semantic-transfer evaluation units",
+      "do not choose excerpts after viewing any variant output",
+      "do not select only passages that resemble Zarathustra",
+      "do not omit passages that require new target-specific signs",
+      "do not expose variant identity or target gold to the reviewer before all outputs freeze"
+    ]
+  },
+  "scouting_units": [
+    {
+      "sample_id": "tos-sample-mysl-p238",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p238",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 238,
+      "provisional_work_label": "Beyond Good and Evil",
+      "unit_kind": "title-page",
+      "source_review_status": "model_source_visible",
+      "eligible_for_semantic_transfer": false,
+      "selection_status": "scouting-only",
+      "selection_rationale": "Marks the first explicit out-of-kernel work boundary in the acquired collection item.",
+      "limitations": [
+        "title page rather than a content-bearing philosophical passage",
+        "no target-text manual gold",
+        "work identity has not yet been promoted into a standalone ToS Work record"
+      ]
+    },
+    {
+      "sample_id": "tos-sample-mysl-p407",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p407",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 407,
+      "provisional_work_label": "On the Genealogy of Morality",
+      "unit_kind": "title-page",
+      "source_review_status": "model_source_visible",
+      "eligible_for_semantic_transfer": false,
+      "selection_status": "scouting-only",
+      "selection_rationale": "Marks a second out-of-kernel work boundary for later source-balanced sampling.",
+      "limitations": [
+        "title page rather than a content-bearing philosophical passage",
+        "no target-text manual gold",
+        "work identity has not yet been promoted into a standalone ToS Work record"
+      ]
+    },
+    {
+      "sample_id": "tos-sample-mysl-p631",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p631",
+      "item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "file_ref": "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa",
+      "page": 631,
+      "provisional_work_label": "The Antichrist",
+      "unit_kind": "title-page",
+      "source_review_status": "model_source_visible",
+      "eligible_for_semantic_transfer": false,
+      "selection_status": "scouting-only",
+      "selection_rationale": "Marks a distant third out-of-kernel work boundary in the same physical item.",
+      "limitations": [
+        "title page rather than a content-bearing philosophical passage",
+        "no target-text manual gold",
+        "work identity has not yet been promoted into a standalone ToS Work record"
+      ]
+    }
+  ],
+  "target_units": [],
+  "variants": [
+    {
+      "label": "A",
+      "comparison_role": "no golden kernel",
+      "allowed_inputs": [
+        "task instructions",
+        "one frozen target excerpt"
+      ],
+      "prohibited_inputs": [
+        "ToS corpus, sign, translation, claim, or semantic contracts",
+        "Zarathustra examples or packets",
+        "target manual gold"
+      ]
+    },
+    {
+      "label": "B",
+      "comparison_role": "general contracts and neutral format examples only",
+      "allowed_inputs": [
+        "task instructions",
+        "one frozen target excerpt",
+        "general corpus, sign, translation, claim, and review contracts",
+        "neutral content-free format examples"
+      ],
+      "prohibited_inputs": [
+        "Zarathustra sign, translation, claim, or semantic packets",
+        "Zarathustra-specific category names in examples",
+        "target manual gold"
+      ]
+    },
+    {
+      "label": "C",
+      "comparison_role": "general contracts plus independently human-accepted Zarathustra kernel packets",
+      "allowed_inputs": [
+        "all variant B inputs",
+        "human-accepted Zarathustra sign packets",
+        "human-accepted Zarathustra translation packets",
+        "explicit non-transfer and category-rejection warnings"
+      ],
+      "prohibited_inputs": [
+        "unreviewed or model-only Zarathustra packets",
+        "recognized translation treated as ground truth",
+        "target manual gold"
+      ]
+    }
+  ],
+  "metrics": [
+    "annotation-accuracy",
+    "annotation-speed",
+    "manual-correction-minutes",
+    "traceable-proposal-rate",
+    "hallucinated-relation-rate",
+    "reusable-sign-utility",
+    "zarathustra-ontology-imposition-rate",
+    "machine-cost"
+  ],
+  "contamination_controls": {
+    "blind_variant_labels": true,
+    "same_model_runtime_prompt_shell_and_decoding": true,
+    "same_target_units": true,
+    "variant_a_excludes_kernel_and_contracts": true,
+    "variant_b_excludes_kernel_semantics": true,
+    "variant_c_uses_only_human_accepted_kernel_packets": true,
+    "target_gold_hidden_until_outputs_frozen": true,
+    "reviewer_may_reject_inherited_categories": true,
+    "new_target_categories_allowed": true
+  },
+  "stop_conditions": [
+    "any kernel evidence gate is unsatisfied",
+    "a scouting title page is substituted for a content-bearing transfer unit",
+    "variant inputs, model revision, runtime, decoding, or target excerpts differ",
+    "variant identity or target gold is exposed before all outputs freeze",
+    "variant C contains an unreviewed kernel packet",
+    "a Zarathustra category is accepted without evidence in the target text",
+    "rights or abyss-machine resource gate denies execution"
+  ],
+  "result": {
+    "run_count": 0,
+    "run_refs": [],
+    "human_review_receipts": [],
+    "metric_results": [],
+    "winner": null,
+    "promotion_decision": "blocked",
+    "conclusion": "No A/B/C semantic transfer was run. Current evidence can locate three out-of-kernel title-page boundaries, but it cannot show whether a reviewed Zarathustra kernel helps, harms, or has no effect on annotation of other Nietzsche works."
+  },
+  "rights_posture": {
+    "content_visibility": "local_only",
+    "tracked_surface": "metadata_anchors_digests_and_review_state_only",
+    "public_text_authorized": false,
+    "network_allowed": false
+  },
+  "provenance_event_ref": "tos.event.annotation.zarathustra-transfer-plan-v2.2026-07-24",
+  "plan_version": 1
+}

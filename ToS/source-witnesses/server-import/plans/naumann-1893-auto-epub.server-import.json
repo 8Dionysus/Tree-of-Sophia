@@ -1,0 +1,65 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.naumann-1893-auto-epub",
+  "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.manifest.json",
+    "sha256": "f33db5b3fa84838bdb0cf40dd7b3330b2e3947bfa6b16c824be454497041f169",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "relative_path": "payload/Nietzsche_Also_sprach_Zarathustra_1893.epub",
+      "byte_size": 2017690,
+      "sha256": "adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/rights.json",
+    "rights_record_sha256": "a72fc98c00f86ae890df72909b45c18689e5a329b7844d4356d0fb18efca5f8a",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [],
+    "permission_or_license_refs": [],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
+    "transcription": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
+    "page_images": {"state": "prohibited", "conditions": ["No page-image publication is authorized."]},
+    "snippets": {"state": "prohibited", "conditions": ["No source-text publication is authorized."]},
+    "lexical_index": {"state": "conditional", "conditions": ["Public-safe bibliographic metadata only; no source text."]},
+    "embeddings": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
+    "alignments": {"state": "prohibited", "conditions": ["No restricted aligned text may be served."]},
+    "translations": {"state": "prohibited", "conditions": ["Translation rights remain unreviewed."]},
+    "annotations": {"state": "prohibited", "conditions": ["No source-bearing annotation publication is authorized."]},
+    "search_projection": {"state": "conditional", "conditions": ["Metadata-only records with no payload-derived text."]},
+    "graph_projection": {"state": "conditional", "conditions": ["Metadata and provenance only; no restricted content."]}
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-07-23T00:00:00Z"
+  },
+  "provenance_event_refs": ["tos.event.server-import-plan.foundation.2026-07-23"],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1
+}

@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "title": "Tree of Sophia public-safe access request record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "request_id",
+    "material",
+    "rights_holder_or_institution",
+    "contact_route",
+    "project_description_ref",
+    "research_purpose",
+    "requested_format",
+    "requested_permissions",
+    "local_storage_conditions",
+    "non_redistribution_without_permission",
+    "technical_access_bypass_used",
+    "access_status",
+    "request_status",
+    "human_send_approval",
+    "sent_at",
+    "response",
+    "private_correspondence_ref",
+    "redacted_public_receipt_ref",
+    "personal_or_confidential_data_committed",
+    "rights_record_refs",
+    "provenance_event_refs",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json"
+    },
+    "schema_version": {"const": "tos_access_request_v1"},
+    "request_id": {
+      "type": "string",
+      "pattern": "^tos\\.access-request\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "responsibility", "edition_or_resource", "requested_portion", "identifiers", "tos_refs", "discovery_refs"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "responsibility": {"type": "string", "minLength": 1},
+        "edition_or_resource": {"type": "string", "minLength": 1},
+        "requested_portion": {"type": "string", "minLength": 1},
+        "identifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scheme", "value"],
+            "properties": {
+              "scheme": {"type": "string", "minLength": 1},
+              "value": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "tos_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/tosId"}},
+        "discovery_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "rights_holder_or_institution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "identification_evidence_urls", "identity_status"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "role": {"enum": ["publisher", "library", "archive", "scholarly-project", "rights-holder", "licensing-agent", "unknown"]},
+        "identification_evidence_urls": {"type": "array", "minItems": 1, "items": {"type": "string", "format": "uri"}},
+        "identity_status": {"enum": ["identified", "probable-needs-human-review", "unknown"]}
+      }
+    },
+    "contact_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel_type", "public_institutional_url", "refreshed_at", "personal_contact_committed"],
+      "properties": {
+        "channel_type": {"enum": ["institutional-form", "public-institutional-email", "library-request", "publisher-rights-portal", "postal", "unknown"]},
+        "public_institutional_url": {"type": "string", "format": "uri"},
+        "refreshed_at": {"type": "string", "format": "date-time"},
+        "personal_contact_committed": {"const": false}
+      }
+    },
+    "project_description_ref": {"type": "string", "minLength": 1},
+    "research_purpose": {"type": "string", "minLength": 1},
+    "requested_format": {"type": "string", "minLength": 1},
+    "requested_permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_access", "ocr_or_transcription", "indexing", "embeddings", "quotation", "metadata_publication", "derivative_publication", "server_processing", "source_redistribution"],
+      "properties": {
+        "local_access": {"$ref": "#/$defs/permissionState"},
+        "ocr_or_transcription": {"$ref": "#/$defs/permissionState"},
+        "indexing": {"$ref": "#/$defs/permissionState"},
+        "embeddings": {"$ref": "#/$defs/permissionState"},
+        "quotation": {"$ref": "#/$defs/permissionState"},
+        "metadata_publication": {"$ref": "#/$defs/permissionState"},
+        "derivative_publication": {"$ref": "#/$defs/permissionState"},
+        "server_processing": {"$ref": "#/$defs/permissionState"},
+        "source_redistribution": {"$ref": "#/$defs/permissionState"}
+      }
+    },
+    "local_storage_conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access_controlled", "source_payload_gitignored", "location_class", "retention_posture", "removal_supported"],
+      "properties": {
+        "access_controlled": {"const": true},
+        "source_payload_gitignored": {"const": true},
+        "location_class": {"const": "operator-controlled-local-ToS-storage"},
+        "retention_posture": {"type": "string", "minLength": 1},
+        "removal_supported": {"const": true}
+      }
+    },
+    "non_redistribution_without_permission": {"const": true},
+    "technical_access_bypass_used": {"const": false},
+    "access_status": {
+      "enum": ["public-domain", "open-licensed", "permission-granted", "research-only", "restricted", "rights-unknown", "rejected"]
+    },
+    "request_status": {
+      "enum": ["draft-not-sent", "awaiting-human-send-approval", "sent", "response-received", "permission-granted", "permission-denied", "expired", "withdrawn"]
+    },
+    "human_send_approval": {"type": "boolean"},
+    "sent_at": {"type": ["string", "null"], "format": "date-time"},
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "received_at", "permission_expires_at", "conditions", "safe_evidence_refs"],
+      "properties": {
+        "state": {"enum": ["none", "clarification-requested", "granted", "granted-with-conditions", "denied", "no-response", "withdrawn"]},
+        "received_at": {"type": ["string", "null"], "format": "date-time"},
+        "permission_expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "conditions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "safe_evidence_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "private_correspondence_ref": {
+      "oneOf": [
+        {"type": "string", "pattern": "^ToS/source-witnesses/access-requests/private/[A-Za-z0-9._/-]+$"},
+        {"type": "null"}
+      ]
+    },
+    "redacted_public_receipt_ref": {
+      "oneOf": [
+        {"type": "string", "pattern": "^ToS/source-witnesses/access-requests/public-ledger/[A-Za-z0-9._/-]+$"},
+        {"type": "null"}
+      ]
+    },
+    "personal_or_confidential_data_committed": {"const": false},
+    "rights_record_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "provenance_event_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/tosId"}},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"request_status": {"enum": ["sent", "response-received", "permission-granted", "permission-denied", "expired"]}},
+        "required": ["request_status"]
+      },
+      "then": {
+        "properties": {
+          "human_send_approval": {"const": true},
+          "sent_at": {"type": "string", "format": "date-time"},
+          "private_correspondence_ref": {"type": "string", "pattern": "^ToS/source-witnesses/access-requests/private/[A-Za-z0-9._/-]+$"}
+        }
+      },
+      "else": {
+        "properties": {"sent_at": {"type": "null"}}
+      }
+    },
+    {
+      "if": {"properties": {"request_status": {"const": "permission-granted"}}, "required": ["request_status"]},
+      "then": {
+        "properties": {
+          "access_status": {"const": "permission-granted"},
+          "response": {
+            "properties": {
+              "state": {"enum": ["granted", "granted-with-conditions"]},
+              "received_at": {"type": "string", "format": "date-time"},
+              "safe_evidence_refs": {"minItems": 1}
+            }
+          },
+          "redacted_public_receipt_ref": {"type": "string", "pattern": "^ToS/source-witnesses/access-requests/public-ledger/[A-Za-z0-9._/-]+$"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"request_status": {"const": "draft-not-sent"}}, "required": ["request_status"]},
+      "then": {
+        "properties": {
+          "human_send_approval": {"const": false},
+          "private_correspondence_ref": {"type": "null"},
+          "redacted_public_receipt_ref": {"type": "null"},
+          "response": {"properties": {"state": {"const": "none"}, "received_at": {"type": "null"}}}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "permissionState": {"enum": ["not-requested", "requested", "granted", "granted-with-conditions", "denied", "unknown", "expired"]}
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-witness-catalog.schema.json",
+  "title": "Tree of Sophia source-witness catalog manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "owner_repo",
+    "source_root",
+    "generated_by",
+    "record_schema_ref",
+    "record_files",
+    "counts",
+    "catalog_sha256",
+    "authority_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_source_witness_catalog_v1"},
+    "owner_repo": {"const": "Tree-of-Sophia"},
+    "source_root": {"const": "ToS/source-witnesses"},
+    "generated_by": {"const": "scripts/build_source_witness_catalog.py"},
+    "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
+    "record_files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "work", "expression", "edition", "collection", "item"],
+      "properties": {
+        "agent": {"const": "ToS/source-witnesses/catalog/agents.jsonl"},
+        "work": {"const": "ToS/source-witnesses/catalog/works.jsonl"},
+        "expression": {"const": "ToS/source-witnesses/catalog/expressions.jsonl"},
+        "edition": {"const": "ToS/source-witnesses/catalog/editions.jsonl"},
+        "collection": {"const": "ToS/source-witnesses/catalog/collections.jsonl"},
+        "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "work", "expression", "edition", "collection", "item", "total"],
+      "properties": {
+        "agent": {"type": "integer", "minimum": 0},
+        "work": {"type": "integer", "minimum": 0},
+        "expression": {"type": "integer", "minimum": 0},
+        "edition": {"type": "integer", "minimum": 0},
+        "collection": {"type": "integer", "minimum": 0},
+        "item": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 1}
+      }
+    },
+    "catalog_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "authority_boundary": {"const": "generated navigation over tracked object records; not bibliographic, textual, rights, or semantic authority"}
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_id",
+        "record_type",
+        "preferred_label",
+        "identity_status",
+        "source_record_ref",
+        "record_sha256",
+        "links"
+      ],
+      "properties": {
+        "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
+        "record_id": {"type": "string", "minLength": 1},
+        "record_type": {"enum": ["agent", "work", "expression", "edition", "collection", "item"]},
+        "preferred_label": {"type": "string", "minLength": 1},
+        "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
+        "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
+        "record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "links": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {"type": "string", "minLength": 1},
+              {"type": "array", "items": {"type": "string", "minLength": 1}}
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -66,6 +66,28 @@ language difference, tradition difference, or civilizational context.
 Calibration roots guide relation and comparison. They do not make the tree a
 single doctrine.
 
+## Golden Kernel Boundary
+
+*Thus Spoke Zarathustra* is the first golden growth kernel, not the universal
+schema of philosophy.
+
+The transferable layer is the source-first growth method: stable address,
+observable evidence, explicit interpretation layers, reviewed semantic
+objects, visible rejection and uncertainty, canon promotion, and
+source-returning projections. Nietzsche's concepts and relation vocabulary do
+not automatically govern another source. Resistance from a new work or
+tradition may require the contract to grow.
+
+## Lived Witness Boundary
+
+An authored first-person lived witness may explain why a source was selected,
+how attention was sustained, and why a reading has unusual depth or salience.
+
+Lived witness remains distinct from primary text, bibliographic evidence,
+published translation, scholarship, textual observation, interpretation, and
+canon. It may guide attention and review; it cannot settle source meaning or
+promotion by itself.
+
 ## Current Manual Review Route
 
 When the current public validator does not cover the touched surface, use

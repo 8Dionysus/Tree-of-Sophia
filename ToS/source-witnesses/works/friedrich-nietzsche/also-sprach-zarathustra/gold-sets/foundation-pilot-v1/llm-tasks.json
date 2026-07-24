@@ -1,0 +1,71 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-gated-evaluation-plan.schema.json",
+  "schema_version": "tos_source_gated_evaluation_plan_v1",
+  "plan_id": "tos.evaluation-plan.zarathustra-llm-assistance-v1",
+  "plan_kind": "llm-assistance",
+  "experiment_id": "tos-llm-assistance-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "status": "blocked-not-materialized",
+  "frozen_at": "2026-07-23T23:50:00Z",
+  "frozen_before_variant_outputs": true,
+  "source_gate": {
+    "review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
+    "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+    "laboratory_plan_sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4",
+    "required_human_accepted_units": 30,
+    "current_human_accepted_units": 0,
+    "gate_status": "blocked"
+  },
+  "human_gold_gate": {
+    "gold_status_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-status.json",
+    "gold_status_sha256": "dbe08e50066674cbffd40d79125e08a039ea18cb03630440172a91176de2a990",
+    "required_human_double_checked_units": 15,
+    "current_human_double_checked_units": 0,
+    "gate_status": "blocked"
+  },
+  "selection_contract": {
+    "required_total_tasks": 20,
+    "random_tasks": 10,
+    "hard_tasks": 10,
+    "content_bearing_source_required": true,
+    "same_tasks_across_variants": true,
+    "selection_after_output_forbidden": true,
+    "manual_rubric_frozen_before_output": true,
+    "task_materialization_status": "blocked"
+  },
+  "task_families": [
+    "structure-proposal",
+    "alignment-proposal",
+    "translation-alternative",
+    "sign-candidate-and-refusal",
+    "evidence-grounded-relation-proposal"
+  ],
+  "tasks": [],
+  "blindness_and_authority": {
+    "blind_variant_labels": true,
+    "recognized_comparator_sealed": true,
+    "gold_hidden_until_outputs_frozen": true,
+    "model_output_is_proposal_only": true,
+    "automatic_promotion_forbidden": true,
+    "human_acceptance_required": true,
+    "abstention_allowed": true,
+    "uncertainty_allowed": true
+  },
+  "rights_posture": {
+    "content_visibility": "local_only",
+    "network_allowed": false,
+    "public_text_authorized": false
+  },
+  "result": {
+    "run_count": 0,
+    "run_refs": [],
+    "human_review_receipts": [],
+    "metric_results": [],
+    "winner": null,
+    "promotion_authorized": false,
+    "conclusion": "No LLM-assistance A/B/C task was materialized or run because accepted source text, frozen target gold, and a completed manual rubric are absent."
+  },
+  "provenance_event_ref": "tos.event.annotation.zarathustra-source-gated-evaluation-plans-v1.2026-07-23",
+  "plan_version": 1
+}

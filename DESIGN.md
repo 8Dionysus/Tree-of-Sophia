@@ -24,7 +24,7 @@ source-rooted growth.
 | `ToS/` | source home for the philosophical tree |
 | doctrine | node law, naming discipline, relation contracts, calibration |
 | philosophy | branch topology for traditions, eras, works, figures, concepts, transmissions |
-| Zarathustra | current golden route and pressure-tested entry branch |
+| Zarathustra | first golden growth kernel and pressure-tested entry branch |
 | canon | reviewed authored nodes, relations, and registries |
 | review ledger | accountable inspection before stronger movement |
 | mechanics | repeatable organs of operation |
@@ -32,6 +32,91 @@ source-rooted growth.
 | generated/exported companions | compact readers, public seams, graph/KAG handoffs, downstream views |
 
 The layers can touch. They should not collapse.
+
+## Coupled Growth
+
+ToS advances through a broad foundation and a dense first cycle.
+
+The world-philosophy corpus soil orders source identity, witness and edition,
+language, time, place, tradition, transmission, and stable text addresses. It
+does not pretend that bibliographic order is already semantic understanding.
+
+The Zarathustra golden kernel makes one full path unusually legible: source
+witness -> address -> observation -> semantic proposal -> relation and context
+-> human review -> canon -> derived graph or retrieval view.
+
+The kernel teaches agents how to move through that path, including how to
+reject, defer, and preserve ambiguity. It does not teach them to impose
+Nietzsche's ontology on the rest of the tree.
+
+### Engineering ownership
+
+| Stage | Owning surface | Required invariant |
+| --- | --- | --- |
+| corpus soil | `ToS/philosophy/` with `ToS/source-witnesses/` | ordered source identity and evidence status remain distinct from semantic claims |
+| golden source | `ToS/source-witnesses/` | exact witness, provenance, language role, and stable address remain inspectable |
+| observation and proposal | `ToS/candidate-intake/` under doctrine and contract law | source-near observation remains distinct from interpretive proposal |
+| review | `ToS/review-ledger/` through review mechanics | acceptance, rejection, ambiguity, counter-reading, and reviewer rationale remain visible |
+| authored promotion | `ToS/canon/` | humans own the stronger judgment and every object returns to source |
+| derived learning surfaces | `ToS/derived-exports/`, bounded local evals, and stronger downstream owners | graph, retrieval, training, and evaluation views remain projections rather than ToS authority |
+
+No new gold-packet schema should be treated as settled until one real bounded
+packet exercises this entire route and exposes its missing distinctions.
+
+## Corpus Evidence Spine
+
+The corpus foundation has a different stability law from semantic canon.
+
+```text
+work -> expression -> edition -> item -> immutable file
+  -> passage/region anchor
+    -> observation
+      -> versioned claim
+        -> human review event
+          -> derived index or graph
+```
+
+The acquired bytes, digest, identity record, and review history form a durable
+spine. Claims about authorship, edition, structure, lemma, etymology,
+translation, sense, concept, and relation remain evidence-bearing and
+revisable. Stable identity protects their lineage; it does not make their
+content infallible.
+
+### Source-witness topology
+
+`ToS/source-witnesses/` combines a tracked catalog with a speaking physical
+tree:
+
+```text
+catalog/
+works/<responsibility>/<work>/expressions/<language-and-responsibility>/
+  editions/<edition>/items/<item>/
+collections/<responsibility>/<collection>/
+```
+
+Collections prevent multi-work volumes from being duplicated under every
+contained work. Stable ToS IDs, not paths, own identity, so the tree can be
+improved through explicit migrations.
+
+Only the immutable item bytes inside `payload/` are gitignored. The item
+manifest, digest, provenance, rights, forensic report, and catalog entry stay
+tracked. Working OCR, model caches, benchmarks, and large derivatives route to
+the `abyss-stack` laboratory or host-managed storage. Reviewed source-near
+text may return to the witness tree when rights permit.
+
+See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
+translation, rights, and projection law, and
+`ToS/source-witnesses/README.md` for physical routing.
+
+### Replaceable projections
+
+Lexical indexes, embeddings, vector stores, RDF, property graphs, KAG exports,
+and visualization databases are readers over stronger tracked records. They
+must be reproducible from versioned inputs and may not become the sole copy of
+an assertion or review decision.
+
+This boundary lets ToS compare graph and retrieval technologies without
+changing what owns philosophical meaning.
 
 ## Movement
 
@@ -74,7 +159,9 @@ When another AoA organ owns the stronger truth, ToS routes to it.
 - make uncertainty visible without turning it into a warehouse;
 - keep mechanics as organs of movement;
 - let public and generated seams return to authored authority;
-- treat Zarathustra as the current golden route;
+- treat Zarathustra as the first golden growth kernel, not a generic sample or
+  universal ontology;
+- keep stable evidence distinct from versioned semantic interpretation;
 - name small routes as if the future tree will grow through them.
 
 ## Failure Signals
@@ -85,6 +172,10 @@ When another AoA organ owns the stronger truth, ToS routes to it.
 - branch names come from old session labels rather than owner truth;
 - validation pretends to be philosophical authority;
 - graph readiness weakens source traceability.
+- a filename, model output, annotation-service database, or graph record starts
+  acting as the only identity or claim authority;
+- source bytes are committed accidentally or a gitignored payload loses its
+  tracked fixity, rights, and provenance companions.
 
 ## Relationship to AoA
 

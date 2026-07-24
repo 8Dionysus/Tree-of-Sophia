@@ -1,0 +1,495 @@
+{
+  "$schema": "https://abyss-stack/mechanics/inference-pilots/tos-foundation-lab/translation-source-model-inspection.schema.json",
+  "schema_version": "tos_translation_source_model_inspection_v1",
+  "inspection_id": "zarathustra-translation-source-selector-model-inspection-v1-20260723",
+  "experiment_id": "tos-translation-foundation-v1",
+  "stage": "source-preparation",
+  "source_packet": {
+    "packet_id": "zarathustra-translation-source-v1-20260723",
+    "manifest_sha256": "380f9df2266ee2812684bbdbcf266bcc9936860f374454fe5aa502d40d60b8d5",
+    "candidate_set_sha256": "dbc2b40dcb7ca2ca71c364cf17fd08fd68cddcdbeb26a0b48069c9984b232d72",
+    "sample_plan_sha256": "0beecf2714b0d01bd8ba386e25a797977e298c93d37a0ab63d6c06488305e6aa"
+  },
+  "selector_method": {
+    "plan_scheme": "tos-local-sentence-segmentation-v1",
+    "implementation": "first-body-p punctuation-boundary software proposal"
+  },
+  "source_visible": true,
+  "inspection_scope": "exhaustive",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "full-page visual comparison of every frozen candidate against a 180 DPI render of the exact sibling scan witness"
+  },
+  "visual_review": {
+    "visual_witness_sha256": "61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+    "render_method": "pdftoppm-full-page-png-rgb",
+    "render_dpi": 180,
+    "expected_page_count": 30,
+    "inspected_page_count": 30,
+    "page_file_count_confirmed_manually": true
+  },
+  "records": [
+    {
+      "fragment_id": "tos-translation-fragment-001",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+      "visual_pdf_page": 56,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-001.txt",
+      "sentence_candidate_sha256": "b59dd76e2fd0bb2fb69d920c6396d82749f6176f69b52cca51be2ea9e620d520",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-002",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t002",
+      "visual_pdf_page": 60,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-002.txt",
+      "sentence_candidate_sha256": "ed21b942768df5f0384e04ea428756ead77ad28ff356bc7474f665a1d80611db",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-003",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t003",
+      "visual_pdf_page": 63,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-003.txt",
+      "sentence_candidate_sha256": "61ed12792f44fdf18ea0734b0d8f3331e4e17a9f7978f8818e1bdc3bc3874047",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible",
+        "transcription-uncertain"
+      ],
+      "rationale": "The sentence unit is visually plausible, but at least one historical glyph reading cannot be promoted from this model inspection.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-004",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t004",
+      "visual_pdf_page": 75,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-004.txt",
+      "sentence_candidate_sha256": "58cddb5d2efdb111ea9c29399a5c6a131214822ace4e7883977f35a100b04ab8",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "page-start-tail"
+      ],
+      "rationale": "The PDF page begins inside an earlier sentence, so the punctuation-first proposal is only its terminal tail.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-005",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t005",
+      "visual_pdf_page": 80,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-005.txt",
+      "sentence_candidate_sha256": "530a8522d171e77a1cd328dad14054d33de7aeda0a29b2dc39b7e90d0056f646",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-006",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t006",
+      "visual_pdf_page": 103,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-006.txt",
+      "sentence_candidate_sha256": "caee874b525b6b4b5aaf600266c6c51af2721baccf7ff3b0def3cb69d6ff5f4b",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-007",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t007",
+      "visual_pdf_page": 106,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-007.txt",
+      "sentence_candidate_sha256": "f864ce08cec0186ed78298c93c25b42ec63f8de1ae3c7287b36c6411416cce42",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-008",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t008",
+      "visual_pdf_page": 113,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-008.txt",
+      "sentence_candidate_sha256": "1405b9e704b4cbaf01d8716ee9ef650b81f84241c1e1b60b0ca192fe9be7702b",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected",
+        "ocr-contamination"
+      ],
+      "rationale": "The proposal selects a heading and carries leading characters absent from the visible heading.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-009",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t009",
+      "visual_pdf_page": 116,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-009.txt",
+      "sentence_candidate_sha256": "e1df1216e24eb4da03067f11e6d7234431358f7754ee0ffff57339b6424a6a2e",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-010",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t010",
+      "visual_pdf_page": 120,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-010.txt",
+      "sentence_candidate_sha256": "17a6b53759ef50469353c0971269dc35b488762e49f27276734a9471bab85c50",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-011",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t011",
+      "visual_pdf_page": 127,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-011.txt",
+      "sentence_candidate_sha256": "dcf6fc8ab3a1043205dc50c3eb8a3d5c930ea49579b48bff7bbbf54b017ab543",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected",
+        "ocr-contamination"
+      ],
+      "rationale": "The proposal selects a heading and carries punctuation absent from the visible heading.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-012",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t012",
+      "visual_pdf_page": 129,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-012.txt",
+      "sentence_candidate_sha256": "ab668d4d5f6758d079186ba9aca85f486b0b770f426a118c2e8eb490aa8d1647",
+      "decision": "uncertain",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "page-start-boundary-unverified"
+      ],
+      "rationale": "The proposal is sentence-shaped at the top of the page, but the preceding-page context was not part of the selector.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-013",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t013",
+      "visual_pdf_page": 133,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-013.txt",
+      "sentence_candidate_sha256": "ba9b3152960e5a70288a5ca14fcc9a8557790424083a5a3899adad1624d472b4",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-014",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t014",
+      "visual_pdf_page": 136,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-014.txt",
+      "sentence_candidate_sha256": "8cb37f62239dc9d2763a02e67a52781384c9354574d82832a9710d1b8c106c6f",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-015",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t015",
+      "visual_pdf_page": 139,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-015.txt",
+      "sentence_candidate_sha256": "dff0842a0a1bd4a9943e58a10ad2e68dfbba6d4f12bd2e1e7a66431909ad0708",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "page-start-tail"
+      ],
+      "rationale": "The PDF page begins inside an earlier sentence, so the punctuation-first proposal is only its terminal tail.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-016",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t016",
+      "visual_pdf_page": 144,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-016.txt",
+      "sentence_candidate_sha256": "42fb51dcf1c7f6a62afcf0fa15f9ffd6563f739720143a40658c80fab12deed5",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible",
+        "ocr-contamination"
+      ],
+      "rationale": "The visible prose sentence is structurally usable, but the emitted candidate carries a leading character absent from the scan.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-017",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t017",
+      "visual_pdf_page": 147,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-017.txt",
+      "sentence_candidate_sha256": "9842ac2adf0eab256ae37d8c0124faf59fdf706e49c3bb924a85bfa1ca9df5d5",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-018",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t018",
+      "visual_pdf_page": 151,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-018.txt",
+      "sentence_candidate_sha256": "d11c8d604eae45e34af59bf62f50ecdc784c9b9434d8076690682e71d6036c11",
+      "decision": "accept-with-limits",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "sentence-boundary-visually-plausible"
+      ],
+      "rationale": "The proposed unit is visibly a complete prose sentence; exact diplomatic transcription remains human-unaccepted.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-019",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t019",
+      "visual_pdf_page": 156,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-019.txt",
+      "sentence_candidate_sha256": "9b5d1f0c39d360a61b07d32afb255b9c8f297211195d884df39195fa26037fc9",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-020",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t020",
+      "visual_pdf_page": 166,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-020.txt",
+      "sentence_candidate_sha256": "073a6ec7a5db0088570e51a8b9e55e6dc49bffbe63466811bf12f3ce68015a2c",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-021",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t021",
+      "visual_pdf_page": 170,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-021.txt",
+      "sentence_candidate_sha256": "481b73408b352ecd0d362ec852c9535c3d7f371c1219adffd1488eeb512d05d8",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-022",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t022",
+      "visual_pdf_page": 178,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-022.txt",
+      "sentence_candidate_sha256": "654a613045426b7982def21fd2e3f4da2798a55f5b2a9cdaca04de9dc3a42491",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-023",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t023",
+      "visual_pdf_page": 187,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-023.txt",
+      "sentence_candidate_sha256": "d984f0600b3eaf7024d3f0c0cbdfb71ea189f5b1ceef21ba6a5bb75f74902e80",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-024",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t024",
+      "visual_pdf_page": 200,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-024.txt",
+      "sentence_candidate_sha256": "56a1cec268ee66b477f54378d87108ffb42472027e7b32756a7570ccae0764c6",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected",
+        "ocr-contamination"
+      ],
+      "rationale": "The proposal selects a heading and carries a leading character absent from the visible heading.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-025",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t025",
+      "visual_pdf_page": 203,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-025.txt",
+      "sentence_candidate_sha256": "b1f64bfbfa95e89d2ebecce71502e9bfb92dae9de368e6602aaad5d0f5c2e8e5",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-026",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t026",
+      "visual_pdf_page": 207,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-026.txt",
+      "sentence_candidate_sha256": "657145df785624042d0cca453837a0b58bc4e60d8798b24104794d18d9393100",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-027",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t027",
+      "visual_pdf_page": 212,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-027.txt",
+      "sentence_candidate_sha256": "e8e3bd9cf4b64cdb01494ac78108d376358bb742c2538edeb7116e3721a06d3f",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected",
+        "ocr-contamination"
+      ],
+      "rationale": "The proposal selects a heading and carries leading OCR characters absent from the visible heading.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-028",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t028",
+      "visual_pdf_page": 250,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-028.txt",
+      "sentence_candidate_sha256": "ac7336e6e3b814aeb5b832d41acbd00d4deacce11486d50e4fe5eea3df663038",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-029",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t029",
+      "visual_pdf_page": 381,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-029.txt",
+      "sentence_candidate_sha256": "cc5f4d61029f61495a16d334026d907ed68f76055076826e5dee6485f88a7ebd",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    },
+    {
+      "fragment_id": "tos-translation-fragment-030",
+      "source_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t030",
+      "visual_pdf_page": 519,
+      "sentence_candidate_ref": "derived/sentence-candidates/tos-translation-fragment-030.txt",
+      "sentence_candidate_sha256": "ba0a7851c7007731a34dcc80e5bd7c4495b60fa65e156640ad1c7c5784e7dd4c",
+      "decision": "reject",
+      "signals": [
+        "visual-page-correspondence-observed",
+        "heading-selected"
+      ],
+      "rationale": "The proposal selects the chapter heading instead of the first prose sentence.",
+      "human_source_acceptance": false
+    }
+  ],
+  "summary": {
+    "record_count": 30,
+    "decision_counts": {
+      "accept_with_limits": 7,
+      "reject": 22,
+      "uncertain": 1,
+      "abstain": 0
+    },
+    "failure_mode_counts": {
+      "heading_selected": 19,
+      "page_start_tail": 2,
+      "ocr_contamination": 5,
+      "boundary_uncertain": 1,
+      "usable_only_with_limits": 7
+    },
+    "overall_result": "reject-selector-method",
+    "method_disposition": "retain-v1-as-negative-baseline-and-design-v2"
+  },
+  "translation_lanes": {
+    "human_only": "awaiting-real-human-source-input",
+    "ai_only": "blocked-pending-human-source-acceptance",
+    "ai_human": "blocked-pending-independent-drafts"
+  },
+  "recognized_comparator_visibility": "sealed",
+  "next_method_requirements": [
+    "classify-layout-role-before-sentence-selection",
+    "inspect-previous-current-next-page-context",
+    "select-first-prose-after-heading-on-openings",
+    "perform-diplomatic-transcription-after-source-review",
+    "supersede-v1-without-rewriting-negative-baseline"
+  ],
+  "inspected_at_utc": "2026-07-23T13:57:37Z",
+  "review_authority": "advisory-nonhuman",
+  "promotion_authorized": false,
+  "human_source_acceptance_count": 0
+}

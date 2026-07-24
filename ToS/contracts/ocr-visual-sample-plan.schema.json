@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/ocr-visual-sample-plan.schema.json",
+  "title": "Tree of Sophia frozen visual OCR sample plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sample_plan_id",
+    "projection_of_plan_ref",
+    "work_ref",
+    "suite_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_variant_outputs",
+    "selection_maker",
+    "source_discovery_event_ref",
+    "provenance_event_ref",
+    "projection_law",
+    "render_specification",
+    "reference_witness_reveal_law",
+    "gold_gate",
+    "source_groups",
+    "review_status",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/ocr-visual-sample-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_ocr_visual_sample_plan_v1"},
+    "sample_plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.sample-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "projection_of_plan_ref": {"$ref": "#/$defs/repoRef"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "suite_ref": {"type": "string", "minLength": 1},
+    "status": {"enum": ["frozen", "superseded"]},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "frozen_before_variant_outputs": {"const": true},
+    "selection_maker": {"$ref": "#/$defs/maker"},
+    "source_discovery_event_ref": {"$ref": "#/$defs/tosId"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "projection_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples_per_source",
+        "gold_candidates_per_source",
+        "reuse_rule",
+        "replacement_count",
+        "replacement_rule",
+        "output_blind",
+        "prohibitions"
+      ],
+      "properties": {
+        "samples_per_source": {"const": 12},
+        "gold_candidates_per_source": {"const": 5},
+        "reuse_rule": {
+          "const": "reuse_frozen_visual_units_without_output_dependent_selection"
+        },
+        "replacement_count": {"const": 1},
+        "replacement_rule": {
+          "const": "replace_only_the_nonvisual_epub_notice_with_a_source_visible_page_from_the_exact_parent_scan_before_any_ocr_output"
+        },
+        "output_blind": {"const": true},
+        "prohibitions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "render_specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "renderer",
+        "renderer_version",
+        "command",
+        "page_index_origin",
+        "resolution_dpi",
+        "output_format",
+        "color_space",
+        "full_page",
+        "preserve_source_orientation",
+        "preprocessing",
+        "shared_render_rule",
+        "render_manifest_ref",
+        "render_status_at_plan_freeze"
+      ],
+      "properties": {
+        "renderer": {"const": "poppler-pdftoppm"},
+        "renderer_version": {"const": "26.01.0"},
+        "command": {"const": "pdftoppm -f PAGE -l PAGE -singlefile -r 300 -png INPUT OUTPUT_PREFIX"},
+        "page_index_origin": {"const": 1},
+        "resolution_dpi": {"const": 300},
+        "output_format": {"const": "png"},
+        "color_space": {"const": "rgb"},
+        "full_page": {"const": true},
+        "preserve_source_orientation": {"const": true},
+        "preprocessing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["crop", "deskew", "denoise", "threshold", "contrast_adjustment"],
+          "properties": {
+            "crop": {"const": false},
+            "deskew": {"const": false},
+            "denoise": {"const": false},
+            "threshold": {"const": false},
+            "contrast_adjustment": {"const": false}
+          }
+        },
+        "shared_render_rule": {
+          "const": "all_ocr_variants_consume_the_same_digest_frozen_png_bytes"
+        },
+        "render_manifest_ref": {"type": "string", "minLength": 1},
+        "render_status_at_plan_freeze": {"const": "not_started"}
+      }
+    },
+    "reference_witness_reveal_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "reference_item_refs",
+        "may_seed_drafts",
+        "may_seed_gold",
+        "reveal_condition"
+      ],
+      "properties": {
+        "state": {"const": "sealed"},
+        "reference_item_refs": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tosId"}
+        },
+        "may_seed_drafts": {"const": false},
+        "may_seed_gold": {"const": false},
+        "reveal_condition": {
+          "const": "all_independent_variant_outputs_and_digests_are_frozen"
+        }
+      }
+    },
+    "gold_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidates_per_source",
+        "model_draft",
+        "human_pass_1",
+        "human_pass_2",
+        "human_gold_materialized",
+        "human_gold_ref",
+        "gold_truth_rule",
+        "formal_quality_metrics_status",
+        "human_correction_time_seconds",
+        "exploratory_execution_allowed"
+      ],
+      "properties": {
+        "candidates_per_source": {"const": 5},
+        "model_draft": {"const": "not_started"},
+        "human_pass_1": {"const": "not_started"},
+        "human_pass_2": {"const": "not_started"},
+        "human_gold_materialized": {"const": false},
+        "human_gold_ref": {"type": "null"},
+        "gold_truth_rule": {
+          "const": "double_source_visible_human_acceptance_required"
+        },
+        "formal_quality_metrics_status": {"const": "blocked_until_human_gold"},
+        "human_correction_time_seconds": {"type": "null"},
+        "exploratory_execution_allowed": {"const": true}
+      }
+    },
+    "source_groups": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/sourceGroup"}
+    },
+    "review_status": {"enum": ["unreviewed", "partially_reviewed", "human_accepted", "superseded"]},
+    "review_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "plan_version": {"type": "integer", "minimum": 1},
+    "supersedes_plan_ref": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRef": {
+      "type": "string",
+      "pattern": "^ToS/(?!.*(?:^|/)\\.\\.(?:/|$))[^/].+$"
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "method"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "method": {"type": "string", "minLength": 1}
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "source_sample_id",
+        "anchor_ref",
+        "page",
+        "strata",
+        "difficulty",
+        "gold_candidate",
+        "projection_change",
+        "projection_note",
+        "selection_rationale",
+        "source_review_status"
+      ],
+      "properties": {
+        "sample_id": {"type": "string", "pattern": "^tos-ocr-sample-[a-z0-9-]+$"},
+        "source_sample_id": {
+          "type": ["string", "null"],
+          "pattern": "^tos-sample-[a-z0-9-]+$"
+        },
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "page": {"type": "integer", "minimum": 1},
+        "strata": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "difficulty": {"enum": ["ordinary", "hard", "adversarial"]},
+        "gold_candidate": {"type": "boolean"},
+        "projection_change": {
+          "enum": ["same_visual_unit", "same_scan_page_for_epub_member", "replacement_for_nonvisual_unit"]
+        },
+        "projection_note": {"type": ["string", "null"]},
+        "selection_rationale": {"type": "string", "minLength": 1},
+        "source_review_status": {"const": "model_source_visible"}
+      }
+    },
+    "sourceGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "language",
+        "format",
+        "sample_count",
+        "samples"
+      ],
+      "properties": {
+        "group_id": {"type": "string", "pattern": "^ocr-[a-z0-9-]+$"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "language": {"enum": ["de", "ru"]},
+        "format": {"enum": ["pdf-vector-outline", "pdf-abbyy-text-layer", "pdf-image-container"]},
+        "sample_count": {"const": 12},
+        "samples": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {"$ref": "#/$defs/sample"}
+        }
+      }
+    }
+  }
+}

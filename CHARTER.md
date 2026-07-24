@@ -17,6 +17,21 @@ ToS exists to support long-horizon cultivation of thought through:
 - provenance-aware growth
 - durable architectural clarity across time and traditions
 
+## Growth posture
+
+ToS grows through two coupled fronts:
+
+- a world-philosophy corpus soil that orders works, witnesses, editions,
+  languages, time, place, traditions, and transmission without pretending that
+  an index is already interpretation;
+- *Thus Spoke Zarathustra* as the first golden growth kernel: a dense,
+  source-returning full cycle from text through review into authored knowledge
+  and downstream projections.
+
+The corpus soil gives the tree breadth. The golden kernel teaches the path of
+growth. What transfers from that kernel is source and review discipline, not a
+universal Nietzschean ontology.
+
 ## What this repository owns
 
 This repository owns ToS-level truth about:
@@ -45,6 +60,8 @@ This repository does not own:
 - explicit provenance over floating interpretation
 - plural scope without silent flattening
 - growth through explicit structure
+- stable evidence beneath versioned interpretation
+- gold examples that preserve judgment, refusal, and uncertainty
 
 ## Role in the broader ecosystem
 

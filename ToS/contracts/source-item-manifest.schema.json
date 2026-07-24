@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "title": "Tree of Sophia local source item manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "item_id",
+    "item_kind",
+    "embodiment_ref",
+    "storage_posture",
+    "payload_files",
+    "acquisition_event_ref",
+    "rights_ref",
+    "provenance_ref",
+    "forensic_report_ref",
+    "manifest_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json"
+    },
+    "schema_version": {"const": "tos_source_item_manifest_v1"},
+    "item_id": {"$ref": "#/$defs/tosId"},
+    "item_kind": {
+      "enum": ["born_digital", "digitized_physical_copy", "derived_publication", "unknown"]
+    },
+    "embodiment_ref": {"$ref": "#/$defs/tosId"},
+    "storage_posture": {"const": "local_gitignored_payload"},
+    "payload_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_id",
+          "relative_path",
+          "original_basename",
+          "media_type",
+          "byte_size",
+          "sha256",
+          "fixity_verified_at"
+        ],
+        "properties": {
+          "file_id": {"$ref": "#/$defs/tosId"},
+          "relative_path": {
+            "type": "string",
+            "pattern": "^payload/(?!\\.\\.?$)[^/]+$"
+          },
+          "original_basename": {"type": "string", "minLength": 1},
+          "media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"},
+          "byte_size": {"type": "integer", "minimum": 1},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "fixity_verified_at": {"type": "string", "format": "date-time"},
+          "container_member": {"type": "boolean", "default": false}
+        }
+      }
+    },
+    "acquisition_event_ref": {"$ref": "#/$defs/tosId"},
+    "rights_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "forensic_report_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "source_record_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceRef"}
+    },
+    "visibility": {
+      "enum": ["local_only", "research_group", "permission_requested", "public_metadata_only", "public_payload"]
+    },
+    "manifest_version": {"type": "integer", "minimum": 1},
+    "supersedes_manifest_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sourceRef": {
+      "anyOf": [
+        {"$ref": "#/$defs/tosId"},
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "string", "format": "uri"}
+      ]
+    }
+  }
+}

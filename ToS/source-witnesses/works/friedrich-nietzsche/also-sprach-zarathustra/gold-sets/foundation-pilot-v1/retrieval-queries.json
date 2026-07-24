@@ -1,0 +1,308 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/retrieval-query-plan.schema.json",
+  "schema_version": "tos_retrieval_query_plan_v1",
+  "query_plan_id": "tos.query-plan.zarathustra-foundation-pilot-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "sample_plan_ref": "sample-plan.json",
+  "status": "frozen",
+  "frozen_at": "2026-07-22T18:55:00Z",
+  "frozen_before_variant_outputs": true,
+  "selection_maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "method": "source-visible stratified query selection before retrieval variant execution"
+  },
+  "query_content_ref": "local-content/retrieval/queries.v1.json",
+  "query_content_sha256": "5c9ce96fb362512a9ef775bd7d7212b5df6b00570226961a96d51478ba980a1e",
+  "rights_posture": {
+    "visibility": "local_only",
+    "tracked_surface": "query_ids_intents_expected_anchors_and_digest_only",
+    "public_text_authorized": false
+  },
+  "query_count": 20,
+  "queries": [
+    {
+      "query_id": "tos-query-001",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-001",
+      "category": "exact-quote",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-002",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-002",
+      "category": "exact-quote",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-003",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-003",
+      "category": "exact-quote",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-004",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-004",
+      "category": "exact-quote",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-005",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-005",
+      "category": "sign",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-006",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-006",
+      "category": "sign",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-007",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-007",
+      "category": "ocr-noise",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-008",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-008",
+      "category": "ocr-noise",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-009",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-009",
+      "category": "cross-lingual",
+      "query_language": "ru",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "expected_behavior": "known-lexical-failure",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-010",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-010",
+      "category": "cross-lingual",
+      "query_language": "de",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059"
+      ],
+      "expected_behavior": "known-lexical-failure",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-011",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-011",
+      "category": "coverage-failure",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p050"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "coverage-failure",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-012",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-012",
+      "category": "motif",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-013",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-013",
+      "category": "other-work-hard-negative",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p238"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "hard-negative-identification",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-014",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-014",
+      "category": "other-work-hard-negative",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p407"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "hard-negative-identification",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-015",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-015",
+      "category": "other-work-hard-negative",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p631"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "hard-negative-identification",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-016",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-016",
+      "category": "bibliographic",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p004"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-017",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-017",
+      "category": "exact-quote",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-018",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-018",
+      "category": "phrase",
+      "query_language": "de",
+      "intended_target_language": "de",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-055"
+      ],
+      "hard_negative_anchor_refs": [],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-019",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-019",
+      "category": "phrase",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p006"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p011"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    },
+    {
+      "query_id": "tos-query-020",
+      "query_content_ref": "local-content/retrieval/queries.v1.json#tos-query-020",
+      "category": "sign",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "expected_source_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166"
+      ],
+      "hard_negative_anchor_refs": [
+        "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380"
+      ],
+      "expected_behavior": "positive",
+      "relevance_status": "model-proposed-awaiting-human"
+    }
+  ],
+  "provenance_event_ref": "tos.event.retrieval-query-freeze.zarathustra-foundation-pilot-v1.2026-07-22",
+  "human_judgment_status": "not_started",
+  "plan_version": 1
+}

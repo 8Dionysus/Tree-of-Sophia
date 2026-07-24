@@ -1,0 +1,79 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.nietzsche-woerterbuch-research-access",
+  "material": {
+    "title": "Nietzsche-Wörterbuch",
+    "responsibility": "Nietzsche Research Group, Nijmegen; editors Paul van Tongeren, Gerd Schank, and Herman Siemens; De Gruyter publisher route",
+    "edition_or_resource": "Four-volume Nietzsche-Wörterbuch project and relevant Nietzsche Online article versions",
+    "requested_portion": "Only articles relevant to source-accepted Zarathustra fragments selected later; no bulk corpus request at this stage",
+    "identifiers": [
+      {"scheme": "DOI", "value": "10.1515/9783110193923"},
+      {"scheme": "ISBN", "value": "978-3-11-017186-0"}
+    ],
+    "tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json#tos-ref.degruyter.nietzsche-woerterbuch"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "De Gruyter Brill",
+    "role": "publisher",
+    "identification_evidence_urls": [
+      "https://www.degruyterbrill.com/serial/nietzwtb-b/html"
+    ],
+    "identity_status": "probable-needs-human-review"
+  },
+  "contact_route": {
+    "channel_type": "publisher-rights-portal",
+    "public_institutional_url": "https://www.degruyterbrill.com/serial/nietzwtb-b/html",
+    "refreshed_at": "2026-07-23T00:00:00Z",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Compare source-grounded historical senses, recurrence, and Nietzsche-specific lexical analysis for a small manually accepted Zarathustra sample while preserving citations, alternatives, and human review.",
+  "requested_format": "Lawful article-level online or PDF access with stable citation locators; machine-readable format only if already offered and permitted.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "requested",
+    "indexing": "requested",
+    "embeddings": "requested",
+    "quotation": "requested",
+    "metadata_publication": "requested",
+    "derivative_publication": "requested",
+    "server_processing": "requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only for the granted research term; support expiry review and deletion.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "restricted",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json"
+  ],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.nietzsche-woerterbuch.2026-07-23"
+  ],
+  "record_version": 1
+}

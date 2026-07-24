@@ -37,7 +37,9 @@ For orientation, read only the route you need:
 | system shape | [DESIGN](DESIGN.md) |
 | agent-surface shape | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
 | ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
-| golden Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
+| corpus identity, payload, anchor, provenance, or rights | [CORPUS_FOUNDATION](ToS/doctrine/CORPUS_FOUNDATION.md) -> [source-witness route](ToS/source-witnesses/README.md) -> [source-witness AGENTS](ToS/source-witnesses/AGENTS.md) |
+| golden-kernel architecture | [GOLDEN_GROWTH_KERNEL](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md), then the nearest witness, intake, review, canon, contract, or export owner |
+| bounded public Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
 | mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, active part route |
 | owner-local statistics | [stats/AGENTS](stats/AGENTS.md), then the atlas or branch evidence owner |
 | decision rationale | [docs/decisions](docs/decisions/README.md) |
@@ -54,9 +56,25 @@ or manifest, and the narrowest relevant validator before broader gates.
 - Mechanics are organs of repeatable movement, not a second source home.
 - `stats/` measures bounded owner-local questions; `aoa-stats` owns the shared
   statistical grammar, and neither surface authors philosophical meaning.
-- Zarathustra is the current golden route, not a generic sample.
+- Kernel work must preserve an inspectable owner chain: witness -> addressed
+  observation/proposal -> review outcome -> canon or explicit deferral ->
+  derived projection.
+- Do not add gold labels without source anchors, layer posture, review status,
+  and negative or unresolved examples where the reading is contested.
+- Cross-work transfer must be able to reject Zarathustra-specific vocabulary;
+  schema resistance routes back to doctrine and contract review.
 - Runtime, proof, memory, stack, KAG substrate, federation, playbook, skill,
   and technique authority route to their owning AoA repositories or layers.
+- Filesystem paths are speaking navigation; tracked ToS IDs own corpus
+  identity. A move requires reference migration, not identity replacement.
+- Only item `payload/` bytes may use the corpus Git ignore. Item metadata,
+  digest, provenance, rights, forensic evidence, and catalog membership remain
+  tracked.
+- Native extraction, OCR, correction, normalization, alignment, translation,
+  annotation, and review are separate versioned events. Never overwrite an
+  earlier layer to make a later result appear clean.
+- Validators prove mechanics. Manual source-visible review owns text,
+  translation, semantic, rights, and canon judgments.
 
 ## Change Companions
 
@@ -64,6 +82,21 @@ When a source-backed change moves, update only the smallest matching companions:
 root or source-home docs, `ROADMAP.md`, `CHANGELOG.md`, decision records,
 generated outputs, builders, validators, or tests. If no durable rationale
 moved, say that no new decision record was needed.
+
+For golden-kernel work, route source text to `ToS/source-witnesses/`, candidate
+annotations to `ToS/candidate-intake/`, layer law to `ToS/doctrine/`, structural
+contracts to `ToS/contracts/`, review outcomes to `ToS/review-ledger/`, accepted
+objects to `ToS/canon/`, and read models to `ToS/derived-exports/`. Do not let a
+workbook, embedding store, graph projection, or model output become the hidden
+owner of the gold route.
+
+For source-item work, resolve the exact
+`work -> expression -> edition -> item -> file` route before copying bytes.
+Multi-work volumes belong under
+`source-witnesses/collections/` with membership claims. Run the machine storage
+preflight before material `/srv` writes. Never download models or build heavy
+runtimes into this repository; route those trials through the `abyss-stack`
+laboratory and `/etc/abyss-machine` owner controls.
 
 Use `docs/AGENTS_ROOT_REFERENCE.md` only to audit preserved root-reference
 rules. If a preserved rule still governs current work, move it to the owning
@@ -106,6 +139,12 @@ Current public route and export spot checks:
 ```bash
 python scripts/validate_tiny_entry_route.py
 python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py
+```
+
+Corpus-foundation mechanics:
+
+```bash
+python scripts/validate_source_witness_foundation.py
 ```
 
 Use [scripts/AGENTS](scripts/AGENTS.md) for script-local owner routes and

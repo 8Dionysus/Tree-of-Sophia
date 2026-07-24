@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/retrieval-query-plan.schema.json",
+  "title": "Tree of Sophia frozen retrieval query plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "query_plan_id",
+    "work_ref",
+    "sample_plan_ref",
+    "status",
+    "frozen_at",
+    "frozen_before_variant_outputs",
+    "selection_maker",
+    "query_content_ref",
+    "query_content_sha256",
+    "rights_posture",
+    "query_count",
+    "queries",
+    "provenance_event_ref",
+    "human_judgment_status",
+    "plan_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/retrieval-query-plan.schema.json"},
+    "schema_version": {"const": "tos_retrieval_query_plan_v1"},
+    "query_plan_id": {"type": "string", "pattern": "^tos\\.query-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "work_ref": {"type": "string", "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "sample_plan_ref": {"type": "string", "minLength": 1},
+    "status": {"enum": ["frozen", "superseded"]},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "frozen_before_variant_outputs": {"const": true},
+    "selection_maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "method"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "mixed"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "method": {"type": "string", "minLength": 1}
+      }
+    },
+    "query_content_ref": {"type": "string", "minLength": 1},
+    "query_content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "rights_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility", "tracked_surface", "public_text_authorized"],
+      "properties": {
+        "visibility": {"const": "local_only"},
+        "tracked_surface": {"const": "query_ids_intents_expected_anchors_and_digest_only"},
+        "public_text_authorized": {"const": false}
+      }
+    },
+    "query_count": {"const": 20},
+    "queries": {"type": "array", "minItems": 20, "maxItems": 20, "items": {"$ref": "#/$defs/query"}},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "human_judgment_status": {"enum": ["not_started", "in_progress", "double_checked", "superseded"]},
+    "plan_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_id",
+        "query_content_ref",
+        "category",
+        "query_language",
+        "intended_target_language",
+        "expected_source_anchor_refs",
+        "hard_negative_anchor_refs",
+        "expected_behavior",
+        "relevance_status"
+      ],
+      "properties": {
+        "query_id": {"type": "string", "pattern": "^tos-query-[0-9]{3}$"},
+        "query_content_ref": {"type": "string", "minLength": 1},
+        "category": {
+          "enum": [
+            "exact-quote",
+            "phrase",
+            "sign",
+            "motif",
+            "cross-lingual",
+            "ocr-noise",
+            "coverage-failure",
+            "other-work-hard-negative",
+            "bibliographic"
+          ]
+        },
+        "query_language": {"enum": ["de", "ru"]},
+        "intended_target_language": {"enum": ["de", "ru", "any"]},
+        "expected_source_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+        },
+        "hard_negative_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+        },
+        "expected_behavior": {
+          "enum": ["positive", "known-lexical-failure", "coverage-failure", "hard-negative-identification"]
+        },
+        "relevance_status": {"const": "model-proposed-awaiting-human"}
+      }
+    }
+  }
+}
