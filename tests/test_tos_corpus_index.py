@@ -11,7 +11,12 @@ SCRIPTS = REPO_ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from tos_corpus_index_common import TOS_CORPUS_INDEX_PATH, build_payload, render_payload  # noqa: E402
+from tos_corpus_index_common import (  # noqa: E402
+    TOS_CORPUS_INDEX_PATH,
+    build_payload,
+    render_payload,
+    tracked_tos_paths,
+)
 
 
 class ToSCorpusIndexTest(unittest.TestCase):
@@ -34,6 +39,19 @@ class ToSCorpusIndexTest(unittest.TestCase):
             if diagnostic.get("level") == "error"
         ]
         self.assertEqual(errors, [])
+
+    def test_index_resources_are_owned_by_the_tracked_source_view(self) -> None:
+        payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+        tracked_refs = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in tracked_tos_paths()
+        }
+        resource_refs = {resource["path"] for resource in payload["resources"]}
+
+        self.assertLessEqual(resource_refs, tracked_refs)
+        self.assertFalse(
+            any("payload" in Path(path_ref).parts for path_ref in resource_refs)
+        )
 
     def test_authority_order_declares_all_emitted_layers(self) -> None:
         payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))

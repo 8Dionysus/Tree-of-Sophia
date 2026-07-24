@@ -7,6 +7,7 @@ import csv
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 from jsonschema import Draft202012Validator
@@ -156,6 +157,25 @@ def repo_ref(path: Path) -> str:
     return path.relative_to(REPO_ROOT).as_posix()
 
 
+def tracked_tos_paths() -> tuple[Path, ...]:
+    """Return the Git-owned ToS source view, excluding private ignored bytes."""
+
+    completed = subprocess.run(
+        ("git", "ls-files", "-z", "--", "ToS"),
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    )
+    paths = []
+    for raw_ref in completed.stdout.split(b"\0"):
+        if not raw_ref:
+            continue
+        path = REPO_ROOT / raw_ref.decode("utf-8")
+        if path.is_file():
+            paths.append(path)
+    return tuple(sorted(paths))
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -266,10 +286,13 @@ def build_branches(source_home: dict[str, Any], diagnostics: list[dict[str, str]
     return branches
 
 
-def build_manifests(diagnostics: list[dict[str, str]]) -> list[dict[str, Any]]:
+def build_manifests(
+    diagnostics: list[dict[str, str]],
+    tracked_paths: tuple[Path, ...],
+) -> list[dict[str, Any]]:
     manifests: list[dict[str, Any]] = []
     source_home_seen = False
-    for path in sorted(TOS_ROOT.rglob("*.manifest.json")):
+    for path in (candidate for candidate in tracked_paths if candidate.name.endswith(".manifest.json")):
         path_ref = repo_ref(path)
         if path_ref == "ToS/source_home.manifest.json":
             source_home_seen = True
@@ -315,9 +338,12 @@ def build_manifests(diagnostics: list[dict[str, str]]) -> list[dict[str, Any]]:
     return manifests
 
 
-def build_nodes(diagnostics: list[dict[str, str]]) -> list[dict[str, Any]]:
+def build_nodes(
+    diagnostics: list[dict[str, str]],
+    tracked_paths: tuple[Path, ...],
+) -> list[dict[str, Any]]:
     nodes: list[dict[str, Any]] = []
-    for path in sorted(TOS_ROOT.rglob("node.json")):
+    for path in (candidate for candidate in tracked_paths if candidate.name == "node.json"):
         path_ref = repo_ref(path)
         try:
             payload = load_json(path)
@@ -353,10 +379,13 @@ def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
         return list(reader.fieldnames or []), list(reader)
 
 
-def build_relations(diagnostics: list[dict[str, str]]) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+def build_relations(
+    diagnostics: list[dict[str, str]],
+    tracked_paths: tuple[Path, ...],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     relation_packs: list[dict[str, Any]] = []
     relation_edges: list[dict[str, str]] = []
-    for path in sorted(TOS_ROOT.rglob("edges.csv")):
+    for path in (candidate for candidate in tracked_paths if candidate.name == "edges.csv"):
         path_ref = repo_ref(path)
         try:
             columns, rows = read_edge_rows(path)
@@ -394,11 +423,9 @@ def build_relations(diagnostics: list[dict[str, str]]) -> tuple[list[dict[str, A
     return relation_packs, relation_edges
 
 
-def build_resources() -> list[dict[str, Any]]:
+def build_resources(tracked_paths: tuple[Path, ...]) -> list[dict[str, Any]]:
     resources: list[dict[str, Any]] = []
-    for path in sorted(TOS_ROOT.rglob("*")):
-        if not path.is_file():
-            continue
+    for path in tracked_paths:
         path_ref = repo_ref(path)
         if path_ref == SELF_REF:
             continue
@@ -430,12 +457,13 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
 
 def build_payload() -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
+    tracked_paths = tracked_tos_paths()
     source_home = load_json(TOS_ROOT / "source_home.manifest.json")
     branches = build_branches(source_home, diagnostics)
-    manifests = build_manifests(diagnostics)
-    nodes = build_nodes(diagnostics)
-    relation_packs, relation_edges = build_relations(diagnostics)
-    resources = build_resources()
+    manifests = build_manifests(diagnostics, tracked_paths)
+    nodes = build_nodes(diagnostics, tracked_paths)
+    relation_packs, relation_edges = build_relations(diagnostics, tracked_paths)
+    resources = build_resources(tracked_paths)
     payload: dict[str, Any] = {
         "schema_version": "tos_corpus_index_v1",
         "schema_ref": SCHEMA_REF,
