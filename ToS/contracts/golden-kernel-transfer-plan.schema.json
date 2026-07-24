@@ -17,6 +17,7 @@
     "kernel_evidence_gate",
     "target_sampling_contract",
     "scouting_units",
+    "target_units",
     "variants",
     "metrics",
     "contamination_controls",
@@ -181,6 +182,11 @@
       "minItems": 3,
       "items": {"$ref": "#/$defs/scoutingUnit"}
     },
+    "target_units": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/targetUnit"}
+    },
     "variants": {
       "type": "array",
       "minItems": 3,
@@ -342,6 +348,30 @@
               "semantic_transfer_claim_authorized": {"const": true},
               "blockers": {"maxItems": 0}
             }
+          },
+          "target_units": {
+            "minItems": 20,
+            "maxItems": 20,
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {"stratum": {"const": "random"}},
+                  "required": ["stratum"]
+                },
+                "minContains": 10,
+                "maxContains": 10
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {"stratum": {"const": "hard"}},
+                  "required": ["stratum"]
+                },
+                "minContains": 10,
+                "maxContains": 10
+              }
+            ]
           }
         }
       }
@@ -388,6 +418,56 @@
           "uniqueItems": true,
           "items": {"type": "string", "minLength": 1}
         }
+      }
+    },
+    "targetUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "anchor_ref",
+        "work_ref",
+        "item_ref",
+        "file_ref",
+        "unit_kind",
+        "stratum",
+        "source_content_ref",
+        "source_content_sha256",
+        "target_gold_ref",
+        "target_gold_sha256",
+        "human_pass_1_receipt_ref",
+        "human_pass_2_receipt_ref",
+        "source_review_status",
+        "target_gold_status",
+        "frozen_before_variant_outputs",
+        "eligible_for_variant_execution"
+      ],
+      "properties": {
+        "unit_id": {"type": "string", "pattern": "^tos-target-unit-[a-z0-9-]+$"},
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "work_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "unit_kind": {
+          "enum": [
+            "ordinary-prose",
+            "dense-or-dialogic-prose",
+            "rhetorical-or-metaphorical-prose",
+            "page-boundary",
+            "hard-negative-for-kernel-sign"
+          ]
+        },
+        "stratum": {"enum": ["random", "hard"]},
+        "source_content_ref": {"type": "string", "minLength": 1},
+        "source_content_sha256": {"$ref": "#/$defs/sha256"},
+        "target_gold_ref": {"type": "string", "minLength": 1},
+        "target_gold_sha256": {"$ref": "#/$defs/sha256"},
+        "human_pass_1_receipt_ref": {"type": "string", "minLength": 1},
+        "human_pass_2_receipt_ref": {"type": "string", "minLength": 1},
+        "source_review_status": {"const": "human_double_checked"},
+        "target_gold_status": {"const": "human_double_checked"},
+        "frozen_before_variant_outputs": {"const": true},
+        "eligible_for_variant_execution": {"const": true}
       }
     },
     "variant": {

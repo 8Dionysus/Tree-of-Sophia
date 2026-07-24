@@ -1029,6 +1029,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIsNone(transfer_plan["result"]["winner"])
         self.assertEqual([], transfer_plan["result"]["metric_results"])
         self.assertEqual(3, len(transfer_plan["scouting_units"]))
+        self.assertEqual([], transfer_plan["target_units"])
         self.assertTrue(
             all(
                 unit["unit_kind"] == "title-page"
@@ -1053,6 +1054,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         premature_ready["status"] = "ready"
         self.assertTrue(list(validator.iter_errors(premature_ready)))
 
+        counters_only_ready = copy.deepcopy(transfer_plan)
+        counters_only_ready["status"] = "ready"
+        counters_only_ready["kernel_evidence_gate"].update(
+            {
+                "accepted_source_units": 30,
+                "human_double_checked_gold_units": 15,
+                "human_accepted_sign_packets": 1,
+                "human_accepted_translation_packets": 1,
+                "human_double_checked_target_units": 20,
+                "gate_status": "satisfied",
+                "semantic_transfer_claim_authorized": True,
+                "blockers": [],
+            }
+        )
+        self.assertTrue(list(validator.iter_errors(counters_only_ready)))
+
         semantic_title_page = copy.deepcopy(transfer_plan)
         semantic_title_page["scouting_units"][0][
             "eligible_for_semantic_transfer"
@@ -1063,8 +1080,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         incomplete_metrics["metrics"].pop()
         self.assertTrue(list(validator.iter_errors(incomplete_metrics)))
 
-        event = json.loads(
-            (GOLD_ROOT / "transfer-provenance.jsonl").read_text(encoding="utf-8")
+        events = [
+            json.loads(line)
+            for line in (GOLD_ROOT / "transfer-provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        event = next(
+            candidate
+            for candidate in events
+            if candidate["event_id"] == transfer_plan["provenance_event_ref"]
         )
         output = next(
             output
@@ -1075,6 +1101,47 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             hashlib.sha256(transfer_path.read_bytes()).hexdigest(),
             output["sha256"],
         )
+
+    def test_human_gold_requires_materialized_content_and_review_receipts(self) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.GOLD_STATUS_SCHEMA,
+            REPO_ROOT,
+        )
+        status = json.loads((GOLD_ROOT / "gold-status.json").read_text(encoding="utf-8"))
+        unit = status["units"][0]
+        unit["content_sha256"] = "a" * 64
+        unit["gold_status"] = "human_double_checked"
+        for field, maker in (
+            ("human_pass_1", "human:reviewer-one"),
+            ("human_pass_2", "human:reviewer-two"),
+        ):
+            unit[field] = {
+                "status": "complete",
+                "maker_ref": maker,
+                "completed_at": "2026-07-24T02:00:00Z",
+                "receipt_ref": f"local-review/{field}.json",
+            }
+        self.assertEqual([], list(validator.iter_errors(status)))
+
+        for field_path in (
+            ("content_sha256",),
+            ("human_pass_1", "maker_ref"),
+            ("human_pass_1", "completed_at"),
+            ("human_pass_1", "receipt_ref"),
+            ("human_pass_2", "maker_ref"),
+            ("human_pass_2", "completed_at"),
+            ("human_pass_2", "receipt_ref"),
+        ):
+            invalid = copy.deepcopy(status)
+            target = invalid["units"][0]
+            if len(field_path) == 1:
+                target[field_path[0]] = None
+            else:
+                target[field_path[0]][field_path[1]] = None
+            self.assertTrue(
+                list(validator.iter_errors(invalid)),
+                f"{'.'.join(field_path)} remained optional for human gold",
+            )
 
     def test_semantic_and_llm_evaluation_plans_do_not_materialize_false_tasks(self) -> None:
         validator, _ = foundation._schema_validator(

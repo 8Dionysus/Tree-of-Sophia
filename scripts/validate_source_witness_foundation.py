@@ -1116,6 +1116,23 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             kernel_gate = transfer_plan.get("kernel_evidence_gate", {})
             if kernel_gate.get("human_double_checked_gold_units") != actual_gold_count:
                 issues.append((transfer_location, "transfer kernel gold count drifted"))
+            target_units = [
+                unit
+                for unit in transfer_plan.get("target_units", [])
+                if isinstance(unit, dict)
+            ]
+            target_unit_ids = [unit.get("unit_id") for unit in target_units]
+            if len(target_unit_ids) != len(set(target_unit_ids)):
+                issues.append((transfer_location, "transfer target-unit identities are not unique"))
+            actual_target_gold_count = sum(
+                unit.get("target_gold_status") == "human_double_checked"
+                for unit in target_units
+            )
+            if (
+                kernel_gate.get("human_double_checked_target_units")
+                != actual_target_gold_count
+            ):
+                issues.append((transfer_location, "transfer target-gold count drifted"))
             source_gate = (translation_laboratory_plan or {}).get(
                 "source_review_gate", {}
             )
@@ -1422,9 +1439,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 if not isinstance(unit, dict):
                     continue
                 if unit.get("gold_status") == "human_double_checked":
+                    if not isinstance(unit.get("content_sha256"), str):
+                        issues.append((_relative(gold_status_path, repo_root), f"{unit.get('sample_id')} claims gold without a content digest"))
                     for field in ("human_pass_1", "human_pass_2"):
-                        if unit.get(field, {}).get("status") != "complete":
+                        review_pass = unit.get(field, {})
+                        if review_pass.get("status") != "complete":
                             issues.append((_relative(gold_status_path, repo_root), f"{unit.get('sample_id')} claims gold without complete {field}"))
+                        for evidence_field in ("maker_ref", "completed_at", "receipt_ref"):
+                            if not isinstance(review_pass.get(evidence_field), str):
+                                issues.append((_relative(gold_status_path, repo_root), f"{unit.get('sample_id')} claims gold without {field}.{evidence_field}"))
 
         if translation_plan is not None:
             fragment_ids: set[str] = set()
