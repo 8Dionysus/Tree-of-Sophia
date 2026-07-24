@@ -1128,15 +1128,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
     def test_current_foundation_validates_with_local_payloads_when_available(self) -> None:
         issues = foundation.validate_foundation(REPO_ROOT, require_local_payloads=True)
-        missing_payloads = [
-            issue for issue in issues if issue[1] == "required local payload is missing"
+        missing_local_content = [
+            issue
+            for issue in issues
+            if issue[1].startswith("required local ") and issue[1].endswith(" is missing")
         ]
-        other_issues = [issue for issue in issues if issue not in missing_payloads]
+        other_issues = [issue for issue in issues if issue not in missing_local_content]
 
         self.assertEqual([], other_issues)
-        if missing_payloads:
+        if missing_local_content:
             self.skipTest(
-                f"{len(missing_payloads)} private local payloads are unavailable"
+                f"{len(missing_local_content)} private local content files are unavailable"
             )
         self.assertEqual([], issues)
 
