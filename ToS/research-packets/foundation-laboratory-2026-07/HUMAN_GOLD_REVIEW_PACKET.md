@@ -6,6 +6,14 @@ or gold acceptance completed
 
 Materialization date: 2026-07-23
 
+Successor note, 2026-07-26: this document records the frozen v1 interface and
+its original two-reviewer posture. New assurance claims are governed
+additively by `ToS/contracts/manual-gold-assurance.schema.json`,
+`gold-assurance.v2.json`, and `HUMAN_ASSURANCE_RESEARCH.md`. The current
+solo+AI route uses criteria review by default; a delayed, pass-1-hidden
+same-human recheck is intra-annotator stability only, and German textual
+review remains language-competence-blocked.
+
 ## Question
 
 Can the fifteen output-blind OCR/structure gold candidates frozen before A/B/C

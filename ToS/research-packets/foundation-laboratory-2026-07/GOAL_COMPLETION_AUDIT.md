@@ -68,7 +68,7 @@ gold, accepted text, or public derivative was created.
 | 28 | golden-kernel transfer report | a fail-closed plan and honest `blocked-not-run` report exist | blocked | accepted kernel packets, content-bearing target passages, target gold, and A/B/C runs |
 | 29 | promotion/rejection decisions | `FOUNDATION_PROMOTION_REJECTION_LEDGER.md` promotes mechanics and preserves negative runs | proven for method decisions; content open | superseding human receipts for any text, sign, relation, or transfer promotion |
 | 30 | future server-import contract | schemas, protocol, item plans, rights gate, takedown fields, and metadata-only status exist | proven as blocked contract | operator approval and rights before any upload |
-| 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates | proven but needs reconciliation | incorporate the solo+AI assurance model, private-evidence handoff, and post-2026-07-23 review progress |
+| 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates; `HUMAN_ASSURANCE_RESEARCH.md` and `gold-assurance.v2.json` reconcile solo+AI review and language competence | proven for current assurance route | private-evidence handoff and later authority-bearing review progress remain open |
 
 ## Definition-of-Done reconciliation
 
@@ -101,24 +101,28 @@ gold, accepted text, or public derivative was created.
 | remaining uncertainty is explicit | proven by this audit and limitations packet | update the audit after every authority-bearing pass |
 | a later agent can resume without chat reconstruction | partial | reconcile the three pressures below in owner contracts and tracked handoffs |
 
-## Newly exposed contract pressures
+## Resolved and open contract pressures
 
 ### 1. Solo+AI is not two independent human reviewers
 
-The current fifteen-page gold packet requires two different human identities.
-The operating reality is one human working with AI. A second pass by the same
-person can be a delayed, pass-1-hidden **solo recheck**, but it must not be
-described as independent inter-reviewer agreement.
+The legacy fifteen-page gold packet encoded two human passes without an
+adequate solo+AI distinction. The operating reality is one human working with
+AI. `manual-gold-assurance.schema.json` and `gold-assurance.v2.json` now add
+the required distinction without rewriting the frozen v1 status. A second
+pass by the same person can be a delayed, pass-1-hidden **solo recheck**, but
+it is described only as intra-annotator stability.
 
-The assurance contract must choose explicit postures such as:
+The v2 assurance ladder records explicit postures:
 
 - single-human source-visible review;
 - same-human delayed recheck;
 - independent multi-human review;
 - language-competence-blocked.
 
-Until that contract is reviewed, no process may fabricate a second reviewer or
-silently weaken the existing gold rule.
+The current packet sets a local 24-hour separation floor, hides pass 1,
+candidates, and AI assistance during the recheck, and prohibits
+inter-reviewer or independent-multi-human claims. This closes the contract
+pressure, not the still-empty human evidence.
 
 ### 2. The completed OCR candidate pass is not diplomatic gold
 
@@ -159,18 +163,15 @@ not a substitute for that competence declaration.
 
 ## Dependency-ordered next owner work
 
-1. Revise the manual-gold assurance model for explicit solo recheck,
-   multi-reviewer, and language-competence-blocked postures without changing
-   existing frozen evidence.
-2. Add a predeclared block-balanced display-assignment contract and materialize
+1. Add a predeclared block-balanced display-assignment contract and materialize
    the next candidate packet only after that contract freezes.
-3. Design the private-to-public laboratory evidence handoff contract before
+2. Design the private-to-public laboratory evidence handoff contract before
    attempting any tracked result export.
-4. Continue Russian source-visible review under the revised assurance law;
+3. Continue Russian source-visible review under the revised assurance law;
    leave German acceptance blocked until competence is honestly supplied.
-5. Open translation only after its exact German anchors reach an admitted
+4. Open translation only after its exact German anchors reach an admitted
    source posture.
-6. Follow translation with sign review, retrieval/graph adjudication, and only
+5. Follow translation with sign review, retrieval/graph adjudication, and only
    then content-bearing golden-kernel transfer.
 
 ## Stop line

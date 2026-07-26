@@ -84,6 +84,12 @@ The following remain absent rather than zero:
 
 ## Manual verification debt
 
+The numbered debt below records the original v1 gate. The 2026-07-26 assurance
+overlay supersedes its implicit reviewer-identity claim without rewriting the
+historical packet: Russian criteria review is the ordinary route; any
+same-human delayed recheck measures only intra-annotator stability; German
+textual claims remain language-competence-blocked.
+
 Automatic and advisory values have not been recomputed against real-human
 gold. The minimum review debt is:
 

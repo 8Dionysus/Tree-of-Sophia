@@ -28,6 +28,7 @@ judgment true.
 | `laboratory-sample-plan.schema.json` | source-balanced frozen sample units, strata, anchors, and gold candidates |
 | `ocr-visual-sample-plan.schema.json` | output-blind 3x12 visual OCR projection, shared render law, sealed reference witnesses, and an explicit human-gold gate |
 | `manual-gold-status.schema.json` | model-draft and two-pass source-visible human gold state without relabeling |
+| `manual-gold-assurance.schema.json` | additive solo+AI assurance ladder, delayed same-human stability check, language-competence boundary, and digest-bound legacy lineage |
 | `translation-sample-plan.schema.json` | thirty frozen German fragments, sealed comparator, staged lanes, and etymology law |
 | `translation-source-review-plan.schema.json` | v2 page-triplet source review routing after selector failure, without reusing rejected automatic text |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
@@ -70,7 +71,12 @@ A schema validator can establish that:
 - an OCR projection resolves every visual page to an exact item/file/anchor,
   keeps its one pre-output nonvisual replacement explicit, and does not claim
   human gold or formal quality metrics;
-- a gold-status packet keeps model drafts separate from both human passes.
+- a legacy gold-status packet keeps model drafts separate from both human
+  passes;
+- a manual-gold assurance packet keeps single-human, delayed same-human, and
+  independent multi-human evidence distinct, binds its method and frozen
+  inputs by digest, and prevents visual-only language review from authorizing
+  textual or semantic claims;
 - a source-review v2 plan closes each page triplet over the rejected v1
   evidence while keeping candidate reuse, comparator visibility, and human
   acceptance false;
@@ -117,6 +123,10 @@ It cannot establish that:
 - a translation is faithful or philosophically adequate;
 - a rights determination is legally sufficient;
 - a semantic claim or relation should enter canon.
+- a same-human delayed recheck is independent of memory or equivalent to
+  agreement among different reviewers;
+- a declared language competence is actually sufficient for the reviewed
+  material.
 
 Those require source-visible human review and a reasoned decision record.
 

@@ -1,0 +1,343 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/manual-gold-assurance.schema.json",
+  "schema_version": "tos_manual_gold_assurance_v2",
+  "assurance_set_id": "tos.gold-assurance.zarathustra-foundation-pilot-v2",
+  "legacy_gold_status": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-status.json",
+    "sha256": "dbe08e50066674cbffd40d79125e08a039ea18cb03630440172a91176de2a990"
+  },
+  "sample_plan": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/sample-plan.json",
+    "sha256": "a813f0a19361ccc773d1427ab696a76296993c999abb2ff35376bae422bbb9d1"
+  },
+  "method_research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_ASSURANCE_RESEARCH.md",
+    "sha256": "5414800e8bbef514229c283233987ee22cb8e05c9139a0c4597cd28b88dfd2c3"
+  },
+  "content_visibility": "local_only",
+  "operating_model": "solo_human_plus_ai",
+  "truth_law": {
+    "model_output_is_never_human_evidence": true,
+    "same_human_recheck_is_not_inter_reviewer_agreement": true,
+    "language_competence_bounds_claims": true,
+    "assistance_exposure_changes_evidence": true,
+    "validators_do_not_prove_content": true
+  },
+  "solo_recheck_policy": {
+    "pass_1_mode": "independent_source_reference",
+    "pass_2_mode": "same_human_delayed_hidden_recheck",
+    "same_reviewer_allowed": true,
+    "minimum_delay_hours": 24,
+    "minimum_delay_meaning": "local_separate_session_floor_not_a_universal_independence_threshold",
+    "pass_1_output_hidden": true,
+    "candidate_outputs_hidden": true,
+    "ai_assistance_hidden": true,
+    "agreement_claim": "intra_annotator_stability_only",
+    "maximum_reference_use": "calibration_metrics_with_disclosure",
+    "prohibited_claims": [
+      "inter_reviewer_agreement",
+      "independent_multi_human_gold",
+      "canonical_source_acceptance",
+      "language_claim_beyond_declared_competence"
+    ]
+  },
+  "language_scopes": [
+    {
+      "language": "ru",
+      "planned_competence": "full",
+      "text_review_status": "ready",
+      "allowed_claims": [
+        "page_identity",
+        "legibility",
+        "visible_structure",
+        "reading_order",
+        "textual_fidelity",
+        "orthography_against_source"
+      ],
+      "blocked_claims": [
+        "grammar",
+        "semantics",
+        "translation_quality",
+        "canonical_source_acceptance"
+      ]
+    },
+    {
+      "language": "de",
+      "planned_competence": "visual_only",
+      "text_review_status": "language_competence_blocked",
+      "allowed_claims": [
+        "page_identity",
+        "legibility",
+        "visible_structure",
+        "reading_order"
+      ],
+      "blocked_claims": [
+        "textual_fidelity",
+        "orthography_against_source",
+        "grammar",
+        "semantics",
+        "translation_quality",
+        "canonical_source_acceptance"
+      ]
+    }
+  ],
+  "units": [
+    {
+      "sample_id": "tos-sample-antonovsky-p011",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p011",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-antonovsky-p012",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p012",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-antonovsky-p050",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p050",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-antonovsky-p300",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p300",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-antonovsky-p330",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p330",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p004",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p004",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p006",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p006",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p008",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p166",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-mysl-p237",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237",
+      "language": "ru",
+      "competence_level": "full",
+      "current_assurance": "unreviewed",
+      "reference_use": "none",
+      "next_route": "single_human_independent_reference",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-043",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-043",
+      "language": "de",
+      "competence_level": "visual_only",
+      "current_assurance": "language_competence_blocked",
+      "reference_use": "none",
+      "next_route": "resolve_language_competence",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-055",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-055",
+      "language": "de",
+      "competence_level": "visual_only",
+      "current_assurance": "language_competence_blocked",
+      "reference_use": "none",
+      "next_route": "resolve_language_competence",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-059",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+      "language": "de",
+      "competence_level": "visual_only",
+      "current_assurance": "language_competence_blocked",
+      "reference_use": "none",
+      "next_route": "resolve_language_competence",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-380",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380",
+      "language": "de",
+      "competence_level": "visual_only",
+      "current_assurance": "language_competence_blocked",
+      "reference_use": "none",
+      "next_route": "resolve_language_competence",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    },
+    {
+      "sample_id": "tos-sample-naumann-page-522",
+      "anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522",
+      "language": "de",
+      "competence_level": "visual_only",
+      "current_assurance": "language_competence_blocked",
+      "reference_use": "none",
+      "next_route": "resolve_language_competence",
+      "review_evidence": {
+        "pass_1_receipt_ref": null,
+        "pass_2_receipt_ref": null,
+        "adjudication_receipt_ref": null,
+        "content_sha256": null,
+        "observed_delay_hours": null,
+        "same_reviewer": null
+      }
+    }
+  ],
+  "set_status": "partially_ready_for_solo_review",
+  "status_version": 1
+}

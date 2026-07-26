@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/manual-gold-assurance.schema.json",
+  "title": "Tree of Sophia manual gold assurance ladder",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "assurance_set_id",
+    "legacy_gold_status",
+    "sample_plan",
+    "method_research",
+    "content_visibility",
+    "operating_model",
+    "truth_law",
+    "solo_recheck_policy",
+    "language_scopes",
+    "units",
+    "set_status",
+    "status_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/manual-gold-assurance.schema.json"
+    },
+    "schema_version": {"const": "tos_manual_gold_assurance_v2"},
+    "assurance_set_id": {
+      "type": "string",
+      "pattern": "^tos\\.gold-assurance\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "legacy_gold_status": {"$ref": "#/$defs/digestBoundRef"},
+    "sample_plan": {"$ref": "#/$defs/digestBoundRef"},
+    "method_research": {"$ref": "#/$defs/digestBoundRef"},
+    "content_visibility": {"const": "local_only"},
+    "operating_model": {"const": "solo_human_plus_ai"},
+    "truth_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_output_is_never_human_evidence",
+        "same_human_recheck_is_not_inter_reviewer_agreement",
+        "language_competence_bounds_claims",
+        "assistance_exposure_changes_evidence",
+        "validators_do_not_prove_content"
+      ],
+      "properties": {
+        "model_output_is_never_human_evidence": {"const": true},
+        "same_human_recheck_is_not_inter_reviewer_agreement": {"const": true},
+        "language_competence_bounds_claims": {"const": true},
+        "assistance_exposure_changes_evidence": {"const": true},
+        "validators_do_not_prove_content": {"const": true}
+      }
+    },
+    "solo_recheck_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_1_mode",
+        "pass_2_mode",
+        "same_reviewer_allowed",
+        "minimum_delay_hours",
+        "minimum_delay_meaning",
+        "pass_1_output_hidden",
+        "candidate_outputs_hidden",
+        "ai_assistance_hidden",
+        "agreement_claim",
+        "maximum_reference_use",
+        "prohibited_claims"
+      ],
+      "properties": {
+        "pass_1_mode": {"const": "independent_source_reference"},
+        "pass_2_mode": {"const": "same_human_delayed_hidden_recheck"},
+        "same_reviewer_allowed": {"const": true},
+        "minimum_delay_hours": {"type": "integer", "minimum": 1},
+        "minimum_delay_meaning": {
+          "const": "local_separate_session_floor_not_a_universal_independence_threshold"
+        },
+        "pass_1_output_hidden": {"const": true},
+        "candidate_outputs_hidden": {"const": true},
+        "ai_assistance_hidden": {"const": true},
+        "agreement_claim": {"const": "intra_annotator_stability_only"},
+        "maximum_reference_use": {
+          "const": "calibration_metrics_with_disclosure"
+        },
+        "prohibited_claims": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "inter_reviewer_agreement",
+              "independent_multi_human_gold",
+              "canonical_source_acceptance",
+              "language_claim_beyond_declared_competence"
+            ]
+          },
+          "allOf": [
+            {"contains": {"const": "inter_reviewer_agreement"}},
+            {"contains": {"const": "independent_multi_human_gold"}},
+            {"contains": {"const": "canonical_source_acceptance"}}
+          ]
+        }
+      }
+    },
+    "language_scopes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/languageScope"}
+    },
+    "units": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {"$ref": "#/$defs/unit"}
+    },
+    "set_status": {
+      "enum": [
+        "partially_ready_for_solo_review",
+        "solo_review_in_progress",
+        "solo_rechecked_with_disclosure",
+        "independent_multi_human_adjudicated",
+        "blocked",
+        "superseded"
+      ]
+    },
+    "status_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "languageScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "planned_competence",
+        "text_review_status",
+        "allowed_claims",
+        "blocked_claims"
+      ],
+      "properties": {
+        "language": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+        "planned_competence": {
+          "enum": ["full", "partial", "visual_only", "none"]
+        },
+        "text_review_status": {
+          "enum": ["ready", "limited", "language_competence_blocked"]
+        },
+        "allowed_claims": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimScope"}
+        },
+        "blocked_claims": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimScope"}
+        }
+      }
+    },
+    "claimScope": {
+      "enum": [
+        "page_identity",
+        "legibility",
+        "visible_structure",
+        "reading_order",
+        "textual_fidelity",
+        "orthography_against_source",
+        "grammar",
+        "semantics",
+        "translation_quality",
+        "canonical_source_acceptance"
+      ]
+    },
+    "reviewEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_1_receipt_ref",
+        "pass_2_receipt_ref",
+        "adjudication_receipt_ref",
+        "content_sha256",
+        "observed_delay_hours",
+        "same_reviewer"
+      ],
+      "properties": {
+        "pass_1_receipt_ref": {"type": ["string", "null"], "minLength": 1},
+        "pass_2_receipt_ref": {"type": ["string", "null"], "minLength": 1},
+        "adjudication_receipt_ref": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "content_sha256": {
+          "anyOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        },
+        "observed_delay_hours": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "same_reviewer": {"type": ["boolean", "null"]}
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "anchor_ref",
+        "language",
+        "competence_level",
+        "current_assurance",
+        "reference_use",
+        "next_route",
+        "review_evidence"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "pattern": "^tos-sample-[a-z0-9-]+$"
+        },
+        "anchor_ref": {
+          "type": "string",
+          "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "language": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+        "competence_level": {
+          "enum": ["full", "partial", "visual_only", "none"]
+        },
+        "current_assurance": {
+          "enum": [
+            "unreviewed",
+            "single_human_source_visible",
+            "solo_human_delayed_rechecked",
+            "independent_multi_human_adjudicated",
+            "language_competence_blocked",
+            "rejected",
+            "uncertain"
+          ]
+        },
+        "reference_use": {
+          "enum": [
+            "none",
+            "criteria_evidence_only",
+            "calibration_metrics_with_disclosure",
+            "independent_multi_human_gold"
+          ]
+        },
+        "next_route": {
+          "enum": [
+            "single_human_independent_reference",
+            "solo_delayed_hidden_recheck",
+            "independent_multi_human_review",
+            "resolve_language_competence",
+            "adjudicate",
+            "none"
+          ]
+        },
+        "review_evidence": {"$ref": "#/$defs/reviewEvidence"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "current_assurance": {"const": "language_competence_blocked"}
+            },
+            "required": ["current_assurance"]
+          },
+          "then": {
+            "properties": {
+              "reference_use": {"const": "none"},
+              "next_route": {"const": "resolve_language_competence"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "current_assurance": {"const": "single_human_source_visible"}
+            },
+            "required": ["current_assurance"]
+          },
+          "then": {
+            "properties": {
+              "reference_use": {"const": "criteria_evidence_only"},
+              "next_route": {"const": "solo_delayed_hidden_recheck"},
+              "review_evidence": {
+                "properties": {
+                  "pass_1_receipt_ref": {"type": "string"},
+                  "content_sha256": {"$ref": "#/$defs/sha256"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "current_assurance": {
+                "const": "solo_human_delayed_rechecked"
+              }
+            },
+            "required": ["current_assurance"]
+          },
+          "then": {
+            "properties": {
+              "reference_use": {
+                "const": "calibration_metrics_with_disclosure"
+              },
+              "next_route": {
+                "enum": ["independent_multi_human_review", "none"]
+              },
+              "review_evidence": {
+                "properties": {
+                  "pass_1_receipt_ref": {"type": "string"},
+                  "pass_2_receipt_ref": {"type": "string"},
+                  "content_sha256": {"$ref": "#/$defs/sha256"},
+                  "observed_delay_hours": {"type": "number", "minimum": 1},
+                  "same_reviewer": {"const": true}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "current_assurance": {
+                "const": "independent_multi_human_adjudicated"
+              }
+            },
+            "required": ["current_assurance"]
+          },
+          "then": {
+            "properties": {
+              "reference_use": {"const": "independent_multi_human_gold"},
+              "next_route": {"const": "none"},
+              "review_evidence": {
+                "properties": {
+                  "pass_1_receipt_ref": {"type": "string"},
+                  "pass_2_receipt_ref": {"type": "string"},
+                  "adjudication_receipt_ref": {"type": "string"},
+                  "content_sha256": {"$ref": "#/$defs/sha256"},
+                  "same_reviewer": {"const": false}
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

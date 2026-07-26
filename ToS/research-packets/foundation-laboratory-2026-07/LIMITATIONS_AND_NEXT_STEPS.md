@@ -1,8 +1,8 @@
 # Foundation Limitations and Next Steps
 
-Status: mechanical foundation prepared and committed on local owner branches;
-human-evidence phases remain incomplete
-Snapshot: 2026-07-23
+Status: mechanical foundation and solo+AI assurance contract prepared on local
+owner branches; human-evidence phases remain incomplete
+Snapshot: 2026-07-26
 
 ## Honest boundary
 
@@ -21,7 +21,7 @@ fields. They are the next authority layer.
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
 | --- | --- | --- | --- |
 | 15-page OCR/structure gold | private 41-page packet, two blind workbooks, exact blank working JSONL, `HUMAN_GOLD_REVIEW_PACKET.md` | pass 1: 0; pass 2: 0; accepted: 0 | model inspection and mechanical fixity cannot attest real-human source review |
-| 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0 | diplomatic transcription and two independent passes require real people |
+| 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -146,16 +146,23 @@ quality.
 
 ### 1. Complete the source-visible human gold
 
-1. Copy the blank v2 review JSONL to a new local output; never edit the frozen
-   blank template.
-2. Complete German pass 1 for all 30 units against the visible triplets.
-3. Complete independent pass 2 with distinct human identity and timestamps.
-4. Resolve every `reject`, `uncertain`, `defer`, or `accept-with-limits` state;
-   only explicit final `accept` opens the source gate.
-5. Open the pass-1 workbook and working copy recorded in
-   `HUMAN_GOLD_REVIEW_PACKET.md`; complete the 15-page OCR/structure
-   diplomatic gold with two source-visible passes by different humans and
-   populate the manual error ledger.
+1. Use `gold-assurance.v2.json`, not the legacy v1 label, for new assurance
+   claims.
+2. Continue the ten Russian units with criteria-based source review; request
+   an independent transcription only for the small calibration subset that
+   needs exact CER/WER.
+3. If the same human rechecks that subset, wait at least the declared local
+   24-hour floor, hide pass 1, candidates, and AI assistance, and report only
+   intra-annotator stability.
+4. Keep all five German gold units and the 30-unit German source-acceptance
+   packet language-competence-blocked beyond visual structure. Do not infer
+   orthographic, grammatical, semantic, translation, or acceptance evidence
+   from visual inspection or machine agreement.
+5. Supply declared German competence or adopt a separately researched,
+   reviewed assisted protocol before opening German textual acceptance.
+6. Preserve every `reject`, `uncertain`, `defer`, or
+   `accept-with-limits` state and all local receipts; no validator promotes a
+   unit.
 
 ### 2. Manually verify the executed mechanical pilots
 

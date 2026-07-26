@@ -74,14 +74,31 @@ The selection was visually inspected by a model. It therefore carries
 mechanically well formed while the chosen region, sentence boundary, or
 transcription is still wrong.
 
-`gold-status.json` begins with 15 candidates and zero accepted gold units.
-Each unit needs:
+`gold-status.json` is the frozen v1 state: 15 candidates and zero accepted
+gold units. `gold-assurance.v2.json` is an additive, digest-bound assurance
+overlay; it does not rewrite that history or promote any unit. It records ten
+Russian units as ready for source-visible solo review and five German units as
+`language_competence_blocked`.
+
+For the ordinary Russian route, the human evaluates page identity,
+legibility, visible structure, reading order, fidelity, completeness, and
+errors against the visible source. Full diplomatic transcription is a small,
+rare independent-reference task, not the default interaction.
+
+When an anchoring-independent reference is needed, a unit needs:
 
 1. a model draft or independent human transcription kept as its actual maker;
 2. a first human comparison against the source at full resolution;
-3. a separate second source-visible punctuation, lineation, and boundary pass;
+3. a separate pass-1-hidden source-visible punctuation, lineation, and
+   boundary recheck;
 4. explicit uncertainty for unreadable glyphs;
 5. a review receipt and error-ledger entries before `human_double_checked`.
+
+The same human may perform the recheck only in a later session after the
+declared local 24-hour floor. That evidence measures intra-annotator stability
+and may support calibration metrics with disclosure. It never proves
+inter-reviewer agreement or independent multi-human gold. The 24-hour value is
+an operational separation rule, not a universal scientific threshold.
 
 No validator may promote these states. Human-only translation must be
 performed by a real human without AI and before the recognized translation is
@@ -130,9 +147,12 @@ closure over the frozen page set, no emitted v1 candidate among all 30 prior
 strings, no emitted Antonovsky identifier, and no human attestation,
 transcription, or source decision. The packet manifest SHA-256 is
 `8db6f88131355e858b861696899ae5edc37b238ec31493d898c559153010850c`.
-This prepares the authority surface but does not create gold: a real human
-must still perform pass 1 and an independent source-visible pass 2 before any
-German unit can be accepted. Full materialization evidence is recorded in
+This prepares the authority surface but does not create gold. The current
+solo reviewer may judge only page identity, legibility, visible structure, and
+reading order on German pages; German textual fidelity, orthography, grammar,
+semantics, translation, and source acceptance remain blocked until declared
+language competence or a separately reviewed assisted protocol exists. Full
+materialization evidence is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_SOURCE_REVIEW_V2.md`.
 
 The separate 15-page OCR/structure human-gold interface has also been

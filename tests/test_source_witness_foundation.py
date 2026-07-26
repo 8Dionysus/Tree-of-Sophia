@@ -1143,6 +1143,137 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 f"{'.'.join(field_path)} remained optional for human gold",
             )
 
+    def test_manual_gold_assurance_preserves_solo_and_language_boundaries(self) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.GOLD_ASSURANCE_SCHEMA,
+            REPO_ROOT,
+        )
+        assurance_path = GOLD_ROOT / "gold-assurance.v2.json"
+        assurance = json.loads(assurance_path.read_text(encoding="utf-8"))
+        status = json.loads((GOLD_ROOT / "gold-status.json").read_text(encoding="utf-8"))
+
+        self.assertEqual([], list(validator.iter_errors(assurance)))
+        self.assertEqual(
+            {unit["sample_id"] for unit in status["units"]},
+            {unit["sample_id"] for unit in assurance["units"]},
+        )
+        self.assertEqual(
+            {
+                unit["sample_id"]: unit["anchor_ref"]
+                for unit in status["units"]
+            },
+            {
+                unit["sample_id"]: unit["anchor_ref"]
+                for unit in assurance["units"]
+            },
+        )
+
+        russian_units = [unit for unit in assurance["units"] if unit["language"] == "ru"]
+        german_units = [unit for unit in assurance["units"] if unit["language"] == "de"]
+        self.assertEqual(10, len(russian_units))
+        self.assertEqual(5, len(german_units))
+        self.assertTrue(
+            all(
+                unit["current_assurance"] == "unreviewed"
+                and unit["next_route"] == "single_human_independent_reference"
+                for unit in russian_units
+            )
+        )
+        self.assertTrue(
+            all(
+                unit["competence_level"] == "visual_only"
+                and unit["current_assurance"] == "language_competence_blocked"
+                and unit["next_route"] == "resolve_language_competence"
+                for unit in german_units
+            )
+        )
+
+    def test_manual_gold_assurance_allows_only_disclosed_delayed_solo_recheck(self) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.GOLD_ASSURANCE_SCHEMA,
+            REPO_ROOT,
+        )
+        assurance = json.loads(
+            (GOLD_ROOT / "gold-assurance.v2.json").read_text(encoding="utf-8")
+        )
+        unit = assurance["units"][0]
+        unit["current_assurance"] = "solo_human_delayed_rechecked"
+        unit["reference_use"] = "calibration_metrics_with_disclosure"
+        unit["next_route"] = "independent_multi_human_review"
+        unit["review_evidence"] = {
+            "pass_1_receipt_ref": "local-review/pass-1.json",
+            "pass_2_receipt_ref": "local-review/pass-2.json",
+            "adjudication_receipt_ref": None,
+            "content_sha256": "a" * 64,
+            "observed_delay_hours": 24,
+            "same_reviewer": True,
+        }
+        self.assertEqual([], list(validator.iter_errors(assurance)))
+        self.assertIsNone(
+            foundation._solo_recheck_delay_issue(
+                unit,
+                assurance["solo_recheck_policy"]["minimum_delay_hours"],
+            )
+        )
+
+        below_floor = copy.deepcopy(unit)
+        below_floor["review_evidence"]["observed_delay_hours"] = 23.9
+        self.assertIn(
+            "below the declared delay floor",
+            foundation._solo_recheck_delay_issue(below_floor, 24),
+        )
+
+        wrong_identity = copy.deepcopy(assurance)
+        wrong_identity["units"][0]["review_evidence"]["same_reviewer"] = False
+        self.assertTrue(list(validator.iter_errors(wrong_identity)))
+
+        false_multi_human = copy.deepcopy(assurance)
+        false_multi_human["units"][0]["reference_use"] = "independent_multi_human_gold"
+        self.assertTrue(list(validator.iter_errors(false_multi_human)))
+        self.assertIn(
+            "invalid for solo_human_delayed_rechecked",
+            foundation._assurance_reference_use_issue(
+                false_multi_human["units"][0]
+            ),
+        )
+
+        overlapping_scope = copy.deepcopy(assurance["language_scopes"][0])
+        overlapping_scope["blocked_claims"].append(
+            overlapping_scope["allowed_claims"][0]
+        )
+        self.assertIn(
+            "both allows and blocks",
+            foundation._language_scope_overlap_issue(overlapping_scope),
+        )
+
+    def test_manual_gold_assurance_digest_binding_detects_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            owner_path = repo_root / "owner.json"
+            owner_path.write_text('{"version":1}\n', encoding="utf-8")
+            digest_bound_ref = {
+                "ref": "owner.json",
+                "sha256": hashlib.sha256(owner_path.read_bytes()).hexdigest(),
+            }
+            self.assertIsNone(
+                foundation._digest_bound_ref_issue(
+                    digest_bound_ref,
+                    expected_path=owner_path,
+                    repo_root=repo_root,
+                    field="owner",
+                )
+            )
+            owner_path.write_text('{"version":2}\n', encoding="utf-8")
+            self.assertEqual(
+                "owner digest drifted",
+                foundation._digest_bound_ref_issue(
+                    digest_bound_ref,
+                    expected_path=owner_path,
+                    repo_root=repo_root,
+                    field="owner",
+                ),
+            )
+
     def test_semantic_and_llm_evaluation_plans_do_not_materialize_false_tasks(self) -> None:
         validator, _ = foundation._schema_validator(
             foundation.SOURCE_GATED_EVALUATION_PLAN_SCHEMA,

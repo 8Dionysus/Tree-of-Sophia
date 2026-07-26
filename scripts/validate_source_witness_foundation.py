@@ -45,6 +45,7 @@ ANCHOR_SCHEMA = CONTRACT_ROOT / "source-anchor.schema.json"
 SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "laboratory-sample-plan.schema.json"
 OCR_VISUAL_SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "ocr-visual-sample-plan.schema.json"
 GOLD_STATUS_SCHEMA = CONTRACT_ROOT / "manual-gold-status.schema.json"
+GOLD_ASSURANCE_SCHEMA = CONTRACT_ROOT / "manual-gold-assurance.schema.json"
 TRANSLATION_SAMPLE_SCHEMA = CONTRACT_ROOT / "translation-sample-plan.schema.json"
 TRANSLATION_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "translation-source-review-plan.schema.json"
@@ -156,6 +157,75 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _digest_bound_ref_issue(
+    digest_bound_ref: object,
+    *,
+    expected_path: Path,
+    repo_root: Path,
+    field: str,
+) -> str | None:
+    if not isinstance(digest_bound_ref, dict):
+        return f"{field} is not a digest-bound reference"
+    if digest_bound_ref.get("ref") != _relative(expected_path, repo_root):
+        return f"{field} does not cite the current owner artifact"
+    if digest_bound_ref.get("sha256") != _sha256(expected_path):
+        return f"{field} digest drifted"
+    return None
+
+
+def _solo_recheck_delay_issue(unit: dict[str, Any], minimum_delay: object) -> str | None:
+    if unit.get("current_assurance") != "solo_human_delayed_rechecked":
+        return None
+    observed_delay = unit.get("review_evidence", {}).get("observed_delay_hours")
+    valid_minimum = (
+        isinstance(minimum_delay, (int, float))
+        and not isinstance(minimum_delay, bool)
+    )
+    valid_observed = (
+        isinstance(observed_delay, (int, float))
+        and not isinstance(observed_delay, bool)
+    )
+    if valid_minimum and (not valid_observed or observed_delay < minimum_delay):
+        return f"{unit.get('sample_id')} solo recheck is below the declared delay floor"
+    return None
+
+
+def _language_scope_overlap_issue(scope: dict[str, Any]) -> str | None:
+    allowed = {
+        claim for claim in scope.get("allowed_claims", []) if isinstance(claim, str)
+    }
+    blocked = {
+        claim for claim in scope.get("blocked_claims", []) if isinstance(claim, str)
+    }
+    overlap = sorted(allowed & blocked)
+    if overlap:
+        return (
+            f"{scope.get('language')} language scope both allows and blocks: "
+            + ", ".join(overlap)
+        )
+    return None
+
+
+def _assurance_reference_use_issue(unit: dict[str, Any]) -> str | None:
+    assurance = unit.get("current_assurance")
+    expected_by_assurance = {
+        "unreviewed": "none",
+        "language_competence_blocked": "none",
+        "rejected": "none",
+        "uncertain": "none",
+        "single_human_source_visible": "criteria_evidence_only",
+        "solo_human_delayed_rechecked": "calibration_metrics_with_disclosure",
+        "independent_multi_human_adjudicated": "independent_multi_human_gold",
+    }
+    expected = expected_by_assurance.get(assurance)
+    if expected is not None and unit.get("reference_use") != expected:
+        return (
+            f"{unit.get('sample_id')} reference use "
+            f"{unit.get('reference_use')} is invalid for {assurance}"
+        )
+    return None
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -256,6 +326,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             repo_root,
         )
         gold_status_validator, _ = _schema_validator(GOLD_STATUS_SCHEMA, repo_root)
+        gold_assurance_validator, _ = _schema_validator(
+            GOLD_ASSURANCE_SCHEMA,
+            repo_root,
+        )
         translation_sample_validator, _ = _schema_validator(TRANSLATION_SAMPLE_SCHEMA, repo_root)
         translation_source_review_validator, _ = _schema_validator(
             TRANSLATION_SOURCE_REVIEW_SCHEMA,
@@ -447,6 +521,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         ocr_sample_path = gold_root / "ocr-visual-samples.json"
         ocr_anchor_path = gold_root / "ocr-anchors.jsonl"
         gold_status_path = gold_root / "gold-status.json"
+        gold_assurance_path = gold_root / "gold-assurance.v2.json"
         translation_path = gold_root / "translation-samples.json"
         translation_source_review_path = gold_root / "translation-source-review-plan.v2.json"
         translation_laboratory_path = gold_root / "translation-laboratory-plan.v1.json"
@@ -474,6 +549,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             else None
         )
         gold_status = _load_json(gold_status_path, repo_root, issues)
+        gold_assurance = _load_json(gold_assurance_path, repo_root, issues)
         translation_plan = _load_json(translation_path, repo_root, issues)
         translation_source_review_plan = (
             _load_json(translation_source_review_path, repo_root, issues)
@@ -513,6 +589,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             )
         if gold_status is not None:
             _validate_payload(gold_status, gold_status_validator, _relative(gold_status_path, repo_root), issues)
+        if gold_assurance is not None:
+            _validate_payload(
+                gold_assurance,
+                gold_assurance_validator,
+                _relative(gold_assurance_path, repo_root),
+                issues,
+            )
         if translation_plan is not None:
             _validate_payload(
                 translation_plan,
@@ -958,6 +1041,21 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 item_ref = group.get("item_ref")
                 file_ref = group.get("file_ref")
                 samples = group.get("samples", [])
+                edition_ref = item_edition_by_id.get(str(item_ref))
+                edition_record = records_by_id.get(str(edition_ref), ({}, Path()))[0]
+                group_languages = {
+                    records_by_id.get(str(expression_ref), ({}, Path()))[0].get(
+                        "language"
+                    )
+                    for expression_ref in edition_record.get(
+                        "embodies_expression_refs",
+                        [],
+                    )
+                }
+                group_languages.discard(None)
+                group_language = (
+                    next(iter(group_languages)) if len(group_languages) == 1 else None
+                )
                 if file_owner_by_id.get(str(file_ref)) != item_ref:
                     issues.append((_relative(sample_path, repo_root), f"file_ref {file_ref} does not belong to {item_ref}"))
                 if file_digest_by_id.get(str(file_ref)) != group.get("file_sha256"):
@@ -979,6 +1077,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "item_ref": item_ref,
                             "file_ref": file_ref,
                             "anchor_ref": anchor_ref,
+                            "language": group_language,
                         }
                     if isinstance(anchor_ref, str):
                         sample_anchor_ids.add(anchor_ref)
@@ -1448,6 +1547,164 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         for evidence_field in ("maker_ref", "completed_at", "receipt_ref"):
                             if not isinstance(review_pass.get(evidence_field), str):
                                 issues.append((_relative(gold_status_path, repo_root), f"{unit.get('sample_id')} claims gold without {field}.{evidence_field}"))
+
+        if gold_assurance is not None:
+            assurance_location = _relative(gold_assurance_path, repo_root)
+            method_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_ASSURANCE_RESEARCH.md"
+            )
+            for field, expected_path in (
+                ("legacy_gold_status", gold_status_path),
+                ("sample_plan", sample_path),
+                ("method_research", method_research_path),
+            ):
+                digest_issue = _digest_bound_ref_issue(
+                    gold_assurance.get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=field,
+                )
+                if digest_issue is not None:
+                    issues.append((assurance_location, digest_issue))
+
+            assurance_units = {
+                unit.get("sample_id"): unit
+                for unit in gold_assurance.get("units", [])
+                if isinstance(unit, dict) and isinstance(unit.get("sample_id"), str)
+            }
+            if set(assurance_units) != gold_sample_ids:
+                issues.append(
+                    (
+                        assurance_location,
+                        "gold-assurance units differ from frozen gold candidates",
+                    )
+                )
+
+            language_scopes = {
+                scope.get("language"): scope
+                for scope in gold_assurance.get("language_scopes", [])
+                if isinstance(scope, dict) and isinstance(scope.get("language"), str)
+            }
+            if len(language_scopes) != len(gold_assurance.get("language_scopes", [])):
+                issues.append((assurance_location, "language scopes must be unique"))
+            for scope in language_scopes.values():
+                overlap_issue = _language_scope_overlap_issue(scope)
+                if overlap_issue is not None:
+                    issues.append((assurance_location, overlap_issue))
+
+            minimum_delay = gold_assurance.get("solo_recheck_policy", {}).get(
+                "minimum_delay_hours"
+            )
+            legacy_units = {
+                unit.get("sample_id"): unit
+                for unit in (gold_status or {}).get("units", [])
+                if isinstance(unit, dict) and isinstance(unit.get("sample_id"), str)
+            }
+            observed_languages: set[str] = set()
+            for sample_id, unit in assurance_units.items():
+                binding = sample_bindings.get(sample_id, {})
+                expected_anchor = binding.get("anchor_ref")
+                expected_language = binding.get("language")
+                if unit.get("anchor_ref") != expected_anchor:
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} assurance anchor differs from the frozen sample",
+                        )
+                    )
+                if unit.get("language") != expected_language:
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} assurance language differs from its source group",
+                        )
+                    )
+                if isinstance(expected_language, str):
+                    observed_languages.add(expected_language)
+                language_scope = language_scopes.get(unit.get("language"))
+                if language_scope is None:
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} has no language competence scope",
+                        )
+                    )
+                elif unit.get("competence_level") != language_scope.get(
+                    "planned_competence"
+                ):
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} competence differs from its language scope",
+                        )
+                    )
+
+                assurance = unit.get("current_assurance")
+                evidence = unit.get("review_evidence", {})
+                if assurance in {"unreviewed", "language_competence_blocked"}:
+                    if any(value is not None for value in evidence.values()):
+                        issues.append(
+                            (
+                                assurance_location,
+                                f"{sample_id} has review evidence before review",
+                            )
+                        )
+                if assurance == "language_competence_blocked":
+                    if (
+                        language_scope is None
+                        or language_scope.get("text_review_status")
+                        != "language_competence_blocked"
+                    ):
+                        issues.append(
+                            (
+                                assurance_location,
+                                f"{sample_id} language block is absent from its scope",
+                            )
+                        )
+                if assurance == "solo_human_delayed_rechecked":
+                    delay_issue = _solo_recheck_delay_issue(unit, minimum_delay)
+                    if delay_issue is not None:
+                        issues.append((assurance_location, delay_issue))
+                    if evidence.get("same_reviewer") is not True:
+                        issues.append(
+                            (
+                                assurance_location,
+                                f"{sample_id} solo recheck must disclose the same reviewer",
+                            )
+                        )
+                if (
+                    unit.get("reference_use") == "independent_multi_human_gold"
+                    and assurance != "independent_multi_human_adjudicated"
+                ):
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} claims independent multi-human gold without adjudication",
+                        )
+                    )
+                reference_use_issue = _assurance_reference_use_issue(unit)
+                if reference_use_issue is not None:
+                    issues.append((assurance_location, reference_use_issue))
+                if (
+                    legacy_units.get(sample_id, {}).get("gold_status")
+                    == "human_double_checked"
+                    and assurance in {"unreviewed", "language_competence_blocked"}
+                ):
+                    issues.append(
+                        (
+                            assurance_location,
+                            f"{sample_id} assurance does not carry forward legacy human review",
+                        )
+                    )
+
+            if set(language_scopes) != observed_languages:
+                issues.append(
+                    (
+                        assurance_location,
+                        "language scopes differ from the frozen gold-unit languages",
+                    )
+                )
 
         if translation_plan is not None:
             fragment_ids: set[str] = set()
