@@ -40,6 +40,7 @@ and what must be tested manually.
 | `GOLDEN_KERNEL_TRANSFER_REPORT.md` | Is cross-work A/B/C epistemically runnable, what do the three current title-page scouts prove, and what exact evidence gate blocks a false transfer claim? |
 | `FOUNDATION_PROMOTION_REJECTION_LEDGER.md` | Which mechanics are retained, which candidate revisions are rejected or awaiting human review, and which content claims remain completely blocked? |
 | `LIMITATIONS_AND_NEXT_STEPS.md` | Which Definition-of-Done conditions remain open, why they require real human authority, and in what dependency order should work continue? |
+| `GOAL_COMPLETION_AUDIT.md` | Which of the 31 required artifacts and Definition-of-Done conditions are proven, prepared, partial, blocked, or freshness-sensitive after the first real workbench pass? |
 
 ## Governing conclusion
 
