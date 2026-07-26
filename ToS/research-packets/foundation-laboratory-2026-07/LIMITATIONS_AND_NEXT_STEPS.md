@@ -96,10 +96,13 @@ contracts intentionally reject simulated human evidence.
 
 ## Research and software freshness
 
-The research snapshot is dated 2026-07-23. Standards and conceptual papers
-age more slowly than software, model cards, licenses, advisories, download
-sizes, and model/runtime compatibility. Before any deferred installation or
-new run:
+The broad research snapshot is dated 2026-07-23. The next local software/LLM
+choice was separately refreshed on 2026-07-26 in
+`LOCAL_LLM_ADMISSION.md`; it admitted resident E2B/E4B/Qwen3-4B only after
+the corresponding content gate and admitted no download or run. Standards and
+conceptual papers age more slowly than software, model cards, licenses,
+advisories, download sizes, and model/runtime compatibility. Before any
+deferred installation or new run:
 
 1. verify the current official release and security surface;
 2. freeze exact source revision, artifact digest, license evidence, model
@@ -176,6 +179,18 @@ quality.
    time and both competing claim families.
 5. Preserve every disagreement and negative result rather than overwriting
    the executed packet.
+
+### 2a. Freeze, but do not yet execute, the resident LLM packet
+
+1. Choose one bounded proposal question; do not mix OCR correction,
+   translation, semantic annotation, and free commentary in one score.
+2. Freeze exact source anchors, context, random/hard cases, prompt/output
+   contract, rubric, and balanced display assignment before model output.
+3. Use resident Gemma 4 E2B, Gemma 4 E4B, and Qwen3 4B as A/B/C.
+4. For subjective tasks, freeze the human-only baseline before showing model
+   suggestions.
+5. Keep execution blocked until the matching source/human-evidence gate is
+   satisfied; a prepared packet is not a model-quality result.
 
 ### 3. Open translation only after source acceptance
 

@@ -2,7 +2,7 @@
 
 Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C evidence, not a general benchmark result
 
-Observed: 2026-07-23; OCR C full packet completed after preserved configuration and runner-scope failures
+Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -39,15 +39,17 @@ advisory inspection facts. Human-gold metrics and an OCR winner remain absent.
 | swap | zram about 20.6 GB, roughly 7.2 GB already used during probe | swap activity is a stop signal, not free model capacity |
 | GPU | Intel Arrow Lake-P Arc Pro 130T/140T integrated GPU; Vulkan 1.4/OpenCL visible | shared-memory Vulkan/OpenVINO trials are viable; no dedicated-VRAM assumption |
 | NPU | Intel `8086:7d1d`, `intel_vpu`, `/dev/accel/accel0` | only compatible fixed/INT4 OpenVINO routes; do not assume universal support |
-| OpenVINO | 2026.2; CPU/GPU/NPU visible | preferred cross-device comparison surface |
-| root filesystem | about 105 GB free at probe | large mutable AI artifacts still prohibited here |
-| `/srv` | about 69.6 GB free, 87% used; owner class `watch` | every material download requires storage preflight |
+| OpenVINO | `2026.2.0-21903-52ddc073857-releases/2026/2`; CPU/GPU/NPU visible at `2026-07-26T16:41:58-06:00` | preferred cross-device comparison surface; model/device proof still required |
+| root filesystem | 97,383,477,248 bytes free in the owner pressure snapshot | large mutable AI artifacts still prohibited here |
+| `/srv` | 123,556,466,688 bytes free, 72.11% used, owner class `green` at `2026-07-26T16:46:26-06:00` | capacity is not acquisition permission; every material download still requires preflight |
 | existing AI cache | `/srv/abyss-machine/cache/ai` about 44 GB | reuse and account for cache; do not duplicate weights |
-| llama.cpp runtimes | about 5.3 GB; Vulkan build b9060 available | preferred GGUF baseline |
+| llama.cpp runtimes | pinned Vulkan+CPU build at commit `05ff59cb57860cc992fc6dcede32c696efea711c` | preferred resident GGUF baseline |
 | oneAPI | about 5.7 GB present | SYCL is possible but not first-route ready |
 
 This is a capability snapshot. The latest owner benchmark had skipped all
 three OpenVINO devices and was not an affirmative performance result.
+See `LOCAL_LLM_ADMISSION.md` for the 2026-07-26 official-docs, established
+work, and freshest-primary-work refresh and the exact no-download decision.
 
 ## Storage and runtime law
 
@@ -76,11 +78,11 @@ three OpenVINO devices and was not an affirmative performance result.
 
 | Model | Format/runtime | Approximate stored size | First-wave role | State |
 | --- | --- | ---: | --- | --- |
-| Gemma 4 E2B | GGUF Q4_K_XL, llama.cpp Vulkan | 3.184 GB | low-cost LLM A | ready |
-| Gemma 4 E4B | GGUF Q5_K_XL, llama.cpp Vulkan | 6.656 GB | stronger LLM B | ready, sequential |
+| Gemma 4 E2B | GGUF UD-Q4_K_XL, llama.cpp Vulkan+CPU | 3,184,494,720 bytes | low-cost LLM A | ready after task-material gate |
+| Gemma 4 E4B | GGUF UD-Q5_K_XL, llama.cpp Vulkan+CPU | 6,656,152,736 bytes | stronger LLM B | ready after task-material gate, sequential |
 | Qwen3-Embedding-0.6B | OpenVINO INT8 | 612 MB | dense retrieval/alignment | ready |
 | Granite Embedding 311M Multilingual R2 | official OpenVINO INT8 subset at exact revision | 348,082,051 bytes across 11 selected files | independent multilingual Retrieval C | installed in host cache; CPU smoke and two frozen packet runs pass mechanically |
-| Qwen3 4B | OpenVINO INT4 | 2.29 GB plus existing repository objects | LLM C/family control | ready via owner/deployment route |
+| Qwen3 4B | OpenVINO INT4 | 2.29 GB plus existing repository objects | LLM C/family/runtime control | ready after task-material gate via owner/deployment route |
 | Qwen3 8B | OpenVINO INT4 | 4.88 GB plus existing repository objects | conditional capacity challenger | present, not default |
 | Phi-3.5 mini | OpenVINO INT4 | 2.09 GB plus existing repository objects | older control | present, conditional |
 | Whisper tiny / large-v3-turbo | OpenVINO | present | future spoken/recitation branch, outside first text lab | out of current scope |
@@ -284,13 +286,19 @@ method.
 ## Current machine-fit decision
 
 The host is sufficient for the first laboratory and for producing the first
-gold packet. Reuse and measurement remain the default. Granite R2 is the
-already earned bounded retrieval exception; the sequential OCR gate has now
-earned and materialized all three isolated runtimes without placing them in the
-repository or Fedora root. A is cheap and repeatable, B is prohibitively slow
-and rejected in its unchanged configuration, and C is viable at explicit
-`960/max` with a much larger memory footprint than A. None can be called a
-winner without double-checked human transcription, correction-time accounting,
-and source-visible human review. Qwen3.5-4B, TranslateGemma, visual embeddings,
-SYCL, NPU generation, and service-heavy annotation tools remain candidates
-whose admission depends on new evidence from the smaller stack.
+gold packet. Reuse and measurement remain the default. The 2026-07-26
+freshness gate admits resident Gemma 4 E2B, Gemma 4 E4B, and Qwen3 4B as the
+next sequential model-proposal A/B/C set, but it does not admit execution
+before the matching human/source packet exists. Qwen3 8B is escalation only;
+Qwen3.5-4B, TranslateGemma, Qwen3.6, SYCL, and NPU generation remain closed
+without a specific failure hypothesis.
+
+Granite R2 is the already earned bounded retrieval exception; the sequential
+OCR gate has now earned and materialized all three isolated runtimes without
+placing them in the repository or Fedora root. A is cheap and repeatable, B is
+prohibitively slow and rejected in its unchanged configuration, and C is viable
+at explicit `960/max` with a much larger memory footprint than A. None can be
+called a winner without double-checked human transcription, correction-time
+accounting, and source-visible human review. Visual embeddings and
+service-heavy annotation tools likewise remain candidates whose admission
+depends on new evidence from the smaller stack.

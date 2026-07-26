@@ -2,7 +2,10 @@
 
 Status: research decision scaffold updated with bounded graph, retrieval, structure, and OCR A/B/C evidence; human decisions remain pending
 
-Snapshot: 2026-07-23
+Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26
+
+The exact freshness decision and next experiment contract are recorded in
+`LOCAL_LLM_ADMISSION.md`. That refresh admits no download and no content run.
 
 ## Decision vocabulary
 
@@ -112,20 +115,23 @@ Alignment records must support `1:1`, `1:n`, `n:1`, `n:m`, `omitted`,
 
 | Candidate | State | First role | License/storage posture | Stop condition |
 | --- | --- | --- | --- | --- |
-| Gemma 4 E2B GGUF | baseline | low-cost extraction/translation proposal | resident host model, about 3.2 GB | cannot ground outputs on provided spans |
-| Gemma 4 E4B GGUF | baseline | stronger same-family challenger | resident host model, about 6.7 GB | memory pressure or no manual quality gain |
-| Qwen3 4B INT4 OpenVINO | challenger | different family/runtime | resident deployment model, about 2.3 GB plus existing cache | OpenVINO route cannot reproduce prompt/output receipt |
+| Gemma 4 E2B GGUF | baseline A after content gate | low-cost source-grounded proposal | resident pinned community quantization, about 3.2 GB | cannot ground outputs on provided spans |
+| Gemma 4 E4B GGUF | baseline B after content gate | stronger same-family proposal | resident pinned community quantization, about 6.7 GB | memory pressure or no manual quality gain |
+| Qwen3 4B INT4 OpenVINO | challenger C after content gate | different family/runtime control | resident deployment model, about 2.3 GB plus existing cache | OpenVINO route cannot reproduce prompt/output/device receipt |
 | Qwen3 8B INT4 OpenVINO | conditional | capacity challenger | resident but about 4.9 GB plus cache | only if 4B/E4B errors justify it |
 | Phi-3.5 mini INT4 | conditional control | older small control | resident | no unique evidence contribution |
-| Qwen3.5-4B | conditional download | fresh 2026 small challenger | Apache 2.0 model card; storage preflight required | no material gain on manual gold set |
-| TranslateGemma 4B | conditional, license-gated | specialized MT challenger | gated license, about 8.6 GB BF16 source, short context | license not accepted or segment context insufficient |
+| Qwen3.5-4B | watchlist / conditional download | fresh small multimodal challenger | Apache 2.0 model card; new conversion/runtime and reduced-context proof required | resident A/B/C has no reviewed failure taxonomy |
+| TranslateGemma 4B | conditional, license- and source-gated | specialized MT challenger | gated license, absent artifact, 2K input context | German source unaccepted, DE/RU route unproved, or resident MT controls untested |
 | MADLAD-400 3B | defer | multilingual MT baseline | older Apache model; conversion path aging | only if specialized baseline is needed |
 | EuroLLM 1.7B | defer | compact European-language MT/control | new model artifact required | resident models fail and storage gate passes |
 | NLLB | defer/restricted | research-only MT reference | non-commercial/research license posture | incompatible intended use or rights uncertainty |
-| Qwen3.6 35B-A3B and larger | exclude first wave | none | total weights are too large for justified local start | revisit only on different hardware/evidence |
+| Qwen3.6 27B, 35B-A3B, and larger | exclude first wave | none | current but total weights are too large for the first justified local question | revisit only on different hardware or specific small-model failure evidence |
 
 LLMs may propose transcriptions, structures, glosses, translations,
 etymological leads, annotations, and relations. They never self-promote them.
+The A/B/C identities in this table apply only to a model-proposal comparison;
+they do not replace the separate human-only / AI-only / AI+human translation
+lanes.
 
 ## Translation methods
 

@@ -2,7 +2,8 @@
 
 Status: research scaffold with bounded executed laboratory evidence, not source witness, doctrine, canon, or graph truth
 
-Research snapshot: 2026-07-23
+Research snapshot: 2026-07-23; local software/LLM admission refreshed
+2026-07-26
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -25,6 +26,7 @@ and what must be tested manually.
 | `RESEARCH.md` | What foundation is defensible, and what does current evidence change? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
+| `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
 | `OCR_ADMISSION.md` | What the sequential OCR A/B/C executions produced, which failures remain preserved, and what still blocks quality claims? |
 | `HUMAN_GOLD_REVIEW_PACKET.md` | Is the 15-page source-visible double-review interface real, blind, hash-closed, and still honestly 0/15? |
 | `HUMAN_ASSURANCE_RESEARCH.md` | How should solo+AI review, delayed self-recheck, AI exposure, language competence, and balanced A/B/C assignment be stated without false gold? |

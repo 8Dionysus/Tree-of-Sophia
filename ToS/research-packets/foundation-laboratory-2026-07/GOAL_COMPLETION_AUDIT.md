@@ -38,9 +38,9 @@ gold, accepted text, or public derivative was created.
 
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
-| 1 | ordered research packet | `RESEARCH.md` preserves classical standards, established work, then current software and papers | proven; refresh required | recheck release, license, model-card, and hardware claims before each new acquisition |
-| 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access | proven; refresh required | incorporate only newly admitted candidates after a fresh evidence check |
-| 3 | machine-fit matrix | `MACHINE_FIT.md` records the live host, resident runtimes, capacity classes, resource law, and measured pilots | proven; refresh required | rerun live storage, service, memory, and thermal admission before heavy work |
+| 1 | ordered research packet | `RESEARCH.md` preserves the broad foundation order; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice | proven and refreshed 2026-07-26 | repeat the same ordered check before any later acquisition |
+| 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the local LLM refresh admits no new download | proven and refreshed 2026-07-26 | incorporate only candidates justified by a reviewed resident-route failure taxonomy |
+| 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
 | 5 | README | root and `ToS/README.md` route a reader through the tree and distinguish tracked metadata from local payload | proven | none at the current topology |
 | 6 | engineering AGENTS | root, `ToS/`, witness, research, Zarathustra, contract, review, and export cards carry local owner law | proven | keep nested cards current when topology or authority changes |
