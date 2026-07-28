@@ -25,7 +25,8 @@ judgment true.
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
 | `semantic-ladder-packet.schema.json` | exact source-accepted form-to-graph sequence with honest empty blocked stages, translation evidence posture, a real-human sign decision, competing readings, and a disposable projection boundary |
 | `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
-| `source-gated-evaluation-plan.schema.json` | fail-closed semantic-annotation and LLM-assistance task plans; the LLM lane may freeze one content-free proposal contract and resident execution-profile route while keeping task instances, source text, human work, runs, and promotion blocked |
+| `source-gated-evaluation-plan.schema.json` | reproducible v1 semantic-annotation readiness law and its historical universal source/gold gate |
+| `source-gated-llm-evaluation-plan.schema.json` | task-specific LLM readiness: twenty accepted anchored source units, a later unassisted baseline only for those materialized subjective tasks, non-authoritative 30/15 history, and fail-closed A/B/C execution |
 | `laboratory-sample-plan.schema.json` | source-balanced frozen sample units, strata, anchors, and gold candidates |
 | `ocr-visual-sample-plan.schema.json` | output-blind 3x12 visual OCR projection, shared render law, sealed reference witnesses, and an explicit human-gold gate |
 | `manual-gold-status.schema.json` | model-draft and two-pass source-visible human gold state without relabeling |
@@ -110,13 +111,17 @@ A schema validator can establish that:
   semantic evaluation, requires real-human kernel and target gold before a
   ready state, preserves exact A/B/C isolation, and cannot report runs,
   metrics, a winner, or promotion while `blocked-not-run`;
-- a source-gated evaluation plan cannot materialize semantic or LLM tasks,
-  runs, metrics, a winner, or promotion while accepted source and
-  double-checked human gold remain absent;
-- a blocked LLM plan may freeze exactly one bounded proposal question, output
-  boundary, 10-random/10-hard shape, and runtime-profile reference, but it must
-  carry zero source anchors and task instances, schedule no human work, and
-  require the runtime profile to be refreshed whenever the plan changes;
+- a v1 source-gated semantic plan cannot materialize tasks, runs, metrics, a
+  winner, or promotion while its accepted-source and double-checked-gold gates
+  remain absent;
+- a blocked LLM v2 plan may freeze exactly one bounded proposal question,
+  output boundary, 10-random/10-hard shape, and runtime-profile reference, but
+  it must carry zero source anchors and task instances, schedule no human work,
+  and require the runtime profile to be refreshed whenever the plan changes;
+- LLM v2 readiness comes only from twenty task-specific accepted source units
+  and twenty unassisted baselines for those same subjective tasks; the
+  digest-bound historical 30-source/15-gold snapshot has neither scheduling
+  nor execution authority;
 - a discovery record preserves exact queries and ranked results while keeping
   declared rights as evidence rather than a ToS conclusion;
 - an access-request record cannot label a draft as sent or granted without

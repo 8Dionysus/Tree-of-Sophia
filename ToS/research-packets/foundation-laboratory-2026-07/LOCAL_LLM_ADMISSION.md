@@ -374,7 +374,7 @@ is retained only for a narrow hard case.
 
 Stop the run when:
 
-- source or human-gold readiness is absent;
+- the task-specific source-evidence or unassisted-human-baseline gate is absent;
 - the owner resource route denies the launch;
 - the backend silently changes device;
 - output cannot resolve to supplied anchors;
@@ -402,6 +402,9 @@ The freshness gate is complete for the next LLM choice:
 - no model or validator can create human gold, German competence, an accepted
   translation, a sign, a relation, or canon status.
 
-The next owner route is to freeze one exact evaluation packet in ToS and its
-execution profile in `abyss-stack`, then wait for the matching human/source
-gate before running A/B/C.
+The exact content-free evaluation contract is now frozen in ToS and its
+resident execution profile is frozen in `abyss-stack`. The next owner route is
+to admit twenty task-specific source units, materialize the exact task packet,
+and only then collect the anchoring-independent baseline required by those
+subjective tasks. The older 30/15 packet snapshot schedules no work and cannot
+authorize A/B/C.

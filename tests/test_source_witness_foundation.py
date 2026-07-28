@@ -1449,13 +1449,25 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
 
     def test_semantic_and_llm_evaluation_plans_do_not_materialize_false_tasks(self) -> None:
-        validator, _ = foundation._schema_validator(
+        semantic_validator, _ = foundation._schema_validator(
             foundation.SOURCE_GATED_EVALUATION_PLAN_SCHEMA,
             REPO_ROOT,
         )
-        for filename, expected_kind in (
-            ("semantic-samples.json", "semantic-annotation"),
-            ("llm-tasks.json", "llm-assistance"),
+        llm_validator, _ = foundation._schema_validator(
+            foundation.SOURCE_GATED_LLM_EVALUATION_PLAN_SCHEMA,
+            REPO_ROOT,
+        )
+        for filename, expected_kind, validator in (
+            (
+                "semantic-samples.json",
+                "semantic-annotation",
+                semantic_validator,
+            ),
+            (
+                "llm-tasks.json",
+                "llm-assistance",
+                llm_validator,
+            ),
         ):
             plan = json.loads((GOLD_ROOT / filename).read_text(encoding="utf-8"))
             self.assertEqual([], list(validator.iter_errors(plan)))
@@ -1479,22 +1491,53 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 self.assertTrue(
                     prepared["profile_refresh_required_on_plan_change"]
                 )
+                self.assertEqual(
+                    "task-specific-accepted-anchor-set",
+                    plan["source_evidence_gate"]["gate_kind"],
+                )
+                self.assertEqual(
+                    "task-specific-unassisted-human-baseline",
+                    plan["human_baseline_gate"]["gate_kind"],
+                )
+                self.assertFalse(
+                    plan["human_baseline_gate"]["human_work_scheduled"]
+                )
+                historical = plan["historical_gate_snapshot"]
+                self.assertEqual(
+                    "superseded-universal-30-15-gate",
+                    historical["snapshot_kind"],
+                )
+                self.assertFalse(historical["scheduling_authority"])
+                self.assertFalse(historical["execution_authority"])
 
             false_task = copy.deepcopy(plan)
-            false_task["tasks"] = [
-                {
-                    "task_id": "tos-task-synthetic",
-                    "task_family": plan["task_families"][0],
-                    "stratum": "random",
-                    "source_anchor_refs": ["tos.anchor.synthetic"],
-                    "accepted_source_sha256": "a" * 64,
-                    "local_content_ref": "local-content/synthetic.json",
-                    "local_content_sha256": "b" * 64,
-                    "human_gold_ref": "local-content/synthetic-gold.json",
-                    "human_gold_sha256": "c" * 64,
-                    "eligible_for_variant_execution": True,
-                }
-            ]
+            false_task_payload = {
+                "task_id": "tos-task-synthetic",
+                "task_family": plan["task_families"][0],
+                "stratum": "random",
+                "source_anchor_refs": ["tos.anchor.synthetic"],
+                "accepted_source_sha256": "a" * 64,
+                "local_content_ref": "local-content/synthetic.json",
+                "local_content_sha256": "b" * 64,
+                "eligible_for_variant_execution": True,
+            }
+            if expected_kind == "llm-assistance":
+                false_task_payload.update(
+                    {
+                        "task_family": "sign-candidate-and-refusal",
+                        "source_review_event_ref": "tos.event.synthetic-review",
+                        "human_baseline_ref": None,
+                        "human_baseline_sha256": None,
+                    }
+                )
+            else:
+                false_task_payload.update(
+                    {
+                        "human_gold_ref": "local-content/synthetic-gold.json",
+                        "human_gold_sha256": "c" * 64,
+                    }
+                )
+            false_task["tasks"] = [false_task_payload]
             self.assertTrue(list(validator.iter_errors(false_task)))
 
             premature_ready = copy.deepcopy(plan)
@@ -1518,6 +1561,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     "human_work_scheduled"
                 ] = True
                 self.assertTrue(list(validator.iter_errors(scheduled_human)))
+
+                scheduled_historical_debt = copy.deepcopy(plan)
+                scheduled_historical_debt["historical_gate_snapshot"][
+                    "scheduling_authority"
+                ] = True
+                self.assertTrue(
+                    list(validator.iter_errors(scheduled_historical_debt))
+                )
 
     def test_current_foundation_validates_without_private_payloads(self) -> None:
         self.assertEqual(

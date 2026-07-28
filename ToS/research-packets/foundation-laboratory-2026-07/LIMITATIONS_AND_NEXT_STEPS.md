@@ -29,7 +29,7 @@ fields. They are the next authority layer.
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
 | retrieval relevance | 20 frozen queries and blind review contract | 0 human judgments | advisory model targets and hard negatives are not gold |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
-| semantic and LLM A/B/C | source-gated plans | 0 tasks | task materialization requires accepted source and frozen human gold |
+| semantic and LLM A/B/C | historical semantic v1 plan plus task-specific LLM v2 plan | 0 tasks; LLM human debt 0 | semantic v1 still requires its historical gates; LLM v2 first needs twenty task-specific accepted source units and opens an unassisted baseline only for the materialized subjective tasks |
 | golden-kernel transfer | fail-closed A/B/C plan | 0 runs, 0 target passages | C has no reviewed kernel packet and target-text gold is absent |
 
 No automated process should “help” by filling these human fields. The prepared
@@ -209,10 +209,13 @@ execution remain blocked.
    random/hard cases, task instances, human judgments, model outputs, and
    artifact SHA-256 receipts. These cannot be invented before source
    admission.
-5. Next trigger: once a task-specific source/human-evidence gate is genuinely
-   satisfied, materialize the exact anchors and cases, freeze the updated Tree
-   plan, refresh the stack profile to its new digest, then run preflight.
-   A prepared packet remains neither a model-quality result nor human work.
+5. The historical 30-source/15-gold snapshot remains digest-bound evidence
+   only. It has neither scheduling nor execution authority in the LLM v2 plan.
+6. Next trigger: admit exactly twenty task-specific source units and freeze
+   their anchors/cases. Only then open the unassisted human baseline for those
+   twenty subjective tasks. After that baseline is frozen, refresh the stack
+   profile to the new Tree digest and run preflight. A prepared packet remains
+   neither a model-quality result nor human work.
 
 ### 3. Open translation only after source acceptance
 

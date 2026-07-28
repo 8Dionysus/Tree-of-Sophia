@@ -255,7 +255,9 @@
         "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
-        "ToS/contracts/critical-edition-witness-admission.schema.json"
+        "ToS/contracts/critical-edition-witness-admission.schema.json",
+        "ToS/contracts/source-gated-evaluation-plan.schema.json",
+        "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
       ],
       "reads": [
         "source-witness records, companions, generated catalog, and any present local payload bytes"

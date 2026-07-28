@@ -62,18 +62,20 @@ Zarathustra golden kernel. It is not a completed gold set.
   kernel gold units, accepted sign and translation packets, and 20
   double-checked content-bearing target passages. `transfer-provenance.jsonl`
   binds that non-run decision to the current source and gold gates.
-- `semantic-samples.json` and `llm-tasks.json` close the remaining stack suite
-  input references without inventing content. Both are
-  `blocked-not-materialized`, contain zero tasks and zero runs, and require
-  30 accepted German units, 15 double-checked kernel gold units, and a frozen
-  20-task set before A/B/C execution. `evaluation-provenance.jsonl` binds both
-  plans to the exact current gate records.
-- `llm-tasks.json` now additionally freezes one content-free
+- `semantic-samples.json` retains the v1 universal 30-source/15-gold gate as
+  the reproducible historical semantic plan. `llm-tasks.json` now uses the
+  separate task-specific LLM v2 contract. Both remain
+  `blocked-not-materialized`, contain zero tasks and zero runs, but they no
+  longer have to share one provenance event or one readiness law.
+- `llm-tasks.json` freezes one content-free
   `sign-candidate-and-refusal` question, its output boundary, the
   10-random/10-hard shape, and the `abyss-stack` resident-profile route. It
   still contains no anchor, source text, task instance, model output, human
-  task, result, or promotion. The older 30/15 gate remains a snapshot of why
-  the historical plan is blocked, not a newly scheduled human workload.
+  task, result, or promotion. Its next gate is exactly twenty task-specific
+  accepted source units, followed only after materialization by an unassisted
+  human baseline for those subjective tasks. The older 30/15 gate is retained
+  with exact digests as non-authoritative historical evidence: it schedules
+  no work and cannot authorize execution.
 - `retrieval-queries.json` fixes 20 query intents and model-proposed expected
   anchors; exact restricted query text remains in ignored local content.
 - `graph-claims.jsonl` fixes 13 unreviewed claims across bibliographic,

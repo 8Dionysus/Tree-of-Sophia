@@ -68,6 +68,9 @@ GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA = (
 SOURCE_GATED_EVALUATION_PLAN_SCHEMA = (
     CONTRACT_ROOT / "source-gated-evaluation-plan.schema.json"
 )
+SOURCE_GATED_LLM_EVALUATION_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "source-gated-llm-evaluation-plan.schema.json"
+)
 MATERIAL_DISCOVERY_SCHEMA = CONTRACT_ROOT / "material-discovery-record.schema.json"
 ACCESS_REQUEST_SCHEMA = CONTRACT_ROOT / "access-request.schema.json"
 SERVER_IMPORT_SCHEMA = CONTRACT_ROOT / "server-import-contract.schema.json"
@@ -483,6 +486,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             SOURCE_GATED_EVALUATION_PLAN_SCHEMA,
             repo_root,
         )
+        source_gated_llm_evaluation_plan_validator, _ = _schema_validator(
+            SOURCE_GATED_LLM_EVALUATION_PLAN_SCHEMA,
+            repo_root,
+        )
         material_discovery_validator, _ = _schema_validator(
             MATERIAL_DISCOVERY_SCHEMA,
             repo_root,
@@ -783,14 +790,22 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 _relative(transfer_path, repo_root),
                 issues,
             )
-        for evaluation_path, evaluation_plan in (
-            (semantic_samples_path, semantic_samples_plan),
-            (llm_tasks_path, llm_tasks_plan),
+        for evaluation_path, evaluation_plan, evaluation_validator in (
+            (
+                semantic_samples_path,
+                semantic_samples_plan,
+                source_gated_evaluation_plan_validator,
+            ),
+            (
+                llm_tasks_path,
+                llm_tasks_plan,
+                source_gated_llm_evaluation_plan_validator,
+            ),
         ):
             if evaluation_plan is not None:
                 _validate_payload(
                     evaluation_plan,
-                    source_gated_evaluation_plan_validator,
+                    evaluation_validator,
                     _relative(evaluation_path, repo_root),
                     issues,
                 )
@@ -1674,7 +1689,6 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 "tos-llm-assistance-v1",
             ),
         }
-        evaluation_event_refs: set[str] = set()
         for evaluation_path, (
             evaluation_plan,
             expected_kind,
@@ -1688,41 +1702,151 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if evaluation_plan.get("experiment_id") != expected_experiment:
                 issues.append((evaluation_location, "source-gated experiment_id drifted"))
 
-            source_gate = evaluation_plan.get("source_gate", {})
-            expected_source_refs = {
-                "review_plan_ref": _relative(translation_source_review_path, repo_root),
-                "review_plan_sha256": _sha256(translation_source_review_path),
-                "laboratory_plan_ref": _relative(translation_laboratory_path, repo_root),
-                "laboratory_plan_sha256": _sha256(translation_laboratory_path),
-            }
-            for field, expected in expected_source_refs.items():
-                if source_gate.get(field) != expected:
-                    issues.append((evaluation_location, f"source gate {field} drifted"))
             current_accepted = (translation_laboratory_plan or {}).get(
                 "source_review_gate", {}
             ).get("current_human_accepted_units")
-            if source_gate.get("current_human_accepted_units") != current_accepted:
-                issues.append((evaluation_location, "source-gate accepted count drifted"))
-
-            human_gold_gate = evaluation_plan.get("human_gold_gate", {})
-            if human_gold_gate.get("gold_status_ref") != _relative(
-                gold_status_path,
-                repo_root,
-            ):
-                issues.append((evaluation_location, "human-gold status ref drifted"))
-            if human_gold_gate.get("gold_status_sha256") != _sha256(gold_status_path):
-                issues.append((evaluation_location, "human-gold status digest drifted"))
             actual_gold_count = sum(
                 unit.get("gold_status") == "human_double_checked"
                 for unit in (gold_status or {}).get("units", [])
                 if isinstance(unit, dict)
             )
-            if human_gold_gate.get("current_human_double_checked_units") != actual_gold_count:
-                issues.append((evaluation_location, "human-gold count drifted"))
+
+            if expected_kind == "semantic-annotation":
+                source_gate = evaluation_plan.get("source_gate", {})
+                expected_source_refs = {
+                    "review_plan_ref": _relative(
+                        translation_source_review_path,
+                        repo_root,
+                    ),
+                    "review_plan_sha256": _sha256(
+                        translation_source_review_path
+                    ),
+                    "laboratory_plan_ref": _relative(
+                        translation_laboratory_path,
+                        repo_root,
+                    ),
+                    "laboratory_plan_sha256": _sha256(
+                        translation_laboratory_path
+                    ),
+                }
+                for field, expected in expected_source_refs.items():
+                    if source_gate.get(field) != expected:
+                        issues.append(
+                            (evaluation_location, f"source gate {field} drifted")
+                        )
+                if (
+                    source_gate.get("current_human_accepted_units")
+                    != current_accepted
+                ):
+                    issues.append(
+                        (evaluation_location, "source-gate accepted count drifted")
+                    )
+
+                human_gold_gate = evaluation_plan.get("human_gold_gate", {})
+                if human_gold_gate.get("gold_status_ref") != _relative(
+                    gold_status_path,
+                    repo_root,
+                ):
+                    issues.append(
+                        (evaluation_location, "human-gold status ref drifted")
+                    )
+                if human_gold_gate.get("gold_status_sha256") != _sha256(
+                    gold_status_path
+                ):
+                    issues.append(
+                        (evaluation_location, "human-gold status digest drifted")
+                    )
+                if (
+                    human_gold_gate.get("current_human_double_checked_units")
+                    != actual_gold_count
+                ):
+                    issues.append(
+                        (evaluation_location, "human-gold count drifted")
+                    )
+            else:
+                tasks_value = evaluation_plan.get("tasks", [])
+                tasks = tasks_value if isinstance(tasks_value, list) else []
+                source_ready_count = sum(
+                    isinstance(task, dict)
+                    and bool(task.get("source_anchor_refs"))
+                    and isinstance(task.get("accepted_source_sha256"), str)
+                    and isinstance(task.get("source_review_event_ref"), str)
+                    and isinstance(task.get("local_content_ref"), str)
+                    and isinstance(task.get("local_content_sha256"), str)
+                    for task in tasks
+                )
+                baseline_ready_count = sum(
+                    isinstance(task, dict)
+                    and isinstance(task.get("human_baseline_ref"), str)
+                    and bool(task.get("human_baseline_ref"))
+                    and isinstance(task.get("human_baseline_sha256"), str)
+                    for task in tasks
+                )
+                source_evidence_gate = evaluation_plan.get(
+                    "source_evidence_gate",
+                    {},
+                )
+                if (
+                    source_evidence_gate.get("current_eligible_source_units")
+                    != source_ready_count
+                ):
+                    issues.append(
+                        (
+                            evaluation_location,
+                            "task-specific source-evidence count drifted",
+                        )
+                    )
+                human_baseline_gate = evaluation_plan.get(
+                    "human_baseline_gate",
+                    {},
+                )
+                if (
+                    human_baseline_gate.get("current_frozen_baseline_units")
+                    != baseline_ready_count
+                ):
+                    issues.append(
+                        (
+                            evaluation_location,
+                            "task-specific human-baseline count drifted",
+                        )
+                    )
+
+                historical_gate = evaluation_plan.get(
+                    "historical_gate_snapshot",
+                    {},
+                )
+                expected_historical_refs = {
+                    "source_review_plan_ref": _relative(
+                        translation_source_review_path,
+                        repo_root,
+                    ),
+                    "source_review_plan_sha256": _sha256(
+                        translation_source_review_path
+                    ),
+                    "laboratory_plan_ref": _relative(
+                        translation_laboratory_path,
+                        repo_root,
+                    ),
+                    "laboratory_plan_sha256": _sha256(
+                        translation_laboratory_path
+                    ),
+                    "gold_status_ref": _relative(gold_status_path, repo_root),
+                    "gold_status_sha256": _sha256(gold_status_path),
+                    "observed_human_accepted_source_units": current_accepted,
+                    "observed_human_double_checked_gold_units": actual_gold_count,
+                    "scheduling_authority": False,
+                    "execution_authority": False,
+                }
+                for field, expected in expected_historical_refs.items():
+                    if historical_gate.get(field) != expected:
+                        issues.append(
+                            (
+                                evaluation_location,
+                                f"historical gate snapshot {field} drifted",
+                            )
+                        )
 
             event_ref = evaluation_plan.get("provenance_event_ref")
-            if isinstance(event_ref, str):
-                evaluation_event_refs.add(event_ref)
             evaluation_event = local_events_by_id.get(str(event_ref))
             if evaluation_event is None:
                 issues.append(
@@ -1742,10 +1866,6 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append((evaluation_location, "evaluation provenance omits plan"))
                 elif output.get("sha256") != _sha256(evaluation_path):
                     issues.append((evaluation_location, "evaluation provenance digest drifted"))
-        if len(evaluation_event_refs) != 1:
-            issues.append(
-                (gold_location, "semantic and LLM plans must share one frozen evaluation event")
-            )
 
         ocr_sample_ids: set[str] = set()
         ocr_plan_anchor_ids: set[str] = set()
