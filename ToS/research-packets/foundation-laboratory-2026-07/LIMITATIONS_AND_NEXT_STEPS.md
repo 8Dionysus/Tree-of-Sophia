@@ -194,15 +194,25 @@ quality.
 
 ### 2a. Freeze, but do not yet execute, the resident LLM packet
 
-1. Choose one bounded proposal question; do not mix OCR correction,
-   translation, semantic annotation, and free commentary in one score.
-2. Freeze exact source anchors, context, random/hard cases, prompt/output
-   contract, rubric, and balanced display assignment before model output.
-3. Use resident Gemma 4 E2B, Gemma 4 E4B, and Qwen3 4B as A/B/C.
-4. For subjective tasks, freeze the human-only baseline before showing model
-   suggestions.
-5. Keep execution blocked until the matching source/human-evidence gate is
-   satisfied; a prepared packet is not a model-quality result.
+Current state: the content-free protocol is frozen; task materialization and
+execution remain blocked.
+
+1. Frozen: one `sign-candidate-and-refusal` question; OCR correction,
+   translation, semantic annotation, and free commentary are not mixed into
+   its score.
+2. Frozen: 20-task shape, 10 random plus 10 hard, output fields, forbidden
+   claims, human-only-baseline rule, and the existing block-balanced display
+   assignment law.
+3. Frozen: resident Gemma 4 E2B, Gemma 4 E4B, and Qwen3 4B as A/B/C in the
+   digest-bound `abyss-stack` execution profile; no download is admitted.
+4. Intentionally absent: source text, exact source anchors, concrete
+   random/hard cases, task instances, human judgments, model outputs, and
+   artifact SHA-256 receipts. These cannot be invented before source
+   admission.
+5. Next trigger: once a task-specific source/human-evidence gate is genuinely
+   satisfied, materialize the exact anchors and cases, freeze the updated Tree
+   plan, refresh the stack profile to its new digest, then run preflight.
+   A prepared packet remains neither a model-quality result nor human work.
 
 ### 3. Open translation only after source acceptance
 

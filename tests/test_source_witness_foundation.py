@@ -1465,6 +1465,20 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual(0, plan["result"]["run_count"])
             self.assertIsNone(plan["result"]["winner"])
             self.assertFalse(plan["result"]["promotion_authorized"])
+            if expected_kind == "llm-assistance":
+                prepared = plan["prepared_task_contract"]
+                self.assertEqual(
+                    "sign-candidate-and-refusal",
+                    prepared["selected_task_family"],
+                )
+                self.assertEqual(20, prepared["required_total_tasks"])
+                self.assertEqual([], prepared["source_anchor_refs"])
+                self.assertFalse(prepared["task_instances_materialized"])
+                self.assertFalse(prepared["source_text_present"])
+                self.assertFalse(prepared["human_work_scheduled"])
+                self.assertTrue(
+                    prepared["profile_refresh_required_on_plan_change"]
+                )
 
             false_task = copy.deepcopy(plan)
             false_task["tasks"] = [
@@ -1491,6 +1505,19 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             false_run["result"]["run_count"] = 1
             false_run["result"]["run_refs"] = ["synthetic-run"]
             self.assertTrue(list(validator.iter_errors(false_run)))
+
+            if expected_kind == "llm-assistance":
+                false_prepared = copy.deepcopy(plan)
+                false_prepared["prepared_task_contract"][
+                    "source_anchor_refs"
+                ] = ["tos.anchor.synthetic"]
+                self.assertTrue(list(validator.iter_errors(false_prepared)))
+
+                scheduled_human = copy.deepcopy(plan)
+                scheduled_human["prepared_task_contract"][
+                    "human_work_scheduled"
+                ] = True
+                self.assertTrue(list(validator.iter_errors(scheduled_human)))
 
     def test_current_foundation_validates_without_private_payloads(self) -> None:
         self.assertEqual(

@@ -41,6 +41,44 @@
     "sign-candidate-and-refusal",
     "evidence-grounded-relation-proposal"
   ],
+  "prepared_task_contract": {
+    "selected_task_family": "sign-candidate-and-refusal",
+    "bounded_question": "Given one accepted passage and its supplied Tree of Sophia anchors, propose at most one recurring sign candidate or abstain; cite only supplied anchors, state uncertainty, and do not assert accepted semantic truth.",
+    "required_total_tasks": 20,
+    "random_tasks": 10,
+    "hard_tasks": 10,
+    "task_instances_materialized": false,
+    "source_anchor_refs": [],
+    "source_text_present": false,
+    "same_inputs_across_variants": true,
+    "human_only_baseline_before_suggestions": true,
+    "required_output_fields": [
+      "task_id",
+      "decision",
+      "candidate_label",
+      "source_anchor_refs",
+      "bounded_rationale",
+      "uncertainty",
+      "failure_reason"
+    ],
+    "allowed_decisions": [
+      "propose",
+      "abstain",
+      "uncertain",
+      "failed"
+    ],
+    "forbidden_claims": [
+      "accepted-sign",
+      "accepted-concept",
+      "accepted-relation",
+      "accepted-translation",
+      "etymological-fact-without-external-evidence",
+      "canon-status"
+    ],
+    "execution_profile_ref": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-llm-assistance-profile.v1.json",
+    "profile_refresh_required_on_plan_change": true,
+    "human_work_scheduled": false
+  },
   "tasks": [],
   "blindness_and_authority": {
     "blind_variant_labels": true,
@@ -66,6 +104,6 @@
     "promotion_authorized": false,
     "conclusion": "No LLM-assistance A/B/C task was materialized or run because accepted source text, frozen target gold, and a completed manual rubric are absent."
   },
-  "provenance_event_ref": "tos.event.annotation.zarathustra-source-gated-evaluation-plans-v1.2026-07-23",
-  "plan_version": 1
+  "provenance_event_ref": "tos.event.annotation.zarathustra-resident-llm-task-contract-v1.2026-07-28",
+  "plan_version": 2
 }

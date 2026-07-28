@@ -134,6 +134,75 @@
         ]
       }
     },
+    "prepared_task_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_task_family",
+        "bounded_question",
+        "required_total_tasks",
+        "random_tasks",
+        "hard_tasks",
+        "task_instances_materialized",
+        "source_anchor_refs",
+        "source_text_present",
+        "same_inputs_across_variants",
+        "human_only_baseline_before_suggestions",
+        "required_output_fields",
+        "allowed_decisions",
+        "forbidden_claims",
+        "execution_profile_ref",
+        "profile_refresh_required_on_plan_change",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "selected_task_family": {"const": "sign-candidate-and-refusal"},
+        "bounded_question": {"type": "string", "minLength": 80},
+        "required_total_tasks": {"const": 20},
+        "random_tasks": {"const": 10},
+        "hard_tasks": {"const": 10},
+        "task_instances_materialized": {"const": false},
+        "source_anchor_refs": {"type": "array", "maxItems": 0},
+        "source_text_present": {"const": false},
+        "same_inputs_across_variants": {"const": true},
+        "human_only_baseline_before_suggestions": {"const": true},
+        "required_output_fields": {
+          "const": [
+            "task_id",
+            "decision",
+            "candidate_label",
+            "source_anchor_refs",
+            "bounded_rationale",
+            "uncertainty",
+            "failure_reason"
+          ]
+        },
+        "allowed_decisions": {
+          "const": ["propose", "abstain", "uncertain", "failed"]
+        },
+        "forbidden_claims": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "contains": {"const": "canon-status"},
+          "items": {
+            "enum": [
+              "accepted-sign",
+              "accepted-concept",
+              "accepted-relation",
+              "accepted-translation",
+              "etymological-fact-without-external-evidence",
+              "canon-status"
+            ]
+          }
+        },
+        "execution_profile_ref": {
+          "const": "abyss-stack:mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-llm-assistance-profile.v1.json"
+        },
+        "profile_refresh_required_on_plan_change": {"const": true},
+        "human_work_scheduled": {"const": false}
+      }
+    },
     "tasks": {
       "type": "array",
       "items": {"$ref": "#/$defs/task"}
@@ -220,6 +289,7 @@
     {
       "if": {"properties": {"plan_kind": {"const": "llm-assistance"}}},
       "then": {
+        "required": ["prepared_task_contract"],
         "properties": {
           "experiment_id": {"const": "tos-llm-assistance-v1"},
           "task_families": {

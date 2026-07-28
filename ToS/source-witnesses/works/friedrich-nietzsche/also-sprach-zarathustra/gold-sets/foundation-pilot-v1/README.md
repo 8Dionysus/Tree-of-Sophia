@@ -68,6 +68,12 @@ Zarathustra golden kernel. It is not a completed gold set.
   30 accepted German units, 15 double-checked kernel gold units, and a frozen
   20-task set before A/B/C execution. `evaluation-provenance.jsonl` binds both
   plans to the exact current gate records.
+- `llm-tasks.json` now additionally freezes one content-free
+  `sign-candidate-and-refusal` question, its output boundary, the
+  10-random/10-hard shape, and the `abyss-stack` resident-profile route. It
+  still contains no anchor, source text, task instance, model output, human
+  task, result, or promotion. The older 30/15 gate remains a snapshot of why
+  the historical plan is blocked, not a newly scheduled human workload.
 - `retrieval-queries.json` fixes 20 query intents and model-proposed expected
   anchors; exact restricted query text remains in ignored local content.
 - `graph-claims.jsonl` fixes 13 unreviewed claims across bibliographic,
