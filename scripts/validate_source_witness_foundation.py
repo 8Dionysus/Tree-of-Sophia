@@ -226,6 +226,32 @@ def _assurance_reference_use_issue(unit: dict[str, Any]) -> str | None:
     return None
 
 
+def _human_work_schedule_issues(
+    assurance_units: dict[str, dict[str, Any]],
+    schedule: object,
+) -> list[str]:
+    if not isinstance(schedule, dict):
+        return ["human-work schedule is not an object"]
+    selected = set(schedule.get("selected_calibration_unit_ids", []))
+    unscheduled = set(schedule.get("unscheduled_unit_ids", []))
+    issues: list[str] = []
+    if selected & unscheduled:
+        issues.append("selected calibration and unscheduled units overlap")
+    if selected | unscheduled != set(assurance_units):
+        issues.append("human-work schedule does not partition the frozen packet")
+    if schedule.get("human_debt_units") != 0:
+        issues.append("closed sparse calibration must report zero human debt")
+    for sample_id in selected:
+        unit = assurance_units.get(sample_id, {})
+        if (
+            unit.get("current_assurance") != "unreviewed"
+            or unit.get("reference_use") != "none"
+            or unit.get("next_route") != "none"
+        ):
+            issues.append(f"{sample_id} sparse calibration observation was promoted")
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -1580,6 +1606,24 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "gold-assurance units differ from frozen gold candidates",
                     )
                 )
+
+            human_work_schedule = gold_assurance.get("human_work_schedule", {})
+            for message in _human_work_schedule_issues(
+                assurance_units, human_work_schedule
+            ):
+                issues.append((assurance_location, message))
+            for field in ("runtime_closure", "runtime_receipt", "source_autosave"):
+                local_ref = human_work_schedule.get(field, {})
+                local_path = Path(str(local_ref.get("ref", "")))
+                if local_path.is_file():
+                    expected_digest = local_ref.get("sha256")
+                    if _sha256(local_path) != expected_digest:
+                        issues.append(
+                            (
+                                assurance_location,
+                                f"{field} local evidence digest drifted",
+                            )
+                        )
 
             language_scopes = {
                 scope.get("language"): scope

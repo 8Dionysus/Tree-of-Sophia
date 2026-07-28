@@ -1175,7 +1175,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(
             all(
                 unit["current_assurance"] == "unreviewed"
-                and unit["next_route"] == "single_human_independent_reference"
+                and unit["next_route"] == "none"
                 for unit in russian_units
             )
         )
@@ -1186,6 +1186,46 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 and unit["next_route"] == "resolve_language_competence"
                 for unit in german_units
             )
+        )
+        schedule = assurance["human_work_schedule"]
+        self.assertFalse(schedule["packet_units_are_human_debt"])
+        self.assertEqual("closed_no_human_debt", schedule["current_status"])
+        self.assertEqual(0, schedule["human_debt_units"])
+        self.assertEqual(
+            ["tos-sample-antonovsky-p011"],
+            schedule["selected_calibration_unit_ids"],
+        )
+        self.assertEqual(
+            {unit["sample_id"] for unit in assurance["units"]},
+            set(schedule["selected_calibration_unit_ids"])
+            | set(schedule["unscheduled_unit_ids"]),
+        )
+        self.assertFalse(schedule["promotion_authorized"])
+        self.assertEqual("not_collected", schedule["attestation_status"])
+
+    def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
+        self,
+    ) -> None:
+        assurance = json.loads(
+            (GOLD_ROOT / "gold-assurance.v2.json").read_text(encoding="utf-8")
+        )
+        units = {unit["sample_id"]: unit for unit in assurance["units"]}
+        self.assertEqual(
+            [],
+            foundation._human_work_schedule_issues(
+                units, assurance["human_work_schedule"]
+            ),
+        )
+
+        duplicate = copy.deepcopy(assurance)
+        duplicate["human_work_schedule"]["unscheduled_unit_ids"].append(
+            duplicate["human_work_schedule"]["selected_calibration_unit_ids"][0]
+        )
+        self.assertIn(
+            "selected calibration and unscheduled units overlap",
+            foundation._human_work_schedule_issues(
+                units, duplicate["human_work_schedule"]
+            ),
         )
 
     def test_manual_gold_assurance_allows_only_disclosed_delayed_solo_recheck(self) -> None:

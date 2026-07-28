@@ -82,16 +82,18 @@ The following remain absent rather than zero:
 - golden-kernel transfer accuracy, speed, correction, traceability,
   hallucinated relations, reusable-sign utility, and ontology imposition.
 
-## Manual verification debt
+## Manual verification gates
 
-The numbered debt below records the original v1 gate. The 2026-07-26 assurance
-overlay supersedes its implicit reviewer-identity claim without rewriting the
-historical packet: Russian criteria review is the ordinary route; any
-same-human delayed recheck measures only intra-annotator stability; German
+The numbered list below records questions that require future human evidence,
+not a standing backlog. The 2026-07-28 assurance schedule supersedes the
+original v1 work implication without rewriting the historical packet: one
+Russian calibration observation is preserved, fourteen rows are unscheduled,
+same-human delayed recheck measures only intra-annotator stability, and German
 textual claims remain language-competence-blocked.
 
 Automatic and advisory values have not been recomputed against real-human
-gold. The minimum review debt is:
+gold. If the corresponding research questions are opened, their evidence
+requirements are:
 
 1. two source-visible human passes on 15 OCR/structure gold candidates;
 2. two source-visible human passes on 30 German source units;
@@ -102,6 +104,7 @@ gold. The minimum review debt is:
 6. 20 double-checked content-bearing target passages before semantic, LLM, or
    transfer evaluation.
 
-Until that debt is closed, the laboratory has mechanical speed and resource
-evidence plus real negative failures, but no overall quality winner and no
-complete human-inclusive cost.
+Until a question-specific gate is closed, the corresponding metric remains
+unmeasured. This does not create human debt for every prepared row. The
+laboratory has mechanical speed and resource evidence plus real negative
+failures, but no overall quality winner and no complete human-inclusive cost.

@@ -12,7 +12,7 @@
   },
   "method_research": {
     "ref": "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_ASSURANCE_RESEARCH.md",
-    "sha256": "5414800e8bbef514229c283233987ee22cb8e05c9139a0c4597cd28b88dfd2c3"
+    "sha256": "a9bdda49b0524f49d98cbd7168e97134b971f6679821488dbd0450c3efd7063c"
   },
   "content_visibility": "local_only",
   "operating_model": "solo_human_plus_ai",
@@ -40,6 +40,56 @@
       "canonical_source_acceptance",
       "language_claim_beyond_declared_competence"
     ]
+  },
+  "human_work_schedule": {
+    "mode": "triggered_sparse_calibration",
+    "packet_units_are_human_debt": false,
+    "calibration_unit_min": 1,
+    "calibration_unit_max": 3,
+    "current_status": "closed_no_human_debt",
+    "selected_calibration_unit_ids": [
+      "tos-sample-antonovsky-p011"
+    ],
+    "unscheduled_unit_ids": [
+      "tos-sample-antonovsky-p012",
+      "tos-sample-antonovsky-p050",
+      "tos-sample-antonovsky-p300",
+      "tos-sample-antonovsky-p330",
+      "tos-sample-mysl-p004",
+      "tos-sample-mysl-p006",
+      "tos-sample-mysl-p008",
+      "tos-sample-mysl-p166",
+      "tos-sample-mysl-p237",
+      "tos-sample-naumann-page-043",
+      "tos-sample-naumann-page-055",
+      "tos-sample-naumann-page-059",
+      "tos-sample-naumann-page-380",
+      "tos-sample-naumann-page-522"
+    ],
+    "human_debt_units": 0,
+    "attestation_status": "not_collected",
+    "promotion_authorized": false,
+    "runtime_closure": {
+      "ref": "/srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.sparse-calibration-closure/closure.json",
+      "sha256": "e0ff950043eb823b7894ef3e4ee958f5292b111dc7d9f7d408dc9a3620b848da"
+    },
+    "runtime_receipt": {
+      "ref": "/srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.sparse-calibration-closure/receipt.json",
+      "sha256": "bc655fe8129df8b30bdeb304a2eec0de02723eaf4a8e984ecf5ebac486f0f355"
+    },
+    "source_autosave": {
+      "ref": "/srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+      "sha256": "6ba7619bf4591353fb8d5afea75a92d0e2ddd705cbb5adb37885c883cc4a1635"
+    },
+    "review_triggers": [
+      "new_source_or_edition",
+      "new_ocr_or_llm_method",
+      "serious_candidate_disagreement",
+      "unresolved_or_semantic_risk",
+      "competent_language_translation_question",
+      "periodic_drift_control"
+    ],
+    "interface_test_route": "synthetic_or_declared_single_control_episode"
   },
   "language_scopes": [
     {
@@ -89,7 +139,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -106,7 +156,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -123,7 +173,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -140,7 +190,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -157,7 +207,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -174,7 +224,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -191,7 +241,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -208,7 +258,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -225,7 +275,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -242,7 +292,7 @@
       "competence_level": "full",
       "current_assurance": "unreviewed",
       "reference_use": "none",
-      "next_route": "single_human_independent_reference",
+      "next_route": "none",
       "review_evidence": {
         "pass_1_receipt_ref": null,
         "pass_2_receipt_ref": null,
@@ -338,6 +388,6 @@
       }
     }
   ],
-  "set_status": "partially_ready_for_solo_review",
-  "status_version": 1
+  "set_status": "sparse_calibration_closed_no_human_debt",
+  "status_version": 2
 }

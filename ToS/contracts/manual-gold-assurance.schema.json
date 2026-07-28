@@ -15,6 +15,7 @@
     "operating_model",
     "truth_law",
     "solo_recheck_policy",
+    "human_work_schedule",
     "language_scopes",
     "units",
     "set_status",
@@ -103,6 +104,90 @@
         }
       }
     },
+    "human_work_schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "packet_units_are_human_debt",
+        "calibration_unit_min",
+        "calibration_unit_max",
+        "current_status",
+        "selected_calibration_unit_ids",
+        "unscheduled_unit_ids",
+        "human_debt_units",
+        "attestation_status",
+        "promotion_authorized",
+        "runtime_closure",
+        "runtime_receipt",
+        "source_autosave",
+        "review_triggers",
+        "interface_test_route"
+      ],
+      "properties": {
+        "mode": {"const": "triggered_sparse_calibration"},
+        "packet_units_are_human_debt": {"const": false},
+        "calibration_unit_min": {"const": 1},
+        "calibration_unit_max": {"const": 3},
+        "current_status": {"const": "closed_no_human_debt"},
+        "selected_calibration_unit_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos-sample-[a-z0-9-]+$"
+          }
+        },
+        "unscheduled_unit_ids": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 14,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos-sample-[a-z0-9-]+$"
+          }
+        },
+        "human_debt_units": {"const": 0},
+        "attestation_status": {"const": "not_collected"},
+        "promotion_authorized": {"const": false},
+        "runtime_closure": {"$ref": "#/$defs/localDigestBoundRef"},
+        "runtime_receipt": {"$ref": "#/$defs/localDigestBoundRef"},
+        "source_autosave": {"$ref": "#/$defs/localDigestBoundRef"},
+        "review_triggers": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "new_source_or_edition",
+              "new_ocr_or_llm_method",
+              "serious_candidate_disagreement",
+              "unresolved_or_semantic_risk",
+              "competent_language_translation_question",
+              "periodic_drift_control"
+            ]
+          },
+          "allOf": [
+            {"contains": {"const": "new_source_or_edition"}},
+            {"contains": {"const": "new_ocr_or_llm_method"}},
+            {"contains": {"const": "serious_candidate_disagreement"}},
+            {"contains": {"const": "unresolved_or_semantic_risk"}},
+            {
+              "contains": {
+                "const": "competent_language_translation_question"
+              }
+            },
+            {"contains": {"const": "periodic_drift_control"}}
+          ]
+        },
+        "interface_test_route": {
+          "const": "synthetic_or_declared_single_control_episode"
+        }
+      }
+    },
     "language_scopes": {
       "type": "array",
       "minItems": 1,
@@ -118,6 +203,7 @@
       "enum": [
         "partially_ready_for_solo_review",
         "solo_review_in_progress",
+        "sparse_calibration_closed_no_human_debt",
         "solo_rechecked_with_disclosure",
         "independent_multi_human_adjudicated",
         "blocked",
@@ -134,6 +220,15 @@
       "required": ["ref", "sha256"],
       "properties": {
         "ref": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "localDigestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^/srv/abyss-machine/.+"},
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     },

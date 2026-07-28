@@ -122,7 +122,9 @@ The v2 assurance ladder records explicit postures:
 The current packet sets a local 24-hour separation floor, hides pass 1,
 candidates, and AI assistance during the recheck, and prohibits
 inter-reviewer or independent-multi-human claims. This closes the contract
-pressure, not the still-empty human evidence.
+pressure. The 2026-07-28 scheduling update additionally preserves one
+un-attested calibration observation, leaves fourteen rows unscheduled, and
+reports zero human debt without promoting the observation.
 
 ### 2. The completed OCR candidate pass is not diplomatic gold
 
@@ -167,8 +169,10 @@ not a substitute for that competence declaration.
    the next candidate packet only after that contract freezes.
 2. Design the private-to-public laboratory evidence handoff contract before
    attempting any tracked result export.
-3. Continue Russian source-visible review under the revised assurance law;
-   leave German acceptance blocked until competence is honestly supplied.
+3. Open new Russian source-visible work only for a declared discrepancy,
+   uncertainty, semantic risk, new source/method calibration, or drift
+   control; do not reopen the closed historical packet. Leave German
+   acceptance blocked until competence is honestly supplied.
 4. Open translation only after its exact German anchors reach an admitted
    source posture.
 5. Follow translation with sign review, retrieval/graph adjudication, and only

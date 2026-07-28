@@ -150,11 +150,15 @@ Source:
 
 ## Contract consequences
 
-1. **Criteria review is the default.** Reading the source, judging fidelity,
-   completeness, structure, and errors, and optionally correcting a visible
-   candidate is the ordinary human route.
+1. **Triggered criteria review is the default human form.** Once a real review
+   trigger exists, reading the source, judging fidelity, completeness,
+   structure, and errors, and optionally correcting a visible candidate is the
+   ordinary human route. A prepared packet or an unfinished packet count is
+   not itself such a trigger.
 2. **Independent transcription is small and rare.** It is used only where an
-   anchoring-independent reference is needed for exact metrics or calibration.
+   anchoring-independent reference is needed for exact metrics or calibration:
+   normally one unit for a known source type and at most three when genuinely
+   distinct source or error classes require separate anchors.
 3. **One human may recheck their own reference.** Pass 2 must be a separate,
    pass-1-hidden session. It measures intra-annotator stability and may support
    calibration metrics with disclosure; it never proves inter-reviewer
@@ -175,6 +179,16 @@ Source:
    Latin-square-like assignment over method and display position. When exact
    balance is impossible, the maximum position-count difference must be one
    and the remaining imbalance must be reported.
+9. **Packet cardinality is not human debt.** Solo+AI work opens a human episode
+   for a new source or edition, a new OCR/LLM method, serious candidate
+   disagreement, uncertainty or semantic danger, a translation question
+   within declared competence, or periodic drift control. UI regression uses
+   synthetic fixtures or one separately declared control episode.
+10. **A sparse calibration may close without gold.** Preserving one to three
+    observations without a final completion attestation records useful work
+    but authorizes no exact reference, source acceptance, method ranking,
+    translation, or canon. Every unused packet row remains `unscheduled`, not
+    incomplete human labor.
 
 ## Stop line
 

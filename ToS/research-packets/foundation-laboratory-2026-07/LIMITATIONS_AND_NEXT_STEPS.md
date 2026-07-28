@@ -1,8 +1,9 @@
 # Foundation Limitations and Next Steps
 
-Status: mechanical foundation and solo+AI assurance contract prepared on local
-owner branches; human-evidence phases remain incomplete
-Snapshot: 2026-07-26
+Status: mechanical foundation and triggered solo+AI assurance contract
+prepared on local owner branches; human-evidence phases remain
+question-specific
+Snapshot: 2026-07-28
 
 ## Honest boundary
 
@@ -20,7 +21,7 @@ fields. They are the next authority layer.
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
 | --- | --- | --- | --- |
-| 15-page OCR/structure gold | private 41-page packet, two blind workbooks, exact blank working JSONL, `HUMAN_GOLD_REVIEW_PACKET.md` | pass 1: 0; pass 2: 0; accepted: 0 | model inspection and mechanical fixity cannot attest real-human source review |
+| 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
@@ -89,8 +90,9 @@ contracts intentionally reject simulated human evidence.
   service benchmark.
 - Translation-related timing measures interface materialization only, not
   translation throughput or human labor.
-- Human correction time is absent everywhere and therefore total cost is
-  incomplete.
+- A completed private OCR candidate pass contains browser-observed human time,
+  but its display-position imbalance blocks comparative correction-cost
+  ranking. Valid human-inclusive total cost remains incomplete.
 - Automatic aggregate metrics have not yet been manually recomputed against
   raw artifacts and real-human gold.
 
@@ -147,30 +149,35 @@ quality.
 
 ## Dependency-ordered next steps
 
-### 1. Complete the source-visible human gold
+### 1. Maintain triggered source-visible assurance
 
 1. Use `gold-assurance.v2.json`, not the legacy v1 label, for new assurance
    claims.
-2. Continue the ten Russian units with criteria-based source review; request
-   an independent transcription only for the small calibration subset that
-   needs exact CER/WER.
-3. If the same human rechecks that subset, wait at least the declared local
+2. Do not reopen the closed historical packet. Schedule Russian criteria
+   review only for a new source or edition, a new OCR/LLM method, serious
+   candidate disagreement, uncertainty or semantic risk, or periodic drift
+   control.
+3. Request an independent transcription only when a new exact metric or
+   regression question justifies it; use synthetic fixtures or one declared
+   control episode for UI regression.
+4. If the same human rechecks such a subset, wait at least the declared local
    24-hour floor, hide pass 1, candidates, and AI assistance, and report only
    intra-annotator stability.
-4. Keep all five German gold units and the 30-unit German source-acceptance
+5. Keep all five German gold units and the 30-unit German source-acceptance
    packet language-competence-blocked beyond visual structure. Do not infer
    orthographic, grammatical, semantic, translation, or acceptance evidence
    from visual inspection or machine agreement.
-5. Supply declared German competence or adopt a separately researched,
+6. Supply declared German competence or adopt a separately researched,
    reviewed assisted protocol before opening German textual acceptance.
-6. Preserve every `reject`, `uncertain`, `defer`, or
+7. Preserve every `reject`, `uncertain`, `defer`, or
    `accept-with-limits` state and all local receipts; no validator promotes a
    unit.
 
 ### 2. Manually verify the executed mechanical pilots
 
-1. Blind-grade OCR A/B/C where valid; manually recompute CER and WER for at
-   least one page before trusting aggregate code.
+1. Do not repeat the completed OCR A/B/C candidate pass. Open a new human
+   episode only for a real unresolved discrepancy; manually recompute CER/WER
+   only if an exact-reference question is explicitly opened.
 2. Grade structure boundaries, reading order, omissions, additions, and
    correction time.
 3. Grade 10 random and 10 hard retrieval queries, adjudicate translation

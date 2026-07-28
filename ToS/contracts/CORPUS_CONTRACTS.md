@@ -28,7 +28,7 @@ judgment true.
 | `laboratory-sample-plan.schema.json` | source-balanced frozen sample units, strata, anchors, and gold candidates |
 | `ocr-visual-sample-plan.schema.json` | output-blind 3x12 visual OCR projection, shared render law, sealed reference witnesses, and an explicit human-gold gate |
 | `manual-gold-status.schema.json` | model-draft and two-pass source-visible human gold state without relabeling |
-| `manual-gold-assurance.schema.json` | additive solo+AI assurance ladder, delayed same-human stability check, language-competence boundary, and digest-bound legacy lineage |
+| `manual-gold-assurance.schema.json` | additive solo+AI assurance ladder, trigger-gated sparse calibration, zero-human-debt closure, delayed same-human stability check, language-competence boundary, and digest-bound legacy lineage |
 | `translation-sample-plan.schema.json` | thirty frozen German fragments, sealed comparator, staged lanes, and etymology law |
 | `translation-source-review-plan.schema.json` | v2 page-triplet source review routing after selector failure, without reusing rejected automatic text |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
@@ -75,8 +75,10 @@ A schema validator can establish that:
   passes;
 - a manual-gold assurance packet keeps single-human, delayed same-human, and
   independent multi-human evidence distinct, binds its method and frozen
-  inputs by digest, and prevents visual-only language review from authorizing
-  textual or semantic claims;
+  inputs by digest, prevents visual-only language review from authorizing
+  textual or semantic claims, and partitions every frozen unit into selected
+  calibration or explicitly unscheduled work without turning packet size into
+  human debt;
 - a source-review v2 plan closes each page triplet over the rejected v1
   evidence while keeping candidate reuse, comparator visibility, and human
   acceptance false;

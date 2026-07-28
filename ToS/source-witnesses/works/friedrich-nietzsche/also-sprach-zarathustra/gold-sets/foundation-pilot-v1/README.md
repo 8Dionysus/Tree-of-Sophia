@@ -76,14 +76,16 @@ transcription is still wrong.
 
 `gold-status.json` is the frozen v1 state: 15 candidates and zero accepted
 gold units. `gold-assurance.v2.json` is an additive, digest-bound assurance
-overlay; it does not rewrite that history or promote any unit. It records ten
-Russian units as ready for source-visible solo review and five German units as
-`language_competence_blocked`.
+overlay; it does not rewrite that history or promote any unit. Its current
+human-work schedule preserves one Russian calibration observation, leaves
+fourteen packet units unscheduled, reports zero human debt, and keeps the five
+German units `language_competence_blocked`.
 
-For the ordinary Russian route, the human evaluates page identity,
+When a real Russian review trigger exists, the human evaluates page identity,
 legibility, visible structure, reading order, fidelity, completeness, and
 errors against the visible source. Full diplomatic transcription is a small,
-rare independent-reference task, not the default interaction.
+rare independent-reference task, not the default interaction. A prepared
+packet row, an unfinished count, or a UI regression is not a review trigger.
 
 When an anchoring-independent reference is needed, a unit needs:
 
@@ -163,9 +165,13 @@ blind workbooks and a 15-row blank JSONL contain no OCR output, model answer,
 embedded/reference OCR, recognized translation, human identity,
 transcription, or acceptance. The packet manifest SHA-256 is
 `a40f3d244fce19782c0c983634e37f252c36fdd6973def4ac01a3a633820c23d`.
-Its fail-closed gate remains at pass 1: 0, pass 2: 0, accepted: 0. Paths,
-artifact hashes, independent checks, and the real-human next action are
-recorded in
+Its legacy fail-closed exact-gold gate remains at pass 1: 0, pass 2: 0,
+accepted: 0. Separately, the active solo+AI schedule now preserves
+`tos-sample-antonovsky-p011` as one un-attested calibration observation, fixes
+the unchanged autosave digest, marks the remaining fourteen units
+`unscheduled`, and reports `human_debt_units: 0`. It creates no gold or source
+acceptance. Paths, artifact hashes, independent checks, and the triggered
+human-work law are recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/HUMAN_GOLD_REVIEW_PACKET.md`.
 
 ## Local content
