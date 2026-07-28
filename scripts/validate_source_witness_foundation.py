@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -72,8 +73,34 @@ ACCESS_REQUEST_SCHEMA = CONTRACT_ROOT / "access-request.schema.json"
 SERVER_IMPORT_SCHEMA = CONTRACT_ROOT / "server-import-contract.schema.json"
 RETRIEVAL_QUERY_SCHEMA = CONTRACT_ROOT / "retrieval-query-plan.schema.json"
 GRAPH_QUERY_SCHEMA = CONTRACT_ROOT / "graph-query-plan.schema.json"
+PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
+    CONTRACT_ROOT / "private-laboratory-evidence-handoff.schema.json"
+)
+PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/"
+    "private-evidence-handoff.v1.json"
+)
 
 Issue = tuple[str, str]
+
+PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES = {
+    "source_page_bytes",
+    "source_text_or_transcription",
+    "restricted_translation_text",
+    "unit_level_judgments",
+    "screen_capture",
+    "personal_interpretation",
+    "operator_identity",
+    "reviewer_identity",
+    "absolute_or_home_path",
+    "hostname_or_network_topology",
+    "token_or_credential",
+    "browser_url_with_token",
+    "session_or_process_identifier",
+    "private_timestamp",
+    "raw_command_or_environment",
+    "resolvable_private_locator",
+}
 
 
 def _load_json(path: Path, repo_root: Path, issues: list[Issue]) -> dict[str, Any] | None:
@@ -252,6 +279,76 @@ def _human_work_schedule_issues(
     return issues
 
 
+def _owner_local_evidence_path(local_ref: object) -> Path | None:
+    if not isinstance(local_ref, dict):
+        return None
+    if (
+        local_ref.get("owner") != "abyss-stack"
+        or local_ref.get("artifact_root") != "abyss_machine_artifact_store"
+    ):
+        return None
+    relative_path = local_ref.get("relative_path")
+    if not isinstance(relative_path, str):
+        return None
+    relative = Path(relative_path)
+    if relative.is_absolute() or ".." in relative.parts:
+        return None
+    artifact_root = Path(
+        os.environ.get(
+            "ABYSS_MACHINE_ARTIFACT_ROOT",
+            "/srv/abyss-machine/storage/artifacts",
+        )
+    )
+    return artifact_root / relative
+
+
+def _string_values(payload: object) -> Iterable[str]:
+    if isinstance(payload, str):
+        yield payload
+    elif isinstance(payload, dict):
+        for value in payload.values():
+            yield from _string_values(value)
+    elif isinstance(payload, list):
+        for value in payload:
+            yield from _string_values(value)
+
+
+def _private_evidence_handoff_issues(
+    handoff: object,
+    *,
+    repo_root: Path,
+) -> list[str]:
+    if not isinstance(handoff, dict):
+        return ["private-evidence handoff is not an object"]
+    issues: list[str] = []
+    forbidden = set(
+        handoff.get("disclosure_policy", {}).get("forbidden_classes", [])
+    )
+    missing_forbidden = sorted(
+        PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES - forbidden
+    )
+    if missing_forbidden:
+        issues.append(
+            f"private-evidence handoff omits forbidden classes: {missing_forbidden}"
+        )
+    for value in _string_values(handoff):
+        if value.startswith(("/", "~/")) or "/home/" in value or "/srv/" in value:
+            issues.append("private-evidence handoff contains an absolute local path")
+            break
+    destination = handoff.get("destination", {})
+    destination_ref = destination.get("artifact_path")
+    if isinstance(destination_ref, str):
+        destination_path = repo_root / destination_ref
+        if (
+            handoff.get("status") == "contract_frozen_raw_unopened"
+            and destination_path.exists()
+        ):
+            issues.append(
+                "contract-only private-evidence handoff already has a materialized derivative"
+            )
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -388,9 +485,29 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         server_import_validator, _ = _schema_validator(SERVER_IMPORT_SCHEMA, repo_root)
         retrieval_query_validator, _ = _schema_validator(RETRIEVAL_QUERY_SCHEMA, repo_root)
         graph_query_validator, _ = _schema_validator(GRAPH_QUERY_SCHEMA, repo_root)
+        private_evidence_handoff_validator, _ = _schema_validator(
+            PRIVATE_EVIDENCE_HANDOFF_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
+
+    private_handoff_path = repo_root / PRIVATE_EVIDENCE_HANDOFF_PROFILE
+    private_handoff = _load_json(private_handoff_path, repo_root, issues)
+    if private_handoff is not None:
+        private_handoff_location = _relative(private_handoff_path, repo_root)
+        _validate_payload(
+            private_handoff,
+            private_evidence_handoff_validator,
+            private_handoff_location,
+            issues,
+        )
+        for message in _private_evidence_handoff_issues(
+            private_handoff,
+            repo_root=repo_root,
+        ):
+            issues.append((private_handoff_location, message))
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}
@@ -1614,8 +1731,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues.append((assurance_location, message))
             for field in ("runtime_closure", "runtime_receipt", "source_autosave"):
                 local_ref = human_work_schedule.get(field, {})
-                local_path = Path(str(local_ref.get("ref", "")))
-                if local_path.is_file():
+                local_path = _owner_local_evidence_path(local_ref)
+                if local_path is not None and local_path.is_file():
                     expected_digest = local_ref.get("sha256")
                     if _sha256(local_path) != expected_digest:
                         issues.append(

@@ -226,9 +226,14 @@
     "localDigestBoundRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ref", "sha256"],
+      "required": ["owner", "artifact_root", "relative_path", "sha256"],
       "properties": {
-        "ref": {"type": "string", "pattern": "^/srv/abyss-machine/.+"},
+        "owner": {"const": "abyss-stack"},
+        "artifact_root": {"const": "abyss_machine_artifact_store"},
+        "relative_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     },

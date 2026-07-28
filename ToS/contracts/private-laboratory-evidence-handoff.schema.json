@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/private-laboratory-evidence-handoff.schema.json",
+  "title": "Tree of Sophia private laboratory evidence handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "handoff_id",
+    "status",
+    "source_boundary",
+    "audience",
+    "destination",
+    "disclosure_policy",
+    "review_gate",
+    "effects",
+    "claim_limit",
+    "stop_line"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/private-laboratory-evidence-handoff.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_private_laboratory_evidence_handoff_v1"
+    },
+    "handoff_id": {
+      "type": "string",
+      "pattern": "^tos\\.evidence-handoff\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "contract_frozen_raw_unopened",
+        "derivative_prepared_private",
+        "human_reviewed_publication_blocked",
+        "published",
+        "superseded"
+      ]
+    },
+    "source_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_set_id",
+        "semantic_owner",
+        "custody_owner",
+        "raw_locator_class",
+        "raw_visibility",
+        "raw_read_authority",
+        "raw_preservation",
+        "raw_opened_for_contract_design",
+        "public_return_handle"
+      ],
+      "properties": {
+        "evidence_set_id": {
+          "type": "string",
+          "pattern": "^tos\\.private-evidence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "semantic_owner": {"const": "abyss-stack"},
+        "custody_owner": {"const": "abyss-machine"},
+        "raw_locator_class": {"const": "owner_local_artifact_store"},
+        "raw_visibility": {"const": "private_local_only"},
+        "raw_read_authority": {
+          "enum": [
+            "not_authorized",
+            "authorized_for_bounded_derivative"
+          ]
+        },
+        "raw_preservation": {"const": "read_only_no_copy_no_mutation"},
+        "raw_opened_for_contract_design": {"const": false},
+        "public_return_handle": {
+          "type": "string",
+          "pattern": "^tos\\.private-return\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        }
+      }
+    },
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disclosure_class",
+        "intended_audience",
+        "permitted_abstraction"
+      ],
+      "properties": {
+        "disclosure_class": {"const": "public_safe_repository_metadata"},
+        "intended_audience": {"const": "Tree-of-Sophia repository readers"},
+        "permitted_abstraction": {
+          "const": "aggregate method evidence without source content or private topology"
+        }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "artifact_path",
+        "artifact_write_authority",
+        "publication_authority",
+        "source_authority"
+      ],
+      "properties": {
+        "owner": {"const": "Tree-of-Sophia"},
+        "artifact_path": {
+          "type": "string",
+          "pattern": "^ToS/research-packets/foundation-laboratory-2026-07/public-evidence-derivatives/[a-z0-9][a-z0-9.-]*\\.json$"
+        },
+        "artifact_write_authority": {
+          "enum": ["contract_only", "human_approved_derivative"]
+        },
+        "publication_authority": {"type": "boolean"},
+        "source_authority": {"const": false}
+      }
+    },
+    "disclosure_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_classes",
+        "forbidden_classes",
+        "minimum_aggregation_group_size",
+        "timestamp_precision",
+        "raw_quote_word_limit",
+        "preserve_negative_results",
+        "correlation_review_required"
+      ],
+      "properties": {
+        "allowed_classes": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "public_experiment_id",
+              "method_family",
+              "aggregate_outcome_counts",
+              "aggregate_error_taxonomy",
+              "aggregate_machine_cost",
+              "aggregate_human_time_with_confounds",
+              "evidence_posture",
+              "limitations",
+              "public_source_refs",
+              "opaque_private_return_handle"
+            ]
+          }
+        },
+        "forbidden_classes": {
+          "type": "array",
+          "minItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "source_page_bytes",
+              "source_text_or_transcription",
+              "restricted_translation_text",
+              "unit_level_judgments",
+              "screen_capture",
+              "personal_interpretation",
+              "operator_identity",
+              "reviewer_identity",
+              "absolute_or_home_path",
+              "hostname_or_network_topology",
+              "token_or_credential",
+              "browser_url_with_token",
+              "session_or_process_identifier",
+              "private_timestamp",
+              "raw_command_or_environment",
+              "resolvable_private_locator"
+            ]
+          }
+        },
+        "minimum_aggregation_group_size": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "timestamp_precision": {"const": "calendar_day_or_coarser"},
+        "raw_quote_word_limit": {"const": 0},
+        "preserve_negative_results": {"const": true},
+        "correlation_review_required": {"const": true}
+      }
+    },
+    "review_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine_sanitization_is_human_approval",
+        "rights_review_required",
+        "correlation_risk_review_required",
+        "human_approval_required_before_publication",
+        "current_human_approval",
+        "current_rights_review",
+        "current_correlation_review"
+      ],
+      "properties": {
+        "machine_sanitization_is_human_approval": {"const": false},
+        "rights_review_required": {"const": true},
+        "correlation_risk_review_required": {"const": true},
+        "human_approval_required_before_publication": {"const": true},
+        "current_human_approval": {"type": "boolean"},
+        "current_rights_review": {
+          "enum": ["not_performed", "passed", "failed", "uncertain"]
+        },
+        "current_correlation_review": {
+          "enum": ["not_performed", "passed", "failed", "uncertain"]
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_read",
+        "raw_mutation",
+        "raw_custody_transfer",
+        "derivative_created",
+        "publication",
+        "durable_memory_write"
+      ],
+      "properties": {
+        "raw_read": {"type": "boolean"},
+        "raw_mutation": {"const": false},
+        "raw_custody_transfer": {"const": false},
+        "derivative_created": {"type": "boolean"},
+        "publication": {"type": "boolean"},
+        "durable_memory_write": {"const": false}
+      }
+    },
+    "claim_limit": {
+      "const": "public derivative may report bounded aggregate laboratory evidence but cannot establish source text, translation, semantics, rights, canon, or method victory"
+    },
+    "stop_line": {
+      "const": "do not read private raw evidence or create its derivative until this exact destination contract is frozen; do not publish without separate human approval"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "contract_frozen_raw_unopened"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "destination": {
+            "properties": {
+              "artifact_write_authority": {"const": "contract_only"},
+              "publication_authority": {"const": false}
+            }
+          },
+          "source_boundary": {
+            "properties": {
+              "raw_read_authority": {"const": "not_authorized"}
+            }
+          },
+          "review_gate": {
+            "properties": {
+              "current_human_approval": {"const": false},
+              "current_rights_review": {"const": "not_performed"},
+              "current_correlation_review": {"const": "not_performed"}
+            }
+          },
+          "effects": {
+            "properties": {
+              "raw_read": {"const": false},
+              "derivative_created": {"const": false},
+              "publication": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "effects": {
+            "properties": {
+              "publication": {"const": true}
+            },
+            "required": ["publication"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "destination": {
+            "properties": {
+              "publication_authority": {"const": true}
+            }
+          },
+          "review_gate": {
+            "properties": {
+              "current_human_approval": {"const": true},
+              "current_rights_review": {"const": "passed"},
+              "current_correlation_review": {"const": "passed"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

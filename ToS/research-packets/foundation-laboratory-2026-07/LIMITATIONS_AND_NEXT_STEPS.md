@@ -93,6 +93,10 @@ contracts intentionally reject simulated human evidence.
 - A completed private OCR candidate pass contains browser-observed human time,
   but its display-position imbalance blocks comparative correction-cost
   ranking. Valid human-inclusive total cost remains incomplete.
+- That private pass now has a frozen, exact public-safe handoff contract. Raw
+  evidence was not opened for contract design, no derivative was created, and
+  publication remains blocked pending human rights and correlation-risk
+  review.
 - Automatic aggregate metrics have not yet been manually recomputed against
   raw artifacts and real-human gold.
 

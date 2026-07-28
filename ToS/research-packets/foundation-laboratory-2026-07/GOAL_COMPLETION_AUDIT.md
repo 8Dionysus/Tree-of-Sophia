@@ -68,7 +68,7 @@ gold, accepted text, or public derivative was created.
 | 28 | golden-kernel transfer report | a fail-closed plan and honest `blocked-not-run` report exist | blocked | accepted kernel packets, content-bearing target passages, target gold, and A/B/C runs |
 | 29 | promotion/rejection decisions | `FOUNDATION_PROMOTION_REJECTION_LEDGER.md` promotes mechanics and preserves negative runs | proven for method decisions; content open | superseding human receipts for any text, sign, relation, or transfer promotion |
 | 30 | future server-import contract | schemas, protocol, item plans, rights gate, takedown fields, and metadata-only status exist | proven as blocked contract | operator approval and rights before any upload |
-| 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates; `HUMAN_ASSURANCE_RESEARCH.md` and `gold-assurance.v2.json` reconcile solo+AI review and language competence | proven for current assurance route | private-evidence handoff and later authority-bearing review progress remain open |
+| 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates; `HUMAN_ASSURANCE_RESEARCH.md` and `gold-assurance.v2.json` reconcile solo+AI review and language competence; `private-evidence-handoff.v1.json` freezes a public-safe destination before raw inspection | proven for current assurance and handoff contracts | an actual derivative, its rights/correlation review, and later authority-bearing review progress remain open |
 
 ## Definition-of-Done reconciliation
 
@@ -152,8 +152,18 @@ tables are useful. A separate owner-reviewed derivative contract must define:
 - creation versus publication effects;
 - return handles to the private raw evidence.
 
-Until that exists, Tree of Sophia may record the existence and boundary of the
-private pass, but not import its detailed analysis.
+`ToS/contracts/private-laboratory-evidence-handoff.schema.json` and
+`private-evidence-handoff.v1.json` now freeze that boundary for the private OCR
+candidate-review pass. The contract names a single public-safe aggregate
+destination, keeps raw custody in the owner-local artifact store, prohibits
+source content, unit-level judgments, identities, paths, tokens, screenshots,
+and resolvable private locators, and separates artifact creation from
+publication.
+
+The raw evidence was not opened to design the contract, no derivative was
+created, and publication authority remains false. Tree of Sophia may still
+record only the existence and bounded public-safe consequence of the private
+pass until a derivative passes human rights and correlation-risk review.
 
 ### 4. German source review needs language competence
 
@@ -167,8 +177,9 @@ not a substitute for that competence declaration.
 
 1. Add a predeclared block-balanced display-assignment contract and materialize
    the next candidate packet only after that contract freezes.
-2. Design the private-to-public laboratory evidence handoff contract before
-   attempting any tracked result export.
+2. Use the frozen private-to-public handoff contract before any raw read or
+   tracked result export; create no derivative until its exact read scope is
+   authorized, and publish none without human rights and correlation review.
 3. Open new Russian source-visible work only for a declared discrepancy,
    uncertainty, semantic risk, new source/method calibration, or drift
    control; do not reopen the closed historical packet. Leave German

@@ -16,6 +16,7 @@ judgment true.
 | `material-discovery-record.schema.json` | exact ordered queries, result order, originating-record links, declared-rights evidence, acquisition/snapshot posture, and channel cost comparison |
 | `access-request.schema.json` | public-safe request scope, institutional contact route, separate permission purposes, private-correspondence boundary, response/expiry state, and no-bypass law |
 | `server-import-contract.schema.json` | future item/file manifest handoff, checksum and rights gates, access class, derivative matrix, operator approval, publication/takedown state, and server non-authority |
+| `private-laboratory-evidence-handoff.schema.json` | exact private-raw custody boundary, public-safe aggregate allowlist, reconstructive-detail denylist, governed destination, separate creation/publication effects, and human publication gate |
 | `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse |
 | `claim-packet.schema.json` | evidence-bearing assertion, alternatives, lineage, and human review state |
 | `translation-packet.schema.json` | source-accepted lifecycle packet binding independent frozen analyses to human, AI, machine-alternative, and AI+human drafts before comparator reveal, comparison, change tracking, and human adjudication |
@@ -115,6 +116,9 @@ A schema validator can establish that:
   blocks payload transfer for deny/metadata-only access, and requires verified
   bytes, reviewed rights, real-human operator approval, and a receipt before
   `imported`;
+- a private-evidence handoff freezes its audience, exact destination,
+  aggregation threshold, prohibited disclosure classes, raw-preservation law,
+  and publication gate before private evidence is opened;
 - a graph plan binds ten pre-output questions to one exact claim-set digest and
   keeps all four logical layers explicit.
 

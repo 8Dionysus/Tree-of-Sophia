@@ -11,6 +11,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 GOLD_ROOT = REPO_ROOT / "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+PRIVATE_HANDOFF_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "private-evidence-handoff.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1202,6 +1207,51 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertFalse(schedule["promotion_authorized"])
         self.assertEqual("not_collected", schedule["attestation_status"])
+        for field in ("runtime_closure", "runtime_receipt", "source_autosave"):
+            local_ref = schedule[field]
+            self.assertEqual("abyss-stack", local_ref["owner"])
+            self.assertEqual(
+                "abyss_machine_artifact_store",
+                local_ref["artifact_root"],
+            )
+            self.assertFalse(Path(local_ref["relative_path"]).is_absolute())
+            self.assertNotIn("..", Path(local_ref["relative_path"]).parts)
+
+    def test_private_evidence_handoff_freezes_destination_before_raw_read(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.PRIVATE_EVIDENCE_HANDOFF_SCHEMA,
+            REPO_ROOT,
+        )
+        handoff = json.loads(PRIVATE_HANDOFF_PATH.read_text(encoding="utf-8"))
+        self.assertEqual([], list(validator.iter_errors(handoff)))
+        self.assertEqual(
+            [],
+            foundation._private_evidence_handoff_issues(
+                handoff,
+                repo_root=REPO_ROOT,
+            ),
+        )
+        self.assertFalse(handoff["effects"]["raw_read"])
+        self.assertFalse(handoff["effects"]["derivative_created"])
+        self.assertFalse(handoff["effects"]["publication"])
+        self.assertFalse(handoff["destination"]["publication_authority"])
+
+        unauthorized_publication = copy.deepcopy(handoff)
+        unauthorized_publication["effects"]["publication"] = True
+        self.assertTrue(list(validator.iter_errors(unauthorized_publication)))
+
+        missing_prohibition = copy.deepcopy(handoff)
+        missing_prohibition["disclosure_policy"]["forbidden_classes"].remove(
+            "source_text_or_transcription"
+        )
+        self.assertTrue(
+            foundation._private_evidence_handoff_issues(
+                missing_prohibition,
+                repo_root=REPO_ROOT,
+            )
+        )
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,
