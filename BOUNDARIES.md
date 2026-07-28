@@ -33,8 +33,9 @@ are different layers. They may connect, but they should not silently merge.
 
 Generated, public, statistical, graph-ready, and downstream-facing surfaces do
 not replace ToS-authored authority. A bounded route to `aoa-stats`, `aoa-kag`,
-`aoa-routing`, or any other derived consumer does not delegate authority to
-that downstream system.
+the `aoa-sdk` routing control plane, its stable `aoa-routing` compatibility
+namespace, or any other derived consumer does not delegate authority to that
+downstream system.
 
 ## Growth Boundary
 

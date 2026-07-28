@@ -46,7 +46,10 @@ ROUTE_DOC_REQUIRED_TOKENS = (
     "README.md",
     "ToS/public-compatibility/tos_tiny_entry_route.example.json",
     "ToS/public-compatibility/source_node.example.json",
+    "aoa-sdk",
+    "routing control plane",
     "aoa-routing",
+    "compatibility namespace",
     "scripts/validate_tiny_entry_route.py",
 )
 REVIEW_CHECKLIST_REQUIRED_TOKENS = (
@@ -56,7 +59,8 @@ REVIEW_CHECKLIST_REQUIRED_TOKENS = (
 BOUNDARY_REQUIRED_TOKENS = (
     "ToS-authored authority",
     "aoa-kag",
-    "aoa-routing",
+    "aoa-sdk routing control plane",
+    "aoa-routing compatibility namespace",
     "downstream derived system",
 )
 REQUIRED_FILES = (
@@ -96,7 +100,7 @@ def ensure_repo_relative_surface(
     if not isinstance(value, str) or not value:
         issues.append((ROUTE_PATH.as_posix(), f"{location} must be a non-empty repo-relative path"))
         return None
-    if ":" in value or value.startswith(("aoa-routing/", "aoa-kag/")):
+    if ":" in value or value.startswith(("aoa-sdk/", "aoa-routing/", "aoa-kag/")):
         issues.append(
             (
                 ROUTE_PATH.as_posix(),

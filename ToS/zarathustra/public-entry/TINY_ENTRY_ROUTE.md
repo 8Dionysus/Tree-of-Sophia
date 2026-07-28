@@ -85,12 +85,15 @@ If both fields are present during transition, they should point to the same in-r
 
 ## Downstream boundary
 
-`aoa-kag` and `aoa-routing` now consume this tiny-entry seam as downstream orientation or derived knowledge input.
+`aoa-kag` and the `aoa-sdk` routing control plane now consume this tiny-entry
+seam as downstream orientation or derived knowledge input.
 
 That current downstream use stays bounded:
 
 - `aoa-kag` derives a federation-readiness spine entry from the public tiny-entry seam
-- `aoa-routing` hands `tos-root` into the source-owned tiny-entry route and the ToS-specific derived `kag_view`
+- the `aoa-sdk` routing control plane hands `tos-root` into the source-owned
+  tiny-entry route and the ToS-specific derived `kag_view`, while preserving
+  `aoa-routing` only as the stable compatibility namespace
 
 They do not become ToS authority surfaces.
 They do not replace authored node law.
@@ -103,7 +106,10 @@ If a downstream consumer loses ToS boundary and needs to restore the current bou
 `README.md -> ToS/public-compatibility/tos_tiny_entry_route.example.json -> ToS/public-compatibility/source_node.example.json`
 
 `CHARTER.md` remains the root authority note for ToS posture, but the worked route should re-enter through the source-owned tiny-entry example before any derived `kag_view` or adjunct.
-`aoa-routing` may restore this re-entry hop as bounded navigation, but it must not replace Tree-of-Sophia authority or jump directly to downstream derived surfaces.
+The `aoa-sdk` routing control plane may restore this re-entry hop as bounded
+navigation under the stable `aoa-routing` compatibility namespace, but it must
+not replace Tree-of-Sophia authority or jump directly to downstream derived
+surfaces.
 
 ## Anti-collapse rule
 
