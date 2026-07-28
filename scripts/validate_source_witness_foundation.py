@@ -76,6 +76,9 @@ GRAPH_QUERY_SCHEMA = CONTRACT_ROOT / "graph-query-plan.schema.json"
 PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
     CONTRACT_ROOT / "private-laboratory-evidence-handoff.schema.json"
 )
+GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
+    CONTRACT_ROOT / "german-assisted-source-review.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -489,6 +492,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             PRIVATE_EVIDENCE_HANDOFF_SCHEMA,
             repo_root,
         )
+        german_assisted_review_validator, _ = _schema_validator(
+            GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -671,6 +678,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         translation_reference_register_path = (
             gold_root / "translation-reference-register.v1.json"
         )
+        german_assisted_review_path = (
+            gold_root / "german-assisted-source-review.v1.json"
+        )
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -707,6 +717,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         translation_reference_register = (
             _load_json(translation_reference_register_path, repo_root, issues)
             if translation_reference_register_path.is_file()
+            else None
+        )
+        german_assisted_review = (
+            _load_json(german_assisted_review_path, repo_root, issues)
+            if german_assisted_review_path.is_file()
             else None
         )
         transfer_plan = _load_json(transfer_path, repo_root, issues)
@@ -878,6 +893,45 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 for key in ("expression_ref", "item_ref", "visibility", "reveal_stage"):
                     if comparator.get(key) != v1_comparator.get(key):
                         issues.append((review_location, f"recognized comparator {key} drifted"))
+        if german_assisted_review is not None:
+            assisted_location = _relative(german_assisted_review_path, repo_root)
+            _validate_payload(
+                german_assisted_review,
+                german_assisted_review_validator,
+                assisted_location,
+                issues,
+            )
+            assisted_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "GERMAN_ASSISTED_REVIEW_RESEARCH.md"
+            )
+            for field, expected_path in (
+                ("method_research", assisted_research_path),
+                ("source_review_plan", translation_source_review_path),
+            ):
+                digest_issue = _digest_bound_ref_issue(
+                    german_assisted_review.get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=field,
+                )
+                if digest_issue is not None:
+                    issues.append((assisted_location, digest_issue))
+            source_review_units = (
+                translation_source_review_plan.get("units", [])
+                if isinstance(translation_source_review_plan, dict)
+                else []
+            )
+            if german_assisted_review.get("current_state", {}).get(
+                "prepared_units"
+            ) != len(source_review_units):
+                issues.append(
+                    (
+                        assisted_location,
+                        "German assisted-review prepared_units differ from source-review units",
+                    )
+                )
         if translation_laboratory_plan is not None:
             laboratory_location = _relative(translation_laboratory_path, repo_root)
             _validate_payload(

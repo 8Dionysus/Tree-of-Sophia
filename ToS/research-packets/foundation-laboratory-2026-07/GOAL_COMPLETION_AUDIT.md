@@ -173,6 +173,14 @@ judge German orthography or grammar unaided. German units therefore remain
 or a separately reviewed assisted protocol is adopted. Machine agreement is
 not a substitute for that competence declaration.
 
+`GERMAN_ASSISTED_REVIEW_RESEARCH.md` and
+`german-assisted-source-review.v1.json` now provide that assisted protocol
+without weakening the boundary. They separate visual human evidence,
+critical-edition witnesses, independent machine candidates, sourced Russian
+explanations, and any later German-competent acceptance. The protocol is
+prepared but not run: it selects no units, creates no human debt, admits no
+German text, and opens no translation lane.
+
 ## Dependency-ordered next owner work
 
 1. Add a predeclared block-balanced display-assignment contract and materialize
@@ -182,8 +190,10 @@ not a substitute for that competence declaration.
    authorized, and publish none without human rights and correlation review.
 3. Open new Russian source-visible work only for a declared discrepancy,
    uncertainty, semantic risk, new source/method calibration, or drift
-   control; do not reopen the closed historical packet. Leave German
-   acceptance blocked until competence is honestly supplied.
+   control; do not reopen the closed historical packet. Use the German
+   assisted protocol only for a specific source/translation question and
+   retain the competence block on orthography, grammar, semantics, etymology,
+   and translation fidelity.
 4. Open translation only after its exact German anchors reach an admitted
    source posture.
 5. Follow translation with sign review, retrieval/graph adjudication, and only

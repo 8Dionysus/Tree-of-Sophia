@@ -29,6 +29,11 @@ Zarathustra golden kernel. It is not a completed gold set.
   any v2 candidate text: previous/current/next scan pages, layout posture,
   source-selection instruction, v1 failure lineage, sealed comparator, and
   two real-human passes. It forbids reuse of the rejected v1 candidate text.
+- `german-assisted-source-review.v1.json` adds a solo+AI route without
+  inventing German competence. It separates visual human evidence,
+  critical-edition witnesses, independent machine candidates, sourced AI
+  explanations, and later competent-human acceptance. It currently selects
+  zero units, creates zero human debt, and opens no translation lane.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current
@@ -152,8 +157,9 @@ transcription, or source decision. The packet manifest SHA-256 is
 This prepares the authority surface but does not create gold. The current
 solo reviewer may judge only page identity, legibility, visible structure, and
 reading order on German pages; German textual fidelity, orthography, grammar,
-semantics, translation, and source acceptance remain blocked until declared
-language competence or a separately reviewed assisted protocol exists. Full
+semantics, translation, and source acceptance remain blocked. The separately
+reviewed assisted protocol now exists as a prepared-not-run route, but it does
+not erase those blocked claims or accept source text by itself. Full
 materialization evidence is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_SOURCE_REVIEW_V2.md`.
 

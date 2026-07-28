@@ -1,0 +1,81 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/german-assisted-source-review.schema.json",
+  "schema_version": "tos_german_assisted_source_review_v1",
+  "plan_id": "tos.german-assisted-review.zarathustra-foundation-v1",
+  "status": "prepared_not_run",
+  "method_research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md",
+    "sha256": "882f209eb7fc19386f95d3e1b32ca4aa520a71cf145c0941a34eeadf1199d58a"
+  },
+  "source_review_plan": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25"
+  },
+  "operating_model": "solo_human_plus_ai",
+  "competence_boundary": {
+    "operator_german_competence": "visual_only",
+    "allowed_human_claims": [
+      "page_identity",
+      "region_identity",
+      "legibility",
+      "layout",
+      "reading_order",
+      "visible_glyph_correspondence",
+      "russian_explanation_usefulness",
+      "defer_or_escalate"
+    ],
+    "blocked_human_claims": [
+      "german_orthography",
+      "german_grammar",
+      "german_semantics",
+      "german_etymology",
+      "translation_fidelity",
+      "human_only_german_translation"
+    ],
+    "machine_agreement_supplies_language_competence": false
+  },
+  "evidence_lanes": [
+    "page_visible_human",
+    "critical_edition_witness",
+    "independent_machine_candidates",
+    "ai_explanation_with_sources",
+    "human_decision_within_competence"
+  ],
+  "source_postures": [
+    "visual_identity_confirmed",
+    "machine_triangulated_candidate",
+    "critical_edition_witness_admitted",
+    "language_competence_blocked",
+    "german_competent_human_accepted"
+  ],
+  "translation_gates": {
+    "critical_edition_requires_rights_review": true,
+    "ai_only_experiment": "requires_admitted_critical_edition_witness",
+    "ai_human_experiment": "requires_admitted_critical_edition_witness_and_remains_assisted",
+    "human_only_lane": "blocked_without_german_competence",
+    "accepted_translation": "blocked_without_german_competent_human_review"
+  },
+  "scheduling": {
+    "packet_units_are_human_debt": false,
+    "unit_min": 1,
+    "unit_max": 3,
+    "triggers": [
+      "specific_source_discrepancy",
+      "next_translation_anchor",
+      "new_source_or_method_calibration",
+      "unresolved_glyph_or_semantic_risk",
+      "periodic_drift_control"
+    ],
+    "interface_test_route": "synthetic_german_like_fixture"
+  },
+  "current_state": {
+    "prepared_units": 30,
+    "selected_unit_ids": [],
+    "human_debt_units": 0,
+    "runs": 0,
+    "accepted_german_units": 0,
+    "admitted_critical_edition_units": 0,
+    "translation_lanes_opened": [],
+    "promotion_authorized": false
+  }
+}

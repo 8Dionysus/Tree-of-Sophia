@@ -32,6 +32,7 @@ judgment true.
 | `manual-gold-assurance.schema.json` | additive solo+AI assurance ladder, trigger-gated sparse calibration, zero-human-debt closure, delayed same-human stability check, language-competence boundary, and digest-bound legacy lineage |
 | `translation-sample-plan.schema.json` | thirty frozen German fragments, sealed comparator, staged lanes, and etymology law |
 | `translation-source-review-plan.schema.json` | v2 page-triplet source review routing after selector failure, without reusing rejected automatic text |
+| `german-assisted-source-review.schema.json` | solo+AI evidence lanes, visual-only competence boundary, critical-edition witness route, triggered 1-3 unit scheduling, and fail-closed translation consequences |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
 
@@ -83,6 +84,10 @@ A schema validator can establish that:
 - a source-review v2 plan closes each page triplet over the rejected v1
   evidence while keeping candidate reuse, comparator visibility, and human
   acceptance false;
+- a German assisted-review plan keeps visual human evidence, critical-edition
+  evidence, independent machine candidates, AI explanations, and
+  language-competent acceptance distinct; machine agreement cannot supply
+  competence or create a human-only translation;
 - a translation-laboratory plan preserves the exact workflow order, keeps all
   four draft lanes blocked before source acceptance, and forbids comparator
   consultation while sealed;

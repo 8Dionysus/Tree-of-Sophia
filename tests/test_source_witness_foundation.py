@@ -16,6 +16,9 @@ PRIVATE_HANDOFF_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
 )
+GERMAN_ASSISTED_REVIEW_PATH = (
+    GOLD_ROOT / "german-assisted-source-review.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1252,6 +1255,39 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 repo_root=REPO_ROOT,
             )
         )
+
+    def test_german_assisted_review_adds_no_false_competence_or_human_debt(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
+            REPO_ROOT,
+        )
+        plan = json.loads(
+            GERMAN_ASSISTED_REVIEW_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(plan)))
+        self.assertEqual("visual_only", plan["competence_boundary"]["operator_german_competence"])
+        self.assertFalse(
+            plan["competence_boundary"][
+                "machine_agreement_supplies_language_competence"
+            ]
+        )
+        self.assertEqual(30, plan["current_state"]["prepared_units"])
+        self.assertEqual([], plan["current_state"]["selected_unit_ids"])
+        self.assertEqual(0, plan["current_state"]["human_debt_units"])
+        self.assertEqual([], plan["current_state"]["translation_lanes_opened"])
+        self.assertFalse(plan["current_state"]["promotion_authorized"])
+
+        false_acceptance = copy.deepcopy(plan)
+        false_acceptance["current_state"]["accepted_german_units"] = 1
+        self.assertTrue(list(validator.iter_errors(false_acceptance)))
+
+        false_competence = copy.deepcopy(plan)
+        false_competence["competence_boundary"][
+            "machine_agreement_supplies_language_competence"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_competence)))
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,
