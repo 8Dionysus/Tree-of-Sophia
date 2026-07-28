@@ -207,7 +207,18 @@ uses synthetic German-like fixtures and does not consume the real packet.
 
 Adopt the protocol as a prepared, not-run solo+AI route. It improves what can
 be learned without lying about competence, but it does not by itself accept
-one German unit or authorize one translation. The next executable technical
-step is to freeze a small disagreement packet against a reviewed
-critical-edition anchor; execution remains gated by its rights and source
-admission record.
+one German unit or authorize one translation.
+
+The first metadata-only critical-edition route is now frozen in
+`critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json`. It binds
+`tos-translation-source-review-v2-001` to the eKGWB section locator
+`Za-I-Vorrede-1`, records the edition identity, stable-URL evidence, declared
+BY-NC-ND rights posture, unsuccessful direct shell fetch, and exact
+provenance event. No eKGWB text was stored or quoted.
+
+This is a prepared admission packet, not an admitted witness. Human
+bibliographic and rights review remain false, exact passage alignment remains
+unverified, no German unit was accepted, and no human task or translation lane
+was opened. A later specific source or translation question may use this
+packet as its rights-gated starting point; packet existence alone is not a
+review trigger.

@@ -8,7 +8,7 @@ Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`6e58c070f6c0b251c1607ca24be5482d5ee5634749c7e6bbda5f683764bd3758`
+`ca13678398516ed950472185788f4e21005884ef9365dfc6e935ca5de7028f77`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -327,6 +327,8 @@ The result is deliberately **zero admitted content entries**:
 - zero dictionary articles frozen;
 - zero corpus slices frozen;
 - zero critical-edition passages imported;
+- one eKGWB section locator registered as metadata-only, with zero text
+  capture and zero citation-witness admission;
 - zero recognized or additional translation passages revealed;
 - zero accepted lexical senses or etymologies.
 

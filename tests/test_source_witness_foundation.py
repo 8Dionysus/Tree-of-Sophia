@@ -19,6 +19,9 @@ PRIVATE_HANDOFF_PATH = (
 GERMAN_ASSISTED_REVIEW_PATH = (
     GOLD_ROOT / "german-assisted-source-review.v1.json"
 )
+CRITICAL_EDITION_WITNESS_PATH = (
+    GOLD_ROOT / "critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1276,6 +1279,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(30, plan["current_state"]["prepared_units"])
         self.assertEqual([], plan["current_state"]["selected_unit_ids"])
         self.assertEqual(0, plan["current_state"]["human_debt_units"])
+        self.assertEqual(
+            1,
+            plan["current_state"][
+                "prepared_critical_edition_witness_packets"
+            ],
+        )
         self.assertEqual([], plan["current_state"]["translation_lanes_opened"])
         self.assertFalse(plan["current_state"]["promotion_authorized"])
 
@@ -1288,6 +1297,45 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "machine_agreement_supplies_language_competence"
         ] = True
         self.assertTrue(list(validator.iter_errors(false_competence)))
+
+    def test_critical_edition_witness_freezes_metadata_without_admission(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            CRITICAL_EDITION_WITNESS_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual(
+            "https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+            packet["target"]["critical_locator_url"],
+        )
+        self.assertEqual(
+            "section_locator_only_unverified_passage_alignment",
+            packet["target"]["alignment_state"],
+        )
+        self.assertFalse(packet["content_boundary"]["source_text_stored"])
+        self.assertFalse(
+            packet["rights_gate"]["citation_witness_admission_authorized"]
+        )
+        self.assertFalse(
+            packet["gate_effects"]["critical_edition_unit_admitted"]
+        )
+        self.assertEqual([], packet["gate_effects"]["translation_lanes_opened"])
+        self.assertFalse(packet["gate_effects"]["human_task_created"])
+
+        false_admission = copy.deepcopy(packet)
+        false_admission["gate_effects"][
+            "critical_edition_unit_admitted"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_admission)))
+
+        captured_text = copy.deepcopy(packet)
+        captured_text["content_boundary"]["source_text_stored"] = True
+        self.assertTrue(list(validator.iter_errors(captured_text)))
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,

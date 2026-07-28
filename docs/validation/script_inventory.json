@@ -253,7 +253,9 @@
         "ToS/contracts/rights-record.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/contracts/claim-packet.schema.json",
-        "ToS/contracts/source-witness-catalog.schema.json"
+        "ToS/contracts/source-witness-catalog.schema.json",
+        "ToS/contracts/german-assisted-source-review.schema.json",
+        "ToS/contracts/critical-edition-witness-admission.schema.json"
       ],
       "reads": [
         "source-witness records, companions, generated catalog, and any present local payload bytes"

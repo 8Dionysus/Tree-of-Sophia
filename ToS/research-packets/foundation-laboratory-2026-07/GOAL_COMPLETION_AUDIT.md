@@ -181,6 +181,13 @@ explanations, and any later German-competent acceptance. The protocol is
 prepared but not run: it selects no units, creates no human debt, admits no
 German text, and opens no translation lane.
 
+`critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json` now closes the first
+metadata route from a prepared German source unit to an exact eKGWB section
+locator. It preserves critical-edition identity, stable-URL and rights
+evidence, the failed direct-fetch observation, and a provenance event while
+storing no source text. It remains rights-review-pending, creates no human
+task, and does not increment accepted or admitted German counts.
+
 ## Dependency-ordered next owner work
 
 1. Add a predeclared block-balanced display-assignment contract and materialize
@@ -193,7 +200,8 @@ German text, and opens no translation lane.
    control; do not reopen the closed historical packet. Use the German
    assisted protocol only for a specific source/translation question and
    retain the competence block on orthography, grammar, semantics, etymology,
-   and translation fidelity.
+   and translation fidelity. Treat the prepared `Za-I-Vorrede-1` packet as
+   metadata until its bibliographic and rights gate is actually reviewed.
 4. Open translation only after its exact German anchors reach an admitted
    source posture.
 5. Follow translation with sign review, retrieval/graph adjudication, and only

@@ -79,6 +79,9 @@ PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
 GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "german-assisted-source-review.schema.json"
 )
+CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
+    CONTRACT_ROOT / "critical-edition-witness-admission.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -496,6 +499,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
             repo_root,
         )
+        critical_edition_witness_validator, _ = _schema_validator(
+            CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -681,6 +688,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         german_assisted_review_path = (
             gold_root / "german-assisted-source-review.v1.json"
         )
+        critical_edition_witness_paths = sorted(
+            gold_root.glob("critical-edition-witness.*.json")
+        )
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -724,6 +734,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if german_assisted_review_path.is_file()
             else None
         )
+        critical_edition_witnesses = [
+            (path, payload)
+            for path in critical_edition_witness_paths
+            if (payload := _load_json(path, repo_root, issues)) is not None
+        ]
         transfer_plan = _load_json(transfer_path, repo_root, issues)
         semantic_samples_plan = _load_json(semantic_samples_path, repo_root, issues)
         llm_tasks_plan = _load_json(llm_tasks_path, repo_root, issues)
@@ -932,6 +947,176 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "German assisted-review prepared_units differ from source-review units",
                     )
                 )
+            witness_packet_refs = german_assisted_review.get(
+                "critical_edition_witness_packets",
+                [],
+            )
+            for index, packet_ref in enumerate(witness_packet_refs):
+                packet_repo_ref = (
+                    packet_ref.get("ref")
+                    if isinstance(packet_ref, dict)
+                    else None
+                )
+                expected_path = (
+                    repo_root / packet_repo_ref
+                    if isinstance(packet_repo_ref, str)
+                    else None
+                )
+                if (
+                    expected_path is None
+                    or expected_path not in critical_edition_witness_paths
+                ):
+                    issues.append(
+                        (
+                            assisted_location,
+                            "German assisted-review names an unresolved critical-edition packet",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    packet_ref,
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"critical_edition_witness_packets[{index}]",
+                )
+                if digest_issue is not None:
+                    issues.append((assisted_location, digest_issue))
+            prepared_packet_count = german_assisted_review.get(
+                "current_state",
+                {},
+            ).get("prepared_critical_edition_witness_packets")
+            if prepared_packet_count != len(witness_packet_refs):
+                issues.append(
+                    (
+                        assisted_location,
+                        "German assisted-review prepared critical-edition packet count drifted",
+                    )
+                )
+        for (
+            critical_edition_witness_path,
+            critical_edition_witness,
+        ) in critical_edition_witnesses:
+            witness_location = _relative(
+                critical_edition_witness_path,
+                repo_root,
+            )
+            _validate_payload(
+                critical_edition_witness,
+                critical_edition_witness_validator,
+                witness_location,
+                issues,
+            )
+            source_plan_issue = _digest_bound_ref_issue(
+                critical_edition_witness.get("source_review_plan"),
+                expected_path=translation_source_review_path,
+                repo_root=repo_root,
+                field="source_review_plan",
+            )
+            if source_plan_issue is not None:
+                issues.append((witness_location, source_plan_issue))
+            if critical_edition_witness.get(
+                "assisted_review_plan_ref"
+            ) != _relative(german_assisted_review_path, repo_root):
+                issues.append(
+                    (
+                        witness_location,
+                        "critical-edition witness does not cite its assisted-review plan",
+                    )
+                )
+            register_binding = critical_edition_witness.get(
+                "reference_register",
+                {},
+            )
+            if register_binding.get("ref") != _relative(
+                translation_reference_register_path,
+                repo_root,
+            ):
+                issues.append(
+                    (
+                        witness_location,
+                        "critical-edition witness does not cite its translation reference register",
+                    )
+                )
+            registered_entries = (
+                translation_reference_register.get("entries", [])
+                if isinstance(translation_reference_register, dict)
+                else []
+            )
+            registered_entry = next(
+                (
+                    entry
+                    for entry in registered_entries
+                    if isinstance(entry, dict)
+                    and entry.get("reference_id")
+                    == register_binding.get("reference_id")
+                ),
+                None,
+            )
+            if registered_entry is None:
+                issues.append(
+                    (
+                        witness_location,
+                        "critical-edition witness reference_id is absent from the register",
+                    )
+                )
+            elif _relative(critical_edition_witness_path, repo_root) not in (
+                registered_entry.get("tos_refs", {}).get("path_refs", [])
+            ):
+                issues.append(
+                    (
+                        witness_location,
+                        "translation reference entry does not return to the critical-edition witness packet",
+                    )
+                )
+            target = critical_edition_witness.get("target", {})
+            target_unit = next(
+                (
+                    unit
+                    for unit in (
+                        translation_source_review_plan.get("units", [])
+                        if isinstance(translation_source_review_plan, dict)
+                        else []
+                    )
+                    if isinstance(unit, dict)
+                    and unit.get("review_unit_id")
+                    == target.get("review_unit_id")
+                ),
+                None,
+            )
+            if target_unit is None:
+                issues.append(
+                    (
+                        witness_location,
+                        "critical-edition witness target unit is absent from the source-review plan",
+                    )
+                )
+            elif target_unit.get("context_anchor_ref") != target.get(
+                "context_anchor_ref"
+            ):
+                issues.append(
+                    (
+                        witness_location,
+                        "critical-edition witness context anchor drifted from its source-review unit",
+                    )
+                )
+            if critical_edition_witness.get("status") != (
+                "citation_witness_admitted"
+            ) and isinstance(german_assisted_review, dict):
+                state = german_assisted_review.get("current_state", {})
+                if state.get("admitted_critical_edition_units") != 0:
+                    issues.append(
+                        (
+                            witness_location,
+                            "pending critical-edition witness inflated the admitted unit count",
+                        )
+                    )
+                if state.get("translation_lanes_opened"):
+                    issues.append(
+                        (
+                            witness_location,
+                            "pending critical-edition witness opened a translation lane",
+                        )
+                    )
         if translation_laboratory_plan is not None:
             laboratory_location = _relative(translation_laboratory_path, repo_root)
             _validate_payload(
@@ -1201,6 +1386,25 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     local_events_by_id[event_id] = event
                 if local_provenance_path == graph_provenance_path:
                     graph_events.append(event)
+        for (
+            critical_edition_witness_path,
+            critical_edition_witness,
+        ) in critical_edition_witnesses:
+            if (
+                critical_edition_witness.get("provenance", {}).get(
+                    "event_ref"
+                )
+                not in local_event_ids
+            ):
+                issues.append(
+                    (
+                        _relative(
+                            critical_edition_witness_path,
+                            repo_root,
+                        ),
+                        "critical-edition witness provenance event is absent from gold-set provenance",
+                    )
+                )
 
         anchors_by_id: dict[str, dict[str, Any]] = {}
         for anchor_path in anchor_paths:

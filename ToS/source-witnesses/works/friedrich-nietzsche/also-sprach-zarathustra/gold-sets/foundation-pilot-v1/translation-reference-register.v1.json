@@ -333,7 +333,7 @@
       "dating": {
         "original_or_coverage_date": "digital form of KGW 1967- and KGB 1975-",
         "edition_or_version": "digital critical edition with approximately 6600 incorporated philological corrections, stable sigla URLs, and XML-TEI encoding",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-07-28"
       },
       "identifiers": [
         {"scheme": "edition-siglum", "value": "eKGWB"}
@@ -374,18 +374,23 @@
         ],
         "rights_evidence_urls": ["https://doc.nietzschesource.org/en/rights"]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
+        ]
+      },
       "admission": {
         "state": "citation-only-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "no exact passage citations have been frozen",
+          "Za-I-Vorrede-1 is frozen only as a metadata locator; exact passage alignment and human bibliographic/rights review remain pending",
           "no-derivatives boundary excludes treating the edition as a freely transformable ToS corpus"
         ]
       },
-      "notes": "Primary candidate for critical cross-check and Nietzsche-wide recurrence lookup, with exact URL and license provenance on every use."
+      "notes": "Primary candidate for critical cross-check and Nietzsche-wide recurrence lookup. One metadata-only Za-I-Vorrede-1 route is frozen without text capture or admission."
     },
     {
       "reference_id": "tos-ref.degruyter.ksa-band-4",
