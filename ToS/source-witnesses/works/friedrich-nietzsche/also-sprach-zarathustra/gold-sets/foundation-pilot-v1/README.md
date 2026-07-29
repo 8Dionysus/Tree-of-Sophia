@@ -110,6 +110,15 @@ Zarathustra golden kernel. It is not a completed gold set.
   no work and cannot authorize execution.
 - `retrieval-queries.json` fixes 20 query intents and model-proposed expected
   anchors; exact restricted query text remains in ignored local content.
+- `visual-retrieval-plan.v1.json` reuses those exact 20 query bytes against
+  the 36 digest-frozen page images, with a complete source-anchor to
+  page-image-anchor crosswalk. Completed text retrieval A and B remain
+  immutable controls; direct visual challenger C is fixed to
+  `Qwen/Qwen3-VL-Embedding-2B` revision
+  `9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda` before download or output.
+  Page images and query content remain local-only. The plan schedules no
+  routine human work and establishes no transcription, quotation, semantic,
+  winner, publication, or promotion result.
 - `graph-claims.jsonl` fixes 13 unreviewed claims across bibliographic,
   textual, provenance, and interpretive layers. Two alternative families are
   deliberately unresolved.

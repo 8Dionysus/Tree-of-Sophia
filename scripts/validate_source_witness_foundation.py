@@ -82,6 +82,7 @@ MATERIAL_DISCOVERY_SCHEMA = CONTRACT_ROOT / "material-discovery-record.schema.js
 ACCESS_REQUEST_SCHEMA = CONTRACT_ROOT / "access-request.schema.json"
 SERVER_IMPORT_SCHEMA = CONTRACT_ROOT / "server-import-contract.schema.json"
 RETRIEVAL_QUERY_SCHEMA = CONTRACT_ROOT / "retrieval-query-plan.schema.json"
+VISUAL_RETRIEVAL_PLAN_SCHEMA = CONTRACT_ROOT / "visual-retrieval-plan.schema.json"
 GRAPH_QUERY_SCHEMA = CONTRACT_ROOT / "graph-query-plan.schema.json"
 PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
     CONTRACT_ROOT / "private-laboratory-evidence-handoff.schema.json"
@@ -699,6 +700,120 @@ def _semantic_ladder_identity_issues(payload: object) -> list[str]:
     return issues
 
 
+def _visual_retrieval_plan_issues(
+    payload: object,
+    *,
+    source_query_plan: object,
+    source_sample_plan: object,
+    visual_sample_plan: object,
+) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["visual retrieval plan is not an object"]
+    if not isinstance(source_query_plan, dict):
+        return ["visual retrieval plan has no source query plan"]
+    if not isinstance(source_sample_plan, dict):
+        return ["visual retrieval plan has no source sample plan"]
+    if not isinstance(visual_sample_plan, dict):
+        return ["visual retrieval plan has no visual sample plan"]
+
+    issues: list[str] = []
+    source_anchor_to_sample: dict[str, str] = {}
+    for group in source_sample_plan.get("source_groups", []):
+        if not isinstance(group, dict):
+            continue
+        for sample in group.get("samples", []):
+            if not isinstance(sample, dict):
+                continue
+            anchor_ref = sample.get("anchor_ref")
+            sample_id = sample.get("sample_id")
+            if isinstance(anchor_ref, str) and isinstance(sample_id, str):
+                if anchor_ref in source_anchor_to_sample:
+                    issues.append(
+                        f"source anchor has multiple sample identities: {anchor_ref}"
+                    )
+                source_anchor_to_sample[anchor_ref] = sample_id
+
+    source_sample_to_visual_anchor: dict[str, str] = {}
+    visual_anchors: set[str] = set()
+    for group in visual_sample_plan.get("source_groups", []):
+        if not isinstance(group, dict):
+            continue
+        for sample in group.get("samples", []):
+            if not isinstance(sample, dict):
+                continue
+            source_sample_id = sample.get("source_sample_id")
+            visual_anchor_ref = sample.get("anchor_ref")
+            if isinstance(visual_anchor_ref, str):
+                visual_anchors.add(visual_anchor_ref)
+            if isinstance(source_sample_id, str) and isinstance(
+                visual_anchor_ref, str
+            ):
+                if source_sample_id in source_sample_to_visual_anchor:
+                    issues.append(
+                        f"source sample has multiple visual anchors: {source_sample_id}"
+                    )
+                source_sample_to_visual_anchor[source_sample_id] = (
+                    visual_anchor_ref
+                )
+
+    unresolved_query_ids: list[str] = []
+    query_ids: set[str] = set()
+    for query in source_query_plan.get("queries", []):
+        if not isinstance(query, dict):
+            continue
+        query_id = query.get("query_id")
+        if not isinstance(query_id, str):
+            continue
+        query_ids.add(query_id)
+        query_anchors = [
+            anchor_ref
+            for anchor_ref in (
+                list(query.get("expected_source_anchor_refs", []))
+                + list(query.get("hard_negative_anchor_refs", []))
+            )
+            if isinstance(anchor_ref, str)
+        ]
+        query_unresolved = False
+        for anchor_ref in query_anchors:
+            source_sample_id = source_anchor_to_sample.get(anchor_ref)
+            visual_anchor_ref = (
+                source_sample_to_visual_anchor.get(source_sample_id)
+                if source_sample_id is not None
+                else None
+            )
+            if visual_anchor_ref not in visual_anchors:
+                query_unresolved = True
+        if query_unresolved:
+            unresolved_query_ids.append(query_id)
+
+    projection = payload.get("query_projection", {})
+    if not isinstance(projection, dict):
+        return issues + ["visual retrieval query_projection is not an object"]
+    if projection.get("query_count") != len(query_ids):
+        issues.append("visual retrieval query count differs from source plan")
+    if projection.get("resolved_query_count") != len(query_ids) - len(
+        unresolved_query_ids
+    ):
+        issues.append("visual retrieval resolved query count drifted")
+    if projection.get("unresolved_query_ids") != unresolved_query_ids:
+        issues.append("visual retrieval unresolved query IDs drifted")
+
+    crosswalk = projection.get("source_to_visual_anchor_crosswalk", {})
+    if not isinstance(crosswalk, dict):
+        issues.append("visual retrieval anchor crosswalk is not an object")
+    else:
+        if crosswalk.get("source_anchor_count") != len(source_anchor_to_sample):
+            issues.append("visual retrieval source anchor count drifted")
+        if crosswalk.get("visual_anchor_count") != len(visual_anchors):
+            issues.append("visual retrieval visual anchor count drifted")
+        if crosswalk.get("one_to_one_for_frozen_queries") is not (
+            not unresolved_query_ids
+        ):
+            issues.append("visual retrieval one-to-one query crosswalk drifted")
+
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -860,6 +975,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         access_request_validator, _ = _schema_validator(ACCESS_REQUEST_SCHEMA, repo_root)
         server_import_validator, _ = _schema_validator(SERVER_IMPORT_SCHEMA, repo_root)
         retrieval_query_validator, _ = _schema_validator(RETRIEVAL_QUERY_SCHEMA, repo_root)
+        visual_retrieval_plan_validator, _ = _schema_validator(
+            VISUAL_RETRIEVAL_PLAN_SCHEMA,
+            repo_root,
+        )
         graph_query_validator, _ = _schema_validator(GRAPH_QUERY_SCHEMA, repo_root)
         private_evidence_handoff_validator, _ = _schema_validator(
             PRIVATE_EVIDENCE_HANDOFF_SCHEMA,
@@ -1185,6 +1304,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
         retrieval_path = gold_root / "retrieval-queries.json"
+        visual_retrieval_path = gold_root / "visual-retrieval-plan.v1.json"
         graph_claims_path = gold_root / "graph-claims.jsonl"
         graph_queries_path = gold_root / "graph-queries.json"
         provenance_path = gold_root / "provenance.jsonl"
@@ -1263,6 +1383,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         semantic_samples_plan = _load_json(semantic_samples_path, repo_root, issues)
         llm_tasks_plan = _load_json(llm_tasks_path, repo_root, issues)
         retrieval_plan = _load_json(retrieval_path, repo_root, issues)
+        visual_retrieval_plan = (
+            _load_json(visual_retrieval_path, repo_root, issues)
+            if visual_retrieval_path.is_file()
+            else None
+        )
         graph_query_plan = _load_json(graph_queries_path, repo_root, issues)
         if sample_plan is not None:
             _validate_payload(sample_plan, sample_plan_validator, _relative(sample_path, repo_root), issues)
@@ -2406,6 +2531,26 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 retrieval_query_validator,
                 _relative(retrieval_path, repo_root),
                 issues,
+            )
+        if visual_retrieval_plan is not None:
+            visual_retrieval_location = _relative(
+                visual_retrieval_path,
+                repo_root,
+            )
+            _validate_payload(
+                visual_retrieval_plan,
+                visual_retrieval_plan_validator,
+                visual_retrieval_location,
+                issues,
+            )
+            issues.extend(
+                (visual_retrieval_location, message)
+                for message in _visual_retrieval_plan_issues(
+                    visual_retrieval_plan,
+                    source_query_plan=retrieval_plan,
+                    source_sample_plan=sample_plan,
+                    visual_sample_plan=ocr_sample_plan,
+                )
             )
         if graph_query_plan is not None:
             _validate_payload(
@@ -3611,6 +3756,275 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append((_relative(content_path, repo_root), "local query IDs differ from tracked retrieval plan"))
             if _git_ignored(repo_root, content_path) is not True:
                 issues.append((_relative(content_path, repo_root), "local retrieval query content is not ignored"))
+
+        if visual_retrieval_plan is not None:
+            visual_retrieval_location = _relative(
+                visual_retrieval_path,
+                repo_root,
+            )
+            query_projection = visual_retrieval_plan.get(
+                "query_projection",
+                {},
+            )
+            expected_query_plan_ref = _relative(retrieval_path, repo_root)
+            expected_query_content_ref = _relative(
+                gold_root / "local-content/retrieval/queries.v1.json",
+                repo_root,
+            )
+            if query_projection.get(
+                "source_query_plan_ref"
+            ) != expected_query_plan_ref:
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval source query-plan reference drifted",
+                    )
+                )
+            elif query_projection.get(
+                "source_query_plan_sha256"
+            ) != _sha256(retrieval_path):
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval source query-plan digest drifted",
+                    )
+                )
+            if query_projection.get(
+                "query_content_ref"
+            ) != expected_query_content_ref:
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval local query-content reference drifted",
+                    )
+                )
+            if retrieval_plan is not None and query_projection.get(
+                "query_content_sha256"
+            ) != retrieval_plan.get("query_content_sha256"):
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval query-content digest differs from the text retrieval plan",
+                    )
+                )
+
+            crosswalk = query_projection.get(
+                "source_to_visual_anchor_crosswalk",
+                {},
+            )
+            expected_sample_ref = _relative(sample_path, repo_root)
+            expected_visual_sample_ref = _relative(
+                ocr_sample_path,
+                repo_root,
+            )
+            expected_visual_sample_digest = (
+                _sha256(ocr_sample_path)
+                if ocr_sample_path.is_file()
+                else None
+            )
+            expected_crosswalk_bindings = {
+                "source_sample_plan_ref": expected_sample_ref,
+                "visual_sample_plan_ref": expected_visual_sample_ref,
+                "visual_sample_plan_sha256": expected_visual_sample_digest,
+            }
+            for field, expected in expected_crosswalk_bindings.items():
+                if crosswalk.get(field) != expected:
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            f"visual retrieval crosswalk {field} drifted",
+                        )
+                    )
+
+            page_image_corpus = visual_retrieval_plan.get(
+                "page_image_corpus",
+                {},
+            )
+            expected_render_ref = (
+                ocr_sample_plan.get("render_specification", {}).get(
+                    "render_manifest_ref"
+                )
+                if isinstance(ocr_sample_plan, dict)
+                else None
+            )
+            expected_page_bindings = {
+                "visual_sample_plan_ref": expected_visual_sample_ref,
+                "visual_sample_plan_sha256": expected_visual_sample_digest,
+                "render_manifest_ref": expected_render_ref,
+            }
+            for field, expected in expected_page_bindings.items():
+                if page_image_corpus.get(field) != expected:
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            f"visual retrieval page-image corpus {field} drifted",
+                        )
+                    )
+
+            render_manifest_path = repo_root / str(expected_render_ref or "")
+            if render_manifest_path.is_file() and page_image_corpus.get(
+                "render_manifest_sha256"
+            ) != _sha256(render_manifest_path):
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval ignored render-manifest digest drifted",
+                    )
+                )
+
+            artifact_root = Path(
+                os.environ.get(
+                    "ABYSS_MACHINE_ARTIFACT_ROOT",
+                    "/srv/abyss-machine/storage/artifacts",
+                )
+            )
+            render_artifact_ref = page_image_corpus.get(
+                "render_artifact_ref"
+            )
+            render_artifact_relative = (
+                Path(render_artifact_ref)
+                if isinstance(render_artifact_ref, str)
+                else None
+            )
+            if (
+                render_artifact_relative is None
+                or render_artifact_relative.is_absolute()
+                or ".." in render_artifact_relative.parts
+            ):
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval owner artifact reference is unsafe",
+                    )
+                )
+            else:
+                render_artifact_path = (
+                    artifact_root / render_artifact_relative
+                )
+                if render_artifact_path.is_file() and page_image_corpus.get(
+                    "render_manifest_sha256"
+                ) != _sha256(render_artifact_path):
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            "visual retrieval owner render-manifest digest drifted",
+                        )
+                    )
+
+            for control in visual_retrieval_plan.get("fixed_controls", []):
+                if not isinstance(control, dict):
+                    continue
+                run_ref = control.get("run_ref")
+                run_relative = Path(run_ref) if isinstance(run_ref, str) else None
+                if (
+                    run_relative is None
+                    or run_relative.is_absolute()
+                    or ".." in run_relative.parts
+                ):
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            f"visual retrieval control {control.get('label')} artifact reference is unsafe",
+                        )
+                    )
+                    continue
+                run_path = artifact_root / run_relative
+                receipt_path = run_path / "run.receipt.json"
+                if run_path.exists() and not receipt_path.is_file():
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            f"visual retrieval control {control.get('label')} run receipt is missing",
+                        )
+                    )
+                elif receipt_path.is_file() and control.get(
+                    "run_receipt_sha256"
+                ) != _sha256(receipt_path):
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            f"visual retrieval control {control.get('label')} receipt digest drifted",
+                        )
+                    )
+
+            visual_event_ref = visual_retrieval_plan.get(
+                "provenance_event_ref"
+            )
+            visual_event = local_events_by_id.get(str(visual_event_ref))
+            expected_visual_inputs = {
+                (
+                    expected_query_plan_ref,
+                    "frozen-text-retrieval-query-and-anchor-plan",
+                    _sha256(retrieval_path),
+                ),
+                (
+                    expected_sample_ref,
+                    "frozen-source-sample-plan",
+                    _sha256(sample_path),
+                ),
+                (
+                    expected_visual_sample_ref,
+                    "frozen-page-image-sample-projection",
+                    expected_visual_sample_digest,
+                ),
+            }
+            expected_visual_outputs = {
+                (
+                    _relative(
+                        repo_root / VISUAL_RETRIEVAL_PLAN_SCHEMA,
+                        repo_root,
+                    ),
+                    "direct-page-image-retrieval-plan-contract",
+                    _sha256(repo_root / VISUAL_RETRIEVAL_PLAN_SCHEMA),
+                ),
+                (
+                    visual_retrieval_location,
+                    "frozen-direct-page-image-retrieval-plan",
+                    _sha256(visual_retrieval_path),
+                ),
+            }
+            if visual_event is None:
+                issues.append(
+                    (
+                        visual_retrieval_location,
+                        "visual retrieval provenance_event_ref is absent",
+                    )
+                )
+            else:
+                actual_visual_inputs = {
+                    (
+                        input_record.get("ref"),
+                        input_record.get("role"),
+                        input_record.get("sha256"),
+                    )
+                    for input_record in visual_event.get("inputs", [])
+                    if isinstance(input_record, dict)
+                }
+                actual_visual_outputs = {
+                    (
+                        output.get("ref"),
+                        output.get("role"),
+                        output.get("sha256"),
+                    )
+                    for output in visual_event.get("outputs", [])
+                    if isinstance(output, dict)
+                }
+                if not expected_visual_inputs.issubset(actual_visual_inputs):
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            "visual retrieval provenance inputs drifted",
+                        )
+                    )
+                if not expected_visual_outputs.issubset(
+                    actual_visual_outputs
+                ):
+                    issues.append(
+                        (
+                            visual_retrieval_location,
+                            "visual retrieval provenance outputs drifted",
+                        )
+                    )
 
         graph_claim_records = _load_jsonl(graph_claims_path, repo_root, issues)
         graph_claim_ids: set[str] = set()

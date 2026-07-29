@@ -2330,6 +2330,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         retrieval_plan = json.loads(
             (GOLD_ROOT / "retrieval-queries.json").read_text(encoding="utf-8")
         )
+        visual_retrieval_plan = json.loads(
+            (GOLD_ROOT / "visual-retrieval-plan.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
         graph_plan = json.loads((GOLD_ROOT / "graph-queries.json").read_text(encoding="utf-8"))
         transfer_plan = json.loads(
             (GOLD_ROOT / "transfer-samples.json").read_text(encoding="utf-8")
@@ -2474,6 +2479,72 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(
             all(query["relevance_status"] == "model-proposed-awaiting-human" for query in retrieval_plan["queries"])
         )
+        self.assertTrue(
+            visual_retrieval_plan["frozen_before_challenger_outputs"]
+        )
+        self.assertEqual(
+            "frozen-awaiting-runtime-admission",
+            visual_retrieval_plan["status"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (GOLD_ROOT / "retrieval-queries.json").read_bytes()
+            ).hexdigest(),
+            visual_retrieval_plan["query_projection"][
+                "source_query_plan_sha256"
+            ],
+        )
+        self.assertEqual(
+            20,
+            visual_retrieval_plan["query_projection"]["resolved_query_count"],
+        )
+        self.assertEqual(
+            36,
+            visual_retrieval_plan["page_image_corpus"]["render_count"],
+        )
+        self.assertEqual(
+            ["A", "B"],
+            [
+                control["label"]
+                for control in visual_retrieval_plan["fixed_controls"]
+            ],
+        )
+        self.assertTrue(
+            all(
+                control["reuse_posture"]
+                == "immutable-completed-control-no-rerun"
+                for control in visual_retrieval_plan["fixed_controls"]
+            )
+        )
+        self.assertEqual(
+            "Qwen/Qwen3-VL-Embedding-2B",
+            visual_retrieval_plan["challenger"]["model_id"],
+        )
+        self.assertEqual(
+            "9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda",
+            visual_retrieval_plan["challenger"]["source_revision"],
+        )
+        self.assertFalse(
+            visual_retrieval_plan["human_assurance"][
+                "routine_review_scheduled"
+            ]
+        )
+        self.assertEqual(0, visual_retrieval_plan["result"]["run_count"])
+        self.assertIsNone(visual_retrieval_plan["result"]["winner"])
+        self.assertFalse(
+            visual_retrieval_plan["rights_posture"][
+                "public_page_images_authorized"
+            ]
+        )
+        self.assertEqual(
+            [],
+            foundation._visual_retrieval_plan_issues(
+                visual_retrieval_plan,
+                source_query_plan=retrieval_plan,
+                source_sample_plan=sample_plan,
+                visual_sample_plan=ocr_plan,
+            ),
+        )
         self.assertTrue(graph_plan["frozen_before_variant_outputs"])
         self.assertEqual(10, len(graph_plan["queries"]))
         self.assertEqual(13, len(graph_claims))
@@ -2495,6 +2566,83 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             hashlib.sha256((GOLD_ROOT / "graph-claims.jsonl").read_bytes()).hexdigest(),
             graph_plan["claim_set_sha256"],
         )
+
+    def test_visual_retrieval_crosswalk_fails_closed_on_unresolved_query(self) -> None:
+        visual_retrieval_plan = json.loads(
+            (GOLD_ROOT / "visual-retrieval-plan.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        retrieval_plan = json.loads(
+            (GOLD_ROOT / "retrieval-queries.json").read_text(encoding="utf-8")
+        )
+        sample_plan = json.loads(
+            (GOLD_ROOT / "sample-plan.json").read_text(encoding="utf-8")
+        )
+        ocr_plan = json.loads(
+            (GOLD_ROOT / "ocr-visual-samples.json").read_text(encoding="utf-8")
+        )
+        expected_anchor = retrieval_plan["queries"][0][
+            "expected_source_anchor_refs"
+        ][0]
+        source_sample_id = next(
+            sample["sample_id"]
+            for group in sample_plan["source_groups"]
+            for sample in group["samples"]
+            if sample["anchor_ref"] == expected_anchor
+        )
+        broken_ocr_plan = copy.deepcopy(ocr_plan)
+        visual_sample = next(
+            sample
+            for group in broken_ocr_plan["source_groups"]
+            for sample in group["samples"]
+            if sample["source_sample_id"] == source_sample_id
+        )
+        visual_sample["source_sample_id"] = "tos-sample-broken-crosswalk"
+
+        issues = foundation._visual_retrieval_plan_issues(
+            visual_retrieval_plan,
+            source_query_plan=retrieval_plan,
+            source_sample_plan=sample_plan,
+            visual_sample_plan=broken_ocr_plan,
+        )
+
+        self.assertIn(
+            "visual retrieval resolved query count drifted",
+            issues,
+        )
+        self.assertIn(
+            "visual retrieval unresolved query IDs drifted",
+            issues,
+        )
+        self.assertIn(
+            "visual retrieval one-to-one query crosswalk drifted",
+            issues,
+        )
+
+    def test_frozen_visual_retrieval_plan_rejects_false_outputs(self) -> None:
+        plan = json.loads(
+            (GOLD_ROOT / "visual-retrieval-plan.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator, _ = foundation._schema_validator(
+            foundation.VISUAL_RETRIEVAL_PLAN_SCHEMA,
+            REPO_ROOT,
+        )
+
+        false_run = copy.deepcopy(plan)
+        false_run["result"]["run_count"] = 1
+        false_run["result"]["run_refs"] = ["synthetic-run"]
+        self.assertTrue(list(validator.iter_errors(false_run)))
+
+        scheduled_human = copy.deepcopy(plan)
+        scheduled_human["human_assurance"]["routine_review_scheduled"] = True
+        self.assertTrue(list(validator.iter_errors(scheduled_human)))
+
+        moving_model = copy.deepcopy(plan)
+        moving_model["challenger"]["source_revision"] = "0" * 40
+        self.assertTrue(list(validator.iter_errors(moving_model)))
 
     def test_restricted_gold_content_is_ignored_but_route_card_is_trackable(self) -> None:
         route_card = GOLD_ROOT / "local-content/README.md"

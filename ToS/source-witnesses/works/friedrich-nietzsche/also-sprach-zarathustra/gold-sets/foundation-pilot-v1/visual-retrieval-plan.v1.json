@@ -1,0 +1,157 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-plan.schema.json",
+  "schema_version": "tos_visual_retrieval_plan_v1",
+  "plan_id": "tos.visual-retrieval-plan.zarathustra-foundation-pilot-v1",
+  "experiment_id": "tos-visual-retrieval-foundation-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "status": "frozen-awaiting-runtime-admission",
+  "frozen_at": "2026-07-29T07:37:57-06:00",
+  "frozen_before_challenger_outputs": true,
+  "query_projection": {
+    "source_query_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/retrieval-queries.json",
+    "source_query_plan_sha256": "481e1f8ea32b9f7b40eb73a59e7bc3e614d08a3b8958bebd7b0c7fce94fed7a4",
+    "query_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/retrieval/queries.v1.json",
+    "query_content_sha256": "5c9ce96fb362512a9ef775bd7d7212b5df6b00570226961a96d51478ba980a1e",
+    "query_count": 20,
+    "query_modality": "text",
+    "target_modality": "page-image",
+    "same_query_bytes_as_text_retrieval": true,
+    "source_to_visual_anchor_crosswalk": {
+      "source_sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/sample-plan.json",
+      "visual_sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/ocr-visual-samples.json",
+      "visual_sample_plan_sha256": "3fd111023cf2ffdbee935d771f36f314d8087677d57e9ef34a64e19e27ddae06",
+      "join": "retrieval anchor -> source sample_id -> visual source_sample_id -> page-image anchor",
+      "source_anchor_count": 36,
+      "visual_anchor_count": 36,
+      "one_to_one_for_frozen_queries": true
+    },
+    "resolved_query_count": 20,
+    "unresolved_query_ids": [],
+    "selection_after_output_forbidden": true
+  },
+  "page_image_corpus": {
+    "visual_sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/ocr-visual-samples.json",
+    "visual_sample_plan_sha256": "3fd111023cf2ffdbee935d771f36f314d8087677d57e9ef34a64e19e27ddae06",
+    "render_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/ocr/renders/render-manifest.v1.json",
+    "render_artifact_ref": "tree-of-sophia-foundation-lab/shared-inputs/tos-ocr-foundation-v1/zarathustra-foundation-pilot-v1-render-20260722/render-manifest.v1.json",
+    "render_manifest_sha256": "734e7474923ec2697a243b1e1b322c43c4e2a8b82b6336df57ab82f3bbc8fec7",
+    "render_count": 36,
+    "render_status": "digest-frozen",
+    "shared_render_bytes_unchanged": true,
+    "preprocessing": {
+      "crop": false,
+      "deskew": false,
+      "denoise": false,
+      "threshold": false,
+      "contrast_adjustment": false
+    },
+    "source_groups": [
+      "ocr-antonovsky-2007",
+      "ocr-mysl-1996",
+      "ocr-naumann-1893"
+    ],
+    "content_location": "owner-local-abyss-machine-artifact-store"
+  },
+  "fixed_controls": [
+    {
+      "label": "A",
+      "method": "source-text-sqlite-fts5",
+      "experiment_id": "tos-retrieval-foundation-v1",
+      "run_ref": "tree-of-sophia-foundation-lab/tos-retrieval-foundation-v1/foundation-pilot-v1-retrieval-a-20260722/variant-A",
+      "run_receipt_sha256": "d6d13bae304ff72afa126143921865415740b2342cb49d0c70e252de51e691fa",
+      "reuse_posture": "immutable-completed-control-no-rerun"
+    },
+    {
+      "label": "B",
+      "method": "source-text-qwen3-embedding-qdrant-reranker",
+      "experiment_id": "tos-retrieval-foundation-v1",
+      "run_ref": "tree-of-sophia-foundation-lab/tos-retrieval-foundation-v1/foundation-pilot-v1-retrieval-b-resident-20260722/variant-B",
+      "run_receipt_sha256": "b879670826b2b5f512bceac56f3cc0b48eaeec72e4c7e375f72cc40c9901b3db",
+      "reuse_posture": "immutable-completed-control-no-rerun"
+    }
+  ],
+  "challenger": {
+    "label": "C",
+    "method": "direct-page-image-multimodal-embedding",
+    "model_id": "Qwen/Qwen3-VL-Embedding-2B",
+    "source_revision": "9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda",
+    "repository_last_modified": "2026-04-16T08:54:25Z",
+    "license": "Apache-2.0",
+    "parameter_count": 2127532032,
+    "embedding_dimensions": {
+      "maximum": 2048,
+      "selected": 2048
+    },
+    "supported_modalities": [
+      "text",
+      "image",
+      "screenshot",
+      "video",
+      "mixed"
+    ],
+    "runtime_route": "isolated-host-managed-cpu-runtime",
+    "remote_code_posture": "review-and-hash-upstream-helper-before-local-execution",
+    "dry_run_selected_bytes": 4266564017,
+    "download_status": "not-started",
+    "selection_basis": [
+      "directly embeds the frozen page images without OCR text",
+      "shares one representation space for Russian and German text queries plus page images",
+      "is the smallest official Qwen3-VL embedding model",
+      "has an exact immutable upstream revision",
+      "uses an Apache-2.0 source repository",
+      "enters only after text retrieval A and B exposed OCR coverage and contamination failures"
+    ],
+    "non_claims": [
+      "model-card benchmarks establish ToS quality",
+      "image relevance establishes transcription",
+      "visual retrieval output is a quotation source",
+      "model rank establishes philosophical relevance",
+      "successful execution promotes the model"
+    ]
+  },
+  "metrics": [
+    "build_seconds",
+    "warm_query_seconds",
+    "whole_run_seconds",
+    "index_bytes",
+    "peak_memory_bytes",
+    "model_proposed_target_at_10_advisory",
+    "coverage_recovery_advisory",
+    "source_anchor_resolution",
+    "human_ndcg_at_10",
+    "human_hard_negative_error_rate",
+    "human_review_minutes"
+  ],
+  "human_assurance": {
+    "routine_review_scheduled": false,
+    "triggered_review_only": true,
+    "trigger_conditions": [
+      "challenger materially changes a source-return route",
+      "method adoption is being considered",
+      "hard-negative or cross-language behavior remains ambiguous",
+      "periodic drift control is explicitly opened"
+    ],
+    "human_judgment_status": "not_started",
+    "human_receipt_count": 0,
+    "model_inspection_authority": "advisory-nonhuman",
+    "promotion_without_human_review": false
+  },
+  "rights_posture": {
+    "source_and_query_visibility": "local_only",
+    "network_content_transfer_allowed": false,
+    "public_page_images_authorized": false,
+    "tracked_surface": "plan-digests-anchor-crosswalk-method-and-noncontent-results-only"
+  },
+  "result": {
+    "run_count": 0,
+    "run_refs": [],
+    "index_refs": [],
+    "metric_results": [],
+    "human_review_receipts": [],
+    "winner": null,
+    "promotion_authorized": false,
+    "conclusion": "The visual challenger is frozen before output and awaits an owner-admitted runtime; no quality or promotion result exists."
+  },
+  "provenance_event_ref": "tos.event.evaluation-plan.zarathustra-visual-retrieval-v1.2026-07-29",
+  "plan_version": 1
+}

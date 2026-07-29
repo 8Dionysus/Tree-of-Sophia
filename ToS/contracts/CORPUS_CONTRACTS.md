@@ -47,6 +47,7 @@ judgment true.
 | `german-source-triangulation.schema.json` | text-free machine comparison of one local critical-edition candidate, one structured TEI witness, and one OCR witness, including source-aware normalization failure controls, transport/rights limits, and zero human/translation/semantic gate effects |
 | `bounded-translation-research-input.schema.json` | one DTA-derived ignored local source artifact admitted only to blind machine-method calibration, with exact selector, transformation, digest, corroboration, rights posture, explicit sealing of pre-existing authored translation surfaces, and zero accepted-German, translation, semantic, graph, or canon effects |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
+| `visual-retrieval-plan.schema.json` | output-blind direct page-image retrieval challenger over the same frozen queries, digest-bound visual crosswalk and local renders, immutable completed text controls, exact model revision, triggered-only human review, and zero automatic promotion |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
 
 ## Common laws
@@ -111,6 +112,12 @@ A schema validator can establish that:
   translation plan, recognized comparator and older authored translation
   surfaces, rights, language competence, semantics, graph, and canon gates
   closed;
+- a visual-retrieval plan binds the same twenty query bytes to all thirty-six
+  frozen page images through source and visual sample identities, preserves
+  completed text variants A and B as immutable controls, fixes challenger C to
+  one exact upstream model revision before download or output, and keeps
+  relevance, human metrics, winner selection, publication, and promotion
+  unavailable until their separate gates are actually satisfied;
 - a translation-laboratory plan preserves the exact workflow order, keeps all
   four draft lanes blocked before source acceptance, and forbids comparator
   consultation while sealed;
