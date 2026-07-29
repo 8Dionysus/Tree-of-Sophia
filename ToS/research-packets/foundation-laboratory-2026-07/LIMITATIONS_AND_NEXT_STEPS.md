@@ -31,7 +31,7 @@ fields. They are the next authority layer.
 | retrieval relevance | 20 frozen queries and blind review contract | 0 human judgments | advisory model targets and hard negatives are not gold |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
-| golden-kernel transfer | fail-closed A/B/C plan | 0 runs, 0 target passages | C has no reviewed kernel packet and target-text gold is absent |
+| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -132,6 +132,12 @@ contracts intentionally reject simulated human evidence.
   translation-method calibration has run A/B/C, but only A returned a complete
   candidate, its Russian surface is defective, and none of the three outcomes
   can promote content.
+- Golden-kernel transfer preparation now has twenty private content-bearing
+  whole-page candidates selected before outputs (10 digest-random, 10
+  mechanically hard) and twenty proposed anchors. They remain automatic
+  `pdftotext` candidates, not exact passages or target gold; mechanical
+  difficulty is not semantic difficulty, and the preparation opens no routine
+  human backlog.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -415,8 +421,11 @@ from the calibration-only route in section 2b.
    closes the OCR numeral gaps; separately promote *On the Genealogy of
    Morality* and *The Antichrist* beyond provisional collection-member
    expressions.
-2. Freeze 20 content-bearing target passages, including hard negatives and
-   passages that demand target-specific signs.
+2. If the user deliberately activates the transfer experiment, advance the
+   twenty already frozen private page candidates into exact source-visible
+   target passages and target gold without viewing variant outputs. Introduce
+   hard negatives only after an accepted kernel sign exists; preparation
+   itself schedules no human backlog.
 3. Run A without the kernel, B with general contracts only, and C with
    human-accepted *Zarathustra* packets under identical runtime conditions.
 4. Measure speed, accuracy, correction, traceability, hallucinated relations,

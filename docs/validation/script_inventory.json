@@ -373,6 +373,32 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_golden_kernel_transfer_candidates.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json",
+        "ToS/contracts/golden-kernel-transfer-plan.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "one exact local Mysl 1996 PDF, its unreviewed work boundaries, the blocked transfer plan, and the solo-human-plus-AI assurance contract"
+      ],
+      "writes": [
+        "twenty ignored local pdftotext page candidates plus tracked ineligible candidate metadata, proposed whole-page anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "freezes ten digest-random and ten mechanically difficult private page candidates before variant outputs; creates no target gold, semantic label, accepted sign, human debt, or execution authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_witness_structure_correspondence.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

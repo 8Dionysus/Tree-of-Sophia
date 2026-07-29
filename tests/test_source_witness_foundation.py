@@ -1410,6 +1410,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         transfer_plan = json.loads(transfer_path.read_text(encoding="utf-8"))
 
         self.assertEqual([], list(validator.iter_errors(transfer_plan)))
+        self.assertEqual(
+            "tos_golden_kernel_transfer_plan_v2",
+            transfer_plan["schema_version"],
+        )
         self.assertEqual("blocked-not-run", transfer_plan["status"])
         self.assertEqual("blocked", transfer_plan["kernel_evidence_gate"]["gate_status"])
         self.assertFalse(
@@ -1420,6 +1424,42 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual([], transfer_plan["result"]["metric_results"])
         self.assertEqual(3, len(transfer_plan["scouting_units"]))
         self.assertEqual([], transfer_plan["target_units"])
+        candidates = transfer_plan["candidate_target_units"]
+        self.assertEqual(20, len(candidates))
+        self.assertEqual(
+            {"random": 10, "hard": 10},
+            {
+                stratum: sum(
+                    candidate["stratum"] == stratum
+                    for candidate in candidates
+                )
+                for stratum in ("random", "hard")
+            },
+        )
+        self.assertEqual(
+            20,
+            len(
+                {
+                    (candidate["file_ref"], candidate["page"])
+                    for candidate in candidates
+                }
+            ),
+        )
+        self.assertTrue(
+            all(
+                candidate["source_review_status"] == "model_source_visible"
+                and candidate["target_gold_status"] == "not_started"
+                and candidate["frozen_before_variant_outputs"] is True
+                and candidate["eligible_for_variant_execution"] is False
+                for candidate in candidates
+            )
+        )
+        self.assertFalse(
+            transfer_plan["candidate_preparation"]["human_review_performed"]
+        )
+        self.assertFalse(
+            transfer_plan["candidate_preparation"]["variant_outputs_visible"]
+        )
         self.assertTrue(
             all(
                 unit["unit_kind"] == "title-page"
@@ -1465,6 +1505,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "eligible_for_semantic_transfer"
         ] = True
         self.assertTrue(list(validator.iter_errors(semantic_title_page)))
+
+        false_candidate_authority = copy.deepcopy(transfer_plan)
+        false_candidate_authority["candidate_target_units"][0][
+            "eligible_for_variant_execution"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_candidate_authority)))
 
         incomplete_metrics = copy.deepcopy(transfer_plan)
         incomplete_metrics["metrics"].pop()

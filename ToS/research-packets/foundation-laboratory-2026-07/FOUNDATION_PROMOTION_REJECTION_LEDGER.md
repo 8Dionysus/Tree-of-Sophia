@@ -54,7 +54,7 @@ The promotion authorities remain separate:
 | graph C, first launch | runtime ownership lost through symlink resolution | reject launch path; preserve negative | runtime-ownership regression case | backend failure conclusion |
 | graph C, corrected | isolated Oxigraph store, deterministic rebuild, 10/10 advisory expectations; human reviews 0 | retain projection awaiting human review | portable RDF candidate | canonical graph or backend winner |
 | 13 graph claims | all remain `unreviewed`; human review arrays empty | block claim promotion | projection test soil only | bibliographic, textual, translation, sign, or interpretive truth |
-| golden-kernel transfer | plan frozen; current units are three title pages; kernel and target gold absent; runs 0 | promote method only; block experiment result | A/B/C law, metrics, scouting boundaries | usefulness, harm, sign reuse, ontology transfer, winner |
+| golden-kernel transfer | v2 plan frozen; three title-page scouts plus twenty private pre-output whole-page candidates; eligible target units 0; kernel and target gold absent; human debt 0; runs 0 | promote method and candidate preparation only; block experiment result | A/B/C law, metrics, scouting boundaries, deterministic 10-random/10-mechanical-hard sampling, private digest/anchor route | candidate text or page as gold, usefulness, harm, sign reuse, ontology transfer, winner |
 | access request | Nietzsche-Wörterbuch request drafted, not sent; human approval false | retain draft; no external action | future human-reviewed request channel | sent request, permission, response, access |
 | server import | exact plans for all four item manifests; metadata-only; rights-blocked; operator approval false | retain future contract; block transfer | manifest/checksum/rights/takedown import boundary | payload upload, deployment, publication, server authority |
 
@@ -113,6 +113,8 @@ triggered decisions are:
   high-impact promotion, persistent ambiguity, or baseline-instability
   triggers it; otherwise the claim remains unresolved;
 - 20 double-checked content-bearing out-of-kernel passages before transfer;
+  the twenty prepared private pages are a trigger-only sampling frame and do
+  not satisfy this gate or create a standing human backlog;
 - human approval before sending any access request or moving any payload to a
   server.
 

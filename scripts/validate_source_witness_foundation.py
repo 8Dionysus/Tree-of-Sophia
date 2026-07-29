@@ -1275,6 +1275,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         sample_path = gold_root / "sample-plan.json"
         ocr_sample_path = gold_root / "ocr-visual-samples.json"
         ocr_anchor_path = gold_root / "ocr-anchors.jsonl"
+        transfer_target_anchor_path = (
+            gold_root / "transfer-target-anchors.v1.jsonl"
+        )
         gold_status_path = gold_root / "gold-status.json"
         gold_assurance_path = gold_root / "gold-assurance.v2.json"
         translation_path = gold_root / "translation-samples.json"
@@ -1321,6 +1324,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
             anchor_paths.append(ocr_anchor_path)
+        if transfer_target_anchor_path.is_file():
+            anchor_paths.append(transfer_target_anchor_path)
 
         sample_plan = _load_json(sample_path, repo_root, issues)
         ocr_sample_plan = (
@@ -2949,6 +2954,264 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 != actual_target_gold_count
             ):
                 issues.append((transfer_location, "transfer target-gold count drifted"))
+
+            candidate_units = [
+                unit
+                for unit in transfer_plan.get("candidate_target_units", [])
+                if isinstance(unit, dict)
+            ]
+            candidate_unit_ids = [
+                unit.get("unit_id") for unit in candidate_units
+            ]
+            candidate_pages = [
+                (unit.get("file_ref"), unit.get("page"))
+                for unit in candidate_units
+            ]
+            candidate_content_refs = [
+                unit.get("source_content_ref") for unit in candidate_units
+            ]
+            if len(candidate_unit_ids) != len(set(candidate_unit_ids)):
+                issues.append(
+                    (
+                        transfer_location,
+                        "transfer candidate-unit identities are not unique",
+                    )
+                )
+            if len(candidate_pages) != len(set(candidate_pages)):
+                issues.append(
+                    (
+                        transfer_location,
+                        "transfer candidate pages are not unique",
+                    )
+                )
+            if len(candidate_content_refs) != len(set(candidate_content_refs)):
+                issues.append(
+                    (
+                        transfer_location,
+                        "transfer candidate local-content refs are not unique",
+                    )
+                )
+            if set(candidate_unit_ids) & set(target_unit_ids):
+                issues.append(
+                    (
+                        transfer_location,
+                        "prepared candidate and eligible target identities overlap",
+                    )
+                )
+
+            candidate_preparation = transfer_plan.get(
+                "candidate_preparation",
+                {},
+            )
+            if candidate_units:
+                builder_binding = candidate_preparation.get("builder", {})
+                builder_ref = builder_binding.get("ref")
+                builder_path = repo_root / str(builder_ref)
+                if (
+                    builder_ref
+                    != "scripts/build_golden_kernel_transfer_candidates.py"
+                    or not builder_path.is_file()
+                ):
+                    issues.append(
+                        (
+                            transfer_location,
+                            "transfer candidate builder ref is unresolved",
+                        )
+                    )
+                elif builder_binding.get("sha256") != _sha256(builder_path):
+                    issues.append(
+                        (
+                            transfer_location,
+                            "transfer candidate builder digest drifted",
+                        )
+                    )
+
+                actual_strata = {
+                    stratum: sum(
+                        unit.get("stratum") == stratum
+                        for unit in candidate_units
+                    )
+                    for stratum in ("random", "hard")
+                }
+                if actual_strata != {"random": 10, "hard": 10}:
+                    issues.append(
+                        (
+                            transfer_location,
+                            "transfer candidate strata are not exactly 10 random and 10 hard",
+                        )
+                    )
+                expected_work_quotas = {
+                    quota.get("work_ref"): {
+                        "random": quota.get("random"),
+                        "hard": quota.get("hard"),
+                    }
+                    for quota in candidate_preparation.get(
+                        "work_quotas",
+                        [],
+                    )
+                    if isinstance(quota, dict)
+                }
+                actual_work_quotas = {
+                    work_ref: {
+                        stratum: sum(
+                            unit.get("work_ref") == work_ref
+                            and unit.get("stratum") == stratum
+                            for unit in candidate_units
+                        )
+                        for stratum in ("random", "hard")
+                    }
+                    for work_ref in expected_work_quotas
+                }
+                if actual_work_quotas != expected_work_quotas:
+                    issues.append(
+                        (
+                            transfer_location,
+                            "transfer candidate work quotas drifted",
+                        )
+                    )
+
+            for candidate in candidate_units:
+                unit_id = candidate.get("unit_id")
+                anchor_ref = candidate.get("anchor_ref")
+                anchor = anchors_by_id.get(str(anchor_ref))
+                page_selectors = [
+                    selector
+                    for selector in (anchor or {}).get("selectors", [])
+                    if isinstance(selector, dict)
+                    and selector.get("type") == "page_region"
+                ]
+                if (
+                    len(page_selectors) != 1
+                    or page_selectors[0].get("page")
+                    != candidate.get("page")
+                ):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} does not resolve to its exact whole-page anchor",
+                        )
+                    )
+                elif (
+                    page_selectors[0].get("x"),
+                    page_selectors[0].get("y"),
+                    page_selectors[0].get("width"),
+                    page_selectors[0].get("height"),
+                    page_selectors[0].get("coordinate_space"),
+                ) != (0, 0, 1, 1, "normalized_0_1"):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} anchor is not the exact whole page",
+                        )
+                    )
+                if (anchor or {}).get("item_id") != candidate.get("item_ref"):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} item differs from its anchor",
+                        )
+                    )
+                if (anchor or {}).get("file_id") != candidate.get("file_ref"):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} file differs from its anchor",
+                        )
+                    )
+
+                work_record = records_by_id.get(
+                    str(candidate.get("work_ref")),
+                    ({}, Path()),
+                )[0]
+                expression_record = records_by_id.get(
+                    str(candidate.get("expression_ref")),
+                    ({}, Path()),
+                )[0]
+                if work_record.get("record_type") != "work":
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} work_ref is unresolved",
+                        )
+                    )
+                if (
+                    expression_record.get("record_type") != "expression"
+                    or expression_record.get("work_ref")
+                    != candidate.get("work_ref")
+                ):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} expression does not belong to its work",
+                        )
+                    )
+                if (
+                    file_owner_by_id.get(str(candidate.get("file_ref")))
+                    != candidate.get("item_ref")
+                ):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} file does not belong to its item",
+                        )
+                    )
+                if candidate.get("page_resource_id") != (
+                    f"pdf-page-{int(candidate.get('page', 0)):04d}"
+                ):
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} page resource identity drifted",
+                        )
+                    )
+
+                content_ref = candidate.get("source_content_ref")
+                content_path = repo_root / str(content_ref)
+                try:
+                    content_path.resolve().relative_to(
+                        (gold_root / "local-content/transfer-targets/v1").resolve()
+                    )
+                except ValueError:
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} content escaped the private transfer lane",
+                        )
+                    )
+                if _git_ignored(repo_root, content_path) is not True:
+                    issues.append(
+                        (
+                            transfer_location,
+                            f"{unit_id} local content is not protected by Git ignore",
+                        )
+                    )
+                if content_path.is_file():
+                    if content_path.stat().st_size != candidate.get(
+                        "source_content_bytes"
+                    ):
+                        issues.append(
+                            (
+                                _relative(content_path, repo_root),
+                                "transfer candidate byte count drifted",
+                            )
+                        )
+                    if _sha256(content_path) != candidate.get(
+                        "source_content_sha256"
+                    ):
+                        issues.append(
+                            (
+                                _relative(content_path, repo_root),
+                                "transfer candidate digest drifted",
+                            )
+                        )
+                elif require_local_payloads:
+                    issues.append(
+                        (
+                            _relative(content_path, repo_root),
+                            "required local transfer candidate is missing",
+                        )
+                    )
+
             source_gate = (translation_laboratory_plan or {}).get(
                 "source_review_gate", {}
             )
@@ -2977,6 +3240,51 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append((transfer_location, "transfer provenance omits its plan"))
                 elif transfer_output.get("sha256") != _sha256(transfer_path):
                     issues.append((transfer_location, "transfer provenance digest drifted"))
+                if candidate_units:
+                    expected_anchor_output = {
+                        "ref": _relative(
+                            transfer_target_anchor_path,
+                            repo_root,
+                        ),
+                        "role": "proposed-whole-page-transfer-candidate-anchors",
+                        "sha256": _sha256(transfer_target_anchor_path),
+                    }
+                    if expected_anchor_output not in transfer_event.get(
+                        "outputs",
+                        [],
+                    ):
+                        issues.append(
+                            (
+                                transfer_location,
+                                "transfer provenance candidate-anchor output drifted",
+                            )
+                        )
+                    expected_local_outputs = {
+                        (
+                            candidate.get("source_content_ref"),
+                            "gitignored-local-only-pdftotext-page-candidate",
+                            candidate.get("source_content_sha256"),
+                        )
+                        for candidate in candidate_units
+                    }
+                    actual_local_outputs = {
+                        (
+                            output.get("ref"),
+                            output.get("role"),
+                            output.get("sha256"),
+                        )
+                        for output in transfer_event.get("outputs", [])
+                        if isinstance(output, dict)
+                    }
+                    if not expected_local_outputs.issubset(
+                        actual_local_outputs
+                    ):
+                        issues.append(
+                            (
+                                transfer_location,
+                                "transfer provenance private candidate outputs drifted",
+                            )
+                        )
 
         expected_evaluation_plans = {
             semantic_samples_path: (
@@ -4127,11 +4435,25 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     elif isinstance(digest, str) and _sha256(output_path) != digest:
                         issues.append((event_location, f"graph provenance output digest differs: {ref}"))
 
-        referenced_anchor_ids = sample_anchor_ids | ocr_plan_anchor_ids | retrieval_anchor_ids | graph_anchor_ids | {
-            fragment.get("source_anchor_ref")
-            for fragment in (translation_plan or {}).get("fragments", [])
-            if isinstance(fragment, dict)
-        }
+        referenced_anchor_ids = (
+            sample_anchor_ids
+            | ocr_plan_anchor_ids
+            | retrieval_anchor_ids
+            | graph_anchor_ids
+            | {
+                fragment.get("source_anchor_ref")
+                for fragment in (translation_plan or {}).get("fragments", [])
+                if isinstance(fragment, dict)
+            }
+            | {
+                unit.get("anchor_ref")
+                for unit in (transfer_plan or {}).get(
+                    "candidate_target_units",
+                    [],
+                )
+                if isinstance(unit, dict)
+            }
+        )
         unreferenced = sorted(set(anchors_by_id) - referenced_anchor_ids)
         if unreferenced:
             issues.append((gold_location, f"unreferenced anchors: {unreferenced}"))

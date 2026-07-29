@@ -52,3 +52,19 @@ model analysis must never share a working file before both freeze. Comparator
 bytes stay under `sealed/` until the packet records the complete independent
 draft freeze set. Personal read-aloud evidence remains separate from
 philological adjudication.
+
+Cross-work transfer preparation uses:
+
+```text
+transfer-targets/
+└── v1/
+    └── tos-target-candidate-<work>-p<page>-<stratum>.txt
+```
+
+These files are exact page segments emitted by the frozen `pdftotext` route
+with the page separator removed. They are private automatic-extraction
+candidates, not diplomatic transcription, target gold, or public material.
+The tracked transfer plan carries only refs, digests, byte counts, mechanical
+selection metrics, proposed anchors, and an explicit ineligible state. This
+route opens no routine human work; source-visible target review begins only
+after a deliberately activated transfer question.

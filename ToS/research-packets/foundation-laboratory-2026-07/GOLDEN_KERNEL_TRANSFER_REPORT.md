@@ -4,7 +4,7 @@ Status: `blocked-not-run`; no A/B/C output, metric, winner, benefit claim, or
 harm claim exists
 Experiment: `tos-golden-kernel-transfer-v1`
 Frozen plan: `transfer-samples.json`
-Decision date: 2026-07-23
+Decision date: 2026-07-29
 
 ## Result first
 
@@ -24,10 +24,13 @@ The valid result is therefore a stopped result before execution:
 - retain the exact A/B/C method;
 - retain three out-of-kernel title-page boundaries as scouting evidence only;
 - reject those pages as semantic-transfer evaluation units;
+- retain twenty private, content-bearing whole-page candidates selected before
+  any variant output as **ineligible preparation soil**, not target gold;
 - admit no sign, translation, concept, relation, or ontology from
   *Zarathustra* into another work;
-- wait for real source-visible human gold on both the kernel and the target
-  texts.
+- schedule no routine human backlog: in solo+AI operation, open a bounded
+  source-visible checkpoint only when an exact transfer question is
+  deliberately activated.
 
 This is not evidence that the golden-kernel idea succeeds or fails. It is
 evidence that the current foundation can distinguish a prepared experiment
@@ -41,9 +44,10 @@ from an experiment that has actually become epistemically runnable.
 | double-source-visible kernel gold units | 15 | 0 / 15 | blocked |
 | real-human-accepted kernel sign packets | at least 1 | 0 | blocked |
 | real-human-accepted kernel translation packets | at least 1 | 0 | blocked |
+| private content-bearing target candidates selected before variant output | 20, including 10 random and 10 hard | 20 / 20 | prepared, ineligible |
 | double-source-visible content-bearing target gold | 20 | 0 / 20 | blocked |
-| target excerpts frozen before variant output | 20, including 10 random and 10 hard | 0 | blocked |
-| real-human transfer review receipts | required | 0 | blocked |
+| eligible target excerpts frozen before variant output | 20 | 0 / 20 | blocked |
+| triggered human transfer review receipts | required only after deliberate activation | 0; human debt 0 | unscheduled |
 
 The 30-unit source count comes from the frozen translation gate. All four
 translation lanes remain `blocked-on-source-acceptance`, and the recognized
@@ -62,9 +66,14 @@ ToS/source-witnesses/works/friedrich-nietzsche/
 ```
 
 Its SHA-256 is
-`26725f80cfd469c45393f956505a1bbf43401cbe2767d5fee84e40759334f7fa`.
-The separate `transfer-provenance.jsonl` event binds that plan to the frozen
-general sample plan, current manual-gold status, and current translation gate.
+`adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6`.
+The v2 contract explicitly separates `candidate_target_units` from
+authority-bearing `target_units`. The separate `transfer-provenance.jsonl`
+event binds the current plan and twenty proposed whole-page anchors to the
+exact private PDF digest, the unreviewed cross-work boundary map, the
+candidate-aware contract, the solo+AI assurance record, the deterministic
+builder, and twenty ignored local page-extraction digests. The source strings
+are absent from Git and are not authorized for publication.
 
 The stack-owned A/B/C specification remains at
 `mechanics/inference-pilots/parts/tos-foundation-lab/examples/tos-foundation-suite.v1.json`.
@@ -83,9 +92,48 @@ human-accepted—not model-only—kernel packets.
 | `tos-sample-mysl-p631` | 631 | *The Antichrist* | locate a distant third title-page boundary | sign, semantic, relation, or transfer judgment |
 
 All three units are `model_source_visible`, not human accepted. They are full
-title pages, not philosophical passages, and the three named works have not
-yet been promoted into standalone ToS Work records. Their tracked labels are
-therefore provisional routing labels, not a completed bibliographic catalog.
+title pages, not philosophical passages. Standalone Work and Russian
+Expression records now exist for all three named works, but the collection
+boundaries, expression identities, translator claims, and source text remain
+provisional or unreviewed. The title pages therefore remain routing evidence,
+not semantic targets or a completed bibliographic catalog.
+
+## Prepared target-candidate soil
+
+The preparation builder selected the pages without using a *Zarathustra*
+sign, semantic resemblance, variant output, or target answer:
+
+| Work | Digest-random pages | Mechanical-hard pages |
+| --- | --- | --- |
+| *Beyond Good and Evil* | 308, 399, 336, 325 | 319, 267, 321, 279 |
+| *On the Genealogy of Morality* | 410, 519, 489 | 426, 482, 463 |
+| *The Antichrist* | 637, 655, 663 | 668, 685, 661 |
+
+The random stratum uses the lowest SHA-256 ranks per work over eligible pages.
+The hard stratum excludes those random pages and ranks only mechanical signals:
+non-space and punctuation counts, line-end hyphenation, page-edge fragment
+risk, and numbered-heading candidates. That score is a layout/extraction
+stress signal, not a judgment of philosophical depth, ambiguity, rhetoric, or
+semantic difficulty.
+
+All twenty fixity-bound page images were then checked by `model:codex` only
+for the bounded question “is this a content-bearing page rather than a title
+or reference page?” They passed that narrow check. The local `pdftotext
+-layout -enc UTF-8` artifacts total 93,282 bytes and remain automatic
+extraction candidates, not diplomatic transcriptions. Each has a private
+repo-relative ref, byte count, SHA-256, proposed whole-page anchor, work and
+expression route, selection metrics, and explicit `not_started` /
+`eligible_for_variant_execution: false` state.
+
+This closes the former preparation gap without pretending to close the
+authority gap:
+
+- prepared private candidates: 20;
+- proposed target anchors: 20;
+- eligible target units: 0;
+- target gold: 0;
+- human review tasks or debt opened: 0;
+- A/B/C outputs: 0.
 
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
@@ -111,26 +159,30 @@ The test must permit abstention, rejection of every inherited category, and
 creation of a new target-specific sign. Otherwise C is rewarded for imposing
 the kernel even when the target text resists it.
 
-## Target sample required before execution
+## What still must become an eligible target sample
 
-The three title pages remain scouting units. A future evaluation sample must
-freeze at least 20 content-bearing passages from *Beyond Good and Evil*, *On
-the Genealogy of Morality*, and *The Antichrist* before any variant output:
+The three title pages remain scouting units. The twenty newly prepared pages
+are the frozen sampling frame, but they are not yet exact philosophical
+passages. Before execution, a deliberately triggered transfer run must turn
+that frame into twenty authority-bearing `target_units` without looking at any
+variant output:
 
-- 10 randomly selected content passages across the three works;
-- 10 hard passages selected for ambiguity, rhetoric, page boundaries,
-  difficult relation claims, and plausible but unsupported resemblance to a
-  *Zarathustra* sign;
-- ordinary prose, dense or dialogic prose, rhetorical or metaphorical prose,
-  page-boundary cases, and hard negatives for kernel signs;
-- at least one passage in which a target-specific category is more adequate
-  than any existing kernel sign;
-- two independent source-visible human passes for transcription, boundaries,
-  target annotation, and the error rubric.
+- preserve the fixed 10-random / 10-hard balance and the three-work quotas;
+- resolve exact passage boundaries and source text from the visible source;
+- freeze target annotations and an error rubric through the required
+  source-visible passes;
+- classify prose, rhetoric, page-boundary cases, and target-specific signs
+  only from evidence, not from the mechanical preparation score;
+- introduce a hard negative for a kernel sign only after an accepted kernel
+  sign exists and the target passage actually tests it;
+- allow a target-specific category, rejection of every inherited category,
+  ambiguity, and abstention.
 
-Selection must not prefer passages merely because they resemble
-*Zarathustra*. Replacing a difficult passage after seeing output invalidates
-the comparison.
+The strict target-gold gate remains intact. It is a contingent experiment gate,
+not a standing request for the solo human to process twenty pages now. A
+specific unit is opened only when the user deliberately activates this
+experiment or a narrower source question genuinely needs it. Replacing any
+frozen candidate after seeing A/B/C output invalidates the comparison.
 
 ## Measurements and current result
 
@@ -173,18 +225,22 @@ compensate for added human correction.
   metrics, non-transfer warnings, and the right of the target text to produce
   new categories are durable laboratory method.
 - **Retain with limits:** the three title pages remain source-addressable
-  scouting boundaries for structure and retrieval.
+  scouting boundaries for structure and retrieval; the twenty private pages
+  remain reproducible, pre-output candidate soil only.
 - **Block:** all semantic transfer, sign reuse, translation reuse, relation
   reuse, benefit claims, harm claims, and backend winner claims.
-- **Reject as invalid:** any run that uses the current title pages as semantic
-  targets, uses model-only packets as C, treats the recognized translation as
-  gold, or reports missing human measurements as zero.
+- **Reject as invalid:** any run that uses title pages or ineligible page
+  candidates as semantic targets, uses model-only packets as C, treats the
+  recognized translation as gold, or reports missing human measurements as
+  zero.
 
 ## Re-entry condition and honest conclusion
 
 The experiment may move from `blocked-not-run` to `ready` only when all entry
 counts in `transfer-samples.json` are satisfied by resolvable receipts and the
-20 target passages are frozen. The stack preflight and `abyss-machine`
+twenty prepared candidates have become twenty eligible, source-visible target
+units with frozen target gold. This re-entry is trigger-driven and opens no
+human backlog by itself. The stack preflight and `abyss-machine`
 resource/thermal owner must then admit each sequential run; this plan grants
 no permission to bypass either owner.
 

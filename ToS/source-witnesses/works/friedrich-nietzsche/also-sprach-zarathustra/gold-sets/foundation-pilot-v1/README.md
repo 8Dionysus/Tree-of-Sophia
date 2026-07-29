@@ -189,7 +189,14 @@ until reviewed kernel content actually exists. General contracts, model
 proposals, blank worksheets, and a recognized translation cannot substitute
 for human-accepted sign and translation packets. The three currently frozen
 other-work title pages support structure and retrieval scouting, not semantic
-evaluation.
+evaluation. A separate deterministic preparation route now freezes twenty
+private, content-bearing whole-page candidates from three other Nietzsche
+works before any variant output: ten digest-random and ten mechanically hard.
+Their text remains in ignored `local-content/transfer-targets/v1/`; tracked
+records contain only anchors, digests, byte counts, mechanical metrics, and
+review state. These candidates are explicitly ineligible, create no target
+gold or routine human debt, and cannot become A/B/C inputs without the
+triggered source-visible gate.
 
 The first materialized translation-source packet was subsequently inspected
 against all 30 proposed pages by `model:codex`. That advisory inspection

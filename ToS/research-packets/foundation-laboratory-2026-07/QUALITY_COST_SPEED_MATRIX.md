@@ -45,7 +45,7 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | bounded translation C / Qwen3 4B OVMS | same source-aware prompt/decoding; one exact request | i915 `GPU HANG` and context reset preceded OVMS `CL_OUT_OF_RESOURCES`; no HTTP response, completion count, candidate, or language-quality evidence | 35.420039 s to failure; kernel hang at +17.331189 s; throughput unavailable | existing 2,290,768,181-byte immutable 18-file payload and exact OVMS image; 8 GiB cold start and 2 GiB warm request admitted without force; cache last reported 2.6%; container exit 139, `OOMKilled=false`; contained compute runtime 26.09 versus host 26.22 is an unresolved mismatch, not a cause | not measured | frozen failed-and-retained runtime evidence; exact route blocked for translation-sized work; no rerun, tuning, or winner |
 | semantic annotation A/B/C | source-gated plan, zero tasks | no sign, relation, concept, or annotation-quality evidence | not measured | no experiment runtime | not measured | blocked-not-materialized |
 | LLM assistance A/B/C | source-gated plan, zero tasks | no source-grounded accuracy, hallucination, or abstention result | not measured | no experiment runtime or challenger download | not measured | blocked-not-materialized |
-| golden-kernel transfer A/B/C | three title-page scouts, zero semantic tasks | no benefit, harm, sign-reuse, or ontology-imposition evidence | not measured | no experiment runtime | not measured | blocked-not-run |
+| golden-kernel transfer A/B/C | three title-page scouts plus twenty private pre-output page candidates (10 digest-random, 10 mechanically hard); zero eligible semantic tasks | source-visible model check confirms content-bearing pages only; no target gold, benefit, harm, sign-reuse, or ontology-imposition evidence | preparation extraction measured only; experiment speed not measured | 93,282 local extracted bytes plus tracked metadata/anchors; no experiment runtime | human debt 0; correction not measured | candidate preparation reproducible; blocked-not-run |
 
 ## What can be compared now
 
@@ -108,8 +108,9 @@ questions are opened, their remaining evidence requirements are:
 4. real correction/adjudication timers rather than estimated labor;
 5. repeat the independent raw-artifact method for the exact content-quality
    metric once accepted gold exists;
-6. 20 double-checked content-bearing target passages before semantic, LLM, or
-   transfer evaluation.
+6. 20 double-checked content-bearing target passages before transfer
+   evaluation; the twenty prepared private pages are only a trigger-driven
+   sampling frame and do not satisfy this gate.
 
 Until a question-specific gate is closed, the corresponding metric remains
 unmeasured. This does not create human debt for every prepared row. The

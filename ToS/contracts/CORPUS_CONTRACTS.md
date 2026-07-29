@@ -32,7 +32,7 @@ judgment true.
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
 | `semantic-ladder-packet.schema.json` | task-specific form-to-graph sequence for a promotion-capable sign packet, including an honest content-free blocked state, distinct occurrence/lexeme/sign/concept/claim/relation identities, language-competence evidence, a triggered real-human sign checkpoint, competing readings, and a disposable projection boundary; it is not a requirement to review every prepared occurrence |
-| `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
+| `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, separate private/ineligible target-candidate soil, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
 | `source-gated-evaluation-plan.schema.json` | preserved v1 semantic/LLM readiness law and its historical universal source/gold gate; no current plan uses it for scheduling or execution |
 | `source-gated-semantic-evaluation-plan.schema.json` | task-specific semantic A/B/C readiness: accepted evidence per selected task, unassisted baselines only for materialized interpretive tasks, language-competence routing, separate labels and rationales, and exceptional rather than routine second-human review |
 | `source-gated-llm-evaluation-plan.schema.json` | task-specific LLM readiness: twenty accepted anchored source units, a later unassisted baseline only for those materialized subjective tasks, non-authoritative 30/15 history, and fail-closed A/B/C execution |
@@ -142,9 +142,11 @@ A schema validator can establish that:
   a promotion checkpoint for one sign packet, not routine human work for every
   occurrence, form, concordance row, or machine proposal;
 - a golden-kernel transfer plan keeps title-page scouts ineligible for
-  semantic evaluation, requires real-human kernel and target gold before a
-  ready state, preserves exact A/B/C isolation, and cannot report runs,
-  metrics, a winner, or promotion while `blocked-not-run`;
+  semantic evaluation, may preserve exactly twenty pre-output private
+  page-level candidates without calling them gold or opening human debt,
+  requires real-human kernel and target gold before a ready state, preserves
+  exact A/B/C isolation, and cannot report runs, metrics, a winner, or
+  promotion while `blocked-not-run`;
 - a v1 source-gated semantic plan cannot materialize tasks, runs, metrics, a
   winner, or promotion while its accepted-source and double-checked-gold gates
   remain absent, but that preserved v1 contract has no current scheduling or
@@ -227,3 +229,11 @@ The first family uses `v1`. A backward-incompatible change receives a new
 schema version and migration evidence. Tightening a validator around an
 unstated assumption is a contract change even if the JSON filename stays the
 same.
+
+`tos_golden_kernel_transfer_plan_v2` supersedes the v1 plan shape because the
+strict v1 `target_units` array could represent only fully human-double-checked
+evaluation units. V2 adds a separate, fail-closed
+`candidate_target_units`/`candidate_preparation` layer for private pre-output
+sampling soil while leaving the ready-state target-gold gate unchanged. The
+v3 transfer provenance event records the migration, exact builder, source
+digest, candidate anchors, and local-content digests.
