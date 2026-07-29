@@ -258,36 +258,45 @@
       },
       "dating": {
         "original_or_coverage_date": "German-language texts approximately 1600-1900",
-        "edition_or_version": "DTA corpus and DTABf documentation available in 2026; DTABf citation labels the documentation 2011-2025",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "DTA corpus plus the 1883 Schmeitzner first edition of part 1, DTA ID 16840, current generated DTABf/TEI P5 object",
+        "verified_at": "2026-07-28"
       },
       "identifiers": [
         {"scheme": "resource-name", "value": "DTA"},
-        {"scheme": "encoding-profile", "value": "DTABf / TEI P5"}
+        {"scheme": "encoding-profile", "value": "DTABf / TEI P5"},
+        {"scheme": "DTA-ID", "value": "16840"},
+        {"scheme": "URN", "value": "urn:nbn:de:kobv:b4-200905194290"},
+        {"scheme": "holding-shelfmark", "value": "SBB-PK 19 ZZ 10200-1/3"}
       ],
-      "primary_url": "https://fedora.dwds.de/de/corpus/",
+      "primary_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
       "evidence_urls": [
-        "https://fedora.dwds.de/de/corpus/",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+        "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra01_1883",
+        "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
         "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html",
-        "https://fedora.dwds.de/de/repo/"
+        "https://textgridlab.org/1.0/tgsearch-public/search"
       ],
-      "scholarly_posture": "historical New High German reference-corpus candidate with text-image views, spelling-tolerant search, TEI P5 annotation, and downloadable records where rights permit",
+      "scholarly_posture": "historical New High German reference corpus plus an exact, source-structured 1883 Zarathustra part-1 witness; DTA reports OCR followed by native-speaker checking under its transcription guidelines, which is external quality evidence rather than ToS acceptance",
       "intended_uses": [
         "historical-concordance",
         "historical-sense-evidence",
-        "bibliographic-identity"
+        "bibliographic-identity",
+        "critical-source-comparison"
       ],
       "limits": [
         "corpus frequency does not establish Nietzsche's sense",
         "every selected document retains its own source and license",
-        "DTABf documentation license does not automatically license corpus texts or images"
+        "DTABf documentation license does not automatically license corpus texts or images",
+        "the DTA reading is not a critical-edition reading and has not been accepted by ToS",
+        "facsimile-image rights remain separate from the annotated text",
+        "current DTA terms and TEI header report CC BY-SA 4.0 while the live Dublin Core field still reports the former CC BY-NC 3.0"
       ],
       "access": {
-        "access_state": "open-download-candidate",
-        "acquisition_state": "web-consultation-only",
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
         "content_ingested_for_translation_lab": false,
         "access_request_required_before_content_use": false,
-        "contact_routes": ["https://fedora.dwds.de/de/corpus/"],
+        "contact_routes": ["https://www.deutschestextarchiv.de/"],
         "request_state": "not-required-for-web-consultation"
       },
       "rights": {
@@ -299,23 +308,36 @@
           "cite DTA, the exact document identifier and source edition, access date, and document-specific license"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/corpus/",
-          "https://fedora.dwds.de/de/repo/",
-          "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html"
+          "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra01_1883"
         ]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json"
+        ]
+      },
       "admission": {
-        "state": "research-candidate",
+        "state": "local-research-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
           "no period-matched comparison corpus slice has been frozen",
-          "document-level licenses and source editions remain unreviewed"
+          "the exact annotated-text license evidence is internally conflicting",
+          "no exact comparison to a critical-edition passage has been completed",
+          "no German-competent ToS reviewer has accepted the reading"
         ]
       },
-      "notes": "Use a declared late-nineteenth-century control slice and preserve source-image return for every cited occurrence."
+      "notes": "The exact TEI is checksum-bound in local gitignored custody. Use it as an independently sourced structured witness with page-return anchors; do not treat institutional checking, open-license evidence, or schema validity as ToS textual acceptance."
     },
     {
       "reference_id": "tos-ref.nietzsche-source.ekgwb",

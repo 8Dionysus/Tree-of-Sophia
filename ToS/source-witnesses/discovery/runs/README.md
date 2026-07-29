@@ -31,3 +31,12 @@ digital object public domain, and acquires a checksum-matched local research
 copy. It defers the linked CC BY-SA Wikisource transcription because its
 proofreading posture is unresolved. Open rights evidence therefore opens a
 candidate route without being confused with textual quality or gold.
+
+`dta-zarathustra-part-1-open-structured-witness.2026-07-28.v1.json` resolves
+the 1883 Schmeitzner first edition of part 1 through DNB, the direct Deutsches
+Textarchiv object, and TextGrid's university-repository API. It selects and
+acquires the exact DTA DTABf/TEI P5 object while retaining five ordered
+TextGrid alternates as cross-checks. The run preserves DTA's external
+native-speaker-checking statement, the current open-license evidence, the
+stale conflicting Dublin Core field, and the separate facsimile-rights layer.
+None of those facts makes the text ToS-accepted or critical.

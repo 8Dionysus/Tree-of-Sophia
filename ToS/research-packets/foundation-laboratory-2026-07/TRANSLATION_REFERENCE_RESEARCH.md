@@ -117,11 +117,15 @@ Limits:
 
 ### Historical corpus
 
-The BBAW [corpus inventory](https://fedora.dwds.de/de/corpus/) describes the
-*Deutsches Textarchiv* (DTA) as a cross-disciplinary reference corpus of
-German-language texts from approximately 1600–1900, with spelling-tolerant
-search, text/image views, downloadable records, TEI P5 annotation, and open
-licenses where copyright permits. Its
+The BBAW *Deutsches Textarchiv* (DTA) is a cross-disciplinary reference corpus
+of German-language texts from approximately 1600–1900, with text/image views,
+downloadable records, TEI P5 annotation, and item-specific rights evidence.
+The exact [1883 Schmeitzner part-1 object](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883)
+has now been resolved to DTA ID `16840`, SBB-PK shelfmark
+`19 ZZ 10200-1/3`, and a checksum-bound local DTABf/TEI P5 item. Its live
+header reports OCR followed by native-speaker checking under DTA's
+transcription guidelines. That is stronger external source-quality evidence,
+not ToS textual acceptance or a critical-edition reading. The
 [DTABf documentation](https://deutschestextarchiv.github.io/dtabf/einfuehrung.html)
 defines a constrained TEI P5 profile and provides its own citation and CC
 BY-SA 3.0 DE notice.
@@ -134,7 +138,10 @@ Limits:
 - frequency is not sense, recurrence, or philosophical importance;
 - every result must return to the exact document, source edition, and image;
 - the DTABf documentation license does not license every DTA text or image;
-- every selected item retains its own rights and citation record.
+- every selected item retains its own rights and citation record;
+- the current DTA terms and TEI header say CC BY-SA 4.0 for the annotated text,
+  while the live Dublin Core field still carries the former CC BY-NC 3.0;
+- DTA facsimile rights remain separate from the annotated text.
 
 ## II. Established scholarly resources
 

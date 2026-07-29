@@ -258,3 +258,14 @@ and passage alignment remain unverified, no German unit was accepted, and no
 human task or translation lane was opened. A later specific source or
 translation question may use this packet as its rights-gated starting point;
 packet existence alone is not a review trigger.
+
+A second, deliberately different route now exists in the source owner:
+Deutsches Textarchiv's DTABf/TEI P5 transcription of the 1883 Schmeitzner
+first edition of part 1. Its exact bytes, item identity, page boundaries, and
+external native-speaker-checking statement are checksum-bound locally. This
+is a source-structured comparison witness, not a critical-edition packet and
+not ToS-accepted German. It can later help isolate OCR disagreement and return
+claims to printed pages, but it does not remove the language-competence block
+or open a translation lane. The current CC BY-SA evidence, stale conflicting
+Dublin Core field, and separate facsimile rights remain explicit in the item
+rights record.
