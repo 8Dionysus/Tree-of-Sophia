@@ -54,8 +54,20 @@ Rendered pages were inspected at pages 1, 2, 3, 4, 5, 6, 100, and 432.
 - Pages 5–6 show a structured table of contents; page 100 visibly carries the
   section `Об отребье`; page 432 carries production details.
 
-These observations support a provisional/verified local catalog record. They
-do not replace external catalog reconciliation or human bibliographic review.
+These observations support a provisional/verified local catalog record.
+
+## External catalog reconciliation — 2026-07-28
+
+The Russian State Library record `01005395580` independently supports the
+volume title, thirteen-volume series, publisher and year, Antonovsky
+responsibility, scientific editor E. V. Oznobkina, 432-page extent, and ISBN
+`978-5-250-06018-9`.
+
+This reconciles the edition-level identity. The catalog record does not name,
+hash, or otherwise identify the exact operator-provided PDF, does not recover
+its earlier acquisition route, and does not establish redistribution rights.
+Human bibliographic and rights review therefore remain open at their stated
+scope.
 
 ## Laboratory posture
 

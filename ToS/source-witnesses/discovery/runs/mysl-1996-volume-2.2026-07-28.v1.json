@@ -1,0 +1,189 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.mysl-1996-volume-2.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+      "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2"
+    ],
+    "description": "Originating or union-catalog records for volume 2 of Friedrich Nietzsche's Сочинения в двух томах, Mysl, 1996.",
+    "required_properties": [
+      "edition and volume identity",
+      "publication year and publisher",
+      "series identity",
+      "responsibility statement",
+      "stable external identifier"
+    ],
+    "acceptable_substitutions": [
+      "another national-library or academic union-catalog record with equivalent edition-level evidence"
+    ],
+    "languages": [
+      "ru"
+    ],
+    "formats": [
+      "metadata",
+      "HTML",
+      "RDF"
+    ],
+    "purpose_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-nbuv-edition-record",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Національна бібліотека України імені В. І. Вернадського",
+      "endpoint_url": "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+      "interface_type": "web",
+      "interface_version": "NBUV IRBIS HTML catalog as served 2026-07-28",
+      "exact_query": "GET author query Ницше Ф$ with fullwebr format; inspect the preserved 1996 volume 2 result",
+      "queried_at": "2026-07-28T18:40:51-06:00",
+      "elapsed_seconds": 2.499553,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nbuv-mysl-1996-volume-2",
+          "rank": 1,
+          "title_as_displayed": "Сочинения : в 2 т. Т. 2",
+          "result_url": "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+          "originating_record_url": "https://irbis-nbuv.gov.ua/cgi-bin/irbis_nbuv/cgiirbis_64.exe?C21COM=S&I21DBN=EC&P21DBN=EC&S21CNR=20&S21COLORTERMS=1&S21FMT=fullwebr&S21P01=0&S21P02=0&S21P03=A%3D&S21REF=10&S21STN=1&S21STR=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A4%24&Z21ID=",
+          "identifiers": [
+            {
+              "scheme": "ISBN",
+              "value": "5-244-00854-2"
+            }
+          ],
+          "available_formats": [
+            "HTML metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The national-library record matches volume 2, publisher Mysl, year 1996, Svasyan's responsibility, the translator list, series volume 126, and ISBN. Its 830-page extent conflicts with the local PDF container count of 831 and is retained without forced equivalence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live public catalog result was inspected directly; no source payload or tracked web snapshot was needed for this metadata reconciliation."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cinii-set-record",
+      "sequence": 2,
+      "channel_type": "collection-aggregator",
+      "role": "originating-record",
+      "source_name": "CiNii Books",
+      "endpoint_url": "https://ci.nii.ac.jp/ncid/BA35025034",
+      "interface_type": "web",
+      "interface_version": "CiNii Books record as served 2026-07-28",
+      "exact_query": "GET https://ci.nii.ac.jp/ncid/BA35025034",
+      "queried_at": "2026-07-28T18:40:54-06:00",
+      "elapsed_seconds": 1.033269,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cinii-ba35025034",
+          "rank": 1,
+          "title_as_displayed": "Сочинения : в двух томах",
+          "result_url": "https://ci.nii.ac.jp/ncid/BA35025034",
+          "originating_record_url": "https://ci.nii.ac.jp/ncid/BA35025034",
+          "identifiers": [
+            {
+              "scheme": "NCID",
+              "value": "BA35025034"
+            }
+          ],
+          "available_formats": [
+            "HTML metadata",
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The academic union-catalog record supports the two-volume set identity, Mysl 1996 publication, Svasyan responsibility, and series volumes 125-126. The NCID identifies the set record, not the operator PDF item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The stable public union-catalog record was inspected directly; its identifier and URL are sufficient for this metadata-only reconciliation."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-nbuv-edition-record",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 2.499553,
+      "notes": "Strong volume-level bibliographic evidence, with an explicit 830-versus-831 pagination conflict that prevents digital-item equivalence."
+    },
+    {
+      "channel_id": "channel-cinii-set-record",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.033269,
+      "notes": "Stable machine-readable academic union-catalog identity for the two-volume set; less precise than NBUV at the volume level."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.nbuv-mysl-1996-volume-2",
+    "tos-discovery-result.cinii-ba35025034"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T18:40:51-06:00",
+  "ended_at": "2026-07-28T18:40:55-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.mysl-1996-volume-2.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

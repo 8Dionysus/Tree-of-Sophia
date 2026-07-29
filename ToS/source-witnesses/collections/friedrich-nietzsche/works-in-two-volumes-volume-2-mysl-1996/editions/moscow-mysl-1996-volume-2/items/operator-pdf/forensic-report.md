@@ -54,6 +54,21 @@ which translator owns each contained work. The current Antonovsky expression
 handle remains provisional until work-specific evidence or text comparison is
 reviewed.
 
+## External catalog reconciliation — 2026-07-28
+
+The Vernadsky National Library catalog independently supports volume 2,
+publisher `Мысль`, year 1996, K. A. Svasyan's responsibility, the translator
+list, series volume 126, and ISBN `5-244-00854-2`. CiNii Books record
+`BA35025034` independently supports the two-volume set, the 1996 publication,
+and series volumes 125–126.
+
+The NBUV record reports 830 pages while Poppler reports 831 pages in the local
+PDF container. Both observations are retained. The discrepancy may reflect
+bibliographic pagination versus scan/container pages, but that explanation is
+not promoted as fact. Neither catalog record identifies the exact
+operator-provided PDF or reconstructs its acquisition history, and neither is
+treated as redistribution-rights evidence.
+
 ## Laboratory posture
 
 This item is the embedded-OCR comparison case:

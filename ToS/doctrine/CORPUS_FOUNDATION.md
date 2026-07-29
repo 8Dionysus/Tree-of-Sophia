@@ -199,6 +199,22 @@ unless a documented legal or permission decision says otherwise. Unknown,
 conflicting, permission-requested, research-only, local-only, and public are
 valid explicit states.
 
+The relevant constraint is evaluated per layer and per content carried. A
+`local-only` file may still be cited as the research witness behind a
+public-safe bibliographic record or provenance edge; that reference does not
+redistribute the file. A derivative that reproduces, transforms, quotes, or
+otherwise carries protected source content receives its own explicit rights
+and visibility decision. Source payload, metadata, provenance, transcription,
+translation, annotation, and export therefore remain separately governable
+even when they share one lineage.
+
+The rights gate is evidence-seeking, not presumptively closed. Public-domain,
+open-license, permission-granted, and conditional noncommercial routes are
+positive outcomes when verified for the exact layer, object, jurisdiction, and
+intended use. Conditions such as attribution, noncommercial use, no
+derivatives, share-alike, or source-site terms remain machine-readable
+restrictions rather than being flattened into either “free” or “forbidden”.
+
 ## Projection boundary
 
 The authoritative chain is:
