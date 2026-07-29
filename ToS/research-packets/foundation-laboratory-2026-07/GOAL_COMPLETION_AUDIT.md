@@ -25,14 +25,20 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia source/contract base through `0f30c08` (`Prepare private
-  golden-kernel transfer candidates`), plus this report-only visual
-  reconciliation;
+- Tree of Sophia source/contract base through `ed3103f` (`Build source-gated
+  Zarathustra lexical index`);
 - `abyss-stack` through `3867617b` (`Fail closed on silent visual fallback`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
 - the host-owned direct-visual retrieval preflight captured on 2026-07-29,
   SHA-256
   `299cdf3ad98d17c4f3b98b2080eb21e20525c5bae869573b22633c7674195e16`.
+
+At `ed3103f`, the complete Tree release lane passed 199 tests with one
+declared skip. Separate source-visible integrity checks reconciled three
+tracked form aggregates against SQLite, the known `Zarathustra` form at
+527/527 occurrences, 35 exact XML text-node locators across all four parts,
+and zero orphan page or section refs. These checks establish index/locator
+integrity only, not German correctness or semantic quality.
 
 The private review artifact declares itself local-only and non-publishable.
 This audit therefore records only its public-safe consequence: one real
@@ -94,7 +100,7 @@ gold, accepted text, or public derivative was created.
 | recognized translation is a witness, not truth | proven in method law | preserve the seal/reveal order in actual runs |
 | human-only, AI-only, and AI+human lanes stay separate | contract only | execute genuine independent lanes without simulated human evidence |
 | real pages and texts are checked manually | partial | one private Russian candidate-review pass exists; diplomatic gold, German review, and other families remain open |
-| automatic metrics are manually rechecked | partial: A R2 file/count, TSV diagnostic, confidence, and speed aggregates were independently recomputed from raw artifacts without runner or validator reuse | repeat the raw-artifact method for CER/WER or another content-quality metric after accepted gold exists |
+| automatic metrics are manually rechecked | partial: A R2 file/count, TSV diagnostic, confidence, and speed aggregates were independently recomputed from raw artifacts without runner or validator reuse; the whole-work lexical layer separately reconciled three form aggregates, 35 raw XML locators across all four parts, one known-form count, one known phrase, and orphan-resource counts without trusting its validator | repeat the raw-artifact method for CER/WER or another content-quality metric after accepted gold exists; lexical integrity checks are not content-quality labels |
 | quality, cost, and speed remain separate | proven in report shape | add valid human-quality and correction evidence without collapsing axes |
 | human correction time is included | open | use a balanced display design and record task-defined correction time |
 | no LLM output is promoted without review | proven so far | retain fail-closed promotion gates |

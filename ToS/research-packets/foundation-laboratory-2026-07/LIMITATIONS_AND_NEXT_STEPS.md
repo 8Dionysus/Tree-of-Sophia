@@ -142,7 +142,7 @@ contracts intentionally reject simulated human evidence.
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and
   structural navigation mechanics only. The 119,533,568-byte sequential
-  SQLite/FTS5 database remains gitignored; the tracked 12,919,608-byte
+  SQLite/FTS5 database remains gitignored; the tracked 12,919,723-byte
   projection contains hashes, counts, and resource refs but no strings,
   sequence, context, or positions. Low-entropy hashes are
   dictionary-recoverable and not secrecy. The DTA rights conflict and review
@@ -276,13 +276,18 @@ not reintroduce a false 90 °C gate.
   `0f30c08`. It adds twenty private pre-output page candidates and proposed
   anchors while retaining zero eligible target units, zero target gold, zero
   runs, and zero human debt.
-- This report reconciliation fully refreshes the portable KAG family from the
-  staged Tree source, with full/incremental parity and a digest-bound
-  generated-delta/tracked-size receipt. The local provider and derived export
-  validators pass, and the complete Tree release lane passes 192 tests plus
-  one skip when routed read-only to the clean `/srv/AbyssOS/aoa-stats` owner.
-  This resolves projection freshness only; it does not upgrade KAG to source
-  authority or prove visual-retrieval quality.
+- The whole-work lexical slice is committed in Tree of Sophia as `ed3103f`.
+  Its release-safe validator closes without local books, its explicit local
+  mode verifies the ignored SQLite bytes, and full/incremental KAG parity
+  classifies the tracked projection as one `generated_readmodel` with an
+  explicit builder return while carrying none of its internal form hashes.
+  Three tracked form aggregates, 35 XML text-node locators across all four
+  parts, a 527/527 known-form count, a 99-page known phrase result, and zero
+  orphan page/section refs were separately reconciled without calling the
+  validator. The complete Tree release lane passes 199 tests plus one skip
+  when routed read-only to the clean `/srv/AbyssOS/aoa-stats` owner. This
+  proves mechanical integrity only; it does not accept German, clear rights,
+  create semantics, or prove retrieval quality.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.
