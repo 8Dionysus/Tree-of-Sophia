@@ -103,7 +103,10 @@ collection containing it. The seed deliberately includes:
 - an automatically generated German OCR EPUB with weak metadata and no usable
   navigation;
 - the exact 529-page image-container PDF exposed by that EPUB's
-  checksum-verified Internet Archive parent item.
+  checksum-verified Internet Archive parent item;
+- a checksum-verified 402-page scan of Yu. M. Antonovsky's 1913 Russian
+  translation from Wikimedia Commons, kept distinct from both the later
+  Antonovsky expression and the separately licensed Wikisource transcription.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -111,6 +114,13 @@ OCR; the EPUB text remains a sealed reference witness until variant outputs
 are frozen. Internet Archive's Public Domain Mark is retained as a source
 statement, while ToS keeps the bytes `local_only` and
 `copyright_undetermined` pending human jurisdiction and terms review.
+
+The 1913 scan likewise preserves the source provider's public-domain
+declaration as positive rights evidence rather than flattening it into either
+“authorized” or “closed.” Its local copy remains off the future public site by
+operator policy. The Wikisource transcription is an independent CC BY-SA
+candidate layer and remains deferred: its index reports incomplete
+proofreading, so open licensing does not make it accepted text or gold.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

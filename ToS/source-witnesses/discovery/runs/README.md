@@ -23,3 +23,11 @@ catalog. The selected records support volume and set identity, ISBN, and NCID.
 The catalog extent of 830 pages and the local PDF container count of 831 are
 both retained; no exact digital-item equivalence or rights conclusion is
 inferred.
+
+`antonovsky-1913-wikimedia-open-witness.2026-07-28.v1.json` separates the
+modern local Antonovsky editions from a source-visible 1913 witness. It selects
+the exact 402-page Wikimedia Commons scan, whose description declares the
+digital object public domain, and acquires a checksum-matched local research
+copy. It defers the linked CC BY-SA Wikisource transcription because its
+proofreading posture is unresolved. Open rights evidence therefore opens a
+candidate route without being confused with textual quality or gold.

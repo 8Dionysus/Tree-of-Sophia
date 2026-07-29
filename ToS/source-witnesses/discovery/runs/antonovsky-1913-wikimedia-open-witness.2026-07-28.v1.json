@@ -1,0 +1,199 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1913-wikimedia-open-witness.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "translation",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.agent.yuri-antonovsky"
+    ],
+    "description": "A source-visible historical Antonovsky translation witness whose exact digital object carries an explicit open-use statement, kept distinct from the edited 2007 local edition.",
+    "required_properties": [
+      "Antonovsky translator responsibility",
+      "source-visible historical edition",
+      "exact digital-object identity and fixity",
+      "explicit rights evidence",
+      "page-addressable visual witness"
+    ],
+    "acceptable_substitutions": [
+      "another source-visible Antonovsky edition with a stable originating record and equally explicit rights evidence"
+    ],
+    "languages": [
+      "ru"
+    ],
+    "formats": [
+      "metadata",
+      "PDF",
+      "HTML transcription"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-commons-antonovsky-1913-file",
+      "sequence": 1,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons MediaWiki API",
+      "endpoint_url": "https://commons.wikimedia.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki Action API as served 2026-07-28",
+      "exact_query": "GET action=query&format=json&formatversion=2&prop=imageinfo&iiprop=url|size|sha1|mime|mediatype|timestamp|extmetadata&titles=File:Ницше Так говорил Заратустра 1913.pdf",
+      "queried_at": "2026-07-28T18:54:46-06:00",
+      "elapsed_seconds": 0.628193,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-antonovsky-1913-pdf",
+          "rank": 1,
+          "title_as_displayed": "File:Ницше Так говорил Заратустра 1913.pdf",
+          "result_url": "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf",
+          "originating_record_url": "https://commons.wikimedia.org/w/index.php?title=File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf&oldid=904617076",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "69390926"
+            },
+            {
+              "scheme": "Wikimedia Commons file SHA-1",
+              "value": "93b088e496dd6e60ff1558022c402ef94807da6b"
+            }
+          ],
+          "available_formats": [
+            "PDF",
+            "HTML metadata",
+            "MediaWiki API JSON"
+          ],
+          "declared_rights": {
+            "statement": "Public domain under the Commons PD-RusEmpire rationale; the description page separately states United States public-domain status for publication before 1931.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/w/index.php?title=File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf&oldid=904617076",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact 402-page scan exposes a source-visible 1913 title page naming Yu. M. Antonovsky, has stable Wikimedia identity and source metadata, and carries an explicit public-domain statement. It is selected as a local research witness and positive public-route candidate, not as reviewed text or a completed ToS rights judgment.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-28T18:56:22-06:00",
+            "byte_size": 12244179,
+            "sha256": "687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b",
+            "event_ref": "tos.event.acquisition.antonovsky-1913-wikimedia-commons-pdf.2026-07-28"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7701f98dd4afd1de0b9751db0ee9c527211c00a16d7e237dfb626af18b04fbc4",
+            "reason": "A compact source-reported metadata and declared-rights snapshot was retained; it contains no source-text payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikisource-antonovsky-1913-text",
+      "sequence": 2,
+      "channel_type": "open-library",
+      "role": "mixed",
+      "source_name": "Russian Wikisource MediaWiki API",
+      "endpoint_url": "https://ru.wikisource.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki Action API and ProofreadPage index as served 2026-07-28",
+      "exact_query": "GET action=query&format=json&formatversion=2&prop=info|revisions&rvprop=ids|timestamp&titles=Так говорил Заратустра (Ницше; Антоновский); then GET action=query&format=json&formatversion=2&prop=info|revisions|pageprops&rvprop=ids|timestamp|content&rvslots=main&titles=Индекс:Ницше Так говорил Заратустра 1913.pdf",
+      "queried_at": "2026-07-28T18:54:47-06:00",
+      "elapsed_seconds": 0.367027,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikisource-antonovsky-1913-transcription",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра (Ницше; Антоновский)",
+          "result_url": "https://ru.wikisource.org/wiki/%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_(%D0%9D%D0%B8%D1%86%D1%88%D0%B5;%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9)",
+          "originating_record_url": "https://ru.wikisource.org/wiki/%D0%98%D0%BD%D0%B4%D0%B5%D0%BA%D1%81:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf",
+          "identifiers": [
+            {
+              "scheme": "Wikisource page ID",
+              "value": "866030"
+            },
+            {
+              "scheme": "Wikisource source-index page ID",
+              "value": "865399"
+            }
+          ],
+          "available_formats": [
+            "HTML transcription",
+            "EPUB export",
+            "PDF export",
+            "MediaWiki API JSON"
+          ],
+          "declared_rights": {
+            "statement": "Page text is offered under CC BY-SA 4.0 with notice that additional terms may apply.",
+            "scope": "content",
+            "evidence_url": "https://ru.wikisource.org/wiki/%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_(%D0%9D%D0%B8%D1%86%D1%88%D0%B5;%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9)",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The transcription is source-linked and openly licensed, but the landing page was categorized 00% during inspection, the source index reports Progress=C, and inspected page surfaces were marked unproofread. It remains a comparison candidate rather than accepted source text or gold.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Revision IDs, index quality posture, source linkage, and declared license were retained in the compact metadata snapshot; no transcription content was acquired."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-commons-antonovsky-1913-file",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.628193,
+      "notes": "Exact page-addressable scan, stable API metadata, source holding, source-visible bibliographic evidence, and a direct public-domain statement. Jurisdiction-complete ToS review remains separate."
+    },
+    {
+      "channel_id": "channel-wikisource-antonovsky-1913-text",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.367027,
+      "notes": "Strong source linkage and explicit CC BY-SA terms, but insufficient proofreading posture for text acceptance."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.commons-antonovsky-1913-pdf"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T18:54:46-06:00",
+  "ended_at": "2026-07-28T18:56:22-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1913-wikimedia-open-witness.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

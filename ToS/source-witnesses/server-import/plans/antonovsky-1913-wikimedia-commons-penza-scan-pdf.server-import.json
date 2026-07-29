@@ -1,0 +1,126 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.antonovsky-1913-wikimedia-commons-penza-scan-pdf",
+  "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/item.manifest.json",
+    "sha256": "13c2907e3a6b11e5215ff9b9eb7da4cc65d76cea51371ff94ee0b1c0980b4c29",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b",
+      "relative_path": "payload/Ницше_Так_говорил_Заратустра_1913.pdf",
+      "byte_size": 12244179,
+      "sha256": "687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/rights.json",
+    "rights_record_sha256": "b7fc5b67f28f430aa460e275b79b86fe7f5e970711d2f189ce05480c0537101e",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/source-metadata-snapshot.json",
+      "https://commons.wikimedia.org/w/index.php?title=File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf&oldid=904617076"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this metadata-only plan."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No source transcription is served by this plan; the distinct Wikisource layer has its own terms and unresolved quality posture."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-held local scan remains off the future public site."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text publication is authorized by this plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no source text."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing aligned text is served by this plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "No translation publication decision is made by the source-file rights statement."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe metadata and provenance only; no restricted or unreviewed source content."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-07-28T18:58:00-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons.2026-07-28"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

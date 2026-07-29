@@ -45,6 +45,10 @@ contracts intentionally reject simulated human evidence.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
   critical text.
+- The acquired Antonovsky 1913 PDF is a source-visible historical Russian
+  witness, but its embedded ABBYY layer is visibly corrupt and remains
+  unaccepted. The separately licensed Wikisource transcription reports
+  incomplete proofreading and is a comparison candidate, not gold.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -58,14 +62,24 @@ contracts intentionally reject simulated human evidence.
 - Current rights assessments are preliminary, model-authored, and unreviewed.
 - The 1996 and 2007 Russian sources are local-research-only; payload and public
   derivative redistribution are not authorized.
+- The 1913 Commons scan is a genuinely positive route: the provider declares
+  the exact object public domain, and the distinct Wikisource transcription is
+  offered under CC BY-SA terms. ToS preserves those claims with stable source
+  evidence while still requiring exact-object, layer, jurisdiction, and
+  current-terms review before any publication decision.
+- Irrespective of source-provider permission, the operator-held copy of the
+  1913 scan remains local and is not a future-site upload source. A later site
+  may serve only a separately reviewed, explicitly authorized material route.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
 - Private correspondence and personal contact data must remain in the ignored
   private lane; only redacted public receipts may be committed.
 - Server plans are metadata-only and `blocked-rights`; no payload was uploaded,
   deployed, or published.
-- A public-domain or declared-license search result still requires
-  jurisdiction, manifestation, and exact-item review before publication.
+- A public-domain or declared-license search result is positive evidence, not
+  a reason to default closed and not final authorization by itself; it still
+  requires jurisdiction, manifestation/layer, exact-item, and current-terms
+  review before publication.
 
 ## Laboratory limitations
 
