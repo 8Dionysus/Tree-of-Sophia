@@ -1,0 +1,360 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.ekgwb-za-i-vorrede-1.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+    ],
+    "description": "A current, directly inspectable critical-edition witness for Zarathustra's Vorrede, section 1, identified by the eKGWB siglum Za-I-Vorrede-1.",
+    "required_properties": [
+      "critical-edition identity",
+      "exact stable section locator",
+      "directly inspectable current passage",
+      "originating scholarly record",
+      "declared rights evidence separated from ToS rights judgment"
+    ],
+    "acceptable_substitutions": [
+      "another scholarly critical edition with exact passage-level addressability and a reviewable rights route"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "HTML",
+      "TEI"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4099324-3/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-28",
+      "exact_query": "GET https://d-nb.info/gnd/4099324-3/about/lds.jsonld with Accept: application/ld+json",
+      "queried_at": "2026-07-28T18:09:49-06:00",
+      "elapsed_seconds": 0.808707,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4099324-3",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra : ein Buch für Alle und Keinen",
+          "result_url": "https://d-nb.info/gnd/4099324-3",
+          "originating_record_url": "https://d-nb.info/gnd/4099324-3",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4099324-3"
+            },
+            {
+              "scheme": "VIAF",
+              "value": "175164071"
+            },
+            {
+              "scheme": "Wikidata",
+              "value": "Q199774"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The record establishes the work identity, German language, and 1883-1885 publication interval but does not identify the eKGWB edition or exact section witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live metadata response was inspected in a host temporary directory and was not promoted to a tracked source snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-direct",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Nietzsche Source",
+      "endpoint_url": "https://doc.nietzschesource.org/en/",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "GET https://doc.nietzschesource.org/en/ekgwb; GET https://doc.nietzsource.org/en/rights (recorded hostname typo); GET https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1; then corrected retries GET https://doc.nietzschesource.org/en/ekgwb; GET https://doc.nietzschesource.org/en/rights; GET https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+      "queried_at": "2026-07-28T18:09:50-06:00",
+      "elapsed_seconds": 50.076341,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-exact-siglum",
+      "sequence": 3,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "DuckDuckGo HTML",
+      "endpoint_url": "https://html.duckduckgo.com/html/?q=%22Za-I-Vorrede-1%22",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "q=\"Za-I-Vorrede-1\"",
+      "queried_at": "2026-07-28T18:10:53-06:00",
+      "elapsed_seconds": 0.761569,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.web-exact-siglum-1",
+          "rank": 1,
+          "title_as_displayed": "The Philosopher of the Untergang: Nietzsche's Conception of Decline and ...",
+          "result_url": "https://intempestivemeditations.wordpress.com/2025/03/10/the-philosopher-of-the-untergang-nietzsches-conception-of-decline-and-overcoming-post-daybreak/",
+          "originating_record_url": "https://intempestivemeditations.wordpress.com/2025/03/10/the-philosopher-of-the-untergang-nietzsches-conception-of-decline-and-overcoming-post-daybreak/",
+          "identifiers": [],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result is an interpretive web essay, not an originating record or critical-edition witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected lead; no source snapshot was justified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.web-exact-siglum-2",
+          "rank": 2,
+          "title_as_displayed": "Nietzsche and Water: Currents of Thought in a Philosopher's Life",
+          "result_url": "https://intempestivemeditations.wordpress.com/2025/03/13/nietzsche-and-water-currents-of-thought-in-a-philosophers-life/",
+          "originating_record_url": "https://intempestivemeditations.wordpress.com/2025/03/13/nietzsche-and-water-currents-of-thought-in-a-philosophers-life/",
+          "identifiers": [],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result is an interpretive web essay, not an originating record or critical-edition witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected lead; no source snapshot was justified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.web-exact-siglum-3",
+          "rank": 3,
+          "title_as_displayed": "What the Climber Saw: Strauss's Alpensinfonie and the Romantic ...",
+          "result_url": "https://www.cambridge.org/core/journals/nineteenth-century-music-review/article/abs/what-the-climber-saw-strausss-alpensinfonie-and-the-romantic-tradition-of-nature-representation/4639744A6707D18EFA52FD23A399421D",
+          "originating_record_url": "https://www.cambridge.org/core/journals/nineteenth-century-music-review/article/abs/what-the-climber-saw-strausss-alpensinfonie-and-the-romantic-tradition-of-nature-representation/4639744A6707D18EFA52FD23A399421D",
+          "identifiers": [],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result concerns a musical work and does not identify the target critical-edition passage.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected lead; no source snapshot was justified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.web-exact-siglum-4",
+          "rank": 4,
+          "title_as_displayed": "Das Einsetzen der Modernisierung",
+          "result_url": "https://link.springer.com/chapter/10.1007/978-3-658-35811-2_2",
+          "originating_record_url": "https://link.springer.com/chapter/10.1007/978-3-658-35811-2_2",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1007/978-3-658-35811-2_2"
+            }
+          ],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result is a secondary publication lead and not the originating critical-edition witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected lead; no source snapshot was justified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.web-exact-siglum-5",
+          "rank": 5,
+          "title_as_displayed": "The Luminous Metaphysic: Nietzsche's Philosophical Heliography",
+          "result_url": "https://intempestivemeditations.wordpress.com/2025/03/10/the-luminous-metaphysic-nietzsches-philosophical-heliography/",
+          "originating_record_url": "https://intempestivemeditations.wordpress.com/2025/03/10/the-luminous-metaphysic-nietzsches-philosophical-heliography/",
+          "identifiers": [],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result is an interpretive web essay, not an originating record or critical-edition witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected lead; no source snapshot was justified."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-work-authority",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.808707,
+      "notes": "Strong work-level identity and stable identifiers; no critical-edition or passage-level identity."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-direct",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 50.076341,
+      "notes": "All corrected direct requests timed out. One earlier rights request used a mistyped hostname and failed DNS; it is preserved in exact_query as an operator error, not counted as source evidence. Search-index evidence retained elsewhere was not reclassified as a direct result."
+    },
+    {
+      "channel_id": "channel-general-web-exact-siglum",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0.761569,
+      "notes": "The bounded top five were secondary or interpretive leads and did not return the originating critical-edition record."
+    }
+  ],
+  "selected_result_ids": [],
+  "rejected_result_ids": [
+    "tos-discovery-result.web-exact-siglum-1",
+    "tos-discovery-result.web-exact-siglum-2",
+    "tos-discovery-result.web-exact-siglum-3",
+    "tos-discovery-result.web-exact-siglum-4",
+    "tos-discovery-result.web-exact-siglum-5"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-28T18:09:49-06:00",
+  "ended_at": "2026-07-28T18:10:54-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.ekgwb-za-i-vorrede-1.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

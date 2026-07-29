@@ -228,6 +228,15 @@ compare the eKGWB reading, establish a sentence-level alignment, judge German
 correctness, or turn automatic OCR into source truth. No eKGWB or local source
 text was copied into the tracked packet.
 
+The first protocol-native material-discovery run is preserved in
+`source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json`.
+It reached the GND work authority through its machine interface, but repeated
+direct requests to Nietzsche Source timed out. The bounded exact-siglum
+general-web fallback returned secondary or interpretive noise rather than the
+originating critical-edition passage. The run therefore selected no result,
+downloaded no content, and remains `incomplete`. This is negative discovery
+evidence, not evidence that the critical passage is absent.
+
 This is a prepared admission packet, not an admitted witness. Human
 bibliographic and rights review remain false, exact critical-text comparison
 and passage alignment remain unverified, no German unit was accepted, and no

@@ -477,6 +477,48 @@ def _critical_edition_local_structural_context_issues(
     return issues
 
 
+def _discovery_decision_issues(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["discovery record is not an object"]
+
+    issues: list[str] = []
+    result_ids: set[str] = set()
+    expected_selected: set[str] = set()
+    expected_rejected: set[str] = set()
+    for channel in payload.get("channels", []):
+        if not isinstance(channel, dict):
+            continue
+        for result in channel.get("results", []):
+            if not isinstance(result, dict):
+                continue
+            result_id = result.get("result_id")
+            if not isinstance(result_id, str):
+                continue
+            if result_id in result_ids:
+                issues.append(f"duplicate discovery result_id: {result_id}")
+            result_ids.add(result_id)
+            if result.get("decision") == "select":
+                expected_selected.add(result_id)
+            elif result.get("decision") == "reject":
+                expected_rejected.add(result_id)
+
+    selected = {
+        item for item in payload.get("selected_result_ids", []) if isinstance(item, str)
+    }
+    rejected = {
+        item for item in payload.get("rejected_result_ids", []) if isinstance(item, str)
+    }
+    if selected != expected_selected:
+        issues.append(
+            "selected_result_ids do not match results whose decision is select"
+        )
+    if rejected != expected_rejected:
+        issues.append(
+            "rejected_result_ids do not match results whose decision is reject"
+        )
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -2605,6 +2647,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             continue
         location = _relative(path, repo_root)
         _validate_payload(payload, material_discovery_validator, location, issues)
+        for message in _discovery_decision_issues(payload):
+            issues.append((location, message))
         channels = [item for item in payload.get("channels", []) if isinstance(item, dict)]
         channel_ids = [item.get("channel_id") for item in channels]
         sequences = [item.get("sequence") for item in channels]
