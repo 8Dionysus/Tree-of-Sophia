@@ -62,8 +62,10 @@ Zarathustra golden kernel. It is not a completed gold set.
   private A/B/C machine-method run without copying source or candidate text.
   A returned a contract-complete but Russian-defective candidate, B retained a
   truncated invalid output, and C retained a GPU runtime failure with no
-  candidate. All accepted German, translation, semantic, graph, and canon
-  effects remain zero.
+  candidate. A separate source-free diagnosis establishes the i915
+  `GPU HANG` and context reset that preceded OVMS `CL_OUT_OF_RESOURCES`; it
+  does not establish root cause or repair C. All accepted German, translation,
+  semantic, graph, and canon effects remain zero.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current

@@ -48,8 +48,12 @@ slower and reached the exact output ceiling before completing its outer JSON.
 The malformed output exposed and caused repair of a real nested-object parser
 defect; B was not rerun after inspection. Variant C crossed exact cold-start
 and warm-execution owner gates, sent one request to Qwen3 4B on OVMS, and
-failed with the runtime signature `CL_OUT_OF_RESOURCES` before returning an
-HTTP response or candidate. It was retained without rerun or tuning.
+failed before returning an HTTP response or candidate. Subsequent source-free
+runtime diagnosis established the event chain: Linux i915 recorded a
+`GPU HANG`, saved an error state, reset the `ovms` context, and OVMS then
+surfaced `CL_OUT_OF_RESOURCES` before segfaulting. It was retained without
+rerun or tuning; the diagnosis does not convert the runtime failure into a
+translation result.
 
 ## Evidence sequence
 
@@ -181,7 +185,7 @@ etymology, semantic, rights, graph, or canon conclusion.
 | --- | --- | ---: | ---: | ---: |
 | A: Gemma E2B direct | schema-valid candidate; obvious Russian grammar defects under direct AI inspection | 146.973579 s | 542 / 736 | 5.007703 tokens/s |
 | B: Gemma E2B source-aware | HTTP success; 768-token ceiling; incomplete outer JSON retained as invalid model output | 169.745670 s | 574 / 768 | 4.524416 tokens/s |
-| C: Qwen3 4B OVMS | exact request reached runtime; GPU `CL_OUT_OF_RESOURCES`; container exit 139; no candidate | 35.420039 s to failed request | unavailable | unavailable |
+| C: Qwen3 4B OVMS | exact request reached runtime; i915 `GPU HANG` and context reset preceded OVMS `CL_OUT_OF_RESOURCES` and exit 139; no candidate | 35.420039 s to failed request; kernel hang at +17.331189 s | 526 / no completion count; 768-token ceiling | unavailable |
 
 Against A on this single fixed runtime, B took 15.494% more wall time and
 produced completion tokens 9.651% more slowly. The visible partial Russian
@@ -215,13 +219,41 @@ cold-start owner gate without force and preserved the loopback endpoint.
 Preflight separately crossed a 2048 MiB warm-execution gate instead of
 double-counting the already materialized cold start.
 
-The exact request began at `2026-07-29T11:31:10.878327Z`. OVMS reported
-`[GPU] clFinish, error code: -5 CL_OUT_OF_RESOURCES`; the connection closed
-without a response, and the container later exited 139 with
-`OOMKilled=false`. The sidecar endpoint was unavailable afterward while the
-main embeddings OVMS remained HTTP 200. The run receipt SHA-256 is
+The exact request began at `2026-07-29T11:31:10.878327Z`. Its local tokenizer
+count was 526 prompt tokens and its frozen completion ceiling was 768. At
+`11:31:28.209516Z`, 17.331189 seconds after request start, Linux i915 recorded
+a `GPU HANG` in `ovms`; it saved an error state and reset that context. OVMS
+then reported `[GPU] clFinish, error code: -5 CL_OUT_OF_RESOURCES`, the
+connection closed without a response, and the process segfaulted. The
+container exited 139 with `OOMKilled=false`. Its last cache report was only
+2.6% of the configured 2 GiB static cache. The sidecar endpoint was
+unavailable afterward while the main embeddings OVMS remained HTTP 200.
+
+This establishes an integrated-GPU execution hang and reset. It does not
+establish host-RAM exhaustion, KV-cache exhaustion, a thermal cause, an
+OpenVINO out-of-bounds kernel, an i915 regression, or the completion ceiling
+as the cause. The exact container embeds Intel Compute Runtime
+`26.09.37435.1`, while the host exposes `26.22.38646.6`; that mismatch is a
+diagnostic hypothesis, not causal proof. The root-owned saved i915 error state
+was not read and no privilege escalation was attempted.
+
+The run receipt SHA-256 is
 `c5c4d8a697ed8403ac1bf51b676416fa7705bb7f334844c812d4f98c749e7807`.
-This identifies the failed GPU operation, not its complete cause.
+The separate source-safe diagnosis SHA-256 is
+`3017da9daf6906ef8e21d2d414e7b1b3a8ecf5fb9e86e7b16949e244f4be9295`.
+Current primary documentation and release evidence were rechecked on
+2026-07-29:
+
+- [OVMS 2026.2 release](https://github.com/openvinotoolkit/model_server/releases/tag/v2026.2);
+- [OVMS LLM parameters](https://docs.openvino.ai/2026/model-server/ovms_docs_parameters.html);
+- [OpenVINO GPU device properties](https://docs.openvino.ai/2026/openvino-workflow/running-inference/inference-devices-and-modes/gpu-device.html);
+- [Intel Compute Runtime 26.22.38646.6](https://github.com/intel/compute-runtime/releases/tag/26.22.38646.6);
+- [related Arc 140T GPU-reset report](https://github.com/intel/compute-runtime/issues/939);
+- [different-model OpenVINO `CL_OUT_OF_RESOURCES` report](https://github.com/openvinotoolkit/openvino/issues/36151).
+
+The two issue reports are related evidence only. Their hardware, driver,
+model, operating system, or workload differs, so neither proves an identical
+root cause.
 
 ## Frozen translation lifecycle
 
@@ -324,8 +356,15 @@ Missing human time is not zero cost.
   candidate, and B as a fixed invalid-output result rather than rerunning it.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
-- Retain C as a single failed GPU-execution result. Do not rerun, tune, lower
-  its declared bounds, or substitute another model under this experiment ID.
+- Retain C as a single failed GPU-execution result whose source-free diagnosis
+  establishes an i915 hang and context reset but not the root cause. Do not
+  rerun, tune, lower its declared bounds, or substitute another model under
+  this experiment ID.
+- Block the exact Qwen3 4B / OVMS 2026.2 GPU route for translation-sized work.
+  A later source-free runtime experiment must freeze a separately admitted
+  current image/runtime combination, begin with one synthetic
+  `max_tokens=30` request, stop after one hang/reset, and vary only one factor
+  at a time. Passing that probe would be runtime evidence only.
 - Block every pre-draft and draft lane until real pass 1 and independent pass
   2 accept all required German units.
 - Block recognized-witness reveal until every blind draft is frozen.
@@ -337,9 +376,11 @@ Missing human time is not zero cost.
 
 Do not turn the 30-unit packet into routine work for the solo operator. The
 bounded A/B/C calibration is closed at its real outcomes and must not be
-replayed merely to obtain three candidate strings. If the Qwen/OVMS failure
-needs diagnosis, that is a new `abyss-stack` runtime experiment with its own
-question and receipts, not a continuation that rewrites C.
+replayed merely to obtain three candidate strings. The first source-free
+Qwen/OVMS diagnosis is also closed at its honest boundary: it established the
+i915 hang/reset chain and blocked the exact route for translation-sized work,
+without claiming a root cause or rewriting C. Any re-entry is a new
+`abyss-stack` runtime experiment with its own question and receipts.
 
 In parallel, the next authority-bearing source action remains
 question-triggered: prefer an authenticated or institutionally supplied copy

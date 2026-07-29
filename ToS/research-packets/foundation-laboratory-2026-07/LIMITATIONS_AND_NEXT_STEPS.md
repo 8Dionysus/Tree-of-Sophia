@@ -24,7 +24,7 @@ fields. They are the next authority layer.
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
 | German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | HTTP transport is unauthenticated; bibliographic/rights and German-competent review remain pending; DTA and machine agreement are not critical-edition admission or ToS acceptance |
-| bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen GPU runtime failure without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and failures still cannot establish German correctness, translation fidelity, rights clearance, semantics, or canon |
+| bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and runtime failure still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or the GPU hang's root cause |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -229,6 +229,14 @@ not reintroduce a false 90 °C gate.
   `content_hash` drift for the unchanged German-triangulation source against
   the unchanged `kag/indexes/index_family.manifest.json`; the stale derived
   KAG family was not rebuilt or presented as current proof.
+- The source-free Qwen runtime diagnosis and stop-line are committed in
+  `abyss-stack` as `fed26c8`. The exact current environment passes 120
+  foundation-laboratory tests, package validation, stack and nested-agent
+  validation, owner-routed `source-fast`, and the complete suite with 1,298
+  passes, two skips, and 226 subtests. That slice also closes the four active
+  translation-calibration schema registrations, the profile-example mapping,
+  the lab-test inventory, and bearer-token isolation in subprocess tests. It
+  does not establish the GPU hang's root cause or reopen the translation run.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.
@@ -316,8 +324,11 @@ actual outcomes. The bounded experiment is closed.
    truncated at the frozen limit. Both outputs are immutable.
 3. C preserved B's source-aware prompt and decoding and changed only to the
    exact resident Qwen3 4B/OVMS route. After corrected persistent startup and
-   live owner admission, its single request failed with GPU
-   `CL_OUT_OF_RESOURCES`, returned no candidate, and stopped the sidecar.
+   live owner admission, its single request caused an i915 `GPU HANG` and
+   context reset before OVMS surfaced `CL_OUT_OF_RESOURCES`; it returned no
+   candidate and stopped the sidecar. The container was not OOM-killed, and
+   its last static-cache report was 2.6%. This proves an execution hang, not
+   host-memory, cache, thermal, driver, kernel, or output-length causation.
    Preserve both the earlier detached loopback-helper failure and this final
    inference failure; do not rerun or tune any variant under the same run.
 4. Keep the recognized Russian comparator sealed until all candidates are
@@ -332,8 +343,12 @@ actual outcomes. The bounded experiment is closed.
    a separate rights and authority route admits any derivative. Container
    health, loopback endpoint health, and owner admission remain separate
    evidence.
-7. Treat any later Qwen/OVMS diagnosis as a newly declared runtime experiment,
-   not as a repeat intended to repair this A/B/C result.
+7. Treat the source-free 2026-07-29 diagnosis as a separate runtime result.
+   It blocks the exact OVMS 2026.2 GPU route for translation-sized work while
+   leaving the root cause unresolved. Re-entry requires another declared
+   source-free experiment, a separately admitted current image/runtime, one
+   synthetic `max_tokens=30` probe, a stop after one hang/reset, and one-factor
+   changes only. A passing probe cannot repair or supersede C.
 
 ### 3. Open translation only after source acceptance
 
@@ -398,7 +413,7 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted; no calibration run or actual translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted and bounded machine A/B/C executed; no accepted source, accepted lane, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete |
