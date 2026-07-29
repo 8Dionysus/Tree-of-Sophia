@@ -336,6 +336,10 @@
       {
         "label": "validate witness-structure correspondence",
         "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+      },
+      {
+        "label": "validate Zarathustra lexical projection",
+        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
       }
     ],
     "philosophy_topology": [
@@ -542,6 +546,10 @@
       {
         "label": "validate witness-structure correspondence",
         "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+      },
+      {
+        "label": "validate Zarathustra lexical projection",
+        "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
       },
       {
         "label": "validate philosophy topology",

@@ -138,6 +138,17 @@ contracts intentionally reject simulated human evidence.
   `pdftotext` candidates, not exact passages or target gold; mechanical
   difficulty is not semantic difficulty, and the preparation opens no routine
   human backlog.
+- Whole-work lexical observation now exists over the four exact DTA part TEIs:
+  86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
+  213 divisions. This closes deterministic exact/normalized/prefix/phrase and
+  structural navigation mechanics only. The 119,533,568-byte sequential
+  SQLite/FTS5 database remains gitignored; the tracked 12,919,608-byte
+  projection contains hashes, counts, and resource refs but no strings,
+  sequence, context, or positions. Low-entropy hashes are
+  dictionary-recoverable and not secrecy. The DTA rights conflict and review
+  remain open, German is not accepted, and morphology, lemma, lexeme,
+  translation correspondence, sign candidacy, and semantic packet opening
+  remain blocked.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The

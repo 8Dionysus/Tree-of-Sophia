@@ -240,6 +240,32 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_lexical_index.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml",
+        "ToS/contracts/lexical-index-plan.schema.json",
+        "ToS/contracts/lexical-index-projection.schema.json"
+      ],
+      "reads": [
+        "the exact four local DTA TEI payloads plus their tracked manifests, resource inventories, rights records, and lexical plan"
+      ],
+      "writes": [
+        "the tracked hash-only lexical projection and an explicit gitignored local SQLite/FTS5 database unless --check is used"
+      ],
+      "side_effects": "tracked non-sequential hash/count/resource read model plus private source-bearing local search projection",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -475,6 +501,28 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_zarathustra_lexical_index.py",
+      "family": "projection_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/contracts/lexical-index-plan.schema.json",
+        "ToS/contracts/lexical-index-projection.schema.json"
+      ],
+      "reads": [
+        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, and resource inventories; optional explicit local SQLite root"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
       "disposition": "keep"
     },
     {

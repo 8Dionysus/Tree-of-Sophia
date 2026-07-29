@@ -47,7 +47,8 @@ source-witnesses/
 │           │                       ├── structure/       # text-free item-specific maps + proposed anchors
 │           │                       └── payload/        # gitignored bytes
 │           ├── texts/                              # reviewed source-near text
-│           └── alignments/                         # multi-expression packets
+│           ├── alignments/                         # multi-expression packets
+│           └── lexical-indexes/                    # source-gated plans and text-free receipts
 └── collections/
     └── <responsibility-or-tradition>/
         └── <collection>/
@@ -114,6 +115,15 @@ benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,
 not beside the source payload. Reviewed text or annotation small enough to be
 authored may return through `texts/`, `alignments/`, candidate intake, or canon
 according to its authority layer and rights posture.
+
+The first whole-work lexical observation index is a deliberately split
+exception with no runtime authority. Its source-bearing SQLite/FTS5 database
+stays inside the foundation pilot's ignored `local-content/`; its tracked
+companion contains only form hashes, counts, and references to existing TEI
+page/division resources. The form hashes are dictionary-recoverable
+navigational fingerprints, not secrecy. The route remains `local_only` and
+blocked from the future site until rights review, and it does not accept
+German or create a lexeme, lemma, phrase assertion, sign, or semantic claim.
 
 ## Current seed
 

@@ -33,6 +33,8 @@ current bounded Zarathustra route:
 - current capsule: `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
 - current source canon: `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - current bounded export: `ToS/derived-exports/kag_export.min.json`
+- current source-gated lexical projection:
+  `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later

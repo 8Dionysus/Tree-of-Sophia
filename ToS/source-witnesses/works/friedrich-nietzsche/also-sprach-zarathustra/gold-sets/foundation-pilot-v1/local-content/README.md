@@ -19,6 +19,19 @@ The render manifest must freeze page-image digests before any variant runs,
 and all A/B/C variants must consume those identical bytes. Reference text
 layers stay sealed elsewhere until independent outputs are frozen.
 
+Whole-work lexical observation uses:
+
+```text
+lexical-search/
+└── zarathustra-dta-first-editions-parts-1-4-v1.sqlite3
+```
+
+This private SQLite/FTS5 file may contain exact forms, page-local token order,
+source context, structural filters, and opaque occurrence locators. The
+tracked companion must remain non-sequential and source-string-free. Neither
+the local database nor its tracked receipt accepts German, clears rights, or
+creates a lexeme, lemma, translation correspondence, sign candidate, or sign.
+
 Translation work uses this speaking local topology:
 
 ```text

@@ -163,6 +163,7 @@ packet exists. A metric-only translation route is excluded.
 | Candidate | Route | State | Authority posture | Evaluation focus |
 | --- | --- | --- | --- | --- |
 | exact ID/anchor lookup | identity | baseline | direct tracked corpus | perfect source return |
+| source-gated DTA whole-work SQLite/FTS5 plus tracked hash/resource companion | lexical observation floor | executed baseline | exact sequential source remains ignored; tracked rows are non-sequential, string-free, local-only, and public-blocked | exact/normalized/prefix/phrase and page/division return mechanics; no source, lemma, sign, or relevance-quality acceptance |
 | SQLite FTS5/BM25 or equivalent local lexical index | lexical A | baseline | rebuildable | names, compounds, citations, rare terms |
 | Qwen3 dense index | semantic B | baseline | rebuildable | implicit parallels and cross-language queries |
 | Granite R2 dense index | independent multilingual C | selected, method frozen before output | rebuildable isolated local projection | independent-family cross-language behavior on the identical query set |

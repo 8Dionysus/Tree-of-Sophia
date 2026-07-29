@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-index-plan.schema.json",
+  "title": "Tree of Sophia source-gated lexical index plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "work_ref",
+    "source_items",
+    "scope",
+    "tokenization",
+    "normalization",
+    "local_projection",
+    "tracked_projection",
+    "field_posture",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "provenance_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/lexical-index-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_lexical_index_plan_v1"},
+    "plan_id": {
+      "type": "string",
+      "pattern": "^lexical-index-plan:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/workId"},
+    "source_items": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceItem"}
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "included_tei_regions",
+        "excluded_elements",
+        "choice_policy",
+        "supplied_text_policy",
+        "page_return_required",
+        "source_acceptance_required_for_observation",
+        "source_acceptance_required_for_linguistic_or_semantic_promotion"
+      ],
+      "properties": {
+        "included_tei_regions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "excluded_elements": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "choice_policy": {"const": "prefer-sic-then-orig-then-abbr-then-first"},
+        "supplied_text_policy": {"const": "include-but-mark-source-editorial"},
+        "page_return_required": {"const": true},
+        "source_acceptance_required_for_observation": {"const": false},
+        "source_acceptance_required_for_linguistic_or_semantic_promotion": {
+          "const": true
+        }
+      }
+    },
+    "tokenization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "token_class",
+        "internal_joiners",
+        "numbers_indexed",
+        "punctuation_indexed",
+        "exact_form_mutated"
+      ],
+      "properties": {
+        "profile": {"const": "tos_unicode_letter_mark_joiner_v1"},
+        "token_class": {"const": "unicode-letter-or-mark-sequence"},
+        "internal_joiners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 1}
+        },
+        "numbers_indexed": {"const": false},
+        "punctuation_indexed": {"const": false},
+        "exact_form_mutated": {"const": false}
+      }
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_layer",
+        "search_layer",
+        "search_profile",
+        "normalization_is_lexeme_claim",
+        "normalization_is_lemma_claim"
+      ],
+      "properties": {
+        "exact_layer": {"const": "unchanged-xml-character-data"},
+        "search_layer": {"const": "derived-only"},
+        "search_profile": {"const": "unicode-nfc-casefold"},
+        "normalization_is_lexeme_claim": {"const": false},
+        "normalization_is_lemma_claim": {"const": false}
+      }
+    },
+    "local_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "storage_posture",
+        "format",
+        "sequential_text_allowed",
+        "source_context_allowed",
+        "runtime_authority"
+      ],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoRelativePath"},
+        "storage_posture": {"const": "gitignored-local-only"},
+        "format": {"const": "sqlite3-fts5"},
+        "sequential_text_allowed": {"const": true},
+        "source_context_allowed": {"const": true},
+        "runtime_authority": {"const": false}
+      }
+    },
+    "tracked_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "storage_posture",
+        "format",
+        "exact_strings_allowed",
+        "sequential_text_allowed",
+        "source_context_allowed",
+        "hash_only_form_keys",
+        "low_entropy_hashes_are_confidentiality"
+      ],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoRelativePath"},
+        "storage_posture": {"const": "tracked-generated-read-model"},
+        "format": {"const": "json"},
+        "exact_strings_allowed": {"const": false},
+        "sequential_text_allowed": {"const": false},
+        "source_context_allowed": {"const": false},
+        "hash_only_form_keys": {"const": true},
+        "low_entropy_hashes_are_confidentiality": {"const": false}
+      }
+    },
+    "field_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_form",
+        "normalized_form",
+        "lemma",
+        "phrase",
+        "prefix",
+        "section",
+        "page",
+        "language",
+        "edition",
+        "translation",
+        "sign_candidate"
+      ],
+      "properties": {
+        "exact_form": {"$ref": "#/$defs/fieldState"},
+        "normalized_form": {"$ref": "#/$defs/fieldState"},
+        "lemma": {"$ref": "#/$defs/fieldState"},
+        "phrase": {"$ref": "#/$defs/fieldState"},
+        "prefix": {"$ref": "#/$defs/fieldState"},
+        "section": {"$ref": "#/$defs/fieldState"},
+        "page": {"$ref": "#/$defs/fieldState"},
+        "language": {"$ref": "#/$defs/fieldState"},
+        "edition": {"$ref": "#/$defs/fieldState"},
+        "translation": {"$ref": "#/$defs/fieldState"},
+        "sign_candidate": {"$ref": "#/$defs/fieldState"}
+      }
+    },
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_payload_visibility",
+        "tracked_projection_visibility",
+        "future_site_route",
+        "rights_review_required_before_public_route"
+      ],
+      "properties": {
+        "source_payload_visibility": {"const": "local-only"},
+        "tracked_projection_visibility": {"const": "local-only"},
+        "future_site_route": {"const": "blocked"},
+        "rights_review_required_before_public_route": {"const": true}
+      }
+    },
+    "semantic_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepts_source_text",
+        "creates_occurrence_authority",
+        "creates_lexeme",
+        "creates_lemma",
+        "creates_sign_candidate",
+        "creates_sign",
+        "opens_initial_sign_packet",
+        "frequency_is_semantic_sufficiency"
+      ],
+      "properties": {
+        "accepts_source_text": {"const": false},
+        "creates_occurrence_authority": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "opens_initial_sign_packet": {"const": false},
+        "frequency_is_semantic_sufficiency": {"const": false}
+      }
+    },
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "authority_boundary": {
+      "const": "mechanical source-observation and rebuildable local search only; no accepted German, rights clearance, lexeme, lemma, translation, sign, concept, claim, relation, graph, canon, or publication authority"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "itemId": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "fileId": {
+      "type": "string",
+      "pattern": "^tos\\.file\\.sha256\\.[a-f0-9]{64}$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "sourceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part_order",
+        "source_role",
+        "item_ref",
+        "manifest_ref",
+        "resource_inventory_ref",
+        "rights_ref",
+        "file_id",
+        "file_sha256",
+        "language"
+      ],
+      "properties": {
+        "part_order": {"type": "integer", "minimum": 1},
+        "source_role": {"type": "string", "minLength": 1},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "resource_inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "rights_ref": {"$ref": "#/$defs/repoRelativePath"},
+        "file_id": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "language": {"const": "de"}
+      }
+    },
+    "fieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local", "tracked", "authority"],
+      "properties": {
+        "local": {
+          "enum": [
+            "materialized",
+            "query-capability",
+            "metadata-filter",
+            "not-applicable",
+            "blocked"
+          ]
+        },
+        "tracked": {
+          "enum": [
+            "hash-only",
+            "aggregate-resource-refs",
+            "metadata",
+            "not-materialized",
+            "not-applicable",
+            "blocked"
+          ]
+        },
+        "authority": {"type": "string", "minLength": 1},
+        "blocker_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

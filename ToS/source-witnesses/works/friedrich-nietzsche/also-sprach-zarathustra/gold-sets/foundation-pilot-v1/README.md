@@ -86,6 +86,15 @@ Zarathustra golden kernel. It is not a completed gold set.
   projection. Its gate is one packet-local accepted German source bundle plus
   language-competence evidence; the historical 0-of-30 packet does not
   schedule this work.
+- the separate DTA parts 1–4 lexical observation route materializes 86,287
+  exact token occurrences across 506 body pages and 213 TEI divisions in one
+  deterministic ignored SQLite/FTS5 database. Exact, normalized, prefix,
+  phrase, section, page, language, and edition probes pass locally. Its
+  tracked 11,352-row companion carries only form hashes, aggregate counts, and
+  resource refs; it carries no source strings, sequence, context, or
+  occurrence positions. Lemma, translation, sign candidate, sign, source
+  acceptance, rights clearance, and public routing remain zero or blocked,
+  and the initial sign packet stays unchanged.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic

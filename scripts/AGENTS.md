@@ -47,6 +47,19 @@ TEI structure, and provider OCR page inventories from an explicit payload
 root. It is not a release-time acquisition step and its one-way fingerprints
 are not accepted text or alignment evidence.
 
+`build_zarathustra_lexical_index.py` is the explicit-local companion over the
+four DTA first-edition part witnesses. It materializes exact forms, source
+order, opaque occurrence locators, page context, and FTS5 query fields only in
+the pilot's ignored `local-content/` database. Its tracked companion contains
+only exact/normalized form hashes, aggregate counts, and TEI page/division
+resource refs. Low-entropy hashes are not confidentiality; the tracked route
+remains local-only and public-blocked while rights review is open.
+`validate_zarathustra_lexical_index.py` checks release-safe source, count,
+resource, provenance, blocker, and no-source-string closure without requiring
+the ignored database. Neither script accepts German or creates a lexeme,
+lemma, translation, sign candidate, sign, semantic claim, graph edge, canon,
+or runtime search authority.
+
 `build_witness_structure_correspondence.py` uses those inventories plus
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
 division-start candidates and stable proposed TEI, EPUB-member, and PDF-page
@@ -208,6 +221,7 @@ Local owner routes:
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
+| local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |

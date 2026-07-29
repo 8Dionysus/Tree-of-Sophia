@@ -30,6 +30,7 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | OCR C / dispatcher-invalidated R2 | intended one page, scope expanded; stopped after four bridge pages | outputs excluded from comparison | invalid scope | 3.6 GB RAM; 1.6 GB swap | not measured | runner-scope defect retained |
 | OCR C / bounded R3-R4 | same one page twice | region/text output identical; no accuracy conclusion | 27.151 s and 26.106 s service wall | 3.7 GB and 3.6 GB RAM; zero swap | not measured | repeatability diagnostic only |
 | OCR C / corrected R5 | 36 pages | six advisory accept-with-limits checks found line-number insertion, joined words, lost hyphens, punctuation/case loss, handwritten-note invention, substitution, and furniture inclusion; CER/WER absent | 605.56 s runner; 3.567 pages/min; 608.973 s service wall; 1,816.868 s CPU | 4 GB owner RAM peak; 136.8 MB swap; 1,029 regions | not measured | viable challenger awaiting human gold |
+| whole-work DTA lexical observation | four fixed TEIs; 86,287 occurrences; 506 body pages; 213 divisions | exact/normalized/prefix/phrase/section/page/language/edition probes pass; deterministic byte-identical rebuild; no accepted German, lemma, sign, or retrieval relevance evidence | build/check wall not separately instrumented into a durable timing receipt | 119,533,568-byte private SQLite/FTS5 database; 12,919,608-byte tracked hash/count/resource projection | not measured; no human task opened | promote mechanical index foundation with rights/source/linguistic/semantic limits |
 | retrieval A / SQLite FTS5 | 24 nonempty passages, 20 queries | model-proposed target top-10 17/19; literal OCR-noise and title retrieval; human judgments 0 | 0.04199 s build; 0.06026 ms warm; 0.36597 ms connection-cold | 200,704-byte database | not measured | exact-form fallback; not semantic/cross-language solution |
 | retrieval B / Qwen3 + Qdrant + reranker | same passages and queries | advisory target top-10 18/19; cross-language recall plus target-language and scan-furniture failures; human judgments 0 | 2.561 s embedding + 0.611 s materialization; 66.27 ms warm dense; 2,424.38 ms warm reranked; 11,546.82 ms cold reranker route | 300,032-byte snapshot; shared resident memory not isolatable | not measured | serious candidate; no winner |
 | retrieval C / Granite R2 CPU | same passages and queries; exact repeat | advisory target top-10 17/19; five rank-1 title/front pages; cross-language policy failures; rankings repeat exactly; human judgments 0 | 0.038 s model read + 0.646 s compile + 7.733 s passage embedding + 0.004 s write; 16.18 ms warm query embedding/rank; 19.213 s repeat runner | 663.5 MB owner peak, zero swap; 237,643-byte vector projection | not measured | independent comparator; no winner |
@@ -67,6 +68,10 @@ comparable:
 - direct visual retrieval has setup/runtime integrity and a durable blocked
   preflight only; it supplies no run measurement and is not comparable with
   the executed text variants;
+- the full-work DTA lexical observation index proves a different source-layer
+  capability from retrieval A: exact local navigation over four structured
+  witnesses. It has no shared quality labels and is not a fourth retrieval
+  variant or evidence that the small-corpus rank comparison generalizes;
 - corrected graph projections support lifecycle and trace-carriage comparison;
 - first and corrected revisions expose specific implementation defects.
 
