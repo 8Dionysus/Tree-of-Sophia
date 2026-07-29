@@ -1314,8 +1314,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             packet["target"]["critical_locator_url"],
         )
         self.assertEqual(
-            "section_locator_only_unverified_passage_alignment",
+            "local_structure_compatible_exact_critical_passage_unverified",
             packet["target"]["alignment_state"],
+        )
+        self.assertEqual(
+            "local_section_boundary_observed_critical_text_not_compared",
+            packet["local_structural_context"]["state"],
+        )
+        self.assertFalse(
+            packet["local_structural_context"]["comparison"][
+                "exact_critical_text_compared"
+            ]
+        )
+        self.assertFalse(
+            packet["local_structural_context"]["comparison"][
+                "exact_passage_alignment_claimed"
+            ]
         )
         self.assertFalse(packet["content_boundary"]["source_text_stored"])
         self.assertFalse(
@@ -1336,6 +1350,60 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         captured_text = copy.deepcopy(packet)
         captured_text["content_boundary"]["source_text_stored"] = True
         self.assertTrue(list(validator.iter_errors(captured_text)))
+
+        source_review_plan = json.loads(
+            (GOLD_ROOT / "translation-source-review-plan.v2.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        visual_sample_plan = json.loads(
+            (GOLD_ROOT / "ocr-visual-samples.json").read_text(encoding="utf-8")
+        )
+        target_unit = source_review_plan["units"][0]
+        self.assertEqual(
+            [],
+            foundation._critical_edition_local_structural_context_issues(
+                packet,
+                target_unit=target_unit,
+                source_review_plan=source_review_plan,
+                ocr_sample_plan=visual_sample_plan,
+            ),
+        )
+
+        drifted_member = copy.deepcopy(packet)
+        drifted_member["local_structural_context"]["epub_witness"][
+            "section_start_member"
+        ]["path"] = "EPUB/page_56.html"
+        self.assertIn(
+            "critical-edition local section start drifted from the target source unit",
+            foundation._critical_edition_local_structural_context_issues(
+                drifted_member,
+                target_unit=target_unit,
+                source_review_plan=source_review_plan,
+                ocr_sample_plan=visual_sample_plan,
+            ),
+        )
+
+        drifted_page = copy.deepcopy(packet)
+        drifted_page["local_structural_context"]["visual_witness"][
+            "section_start_pdf_page"
+        ] = 57
+        alignment_issues = (
+            foundation._critical_edition_local_structural_context_issues(
+                drifted_page,
+                target_unit=target_unit,
+                source_review_plan=source_review_plan,
+                ocr_sample_plan=visual_sample_plan,
+            )
+        )
+        self.assertIn(
+            "critical-edition local section start page drifted from the target source unit",
+            alignment_issues,
+        )
+        self.assertIn(
+            "critical-edition local section start anchor is absent or ambiguous in the visual sample plan",
+            alignment_issues,
+        )
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,

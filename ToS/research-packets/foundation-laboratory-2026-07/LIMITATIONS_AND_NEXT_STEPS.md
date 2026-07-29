@@ -23,7 +23,7 @@ fields. They are the next authority layer.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
-| German solo+AI assisted route | ordered research, typed five-lane plan, and one metadata-only eKGWB `Za-I-Vorrede-1` packet | prepared units: 30; prepared critical locators: 1; selected: 0; runs: 0; admitted: 0; human debt: 0 | bibliographic/rights review and exact passage alignment remain pending; no translation lane is open and German linguistic acceptance remains blocked |
+| German solo+AI assisted route | ordered research, typed five-lane plan, and one metadata-only eKGWB `Za-I-Vorrede-1` packet | prepared units: 30; prepared critical locators: 1; local section structure compatible: 1; exact critical-text comparisons: 0; selected: 0; runs: 0; admitted: 0; human debt: 0 | bibliographic/rights review and exact critical-text alignment remain pending; no translation lane is open and German linguistic acceptance remains blocked |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -144,6 +144,14 @@ not reintroduce a false 90 °C gate.
 - Both owner worktrees are clean apart from deliberately ignored payload,
   laboratory-content, cache, and test-cache paths. No source PDF, EPUB, model,
   cache, or heavy run artifact entered Git.
+- The task-specific LLM readiness correction is committed in Tree of Sophia as
+  `e9b9cca` and bound into `abyss-stack` preflight as `0f4ff86e`. The Tree
+  source-foundation validator, 160 tests plus one skip, corpus/KAG checks, and
+  every release step before the unavailable external `aoa-stats` neighbor
+  passed. The stack laboratory has 110 passing tests; the full revision
+  produced 1,287 passes and two skips with only one bearer-environment-sensitive
+  lifecycle test failing, and that exact test passed when inherited connector
+  tokens were removed.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

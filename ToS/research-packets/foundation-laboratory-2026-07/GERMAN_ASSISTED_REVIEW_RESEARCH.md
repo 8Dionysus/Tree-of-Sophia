@@ -213,12 +213,24 @@ The first metadata-only critical-edition route is now frozen in
 `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json`. It binds
 `tos-translation-source-review-v2-001` to the eKGWB section locator
 `Za-I-Vorrede-1`, records the edition identity, stable-URL evidence, declared
-BY-NC-ND rights posture, unsuccessful direct shell fetch, and exact
-provenance event. No eKGWB text was stored or quoted.
+BY-NC-ND rights posture, unsuccessful direct browser and shell fetches, and
+exact provenance events. A 2026-07-28 refresh found the official eKGWB and
+rights pages still represented in current search indexes and found independent
+scholarly uses of the exact siglum, but neither current network path could
+fetch the critical passage directly.
+
+The same refresh performed a separate local structural comparison. The
+fixity-verified Naumann automatic-EPUB member `EPUB/page_55.html` and scan PDF
+page 56 begin printed section 1; `EPUB/page_56.html` and scan PDF page 57 carry
+the transition to printed section 2. This makes the first prepared unit
+structure-compatible with the scope named by `Za-I-Vorrede-1`. It does not
+compare the eKGWB reading, establish a sentence-level alignment, judge German
+correctness, or turn automatic OCR into source truth. No eKGWB or local source
+text was copied into the tracked packet.
 
 This is a prepared admission packet, not an admitted witness. Human
-bibliographic and rights review remain false, exact passage alignment remains
-unverified, no German unit was accepted, and no human task or translation lane
-was opened. A later specific source or translation question may use this
-packet as its rights-gated starting point; packet existence alone is not a
-review trigger.
+bibliographic and rights review remain false, exact critical-text comparison
+and passage alignment remain unverified, no German unit was accepted, and no
+human task or translation lane was opened. A later specific source or
+translation question may use this packet as its rights-gated starting point;
+packet existence alone is not a review trigger.

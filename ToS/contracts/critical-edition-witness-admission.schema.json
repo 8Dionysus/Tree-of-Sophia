@@ -16,6 +16,7 @@
     "reference_identity",
     "target",
     "locator_evidence",
+    "local_structural_context",
     "rights_gate",
     "content_boundary",
     "provenance",
@@ -109,7 +110,7 @@
         "critical_locator_siglum": {"type": "string", "minLength": 1},
         "critical_locator_url": {"type": "string", "format": "uri"},
         "alignment_state": {
-          "const": "section_locator_only_unverified_passage_alignment"
+          "const": "local_structure_compatible_exact_critical_passage_unverified"
         }
       }
     },
@@ -136,6 +137,96 @@
           "enum": ["confirmed", "temporarily_unavailable", "not_attempted"]
         },
         "direct_fetch_note": {"type": "string", "minLength": 1}
+      }
+    },
+    "local_structural_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "checked_at",
+        "maker",
+        "source_expression_ref",
+        "epub_witness",
+        "visual_witness",
+        "comparison",
+        "limits"
+      ],
+      "properties": {
+        "state": {
+          "const": "local_section_boundary_observed_critical_text_not_compared"
+        },
+        "checked_at": {"type": "string", "format": "date-time"},
+        "maker": {"const": "model:codex"},
+        "source_expression_ref": {"$ref": "#/$defs/tosId"},
+        "epub_witness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "item_ref",
+            "file_ref",
+            "file_sha256",
+            "section_start_member",
+            "next_section_boundary_member"
+          ],
+          "properties": {
+            "item_ref": {"$ref": "#/$defs/tosId"},
+            "file_ref": {"$ref": "#/$defs/tosId"},
+            "file_sha256": {"$ref": "#/$defs/sha256"},
+            "section_start_member": {"$ref": "#/$defs/containerMember"},
+            "next_section_boundary_member": {"$ref": "#/$defs/containerMember"}
+          }
+        },
+        "visual_witness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "item_ref",
+            "file_ref",
+            "file_sha256",
+            "section_start_anchor_ref",
+            "section_start_pdf_page",
+            "next_section_pdf_page",
+            "rendered_pages_persisted"
+          ],
+          "properties": {
+            "item_ref": {"$ref": "#/$defs/tosId"},
+            "file_ref": {"$ref": "#/$defs/tosId"},
+            "file_sha256": {"$ref": "#/$defs/sha256"},
+            "section_start_anchor_ref": {"$ref": "#/$defs/tosId"},
+            "section_start_pdf_page": {"type": "integer", "minimum": 1},
+            "next_section_pdf_page": {"type": "integer", "minimum": 1},
+            "rendered_pages_persisted": {"const": false}
+          }
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "critical_locator_scope",
+            "local_correspondence",
+            "exact_critical_text_compared",
+            "exact_passage_alignment_claimed",
+            "german_linguistic_correctness_assessed",
+            "human_review_performed",
+            "source_unit_selected_for_review"
+          ],
+          "properties": {
+            "critical_locator_scope": {"const": "Zarathustra's Vorrede, section 1"},
+            "local_correspondence": {"const": "structure-compatible"},
+            "exact_critical_text_compared": {"const": false},
+            "exact_passage_alignment_claimed": {"const": false},
+            "german_linguistic_correctness_assessed": {"const": false},
+            "human_review_performed": {"const": false},
+            "source_unit_selected_for_review": {"const": false}
+          }
+        },
+        "limits": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
       }
     },
     "rights_gate": {
@@ -260,6 +351,10 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
     "repoRef": {
       "type": "string",
       "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
@@ -270,6 +365,18 @@
       "required": ["ref", "sha256"],
       "properties": {
         "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "containerMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^EPUB/page_[0-9]+\\.html$"
+        },
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     }

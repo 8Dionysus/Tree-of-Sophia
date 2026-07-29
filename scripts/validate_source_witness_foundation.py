@@ -358,6 +358,125 @@ def _private_evidence_handoff_issues(
     return issues
 
 
+def _critical_edition_local_structural_context_issues(
+    packet: object,
+    *,
+    target_unit: object,
+    source_review_plan: object,
+    ocr_sample_plan: object,
+) -> list[str]:
+    if not isinstance(packet, dict):
+        return ["critical-edition witness is not an object"]
+    if not isinstance(target_unit, dict):
+        return ["critical-edition local structure has no source-review target"]
+    if not isinstance(source_review_plan, dict):
+        return ["critical-edition local structure has no source-review plan"]
+    if not isinstance(ocr_sample_plan, dict):
+        return ["critical-edition local structure has no visual sample plan"]
+
+    issues: list[str] = []
+    context = packet.get("local_structural_context", {})
+    if not isinstance(context, dict):
+        return ["critical-edition local_structural_context is not an object"]
+
+    if context.get("source_expression_ref") != source_review_plan.get(
+        "source_expression_ref"
+    ):
+        issues.append(
+            "critical-edition local structure drifted from the source expression"
+        )
+
+    epub_witness = context.get("epub_witness", {})
+    expected_epub = source_review_plan.get("source_witness", {})
+    if not isinstance(epub_witness, dict) or not isinstance(expected_epub, dict):
+        issues.append("critical-edition local EPUB witness is malformed")
+    else:
+        for field in ("item_ref", "file_ref", "file_sha256"):
+            if epub_witness.get(field) != expected_epub.get(field):
+                issues.append(
+                    f"critical-edition local EPUB {field} drifted from the source-review plan"
+                )
+        start_member = epub_witness.get("section_start_member", {})
+        if not isinstance(start_member, dict) or (
+            start_member.get("path") != target_unit.get("container_member")
+            or start_member.get("sha256") != target_unit.get("member_sha256")
+        ):
+            issues.append(
+                "critical-edition local section start drifted from the target source unit"
+            )
+        boundary_member = epub_witness.get("next_section_boundary_member", {})
+        start_path = (
+            start_member.get("path") if isinstance(start_member, dict) else None
+        )
+        boundary_path = (
+            boundary_member.get("path")
+            if isinstance(boundary_member, dict)
+            else None
+        )
+        start_match = (
+            re.fullmatch(r"EPUB/page_([0-9]+)\.html", start_path)
+            if isinstance(start_path, str)
+            else None
+        )
+        boundary_match = (
+            re.fullmatch(r"EPUB/page_([0-9]+)\.html", boundary_path)
+            if isinstance(boundary_path, str)
+            else None
+        )
+        if (
+            start_match is None
+            or boundary_match is None
+            or int(boundary_match.group(1)) != int(start_match.group(1)) + 1
+        ):
+            issues.append(
+                "critical-edition local section boundary is not the next EPUB member"
+            )
+
+    visual_witness = context.get("visual_witness", {})
+    expected_visual = source_review_plan.get("visual_witness", {})
+    visual_context = target_unit.get("visual_context", {})
+    if (
+        not isinstance(visual_witness, dict)
+        or not isinstance(expected_visual, dict)
+        or not isinstance(visual_context, dict)
+    ):
+        issues.append("critical-edition local visual witness is malformed")
+    else:
+        for field in ("item_ref", "file_ref", "file_sha256"):
+            if visual_witness.get(field) != expected_visual.get(field):
+                issues.append(
+                    f"critical-edition local visual {field} drifted from the source-review plan"
+                )
+        if visual_witness.get("section_start_pdf_page") != visual_context.get(
+            "current_pdf_page"
+        ):
+            issues.append(
+                "critical-edition local section start page drifted from the target source unit"
+            )
+        if visual_witness.get("next_section_pdf_page") != visual_context.get(
+            "next_pdf_page"
+        ):
+            issues.append(
+                "critical-edition local next-section page drifted from the target source unit"
+            )
+        matching_visual_units = [
+            unit
+            for group in ocr_sample_plan.get("source_groups", [])
+            if isinstance(group, dict)
+            for unit in group.get("samples", [])
+            if isinstance(unit, dict)
+            and unit.get("page") == visual_witness.get("section_start_pdf_page")
+            and unit.get("anchor_ref")
+            == visual_witness.get("section_start_anchor_ref")
+        ]
+        if len(matching_visual_units) != 1:
+            issues.append(
+                "critical-edition local section start anchor is absent or ambiguous in the visual sample plan"
+            )
+
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -1114,6 +1233,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "critical-edition witness context anchor drifted from its source-review unit",
                     )
                 )
+            for message in _critical_edition_local_structural_context_issues(
+                critical_edition_witness,
+                target_unit=target_unit,
+                source_review_plan=translation_source_review_plan,
+                ocr_sample_plan=ocr_sample_plan,
+            ):
+                issues.append((witness_location, message))
             if critical_edition_witness.get("status") != (
                 "citation_witness_admitted"
             ) and isinstance(german_assisted_review, dict):

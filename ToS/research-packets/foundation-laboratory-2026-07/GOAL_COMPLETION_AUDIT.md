@@ -3,7 +3,7 @@
 Status: active requirement-by-requirement audit; the corpus mechanics are
 substantial, but the full foundation goal is not complete
 
-Audit snapshot: 2026-07-26
+Audit snapshot: 2026-07-28
 
 ## Purpose
 
@@ -23,10 +23,10 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 - **refresh required** — the artifact exists, but time-sensitive evidence must
   be rechecked before the next use.
 
-The owner snapshots used for this audit are:
+The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia `54be6f2` (`Build the Tree of Sophia corpus foundation`);
-- `abyss-stack` `59e65abe` (`Add Tree of Sophia human OCR review workbench`);
+- Tree of Sophia through `e9b9cca` (`Adopt task-specific LLM readiness gate`);
+- `abyss-stack` through `0f4ff86e` (`Bind ToS preflight to task-specific LLM gate`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26.
 
 The private review artifact declares itself local-only and non-publishable.
@@ -136,7 +136,10 @@ text, or gold.
 
 Its display assignment was imbalanced. Human active-time comparisons are
 therefore confounded and cannot rank correction cost by method. The next
-candidate packet must use a predeclared block-balanced assignment.
+triggered candidate packet must use the already implemented
+`tos_ocr_candidate_review_manifest_v2` predeclared block-balanced assignment.
+That contract, generator, commitment, verifier, and position audit are present
+in `abyss-stack`; no new packet is materialized merely to exercise them.
 
 ### 3. Private evidence needs a governed handoff
 
@@ -184,27 +187,29 @@ German text, and opens no translation lane.
 `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json` now closes the first
 metadata route from a prepared German source unit to an exact eKGWB section
 locator. It preserves critical-edition identity, stable-URL and rights
-evidence, the failed direct-fetch observation, and a provenance event while
-storing no source text. It remains rights-review-pending, creates no human
-task, and does not increment accepted or admitted German counts.
+evidence, failed direct-fetch observations, and provenance events while
+storing no source text. A local source-visible comparison proves that the
+prepared unit lies within the Naumann witness's printed section 1 boundary;
+it does not compare the inaccessible eKGWB passage or establish German
+correctness. The packet remains rights-review-pending, creates no human task,
+and does not increment accepted or admitted German counts.
 
 ## Dependency-ordered next owner work
 
-1. Add a predeclared block-balanced display-assignment contract and materialize
-   the next candidate packet only after that contract freezes.
-2. Use the frozen private-to-public handoff contract before any raw read or
+1. Use the frozen private-to-public handoff contract before any raw read or
    tracked result export; create no derivative until its exact read scope is
    authorized, and publish none without human rights and correlation review.
-3. Open new Russian source-visible work only for a declared discrepancy,
+2. Open new Russian source-visible work only for a declared discrepancy,
    uncertainty, semantic risk, new source/method calibration, or drift
    control; do not reopen the closed historical packet. Use the German
    assisted protocol only for a specific source/translation question and
    retain the competence block on orthography, grammar, semantics, etymology,
-   and translation fidelity. Treat the prepared `Za-I-Vorrede-1` packet as
-   metadata until its bibliographic and rights gate is actually reviewed.
-4. Open translation only after its exact German anchors reach an admitted
+   and translation fidelity. Treat the structure-compatible
+   `Za-I-Vorrede-1` packet as metadata until the critical text is compared and
+   its bibliographic and rights gate is actually reviewed.
+3. Open translation only after its exact German anchors reach an admitted
    source posture.
-5. Follow translation with sign review, retrieval/graph adjudication, and only
+4. Follow translation with sign review, retrieval/graph adjudication, and only
    then content-bearing golden-kernel transfer.
 
 ## Stop line

@@ -36,9 +36,11 @@ Zarathustra golden kernel. It is not a completed gold set.
   zero units, creates zero human debt, and opens no translation lane.
 - `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json` freezes one exact
   eKGWB section locator for the first prepared German unit. It stores no
-  eKGWB text, records the failed direct-fetch path, leaves bibliographic and
-  rights review pending, creates no human task, and admits no German unit or
-  translation lane.
+  eKGWB text, records the failed direct-fetch paths, and binds the locator to
+  the fixity-verified local EPUB/PDF section boundary. That evidence proves
+  only structural compatibility: the critical passage itself was not fetched
+  or compared. Bibliographic and rights review remain pending, no human task
+  is created, and no German unit or translation lane is admitted.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current
