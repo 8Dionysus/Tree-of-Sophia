@@ -2,7 +2,7 @@
 
 Status: current decisions for the July 2026 foundation slice; human content
 and philosophical promotion remains open
-Decision date: 2026-07-23
+Decision date: 2026-07-29
 
 ## Authority boundary
 
@@ -42,7 +42,8 @@ The promotion authorities remain separate:
 | translation source review v2 | blind 30-unit/89-page interface materialized and fixity checked; human passes 0 | promote interface preparation only | source-visible human review surface and sealing proof | review, source acceptance, transcription, translation |
 | translation reference register | 14 candidates across nine categories; content admission and human bibliographic/rights review 0 | retain research register | future citation and access routing | lexical/etymological truth, admitted reference content |
 | pre-draft and translation contracts | fail-closed human-only, AI-only, alternatives, AI+human, comparator-reveal, etymology and source-return rules | promote method/contract | independent lane boundaries and future packet validation | any actual pre-draft analysis or translation output |
-| semantic ladder contract | exact form-to-graph order; real-human sign gate; downstream blockers tested | promote method/contract | honest blocked packets and staged evidence route | any accepted sign, concept, relation, counterreading, or graph truth |
+| semantic ladder contract | exact form-to-graph order; real-human promotion checkpoint for one sign; downstream blockers tested | promote method/contract | honest blocked packets and staged evidence route without making every occurrence a human task | any accepted sign, concept, relation, counterreading, or graph truth |
+| semantic A/B/C v2 readiness | ordered standards/papers/fresh-evidence refresh; task-specific source, competence, baseline, rationale, and exceptional-review law; 0 tasks | promote content-free method; keep blocked | future same-task comparison of native ToS, INCEpTION, and CATMA routes | historical 30/15 scheduling, routine human debt, model disagreement as human perspective, task output, winner, or promotion |
 | retrieval A | exact-form fallback; literal other-work title pages rank 1; no semantic relation reasoning | retain exact fallback | explainable literal retrieval including OCR-noise diagnosis | semantic or cross-language solution |
 | retrieval B | multilingual candidate recall and reranking; policy and provenance debt; human labels 0 | retain candidate awaiting human review | future multilingual/rerank trials | winner, trusted target-language policy, promoted index |
 | retrieval C | exact-revision Granite CPU route, reproducible ranked lists and index; human labels 0 | retain independent comparator awaiting human review | reproducible local semantic comparison | literal replacement, content classifier, winner |
@@ -91,18 +92,26 @@ identity and fixity routes, provenance and rights boundaries, source-visible
 review interfaces, independent experimental lanes, replaceable projections,
 and fail-closed contracts. Those are the soil. They are not the fruit.
 
-## Human decisions still required
+## Promotion-triggered human decisions still required
 
-The next promotion-capable evidence consists of:
+Prepared packet size does not create a human backlog. Human episodes open only
+for a concrete task or promotion whose prerequisites exist. The remaining
+triggered decisions are:
 
-- two real source-visible passes over the 15 manual-gold candidates;
-- two real source-visible passes over all 30 German translation-source units;
-- blind source-visible OCR, structure, retrieval, and graph reviews under the
-  already frozen protocols;
+- source-visible review of only the OCR, structure, retrieval, or graph units
+  selected by a future quality question; the remaining prepared rows stay
+  unscheduled;
+- German-competent source review for only the source units actually selected
+  by a translation, morphology, lemma, or semantic task;
 - human bibliographic and rights review of reference candidates before use;
 - independent human/AI pre-draft philological lanes after source acceptance;
 - real translation adjudication after comparator reveal;
-- real-human sign acceptance or rejection before relations and concepts;
+- an unassisted operator baseline for materialized interpretive tasks before
+  model suggestions, followed by real-human promotion only when a concrete
+  sign, relation, or concept is proposed for a stronger layer;
+- exceptional second-human or external-expert review only when competence,
+  high-impact promotion, persistent ambiguity, or baseline-instability
+  triggers it; otherwise the claim remains unresolved;
 - 20 double-checked content-bearing out-of-kernel passages before transfer;
 - human approval before sending any access request or moving any payload to a
   server.

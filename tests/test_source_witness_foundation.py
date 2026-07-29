@@ -1869,7 +1869,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
     def test_semantic_and_llm_evaluation_plans_do_not_materialize_false_tasks(self) -> None:
         semantic_validator, _ = foundation._schema_validator(
-            foundation.SOURCE_GATED_EVALUATION_PLAN_SCHEMA,
+            foundation.SOURCE_GATED_SEMANTIC_EVALUATION_PLAN_SCHEMA,
             REPO_ROOT,
         )
         llm_validator, _ = foundation._schema_validator(
@@ -1928,6 +1928,27 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 )
                 self.assertFalse(historical["scheduling_authority"])
                 self.assertFalse(historical["execution_authority"])
+            else:
+                self.assertEqual(
+                    "task-specific-accepted-anchor-set",
+                    plan["task_specific_source_gate"]["gate_kind"],
+                )
+                self.assertFalse(
+                    plan["task_specific_source_gate"][
+                        "universal_packet_completion_required"
+                    ]
+                )
+                assurance = plan["assurance_policy"]
+                self.assertFalse(assurance["routine_human_work_for_prepared_rows"])
+                self.assertFalse(assurance["human_work_scheduled"])
+                self.assertEqual(
+                    "triggered-exception-not-routine",
+                    assurance["second_human_review_posture"],
+                )
+                self.assertFalse(assurance["model_disagreement_is_human_perspective"])
+                historical = plan["historical_gate_snapshot"]
+                self.assertFalse(historical["scheduling_authority"])
+                self.assertFalse(historical["execution_authority"])
 
             false_task = copy.deepcopy(plan)
             false_task_payload = {
@@ -1952,8 +1973,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             else:
                 false_task_payload.update(
                     {
-                        "human_gold_ref": "local-content/synthetic-gold.json",
-                        "human_gold_sha256": "c" * 64,
+                        "epistemic_layer": "textual_observation",
+                        "assurance_route": "source-visible-evidence",
+                        "source_review_event_ref": "tos.event.synthetic-review",
+                        "required_context_refs": ["tos.anchor.synthetic-context"],
+                        "language_competence_evidence_refs": [],
+                        "unassisted_human_baseline_ref": None,
+                        "unassisted_human_baseline_sha256": None,
                     }
                 )
             false_task["tasks"] = [false_task_payload]
@@ -1979,6 +2005,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 scheduled_human["prepared_task_contract"][
                     "human_work_scheduled"
                 ] = True
+                self.assertTrue(list(validator.iter_errors(scheduled_human)))
+
+                scheduled_historical_debt = copy.deepcopy(plan)
+                scheduled_historical_debt["historical_gate_snapshot"][
+                    "scheduling_authority"
+                ] = True
+                self.assertTrue(
+                    list(validator.iter_errors(scheduled_historical_debt))
+                )
+            else:
+                scheduled_human = copy.deepcopy(plan)
+                scheduled_human["assurance_policy"]["human_work_scheduled"] = True
                 self.assertTrue(list(validator.iter_errors(scheduled_human)))
 
                 scheduled_historical_debt = copy.deepcopy(plan)

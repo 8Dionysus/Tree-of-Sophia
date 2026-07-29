@@ -31,9 +31,10 @@ judgment true.
 | `translation-laboratory-plan.schema.json` | exact source-first 17-stage translation order, real-human lane law, sealed comparator, model-candidate posture, and source-acceptance gate |
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
-| `semantic-ladder-packet.schema.json` | exact source-accepted form-to-graph sequence with honest empty blocked stages, translation evidence posture, a real-human sign decision, competing readings, and a disposable projection boundary |
+| `semantic-ladder-packet.schema.json` | exact source-accepted form-to-graph sequence for a promotion-capable sign packet, with honest empty blocked stages, translation evidence posture, a real-human sign checkpoint, competing readings, and a disposable projection boundary; it is not a requirement to review every prepared occurrence |
 | `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
-| `source-gated-evaluation-plan.schema.json` | reproducible v1 semantic-annotation readiness law and its historical universal source/gold gate |
+| `source-gated-evaluation-plan.schema.json` | preserved v1 semantic/LLM readiness law and its historical universal source/gold gate; no current plan uses it for scheduling or execution |
+| `source-gated-semantic-evaluation-plan.schema.json` | task-specific semantic A/B/C readiness: accepted evidence per selected task, unassisted baselines only for materialized interpretive tasks, language-competence routing, separate labels and rationales, and exceptional rather than routine second-human review |
 | `source-gated-llm-evaluation-plan.schema.json` | task-specific LLM readiness: twenty accepted anchored source units, a later unassisted baseline only for those materialized subjective tasks, non-authoritative 30/15 history, and fail-closed A/B/C execution |
 | `laboratory-sample-plan.schema.json` | source-balanced frozen sample units, strata, anchors, and gold candidates |
 | `ocr-visual-sample-plan.schema.json` | output-blind 3x12 visual OCR projection, shared render law, sealed reference witnesses, and an explicit human-gold gate |
@@ -127,13 +128,24 @@ A schema validator can establish that:
   until its sign candidate receives an attested real-human decision whose
   status agrees with accept, reject, ambiguity, or deferral; a graph-projected
   packet cannot skip competing readings or claim its projection as authority;
+  this is a promotion checkpoint for one sign packet, not routine human work
+  for every occurrence, form, concordance row, or machine proposal;
 - a golden-kernel transfer plan keeps title-page scouts ineligible for
   semantic evaluation, requires real-human kernel and target gold before a
   ready state, preserves exact A/B/C isolation, and cannot report runs,
   metrics, a winner, or promotion while `blocked-not-run`;
 - a v1 source-gated semantic plan cannot materialize tasks, runs, metrics, a
   winner, or promotion while its accepted-source and double-checked-gold gates
-  remain absent;
+  remain absent, but that preserved v1 contract has no current scheduling or
+  execution authority;
+- semantic v2 readiness comes only from twenty selected tasks whose exact
+  anchors, accepted source digests, source-review events, and local-content
+  digests close independently; the historical 30/15 packet counts schedule no
+  work; unassisted human baselines open only for materialized sign and
+  competing-reading tasks, morphology/lemma execution requires
+  language-competence evidence, and a missing competent or second review
+  leaves the claim unresolved rather than converting preparation into human
+  debt;
 - a blocked LLM v2 plan may freeze exactly one bounded proposal question,
   output boundary, 10-random/10-hard shape, and runtime-profile reference, but
   it must carry zero source anchors and task instances, schedule no human work,

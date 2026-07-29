@@ -3,7 +3,7 @@
 Status: research scaffold with bounded executed laboratory evidence, not source witness, doctrine, canon, or graph truth
 
 Research snapshot: 2026-07-23; local software/LLM admission refreshed
-2026-07-26
+2026-07-26; semantic-annotation assurance refreshed 2026-07-29
 
 Owner route: `ToS/research-packets/AGENTS.md`
 

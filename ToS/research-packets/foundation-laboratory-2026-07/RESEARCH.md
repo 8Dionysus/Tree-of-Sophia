@@ -1,7 +1,7 @@
 # Corpus Foundation, Semantics, and Laboratory Research
 
 Status: non-authoritative research synthesis
-Snapshot: 2026-07-22
+Snapshot: 2026-07-22; semantic-annotation method refreshed 2026-07-29
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -470,6 +470,138 @@ RDF-star 1.2 is not adopted as the authoritative claim model while its
 specification and quoted-triple semantics remain less stable than explicit
 claim resources. JSON-LD claim packets with explicit assertion identity,
 provenance, review, and named-graph projection are safer.
+
+---
+
+## Semantic annotation assurance refresh — 2026-07-29
+
+This focused refresh repeated the requested order rather than letting the
+July 2026 date of a paper substitute for methodological weight.
+
+### I. Current primary standards and official documentation
+
+- [TEI P5 4.12.0 release notes](https://www.tei-c.org/release/doc/tei-p5-doc/readme-4.12.0.html)
+  establish 4.12.0 as the 2026-07-28 release. Some generated `standOff` and
+  responsibility pages still displayed 4.11.0 during the refresh, so ToS
+  records the release note as current version evidence without pretending
+  that every deployed page had already converged. TEI stand-off annotations,
+  `@source`, `@resp`, `@cert`, spans, and structured uncertainty remain useful
+  interchange patterns, not ToS semantic authority.
+- The [W3C Web Annotation Data Model](https://www.w3.org/TR/annotation-model/)
+  and [Selectors and States](https://www.w3.org/TR/selectors-states/) keep an
+  annotation body distinct from its target and support quote, position,
+  fragment, and state selectors. ToS should carry quote plus structural and
+  witness-digest context; position alone is too brittle.
+- [PROV-O](https://www.w3.org/TR/prov-o/) keeps entities, activities, agents,
+  derivations, quotations, revisions, and responsibility explicit. A label,
+  rationale, alternative, model suggestion, human baseline, and later
+  promotion are therefore different provenance-bearing entities or events.
+- [OntoLex-Lemon](https://www.w3.org/2016/05/ontolex/) keeps lexical entries,
+  forms, senses, and concepts distinct. The 2016 core and 2019 Lexicography
+  module are W3C Community Group reports, while the current Frequency,
+  Attestation and Corpus Information work remains emerging community work.
+  It can guide a projection of attestations and sense relations, but it cannot
+  make a ToS sign or philosophical sense true.
+- [CRMinf 1.2.1](https://cidoc-crm.org/crminf/ModelVersion/crminf-1.2.1),
+  released April 2026 as the current stable extension, models argumentation,
+  evidence, belief adoption, provenance assessment, and meaning
+  comprehension. It is useful as an interoperability projection for
+  evidence-bearing arguments. ToS claim packets remain the owner record.
+- The current official
+  [INCEpTION documentation](https://inception-project.github.io/documentation/)
+  identifies 41.2 as the latest release. Its curation, agreement,
+  recommenders, and active-learning suggestions are useful experimental
+  surfaces, but accepting a suggestion remains an annotation action rather
+  than semantic proof.
+- [CATMA 7](https://catma.de/documentation/technology-and-versions/) remains
+  the current qualitative-literary counterpoint. It attaches typed key-value
+  annotations to passages, exports stand-off TEI, and stores CATMA 7 projects
+  in one Git repository with per-user branches and an integrated main state.
+  These are valuable interchange and inspection properties, not canon
+  ownership.
+
+### II. Established annotation research
+
+- [Berzak et al. 2016](https://aclanthology.org/D16-1239/) show that reviewing
+  parser or tagger output introduces anchoring and can inflate apparent
+  agreement. A human judgment intended as an independent baseline must
+  therefore be frozen before model proposals are shown.
+- [Plank 2022](https://aclanthology.org/2022.emnlp-main.731/) argues that
+  human label variation may express subjectivity, ambiguity, or multiple
+  plausible answers rather than noise. A semantic packet needs
+  `ambiguous`, `defer`, alternatives, and counterreadings instead of forcing
+  consensus.
+- [Fleisig et al. 2024](https://aclanthology.org/2024.naacl-long.126/)
+  extend this perspectivist warning: disagreement is evidence only when the
+  actual annotator perspectives and conditions are preserved. Three model
+  outputs are model variation, not three human perspectives.
+- [Bernhard et al. 2025](https://aclanthology.org/2025.law-1.14/) show that
+  pre-annotation can improve throughput and that correction effort changes
+  with perceived pre-annotation quality. This supports AI assistance after
+  the baseline, while strengthening the requirement to measure anchoring and
+  corrections rather than counting accepted suggestions as quality.
+
+### III. Freshest peer-reviewed evidence that changes this method
+
+- [Gu et al. 2026](https://aclanthology.org/2026.findings-acl.4/) evaluate a
+  complete expert workflow in AI-only, AI-assisted, and human-only modes.
+  Experts adopted AI-extracted arguments about 60 percent of the time and
+  worked about 25 percent faster, but the models remained poor independent
+  annotators, strongly hallucinated missing variables, and required
+  task-specific codebooks. The paper also explicitly treats over-reliance on
+  suggestions as automation bias. For ToS, assistance may earn a speed claim
+  only after a hidden unassisted baseline and source-visible error review.
+- [Ni et al. 2026](https://aclanthology.org/2026.eacl-long.3/) test 60
+  configurations over three disagreement tasks and find that RLVR-style
+  reasoning degrades human-disagreement modeling while naive chain-of-thought
+  helps some RLHF models. Reasoning labels do not license replacement of
+  human disagreement evidence.
+- [Hong et al. 2026](https://aclanthology.org/2026.findings-acl.1342/) find
+  cases where labels disagree although explanations are semantically similar.
+  ToS must preserve bounded rationale separately from the selected label and
+  compare both.
+- [Hossain et al. 2026](https://aclanthology.org/2026.law-main.18/) show in
+  a restricted-access human-in-the-loop audit that declared uncertainty
+  strongly identifies difficult cases. The paper uses expert adjudication;
+  solo+AI ToS must not imitate that authority. It may instead use uncertainty
+  as a trigger for rare competent review and leave the case unresolved when
+  such review is unavailable.
+
+### Method decision from the refresh
+
+The historical universal requirement to complete 30 German source rows and
+15 double-checked gold rows before any semantic task was a useful fail-closed
+prototype, but it converts packet cardinality into unrelated human work. It
+is retained as provenance and removed from current scheduling and execution
+authority.
+
+The current semantic evaluation method is task-specific:
+
+1. materialize no task until its exact source anchors, accepted source digest,
+   source-review event, local content reference, and content digest exist;
+2. keep occurrence/context observations, morphology/lemma analyses, and
+   interpretive sign/readings as different epistemic layers;
+3. require language-competence evidence for execution of morphology/lemma
+   tasks; machine agreement cannot fill a declared competence gap;
+4. freeze an unassisted operator baseline before model suggestions only for
+   the materialized sign and competing-reading tasks;
+5. compare labels, rationales, alternatives, uncertainty, refusal, and
+   source-return behavior across the same frozen A/B/C tasks;
+6. use a second human or external expert only when triggered by a competence
+   gap, high-impact canon promotion, persistent source-grounded ambiguity, or
+   operator-baseline instability;
+7. if the required competent review does not exist, preserve `ambiguous`,
+   `defer`, or unresolved rather than infer acceptance;
+8. treat the real-human sign decision in a semantic-ladder packet as a
+   promotion checkpoint for that sign, not a demand to review every prepared
+   occurrence, concordance row, or model proposal;
+9. keep all model outputs, INCEpTION/CATMA exports, indexes, and graph
+   projections non-authoritative until a separate promotion decision.
+
+The current packet therefore freezes only a content-free 20-task shape:
+five tasks in each of four families, balanced 10 random and 10 hard. It
+materializes zero tasks, schedules zero human work, runs no model or
+annotation tool, and creates no semantic result.
 
 ---
 

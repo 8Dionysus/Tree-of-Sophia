@@ -72,6 +72,9 @@ GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA = (
 SOURCE_GATED_EVALUATION_PLAN_SCHEMA = (
     CONTRACT_ROOT / "source-gated-evaluation-plan.schema.json"
 )
+SOURCE_GATED_SEMANTIC_EVALUATION_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "source-gated-semantic-evaluation-plan.schema.json"
+)
 SOURCE_GATED_LLM_EVALUATION_PLAN_SCHEMA = (
     CONTRACT_ROOT / "source-gated-llm-evaluation-plan.schema.json"
 )
@@ -668,8 +671,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA,
             repo_root,
         )
-        source_gated_evaluation_plan_validator, _ = _schema_validator(
+        _schema_validator(
             SOURCE_GATED_EVALUATION_PLAN_SCHEMA,
+            repo_root,
+        )
+        source_gated_semantic_evaluation_plan_validator, _ = _schema_validator(
+            SOURCE_GATED_SEMANTIC_EVALUATION_PLAN_SCHEMA,
             repo_root,
         )
         source_gated_llm_evaluation_plan_validator, _ = _schema_validator(
@@ -1124,7 +1131,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             (
                 semantic_samples_path,
                 semantic_samples_plan,
-                source_gated_evaluation_plan_validator,
+                source_gated_semantic_evaluation_plan_validator,
             ),
             (
                 llm_tasks_path,
@@ -2553,7 +2560,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 if isinstance(unit, dict)
             )
 
-            if expected_kind == "semantic-annotation":
+            if (
+                expected_kind == "semantic-annotation"
+                and evaluation_plan.get("schema_version")
+                == "tos_source_gated_evaluation_plan_v1"
+            ):
                 source_gate = evaluation_plan.get("source_gate", {})
                 expected_source_refs = {
                     "review_plan_ref": _relative(
@@ -2605,6 +2616,125 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append(
                         (evaluation_location, "human-gold count drifted")
                     )
+            elif expected_kind == "semantic-annotation":
+                tasks_value = evaluation_plan.get("tasks", [])
+                tasks = tasks_value if isinstance(tasks_value, list) else []
+                source_ready_count = sum(
+                    isinstance(task, dict)
+                    and bool(task.get("source_anchor_refs"))
+                    and isinstance(task.get("accepted_source_sha256"), str)
+                    and isinstance(task.get("source_review_event_ref"), str)
+                    and isinstance(task.get("local_content_ref"), str)
+                    and isinstance(task.get("local_content_sha256"), str)
+                    for task in tasks
+                )
+                task_specific_source_gate = evaluation_plan.get(
+                    "task_specific_source_gate",
+                    {},
+                )
+                if (
+                    task_specific_source_gate.get("current_eligible_tasks")
+                    != source_ready_count
+                ):
+                    issues.append(
+                        (
+                            evaluation_location,
+                            "task-specific semantic source-evidence count drifted",
+                        )
+                    )
+
+                selection_contract = evaluation_plan.get(
+                    "selection_contract",
+                    {},
+                )
+                if tasks:
+                    family_counts: dict[str, int] = {}
+                    stratum_counts: dict[str, int] = {}
+                    task_anchor_refs: set[str] = set()
+                    for task in tasks:
+                        if not isinstance(task, dict):
+                            continue
+                        family = task.get("task_family")
+                        stratum = task.get("stratum")
+                        if isinstance(family, str):
+                            family_counts[family] = family_counts.get(family, 0) + 1
+                        if isinstance(stratum, str):
+                            stratum_counts[stratum] = stratum_counts.get(stratum, 0) + 1
+                        task_anchor_refs.update(
+                            ref
+                            for ref in task.get("source_anchor_refs", [])
+                            if isinstance(ref, str)
+                        )
+                    if family_counts != selection_contract.get(
+                        "required_tasks_per_family"
+                    ):
+                        issues.append(
+                            (
+                                evaluation_location,
+                                "semantic task-family counts drifted from frozen selection",
+                            )
+                        )
+                    expected_strata = {
+                        "random": selection_contract.get("random_tasks"),
+                        "hard": selection_contract.get("hard_tasks"),
+                    }
+                    if stratum_counts != expected_strata:
+                        issues.append(
+                            (
+                                evaluation_location,
+                                "semantic task strata drifted from frozen selection",
+                            )
+                        )
+                    prepared_anchor_refs = {
+                        ref
+                        for ref in evaluation_plan.get(
+                            "prepared_task_contract",
+                            {},
+                        ).get("source_anchor_refs", [])
+                        if isinstance(ref, str)
+                    }
+                    if prepared_anchor_refs != task_anchor_refs:
+                        issues.append(
+                            (
+                                evaluation_location,
+                                "semantic prepared anchor set differs from task anchors",
+                            )
+                        )
+
+                historical_gate = evaluation_plan.get(
+                    "historical_gate_snapshot",
+                    {},
+                )
+                expected_historical_refs = {
+                    "source_review_plan_ref": _relative(
+                        translation_source_review_path,
+                        repo_root,
+                    ),
+                    "source_review_plan_sha256": _sha256(
+                        translation_source_review_path
+                    ),
+                    "laboratory_plan_ref": _relative(
+                        translation_laboratory_path,
+                        repo_root,
+                    ),
+                    "laboratory_plan_sha256": _sha256(
+                        translation_laboratory_path
+                    ),
+                    "gold_status_ref": _relative(gold_status_path, repo_root),
+                    "gold_status_sha256": _sha256(gold_status_path),
+                    "observed_human_accepted_source_units": current_accepted,
+                    "observed_human_double_checked_gold_units": actual_gold_count,
+                    "scheduling_authority": False,
+                    "execution_authority": False,
+                }
+                for field, expected in expected_historical_refs.items():
+                    if historical_gate.get(field) != expected:
+                        issues.append(
+                            (
+                                evaluation_location,
+                                f"historical gate snapshot {field} drifted",
+                            )
+                        )
             else:
                 tasks_value = evaluation_plan.get("tasks", [])
                 tasks = tasks_value if isinstance(tasks_value, list) else []

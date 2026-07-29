@@ -1,37 +1,81 @@
 {
-  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-gated-evaluation-plan.schema.json",
-  "schema_version": "tos_source_gated_evaluation_plan_v1",
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-gated-semantic-evaluation-plan.schema.json",
+  "schema_version": "tos_source_gated_semantic_evaluation_plan_v2",
   "plan_id": "tos.evaluation-plan.zarathustra-semantic-annotation-v1",
   "plan_kind": "semantic-annotation",
   "experiment_id": "tos-semantic-annotation-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "status": "blocked-not-materialized",
-  "frozen_at": "2026-07-23T23:50:00Z",
+  "frozen_at": "2026-07-29T12:30:00Z",
   "frozen_before_variant_outputs": true,
-  "source_gate": {
-    "review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
-    "review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
-    "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-    "laboratory_plan_sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4",
-    "required_human_accepted_units": 30,
-    "current_human_accepted_units": 0,
+  "task_specific_source_gate": {
+    "gate_kind": "task-specific-accepted-anchor-set",
+    "required_materialized_tasks": 20,
+    "current_eligible_tasks": 0,
+    "required_per_task_fields": [
+      "source_anchor_refs",
+      "accepted_source_sha256",
+      "source_review_event_ref",
+      "local_content_ref",
+      "local_content_sha256"
+    ],
+    "accepted_source_is_task_local": true,
+    "universal_packet_completion_required": false,
     "gate_status": "blocked"
   },
-  "human_gold_gate": {
+  "assurance_policy": {
+    "routine_human_work_for_prepared_rows": false,
+    "unassisted_baseline_task_families": [
+      "sign-candidate-and-refusal",
+      "competing-reading"
+    ],
+    "baseline_frozen_before_model_suggestions": true,
+    "language_competence_task_families": [
+      "morphology-and-lemma"
+    ],
+    "second_human_review_posture": "triggered-exception-not-routine",
+    "second_human_review_triggers": [
+      "declared-language-competence-gap",
+      "high-impact-canon-promotion",
+      "persistent-source-grounded-ambiguity",
+      "operator-baseline-instability"
+    ],
+    "missing_competent_review_effect": "leave-unresolved-never-infer-acceptance",
+    "model_disagreement_is_human_perspective": false,
+    "rationale_preserved_separately_from_label": true,
+    "alternatives_and_refusal_preserved": true,
+    "human_work_scheduled": false
+  },
+  "historical_gate_snapshot": {
+    "snapshot_kind": "superseded-universal-30-15-gate",
+    "source_review_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+    "source_review_plan_sha256": "ba04adba9787c91ffca017128db0250f5565663084ba7f60a609e227b88eaf25",
+    "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+    "laboratory_plan_sha256": "9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4",
     "gold_status_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-status.json",
     "gold_status_sha256": "dbe08e50066674cbffd40d79125e08a039ea18cb03630440172a91176de2a990",
-    "required_human_double_checked_units": 15,
-    "current_human_double_checked_units": 0,
-    "gate_status": "blocked"
+    "required_human_accepted_source_units": 30,
+    "observed_human_accepted_source_units": 0,
+    "required_human_double_checked_gold_units": 15,
+    "observed_human_double_checked_gold_units": 0,
+    "snapshot_status": "historical-blocked-evidence",
+    "scheduling_authority": false,
+    "execution_authority": false
   },
   "selection_contract": {
     "required_total_tasks": 20,
     "random_tasks": 10,
     "hard_tasks": 10,
+    "required_tasks_per_family": {
+      "exact-occurrence-and-context": 5,
+      "morphology-and-lemma": 5,
+      "sign-candidate-and-refusal": 5,
+      "competing-reading": 5
+    },
     "content_bearing_source_required": true,
     "same_tasks_across_variants": true,
     "selection_after_output_forbidden": true,
-    "manual_rubric_frozen_before_output": true,
+    "rubric_frozen_before_output": true,
     "task_materialization_status": "blocked"
   },
   "task_families": [
@@ -40,16 +84,70 @@
     "sign-candidate-and-refusal",
     "competing-reading"
   ],
+  "prepared_task_contract": {
+    "bounded_question": "On the same accepted and source-returnable task packet, compare whether the native ToS claim route, an INCEpTION export, and a CATMA export preserve occurrence evidence, linguistic versus interpretive layers, rationale, alternatives, uncertainty, refusal, and non-authoritative projection boundaries.",
+    "task_instances_materialized": false,
+    "source_anchor_refs": [],
+    "source_text_present": false,
+    "variant_routes": [
+      {
+        "variant": "A",
+        "route": "tos-claim-packet-manual",
+        "authority": "proposal-only"
+      },
+      {
+        "variant": "B",
+        "route": "inception-export",
+        "authority": "proposal-only"
+      },
+      {
+        "variant": "C",
+        "route": "catma-export",
+        "authority": "proposal-only"
+      }
+    ],
+    "required_output_fields": [
+      "task_id",
+      "decision",
+      "label_or_candidate",
+      "source_anchor_refs",
+      "bounded_rationale",
+      "alternatives_considered",
+      "uncertainty",
+      "failure_or_refusal_reason"
+    ],
+    "allowed_decisions": [
+      "observe",
+      "propose",
+      "accept-with-limits",
+      "reject",
+      "ambiguous",
+      "defer",
+      "abstain",
+      "failed"
+    ],
+    "forbidden_claims": [
+      "immutable-semantic-entity",
+      "accepted-sign-without-human-promotion",
+      "accepted-concept-without-human-promotion",
+      "accepted-relation-without-human-promotion",
+      "model-consensus-as-human-agreement",
+      "graph-projection-as-authority",
+      "canon-status"
+    ],
+    "human_work_scheduled": false
+  },
   "tasks": [],
   "blindness_and_authority": {
     "blind_variant_labels": true,
-    "recognized_comparator_sealed": true,
-    "gold_hidden_until_outputs_frozen": true,
+    "model_suggestions_hidden_until_unassisted_baseline": true,
     "model_output_is_proposal_only": true,
     "automatic_promotion_forbidden": true,
-    "human_acceptance_required": true,
+    "human_promotion_required_for_canon": true,
     "abstention_allowed": true,
-    "uncertainty_allowed": true
+    "uncertainty_allowed": true,
+    "unresolved_is_valid_outcome": true,
+    "validator_proves_semantic_truth": false
   },
   "rights_posture": {
     "content_visibility": "local_only",
@@ -63,8 +161,8 @@
     "metric_results": [],
     "winner": null,
     "promotion_authorized": false,
-    "conclusion": "No semantic A/B/C task was materialized or run because accepted source text and real-human double-checked gold are both absent."
+    "conclusion": "No semantic A/B/C task was materialized or run. The historical 30-source and 15-gold packet counts schedule no work. Readiness begins only when the twenty selected tasks each resolve to accepted task-specific source evidence; unassisted human baselines open only for materialized interpretive tasks, and language-competence gaps remain unresolved or trigger exceptional review."
   },
-  "provenance_event_ref": "tos.event.annotation.zarathustra-resident-llm-task-contract-v1.2026-07-28",
-  "plan_version": 1
+  "provenance_event_ref": "tos.event.annotation.zarathustra-task-specific-semantic-gate-v2.2026-07-29",
+  "plan_version": 2
 }

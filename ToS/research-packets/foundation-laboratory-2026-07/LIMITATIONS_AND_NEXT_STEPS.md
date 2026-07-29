@@ -22,15 +22,15 @@ fields. They are the next authority layer.
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
-| 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
+| 30-unit German source-acceptance option | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; all 30 rows unscheduled; human debt 0; solo reviewer is visual-only | the packet remains reusable evidence, not a backlog; a later task opens only the exact source unit it needs, and the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation |
 | German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | HTTP transport is unauthenticated; bibliographic/rights and German-competent review remain pending; DTA and machine agreement are not critical-edition admission or ToS acceptance |
 | bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and runtime failure still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or the GPU hang's root cause |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
-| semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
+| semantic sign promotion | 15-stage ladder and initial packet route | 0 promotion-capable sign packets; no routine human work scheduled | a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon, not for every prepared occurrence |
 | retrieval relevance | 20 frozen queries and blind review contract | 0 human judgments | advisory model targets and hard negatives are not gold |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
-| semantic and LLM A/B/C | historical semantic v1 plan plus task-specific LLM v2 plan | 0 tasks; LLM human debt 0 | semantic v1 still requires its historical gates; LLM v2 first needs twenty task-specific accepted source units and opens an unassisted baseline only for the materialized subjective tasks |
+| semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
 | golden-kernel transfer | fail-closed A/B/C plan | 0 runs, 0 target passages | C has no reviewed kernel packet and target-text gold is absent |
 
 No automated process should “help” by filling these human fields. The prepared
@@ -169,10 +169,13 @@ contracts intentionally reject simulated human evidence.
 The broad research snapshot is dated 2026-07-23. The next local software/LLM
 choice was separately refreshed on 2026-07-26 in
 `LOCAL_LLM_ADMISSION.md`; it admitted resident E2B/E4B/Qwen3-4B only after
-the corresponding content gate and admitted no download or run. Standards and
-conceptual papers age more slowly than software, model cards, licenses,
-advisories, download sizes, and model/runtime compatibility. Before any
-deferred installation or new run:
+the corresponding content gate and admitted no download or run. Semantic
+annotation assurance was then refreshed on 2026-07-29 in `RESEARCH.md`, in
+the same official-docs -> established-research -> freshest-peer-reviewed order.
+That pass changed scheduling and assurance law but materialized no task.
+Standards and conceptual papers age more slowly than software, model cards,
+licenses, advisories, download sizes, and model/runtime compatibility. Before
+any deferred installation or new run:
 
 1. verify the current official release and security surface;
 2. freeze exact source revision, artifact digest, license evidence, model
@@ -310,6 +313,35 @@ execution remain blocked.
    twenty subjective tasks. After that baseline is frozen, refresh the stack
    profile to the new Tree digest and run preflight. A prepared packet remains
    neither a model-quality result nor human work.
+
+### 2aa. Freeze the task-specific semantic packet without opening human work
+
+Current state: research and the v2 content-free protocol are frozen; task
+materialization, annotation-tool execution, and human work remain blocked.
+
+1. The historical 30-source/15-gold semantic v1 gate remains exact provenance
+   only. It has no scheduling or execution authority.
+2. The v2 packet freezes twenty future tasks: five each for
+   occurrence/context, morphology/lemma, sign/refusal, and competing reading;
+   ten are random and ten hard.
+3. Every future task must resolve independently to exact anchors, accepted
+   source and local-content digests, and a source-review event. Completing an
+   unrelated prepared packet cannot satisfy that gate.
+4. Occurrence/context is source-visible observation. Morphology/lemma requires
+   language-competence evidence before execution. Sign/refusal and competing
+   reading require an unassisted operator baseline frozen before suggestions.
+5. A second human is an exceptional trigger for a declared competence gap,
+   high-impact canon promotion, persistent source-grounded ambiguity, or
+   operator-baseline instability. If unavailable, the result remains
+   unresolved.
+6. A/B/C are the native ToS claim packet, INCEpTION export, and CATMA export
+   over the same tasks. This compares preservation, ergonomics, and source
+   return; none of the three tools owns semantic truth.
+7. The sign decision inside a promotion-capable semantic ladder is a human
+   checkpoint for that proposed sign, not a requirement to review every
+   occurrence or machine candidate.
+8. No task, source text, human baseline, tool run, metric, winner, or promotion
+   is present in the current packet.
 
 ### 2b. Execute one bounded translation-method calibration
 
