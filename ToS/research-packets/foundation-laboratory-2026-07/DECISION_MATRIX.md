@@ -3,7 +3,8 @@
 Status: research decision scaffold updated with bounded graph, retrieval, structure, and OCR A/B/C evidence; human decisions remain pending
 
 Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
-direct-visual retrieval route refreshed 2026-07-29
+direct-visual retrieval and historical-German morphology routes refreshed
+2026-07-29
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md`. That refresh admits no download and no content run.
@@ -96,6 +97,25 @@ confounded with the primary OCR question.
 | dictionary/language-model correction | challenger | suggestion with before/after span and score | accepted correction needs source-region review |
 | local LLM correction | conditional | independent proposal with prompt/model digest | never overwrite OCR; preserve rejected proposal |
 | silent cleanup before evaluation | exclude | none | destroys error and provenance evidence |
+
+## Historical German morphology and lemmatization
+
+`HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` owns the exact research,
+artifact evidence, layer contract, and future experiment law. The shared
+identity control makes no lexical claim.
+
+| Route | Exact candidate | State | First question | Principal boundary |
+| --- | --- | --- | --- | --- |
+| control | exact historical surface, unchanged | baseline | how much did a method change and was the change necessary? | no lemma or normalization claim |
+| A | DWDSmor Open `0.18.0` | admitted for sequential acquisition after profile/preflight | which candidate analyses can an explainable FST recover directly? | preserve all analyses and unknowns; no contextual winner |
+| B | ZDL `de_zdl_lg 4.0.0` CPU | conditional | does modern contextual analysis resolve ambiguity on unchanged historical text? | artifact/data-license audit and domain-shift test first |
+| C | DTAEC type normalizer revision `bf13bc367ff08a91983eeb44002f48a2e713b28b` -> exact B | research-only conditional | does historical normalization improve B enough to justify information loss and cost? | weights/data derivative-rights ambiguity; every edit and original surface retained |
+| DTA-CAB / RNNTagger | reference/watchlist | defer | later historical-system control if A/B/C expose a distinct gap | license, 3.6 GB package, and earlier-language-stage mismatch |
+| LLM-only lemma | fluent-proposal watchlist | exclude first wave | none | missing/hallucinated tokens and persuasive forced answers |
+
+No route has been installed or executed. No German-competent gold, accepted
+lemma, `lexeme_id`, sign, semantic claim, translation decision, or graph
+effect exists. Machine agreement remains a triangulated proposal.
 
 ## Alignment of editions and translations
 
