@@ -90,6 +90,7 @@
           "additionalProperties": false,
           "required": [
             "source_sample_plan_ref",
+            "source_sample_plan_sha256",
             "visual_sample_plan_ref",
             "visual_sample_plan_sha256",
             "join",
@@ -99,6 +100,7 @@
           ],
           "properties": {
             "source_sample_plan_ref": {"$ref": "#/$defs/repoRef"},
+            "source_sample_plan_sha256": {"$ref": "#/$defs/sha256"},
             "visual_sample_plan_ref": {"$ref": "#/$defs/repoRef"},
             "visual_sample_plan_sha256": {"$ref": "#/$defs/sha256"},
             "join": {

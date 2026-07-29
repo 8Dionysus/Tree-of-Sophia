@@ -18,6 +18,7 @@
     "same_query_bytes_as_text_retrieval": true,
     "source_to_visual_anchor_crosswalk": {
       "source_sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/sample-plan.json",
+      "source_sample_plan_sha256": "a813f0a19361ccc773d1427ab696a76296993c999abb2ff35376bae422bbb9d1",
       "visual_sample_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/ocr-visual-samples.json",
       "visual_sample_plan_sha256": "3fd111023cf2ffdbee935d771f36f314d8087677d57e9ef34a64e19e27ddae06",
       "join": "retrieval anchor -> source sample_id -> visual source_sample_id -> page-image anchor",

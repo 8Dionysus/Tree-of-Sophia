@@ -3824,6 +3824,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             )
             expected_crosswalk_bindings = {
                 "source_sample_plan_ref": expected_sample_ref,
+                "source_sample_plan_sha256": _sha256(sample_path),
                 "visual_sample_plan_ref": expected_visual_sample_ref,
                 "visual_sample_plan_sha256": expected_visual_sample_digest,
             }
