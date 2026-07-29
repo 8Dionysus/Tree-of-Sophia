@@ -266,6 +266,31 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_morphology_input.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/contracts/morphology-evaluation-plan.schema.json",
+        "ToS/contracts/morphology-input-receipt.schema.json"
+      ],
+      "reads": [
+        "the exact local lexical SQLite projection plus its tracked hash/count/resource projection, frozen morphology plan, and prior input receipt"
+      ],
+      "writes": [
+        "one ignored source-bearing exact-form JSONL census and its tracked text-free digest/count receipt unless --check is used"
+      ],
+      "side_effects": "private deterministic morphology-provider input only; no provider output, accepted source, lemma, lexeme, sign, semantics, rights clearance, publication, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

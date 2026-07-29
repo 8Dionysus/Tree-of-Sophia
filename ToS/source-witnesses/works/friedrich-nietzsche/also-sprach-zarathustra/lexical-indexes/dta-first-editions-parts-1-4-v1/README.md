@@ -32,3 +32,13 @@ The local database belongs at:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.sqlite3`
 
 Rebuild and validation commands are documented in `scripts/AGENTS.md`.
+
+The first downstream experiment is deliberately narrower than lexical
+promotion. The source-gated plan and text-free materialization receipt live at:
+
+- `gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json`;
+- `gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json`.
+
+They admit an exhaustive direct-form DWDSmor coverage census only. The exact
+input stays ignored, and contextual A/B/C, German acceptance, lemma/lexeme
+promotion, signs, and semantics remain separate blocked stages.

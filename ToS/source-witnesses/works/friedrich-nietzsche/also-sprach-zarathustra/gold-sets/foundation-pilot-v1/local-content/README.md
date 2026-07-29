@@ -24,6 +24,9 @@ Whole-work lexical observation uses:
 ```text
 lexical-search/
 └── zarathustra-dta-first-editions-parts-1-4-v1.sqlite3
+
+morphology/
+└── zarathustra-dta-exact-form-census-v1.jsonl
 ```
 
 This private SQLite/FTS5 file may contain exact forms, page-local token order,
@@ -31,6 +34,12 @@ source context, structural filters, and opaque occurrence locators. The
 tracked companion must remain non-sequential and source-string-free. Neither
 the local database nor its tracked receipt accepts German, clears rights, or
 creates a lexeme, lemma, translation correspondence, sign candidate, or sign.
+
+The morphology packet is a deterministic one-row-per-exact-form projection of
+that database. It keeps exact strings local, preserves the historical surface,
+and supplies only the admitted DWDSmor A census. It contains no provider
+output, accepted lemma, lexeme, German judgment, context sample, or scheduled
+human work. Its tracked companion carries only digests and aggregate counts.
 
 Translation work uses this speaking local topology:
 

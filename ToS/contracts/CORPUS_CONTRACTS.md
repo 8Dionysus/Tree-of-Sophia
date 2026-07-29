@@ -13,6 +13,8 @@ judgment true.
 | `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |
 | `lexical-index-projection.schema.json` | rebuild receipt and non-sequential form-hash/count/page/division read model over exact local witnesses, with working local query probes but no accepted source, lemma, sign, context, or publication claim |
+| `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, sequentially blocked contextual A/B/C follow-up, explicit layer/competence/rights boundaries, and zero automatic linguistic or semantic promotion |
+| `morphology-input-receipt.schema.json` | text-free fixity and count receipt for the ignored exact-form morphology input packet, binding it to the exact lexical database, tracked projection, plan, and generator without tracking source strings |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
 | `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
 | `numbered-unit-page-map.schema.json` | text-free source-only numbered-unit start-page candidates bound to one exact scan package, its PDF/DjVu/ABBYY inventories, proposed whole-page anchors, explicit review basis, and no textual or critical-edition acceptance |
@@ -67,6 +69,9 @@ judgment true.
 - A tracked lexical projection may expose only the content posture authorized
   by its plan. A hash-only form row is a navigational fingerprint, not
   confidentiality, source acceptance, a lexeme, a lemma, or a sign.
+- A morphology input receipt may prove that every exact-form row was
+  deterministically materialized into a private packet. It does not prove
+  provider coverage, correctness, German competence, a lemma, or a lexeme.
 - Search availability never settles rights; discovery, request, acquisition,
   server import, and publication remain separate events.
 - Search and graph exports never satisfy the source-evidence fields by
@@ -209,6 +214,12 @@ A schema validator can establish that:
   and publication gate before private evidence is opened;
 - a graph plan binds ten pre-output questions to one exact claim-set digest and
   keeps all four logical layers explicit.
+- a morphology plan can freeze an exhaustive type/token coverage question
+  before provider output, keep the exact surface unchanged, and block the
+  contextual A/B/C stage until one shared occurrence set is frozen;
+- a morphology input receipt can bind a private JSONL packet to the exact
+  local lexical database and tracked source-withholding projection while
+  exposing only aggregate counts and digests in Git.
 
 It cannot establish that:
 

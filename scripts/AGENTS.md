@@ -60,6 +60,12 @@ the ignored database. Neither script accepts German or creates a lexeme,
 lemma, translation, sign candidate, sign, semantic claim, graph edge, canon,
 or runtime search authority.
 
+`build_zarathustra_morphology_input.py` projects every exact form from that
+private lexical database into a deterministic ignored JSONL packet for the
+admitted DWDSmor A census. Its tracked receipt contains only digests and
+aggregates. It runs no morphology provider and cannot create a lemma, lexeme,
+sign, semantic claim, or human backlog.
+
 `build_witness_structure_correspondence.py` uses those inventories plus
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
 division-start candidates and stable proposed TEI, EPUB-member, and PDF-page
@@ -222,6 +228,7 @@ Local owner routes:
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
+| local Zarathustra morphology census input | `python scripts/build_zarathustra_morphology_input.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`; omit `--check` only to intentionally rebuild the ignored exact-form JSONL and its tracked text-free receipt before any morphology output |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |

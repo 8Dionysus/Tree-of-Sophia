@@ -95,6 +95,15 @@ Zarathustra golden kernel. It is not a completed gold set.
   occurrence positions. Lemma, translation, sign candidate, sign, source
   acceptance, rights clearance, and public routing remain zero or blocked,
   and the initial sign packet stays unchanged.
+- `morphology-evaluation-plan.v1.json` turns that exact-form floor into one
+  bounded question without pretending that all morphology is ready. Its
+  ignored 11,352-row input packet covers every exact form and represents
+  86,287 token occurrences; the tracked receipt exposes only fixity and
+  counts. The admitted first execution is the direct DWDSmor Open 0.18.0 A
+  census. A later contextual A/B/C sample remains unmaterialized until real A
+  residue or a concrete source/translation/sign/retrieval question triggers
+  it, and no German gold, accepted lemma, lexeme, semantic effect, or human
+  backlog is created.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic

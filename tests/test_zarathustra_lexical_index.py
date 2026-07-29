@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import subprocess
 import unittest
 from pathlib import Path
+
+from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +21,15 @@ PROJECTION_PATH = (
     ROOT
     / "ToS/derived-exports/lexical-search/"
     "zarathustra-dta-first-editions-parts-1-4-v1.min.json"
+)
+MORPHOLOGY_PLAN_PATH = (
+    ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "morphology-evaluation-plan.v1.json"
+)
+MORPHOLOGY_RECEIPT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "morphology-input-receipt.v1.json"
 )
 
 
@@ -37,6 +49,10 @@ VALIDATOR = _load_module(
     "tos_zarathustra_lexical_validator",
     "scripts/validate_zarathustra_lexical_index.py",
 )
+MORPHOLOGY_BUILDER = _load_module(
+    "tos_zarathustra_morphology_input_builder",
+    "scripts/build_zarathustra_morphology_input.py",
+)
 
 
 class ZarathustraLexicalIndexTests(unittest.TestCase):
@@ -44,6 +60,12 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
         cls.projection = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
+        cls.morphology_plan = json.loads(
+            MORPHOLOGY_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_receipt = json.loads(
+            MORPHOLOGY_RECEIPT_PATH.read_text(encoding="utf-8")
+        )
         cls.validation = VALIDATOR.validate()
 
     def test_unicode_tokenizer_preserves_exact_forms_and_internal_joiners(self) -> None:
@@ -206,6 +228,117 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
                 "rights_review_required_before_public_route"
             ]
         )
+
+    def test_morphology_plan_and_receipt_close_over_exact_lexical_floor(self) -> None:
+        plan_schema = json.loads(
+            (
+                ROOT / "ToS/contracts/morphology-evaluation-plan.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        receipt_schema = json.loads(
+            (
+                ROOT / "ToS/contracts/morphology-input-receipt.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(plan_schema).iter_errors(
+                    self.morphology_plan
+                )
+            ),
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(receipt_schema).iter_errors(
+                    self.morphology_receipt
+                )
+            ),
+        )
+        source = self.morphology_plan["source_lexical_index"]
+        receipt = self.morphology_receipt
+        self.assertEqual(11352, source["exact_form_row_count"])
+        self.assertEqual(86287, source["token_occurrence_count"])
+        self.assertEqual(
+            source["exact_form_row_count"],
+            receipt["summary"]["exact_form_row_count"],
+        )
+        self.assertEqual(
+            source["token_occurrence_count"],
+            receipt["summary"]["token_occurrence_count"],
+        )
+        self.assertEqual(
+            hashlib.sha256(MORPHOLOGY_PLAN_PATH.read_bytes()).hexdigest(),
+            receipt["plan_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / receipt["generator_ref"]).read_bytes()
+            ).hexdigest(),
+            receipt["generator_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(PROJECTION_PATH.read_bytes()).hexdigest(),
+            receipt["source_projection"]["tracked_projection_sha256"],
+        )
+
+    def test_morphology_input_stays_private_and_does_not_open_abc_or_gold(self) -> None:
+        local_ref = self.morphology_plan["a_census"]["local_packet"][
+            "relative_path"
+        ]
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", local_ref],
+            cwd=ROOT,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode)
+        self.assertFalse(
+            self.morphology_receipt["content_exposure"]["tracked_exact_strings"]
+        )
+        self.assertEqual(
+            "blocked-not-materialized",
+            self.morphology_plan["abc_followup"]["status"],
+        )
+        self.assertFalse(
+            self.morphology_plan["abc_followup"]["human_work_scheduled"]
+        )
+        self.assertFalse(
+            self.morphology_plan["semantic_boundary"]["creates_lemma"]
+        )
+        self.assertFalse(
+            self.morphology_plan["semantic_boundary"]["creates_lexeme"]
+        )
+
+    def test_morphology_private_rows_preserve_surface_and_frozen_order(self) -> None:
+        surfaces = ["Über-Mensch", "Straße"]
+        rows = []
+        for surface, count in zip(surfaces, (2, 1), strict=True):
+            digest = hashlib.sha256(surface.encode("utf-8")).hexdigest()
+            rows.append(
+                {
+                    "form_key": f"lexical-form:sha256:{digest}",
+                    "exact_form": surface,
+                    "exact_form_sha256": digest,
+                    "normalized_form_sha256": hashlib.sha256(
+                        surface.casefold().encode("utf-8")
+                    ).hexdigest(),
+                    "occurrence_count": count,
+                }
+            )
+        rows.sort(key=lambda row: (row["exact_form_sha256"], row["exact_form"]))
+        packet, summary = MORPHOLOGY_BUILDER.build_packet(rows)
+        decoded = [
+            json.loads(line)
+            for line in packet.decode("utf-8").splitlines()
+        ]
+        self.assertEqual(
+            [row["exact_form"] for row in rows],
+            [row["exact_form"] for row in decoded],
+        )
+        self.assertEqual(2, summary["exact_form_row_count"])
+        self.assertEqual(3, summary["token_occurrence_count"])
+        self.assertEqual(1, summary["joiner_form_count"])
 
 
 if __name__ == "__main__":

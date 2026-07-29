@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-input-receipt.schema.json",
+  "title": "Tree of Sophia private morphology input materialization receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "plan_id",
+    "plan_ref",
+    "plan_sha256",
+    "generator_ref",
+    "generator_sha256",
+    "source_database",
+    "source_projection",
+    "local_packet",
+    "summary",
+    "content_exposure",
+    "semantic_boundary",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/morphology-input-receipt.schema.json"
+    },
+    "schema_version": {"const": "tos_morphology_input_receipt_v1"},
+    "generated_or_authored": {"const": "generated_from_local_lexical_projection"},
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^morphology-input-receipt:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^morphology-evaluation-plan:[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "plan_ref": {"$ref": "#/$defs/repoPath"},
+    "plan_sha256": {"$ref": "#/$defs/digest"},
+    "generator_ref": {"$ref": "#/$defs/repoPath"},
+    "generator_sha256": {"$ref": "#/$defs/digest"},
+    "source_database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256", "bytes"],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index_plan_ref",
+        "index_plan_sha256",
+        "tracked_projection_ref",
+        "tracked_projection_sha256"
+      ],
+      "properties": {
+        "index_plan_ref": {"$ref": "#/$defs/repoPath"},
+        "index_plan_sha256": {"$ref": "#/$defs/digest"},
+        "tracked_projection_ref": {"$ref": "#/$defs/repoPath"},
+        "tracked_projection_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "local_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "format",
+        "schema_version",
+        "sha256",
+        "bytes",
+        "mode",
+        "row_count",
+        "required_fields"
+      ],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoPath"},
+        "format": {"const": "jsonl"},
+        "schema_version": {"const": "tos_morphology_input_row_v1"},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "mode": {"const": "0600"},
+        "row_count": {"type": "integer", "minimum": 1},
+        "required_fields": {
+          "const": [
+            "schema_version",
+            "form_key",
+            "exact_form",
+            "exact_form_sha256",
+            "normalized_form_sha256",
+            "occurrence_count"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_form_row_count",
+        "normalized_form_hash_count",
+        "token_occurrence_count",
+        "singleton_form_count",
+        "joiner_form_count",
+        "maximum_codepoint_length"
+      ],
+      "properties": {
+        "exact_form_row_count": {"type": "integer", "minimum": 1},
+        "normalized_form_hash_count": {"type": "integer", "minimum": 1},
+        "token_occurrence_count": {"type": "integer", "minimum": 1},
+        "singleton_form_count": {"type": "integer", "minimum": 0},
+        "joiner_form_count": {"type": "integer", "minimum": 0},
+        "maximum_codepoint_length": {"type": "integer", "minimum": 1}
+      }
+    },
+    "content_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_exact_strings",
+        "tracked_exact_strings",
+        "tracked_sequence",
+        "tracked_context",
+        "tracked_positions"
+      ],
+      "properties": {
+        "local_exact_strings": {"const": true},
+        "tracked_exact_strings": {"const": false},
+        "tracked_sequence": {"const": false},
+        "tracked_context": {"const": false},
+        "tracked_positions": {"const": false}
+      }
+    },
+    "semantic_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creates_accepted_source",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_sign",
+        "creates_semantic_claim",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "creates_accepted_source": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_semantic_claim": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    },
+    "authority_boundary": {"type": "string", "minLength": 40}
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "pattern": "^(ToS|scripts)/[A-Za-z0-9._/-]+$"
+    }
+  }
+}
