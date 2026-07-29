@@ -11,6 +11,7 @@ judgment true.
 | `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item catalog identity |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
 | `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, and TEI page-break/division inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
+| `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |
@@ -128,6 +129,9 @@ A schema validator can establish that:
 - a source-resource inventory resolves to one exact item manifest and payload
   digest, enumerates every declared page/member/TEI structural resource, and
   carries no source-text field or content authority;
+- a witness-structure map closes every cited division, EPUB member, and PDF
+  page over exact resource inventories, preserves monotonic part routes, and
+  emits no source text;
 - an access-request record cannot label a draft as sent or granted without
   real-human send approval and the corresponding private/redacted evidence
   boundary;
@@ -146,6 +150,7 @@ It cannot establish that:
 - two catalog records describe the same historical object;
 - metadata, OCR, segmentation, lemma, etymology, or alignment is correct;
 - a resource fingerprint or structural correspondence proves textual identity;
+- a candidate locator makes two editions equivalent or accepts their German;
 - a translation is faithful or philosophically adequate;
 - a rights determination is legally sufficient;
 - a semantic claim or relation should enter canon.

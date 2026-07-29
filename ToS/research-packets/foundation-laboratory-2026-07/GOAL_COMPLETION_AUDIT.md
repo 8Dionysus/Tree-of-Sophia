@@ -207,6 +207,25 @@ facsimile layers. This strengthens later triangulation without changing the
 zero accepted German count, opening a human task, or opening a translation
 lane.
 
+All nine fixity-verified local items now have tracked text-free resource
+inventories. The four DTA parts and the Naumann 1893 EPUB/PDF pair additionally
+produce 82 named-division locator candidates across parts I–IV. The map closes
+over exact TEI division, EPUB member, and PDF page resources and preserves
+monotonic routes through each part. Its matching text is read only transiently;
+the tracked artifact contains fingerprints and metrics, not source text.
+
+This removes the false assumption that one constant page offset can represent
+the whole work: re-pagination and part boundaries are now explicit. It does
+not accept German, prove textual identity or edition equivalence, open a human
+task, or authorize translation, semantic annotation, graph promotion, or
+publication.
+
+An agent visual spot-check separately compared PDF page indices 54, 78, 166,
+200, 270, 390, and 519 with EPUB member pages 53, 77, 165, 199, 269, 389, and
+518. The seven samples corroborated the enumerated `PDF = EPUB + 1` route and
+the selected part/title boundaries. This is bounded visual evidence, not an
+exhaustive page-identity review or a human acceptance event.
+
 ## Dependency-ordered next owner work
 
 1. Use the frozen private-to-public handoff contract before any raw read or

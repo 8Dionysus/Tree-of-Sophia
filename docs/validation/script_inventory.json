@@ -240,6 +240,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_witness_structure_correspondence.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/witness-structure-correspondence.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/witness-structure-correspondence.schema.json"
+      ],
+      "reads": [
+        "four fixity-verified local DTA TEIs, the local Naumann 1893 EPUB, and tracked source resource inventories"
+      ],
+      "writes": [
+        "the tracked text-free Naumann 1893 to DTA-parts structure-correspondence map and its provenance unless --check is used"
+      ],
+      "side_effects": "tracked mechanical named-division locator candidates without source text or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_root_entry_map.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -290,6 +312,27 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_witness_structure_correspondence.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/witness-structure-correspondence.schema.json",
+      "source_truth": [
+        "ToS/contracts/witness-structure-correspondence.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**"
+      ],
+      "reads": [
+        "tracked text-free structure-correspondence map, provenance, and cited resource inventories"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_witness_structure_correspondence.py",
       "disposition": "keep"
     },
     {

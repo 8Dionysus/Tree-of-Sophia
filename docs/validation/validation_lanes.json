@@ -332,6 +332,10 @@
       {
         "label": "validate source-witness evidence spine",
         "command": ["python", "scripts/validate_source_witness_foundation.py"]
+      },
+      {
+        "label": "validate witness-structure correspondence",
+        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
       }
     ],
     "philosophy_topology": [
@@ -534,6 +538,10 @@
       {
         "label": "validate source-witness evidence spine",
         "command": ["python", "scripts/validate_source_witness_foundation.py"]
+      },
+      {
+        "label": "validate witness-structure correspondence",
+        "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
       },
       {
         "label": "validate philosophy topology",

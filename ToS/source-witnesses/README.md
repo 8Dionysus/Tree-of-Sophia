@@ -176,3 +176,17 @@ Omit `--check` only when intentionally regenerating tracked inventories from
 the same fixity-verified local payloads. The source-foundation validator checks
 their schema, manifest closure, counts, and digest-bound provenance without
 claiming content correctness.
+
+## Witness structure correspondence
+
+The tracked Naumann 1893 ↔ DTA-parts map under
+`works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/`
+uses named primary TEI division starts and exact EPUB/PDF resource locators.
+Its generator transiently reads the local payloads but writes only resource
+IDs, paths inside the containers, one-way fingerprints, and match metrics.
+
+Every result remains a `mechanical_candidate_only` locator. A unique normalized
+heading, context score, monotonic route, or matching page number does not prove
+textual identity, edition equivalence, correct German, translation
+correspondence, semantic correspondence, or canon fitness. The local rebuild
+and tracked validation routes live in [`scripts/AGENTS.md`](../../scripts/AGENTS.md).
