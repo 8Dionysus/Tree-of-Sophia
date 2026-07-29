@@ -1,0 +1,2097 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/witness-structure-anchor-set.schema.json",
+  "schema_version": "tos_witness_structure_anchor_set_v1",
+  "anchor_set_id": "tos.structure-anchor-set.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "correspondence_map": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-correspondence.json",
+    "sha256": "7b4fc0a2d3cbbb2fc6c72ba9ea95bb14c300cf363d928dc8fe534194fd8acc96"
+  },
+  "anchor_records": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/structure-anchors.jsonl",
+    "sha256": "9efd9557e22d637cd7f2e0bfe81e0932af1a705dd03f4bd5e08b997be6c616f9"
+  },
+  "anchor_authority": "proposed_structural_address_only",
+  "source_text_included": false,
+  "bindings": [
+    {
+      "correspondence_id": "structure-i-001",
+      "part_label": "I",
+      "sequence": 1,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0002"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0064"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0054"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-002",
+      "part_label": "I",
+      "sequence": 2,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0013"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0088"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0078"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-003",
+      "part_label": "I",
+      "sequence": 3,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0014"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0090"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0080"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-004",
+      "part_label": "I",
+      "sequence": 4,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0015"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0094"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0084"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-005",
+      "part_label": "I",
+      "sequence": 5,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0016"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0098"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0088"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-006",
+      "part_label": "I",
+      "sequence": 6,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0017"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0103"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0093"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-007",
+      "part_label": "I",
+      "sequence": 7,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0018"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0106"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0096"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-008",
+      "part_label": "I",
+      "sequence": 8,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0019"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0109"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0099"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-009",
+      "part_label": "I",
+      "sequence": 9,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0020"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0113"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0103"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-010",
+      "part_label": "I",
+      "sequence": 10,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0021"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0116"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0106"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-011",
+      "part_label": "I",
+      "sequence": 11,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0022"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0120"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0110"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-012",
+      "part_label": "I",
+      "sequence": 12,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0023"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0123"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0113"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-013",
+      "part_label": "I",
+      "sequence": 13,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0024"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0126"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0116"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-014",
+      "part_label": "I",
+      "sequence": 14,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0025"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0130"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0120"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-015",
+      "part_label": "I",
+      "sequence": 15,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0026"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0135"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0125"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-016",
+      "part_label": "I",
+      "sequence": 16,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0027"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0137"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0127"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-017",
+      "part_label": "I",
+      "sequence": 17,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0028"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0141"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0131"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-018",
+      "part_label": "I",
+      "sequence": 18,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0029"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0145"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0135"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-019",
+      "part_label": "I",
+      "sequence": 19,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0030"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0148"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0138"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-020",
+      "part_label": "I",
+      "sequence": 20,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0031"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0152"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0142"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-021",
+      "part_label": "I",
+      "sequence": 21,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0032"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0156"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0146"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-022",
+      "part_label": "I",
+      "sequence": 22,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0033"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0159"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0149"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-023",
+      "part_label": "I",
+      "sequence": 23,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-023",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0034"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-023",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0162"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-023",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0152"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-i-024",
+      "part_label": "I",
+      "sequence": 24,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-i-024",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "resource_id": "tei-div-0035"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-i-024",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0166"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-i-024",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0156"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-001",
+      "part_label": "II",
+      "sequence": 1,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0002"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0176"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0166"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-002",
+      "part_label": "II",
+      "sequence": 2,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0003"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0180"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0170"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-003",
+      "part_label": "II",
+      "sequence": 3,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0004"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0184"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0174"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-004",
+      "part_label": "II",
+      "sequence": 4,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0005"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0188"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0178"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-005",
+      "part_label": "II",
+      "sequence": 5,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0006"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0192"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0182"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-006",
+      "part_label": "II",
+      "sequence": 6,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0007"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0197"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0187"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-007",
+      "part_label": "II",
+      "sequence": 7,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0008"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0201"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0191"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-008",
+      "part_label": "II",
+      "sequence": 8,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0009"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0206"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0196"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-009",
+      "part_label": "II",
+      "sequence": 9,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0010"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0210"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0200"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-010",
+      "part_label": "II",
+      "sequence": 10,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0011"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0213"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0203"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-011",
+      "part_label": "II",
+      "sequence": 11,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0012"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0217"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0207"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-012",
+      "part_label": "II",
+      "sequence": 12,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0013"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0222"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0212"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-013",
+      "part_label": "II",
+      "sequence": 13,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0014"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0227"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0217"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-014",
+      "part_label": "II",
+      "sequence": 14,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0015"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0231"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0221"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-015",
+      "part_label": "II",
+      "sequence": 15,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0016"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0235"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0225"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-016",
+      "part_label": "II",
+      "sequence": 16,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0017"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0240"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0230"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-017",
+      "part_label": "II",
+      "sequence": 17,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0018"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0243"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0233"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-018",
+      "part_label": "II",
+      "sequence": 18,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0019"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0248"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0238"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-019",
+      "part_label": "II",
+      "sequence": 19,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0020"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0254"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0244"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-020",
+      "part_label": "II",
+      "sequence": 20,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0021"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0260"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0250"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-021",
+      "part_label": "II",
+      "sequence": 21,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0022"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0267"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-021",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0257"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-ii-022",
+      "part_label": "II",
+      "sequence": 22,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-ii-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.b78a09d74bcc1dd9610b81ee348387942a5df1f9e6c8a4340fb7f2221d8372cb",
+        "resource_id": "tei-div-0023"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-ii-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0272"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-ii-022",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0262"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-001",
+      "part_label": "III",
+      "sequence": 1,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0002"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0280"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0270"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-002",
+      "part_label": "III",
+      "sequence": 2,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0003"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0285"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0275"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-003",
+      "part_label": "III",
+      "sequence": 3,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0006"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0292"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0282"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-004",
+      "part_label": "III",
+      "sequence": 4,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0007"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0297"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0287"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-005",
+      "part_label": "III",
+      "sequence": 5,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0008"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0302"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0292"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-006",
+      "part_label": "III",
+      "sequence": 6,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0012"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0310"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0300"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-007",
+      "part_label": "III",
+      "sequence": 7,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0013"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0315"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0305"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-008",
+      "part_label": "III",
+      "sequence": 8,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0014"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0320"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0310"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-009",
+      "part_label": "III",
+      "sequence": 9,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0017"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0326"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0316"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-010",
+      "part_label": "III",
+      "sequence": 10,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0018"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0331"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0321"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-011",
+      "part_label": "III",
+      "sequence": 11,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0021"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0338"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0328"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-012",
+      "part_label": "III",
+      "sequence": 12,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0024"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0344"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0334"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-013",
+      "part_label": "III",
+      "sequence": 13,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0055"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0371"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0361"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-014",
+      "part_label": "III",
+      "sequence": 14,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0058"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0381"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0371"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-015",
+      "part_label": "III",
+      "sequence": 15,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0059"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0385"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0375"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iii-016",
+      "part_label": "III",
+      "sequence": 16,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.722dbdab2a3d28ea1691dad4c9fbec62bb7f4caf2699212fd7eef40f1ac8f331",
+        "resource_id": "tei-div-0063"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0391"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iii-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0381"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-001",
+      "part_label": "IV",
+      "sequence": 1,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0003"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0400"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-001",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0390"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-002",
+      "part_label": "IV",
+      "sequence": 2,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0004"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0406"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-002",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0396"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-003",
+      "part_label": "IV",
+      "sequence": 3,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0005"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0412"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-003",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0402"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-004",
+      "part_label": "IV",
+      "sequence": 4,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0008"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0418"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-004",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0408"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-005",
+      "part_label": "IV",
+      "sequence": 5,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0009"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0423"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-005",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0413"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-006",
+      "part_label": "IV",
+      "sequence": 6,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0012"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0432"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-006",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0422"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-007",
+      "part_label": "IV",
+      "sequence": 7,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0013"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0439"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-007",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0429"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-008",
+      "part_label": "IV",
+      "sequence": 8,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0014"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0446"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-008",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0436"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-009",
+      "part_label": "IV",
+      "sequence": 9,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0015"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0452"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-009",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0442"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-010",
+      "part_label": "IV",
+      "sequence": 10,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0016"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0457"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-010",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0447"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-011",
+      "part_label": "IV",
+      "sequence": 11,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0017"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0462"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-011",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0452"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-012",
+      "part_label": "IV",
+      "sequence": 12,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0018"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0470"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-012",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0460"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-013",
+      "part_label": "IV",
+      "sequence": 13,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0019"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0473"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-013",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0463"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-014",
+      "part_label": "IV",
+      "sequence": 14,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0040"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0488"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-014",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0478"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-015",
+      "part_label": "IV",
+      "sequence": 15,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0044"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0495"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-015",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0485"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-016",
+      "part_label": "IV",
+      "sequence": 16,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0045"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0499"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-016",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0489"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-017",
+      "part_label": "IV",
+      "sequence": 17,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0048"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0507"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-017",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0497"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-018",
+      "part_label": "IV",
+      "sequence": 18,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0051"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0512"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-018",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0502"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-019",
+      "part_label": "IV",
+      "sequence": 19,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0055"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0518"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-019",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0508"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    },
+    {
+      "correspondence_id": "structure-iv-020",
+      "part_label": "IV",
+      "sequence": 20,
+      "source_tei": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.dta-iv-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "file_ref": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+        "resource_id": "tei-div-0068"
+      },
+      "target_epub": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-epub-iv-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "file_ref": "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "resource_id": "epub-member-0529"
+      },
+      "target_pdf": {
+        "anchor_ref": "tos.anchor.zarathustra-structure.naumann-1893-pdf-iv-020",
+        "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf",
+        "file_ref": "tos.file.sha256.61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf",
+        "resource_id": "pdf-page-0519"
+      },
+      "binding_status": "proposed_cross_witness_locator_candidate",
+      "exact_textual_identity_claimed": false
+    }
+  ],
+  "summary": {
+    "correspondence_count": 82,
+    "anchor_count": 246,
+    "anchors_per_correspondence": 3,
+    "role_counts": {
+      "source_tei": 82,
+      "target_epub": 82,
+      "target_pdf": 82
+    },
+    "all_anchor_statuses": [
+      "proposed"
+    ]
+  },
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/provenance.jsonl",
+  "provenance_event_ref": "tos.event.structure-anchors.friedrich-nietzsche.also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28",
+  "anchor_set_version": 1,
+  "supersedes_anchor_set_ref": null,
+  "authority_boundary": "stable proposed addresses for named structural-start candidates only; no source text, exact passage boundary, textual identity, edition equivalence, accepted German, translation, semantics, rights clearance, or canon authority",
+  "does_not_establish": [
+    "source_text",
+    "exact_passage_boundary",
+    "exact_textual_identity",
+    "edition_equivalence",
+    "accepted_german",
+    "translation_correspondence",
+    "semantic_correspondence",
+    "rights_clearance",
+    "canon_promotion"
+  ]
+}

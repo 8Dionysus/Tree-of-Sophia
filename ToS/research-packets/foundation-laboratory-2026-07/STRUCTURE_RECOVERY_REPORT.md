@@ -30,6 +30,14 @@ The result therefore retains A/B/C as distinct laboratory evidence without
 declaring a quality winner or moving any output into ToS text, semantics, or
 canon.
 
+Separately from the A/B/C extraction outputs, the source-owned witness route
+now has a deterministic text-free structure map across the four DTA part
+witnesses and the Naumann 1893 EPUB/PDF pair. It yields 82 named
+division-start correspondences and 246 stable proposed addresses: one TEI
+structural path, one exact EPUB member, and one whole PDF page per
+correspondence. This closes an addressing gap; it does not improve or accept
+any A/B/C transcription.
+
 ## Preserved runs
 
 Runtime root:
@@ -166,6 +174,9 @@ weighed against page-level errors, omitted witness marks, approximately
    manually recomputed from raw artifacts.
 7. Keep all 15 gold candidates unaccepted until two real source-visible human
    passes are recorded.
+8. Reuse the 246 proposed structural addresses for future bounded review and
+   comparison, but require a narrower reviewed anchor before treating a whole
+   member or page as an exact passage boundary.
 
 ## What remains unknown
 
@@ -180,4 +191,5 @@ weighed against page-level errors, omitted witness marks, approximately
   semantic, sign, relation, concept, or graph work.
 
 Those unknowns are blockers to content acceptance, not reasons to erase the
-executed machine evidence.
+executed machine evidence. Stable addresses make the evidence returnable; they
+do not answer the unknowns.

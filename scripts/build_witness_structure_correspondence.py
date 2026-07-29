@@ -35,17 +35,31 @@ WORK_ROOT = (
 )
 OUTPUT_DIR = WORK_ROOT / "alignments/structure/naumann-1893-dta-parts"
 OUTPUT_PATH = OUTPUT_DIR / "structure-correspondence.json"
+ANCHOR_SET_PATH = OUTPUT_DIR / "structure-anchor-set.json"
+ANCHOR_RECORDS_PATH = OUTPUT_DIR / "structure-anchors.jsonl"
 PROVENANCE_PATH = OUTPUT_DIR / "provenance.jsonl"
 SCHEMA_REF = (
     "https://tree-of-sophia.local/ToS/contracts/"
     "witness-structure-correspondence.schema.json"
 )
+ANCHOR_SET_SCHEMA_REF = (
+    "https://tree-of-sophia.local/ToS/contracts/"
+    "witness-structure-anchor-set.schema.json"
+)
 MAP_ID = (
     "tos.structure-map.friedrich-nietzsche.also-sprach-zarathustra."
     "dta-parts-to-naumann-1893"
 )
+ANCHOR_SET_ID = (
+    "tos.structure-anchor-set.friedrich-nietzsche.also-sprach-zarathustra."
+    "dta-parts-to-naumann-1893"
+)
 EVENT_ID = (
     "tos.event.structure-correspondence.friedrich-nietzsche."
+    "also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28"
+)
+ANCHOR_EVENT_ID = (
+    "tos.event.structure-anchors.friedrich-nietzsche."
     "also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28"
 )
 WORK_REF = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
@@ -61,6 +75,23 @@ DOES_NOT_ESTABLISH = [
     "accepted_german",
     "translation_correspondence",
     "semantic_correspondence",
+    "canon_promotion",
+]
+ANCHOR_AUTHORITY_BOUNDARY = (
+    "stable proposed addresses for named structural-start candidates only; "
+    "no source text, exact passage boundary, textual identity, edition "
+    "equivalence, accepted German, translation, semantics, rights clearance, "
+    "or canon authority"
+)
+ANCHOR_DOES_NOT_ESTABLISH = [
+    "source_text",
+    "exact_passage_boundary",
+    "exact_textual_identity",
+    "edition_equivalence",
+    "accepted_german",
+    "translation_correspondence",
+    "semantic_correspondence",
+    "rights_clearance",
     "canon_promotion",
 ]
 NORMALIZATION = "unicode-nfkc-casefold-alpha-token-sequence"
@@ -192,6 +223,13 @@ def _sha256_path(path: Path) -> str:
 
 def _render_json(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n"
+
+
+def _render_jsonl(payloads: list[dict[str, Any]]) -> str:
+    return "".join(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
+        for payload in payloads
+    )
 
 
 def _local_name(tag: str) -> str:
@@ -703,7 +741,190 @@ def build_correspondence(
     return payload, input_refs
 
 
-def _prior_event_time(repo_root: Path) -> str | None:
+def _anchor_id(correspondence_id: str, role: str) -> str:
+    suffix = correspondence_id.removeprefix("structure-")
+    return f"tos.anchor.zarathustra-structure.{role}-{suffix}"
+
+
+def _anchor_record(
+    *,
+    anchor_id: str,
+    item_id: str,
+    file_id: str,
+    file_sha256: str,
+    selectors: list[dict[str, Any]],
+    method: str,
+    correspondence_id: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "tos_source_anchor_v1",
+        "anchor_id": anchor_id,
+        "item_id": item_id,
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "passage_id": None,
+        "selectors": selectors,
+        "selector_method": {
+            "maker_type": "software",
+            "method": method,
+            "version": "1",
+            "configuration_ref": (
+                f"{OUTPUT_PATH.as_posix()}#{correspondence_id}"
+            ),
+        },
+        "status": "proposed",
+        "provenance_event_ref": ANCHOR_EVENT_ID,
+        "anchor_version": 1,
+        "supersedes_anchor_ref": None,
+        "review_ref": None,
+    }
+
+
+def build_structure_anchors(
+    map_payload: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    source_witnesses = {
+        witness["item_ref"]: witness
+        for witness in map_payload["source_parts"]
+    }
+    epub_witness = map_payload["target_witnesses"]["epub"]
+    pdf_witness = map_payload["target_witnesses"]["pdf"]
+    records: list[dict[str, Any]] = []
+    bindings: list[dict[str, Any]] = []
+
+    for correspondence in map_payload["correspondences"]:
+        correspondence_id = correspondence["correspondence_id"]
+        source = correspondence["source"]
+        target_epub = correspondence["target_epub"]
+        target_pdf = correspondence["target_pdf"]
+        source_witness = source_witnesses[source["item_ref"]]
+
+        source_anchor_id = _anchor_id(correspondence_id, "dta")
+        epub_anchor_id = _anchor_id(correspondence_id, "naumann-1893-epub")
+        pdf_anchor_id = _anchor_id(correspondence_id, "naumann-1893-pdf")
+
+        records.extend(
+            [
+                _anchor_record(
+                    anchor_id=source_anchor_id,
+                    item_id=source["item_ref"],
+                    file_id=source["file_ref"],
+                    file_sha256=source_witness["file_sha256"],
+                    selectors=[
+                        {
+                            "type": "structural",
+                            "path": [source["tei_path"]],
+                            "scheme": "tei-xpath-like-inventory-v1",
+                        }
+                    ],
+                    method="resource-inventory TEI division locator",
+                    correspondence_id=correspondence_id,
+                ),
+                _anchor_record(
+                    anchor_id=epub_anchor_id,
+                    item_id=target_epub["item_ref"],
+                    file_id=target_epub["file_ref"],
+                    file_sha256=epub_witness["file_sha256"],
+                    selectors=[
+                        {
+                            "type": "container_member",
+                            "member_path": target_epub["member_path"],
+                            "member_sha256": target_epub["member_sha256"],
+                        }
+                    ],
+                    method="resource-inventory exact EPUB member locator",
+                    correspondence_id=correspondence_id,
+                ),
+                _anchor_record(
+                    anchor_id=pdf_anchor_id,
+                    item_id=target_pdf["item_ref"],
+                    file_id=target_pdf["file_ref"],
+                    file_sha256=pdf_witness["file_sha256"],
+                    selectors=[
+                        {
+                            "type": "page_region",
+                            "page": target_pdf["page_index"],
+                            "x": 0,
+                            "y": 0,
+                            "width": 1,
+                            "height": 1,
+                            "coordinate_space": "normalized_0_1",
+                        }
+                    ],
+                    method="resource-inventory whole-page PDF locator",
+                    correspondence_id=correspondence_id,
+                ),
+            ]
+        )
+        bindings.append(
+            {
+                "correspondence_id": correspondence_id,
+                "part_label": correspondence["part_label"],
+                "sequence": correspondence["sequence"],
+                "source_tei": {
+                    "anchor_ref": source_anchor_id,
+                    "item_ref": source["item_ref"],
+                    "file_ref": source["file_ref"],
+                    "resource_id": source["resource_id"],
+                },
+                "target_epub": {
+                    "anchor_ref": epub_anchor_id,
+                    "item_ref": target_epub["item_ref"],
+                    "file_ref": target_epub["file_ref"],
+                    "resource_id": target_epub["resource_id"],
+                },
+                "target_pdf": {
+                    "anchor_ref": pdf_anchor_id,
+                    "item_ref": target_pdf["item_ref"],
+                    "file_ref": target_pdf["file_ref"],
+                    "resource_id": target_pdf["resource_id"],
+                },
+                "binding_status": "proposed_cross_witness_locator_candidate",
+                "exact_textual_identity_claimed": False,
+            }
+        )
+
+    rendered_map = _render_json(map_payload)
+    rendered_records = _render_jsonl(records)
+    count = len(bindings)
+    anchor_set = {
+        "$schema": ANCHOR_SET_SCHEMA_REF,
+        "schema_version": "tos_witness_structure_anchor_set_v1",
+        "anchor_set_id": ANCHOR_SET_ID,
+        "work_ref": WORK_REF,
+        "correspondence_map": {
+            "ref": OUTPUT_PATH.as_posix(),
+            "sha256": _sha256_bytes(rendered_map.encode("utf-8")),
+        },
+        "anchor_records": {
+            "ref": ANCHOR_RECORDS_PATH.as_posix(),
+            "sha256": _sha256_bytes(rendered_records.encode("utf-8")),
+        },
+        "anchor_authority": "proposed_structural_address_only",
+        "source_text_included": False,
+        "bindings": bindings,
+        "summary": {
+            "correspondence_count": count,
+            "anchor_count": len(records),
+            "anchors_per_correspondence": 3,
+            "role_counts": {
+                "source_tei": count,
+                "target_epub": count,
+                "target_pdf": count,
+            },
+            "all_anchor_statuses": ["proposed"],
+        },
+        "provenance_ref": PROVENANCE_PATH.as_posix(),
+        "provenance_event_ref": ANCHOR_EVENT_ID,
+        "anchor_set_version": 1,
+        "supersedes_anchor_set_ref": None,
+        "authority_boundary": ANCHOR_AUTHORITY_BOUNDARY,
+        "does_not_establish": ANCHOR_DOES_NOT_ESTABLISH,
+    }
+    return anchor_set, records
+
+
+def _prior_event_time(repo_root: Path, event_id: str) -> str | None:
     path = repo_root / PROVENANCE_PATH
     if not path.is_file():
         return None
@@ -716,7 +937,7 @@ def _prior_event_time(repo_root: Path) -> str | None:
     except (OSError, json.JSONDecodeError):
         return None
     event = next(
-        (candidate for candidate in events if candidate.get("event_id") == EVENT_ID),
+        (candidate for candidate in events if candidate.get("event_id") == event_id),
         None,
     )
     value = event.get("started_at") if isinstance(event, dict) else None
@@ -778,6 +999,77 @@ def build_provenance(
     }
 
 
+def build_anchor_provenance(
+    *,
+    map_payload: dict[str, Any],
+    anchor_set: dict[str, Any],
+    anchor_records: list[dict[str, Any]],
+    event_at: str,
+) -> dict[str, Any]:
+    rendered_map = _render_json(map_payload)
+    rendered_anchor_set = _render_json(anchor_set)
+    rendered_anchor_records = _render_jsonl(anchor_records)
+    return {
+        "schema_version": "tos_provenance_event_v1",
+        "event_id": ANCHOR_EVENT_ID,
+        "event_type": "segmentation",
+        "started_at": event_at,
+        "ended_at": event_at,
+        "agent_refs": [
+            "model:codex",
+            "software:python-standard-library",
+        ],
+        "inputs": [
+            {
+                "ref": OUTPUT_PATH.as_posix(),
+                "role": "tracked_text_free_structure_correspondence_candidate",
+                "sha256": _sha256_bytes(rendered_map.encode("utf-8")),
+            }
+        ],
+        "outputs": [
+            {
+                "ref": ANCHOR_SET_PATH.as_posix(),
+                "role": "tracked_proposed_structure_anchor_set",
+                "sha256": _sha256_bytes(rendered_anchor_set.encode("utf-8")),
+            },
+            {
+                "ref": ANCHOR_RECORDS_PATH.as_posix(),
+                "role": "tracked_proposed_source_anchor_records",
+                "sha256": _sha256_bytes(rendered_anchor_records.encode("utf-8")),
+            },
+        ],
+        "method": {
+            "maker_type": "software",
+            "name": "structure-correspondence-to-stable-source-anchors",
+            "version": "1",
+            "artifact_digest": None,
+            "runtime": "Python standard library",
+            "device": "host-cpu",
+            "configuration": {
+                "correspondence_count": len(map_payload["correspondences"]),
+                "anchor_count": len(anchor_records),
+                "anchors_per_correspondence": 3,
+                "source_text_included": False,
+                "candidate_only": True,
+            },
+            "prompt_or_instruction_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+        },
+        "status": "completed_with_warnings",
+        "warnings": [
+            "Every emitted anchor remains proposed and identifies only a structural path, exact container member, or whole scan page.",
+            "A three-way anchor binding does not establish an exact passage boundary, textual identity, or edition equivalence.",
+            "No rights clearance, German correctness, translation, semantic, or canon conclusion was produced.",
+        ],
+        "receipt_refs": [
+            ANCHOR_SET_PATH.as_posix(),
+            ANCHOR_RECORDS_PATH.as_posix(),
+        ],
+        "rights_basis_ref": None,
+        "event_version": 1,
+        "supersedes_event_ref": None,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
@@ -808,34 +1100,52 @@ def main() -> int:
         print(f"[error] {exc}", file=sys.stderr)
         return 1
 
-    prior_time = _prior_event_time(repo_root)
-    event_at = (
-        prior_time
-        or args.event_at
+    generated_at = (
+        args.event_at
         or datetime.now().astimezone().isoformat(timespec="seconds")
     )
-    try:
-        datetime.fromisoformat(event_at)
-    except ValueError:
-        parser.error("--event-at must be an RFC 3339-compatible timestamp")
+    map_event_at = _prior_event_time(repo_root, EVENT_ID) or generated_at
+    anchor_event_at = _prior_event_time(repo_root, ANCHOR_EVENT_ID) or generated_at
+    for event_at in (map_event_at, anchor_event_at):
+        try:
+            datetime.fromisoformat(event_at)
+        except ValueError:
+            parser.error("--event-at must be an RFC 3339-compatible timestamp")
     provenance = build_provenance(
         repo_root=repo_root,
         map_payload=map_payload,
         input_refs=input_refs,
-        event_at=event_at,
+        event_at=map_event_at,
+    )
+    anchor_set, anchor_records = build_structure_anchors(map_payload)
+    anchor_provenance = build_anchor_provenance(
+        map_payload=map_payload,
+        anchor_set=anchor_set,
+        anchor_records=anchor_records,
+        event_at=anchor_event_at,
     )
     rendered_map = _render_json(map_payload)
-    rendered_provenance = json.dumps(
-        provenance,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    ) + "\n"
+    rendered_anchor_set = _render_json(anchor_set)
+    rendered_anchor_records = _render_jsonl(anchor_records)
+    rendered_provenance = _render_jsonl([provenance, anchor_provenance])
     output_path = repo_root / OUTPUT_PATH
+    anchor_set_path = repo_root / ANCHOR_SET_PATH
+    anchor_records_path = repo_root / ANCHOR_RECORDS_PATH
     provenance_path = repo_root / PROVENANCE_PATH
     if args.check:
         drift = []
         if not output_path.is_file() or output_path.read_text(encoding="utf-8") != rendered_map:
             drift.append(OUTPUT_PATH.as_posix())
+        if (
+            not anchor_set_path.is_file()
+            or anchor_set_path.read_text(encoding="utf-8") != rendered_anchor_set
+        ):
+            drift.append(ANCHOR_SET_PATH.as_posix())
+        if (
+            not anchor_records_path.is_file()
+            or anchor_records_path.read_text(encoding="utf-8") != rendered_anchor_records
+        ):
+            drift.append(ANCHOR_RECORDS_PATH.as_posix())
         if (
             not provenance_path.is_file()
             or provenance_path.read_text(encoding="utf-8") != rendered_provenance
@@ -849,11 +1159,14 @@ def main() -> int:
     else:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(rendered_map, encoding="utf-8")
+        anchor_set_path.write_text(rendered_anchor_set, encoding="utf-8")
+        anchor_records_path.write_text(rendered_anchor_records, encoding="utf-8")
         provenance_path.write_text(rendered_provenance, encoding="utf-8")
         verb = "wrote"
     print(
         f"[ok] {verb} {len(map_payload['correspondences'])} text-free "
-        "named-division correspondence candidates"
+        "named-division correspondence candidates and "
+        f"{len(anchor_records)} proposed structural anchors"
     )
     print(
         "[boundary] locator candidates only; no source text, textual identity, "

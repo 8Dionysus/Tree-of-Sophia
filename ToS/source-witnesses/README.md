@@ -185,6 +185,14 @@ uses named primary TEI division starts and exact EPUB/PDF resource locators.
 Its generator transiently reads the local payloads but writes only resource
 IDs, paths inside the containers, one-way fingerprints, and match metrics.
 
+The companion `structure-anchor-set.json` and `structure-anchors.jsonl`
+materialize three stable proposed addresses for every correspondence: the DTA
+TEI structural path, the exact Naumann EPUB member, and the whole Naumann scan
+page. These are reusable IDs for later source review; they contain no source
+text and remain `proposed`. A binding between the three addresses means only
+that the structure-map method selected them as one candidate route. It does
+not turn a page or container member into an exact passage boundary.
+
 Every result remains a `mechanical_candidate_only` locator. A unique normalized
 heading, context score, monotonic route, or matching page number does not prove
 textual identity, edition equivalence, correct German, translation

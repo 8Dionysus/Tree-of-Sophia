@@ -49,10 +49,12 @@ text or alignment evidence.
 
 `build_witness_structure_correspondence.py` uses those inventories plus
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
-division-start candidates. `validate_witness_structure_correspondence.py`
-checks its inventory closure, provenance, monotonicity, and authority ceiling.
-Neither script accepts textual identity, German, translation, semantics, or
-canon.
+division-start candidates and stable proposed TEI, EPUB-member, and PDF-page
+addresses for each candidate. `validate_witness_structure_correspondence.py`
+checks inventory closure, address/schema closure, provenance, monotonicity, and
+the authority ceiling. The addresses are reusable IDs, not verified passage
+boundaries. Neither script accepts textual identity, German, translation,
+semantics, rights, or canon.
 
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped

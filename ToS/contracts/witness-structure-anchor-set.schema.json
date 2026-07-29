@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/witness-structure-anchor-set.schema.json",
+  "title": "Tree of Sophia witness structure anchor set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "anchor_set_id",
+    "work_ref",
+    "correspondence_map",
+    "anchor_records",
+    "anchor_authority",
+    "source_text_included",
+    "bindings",
+    "summary",
+    "provenance_ref",
+    "provenance_event_ref",
+    "anchor_set_version",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/witness-structure-anchor-set.schema.json"
+    },
+    "schema_version": {"const": "tos_witness_structure_anchor_set_v1"},
+    "anchor_set_id": {
+      "type": "string",
+      "pattern": "^tos\\.structure-anchor-set\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "correspondence_map": {"$ref": "#/$defs/digestBoundRef"},
+    "anchor_records": {"$ref": "#/$defs/digestBoundRef"},
+    "anchor_authority": {"const": "proposed_structural_address_only"},
+    "source_text_included": {"const": false},
+    "bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/binding"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correspondence_count",
+        "anchor_count",
+        "anchors_per_correspondence",
+        "role_counts",
+        "all_anchor_statuses"
+      ],
+      "properties": {
+        "correspondence_count": {"type": "integer", "minimum": 1},
+        "anchor_count": {"type": "integer", "minimum": 3},
+        "anchors_per_correspondence": {"const": 3},
+        "role_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_tei", "target_epub", "target_pdf"],
+          "properties": {
+            "source_tei": {"type": "integer", "minimum": 1},
+            "target_epub": {"type": "integer", "minimum": 1},
+            "target_pdf": {"type": "integer", "minimum": 1}
+          }
+        },
+        "all_anchor_statuses": {
+          "const": ["proposed"]
+        }
+      }
+    },
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "anchor_set_version": {"type": "integer", "minimum": 1},
+    "supersedes_anchor_set_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "authority_boundary": {
+      "const": "stable proposed addresses for named structural-start candidates only; no source text, exact passage boundary, textual identity, edition equivalence, accepted German, translation, semantics, rights clearance, or canon authority"
+    },
+    "does_not_establish": {
+      "const": [
+        "source_text",
+        "exact_passage_boundary",
+        "exact_textual_identity",
+        "edition_equivalence",
+        "accepted_german",
+        "translation_correspondence",
+        "semantic_correspondence",
+        "rights_clearance",
+        "canon_promotion"
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "anchorBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anchor_ref", "item_ref", "file_ref", "resource_id"],
+      "properties": {
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "resource_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correspondence_id",
+        "part_label",
+        "sequence",
+        "source_tei",
+        "target_epub",
+        "target_pdf",
+        "binding_status",
+        "exact_textual_identity_claimed"
+      ],
+      "properties": {
+        "correspondence_id": {
+          "type": "string",
+          "pattern": "^structure-[ivx]+-[0-9]{3}$"
+        },
+        "part_label": {"enum": ["I", "II", "III", "IV"]},
+        "sequence": {"type": "integer", "minimum": 1},
+        "source_tei": {"$ref": "#/$defs/anchorBinding"},
+        "target_epub": {"$ref": "#/$defs/anchorBinding"},
+        "target_pdf": {"$ref": "#/$defs/anchorBinding"},
+        "binding_status": {"const": "proposed_cross_witness_locator_candidate"},
+        "exact_textual_identity_claimed": {"const": false}
+      }
+    }
+  }
+}

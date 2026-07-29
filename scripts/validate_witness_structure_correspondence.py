@@ -27,8 +27,18 @@ MAP_PATH = Path(
     "also-sprach-zarathustra/alignments/structure/"
     "naumann-1893-dta-parts/structure-correspondence.json"
 )
+ANCHOR_SET_PATH = MAP_PATH.with_name("structure-anchor-set.json")
+ANCHOR_RECORDS_PATH = MAP_PATH.with_name("structure-anchors.jsonl")
 SCHEMA_PATH = Path("ToS/contracts/witness-structure-correspondence.schema.json")
+ANCHOR_SET_SCHEMA_PATH = Path(
+    "ToS/contracts/witness-structure-anchor-set.schema.json"
+)
+ANCHOR_SCHEMA_PATH = Path("ToS/contracts/source-anchor.schema.json")
 PROVENANCE_SCHEMA_PATH = Path("ToS/contracts/provenance-event.schema.json")
+ANCHOR_EVENT_ID = (
+    "tos.event.structure-anchors.friedrich-nietzsche."
+    "also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28"
+)
 PAGE_MEMBER_RE = re.compile(r"^EPUB/page_(\d+)\.html$")
 PROHIBITED_TEXT_KEYS = {
     "text",
@@ -71,6 +81,33 @@ def _load_json(path: Path, repo_root: Path, issues: list[Issue]) -> dict[str, An
         issues.append((location, "JSON root must be an object"))
         return None
     return payload
+
+
+def _load_jsonl(
+    path: Path,
+    repo_root: Path,
+    issues: list[Issue],
+) -> list[dict[str, Any]]:
+    location = _relative(path, repo_root)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        issues.append((location, f"cannot read JSONL: {exc}"))
+        return []
+    payloads: list[dict[str, Any]] = []
+    for index, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            issues.append((f"{location}:{index}", f"invalid JSON: {exc}"))
+            continue
+        if not isinstance(payload, dict):
+            issues.append((f"{location}:{index}", "record must be an object"))
+            continue
+        payloads.append(payload)
+    return payloads
 
 
 def _validator(schema_path: Path, repo_root: Path):
@@ -147,6 +184,11 @@ def _load_witness_inventory(
     if file_inventory.get("profile") != witness.get("profile"):
         issues.append((location, "witness profile differs from inventory"))
     return file_inventory, _resources(file_inventory)
+
+
+def _expected_anchor_id(correspondence_id: str, role: str) -> str:
+    suffix = correspondence_id.removeprefix("structure-")
+    return f"tos.anchor.zarathustra-structure.{role}-{suffix}"
 
 
 def validate_structure_correspondence(repo_root: Path = REPO_ROOT) -> list[Issue]:
@@ -357,6 +399,282 @@ def validate_structure_correspondence(repo_root: Path = REPO_ROOT) -> list[Issue
         if summary.get("match_mode_counts") != dict(sorted(mode_counts.items())):
             issues.append((location, "summary match_mode_counts drifted"))
 
+    anchor_set_path = repo_root / ANCHOR_SET_PATH
+    anchor_records_path = repo_root / ANCHOR_RECORDS_PATH
+    anchor_set = _load_json(anchor_set_path, repo_root, issues)
+    anchor_records = _load_jsonl(anchor_records_path, repo_root, issues)
+    anchors_by_id: dict[str, dict[str, Any]] = {}
+    expected_anchor_order: list[str] = []
+    if anchor_set is not None:
+        anchor_set_location = ANCHOR_SET_PATH.as_posix()
+        _validate_schema(
+            anchor_set,
+            validator=_validator(ANCHOR_SET_SCHEMA_PATH, repo_root),
+            location=anchor_set_location,
+            issues=issues,
+        )
+        for path in _prohibited_key_paths(anchor_set):
+            issues.append(
+                (
+                    anchor_set_location,
+                    f"source-text-bearing key is forbidden: {path}",
+                )
+            )
+        expected_map_ref = {
+            "ref": MAP_PATH.as_posix(),
+            "sha256": _sha256(map_path),
+        }
+        if anchor_set.get("correspondence_map") != expected_map_ref:
+            issues.append(
+                (
+                    anchor_set_location,
+                    "correspondence_map ref or digest drifted",
+                )
+            )
+        if anchor_records_path.is_file():
+            expected_records_ref = {
+                "ref": ANCHOR_RECORDS_PATH.as_posix(),
+                "sha256": _sha256(anchor_records_path),
+            }
+            if anchor_set.get("anchor_records") != expected_records_ref:
+                issues.append(
+                    (
+                        anchor_set_location,
+                        "anchor_records ref or digest drifted",
+                    )
+                )
+        if anchor_set.get("work_ref") != payload.get("work_ref"):
+            issues.append((anchor_set_location, "work_ref differs from map"))
+        if anchor_set.get("provenance_ref") != payload.get("provenance_ref"):
+            issues.append(
+                (anchor_set_location, "provenance_ref differs from map")
+            )
+
+    anchor_validator = _validator(ANCHOR_SCHEMA_PATH, repo_root)
+    for index, anchor in enumerate(anchor_records, start=1):
+        anchor_location = f"{ANCHOR_RECORDS_PATH.as_posix()}:{index}"
+        _validate_schema(
+            anchor,
+            validator=anchor_validator,
+            location=anchor_location,
+            issues=issues,
+        )
+        for path in _prohibited_key_paths(anchor):
+            issues.append(
+                (
+                    anchor_location,
+                    f"source-text-bearing key is forbidden: {path}",
+                )
+            )
+        anchor_id = anchor.get("anchor_id")
+        if not isinstance(anchor_id, str) or anchor_id in anchors_by_id:
+            issues.append((anchor_location, "anchor_id is invalid or duplicated"))
+        else:
+            anchors_by_id[anchor_id] = anchor
+        if anchor.get("status") != "proposed":
+            issues.append((anchor_location, "structural anchor must remain proposed"))
+        if anchor.get("provenance_event_ref") != ANCHOR_EVENT_ID:
+            issues.append((anchor_location, "anchor provenance event drifted"))
+        selector_types = {
+            selector.get("type")
+            for selector in anchor.get("selectors", [])
+            if isinstance(selector, dict)
+        }
+        if selector_types & {"text_quote", "text_position"}:
+            issues.append(
+                (
+                    anchor_location,
+                    "text-bearing selectors are forbidden in the structural anchor set",
+                )
+            )
+
+    correspondences_by_id = {
+        item["correspondence_id"]: item
+        for item in correspondences
+        if isinstance(item.get("correspondence_id"), str)
+    }
+    bindings = (
+        anchor_set.get("bindings", [])
+        if isinstance(anchor_set, dict)
+        else []
+    )
+    bindings_by_id: dict[str, dict[str, Any]] = {}
+    for index, binding in enumerate(bindings, start=1):
+        if not isinstance(binding, dict):
+            continue
+        binding_location = f"{ANCHOR_SET_PATH.as_posix()}:bindings[{index}]"
+        correspondence_id = binding.get("correspondence_id")
+        correspondence = correspondences_by_id.get(correspondence_id)
+        if correspondence is None or correspondence_id in bindings_by_id:
+            issues.append(
+                (
+                    binding_location,
+                    "correspondence binding is unresolved or duplicated",
+                )
+            )
+            continue
+        bindings_by_id[correspondence_id] = binding
+        if binding.get("part_label") != correspondence.get("part_label"):
+            issues.append((binding_location, "part_label differs from map"))
+        if binding.get("sequence") != correspondence.get("sequence"):
+            issues.append((binding_location, "sequence differs from map"))
+
+        expected_roles = (
+            (
+                "source_tei",
+                "dta",
+                correspondence["source"],
+                source_parts[correspondence["part_label"]]["file_sha256"],
+                [
+                    {
+                        "type": "structural",
+                        "path": [correspondence["source"]["tei_path"]],
+                        "scheme": "tei-xpath-like-inventory-v1",
+                    }
+                ],
+                "resource-inventory TEI division locator",
+            ),
+            (
+                "target_epub",
+                "naumann-1893-epub",
+                correspondence["target_epub"],
+                epub_witness.get("file_sha256"),
+                [
+                    {
+                        "type": "container_member",
+                        "member_path": correspondence["target_epub"]["member_path"],
+                        "member_sha256": correspondence["target_epub"]["member_sha256"],
+                    }
+                ],
+                "resource-inventory exact EPUB member locator",
+            ),
+            (
+                "target_pdf",
+                "naumann-1893-pdf",
+                correspondence["target_pdf"],
+                pdf_witness.get("file_sha256"),
+                [
+                    {
+                        "type": "page_region",
+                        "page": correspondence["target_pdf"]["page_index"],
+                        "x": 0,
+                        "y": 0,
+                        "width": 1,
+                        "height": 1,
+                        "coordinate_space": "normalized_0_1",
+                    }
+                ],
+                "resource-inventory whole-page PDF locator",
+            ),
+        )
+        for (
+            role,
+            id_role,
+            locator,
+            file_sha256,
+            selectors,
+            method,
+        ) in expected_roles:
+            expected_anchor_id = _expected_anchor_id(
+                correspondence_id,
+                id_role,
+            )
+            expected_anchor_order.append(expected_anchor_id)
+            expected_binding = {
+                "anchor_ref": expected_anchor_id,
+                "item_ref": locator["item_ref"],
+                "file_ref": locator["file_ref"],
+                "resource_id": locator["resource_id"],
+            }
+            if binding.get(role) != expected_binding:
+                issues.append(
+                    (
+                        binding_location,
+                        f"{role} binding differs from correspondence",
+                    )
+                )
+            anchor = anchors_by_id.get(expected_anchor_id)
+            if anchor is None:
+                issues.append(
+                    (
+                        binding_location,
+                        f"{role} anchor is unresolved: {expected_anchor_id}",
+                    )
+                )
+                continue
+            expected_anchor = {
+                "item_id": locator["item_ref"],
+                "file_id": locator["file_ref"],
+                "file_sha256": file_sha256,
+                "selectors": selectors,
+                "selector_method": {
+                    "maker_type": "software",
+                    "method": method,
+                    "version": "1",
+                    "configuration_ref": (
+                        f"{MAP_PATH.as_posix()}#{correspondence_id}"
+                    ),
+                },
+                "status": "proposed",
+                "provenance_event_ref": ANCHOR_EVENT_ID,
+                "anchor_version": 1,
+                "supersedes_anchor_ref": None,
+                "review_ref": None,
+                "passage_id": None,
+            }
+            for field, expected in expected_anchor.items():
+                if anchor.get(field) != expected:
+                    issues.append(
+                        (
+                            binding_location,
+                            f"{role} anchor {field} differs from source map",
+                        )
+                    )
+
+    if set(bindings_by_id) != set(correspondences_by_id):
+        issues.append(
+            (
+                ANCHOR_SET_PATH.as_posix(),
+                "anchor bindings do not cover map correspondences exactly",
+            )
+        )
+    actual_anchor_order = [
+        anchor.get("anchor_id")
+        for anchor in anchor_records
+        if isinstance(anchor.get("anchor_id"), str)
+    ]
+    if actual_anchor_order != expected_anchor_order:
+        issues.append(
+            (
+                ANCHOR_RECORDS_PATH.as_posix(),
+                "anchor record order differs from correspondence role order",
+            )
+        )
+    if set(anchors_by_id) != set(expected_anchor_order):
+        issues.append(
+            (
+                ANCHOR_RECORDS_PATH.as_posix(),
+                "anchor records do not close over the expected stable ID set",
+            )
+        )
+    if isinstance(anchor_set, dict):
+        correspondence_count = len(correspondences_by_id)
+        expected_anchor_summary = {
+            "correspondence_count": correspondence_count,
+            "anchor_count": correspondence_count * 3,
+            "anchors_per_correspondence": 3,
+            "role_counts": {
+                "source_tei": correspondence_count,
+                "target_epub": correspondence_count,
+                "target_pdf": correspondence_count,
+            },
+            "all_anchor_statuses": ["proposed"],
+        }
+        if anchor_set.get("summary") != expected_anchor_summary:
+            issues.append(
+                (ANCHOR_SET_PATH.as_posix(), "anchor summary drifted")
+            )
+
     provenance_ref = payload.get("provenance_ref")
     if isinstance(provenance_ref, str):
         provenance_path = repo_root / provenance_ref
@@ -411,6 +729,70 @@ def validate_structure_correspondence(repo_root: Path = REPO_ROOT) -> list[Issue
             }
             if actual_inputs != expected_inputs:
                 issues.append((provenance_ref, "event input file/digest set drifted"))
+
+        anchor_event_ref = (
+            anchor_set.get("provenance_event_ref")
+            if isinstance(anchor_set, dict)
+            else None
+        )
+        anchor_matches = [
+            event for event in events if event.get("event_id") == anchor_event_ref
+        ]
+        if len(anchor_matches) != 1:
+            issues.append(
+                (
+                    provenance_ref,
+                    "anchor provenance_event_ref does not resolve exactly once",
+                )
+            )
+        elif anchor_set_path.is_file() and anchor_records_path.is_file():
+            anchor_event = anchor_matches[0]
+            expected_anchor_inputs = {
+                (
+                    MAP_PATH.as_posix(),
+                    _sha256(map_path),
+                )
+            }
+            actual_anchor_inputs = {
+                (entry.get("ref"), entry.get("sha256"))
+                for entry in anchor_event.get("inputs", [])
+                if isinstance(entry, dict)
+            }
+            if actual_anchor_inputs != expected_anchor_inputs:
+                issues.append(
+                    (
+                        provenance_ref,
+                        "anchor event input map/digest set drifted",
+                    )
+                )
+            expected_anchor_outputs = {
+                (
+                    ANCHOR_SET_PATH.as_posix(),
+                    "tracked_proposed_structure_anchor_set",
+                    _sha256(anchor_set_path),
+                ),
+                (
+                    ANCHOR_RECORDS_PATH.as_posix(),
+                    "tracked_proposed_source_anchor_records",
+                    _sha256(anchor_records_path),
+                ),
+            }
+            actual_anchor_outputs = {
+                (
+                    entry.get("ref"),
+                    entry.get("role"),
+                    entry.get("sha256"),
+                )
+                for entry in anchor_event.get("outputs", [])
+                if isinstance(entry, dict)
+            }
+            if actual_anchor_outputs != expected_anchor_outputs:
+                issues.append(
+                    (
+                        provenance_ref,
+                        "anchor event output ref/role/digest set drifted",
+                    )
+                )
     else:
         issues.append((location, "provenance_ref is invalid"))
 
