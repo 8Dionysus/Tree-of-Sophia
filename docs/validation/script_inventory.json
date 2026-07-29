@@ -290,6 +290,30 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_jenseits_numbered_unit_label_correspondence.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+        "ToS/contracts/parallel-numbered-unit-label-map.schema.json"
+      ],
+      "reads": [
+        "tracked source and target numbered-unit maps plus their rights records; no local payload or text"
+      ],
+      "writes": [
+        "the tracked text-free shared-number-label pairing map and provenance unless --check is used"
+      ],
+      "side_effects": "298 proposed shared structural label pairings with source-only 237a retained unpaired and no passage or translation claim",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_witness_structure_correspondence.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -377,6 +401,7 @@
         "ToS/contracts/parallel-witness-structure-map.schema.json",
         "ToS/contracts/numbered-unit-page-map.schema.json",
         "ToS/contracts/target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/parallel-numbered-unit-label-map.schema.json",
         "ToS/contracts/source-anchor.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/source-witnesses/**/resource-inventory.json",
@@ -386,7 +411,7 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/**"
       ],
       "reads": [
-        "tracked text-free structure-correspondence, source and target numbered-unit page maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
+        "tracked text-free structure-correspondence, source and target numbered-unit page maps, shared-number-label pairing candidates, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
       ],
       "writes": [],
       "side_effects": "validation output only",

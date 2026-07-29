@@ -220,6 +220,12 @@ The local builder reproduced the final map from the fixity-bound PDF in under
 one second on the resident host during this run. That is route-cost evidence
 for this exact embedded layer, not a quality score or a general OCR benchmark.
 
+A separate release-safe transform now intersects the 298 labels materialized
+on both sides and resolves each pair to its two proposed page anchors. It reads
+neither payload nor text, and it leaves source-only `237a` unpaired. This makes
+future review returnable at shared-label granularity; it does not perform the
+source-to-target passage alignment that remains an open content question.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all
@@ -242,9 +248,10 @@ for this exact embedded layer, not a quality score or a general OCR benchmark.
    and 298 target-only Polilov/Mysl starts for future bounded review and
    comparison, but require a narrower reviewed anchor before treating a whole
    member or page as an exact passage boundary.
-9. Keep source and target numbered-unit maps independent. Shared labels may
-   later seed explicit alignment candidates, but they do not themselves prove
-   textual, translational, or semantic correspondence.
+9. Keep source and target numbered-unit maps independent. The derived
+   shared-label pairs may seed later explicit passage-alignment review, but
+   they do not themselves prove textual, translational, or semantic
+   correspondence.
 
 ## What remains unknown
 

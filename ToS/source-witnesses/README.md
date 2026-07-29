@@ -254,3 +254,11 @@ does not pair any target unit to a source unit. Shared order, numbering, or
 separate proposed page addresses do not establish textual identity,
 critical-edition equivalence, translation alignment, translation quality,
 semantics, or acceptance.
+
+A release-safe companion under the existing parallel-structure route now
+intersects only the number-label keys already materialized independently by
+those two maps. It yields 298 proposed shared-label pairing candidates and
+keeps source-only `237a` unpaired. The builder reads tracked maps and rights
+records, not either payload or text. A pairing means only “both witnesses
+materialize this structural label”; it is not an exact passage alignment or a
+translation claim.

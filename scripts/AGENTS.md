@@ -78,6 +78,14 @@ source-to-target alignment. Its green rebuild and validator prove only
 deterministic address closure, not accepted Russian, translation equivalence
 or quality, semantics, rights, or canon.
 
+`build_jenseits_numbered_unit_label_correspondence.py` is the release-safe
+companion over the two independently generated Jenseits numbered-unit maps.
+It reads no payload or text: it intersects exact materialized `unit_key`
+values, resolves both proposed anchors, emits 298 proposed shared-label
+pairings, and keeps source-only 237a unpaired. The output is reusable
+structural navigation, not a source-to-target passage alignment, translation
+correspondence, equivalence, quality judgment, or semantic relation.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
@@ -182,4 +190,5 @@ Local owner routes:
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
+| Jenseits shared number-label candidates | `python scripts/build_jenseits_numbered_unit_label_correspondence.py --check`, then `python scripts/validate_witness_structure_correspondence.py`; this route reads tracked maps only |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

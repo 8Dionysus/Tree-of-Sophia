@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import build_witness_structure_correspondence as builder
+import build_jenseits_numbered_unit_label_correspondence as label_builder
 import build_jenseits_polilov_numbered_unit_structure as target_builder
 import validate_witness_structure_correspondence as validator
 
@@ -124,6 +125,72 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
         self.assertEqual({"1": 10, "3": 11, "4": 13}, matches)
         self.assertEqual(["2"], skipped)
         self.assertEqual({"1": "1.", "3": "3.", "4": "4."}, raw_matches)
+
+    def test_numbered_label_pairings_close_over_both_independent_maps(
+        self,
+    ) -> None:
+        self.assertEqual(
+            [],
+            validator.validate_numbered_unit_label_correspondence(REPO_ROOT),
+        )
+
+    def test_numbered_label_pairings_do_not_materialize_source_only_237a(
+        self,
+    ) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.NUMBERED_UNIT_LABEL_MAP_PATH).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(298, len(payload["pairings"]))
+        self.assertNotIn(
+            "237a",
+            {pairing["unit_key"] for pairing in payload["pairings"]},
+        )
+        self.assertEqual(["237a"], payload["summary"]["source_only_unit_keys"])
+        self.assertEqual([], payload["summary"]["target_only_unit_keys"])
+        self.assertFalse(payload["method"]["source_to_target_text_compared"])
+        self.assertFalse(payload["method"]["translation_alignment_inferred"])
+        self.assertFalse(payload["summary"]["translation_alignment_claimed"])
+        self.assertEqual(
+            {"proposed"},
+            {pairing["status"] for pairing in payload["pairings"]},
+        )
+
+    def test_numbered_label_contract_rejects_translation_alignment_claim(
+        self,
+    ) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.NUMBERED_UNIT_LABEL_MAP_PATH).read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["pairings"][0]["translation_alignment_claimed"] = True
+        schema_validator = validator._validator(
+            validator.NUMBERED_UNIT_LABEL_SCHEMA_PATH,
+            REPO_ROOT,
+        )
+
+        self.assertTrue(list(schema_validator.iter_errors(payload)))
+
+    def test_numbered_label_generation_is_deterministic_from_tracked_maps(
+        self,
+    ) -> None:
+        expected_map = (
+            REPO_ROOT / label_builder.MAP_PATH
+        ).read_text(encoding="utf-8")
+        expected_provenance = (
+            REPO_ROOT / label_builder.PROVENANCE_PATH
+        ).read_text(encoding="utf-8")
+
+        actual_map, actual_provenance = label_builder.build_outputs(
+            repo_root=REPO_ROOT,
+            event_at="2026-07-29T02:24:00-06:00",
+        )
+
+        self.assertEqual(expected_map, actual_map)
+        self.assertEqual(expected_provenance, actual_provenance)
 
     def test_numbered_unit_map_materializes_proposed_addresses_not_text(
         self,

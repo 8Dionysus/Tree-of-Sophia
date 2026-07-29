@@ -76,6 +76,34 @@ TARGET_NUMBERED_UNIT_EVENT_ID = (
     "tos.event.target-numbered-unit-page-map.friedrich-nietzsche."
     "jenseits-von-gut-und-boese.ru-polilov-mysl-1996.2026-07-29"
 )
+NUMBERED_UNIT_LABEL_MAP_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/alignments/structure/"
+    "naumann-1886-polilov-mysl-1996/"
+    "numbered-unit-label-correspondence.json"
+)
+NUMBERED_UNIT_LABEL_PROVENANCE_PATH = NUMBERED_UNIT_LABEL_MAP_PATH.with_name(
+    "provenance.numbered-unit-label-correspondence.jsonl"
+)
+NUMBERED_UNIT_LABEL_SCHEMA_PATH = Path(
+    "ToS/contracts/parallel-numbered-unit-label-map.schema.json"
+)
+NUMBERED_UNIT_LABEL_SOURCE_RIGHTS_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/expressions/de-naumann-1886/"
+    "editions/leipzig-c-g-naumann-1886/items/"
+    "internet-archive-google-harvard-scan-pdf/rights.json"
+)
+NUMBERED_UNIT_LABEL_TARGET_RIGHTS_PATH = Path(
+    "ToS/source-witnesses/collections/friedrich-nietzsche/"
+    "works-in-two-volumes-volume-2-mysl-1996/"
+    "editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+)
+NUMBERED_UNIT_LABEL_EVENT_ID = (
+    "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
+    "jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996."
+    "2026-07-29"
+)
 NUMBERED_UNIT_EVENT_ID = (
     "tos.event.numbered-unit-page-map.friedrich-nietzsche."
     "jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29"
@@ -2031,12 +2059,288 @@ def validate_target_numbered_unit_page_map(
     return issues
 
 
+def validate_numbered_unit_label_correspondence(
+    repo_root: Path = REPO_ROOT,
+) -> list[Issue]:
+    """Close shared structural labels without treating them as translations."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    map_path = repo_root / NUMBERED_UNIT_LABEL_MAP_PATH
+    payload = _load_json(map_path, repo_root, issues)
+    if payload is None:
+        return issues
+    location = NUMBERED_UNIT_LABEL_MAP_PATH.as_posix()
+    _validate_schema(
+        payload,
+        validator=_validator(NUMBERED_UNIT_LABEL_SCHEMA_PATH, repo_root),
+        location=location,
+        issues=issues,
+    )
+    for path in _prohibited_key_paths(payload):
+        issues.append((location, f"source-text-bearing key is forbidden: {path}"))
+
+    source_witness = payload.get("source_witness", {})
+    target_witness = payload.get("target_witness", {})
+    if not isinstance(source_witness, dict) or not isinstance(target_witness, dict):
+        issues.append((location, "numbered-label witness bindings are invalid"))
+        return issues
+    witness_inputs = (
+        (source_witness, NUMBERED_UNIT_MAP_PATH, "source"),
+        (target_witness, TARGET_NUMBERED_UNIT_MAP_PATH, "target"),
+    )
+    unit_maps: dict[str, dict[str, dict[str, Any]]] = {}
+    for witness, expected_path, role in witness_inputs:
+        map_ref = witness.get("numbered_unit_map_ref")
+        if map_ref != expected_path.as_posix():
+            issues.append((location, f"{role} numbered-unit map ref drifted"))
+            continue
+        input_path = repo_root / expected_path
+        input_payload = _load_json(input_path, repo_root, issues)
+        if input_payload is None:
+            continue
+        if witness.get("numbered_unit_map_sha256") != _sha256(input_path):
+            issues.append((location, f"{role} numbered-unit map digest drifted"))
+        scan_file = input_payload.get("scan_file", {})
+        expected_binding = {
+            "expression_ref": input_payload.get("expression_ref"),
+            "edition_ref": input_payload.get("edition_ref"),
+            "item_ref": input_payload.get("item_ref"),
+            "file_ref": (
+                scan_file.get("file_ref")
+                if isinstance(scan_file, dict)
+                else None
+            ),
+            "file_sha256": (
+                scan_file.get("file_sha256")
+                if isinstance(scan_file, dict)
+                else None
+            ),
+            "numbered_unit_map_ref": expected_path.as_posix(),
+            "numbered_unit_map_sha256": _sha256(input_path),
+        }
+        if witness != expected_binding:
+            issues.append((location, f"{role} witness binding drifted"))
+        unit_maps[role] = {
+            unit["unit_key"]: unit
+            for unit in input_payload.get("unit_starts", [])
+            if isinstance(unit, dict) and isinstance(unit.get("unit_key"), str)
+        }
+
+    source_units = unit_maps.get("source", {})
+    target_units = unit_maps.get("target", {})
+    expected_keys = _target_numbered_unit_keys()
+    if set(source_units) - set(target_units) != {"237a"}:
+        issues.append((location, "source-only numbered-label set drifted"))
+    if set(target_units) - set(source_units):
+        issues.append((location, "unexpected target-only numbered labels appeared"))
+
+    source_anchors = {
+        anchor.get("anchor_id"): anchor
+        for anchor in _load_jsonl(
+            repo_root / NUMBERED_UNIT_ANCHOR_RECORDS_PATH,
+            repo_root,
+            issues,
+        )
+        if isinstance(anchor.get("anchor_id"), str)
+    }
+    target_anchors = {
+        anchor.get("anchor_id"): anchor
+        for anchor in _load_jsonl(
+            repo_root / TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH,
+            repo_root,
+            issues,
+        )
+        if isinstance(anchor.get("anchor_id"), str)
+    }
+    pairings = [
+        pairing
+        for pairing in payload.get("pairings", [])
+        if isinstance(pairing, dict)
+    ]
+    pairing_keys = [pairing.get("unit_key") for pairing in pairings]
+    sequences = [pairing.get("sequence") for pairing in pairings]
+    if pairing_keys != expected_keys:
+        issues.append((location, "shared numbered-label pairing sequence drifted"))
+    if sequences != list(range(1, 299)):
+        issues.append((location, "shared numbered-label ordinal sequence drifted"))
+    for pairing in pairings:
+        unit_key = pairing.get("unit_key")
+        source_unit = source_units.get(unit_key)
+        target_unit = target_units.get(unit_key)
+        if source_unit is None or target_unit is None:
+            issues.append(
+                (location, f"pairing {unit_key} does not resolve in both maps")
+            )
+            continue
+        expected_pairing_fields = {
+            "source_anchor_ref": source_unit.get("anchor_ref"),
+            "source_pdf_page": source_unit.get("pdf_page"),
+            "target_anchor_ref": target_unit.get("anchor_ref"),
+            "target_pdf_page": target_unit.get("pdf_page"),
+            "basis": "shared_materialized_number_label_key",
+            "status": "proposed",
+            "human_review_performed": False,
+            "translation_alignment_claimed": False,
+        }
+        for field, value in expected_pairing_fields.items():
+            if pairing.get(field) != value:
+                issues.append(
+                    (location, f"pairing {unit_key} field {field} drifted")
+                )
+        source_anchor = source_anchors.get(pairing.get("source_anchor_ref"))
+        target_anchor = target_anchors.get(pairing.get("target_anchor_ref"))
+        if (
+            source_anchor is None
+            or source_anchor.get("passage_id")
+            != (
+                "tos.passage.friedrich-nietzsche."
+                "jenseits-von-gut-und-boese.de-naumann-1886."
+                f"unit-{unit_key}"
+            )
+        ):
+            issues.append((location, f"pairing {unit_key} source anchor drifted"))
+        if (
+            target_anchor is None
+            or target_anchor.get("passage_id")
+            != (
+                "tos.passage.friedrich-nietzsche."
+                "jenseits-von-gut-und-boese.ru-polilov-mysl-1996."
+                f"unit-{unit_key}"
+            )
+        ):
+            issues.append((location, f"pairing {unit_key} target anchor drifted"))
+
+    unpaired = payload.get("unpaired_units", [])
+    if (
+        len(unpaired) != 1
+        or not isinstance(unpaired[0], dict)
+        or unpaired[0].get("unit_key") != "237a"
+        or unpaired[0].get("target_unit_materialized") is not False
+        or unpaired[0].get("translation_alignment_claimed") is not False
+        or "237a" not in source_units
+        or "237a" in target_units
+    ):
+        issues.append((location, "source-only 237a pairing posture drifted"))
+
+    rights_entries = [
+        entry
+        for entry in payload.get("rights_basis", [])
+        if isinstance(entry, dict)
+    ]
+    rights_roles = {entry.get("role") for entry in rights_entries}
+    if rights_roles != {"source", "target"}:
+        issues.append((location, "numbered-label rights basis roles drifted"))
+    expected_rights_paths = {
+        "source": NUMBERED_UNIT_LABEL_SOURCE_RIGHTS_PATH,
+        "target": NUMBERED_UNIT_LABEL_TARGET_RIGHTS_PATH,
+    }
+    for entry in rights_entries:
+        role = entry.get("role")
+        ref = entry.get("ref")
+        if not isinstance(ref, str):
+            issues.append((location, "numbered-label rights ref is invalid"))
+            continue
+        expected_rights_path = expected_rights_paths.get(role)
+        if expected_rights_path is None or ref != expected_rights_path.as_posix():
+            issues.append((location, f"{role} rights basis ref drifted"))
+            continue
+        rights_path = repo_root / ref
+        if _load_json(rights_path, repo_root, issues) is None:
+            continue
+        if entry.get("sha256") != _sha256(rights_path):
+            issues.append((location, f"rights basis digest drifted for {ref}"))
+
+    summary = payload.get("summary", {})
+    if isinstance(summary, dict):
+        expected_summary = {
+            "source_numbered_unit_count": len(source_units),
+            "target_numbered_unit_count": len(target_units),
+            "shared_materialized_label_count": len(set(source_units) & set(target_units)),
+            "pairing_count": len(pairings),
+            "source_only_unit_keys": ["237a"],
+            "target_only_unit_keys": [],
+            "all_pairing_statuses": ["proposed"],
+            "human_review_performed": False,
+            "translation_alignment_claimed": False,
+        }
+        for field, value in expected_summary.items():
+            if summary.get(field) != value:
+                issues.append((location, f"numbered-label summary {field} drifted"))
+
+    provenance_ref = payload.get("provenance_ref")
+    if (
+        not isinstance(provenance_ref, str)
+        or provenance_ref != NUMBERED_UNIT_LABEL_PROVENANCE_PATH.as_posix()
+    ):
+        issues.append((location, "numbered-label provenance_ref drifted"))
+        return issues
+    events = _load_jsonl(repo_root / provenance_ref, repo_root, issues)
+    provenance_validator = _validator(PROVENANCE_SCHEMA_PATH, repo_root)
+    for index, event in enumerate(events, start=1):
+        _validate_schema(
+            event,
+            validator=provenance_validator,
+            location=f"{provenance_ref}:{index}",
+            issues=issues,
+        )
+    event_matches = [
+        event
+        for event in events
+        if event.get("event_id") == payload.get("provenance_event_ref")
+    ]
+    if (
+        len(event_matches) != 1
+        or payload.get("provenance_event_ref") != NUMBERED_UNIT_LABEL_EVENT_ID
+    ):
+        issues.append(
+            (provenance_ref, "numbered-label provenance event does not resolve")
+        )
+    else:
+        event = event_matches[0]
+        expected_outputs = {
+            (
+                NUMBERED_UNIT_LABEL_MAP_PATH.as_posix(),
+                "tracked-text-free-shared-number-label-pairing-candidates",
+                _sha256(map_path),
+            )
+        }
+        actual_outputs = {
+            (output.get("ref"), output.get("role"), output.get("sha256"))
+            for output in event.get("outputs", [])
+            if isinstance(output, dict)
+        }
+        if actual_outputs != expected_outputs:
+            issues.append((provenance_ref, "numbered-label event outputs drifted"))
+        expected_inputs = {
+            (
+                witness.get("numbered_unit_map_ref"),
+                witness.get("numbered_unit_map_sha256"),
+            )
+            for witness in (source_witness, target_witness)
+        }
+        expected_inputs.update(
+            (entry.get("ref"), entry.get("sha256"))
+            for entry in rights_entries
+        )
+        actual_inputs = {
+            (input_entry.get("ref"), input_entry.get("sha256"))
+            for input_entry in event.get("inputs", [])
+            if isinstance(input_entry, dict)
+        }
+        if actual_inputs != expected_inputs:
+            issues.append((provenance_ref, "numbered-label event inputs drifted"))
+
+    return issues
+
+
 def main() -> int:
     issues = [
         *validate_structure_correspondence(),
         *validate_parallel_structure_correspondence(),
         *validate_numbered_unit_page_map(),
         *validate_target_numbered_unit_page_map(),
+        *validate_numbered_unit_label_correspondence(),
     ]
     if issues:
         print("Witness-structure correspondence validation failed.", file=sys.stderr)

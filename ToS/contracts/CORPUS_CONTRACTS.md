@@ -15,6 +15,7 @@ judgment true.
 | `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
 | `numbered-unit-page-map.schema.json` | text-free source-only numbered-unit start-page candidates bound to one exact scan package, its PDF/DjVu/ABBYY inventories, proposed whole-page anchors, explicit review basis, and no textual or critical-edition acceptance |
 | `target-numbered-unit-page-map.schema.json` | text-free target-expression numbered-label start-page candidates bound to one exact translation scan, its work boundary and source-map asymmetry reference, while forbidding source-to-target alignment, equivalence, quality, or semantic claims |
+| `parallel-numbered-unit-label-map.schema.json` | release-safe intersection of independently materialized source and target number-label keys, binding both maps, anchors, rights records, and source-only asymmetries without comparing text or asserting passage/translation alignment |
 | `parallel-witness-structure-map.schema.json` | text-free parallel PDF division starts and division-level numbered-unit spans across an original-language expression and one translation expression, bound to any separate source-only numbered-unit map while preserving supplemental-unit asymmetries, zero exact target-unit pages, and no translation-equivalence claim |
 | `collection-work-boundary-map.schema.json` | text-free member-work order, contiguous container-page ranges, exact Work/Expression/claim refs, non-work boundaries, source anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
@@ -146,6 +147,9 @@ A schema validator can establish that:
   materialized in one exact translation scan over its PDF inventory and work
   boundary, preserves source-only labels as explicit nonmaterialized
   asymmetries, and emits neither target text nor cross-lingual alignment;
+- a parallel numbered-label map can intersect independently materialized
+  structural keys, resolve both sides to proposed anchors, and retain unpaired
+  keys without turning shared numbering into passage or translation alignment;
 - a parallel-witness structure map closes each proposed division start and
   whole-page anchor over the exact original-language and translation
   inventories, verifies its separate source-only map binding, keeps numbered
