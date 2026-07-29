@@ -54,3 +54,12 @@ unchanged five-result TextGrid order and exact response digest, and acquires
 three checksum-matched local TEI items. The run keeps their distinct years,
 publishers, holding copies, source scopes, and rights records rather than
 collapsing them into one supposed “original text.”
+
+`jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json` opens a
+source-first transfer lane beyond *Zarathustra*. It records the current GND
+authority, the target's absence from DTA's seven Nietzsche results, TextGrid's
+anomalous combined-title hit, all eight ordered Internet Archive results, and
+the exact Google Books API quota failure. It selects and checksum-reconciles
+the source-visible 1886 Naumann Harvard/Google scan. The provider's Public
+Domain Mark is preserved as positive evidence without accepting its OCR,
+granting publication, or making the operator-held file a future-site upload.

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-07-28T22:27:50-06:00",
+  "capture_method": {
+    "maker_type": "mixed",
+    "name": "ordered primary-source API capture plus source-visible scan review",
+    "version": "curl 8.18.0; Poppler 26.01.0"
+  },
+  "target": "Exact German 1886 Naumann edition witness for Jenseits von Gut und Böse",
+  "work_authority": {
+    "source": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+    "record_url": "https://d-nb.info/gnd/4211811-6",
+    "gnd": "4211811-6",
+    "preferred_name": "Jenseits von Gut und Böse",
+    "publication_date": "1886",
+    "author_gnd": "118587943",
+    "metadata_license": "CC0 1.0",
+    "record_modified_at": "2026-07-16T10:28:53.000",
+    "queried_at": "2026-07-28T22:27:45-06:00",
+    "response_byte_size": 5470,
+    "response_sha256": "f257a77f380b78e85746f53eaf233b330ed77f277fe7a580a859c236a4dd7fec"
+  },
+  "internet_archive_record": {
+    "identifier": "bub_gb_YIURAAAAYAAJ",
+    "identifier_ark": "ark:/13960/t6n048588",
+    "item_page_url": "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
+    "metadata_url": "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+    "download_url": "https://archive.org/download/bub_gb_YIURAAAAYAAJ/bub_gb_YIURAAAAYAAJ.pdf",
+    "title": "Jenseits von Gut und Böse Vorspiel einer Philosophie der Zukunft",
+    "creator": "Friedrich Wilhelm Nietzsche",
+    "publisher": "C.G. Naumann",
+    "date": "1886",
+    "language": "German",
+    "contributor": "Harvard University",
+    "scanner": "google",
+    "sponsor": "Google",
+    "google_books_id": "YIURAAAAYAAJ",
+    "oclc_id": "247426798",
+    "image_count": 274,
+    "ocr_engine_claim": "ABBYY FineReader 9.0",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/",
+    "pdf_file": {
+      "name": "bub_gb_YIURAAAAYAAJ.pdf",
+      "format": "Text PDF",
+      "source": "derivative",
+      "derived_from": "bub_gb_YIURAAAAYAAJ_djvu.xml",
+      "byte_size": 13944828,
+      "md5": "eb182e4ff49610a9a1922854d5929084",
+      "sha1": "5a6b6b5400120cdce02c0d26bc5bee206cca3d52",
+      "local_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+      "local_md5_match": true,
+      "local_sha1_match": true
+    },
+    "search_queried_at": "2026-07-28T22:27:48-06:00",
+    "search_response_byte_size": 2964,
+    "search_response_sha256": "6e0167d0e2463ffce3540073ae5d4e5254f06a2d85ef88fe06cdc100584c3bea",
+    "metadata_queried_at": "2026-07-28T22:27:49-06:00",
+    "metadata_response_byte_size": 5374,
+    "metadata_response_sha256": "171d5dfe173de1d576e7517db83834fffda524f345935e20db1cbdb0de6be845"
+  },
+  "source_visible_scan": {
+    "review_maker": "model",
+    "human_repeat_performed": false,
+    "reviewed_pdf_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "observations": [
+      "PDF page 1 is a Google-generated cover and is not the historical title page.",
+      "PDF page 2 carries a Harvard College Library bookplate from the George Shattuck Jackson Fund.",
+      "PDF page 3 is the historical title page and displays title, subtitle, author, Leipzig, C. G. Naumann, and 1886.",
+      "PDF page 4 carries Harvard holding and rights furniture.",
+      "PDF pages 6 through 8 contain the printed Vorrede.",
+      "PDF page 9 is the printed contents page.",
+      "PDF page 10 is the first chapter title page; main text begins on PDF page 11."
+    ]
+  },
+  "negative_and_deferred_channels": {
+    "deutsches_textarchiv": {
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche",
+      "queried_at": "2026-07-28T22:27:46-06:00",
+      "response_byte_size": 37243,
+      "response_sha256": "4beaed1543528458951a6d3fecfc2b7b6507f062e3dce691a23840315d0020ed",
+      "result_count": 7,
+      "target_present": false,
+      "note": "The current Nietzsche author result contains four Zarathustra parts, Geburt der Tragödie, Homer und die klassische Philologie, and Idyllen aus Messina; it contains no Jenseits record."
+    },
+    "textgrid": {
+      "exact_query": "q=title:\"Jenseits von Gut und Böse\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true",
+      "queried_at": "2026-07-28T22:27:47-06:00",
+      "response_byte_size": 2009,
+      "response_sha256": "d6df212ef58c9165a3b816a8bfcf3bb1d7be2632caf3387628e40a0875e77879",
+      "response_hits": 1,
+      "result": {
+        "edition_uri": "textgrid:4k1p6.0",
+        "work_uri": "textgrid:4k1k0.0",
+        "title": "Zur Genealogie der Moral Jenseits von Gut und Böse. Zur Genealogie der Moral",
+        "publication_date": "2016-06",
+        "project": "Corpus of Literary Modernity (Kolimo+)",
+        "license_claim": "CC BY 4.0"
+      },
+      "decision": "rejected as the primary historical-edition witness because the combined title and imported work metadata do not identify the exact 1886 Naumann edition"
+    },
+    "google_books": {
+      "exact_query": "GET https://www.googleapis.com/books/v1/volumes/YIURAAAAYAAJ",
+      "queried_at": "2026-07-28T22:27:49-06:00",
+      "http_status": 429,
+      "response_byte_size": 1306,
+      "response_sha256": "6a4d29b73b8cd8822ed8f40c4c18f91ceb564d1147c787fff63948a3c724c4b8",
+      "status": "RESOURCE_EXHAUSTED",
+      "decision": "unavailable cross-check; no Google Books metadata claim imported"
+    }
+  },
+  "snapshot_boundary": "This tracked snapshot preserves identifiers, bibliographic and technical metadata, ordered search evidence, rights statements, response digests, and source-visible observations. It contains no source-text payload and accepts no OCR, German text, critical text, translation, semantic layer, or publication right."
+}

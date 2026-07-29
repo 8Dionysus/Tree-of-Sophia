@@ -27,6 +27,18 @@ MYSL_WORK_BOUNDARY_ROOT = (
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
     "works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries"
 )
+JENSEITS_1886_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/expressions/de-naumann-1886/"
+    "editions/leipzig-c-g-naumann-1886/items/"
+    "internet-archive-google-harvard-scan-pdf"
+)
+JENSEITS_1886_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1043,6 +1055,90 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         private_example = REPO_ROOT / "ToS/source-witnesses/access-requests/private/request/message.eml"
         self.assertFalse(foundation._git_ignored(REPO_ROOT, private_route))
         self.assertTrue(foundation._git_ignored(REPO_ROOT, private_example))
+
+    def test_jenseits_1886_witness_opens_transfer_soil_without_acceptance(self) -> None:
+        manifest = json.loads(
+            (JENSEITS_1886_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (JENSEITS_1886_ITEM_ROOT / "rights.json").read_text(encoding="utf-8")
+        )
+        inventory = json.loads(
+            (JENSEITS_1886_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        discovery = json.loads(
+            JENSEITS_1886_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        server_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "jenseits-naumann-1886-internet-archive-google-harvard-"
+                "scan-pdf.server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("digitized_physical_copy", manifest["item_kind"])
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertEqual(
+            "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+            manifest["payload_files"][0]["sha256"],
+        )
+        self.assertTrue(
+            foundation._git_ignored(
+                REPO_ROOT,
+                JENSEITS_1886_ITEM_ROOT
+                / manifest["payload_files"][0]["relative_path"],
+            )
+        )
+
+        self.assertEqual(
+            "http://creativecommons.org/publicdomain/mark/1.0/",
+            rights["rights_statement_uri"],
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertIn(
+            "the operator-held payload remains local and is not a future-site upload",
+            rights["restrictions"],
+        )
+
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual(274, inventory["files"][0]["summary"]["page_count"])
+        self.assertEqual(
+            820,
+            inventory["files"][0]["summary"]["image_resource_count"],
+        )
+
+        self.assertEqual(
+            [
+                "channel-dnb-jenseits-work-authority",
+                "channel-dta-nietzsche-author-corpus",
+                "channel-textgrid-jenseits-editions",
+                "channel-internet-archive-jenseits",
+                "channel-google-books-jenseits-id",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            ["tos-discovery-result.ia-bub-gb-yiuraaaayaaaj"],
+            discovery["selected_result_ids"],
+        )
+        self.assertEqual([], discovery["channels"][-1]["results"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertEqual(
+            "prohibited",
+            server_plan["allowed_derivatives"]["transcription"]["state"],
+        )
 
     def test_golden_kernel_transfer_plan_fails_closed_without_human_kernel(self) -> None:
         validator, _ = foundation._schema_validator(

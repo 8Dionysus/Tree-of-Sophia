@@ -17,3 +17,11 @@ facsimiles under distinct holding-library postures. Each plan therefore
 preserves an open route for its exact part without uploading the operator-held
 TEI, collapsing the printed witnesses, or pretending the layer conflict has
 already been reviewed.
+
+The tenth plan covers the exact 1886 Naumann *Jenseits von Gut und Böse*
+Harvard/Google scan selected through Internet Archive. Its Public Domain Mark,
+historical age, open route, and source-visible title page are retained as
+positive publication-candidate evidence. The plan still transfers no local
+payload: a future site may only select or reacquire an independently reviewed
+authorized object, and neither the embedded OCR nor any German–Russian
+derivative inherits publication approval from the scan record.

@@ -39,9 +39,12 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- Three named other Nietzsche works are currently provisional title-page
-  boundaries inside one collected volume, not standalone reviewed Work /
-  Expression / Edition / Item trees.
+- Five other *Mysl* member works remain verified Work identities with
+  provisional Russian collection-member expressions rather than standalone
+  reviewed Edition / Item trees. *Jenseits von Gut und Böse* now additionally
+  has an exact German 1886 Expression / Edition / Item route, while its
+  Russian *Mysl* expression and translation-responsibility claim remain
+  unreviewed.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
   critical text.
@@ -54,6 +57,10 @@ contracts intentionally reject simulated human evidence.
   distinct 1883, 1884, and 1891 publications and holding copies, not one
   silently unified source. None is a critical edition, an exact eKGWB
   alignment, ToS-accepted German, or gold.
+- The acquired 1886 Naumann *Jenseits von Gut und Böse* scan is an exact
+  source-visible historical witness and a different-work transfer surface.
+  Its embedded OCR remains untracked and unaccepted; its 274-page mechanical
+  inventory is not German textual acceptance or a translation anchor set.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -75,6 +82,12 @@ contracts intentionally reject simulated human evidence.
 - Irrespective of source-provider permission, the operator-held copy of the
   1913 scan remains local and is not a future-site upload source. A later site
   may serve only a separately reviewed, explicitly authorized material route.
+- The exact 1886 Naumann *Jenseits* item is likewise marked by Internet
+  Archive with Public Domain Mark 1.0 and has a strong historical-age case.
+  That is positive route evidence, not a license or a jurisdiction-complete
+  decision across scan, digitization, PDF, and OCR layers. Its operator-held
+  copy remains local; any future public object must be independently reviewed
+  and selected or reacquired through a current authorized route.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
@@ -275,8 +288,10 @@ execution remain blocked.
 
 ### 5. Test the golden kernel on unseen content
 
-1. Promote *Beyond Good and Evil*, *On the Genealogy of Morality*, and *The
-   Antichrist* into reviewed source trees rather than provisional labels.
+1. Advance the exact 1886 *Jenseits von Gut und Böse* source tree from a
+   source-visible witness to admitted text anchors only through the German
+   source gate; separately promote *On the Genealogy of Morality* and *The
+   Antichrist* beyond provisional collection-member expressions.
 2. Freeze 20 content-bearing target passages, including hard negatives and
    passages that demand target-specific signs.
 3. Run A without the kernel, B with general contracts only, and C with
