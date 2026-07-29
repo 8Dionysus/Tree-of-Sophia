@@ -324,3 +324,22 @@ OCR disagreement and return claims to printed pages, but they do not remove
 the language-competence block or open a translation lane. The current CC
 BY-SA evidence, stale conflicting Dublin Core fields, and separate facsimile
 rights remain explicit per item.
+
+## Calibration-only source admission
+
+`BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` separates a further
+laboratory posture from all of the acceptance lanes above. The first complete
+DTA sentence in `Za-I-Vorrede-1` is deterministically selected, corroborated
+against the local eKGWB response and the opening Naumann OCR token sequence,
+and stored only in ignored local content. Its tracked companion contains no
+German text. Matching text and authored translations already exist in the
+older canon node and compatibility mirror; this route binds and seals those
+surfaces from blind calibration instead of revalidating them.
+
+This permits one blind local `abyss-stack` model/prompt/runtime calibration.
+It does not resolve the competence problem: the source remains
+philologically unaccepted, DTA rights remain conflicting and unreviewed, the
+recognized comparator stays sealed, and all accepted translation, semantic,
+graph, publication, and canon effects remain zero. The operator may assess a
+candidate's Russian readability and usefulness but is not asked to attest
+German correctness or translation fidelity.

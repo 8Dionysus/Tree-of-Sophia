@@ -95,6 +95,18 @@ normalization and aggregate agreement do not authenticate HTTP transport,
 admit a critical edition, accept German, clear rights, open translation, or
 create semantic/canon authority.
 
+`build_zarathustra_bounded_translation_input.py` is the next, narrower
+explicit-local companion. It deterministically derives the first complete
+sentence from the exact DTA part-I provider transcription, requires exact
+eKGWB and first-twenty-token Naumann corroboration, writes the source string
+only to an explicit ignored local-output root, and emits a tracked text-free
+admission packet plus provenance. Its sole authority is local blind
+model/prompt/runtime calibration. It does not alter the frozen accepted-
+translation plan, accept German, reveal a comparator, clear rights, authorize
+redistribution, or open semantic, graph, or canon work. The builder also binds
+the older authored canon node and compatibility mirror so their translations
+can be explicitly sealed from blind candidates; it does not revalidate them.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
@@ -201,4 +213,5 @@ Local owner routes:
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | Jenseits shared number-label candidates | `python scripts/build_jenseits_numbered_unit_label_correspondence.py --check`, then `python scripts/validate_witness_structure_correspondence.py`; this route reads tracked maps only |
 | local Zarathustra German source triangulation | `python scripts/build_zarathustra_german_source_triangulation.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the release lane validates tracked closure without requiring the ignored inputs |
+| bounded local Zarathustra translation calibration input | `python scripts/build_zarathustra_bounded_translation_input.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the two explicit roots respectively supply exact inputs and own the ignored source-bearing output |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

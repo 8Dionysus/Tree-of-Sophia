@@ -27,6 +27,11 @@ GERMAN_SOURCE_TRIANGULATION_PATH = (
     / "german-source-triangulation."
     "ekgwb-dta-naumann.za-i-vorrede-1.v1.json"
 )
+BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH = (
+    GOLD_ROOT
+    / "bounded-translation-research-input."
+    "za-i-vorrede-1-opening-sentence.v1.json"
+)
 MYSL_WORK_BOUNDARY_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
@@ -50,6 +55,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import validate_source_witness_foundation as foundation
 import build_zarathustra_german_source_triangulation as triangulation_builder
+import build_zarathustra_bounded_translation_input as bounded_input_builder
 
 
 PRE_DRAFT_STAGE_NAMES = [
@@ -1538,6 +1544,110 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(["prüf", "wort"], raw_tokens)
         self.assertEqual(["prüfwort"], source_aware_tokens)
+
+    def test_bounded_translation_input_opens_only_local_calibration(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual(
+            "eligible_for_local_machine_calibration",
+            packet["status"],
+        )
+        self.assertEqual(
+            "translation_method_calibration",
+            packet["experiment_scope"]["purpose"],
+        )
+        self.assertFalse(
+            packet["source_derivation"]["model_used_for_boundary_or_text"]
+        )
+        self.assertFalse(
+            packet["source_derivation"][
+                "source_text_emitted_to_tracked_packet"
+            ]
+        )
+        self.assertTrue(packet["local_artifact"]["gitignored"])
+        self.assertFalse(
+            packet["local_artifact"][
+                "source_text_copied_into_tracked_admission"
+            ]
+        )
+        self.assertFalse(
+            packet["experiment_scope"][
+                "preexisting_authored_translation_surfaces_visible"
+            ]
+        )
+        self.assertEqual(
+            20,
+            packet["local_artifact"]["normalized_alpha_tokens"],
+        )
+        self.assertEqual(
+            0,
+            packet["gate_effects"]["accepted_german_units"],
+        )
+        self.assertEqual(
+            [],
+            packet["gate_effects"]["accepted_translation_lanes_opened"],
+        )
+        self.assertEqual(
+            0,
+            packet["gate_effects"]["semantic_tasks_opened"],
+        )
+        self.assertFalse(
+            packet["gate_effects"][
+                "canon_or_graph_promotion_authorized"
+            ]
+        )
+
+        false_acceptance = copy.deepcopy(packet)
+        false_acceptance["gate_effects"]["accepted_german_units"] = 1
+        self.assertTrue(list(validator.iter_errors(false_acceptance)))
+
+        false_publication = copy.deepcopy(packet)
+        false_publication["rights_and_visibility"][
+            "public_site_upload_authorized"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_publication)))
+
+        tracked_text = copy.deepcopy(packet)
+        tracked_text["local_artifact"][
+            "source_text_copied_into_tracked_admission"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(tracked_text)))
+
+        contaminated_blind_run = copy.deepcopy(packet)
+        contaminated_blind_run["experiment_scope"][
+            "preexisting_authored_translation_surfaces_visible"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(contaminated_blind_run)))
+
+    def test_bounded_translation_input_builder_uses_synthetic_source_only(
+        self,
+    ) -> None:
+        sentence = bounded_input_builder._first_sentence(
+            "Erste synthetische Aussage. Zweite Aussage."
+        )
+        self.assertEqual("Erste synthetische Aussage.", sentence)
+        self.assertEqual(
+            "Mehrere Leerzeichen bleiben lesbar.",
+            bounded_input_builder._first_sentence(
+                "Mehrere   Leerzeichen\nbleiben lesbar. Danach."
+            ),
+        )
+        with self.assertRaises(
+            bounded_input_builder.BoundedInputBuildError
+        ):
+            bounded_input_builder._first_sentence(
+                "Synthetischer Text ohne Abschluss"
+            )
 
     def test_critical_edition_witness_freezes_metadata_without_admission(
         self,

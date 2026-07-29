@@ -272,3 +272,16 @@ unencrypted-transport risk, a source-aware dehyphenation control, and the OCR
 residual. Machine agreement is reusable evidence, but it does not admit the
 critical edition, accept German, authorize publication, open translation, or
 create semantic authority.
+
+One derived sentence from that route is now preserved below the pilot's
+ignored `local-content/translation/research-inputs/` branch. Its tracked
+companion records the DTA selector, transformations, fixity, token count,
+three-witness corroboration, rights posture, and closed authority gates
+without copying the sentence into that packet. A matching string and authored
+translations already exist in the older canon node and public compatibility
+mirror; the calibration packet binds and seals those surfaces instead of
+claiming global text absence. This makes the exact local string eligible for
+blind `abyss-stack` model/prompt/runtime calibration only. It does not make
+the string philologically accepted, revalidate the older canon role, open any
+lane in the frozen translation plan, reveal a translation surface, authorize
+redistribution, or create semantic, graph, or canon evidence.

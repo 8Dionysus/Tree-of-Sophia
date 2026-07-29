@@ -50,6 +50,14 @@ Zarathustra golden kernel. It is not a completed gold set.
   replacement plus page furniture. The tracked packet contains no source text.
   Unencrypted HTTP, rights, bibliography, language competence, and all
   translation/semantic gates remain explicitly open.
+- `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
+  admits one deterministically selected 20-token DTA sentence to local blind
+  machine-method calibration. Its source-bearing companion is gitignored; the
+  tracked packet contains only identity, selector, transformation, digest,
+  count, corroboration, rights, and gate evidence. The existing accepted
+  translation plan remains at 0 of 30 accepted German units with every draft
+  lane blocked. The recognized comparator and the pre-existing authored
+  Russian/English canon surfaces are all sealed from calibration candidates.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current

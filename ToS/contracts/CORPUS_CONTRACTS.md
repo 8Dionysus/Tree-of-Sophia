@@ -44,6 +44,7 @@ judgment true.
 | `german-assisted-source-review.schema.json` | solo+AI evidence lanes, visual-only competence boundary, critical-edition witness route, triggered 1-3 unit scheduling, and fail-closed translation consequences |
 | `critical-edition-witness-admission.schema.json` | one exact critical-edition locator, reference identity, local witness structural context distinct from exact critical-text comparison, provenance, content non-capture, rights review, and fail-closed effects before citation-witness admission |
 | `german-source-triangulation.schema.json` | text-free machine comparison of one local critical-edition candidate, one structured TEI witness, and one OCR witness, including source-aware normalization failure controls, transport/rights limits, and zero human/translation/semantic gate effects |
+| `bounded-translation-research-input.schema.json` | one DTA-derived ignored local source artifact admitted only to blind machine-method calibration, with exact selector, transformation, digest, corroboration, rights posture, explicit sealing of pre-existing authored translation surfaces, and zero accepted-German, translation, semantic, graph, or canon effects |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
 
@@ -103,6 +104,12 @@ A schema validator can establish that:
   aggregate token/paragraph counts, one-way fingerprints, and normalization
   controls while forcing unencrypted transport, rights review, German
   acceptance, translation, semantics, and promotion to remain unresolved;
+- a bounded translation research-input packet may prove that one exact
+  ignored source string was deterministically derived and machine-corroborated
+  for one named local calibration purpose while keeping the accepted
+  translation plan, recognized comparator and older authored translation
+  surfaces, rights, language competence, semantics, graph, and canon gates
+  closed;
 - a translation-laboratory plan preserves the exact workflow order, keeps all
   four draft lanes blocked before source acceptance, and forbids comparator
   consultation while sealed;

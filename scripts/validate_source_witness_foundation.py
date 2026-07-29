@@ -92,6 +92,9 @@ CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
 GERMAN_SOURCE_TRIANGULATION_SCHEMA = (
     CONTRACT_ROOT / "german-source-triangulation.schema.json"
 )
+BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA = (
+    CONTRACT_ROOT / "bounded-translation-research-input.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -697,6 +700,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             GERMAN_SOURCE_TRIANGULATION_SCHEMA,
             repo_root,
         )
+        bounded_translation_research_input_validator, _ = _schema_validator(
+            BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -991,6 +998,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             / "german-source-triangulation."
             "ekgwb-dta-naumann.za-i-vorrede-1.v1.json"
         )
+        bounded_translation_research_input_path = (
+            gold_root
+            / "bounded-translation-research-input."
+            "za-i-vorrede-1-opening-sentence.v1.json"
+        )
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -1003,6 +1015,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         evaluation_provenance_path = gold_root / "evaluation-provenance.jsonl"
         german_source_triangulation_provenance_path = (
             gold_root / "provenance.german-source-triangulation.jsonl"
+        )
+        bounded_translation_research_input_provenance_path = (
+            gold_root
+            / "provenance.bounded-translation-research-input.jsonl"
         )
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
@@ -1049,6 +1065,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues,
             )
             if german_source_triangulation_path.is_file()
+            else None
+        )
+        bounded_translation_research_input = (
+            _load_json(
+                bounded_translation_research_input_path,
+                repo_root,
+                issues,
+            )
+            if bounded_translation_research_input_path.is_file()
             else None
         )
         transfer_plan = _load_json(transfer_path, repo_root, issues)
@@ -1566,6 +1591,180 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "machine triangulation crossed a human or translation gate",
                         )
                     )
+        if bounded_translation_research_input is not None:
+            bounded_location = _relative(
+                bounded_translation_research_input_path,
+                repo_root,
+            )
+            _validate_payload(
+                bounded_translation_research_input,
+                bounded_translation_research_input_validator,
+                bounded_location,
+                issues,
+            )
+            admission_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md"
+            )
+            corpus_decision_path = (
+                repo_root
+                / "docs/decisions/"
+                "TOS-D-0020-corpus-evidence-spine-and-witness-storage.md"
+            )
+            preexisting_canon_node_path = (
+                repo_root
+                / "ToS/canon/source/friedrich-nietzsche/"
+                "thus-spoke-zarathustra/prologue-1/node.json"
+            )
+            preexisting_public_mirror_path = (
+                repo_root
+                / "ToS/public-compatibility/source_node.example.json"
+            )
+            dta_item_root = (
+                repo_root
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "also-sprach-zarathustra/expressions/"
+                "de-schmeitzner-1883-part-1/editions/"
+                "chemnitz-schmeitzner-1883-part-1/items/"
+                "dta-sbb-corrected-tei-p5"
+            )
+            bindings = bounded_translation_research_input.get(
+                "bindings",
+                {},
+            )
+            for field, expected_path in (
+                ("corpus_decision", corpus_decision_path),
+                ("admission_research", admission_research_path),
+                ("source_review_plan", translation_source_review_path),
+                ("accepted_translation_plan", translation_laboratory_path),
+                (
+                    "german_source_triangulation",
+                    german_source_triangulation_path,
+                ),
+                (
+                    "preexisting_authored_canon_node",
+                    preexisting_canon_node_path,
+                ),
+                (
+                    "preexisting_public_compatibility_mirror",
+                    preexisting_public_mirror_path,
+                ),
+                ("dta_item_manifest", dta_item_root / "item.manifest.json"),
+                ("dta_rights_record", dta_item_root / "rights.json"),
+            ):
+                digest_issue = _digest_bound_ref_issue(
+                    bindings.get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"bindings.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((bounded_location, digest_issue))
+
+            target = bounded_translation_research_input.get("target", {})
+            source_review_units = (
+                translation_source_review_plan.get("units", [])
+                if isinstance(translation_source_review_plan, dict)
+                else []
+            )
+            target_unit = next(
+                (
+                    unit
+                    for unit in source_review_units
+                    if isinstance(unit, dict)
+                    and unit.get("review_unit_id")
+                    == target.get("review_unit_id")
+                ),
+                None,
+            )
+            if target_unit is None:
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded input target is absent from source-review plan",
+                    )
+                )
+            elif target_unit.get("context_anchor_ref") != target.get(
+                "context_anchor_ref"
+            ):
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded input target anchor drifted",
+                    )
+                )
+
+            local_ref = bounded_translation_research_input.get(
+                "local_artifact",
+                {},
+            ).get("ref")
+            expected_local_path = (
+                gold_root
+                / "local-content/translation/research-inputs/"
+                "za-i-vorrede-1-opening-sentence.v1.json"
+            )
+            if local_ref != _relative(expected_local_path, repo_root):
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded input local-only artifact route drifted",
+                    )
+                )
+            elif _git_ignored(repo_root, expected_local_path) is not True:
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded input source artifact is not protected by Git ignore",
+                    )
+                )
+
+            if isinstance(translation_laboratory_plan, dict):
+                source_gate = translation_laboratory_plan.get(
+                    "source_review_gate",
+                    {},
+                )
+                blind_lanes = translation_laboratory_plan.get(
+                    "blind_lanes",
+                    {},
+                )
+                if (
+                    source_gate.get("current_human_accepted_units") != 0
+                    or source_gate.get("gate_state")
+                    != "blocked-awaiting-real-human-source-review"
+                    or any(
+                        isinstance(lane, dict)
+                        and lane.get("state") != "blocked-on-source-acceptance"
+                        for lane in blind_lanes.values()
+                    )
+                ):
+                    issues.append(
+                        (
+                            bounded_location,
+                            "bounded calibration input altered the accepted translation plan",
+                        )
+                    )
+
+            gate_effects = bounded_translation_research_input.get(
+                "gate_effects",
+                {},
+            )
+            if (
+                gate_effects.get("human_debt_units") != 0
+                or gate_effects.get("accepted_german_units") != 0
+                or gate_effects.get("accepted_translation_lanes_opened")
+                or gate_effects.get("semantic_tasks_opened") != 0
+                or gate_effects.get(
+                    "canon_or_graph_promotion_authorized"
+                )
+                is not False
+            ):
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded calibration input crossed an authority gate",
+                    )
+                )
         for (
             critical_edition_witness_path,
             critical_edition_witness,
@@ -1956,6 +2155,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 german_source_triangulation_provenance_path
             )
+        if bounded_translation_research_input_provenance_path.is_file():
+            local_provenance_paths.append(
+                bounded_translation_research_input_provenance_path
+            )
         for local_provenance_path in local_provenance_paths:
             for index, event in enumerate(
                 _load_jsonl(local_provenance_path, repo_root, issues), start=1
@@ -2024,6 +2227,39 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         (
                             triangulation_location,
                             "German source triangulation provenance output drifted",
+                        )
+                    )
+        if bounded_translation_research_input is not None:
+            bounded_event_id = (
+                "tos.event.segmentation."
+                "zarathustra-bounded-translation-input."
+                "za-i-vorrede-1-opening-sentence.2026-07-29"
+            )
+            bounded_event = local_events_by_id.get(bounded_event_id)
+            bounded_location = _relative(
+                bounded_translation_research_input_path,
+                repo_root,
+            )
+            if bounded_event is None:
+                issues.append(
+                    (
+                        bounded_location,
+                        "bounded translation research-input provenance event is absent",
+                    )
+                )
+            else:
+                expected_output = {
+                    "ref": bounded_location,
+                    "role": "text-free-bounded-local-calibration-admission",
+                    "sha256": _sha256(
+                        bounded_translation_research_input_path
+                    ),
+                }
+                if expected_output not in bounded_event.get("outputs", []):
+                    issues.append(
+                        (
+                            bounded_location,
+                            "bounded translation research-input provenance output drifted",
                         )
                     )
 

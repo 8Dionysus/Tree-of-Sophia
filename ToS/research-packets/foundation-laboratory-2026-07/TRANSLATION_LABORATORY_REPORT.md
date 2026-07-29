@@ -1,6 +1,7 @@
 # Translation Laboratory Report: Foundation Pilot v1
 
-Status: source-review laboratory prepared and mechanically exercised;
+Status: source-review laboratory prepared and mechanically exercised; one
+bounded local machine-calibration input admitted; calibration and accepted
 translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
 Report date: 2026-07-29
@@ -28,6 +29,17 @@ operator to impersonate German competence. The official eKGWB HTTP candidate,
 DTA part I, and the Naumann automatic EPUB were compared mechanically for
 `Za-I-Vorrede-1`. That creates one machine-triangulated source candidate, not
 an accepted source unit, translation input, or translation result.
+
+A further non-promotional boundary now admits only the first complete
+20-token DTA sentence to a separate local machine-method calibration route.
+The DTA-derived source artifact lives in ignored local content; its tracked
+packet contains only its selector, transformations, digests, counts,
+corroboration, rights posture, and zero-effect gates. The same sequence was
+already present in a pre-existing authored canon node and public mirror, so
+those translation-bearing surfaces are digest-bound and sealed from the
+blind run rather than falsely described as absent. This is a calibration
+input, not an input to the frozen accepted-translation lanes or a
+revalidation of the older canon role.
 
 ## Evidence sequence
 
@@ -98,7 +110,31 @@ The assisted plan therefore reports selected units 1, machine runs 1,
 machine-triangulated candidates 1, accepted German 0, human debt 0, admitted
 critical witnesses 0, and translation lanes 0.
 
-### 4. Reference and pre-draft soil
+### 4. Bounded local calibration admission
+
+`bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
+implements the source-use ladder researched in
+`BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md`. Its ignored source
+artifact is derived from the registered DTA transcription by DTA-specific
+printed-hyphen handling, first-full-stop selection, and whitespace collapse.
+The tracked packet records:
+
+- 20 normalized alphabetic tokens;
+- byte-identical whitespace-collapsed DTA and eKGWB strings;
+- identical first-20 normalized Naumann OCR tokens;
+- exact DTA Item/File, selector, rights, triangulation, and decision bindings;
+- one allowed purpose: local blind model/prompt/decoding/runtime calibration;
+- accepted German 0, accepted translation lanes 0, semantic tasks 0, human
+  debt 0, and promotion false.
+
+The recognized comparator remains sealed. The frozen `human_only`, accepted
+`ai_only`, `ai_alternatives`, and `ai_human` lanes remain blocked. Any output
+from the new route must be labeled a laboratory candidate and may be judged by
+the operator only for Russian readability, rhythm, and usefulness—not German
+correctness or cross-language fidelity. The existing authored Russian and
+English witnesses are also hidden until every calibration candidate freezes.
+
+### 5. Reference and pre-draft soil
 
 `translation-reference-register.v1.json` contains 14 candidates covering all
 nine required categories: dictionaries, corpora, critical-edition resources,
@@ -208,6 +244,8 @@ Missing human time is not zero cost.
 - Preserve the one eKGWB/DTA/Naumann triangulation as a machine candidate and
   the naive dehyphenation failure as a control; promote neither to accepted
   German.
+- Admit the one DTA-derived sentence only to local blind machine-method
+  calibration; keep its source string ignored and every result non-promotional.
 - Block every pre-draft and draft lane until real pass 1 and independent pass
   2 accept all required German units.
 - Block recognized-witness reveal until every blind draft is frozen.
@@ -218,15 +256,22 @@ Missing human time is not zero cost.
 ## Next admissible action
 
 Do not turn the 30-unit packet into routine work for the solo operator. The
-next source action is question-triggered: prefer an authenticated or
-institutionally supplied copy of the exact eKGWB witness, then complete
-bibliographic and rights review at the exact layer. German textual acceptance
-still requires actual declared competence and source-visible receipts; the
-current operator may contribute visual identity and Russian-language
-evaluation only. Only accepted source units can enter independent pre-draft
-lanes.
+next executable action is a small, blind local A/B/C calibration over the one
+admitted ignored source string, using resident `abyss-stack` routes and exact
+model/runtime/prompt/decoding/cost/speed receipts. It must freeze candidate
+outputs before any recognized comparator is revealed and may produce only
+method evidence.
+
+In parallel, the next authority-bearing source action remains
+question-triggered: prefer an authenticated or institutionally supplied copy
+of the exact eKGWB witness, then complete bibliographic and rights review at
+the exact layer. German textual acceptance still requires actual declared
+competence and source-visible receipts; the current operator may contribute
+visual identity and Russian-language evaluation only. Only accepted source
+units can enter the independent accepted-translation lanes.
 
 Until then, the honest laboratory conclusion is narrow: Tree of Sophia has a
 translation method capable of preserving source, alternatives, etymological
-evidence, and comparator influence, but it has not yet translated or accepted
-a single unit.
+evidence, and comparator influence, plus one exact calibration-only input, but
+it has not yet run that calibration, translated through an accepted lane, or
+accepted a single unit.

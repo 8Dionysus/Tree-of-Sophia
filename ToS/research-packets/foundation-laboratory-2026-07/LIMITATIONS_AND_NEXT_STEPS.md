@@ -24,6 +24,7 @@ fields. They are the next authority layer.
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
 | German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | HTTP transport is unauthenticated; bibliographic/rights and German-competent review remain pending; DTA and machine agreement are not critical-edition admission or ToS acceptance |
+| bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A/B/C runs: 0; accepted German: 0; accepted translation lanes: 0 | it may measure local machine method, cost, and speed, but cannot establish German correctness, translation fidelity, rights clearance, semantics, or canon |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -125,9 +126,11 @@ contracts intentionally reject simulated human evidence.
   corrected 12-page PaddleOCR-VL run. Both have advisory source-visible model
   inspections and real machine profiles, but neither has real-human quality
   evidence or full-scope repeatability.
-- Alignment A/B/C, translation A/B/C, semantic annotation A/B/C, LLM
-  assistance A/B/C, and golden-kernel transfer A/B/C have not been executed
-  as quality experiments.
+- Alignment A/B/C, accepted-translation A/B/C, semantic annotation A/B/C,
+  LLM assistance A/B/C, and golden-kernel transfer A/B/C have not been
+  executed as quality experiments. One exact source string is now eligible
+  for a separate local translation-method calibration, but that calibration
+  has not yet run and cannot promote its output.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -291,7 +294,31 @@ execution remain blocked.
    profile to the new Tree digest and run preflight. A prepared packet remains
    neither a model-quality result nor human work.
 
+### 2b. Execute one bounded translation-method calibration
+
+Current state: one source string is eligible; no model run or result exists.
+
+1. Read the source string only from the ignored local artifact and verify its
+   artifact and source-text digests before each run.
+2. Use resident `abyss-stack` routes first; freeze exact model, runtime,
+   prompt, decoding, hardware, timing, resource, and output receipts.
+3. Keep A/B/C source input and measurement definitions identical. Preserve
+   refusals, malformed outputs, and runtime failures.
+4. Keep the recognized Russian comparator sealed until all candidates are
+   frozen. Also hide the pre-existing authored Russian/English canon node and
+   public compatibility mirror; their presence is a recorded contamination
+   risk, not permission to use them. Do not call a later comparator comparison
+   an accepted translation review.
+5. Permit the operator to judge Russian readability, rhythm, and usefulness.
+   Keep German correctness and cross-language fidelity explicitly unjudged.
+6. Return only source-safe aggregates and candidate lineage to the tracked
+   Tree packet. Source text and candidate translation text remain local until
+   a separate rights and authority route admits any derivative.
+
 ### 3. Open translation only after source acceptance
+
+The accepted translation lifecycle below remains source-gated. It is distinct
+from the calibration-only route in section 2b.
 
 1. Human-only, AI-only, and at least two AI-alternative pre-draft analyses run
    independently in the fixed nine-stage order.
@@ -351,7 +378,7 @@ execution remain blocked.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | contract prepared; no actual decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted; no calibration run or actual translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete |

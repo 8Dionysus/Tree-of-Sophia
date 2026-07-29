@@ -342,6 +342,37 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_bounded_translation_input.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/bounded-translation-research-input.schema.json",
+      "source_truth": [
+        "docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
+        "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "ToS/public-compatibility/source_node.example.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/bounded-translation-research-input.schema.json"
+      ],
+      "reads": [
+        "one explicit DTA TEI, one local-only eKGWB response, the first twenty Naumann OCR tokens, and digest-bound source, rights, research, triangulation, and frozen translation-plan evidence"
+      ],
+      "writes": [
+        "one ignored local JSON source string plus a tracked text-free admission packet and separate provenance unless --check is used"
+      ],
+      "side_effects": "admits exactly one DTA-derived source artifact to local blind machine-method calibration only and seals pre-existing authored translation surfaces; no German acceptance, accepted translation lane, comparator reveal, canon revalidation, semantics, rights clearance, publication, graph, or promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_witness_structure_correspondence.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -406,6 +437,7 @@
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
         "ToS/contracts/german-source-triangulation.schema.json",
+        "ToS/contracts/bounded-translation-research-input.schema.json",
         "ToS/contracts/source-gated-evaluation-plan.schema.json",
         "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
       ],

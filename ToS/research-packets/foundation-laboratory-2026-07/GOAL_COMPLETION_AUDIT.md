@@ -3,7 +3,7 @@
 Status: active requirement-by-requirement audit; the corpus mechanics are
 substantial, but the full foundation goal is not complete
 
-Audit snapshot: 2026-07-28
+Audit snapshot: 2026-07-29
 
 ## Purpose
 
@@ -25,10 +25,9 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia through `d8e2969` (`Map Mysl volume work boundaries`), plus
-  the exact Naumann 1886 *Jenseits von Gut und Böse* source-witness and
-  Naumann 1886 ↔ Polilov/Mysl 1996 parallel-structure, source-numbering, and
-  independent target-numbering slices audited in this working tree;
+- Tree of Sophia through `afb45b5` (`Triangulate Zarathustra German source
+  witness`), plus the bounded local translation-calibration admission slice
+  audited in this working tree;
 - `abyss-stack` through `0f4ff86e` (`Bind ToS preflight to task-specific LLM gate`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26.
 
@@ -41,7 +40,7 @@ gold, accepted text, or public derivative was created.
 
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
-| 1 | ordered research packet | `RESEARCH.md` preserves the broad foundation order; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice | proven and refreshed 2026-07-26 | repeat the same ordered check before any later acquisition |
+| 1 | ordered research packet | `RESEARCH.md` preserves the broad foundation order; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice; `BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` repeats the order for the provider-transcription-to-local-calibration boundary | proven and refreshed 2026-07-29 | repeat the same ordered check before any later acquisition |
 | 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the local LLM refresh admits no new download | proven and refreshed 2026-07-26 | incorporate only candidates justified by a reviewed resident-route failure taxonomy |
 | 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
@@ -57,13 +56,13 @@ gold, accepted text, or public derivative was created.
 | 14 | source discovery protocol | `source-witnesses/discovery/DISCOVERY_PROTOCOL.md` defines ordered queries and evidence capture; the eKGWB and Russian-edition runs preserve their exact results; open-witness runs acquire the 1913 Commons scan, four DTA parts, and the exact 1886 Naumann *Jenseits* scan package; one run preserves the target's absence from DTA, the anomalous TextGrid combined-title result, all eight Internet Archive results, and the exact Google Books quota failure; a ninth reconciled eKGWB run preserves two failed HTTPS attempts and two byte-identical successful official-SPA HTTP responses without hiding transport risk | proven as protocol and exercised in nine recorded runs | future target searches still need exact run records; the eKGWB HTTP result is local-only, unauthenticated, rights-unreviewed, and not an admitted critical witness; Wikisource/DTA/automatic OCR candidates remain unaccepted as text |
 | 15 | access-request workflow | schemas, private/public lanes, letter and redacted-receipt templates, an unsent Wörterbuch request, and an unsent exact eKGWB request exist; after the HTTP fallback the latter was refocused on an authenticated/institutionally supplied copy and clarification of local processing scopes; the official ITEM Nietzsche-team page supplies a public institutional contact route | prepared through reconciled scope and contact routing | human approval, sending, response, rights-holder confirmation, and permission scope |
 | 16 | ID, anchor, provenance, sign, and claim contracts | `CORPUS_FOUNDATION.md`, `CORPUS_CONTRACTS.md`, and the corresponding schemas separate identity, address, occurrence, sign, and claim; the 82 Zarathustra witness-structure correspondences resolve to 246 stable proposed TEI, EPUB-member, and PDF-page anchor IDs; the *Mysl* aggregate adds 11 fixity-bound page anchors and one text-free seven-member boundary map; the parallel-PDF contract adds 11 model-reviewed *Jenseits* division correspondences and 22 proposed whole-page anchors; the exact Naumann source item adds 299 proposed numbered-unit starts for §§1–296 plus 65a/73a/237a; a separate target-expression contract adds 298 Polilov/Mysl starts for 1–296 plus 65a/73a while retaining 237a only as a nonmaterialized source asymmetry; a release-safe intersection resolves the 298 shared labels to both proposed anchors without reading text | proven as contract and proposed structural addressing | whole-page starts are not exact line or accepted passage boundaries; shared-label pairs do not establish source-to-target passage alignment or translation equivalence; bibliographic claims remain unreviewed; real accepted signs and semantic claims remain absent |
-| 17 | translation packet contracts | source-review, sample, reference, pre-draft, packet, laboratory-plan, assisted-review, critical-witness, and text-free German-triangulation schemas exist; the first bounded packet records exact eKGWB/DTA normalized agreement plus the Naumann OCR residual while all human and translation effects remain zero | proven as contract and one machine-only source calibration | authenticated/admitted critical witness, accepted German source, and actual independent translation lanes |
+| 17 | translation packet contracts | source-review, sample, reference, pre-draft, packet, laboratory-plan, assisted-review, critical-witness, text-free German-triangulation, and bounded local research-input schemas exist; the first triangulation records exact eKGWB/DTA normalized agreement plus the Naumann OCR residual, and one DTA-derived sentence is admitted only to ignored local machine-method calibration while all accepted-human, translation, semantic, graph, and canon effects remain zero | proven as contract and one calibration-only input | execute the bounded local calibration; authenticated/admitted critical witness, accepted German source, and actual independent accepted-translation lanes remain open |
 | 18 | semantic annotation packet contracts | semantic ladder, sign annotation, claim packet, graph query, historical semantic v1, and task-specific LLM v2 evaluation contracts exist | proven as contract | real human sign decisions and accepted semantic packets |
 | 19 | A/B/C experiment specifications in `abyss-stack` | the foundation laboratory has declarative OCR, structure, retrieval, graph, translation, semantic, LLM, and transfer routes; the LLM route freezes resident E2B/E4B/Qwen3-4B and requires the exact ready Tree plan at preflight; its Tree gate now depends on twenty task-specific source units and their unassisted baseline rather than historical 30/15 packet completion | proven as software/method and fail-closed gate | LLM task instances remain deliberately absent; no human work is scheduled; several content-quality experiments remain blocked or unreviewed |
 | 20 | minimal manual gold set | fifteen frozen page candidates and a private review interface exist | prepared, not completed | diplomatic transcription, recheck/adjudication, accepted gold, and German competence route |
 | 21 | OCR comparison report | `OCR_ADMISSION.md` records mechanical A/B/C execution, negative evidence, and a separate one-off recomputation of A R2 from all 144 output files and 36 raw TSV records; one later private method-blind candidate-review pass exists | partial with independently rechecked mechanics | no independent gold, CER/WER, balanced correction-cost comparison, or general winner |
 | 22 | structure recovery report | `STRUCTURE_RECOVERY_REPORT.md` records real A/B/C runs and preserved failures; the source-owned DTA-parts ↔ Naumann 1893 map adds 82 monotonic named-boundary candidates and 246 stable proposed addresses; the *Jenseits* parallel map adds 11 visually reviewed division starts and 22 proposed page anchors; a second A/B/C source-layer trial over the exact Naumann 1886 PDF/DjVu/ABBYY package adds 299 proposed source starts and corrects the supplemental structure to 65a/73a/237a; a third target-only A/B/C trial over the exact Polilov/Mysl PDF adds 298 proposed target-label starts for 1–296 plus 65a/73a and explicitly refuses to manufacture target 237a; a text-free transform pairs only the 298 independently materialized shared labels | partial | real-human structure and exact-boundary review, accepted German and Russian, source-to-target passage alignment, and correction review; all numbered-unit addresses and shared-label pairs remain structural candidates rather than exact boundaries or text acceptance |
-| 23 | translation laboratory report | `TRANSLATION_LABORATORY_REPORT.md` records source-gate and interface preparation; the translation reference register binds all four exact DTA part witnesses; one source-triggered eKGWB/DTA/Naumann comparison is now mechanically executed and preserves 12/12 paragraph agreement, 261/261 DTA tokens, one Naumann OCR replacement, and the failed generic-normalization control | source calibration partial; translation quality not executed | authenticated/admitted source, German-competent acceptance, independent drafts, reference reveal, etymology, and adjudication |
+| 23 | translation laboratory report | `TRANSLATION_LABORATORY_REPORT.md` records source-gate and interface preparation; the translation reference register binds all four exact DTA part witnesses; one source-triggered eKGWB/DTA/Naumann comparison is mechanically executed and preserves 12/12 paragraph agreement, 261/261 DTA tokens, one Naumann OCR replacement, and the failed generic-normalization control; its first 20-token DTA sentence now has a text-free calibration-only admission packet | source calibration partial; one local input eligible; no translation-method run or accepted translation quality exists | run resident A/B/C calibration without promotion; authenticated/admitted source, German-competent acceptance, independent accepted drafts, reference reveal, etymology, and adjudication remain open |
 | 24 | retrieval comparison report | lexical, resident semantic/rerank, and independent semantic routes ran on the frozen small corpus | partial | human relevance labels, hard-negative adjudication, and manual metric recomputation |
 | 25 | graph projection comparison report | canonical JSON, Neo4j, and Oxigraph projections ran with source-return mechanics and preserved failures | partial | human truth/trace review of claims and questions |
 | 26 | quality/cost/speed matrix | machine speed, memory, swap, and storage measurements are consolidated | partial | human correction cost remains incomplete; the first observed candidate-review time is display-position-confounded |
@@ -88,7 +87,7 @@ gold, accepted text, or public derivative was created.
 | every derived text resolves to a witness | proven for current laboratory mechanics; not universal | require the same closure for every future layer |
 | every accepted sign resolves to occurrences | vacuously unviolated; no accepted laboratory signs exist | real-human sign review and occurrence closure |
 | every graph edge resolves to claim and evidence | proven mechanically for the pilot projections; claim truth unreviewed | human claim/trace review |
-| translation preserves original, alternatives, etymology, and comparison | contract only | execute the independent translation lifecycle after source acceptance |
+| translation preserves original, alternatives, etymology, and comparison | accepted lifecycle contract only; one local calibration input exists without a run | execute the bounded calibration without promotion, then the independent accepted-translation lifecycle after source acceptance |
 | recognized translation is a witness, not truth | proven in method law | preserve the seal/reveal order in actual runs |
 | human-only, AI-only, and AI+human lanes stay separate | contract only | execute genuine independent lanes without simulated human evidence |
 | real pages and texts are checked manually | partial | one private Russian candidate-review pass exists; diplomatic gold, German review, and other families remain open |
@@ -211,6 +210,21 @@ page furniture. The generic normalization path's three false token splits are
 preserved rather than hidden. Unencrypted transport, bibliography, rights,
 language competence, translation, semantics, and promotion remain open.
 
+The source-use boundary is now made more precise by
+`BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` and
+`bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`.
+One first-sentence DTA string with 20 normalized alphabetic tokens is stored
+only in ignored local content and admitted to blind local machine-method
+calibration. Its tracked packet closes the selector, transformations, digests,
+eKGWB/DTA exact string comparison, Naumann opening-token corroboration, rights
+posture, and zero-effect gates. A manual negative-control search also found
+the same sequence in the pre-existing authored canon node and public mirror,
+alongside Russian and English witnesses. The packet binds and seals those
+surfaces from blind runs; it does not revalidate their source or translation
+roles. It neither accepts the German nor changes the frozen 0-of-30 accepted
+source gate, draft lanes, comparator seal, semantics, graph, publication, or
+canon.
+
 Four separate DTA TEIs now cover the public part sequence from 1883, 1884, and
 1891 with exact local fixity, holding-copy identity, and page-return
 structure. DTA's native-speaker-checking statements are preserved as external
@@ -263,10 +277,15 @@ exhaustive page-identity review or a human acceptance event.
    `Za-I-Vorrede-1` triangulation as a machine candidate until transport
    authenticity, bibliography, rights, and German-competent source acceptance
    are actually reviewed.
-3. Open translation only after its exact German anchors reach an admitted
-   source posture.
-4. Follow translation with sign review, retrieval/graph adjudication, and only
-   then content-bearing golden-kernel transfer.
+3. Execute one blind resident A/B/C translation-method calibration over the
+   single ignored admitted source string. Preserve exact runtime, prompt,
+   decoding, cost, speed, and candidate receipts; keep comparator, German
+   correctness, fidelity, and promotion gates closed, and hide every
+   pre-existing authored translation surface until candidates freeze.
+4. Open the accepted translation lifecycle only after its exact German anchors
+   reach a philologically admitted source posture.
+5. Follow accepted translation with sign review, retrieval/graph adjudication,
+   and only then content-bearing golden-kernel transfer.
 
 ## Stop line
 
