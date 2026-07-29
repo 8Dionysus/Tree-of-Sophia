@@ -32,14 +32,15 @@
       "https://doc.nietzschesource.org/en/",
       "https://doc.nietzschesource.org/en/editions",
       "https://doc.nietzschesource.org/en/ekgwb",
-      "https://doc.nietzschesource.org/en/rights"
+      "https://doc.nietzschesource.org/en/rights",
+      "https://www.item.ens.fr/nietzsche/"
     ],
     "identity_status": "probable-needs-human-review"
   },
   "contact_route": {
-    "channel_type": "unknown",
-    "public_institutional_url": "https://doc.nietzschesource.org/en/rights",
-    "refreshed_at": "2026-07-28T18:20:11-06:00",
+    "channel_type": "public-institutional-email",
+    "public_institutional_url": "https://www.item.ens.fr/nietzsche/",
+    "refreshed_at": "2026-07-28T18:27:55-06:00",
     "personal_contact_committed": false
   },
   "project_description_ref": "README.md",
@@ -84,7 +85,8 @@
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
   ],
   "provenance_event_refs": [
-    "tos.event.access-request-draft.nietzsche-source-ekgwb.2026-07-28"
+    "tos.event.access-request-draft.nietzsche-source-ekgwb.2026-07-28",
+    "tos.event.access-request-route-refresh.nietzsche-source-ekgwb.2026-07-28"
   ],
-  "record_version": 1
+  "record_version": 2
 }

@@ -241,9 +241,16 @@ That incomplete run now routes to
 `access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json`.
 The public-safe card freezes the exact passage, research purpose, local
 storage posture, permissions needing clarification, and non-redistribution
-boundary. It is only `draft-not-sent`: the current institutional contact
-mechanism is still unknown, no message body or identity was committed, no
-human send approval exists, and no communication occurred.
+boundary. A 2026-07-28 refresh found the official ITEM “Nietzsche et son
+temps” page: the team states that it publishes the improved digital critical
+edition through Nietzsche Source and exposes a current public institutional
+email route for its lead. The tracked card therefore records the institutional
+page and channel class, not a personal recipient or private correspondence.
+Its identity posture remains `probable-needs-human-review`, because a suitable
+research contact is not by itself proof that the same institution can grant
+every requested processing right. The card is still only `draft-not-sent`: no
+message body or private recipient identity was committed, no human send
+approval exists, and no communication occurred.
 
 This is a prepared admission packet, not an admitted witness. Human
 bibliographic and rights review remain false, exact critical-text comparison
