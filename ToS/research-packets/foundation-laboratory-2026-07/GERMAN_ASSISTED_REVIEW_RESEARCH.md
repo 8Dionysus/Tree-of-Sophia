@@ -237,6 +237,14 @@ originating critical-edition passage. The run therefore selected no result,
 downloaded no content, and remains `incomplete`. This is negative discovery
 evidence, not evidence that the critical passage is absent.
 
+That incomplete run now routes to
+`access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json`.
+The public-safe card freezes the exact passage, research purpose, local
+storage posture, permissions needing clarification, and non-redistribution
+boundary. It is only `draft-not-sent`: the current institutional contact
+mechanism is still unknown, no message body or identity was committed, no
+human send approval exists, and no communication occurred.
+
 This is a prepared admission packet, not an admitted witness. Human
 bibliographic and rights review remain false, exact critical-text comparison
 and passage alignment remain unverified, no German unit was accepted, and no
