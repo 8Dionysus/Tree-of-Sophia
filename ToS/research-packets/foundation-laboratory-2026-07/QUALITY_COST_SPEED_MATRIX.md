@@ -1,8 +1,8 @@
 # Foundation Laboratory Quality / Cost / Speed Matrix
 
-Status: mechanical measurements consolidated; human quality and correction
-cost remain open
-Snapshot: 2026-07-23
+Status: mechanical measurements consolidated and one raw-artifact aggregate
+independently recomputed; human quality and correction cost remain open
+Snapshot: 2026-07-28
 
 ## Reading rule
 
@@ -51,6 +51,10 @@ Only measurements inside a frozen family and method boundary are directly
 comparable:
 
 - OCR A R1/R2 supports deterministic recognition-set repeatability;
+- OCR A R2 now also has an independent one-off raw-artifact recomputation:
+  144 output digests/sizes, 36 text counts, 36 TSV diagnostics, sample/source
+  counts, empty-output count, mean page confidence, and pages/minute matched
+  the frozen report without invoking the runner or repository validators;
 - OCR C R3/R4 supports one-page repeatability under the corrected bounded
   method;
 - structure B has one corrected 36-unit run and structure C one corrected
@@ -91,16 +95,17 @@ Russian calibration observation is preserved, fourteen rows are unscheduled,
 same-human delayed recheck measures only intra-annotator stability, and German
 textual claims remain language-competence-blocked.
 
-Automatic and advisory values have not been recomputed against real-human
-gold. If the corresponding research questions are opened, their evidence
-requirements are:
+The A R2 mechanical aggregate has been independently recomputed from raw
+artifacts. Automatic quality values still cannot be recomputed against
+real-human gold because no accepted gold exists. If the corresponding research
+questions are opened, their remaining evidence requirements are:
 
 1. two source-visible human passes on 15 OCR/structure gold candidates;
 2. two source-visible human passes on 30 German source units;
 3. 10 random and 10 hard blind human judgments for retrieval and graph;
 4. real correction/adjudication timers rather than estimated labor;
-5. manual recomputation of at least one aggregate metric from raw artifacts
-   before trusting metric code;
+5. repeat the independent raw-artifact method for the exact content-quality
+   metric once accepted gold exists;
 6. 20 double-checked content-bearing target passages before semantic, LLM, or
    transfer evaluation.
 

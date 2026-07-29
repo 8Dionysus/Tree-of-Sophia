@@ -98,8 +98,11 @@ contracts intentionally reject simulated human evidence.
   evidence was not opened for contract design, no derivative was created, and
   publication remains blocked pending human rights and correlation-risk
   review.
-- Automatic aggregate metrics have not yet been manually recomputed against
-  raw artifacts and real-human gold.
+- One OCR A R2 mechanical aggregate has now been independently recomputed from
+  all 144 output files and all 36 raw TSV records through a one-off shell route,
+  with zero file/count mismatches and matching derived speed/confidence values.
+  No content-quality metric can yet be recomputed against real-human gold
+  because accepted gold does not exist.
 
 ## Research and software freshness
 
