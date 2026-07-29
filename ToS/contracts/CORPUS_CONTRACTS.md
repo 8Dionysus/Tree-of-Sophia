@@ -10,6 +10,7 @@ judgment true.
 | --- | --- |
 | `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item catalog identity |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
+| `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, and TEI page-break/division inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |
@@ -124,6 +125,9 @@ A schema validator can establish that:
   nor execution authority;
 - a discovery record preserves exact queries and ranked results while keeping
   declared rights as evidence rather than a ToS conclusion;
+- a source-resource inventory resolves to one exact item manifest and payload
+  digest, enumerates every declared page/member/TEI structural resource, and
+  carries no source-text field or content authority;
 - an access-request record cannot label a draft as sent or granted without
   real-human send approval and the corresponding private/redacted evidence
   boundary;
@@ -141,6 +145,7 @@ It cannot establish that:
 
 - two catalog records describe the same historical object;
 - metadata, OCR, segmentation, lemma, etymology, or alignment is correct;
+- a resource fingerprint or structural correspondence proves textual identity;
 - a translation is faithful or philosophically adequate;
 - a rights determination is legally sufficient;
 - a semantic claim or relation should enter canon.

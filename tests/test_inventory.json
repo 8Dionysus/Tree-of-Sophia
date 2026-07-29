@@ -167,6 +167,21 @@
       "disposition": "keep; review release constants during release work"
     },
     {
+      "path": "tests/test_source_resource_inventories.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/source-resource-inventory.schema.json",
+      "protects": "deterministic text-free PDF, EPUB, and TEI resource inventories and format-specific parser boundaries",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_resource_inventories.py",
+      "failure_route": "Fix the resource-inventory contract or focused builder behavior before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_foundation.py",
       "home": "tests",
       "home_scope": "root",

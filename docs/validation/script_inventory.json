@@ -218,6 +218,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_source_resource_inventories.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/source-resource-inventory.schema.json"
+      ],
+      "reads": [
+        "tracked item manifests and explicitly selected local source payload root"
+      ],
+      "writes": [
+        "ToS/source-witnesses/**/resource-inventory.json unless --check is used"
+      ],
+      "side_effects": "tracked text-free page, container-resource, and TEI-structure inventories",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_resource_inventories.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_root_entry_map.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -250,6 +272,7 @@
         "ToS/doctrine/CORPUS_FOUNDATION.md",
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/contracts/source-resource-inventory.schema.json",
         "ToS/contracts/rights-record.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/contracts/claim-packet.schema.json",
@@ -260,7 +283,7 @@
         "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, generated catalog, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, and any present local payload bytes"
       ],
       "writes": [],
       "side_effects": "validation output only",

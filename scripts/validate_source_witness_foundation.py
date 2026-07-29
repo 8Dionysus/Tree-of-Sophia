@@ -38,6 +38,7 @@ CONTRACT_ROOT = Path("ToS/contracts")
 
 CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
 ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
+RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.json"
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
@@ -585,7 +586,14 @@ def _validate_source_refs(repo_root: Path, payload: dict[str, Any], location: st
         value = payload.get(field, [])
         if isinstance(value, list):
             refs.extend(value)
-    for field in ("rights_ref", "provenance_ref", "forensic_report_ref", "item_manifest_ref"):
+    for field in (
+        "rights_ref",
+        "provenance_ref",
+        "forensic_report_ref",
+        "resource_inventory_ref",
+        "generated_from_manifest_ref",
+        "item_manifest_ref",
+    ):
         if field in payload:
             refs.append(payload[field])
     for ref in refs:
@@ -609,6 +617,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
         manifest_validator, _ = _schema_validator(ITEM_MANIFEST_SCHEMA, repo_root)
+        resource_inventory_validator, _ = _schema_validator(
+            RESOURCE_INVENTORY_SCHEMA,
+            repo_root,
+        )
         rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
@@ -753,6 +765,80 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         require_record(manifest.get("embodiment_ref"), "edition", location)
 
         item_directory = manifest_path.parent
+        inventory_path = repo_root / str(manifest.get("resource_inventory_ref", ""))
+        inventory = _load_json(inventory_path, repo_root, issues)
+        if inventory is not None:
+            inventory_location = _relative(inventory_path, repo_root)
+            _validate_payload(
+                inventory,
+                resource_inventory_validator,
+                inventory_location,
+                issues,
+            )
+            _validate_source_refs(repo_root, inventory, inventory_location, issues)
+            if inventory.get("item_id") != item_id:
+                issues.append(
+                    (inventory_location, "resource inventory item_id differs from manifest")
+                )
+            if inventory.get("generated_from_manifest_ref") != location:
+                issues.append(
+                    (
+                        inventory_location,
+                        "resource inventory does not cite its current item manifest",
+                    )
+                )
+            expected_inventory_files = [
+                {
+                    "file_id": entry.get("file_id"),
+                    "file_sha256": entry.get("sha256"),
+                    "media_type": entry.get("media_type"),
+                }
+                for entry in manifest.get("payload_files", [])
+                if isinstance(entry, dict)
+            ]
+            actual_inventory_files = [
+                {
+                    "file_id": entry.get("file_id"),
+                    "file_sha256": entry.get("file_sha256"),
+                    "media_type": entry.get("media_type"),
+                }
+                for entry in inventory.get("files", [])
+                if isinstance(entry, dict)
+            ]
+            if actual_inventory_files != expected_inventory_files:
+                issues.append(
+                    (
+                        inventory_location,
+                        "resource inventory file identity differs from manifest payload files",
+                    )
+                )
+            for file_inventory in inventory.get("files", []):
+                if not isinstance(file_inventory, dict):
+                    continue
+                resources = file_inventory.get("resources", [])
+                resource_ids = [
+                    resource.get("resource_id")
+                    for resource in resources
+                    if isinstance(resource, dict)
+                ]
+                if len(resource_ids) != len(set(resource_ids)):
+                    issues.append(
+                        (
+                            inventory_location,
+                            f"duplicate resource_id in {file_inventory.get('file_id')}",
+                        )
+                    )
+                summary = file_inventory.get("summary", {})
+                if isinstance(summary, dict) and summary.get("resource_count") != len(
+                    resources
+                ):
+                    issues.append(
+                        (
+                            inventory_location,
+                            f"resource_count differs from resources for {file_inventory.get('file_id')}",
+                        )
+                    )
+
         rights_path = repo_root / str(manifest.get("rights_ref", ""))
         rights = _load_json(rights_path, repo_root, issues)
         if rights is not None:
@@ -770,6 +856,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
         provenance_path = repo_root / str(manifest.get("provenance_ref", ""))
         local_event_ids: set[str] = set()
+        local_events_by_id: dict[str, dict[str, Any]] = {}
         for index, event in enumerate(_load_jsonl(provenance_path, repo_root, issues), start=1):
             event_location = f"{_relative(provenance_path, repo_root)}:{index}"
             _validate_payload(event, provenance_validator, event_location, issues)
@@ -780,9 +867,35 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append((event_location, f"duplicate event_id: {event_id}"))
                 event_ids.add(event_id)
                 local_event_ids.add(event_id)
+                local_events_by_id[event_id] = event
         acquisition_ref = manifest.get("acquisition_event_ref")
         if acquisition_ref not in local_event_ids:
             issues.append((location, f"acquisition_event_ref is absent from provenance: {acquisition_ref}"))
+        if inventory is not None:
+            inventory_location = _relative(inventory_path, repo_root)
+            inventory_event_ref = inventory.get("provenance_event_ref")
+            inventory_event = local_events_by_id.get(inventory_event_ref)
+            if inventory_event is None:
+                issues.append(
+                    (
+                        inventory_location,
+                        f"provenance_event_ref is absent from item provenance: {inventory_event_ref}",
+                    )
+                )
+            else:
+                inventory_digest = _sha256(inventory_path)
+                expected_output = {
+                    "ref": inventory_location,
+                    "role": "tracked_text_free_resource_inventory",
+                    "sha256": inventory_digest,
+                }
+                if expected_output not in inventory_event.get("outputs", []):
+                    issues.append(
+                        (
+                            inventory_location,
+                            "resource inventory provenance event lacks its digest-bound output",
+                        )
+                    )
 
         fixity_path = item_directory / "fixity.sha256"
         try:

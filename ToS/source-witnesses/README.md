@@ -39,6 +39,7 @@ source-witnesses/
 │           │               └── items/
 │           │                   └── <item>/
 │           │                       ├── item.manifest.json
+│           │                       ├── resource-inventory.json # tracked pages/resources, no source text
 │           │                       ├── fixity.sha256
 │           │                       ├── provenance.jsonl
 │           │                       ├── rights.json
@@ -78,6 +79,8 @@ tracked:
 - item and file identity;
 - original basename and media type;
 - size and cryptographic digest;
+- deterministic page, container-resource, or TEI-structure inventory without
+  copied source text;
 - acquisition/source record;
 - forensic inspection;
 - rights and visibility posture;
@@ -86,6 +89,13 @@ tracked:
 
 Payload files are immutable after intake. Changed bytes create a new file
 record and, when materially distinct, a new item or item version.
+
+`resource-inventory.json` is a tracked mechanical companion generated from the
+exact payload digest. It enumerates PDF page geometry and image counts, EPUB
+member/spine order and member fixity, or TEI page-break/division structure.
+Text-bearing EPUB and TEI resources may carry only one-way normalized
+fingerprints and character counts. The inventory cannot accept a reading,
+settle an edition, clear rights, or expose source text.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,
@@ -154,3 +164,15 @@ payload + receipt
 ```
 
 Do not skip from acquired file to semantic canon.
+
+## Rebuild local resource inventories
+
+The payloads may be absent from a public clone, so the inventory builder is a
+focused local operation rather than a release-gate download. Its authoritative
+local invocation and explicit payload-root requirement live in
+[`scripts/AGENTS.md`](../../scripts/AGENTS.md).
+
+Omit `--check` only when intentionally regenerating tracked inventories from
+the same fixity-verified local payloads. The source-foundation validator checks
+their schema, manifest closure, counts, and digest-bound provenance without
+claiming content correctness.

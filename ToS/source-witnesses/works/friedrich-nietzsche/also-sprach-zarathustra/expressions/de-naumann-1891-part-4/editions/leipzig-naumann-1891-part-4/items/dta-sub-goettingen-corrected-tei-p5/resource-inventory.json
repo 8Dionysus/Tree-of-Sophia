@@ -1,0 +1,3842 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+      "file_sha256": "ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d",
+      "media_type": "application/xml",
+      "profile": "tei_structure_v1",
+      "summary": {
+        "resource_count": 255,
+        "page_break_count": 170,
+        "division_count": 85,
+        "max_division_depth": 3
+      },
+      "resources": [
+        {
+          "resource_id": "tei-pb-0001",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[1]",
+            "tei_facs_ref": "#f0001"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0002",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[2]",
+            "tei_facs_ref": "#f0002"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0003",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[3]",
+            "tei_facs_ref": "#f0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0004",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[4]",
+            "tei_facs_ref": "#f0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0005",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[5]",
+            "tei_facs_ref": "#f0005"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0006",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[6]",
+            "tei_facs_ref": "#f0006"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0007",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[7]",
+            "tei_facs_ref": "#f0007"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0008",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[8]",
+            "tei_page_label": "[1]",
+            "tei_facs_ref": "#f0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0009",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/pb[9]",
+            "tei_page_label": "[2]",
+            "tei_facs_ref": "#f0009"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0001",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/div[1]",
+            "tei_depth": 1,
+            "tei_page_label": "[2]",
+            "tei_type": "copyright"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "93290bdd9682ed70967ea12c2f400e283074fed8c228dea78d9609559bc9ce51",
+            "character_count": 31
+          }
+        },
+        {
+          "resource_id": "tei-div-0002",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/front[1]/div[2]",
+            "tei_depth": 1,
+            "tei_page_label": "[2]",
+            "tei_type": "imprint"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0e72a0afa54878019fe05b9f513e4f0059f1b3029e406268519e7b8f351863ea",
+            "character_count": 34
+          }
+        },
+        {
+          "resource_id": "tei-pb-0010",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[1]",
+            "tei_page_label": "[3]",
+            "tei_facs_ref": "#f0010"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0011",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[2]",
+            "tei_page_label": "[4]",
+            "tei_facs_ref": "#f0011"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0012",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[3]",
+            "tei_page_label": "5",
+            "tei_facs_ref": "#f0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0003",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]",
+            "tei_depth": 1,
+            "tei_page_label": "5",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "abaadcd470c1e8c236d083cf851c68d2153779bab519096e2256ed84ce1e94ff",
+            "character_count": 6749
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5b6ef43e1606d795f4cad445925fedd05d5e5cfb6e00ba943198e92050b466a5",
+            "character_count": 16
+          }
+        },
+        {
+          "resource_id": "tei-pb-0013",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/p[3]/pb[1]",
+            "tei_page_label": "6",
+            "tei_facs_ref": "#f0013",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0014",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/p[7]/pb[1]",
+            "tei_page_label": "7",
+            "tei_facs_ref": "#f0014",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0015",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/p[15]/hi[1]/pb[1]",
+            "tei_page_label": "8",
+            "tei_facs_ref": "#f0015",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0016",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/p[22]/pb[1]",
+            "tei_page_label": "9",
+            "tei_facs_ref": "#f0016",
+            "parent_resource_id": "tei-div-0003"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0017",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[4]",
+            "tei_page_label": "10",
+            "tei_facs_ref": "#f0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0004",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[2]",
+            "tei_depth": 1,
+            "tei_page_label": "10",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "de71616f58979d419417d36e1843676460aa958fea429b8770a7f31b6086a505",
+            "character_count": 6616
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "439d2ec6b75c28a26b9ae1267d63a7e575567025b98e9057a43b1d7337c56b10",
+            "character_count": 15
+          }
+        },
+        {
+          "resource_id": "tei-pb-0018",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[2]/p[2]/pb[1]",
+            "tei_page_label": "11",
+            "tei_facs_ref": "#f0018",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0019",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[2]/pb[1]",
+            "tei_page_label": "12",
+            "tei_facs_ref": "#f0019",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0020",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[2]/p[12]/pb[1]",
+            "tei_page_label": "13",
+            "tei_facs_ref": "#f0020",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0021",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[2]/p[19]/hi[1]/pb[1]",
+            "tei_page_label": "14",
+            "tei_facs_ref": "#f0021",
+            "parent_resource_id": "tei-div-0004"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0022",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[5]",
+            "tei_page_label": "15",
+            "tei_facs_ref": "#f0022"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0005",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]",
+            "tei_depth": 1,
+            "tei_page_label": "15",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d0dd3c08c01bf9e02dd12b2ced291dc230abc7bd573efed9fe19fe377aa39613",
+            "character_count": 7120
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6059eb7303076a92445b4dd5f055ce91f85e091574200964b8198fefa36511c8",
+            "character_count": 25
+          }
+        },
+        {
+          "resource_id": "tei-div-0006",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "15",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0005"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "cb6f473d05932d9ac8c42d2a095efabb7cf929e18bfff25569bb83fd31017fd1",
+            "character_count": 5054
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0023",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[1]/pb[1]",
+            "tei_page_label": "16",
+            "tei_facs_ref": "#f0023",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0024",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[1]/p[12]/pb[1]",
+            "tei_page_label": "17",
+            "tei_facs_ref": "#f0024",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0025",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[1]/pb[2]",
+            "tei_page_label": "18",
+            "tei_facs_ref": "#f0025",
+            "parent_resource_id": "tei-div-0006"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0026",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/pb[1]",
+            "tei_page_label": "19",
+            "tei_facs_ref": "#f0026",
+            "parent_resource_id": "tei-div-0005"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0007",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "19",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0005"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6152598e886e17cf209180cef34846ee1bc0d174b3ba6ed42ec9e15598cdf9c8",
+            "character_count": 2039
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0027",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[3]/div[2]/p[9]/pb[1]",
+            "tei_page_label": "20",
+            "tei_facs_ref": "#f0027",
+            "parent_resource_id": "tei-div-0007"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0028",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[6]",
+            "tei_page_label": "21",
+            "tei_facs_ref": "#f0028"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0008",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[4]",
+            "tei_depth": 1,
+            "tei_page_label": "21",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5cfc3feebee8a59e2198602b3cb509907b1b07134d21dc3ef9b472a559d7b571",
+            "character_count": 6051
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c750584cf57b1585f6b7466c4e7a551a84fbef84145fad03ae588f9f1ca74237",
+            "character_count": 13
+          }
+        },
+        {
+          "resource_id": "tei-pb-0029",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[4]/pb[1]",
+            "tei_page_label": "22",
+            "tei_facs_ref": "#f0029",
+            "parent_resource_id": "tei-div-0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0030",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[4]/p[14]/pb[1]",
+            "tei_page_label": "23",
+            "tei_facs_ref": "#f0030",
+            "parent_resource_id": "tei-div-0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0031",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[4]/pb[2]",
+            "tei_page_label": "24",
+            "tei_facs_ref": "#f0031",
+            "parent_resource_id": "tei-div-0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0032",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[4]/pb[3]",
+            "tei_page_label": "25",
+            "tei_facs_ref": "#f0032",
+            "parent_resource_id": "tei-div-0008"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0033",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[7]",
+            "tei_page_label": "26",
+            "tei_facs_ref": "#f0033"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0009",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]",
+            "tei_depth": 1,
+            "tei_page_label": "26",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "aaa9ce79dd78ac86bc799989b1f5e60e85a1305461d28aad32592277aa19333f",
+            "character_count": 9234
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e8306f3e30219fd25ffcd3df776bfa28f366813eed1a960be33f1d41a5b4fbb1",
+            "character_count": 13
+          }
+        },
+        {
+          "resource_id": "tei-div-0010",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "26",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0009"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dcd4852f7f4cca27cd145fc3f74bf1a2d6e0a76da1fd5f50d5f201be6311b703",
+            "character_count": 3430
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0034",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[1]/lg[1]/lg[1]/pb[1]",
+            "tei_page_label": "27",
+            "tei_facs_ref": "#f0034",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0035",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[1]/lg[1]/lg[3]/pb[1]",
+            "tei_page_label": "28",
+            "tei_facs_ref": "#f0035",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0036",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[1]/lg[1]/lg[4]/pb[1]",
+            "tei_page_label": "29",
+            "tei_facs_ref": "#f0036",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0037",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[1]/lg[1]/lg[8]/pb[1]",
+            "tei_page_label": "30",
+            "tei_facs_ref": "#f0037",
+            "parent_resource_id": "tei-div-0010"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0011",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "30",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0009"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "82d20deefc01c0237a0a54198df6f4220f83c9d668662bf6447ba7bc05c05578",
+            "character_count": 5789
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0038",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[2]/pb[1]",
+            "tei_page_label": "31",
+            "tei_facs_ref": "#f0038",
+            "parent_resource_id": "tei-div-0011"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0039",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[2]/pb[2]",
+            "tei_page_label": "32",
+            "tei_facs_ref": "#f0039",
+            "parent_resource_id": "tei-div-0011"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0040",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[2]/p[23]/pb[1]",
+            "tei_page_label": "33",
+            "tei_facs_ref": "#f0040",
+            "parent_resource_id": "tei-div-0011"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0041",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[5]/div[2]/pb[3]",
+            "tei_page_label": "34",
+            "tei_facs_ref": "#f0041",
+            "parent_resource_id": "tei-div-0011"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0042",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[8]",
+            "tei_page_label": "35",
+            "tei_facs_ref": "#f0042"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0012",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]",
+            "tei_depth": 1,
+            "tei_page_label": "35",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "037a5a1698f3ae274bfe6025fc349f1daf45cd4de187f5bcd920292d739429f8",
+            "character_count": 8192
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9a457b597f0cf97390636b18e67285d675c219411dd671d9c5b940c752f99dfd",
+            "character_count": 14
+          }
+        },
+        {
+          "resource_id": "tei-pb-0043",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/p[5]/pb[1]",
+            "tei_page_label": "36",
+            "tei_facs_ref": "#f0043",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0044",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/p[14]/pb[1]",
+            "tei_page_label": "37",
+            "tei_facs_ref": "#f0044",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0045",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/pb[1]",
+            "tei_page_label": "38",
+            "tei_facs_ref": "#f0045",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0046",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/p[32]/pb[1]",
+            "tei_page_label": "39",
+            "tei_facs_ref": "#f0046",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0047",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/p[40]/pb[1]",
+            "tei_page_label": "40",
+            "tei_facs_ref": "#f0047",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0048",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[6]/p[48]/pb[1]",
+            "tei_page_label": "41",
+            "tei_facs_ref": "#f0048",
+            "parent_resource_id": "tei-div-0012"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0049",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[9]",
+            "tei_page_label": "42",
+            "tei_facs_ref": "#f0049"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0013",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]",
+            "tei_depth": 1,
+            "tei_page_label": "42",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f1ca217a08b2a6a70c7c14dbb7f24d8e3457aa8170fc7b2da5b4e1ff7bb023f5",
+            "character_count": 9183
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9933e6d461a21ad7d9b1b503e9c6529cdca3ea2db8aad231eaa3b6caa5f4cd6e",
+            "character_count": 23
+          }
+        },
+        {
+          "resource_id": "tei-pb-0050",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/p[4]/pb[1]",
+            "tei_page_label": "43",
+            "tei_facs_ref": "#f0050",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0051",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/pb[1]",
+            "tei_page_label": "44",
+            "tei_facs_ref": "#f0051",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0052",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/p[18]/pb[1]",
+            "tei_page_label": "45",
+            "tei_facs_ref": "#f0052",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0053",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/p[27]/pb[1]",
+            "tei_page_label": "46",
+            "tei_facs_ref": "#f0053",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0054",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/p[34]/pb[1]",
+            "tei_page_label": "47",
+            "tei_facs_ref": "#f0054",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0055",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[7]/p[43]/pb[1]",
+            "tei_page_label": "48",
+            "tei_facs_ref": "#f0055",
+            "parent_resource_id": "tei-div-0013"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0056",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[10]",
+            "tei_page_label": "49",
+            "tei_facs_ref": "#f0056"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0014",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]",
+            "tei_depth": 1,
+            "tei_page_label": "49",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "093fd2786d4602de4ddad67ee54fe9c3b76f1bd813a683b459e22aa226d00534",
+            "character_count": 7671
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "aafa53a1e4d66e1383e11e96483063ccb90e6553b806ce50699464b3f0b636b3",
+            "character_count": 24
+          }
+        },
+        {
+          "resource_id": "tei-pb-0057",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]/p[4]/pb[1]",
+            "tei_page_label": "50",
+            "tei_facs_ref": "#f0057",
+            "parent_resource_id": "tei-div-0014"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0058",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]/pb[1]",
+            "tei_page_label": "51",
+            "tei_facs_ref": "#f0058",
+            "parent_resource_id": "tei-div-0014"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0059",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]/pb[2]",
+            "tei_page_label": "52",
+            "tei_facs_ref": "#f0059",
+            "parent_resource_id": "tei-div-0014"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0060",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]/p[26]/pb[1]",
+            "tei_page_label": "53",
+            "tei_facs_ref": "#f0060",
+            "parent_resource_id": "tei-div-0014"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0061",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[8]/p[34]/pb[1]",
+            "tei_page_label": "54",
+            "tei_facs_ref": "#f0061",
+            "parent_resource_id": "tei-div-0014"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0062",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[11]",
+            "tei_page_label": "55",
+            "tei_facs_ref": "#f0062"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0015",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[9]",
+            "tei_depth": 1,
+            "tei_page_label": "55",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f0c7118c7da81eb3a3bf23dcf048757355509f9ff4ffbc0fc539f17e12e2b679",
+            "character_count": 6128
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d366d8eb7840c6e697fc24d782b0ea3607f9dce73e139fce11375b7e2c9e1a06",
+            "character_count": 13
+          }
+        },
+        {
+          "resource_id": "tei-pb-0063",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[9]/pb[1]",
+            "tei_page_label": "56",
+            "tei_facs_ref": "#f0063",
+            "parent_resource_id": "tei-div-0015"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0064",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[9]/p[12]/pb[1]",
+            "tei_page_label": "57",
+            "tei_facs_ref": "#f0064",
+            "parent_resource_id": "tei-div-0015"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0065",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[9]/p[20]/pb[1]",
+            "tei_page_label": "58",
+            "tei_facs_ref": "#f0065",
+            "parent_resource_id": "tei-div-0015"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0066",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[9]/pb[2]",
+            "tei_page_label": "59",
+            "tei_facs_ref": "#f0066",
+            "parent_resource_id": "tei-div-0015"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0067",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[12]",
+            "tei_page_label": "60",
+            "tei_facs_ref": "#f0067"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0016",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[10]",
+            "tei_depth": 1,
+            "tei_page_label": "60",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "82f40f356df9a38d9453b3e5e0f7838daed9dca62a9596ed3cc793d3237d2da3",
+            "character_count": 5353
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0e8736bf531b5ed8161cf96bb14d52dcf76610a1446f0e11f0272fe55db67bdb",
+            "character_count": 8
+          }
+        },
+        {
+          "resource_id": "tei-pb-0068",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[10]/p[2]/pb[1]",
+            "tei_page_label": "61",
+            "tei_facs_ref": "#f0068",
+            "parent_resource_id": "tei-div-0016"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0069",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[10]/p[11]/pb[1]",
+            "tei_page_label": "62",
+            "tei_facs_ref": "#f0069",
+            "parent_resource_id": "tei-div-0016"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0070",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[10]/p[20]/pb[1]",
+            "tei_page_label": "63",
+            "tei_facs_ref": "#f0070",
+            "parent_resource_id": "tei-div-0016"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0071",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[10]/p[29]/pb[1]",
+            "tei_page_label": "64",
+            "tei_facs_ref": "#f0071",
+            "parent_resource_id": "tei-div-0016"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0072",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[13]",
+            "tei_page_label": "65",
+            "tei_facs_ref": "#f0072"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0017",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]",
+            "tei_depth": 1,
+            "tei_page_label": "65",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1506aefbb88db8bbf852805308160ec239198c3d7bca8c32d3e7cee3f6a9751b",
+            "character_count": 10214
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4988991ec4907563aa3f64b7d2cc0b16eb9a516e33406034a7275fc74bc91878",
+            "character_count": 15
+          }
+        },
+        {
+          "resource_id": "tei-pb-0073",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/p[2]/pb[1]",
+            "tei_page_label": "66",
+            "tei_facs_ref": "#f0073",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0074",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/pb[1]",
+            "tei_page_label": "67",
+            "tei_facs_ref": "#f0074",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0075",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/pb[2]",
+            "tei_page_label": "68",
+            "tei_facs_ref": "#f0075",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0076",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/p[25]/pb[1]",
+            "tei_page_label": "69",
+            "tei_facs_ref": "#f0076",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0077",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/p[33]/pb[1]",
+            "tei_page_label": "70",
+            "tei_facs_ref": "#f0077",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0078",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/pb[3]",
+            "tei_page_label": "71",
+            "tei_facs_ref": "#f0078",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0079",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[11]/p[52]/pb[1]",
+            "tei_page_label": "72",
+            "tei_facs_ref": "#f0079",
+            "parent_resource_id": "tei-div-0017"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0080",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[14]",
+            "tei_page_label": "73",
+            "tei_facs_ref": "#f0080"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0018",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[12]",
+            "tei_depth": 1,
+            "tei_page_label": "73",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b197406cb533c063d604d300942ad580cdc50dc73b399b5089fe79eb1fcb91f9",
+            "character_count": 3819
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fc7dd5ed135cddb7d03505bc494979b6353f6ec7950ecdebf0038f38be1a364c",
+            "character_count": 14
+          }
+        },
+        {
+          "resource_id": "tei-pb-0081",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[12]/pb[1]",
+            "tei_page_label": "74",
+            "tei_facs_ref": "#f0081",
+            "parent_resource_id": "tei-div-0018"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0082",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[12]/p[14]/pb[1]",
+            "tei_page_label": "75",
+            "tei_facs_ref": "#f0082",
+            "parent_resource_id": "tei-div-0018"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0083",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[15]",
+            "tei_page_label": "76",
+            "tei_facs_ref": "#f0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0019",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]",
+            "tei_depth": 1,
+            "tei_page_label": "76",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d42e6b999c758994c19d6982ccce5c001546f9e299d7ec2b1ca19da0a77b4d43",
+            "character_count": 15664
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e11667efa3df847422e94f94e616593725f882c49bac67fd50544e49422ee74c",
+            "character_count": 21
+          }
+        },
+        {
+          "resource_id": "tei-div-0020",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "76",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7095c7904c7977f99fb9481edf2acd28ccc54757b9af8c480b79cc24c049b449",
+            "character_count": 899
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0084",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/pb[1]",
+            "tei_page_label": "77",
+            "tei_facs_ref": "#f0084",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0021",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "77",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7ad2e23eeeb2df60a86e0da74dc77aabda16f81ab24c886da17ff59f438b683b",
+            "character_count": 539
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0022",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "77",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "580f0b572a34f0d9683cc86ce780795c2b5a3f35c95bf44b0b23b2b45737191b",
+            "character_count": 1732
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0085",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[3]/pb[1]",
+            "tei_page_label": "78",
+            "tei_facs_ref": "#f0085",
+            "parent_resource_id": "tei-div-0022"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0023",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[4]",
+            "tei_depth": 2,
+            "tei_page_label": "78",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "95e8cb360a7d7e0164c3a19ea288b855713a4c7cbead269612895bc4a5a723a0",
+            "character_count": 412
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23f663630e2f28250c09d7a0c370f55eebf635772f9ce27e46797ab8ef297f4b",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0086",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[4]/pb[1]",
+            "tei_page_label": "79",
+            "tei_facs_ref": "#f0086",
+            "parent_resource_id": "tei-div-0023"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0024",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[5]",
+            "tei_depth": 2,
+            "tei_page_label": "79",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4ea10a90c78f28efc829feb3091976167eae23beb29f292f087c8be55bd8c595",
+            "character_count": 605
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "540dd397b2d380dcc3f59796c4facc43379929f1a3b5e6cc9a218274391b635b",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0025",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[6]",
+            "tei_depth": 2,
+            "tei_page_label": "79",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d4461666800769bd36bf2974abb5c0b032eb4d919f21e43bf6014328014eb58b",
+            "character_count": 791
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d80edd7fb074b51d1fbf46a3dcf5cae5237ceb888dcdd8bd1b7df117d53afdc4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0087",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[6]/pb[1]",
+            "tei_page_label": "80",
+            "tei_facs_ref": "#f0087",
+            "parent_resource_id": "tei-div-0025"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0026",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[7]",
+            "tei_depth": 2,
+            "tei_page_label": "80",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5b25304b41660aa5f5f17cc13073066e0b96600e08ba9ff2ba68734075be35e5",
+            "character_count": 425
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a50aa8b9a9806899e1d67d0d09c1ce40221cb0dffc52483e8e6da18ff1753a38",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0027",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[8]",
+            "tei_depth": 2,
+            "tei_page_label": "80",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "26d587ddf0eebb9f2643f3a468a957c31950528304eda453c4d9c8a6e4ad8272",
+            "character_count": 690
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6ce012fd1056714b493ab0a7b473923e52b597bdb7cde60a0d97ef6f54e60c4d",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0088",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[8]/pb[1]",
+            "tei_page_label": "81",
+            "tei_facs_ref": "#f0088",
+            "parent_resource_id": "tei-div-0027"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0028",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[9]",
+            "tei_depth": 2,
+            "tei_page_label": "81",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8745f2ff215756e059a8b05a10364fa86a7b4cd18b4d64f031a8031d288bf566",
+            "character_count": 902
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "99a1b84b98650fd4581b7156cd830ef74402cc54b6b834b677c269a41e731915",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0089",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[9]/pb[1]",
+            "tei_page_label": "82",
+            "tei_facs_ref": "#f0089",
+            "parent_resource_id": "tei-div-0028"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0029",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[10]",
+            "tei_depth": 2,
+            "tei_page_label": "82",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b83baa7b1ab0a931b58087abda5a483ec7ffb849a214e0c3a8ab66009f6b6b18",
+            "character_count": 404
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e3b7e7a038be142c2a042fc1f7374d00fe4caaf7b6b65a3175e33d11644b7499",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-div-0030",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[11]",
+            "tei_depth": 2,
+            "tei_page_label": "82",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e2a348bfdf20458ae2b9e97b5d985ff1bfc7a787de4851b0c6ed81c410bbe64f",
+            "character_count": 928
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5bc524c305ccad938fddf68f69a6c86dcb48f4725e4fbc5c1adc6948dcd8a368",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0090",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[11]/p[4]/pb[1]",
+            "tei_page_label": "83",
+            "tei_facs_ref": "#f0090",
+            "parent_resource_id": "tei-div-0030"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0031",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[12]",
+            "tei_depth": 2,
+            "tei_page_label": "83",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "77e1324d8cc538414fd1cfa63e3eca0aa7834694c3bb844f50bb4513933c0c44",
+            "character_count": 426
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "25602777cecc667d222cfeb509c62be1591a64d751c3142c1381dee13677a294",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-div-0032",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[13]",
+            "tei_depth": 2,
+            "tei_page_label": "83",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "050d20dadcc62ea48970c20279d3e865b9e9e2f6cb2280de661cfad9b978bc0d",
+            "character_count": 1129
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "352e15aaca7dcf8dec5093dacd9256df4d66ba8677558e1cbba32c709cadeece",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0091",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[13]/p[2]/pb[1]",
+            "tei_page_label": "84",
+            "tei_facs_ref": "#f0091",
+            "parent_resource_id": "tei-div-0032"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0033",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[14]",
+            "tei_depth": 2,
+            "tei_page_label": "84",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7320e38ec59463ebfbea452dfe7725f1970fba248a315ae42fc5a24e61b160ed",
+            "character_count": 523
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "45d873d4bfdc6bbe6925297328210da8ae3312cab9052df873f350d1bb3b8a65",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0092",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[14]/p[2]/pb[1]",
+            "tei_page_label": "85",
+            "tei_facs_ref": "#f0092",
+            "parent_resource_id": "tei-div-0033"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0034",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[15]",
+            "tei_depth": 2,
+            "tei_page_label": "85",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ba5576e833f33fe01fc4e49781129a069c0cfaed9d263d10190c7020b86ce667",
+            "character_count": 891
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "205812a9ce3f23bf985028f7b93ba7f8d1cd6867de49b71062aac3c1a2d47ea5",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0093",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/pb[2]",
+            "tei_page_label": "86",
+            "tei_facs_ref": "#f0093",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0035",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[16]",
+            "tei_depth": 2,
+            "tei_page_label": "86",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b5b3e56b4c36b9d06e2aac43e256d1ace83f73fc75880a62ebb77f9c584c0175",
+            "character_count": 1018
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3ec1d1e80d46e73bc4cdd8ffbefd465585ac8d88692825c5572babb285e8c436",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-div-0036",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[17]",
+            "tei_depth": 2,
+            "tei_page_label": "86",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "acabe56296c08fea72ba1d0ba322ac33b0fd554ffd7af6c58c2b72d2feea247d",
+            "character_count": 743
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "264c32868d21e30d036fbe28a167da2f663332a899ac6664319fdda720feab67",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0094",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[17]/p[1]/pb[1]",
+            "tei_page_label": "87",
+            "tei_facs_ref": "#f0094",
+            "parent_resource_id": "tei-div-0036"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0037",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[18]",
+            "tei_depth": 2,
+            "tei_page_label": "87",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6459dbbb39b81df7dde432b878b59d781f60c911240561d4168f44d0e62b8bfa",
+            "character_count": 525
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7b2d3fe053178a030323dd1e1a1341245aed33d222244551ce5d4c1be26541fa",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0095",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/pb[3]",
+            "tei_page_label": "88",
+            "tei_facs_ref": "#f0095",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0038",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[19]",
+            "tei_depth": 2,
+            "tei_page_label": "88",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2e6d5aa93a4ec7ea9543943314d1750fd5d219bf2728c0234b4d16c6c1a3ba2f",
+            "character_count": 830
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "186b7f12022bd191a83417a12a7599c8a185a21bc63caff1a0d194ec16f3fb31",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-div-0039",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[20]",
+            "tei_depth": 2,
+            "tei_page_label": "88",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0019"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c77f52c9527e8682ac13e3d95e99dd29692fc5ffe1da63f48f630da8fed3c575",
+            "character_count": 1211
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "84a510185c897e25e3162cbed82a639e83a5733df0b5a08881a8e8ebbebfe47f",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0096",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[13]/div[20]/p[3]/pb[1]",
+            "tei_page_label": "89",
+            "tei_facs_ref": "#f0096",
+            "parent_resource_id": "tei-div-0039"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0097",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[16]",
+            "tei_page_label": "90",
+            "tei_facs_ref": "#f0097"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0040",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]",
+            "tei_depth": 1,
+            "tei_page_label": "90",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7a6ffcd15c37373354729b25d6f0e51d6c8a192e8fde8c2625522870b66847d8",
+            "character_count": 5769
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7508438895c8393fa97f529ded942a7a70317c711bb1e280c3edd3e8d883d6c7",
+            "character_count": 24
+          }
+        },
+        {
+          "resource_id": "tei-div-0041",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "90",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0040"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2e41709b84f71329daaed26b226621e7cdfadf1a807e9c7db3d88956e2b18d70",
+            "character_count": 863
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0042",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "90",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0040"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "32ff17cc45b9991e7a706729f459f0d2ca044fd3a9d30923ae66f9fa010849c1",
+            "character_count": 1911
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0098",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[2]/pb[1]",
+            "tei_page_label": "91",
+            "tei_facs_ref": "#f0098",
+            "parent_resource_id": "tei-div-0042"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0099",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[2]/p[9]/pb[1]",
+            "tei_page_label": "92",
+            "tei_facs_ref": "#f0099",
+            "parent_resource_id": "tei-div-0042"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0043",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "92",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0040"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "37fe7558a563d13fc22e4da0d8222ff6c8e04f4989135362cae898af46024be5",
+            "character_count": 2968
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0100",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[3]/lg[1]/pb[1]",
+            "tei_page_label": "93",
+            "tei_facs_ref": "#f0100",
+            "parent_resource_id": "tei-div-0043"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0101",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[3]/lg[1]/pb[2]",
+            "tei_page_label": "94",
+            "tei_facs_ref": "#f0101",
+            "parent_resource_id": "tei-div-0043"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0102",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[14]/div[3]/lg[1]/pb[3]",
+            "tei_page_label": "95",
+            "tei_facs_ref": "#f0102",
+            "parent_resource_id": "tei-div-0043"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0103",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[17]",
+            "tei_page_label": "96",
+            "tei_facs_ref": "#f0103"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0044",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[15]",
+            "tei_depth": 1,
+            "tei_page_label": "96",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9a52ee77c0d90c3329b961f3da9b96db0f787f76d37b80d9388c0984c98770a6",
+            "character_count": 5372
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e381534af34b5c6d327c4242c9fa8caa41a5a4c8a03fa4a63395da579cd18457",
+            "character_count": 21
+          }
+        },
+        {
+          "resource_id": "tei-pb-0104",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[15]/pb[1]",
+            "tei_page_label": "97",
+            "tei_facs_ref": "#f0104",
+            "parent_resource_id": "tei-div-0044"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0105",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[15]/pb[2]",
+            "tei_page_label": "98",
+            "tei_facs_ref": "#f0105",
+            "parent_resource_id": "tei-div-0044"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0106",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[15]/pb[3]",
+            "tei_page_label": "99",
+            "tei_facs_ref": "#f0106",
+            "parent_resource_id": "tei-div-0044"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0107",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[18]",
+            "tei_page_label": "100",
+            "tei_facs_ref": "#f0107"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0045",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]",
+            "tei_depth": 1,
+            "tei_page_label": "100",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "30773cca344070f34b1b3908492ed67aed1bd72aa7f7a61b46efadf58a6cec98",
+            "character_count": 6321
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bdb531e57f52babd7f932c611903deec75fdac6934f99b49ed8e66a28c935eea",
+            "character_count": 25
+          }
+        },
+        {
+          "resource_id": "tei-div-0046",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "100",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0045"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "62a0b6cacc293ba4cbffbc59b79e4660b373c9af73904dd7f214f160c8c709be",
+            "character_count": 2388
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0108",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[1]/pb[1]",
+            "tei_page_label": "101",
+            "tei_facs_ref": "#f0108",
+            "parent_resource_id": "tei-div-0046"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0109",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[1]/p[14]/pb[1]",
+            "tei_page_label": "102",
+            "tei_facs_ref": "#f0109",
+            "parent_resource_id": "tei-div-0046"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0047",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "102",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0045"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "053ec84b70b480fed7ffb24b3e7bbc98fc9777429c04bece75ff38f18f012eaf",
+            "character_count": 3906
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0110",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]/lg[1]/pb[1]",
+            "tei_page_label": "103",
+            "tei_facs_ref": "#f0110",
+            "parent_resource_id": "tei-div-0047"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0111",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]/lg[1]/pb[2]",
+            "tei_page_label": "104",
+            "tei_facs_ref": "#f0111",
+            "parent_resource_id": "tei-div-0047"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0112",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]/lg[1]/pb[3]",
+            "tei_page_label": "105",
+            "tei_facs_ref": "#f0112",
+            "parent_resource_id": "tei-div-0047"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0113",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]/lg[1]/pb[4]",
+            "tei_page_label": "106",
+            "tei_facs_ref": "#f0113",
+            "parent_resource_id": "tei-div-0047"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0114",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[16]/div[2]/lg[1]/pb[5]",
+            "tei_page_label": "107",
+            "tei_facs_ref": "#f0114",
+            "parent_resource_id": "tei-div-0047"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0115",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[19]",
+            "tei_page_label": "108",
+            "tei_facs_ref": "#f0115"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0048",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]",
+            "tei_depth": 1,
+            "tei_page_label": "108",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "03904a3ff5003d4bd78012acff791845a016f381486804246a6fbae0ce5e8d59",
+            "character_count": 5824
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "827798e1ecb843085efbe2d917b52381ca2683f20f313908fed2e5df8cabe4f3",
+            "character_count": 14
+          }
+        },
+        {
+          "resource_id": "tei-div-0049",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "108",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0048"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b7f816a559a07aba437c2c63f56bb0cfcac9f433c5aa016c644753aac1e61c06",
+            "character_count": 2981
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0116",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[1]/pb[1]",
+            "tei_page_label": "109",
+            "tei_facs_ref": "#f0116",
+            "parent_resource_id": "tei-div-0049"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0117",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[1]/p[13]/pb[1]",
+            "tei_page_label": "110",
+            "tei_facs_ref": "#f0117",
+            "parent_resource_id": "tei-div-0049"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0050",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "110",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0048"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9feee59b5632ca8a62ec4a9989a7f3cea6884d0c11ed24f228df399017dd1158",
+            "character_count": 2827
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0118",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[2]/p[3]/pb[1]",
+            "tei_page_label": "111",
+            "tei_facs_ref": "#f0118",
+            "parent_resource_id": "tei-div-0050"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0119",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[17]/div[2]/pb[1]",
+            "tei_page_label": "112",
+            "tei_facs_ref": "#f0119",
+            "parent_resource_id": "tei-div-0050"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0120",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[20]",
+            "tei_page_label": "113",
+            "tei_facs_ref": "#f0120"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0051",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]",
+            "tei_depth": 1,
+            "tei_page_label": "113",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4d2051c98aad5f4d0cc25cbd670a0efa10a94872b2b2cdd0aa6ca9c21d5ef29d",
+            "character_count": 6191
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fd9f0f175cc043527ea91cb7c5cc0c3a2662e3cb0b7d7050960767fc8b40a58f",
+            "character_count": 14
+          }
+        },
+        {
+          "resource_id": "tei-div-0052",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "113",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0051"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4482aa8d345d466585a51b855163a196ca5ed833a76ace5871e7973a50637165",
+            "character_count": 4434
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0121",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[1]/p[6]/pb[1]",
+            "tei_page_label": "114",
+            "tei_facs_ref": "#f0121",
+            "parent_resource_id": "tei-div-0052"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0122",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[1]/p[15]/pb[1]",
+            "tei_page_label": "115",
+            "tei_facs_ref": "#f0122",
+            "parent_resource_id": "tei-div-0052"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0123",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[1]/p[24]/pb[1]",
+            "tei_page_label": "116",
+            "tei_facs_ref": "#f0123",
+            "parent_resource_id": "tei-div-0052"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0053",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "116",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0051"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1642f223992f69ef490058984f096e706f067d954f204177016f8c99f246d4d4",
+            "character_count": 962
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0124",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[2]/p[3]/pb[1]",
+            "tei_page_label": "117",
+            "tei_facs_ref": "#f0124",
+            "parent_resource_id": "tei-div-0053"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0054",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "117",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0051"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c7840dbaeae1019d4c97a89bd61abbe93c5a0a106e8bfbae1baddf24e267d7f9",
+            "character_count": 778
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0125",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[18]/div[3]/pb[1]",
+            "tei_page_label": "118",
+            "tei_facs_ref": "#f0125",
+            "parent_resource_id": "tei-div-0054"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0126",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[21]",
+            "tei_page_label": "119",
+            "tei_facs_ref": "#f0126"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0055",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]",
+            "tei_depth": 1,
+            "tei_page_label": "119",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "161ab38cafe742075f415e5b644d0f7afb3766a5715a03e7ce49e4bd73812a5d",
+            "character_count": 12503
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7a53fcb9a95eff1d86f4c399900822f4a10df8d8647b114b7d19bd6d6b60b75c",
+            "character_count": 22
+          }
+        },
+        {
+          "resource_id": "tei-div-0056",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "119",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f4ea67c8a1331fc4373321294933a1a9ecf7e17720a34842372484a476637363",
+            "character_count": 2749
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0127",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[1]/p[2]/pb[1]",
+            "tei_page_label": "120",
+            "tei_facs_ref": "#f0127",
+            "parent_resource_id": "tei-div-0056"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0128",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[1]/p[7]/pb[1]",
+            "tei_page_label": "121",
+            "tei_facs_ref": "#f0128",
+            "parent_resource_id": "tei-div-0056"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0057",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "121",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "953bfeb99db67b35347e4741940c292fe6e1634a7cf1c6b7d79c9445be6d2321",
+            "character_count": 1590
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0129",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[2]/p[3]/pb[1]",
+            "tei_page_label": "122",
+            "tei_facs_ref": "#f0129",
+            "parent_resource_id": "tei-div-0057"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0058",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "122",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d861c3a7f5a4fe89b4b4b7659d2247531cc7a1a568b667ff5f8ccac80688a4e1",
+            "character_count": 829
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0130",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[3]/pb[1]",
+            "tei_page_label": "123",
+            "tei_facs_ref": "#f0130",
+            "parent_resource_id": "tei-div-0058"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0059",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[4]",
+            "tei_depth": 2,
+            "tei_page_label": "123",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "583d789b70cdfb0b99743aecdb2a1092d5f02482dc45649ec54422a67a575051",
+            "character_count": 692
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23f663630e2f28250c09d7a0c370f55eebf635772f9ce27e46797ab8ef297f4b",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0060",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[5]",
+            "tei_depth": 2,
+            "tei_page_label": "123",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3b885fb7abb7d911949c7a80a18703d888014383e7454aa9ced6bb0ab36dca57",
+            "character_count": 717
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "540dd397b2d380dcc3f59796c4facc43379929f1a3b5e6cc9a218274391b635b",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0131",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[5]/pb[1]",
+            "tei_page_label": "124",
+            "tei_facs_ref": "#f0131",
+            "parent_resource_id": "tei-div-0060"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0061",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[6]",
+            "tei_depth": 2,
+            "tei_page_label": "124",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "570e7496d3a9c349dafb02fc8848426df4885e0ba2c961322fcc694df78d2379",
+            "character_count": 774
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d80edd7fb074b51d1fbf46a3dcf5cae5237ceb888dcdd8bd1b7df117d53afdc4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0132",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/pb[1]",
+            "tei_page_label": "125",
+            "tei_facs_ref": "#f0132",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0062",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[7]",
+            "tei_depth": 2,
+            "tei_page_label": "125",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "26f42d957ed38a28fdd4611e2d3b8b2165b1cbe3e9abce00b3668ba437b985ee",
+            "character_count": 883
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a50aa8b9a9806899e1d67d0d09c1ce40221cb0dffc52483e8e6da18ff1753a38",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0063",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[8]",
+            "tei_depth": 2,
+            "tei_page_label": "125",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "69becaf243543f736d86db6ab8a8b60b07e7f19d80f51b79b370ce5706bd8a6a",
+            "character_count": 853
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6ce012fd1056714b493ab0a7b473923e52b597bdb7cde60a0d97ef6f54e60c4d",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0133",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[8]/pb[1]",
+            "tei_page_label": "126",
+            "tei_facs_ref": "#f0133",
+            "parent_resource_id": "tei-div-0063"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0064",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[9]",
+            "tei_depth": 2,
+            "tei_page_label": "126",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "691c06e9391b8568d311bc9d30a3ec0eb31ba14775480386787eb1e52b04829f",
+            "character_count": 815
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "99a1b84b98650fd4581b7156cd830ef74402cc54b6b834b677c269a41e731915",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0134",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[9]/pb[1]",
+            "tei_page_label": "127",
+            "tei_facs_ref": "#f0134",
+            "parent_resource_id": "tei-div-0064"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0065",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[10]",
+            "tei_depth": 2,
+            "tei_page_label": "127",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1ff3159c9ea0d6411d43d25f4b1529e6ee395893280befc927c463fd6fcc2352",
+            "character_count": 935
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e3b7e7a038be142c2a042fc1f7374d00fe4caaf7b6b65a3175e33d11644b7499",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0135",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/pb[2]",
+            "tei_page_label": "128",
+            "tei_facs_ref": "#f0135",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0066",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[11]",
+            "tei_depth": 2,
+            "tei_page_label": "128",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d0f2ffe123bfc9be6634d2a1ae9842f0ec69e913397a714b504e05ce572632af",
+            "character_count": 1027
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5bc524c305ccad938fddf68f69a6c86dcb48f4725e4fbc5c1adc6948dcd8a368",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-div-0067",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[12]",
+            "tei_depth": 2,
+            "tei_page_label": "128",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0055"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "df8e7355c66f9bcaee20ebf565bd69861430154c9ab7b689f8af16b356ab2d83",
+            "character_count": 605
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "25602777cecc667d222cfeb509c62be1591a64d751c3142c1381dee13677a294",
+            "character_count": 3
+          }
+        },
+        {
+          "resource_id": "tei-pb-0136",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[19]/div[12]/pb[1]",
+            "tei_page_label": "129",
+            "tei_facs_ref": "#f0136",
+            "parent_resource_id": "tei-div-0067"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0137",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[22]",
+            "tei_page_label": "130",
+            "tei_facs_ref": "#f0137"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0068",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]",
+            "tei_depth": 1,
+            "tei_page_label": "130",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fabffa05839f7ffc933b0bf538c41fa1a4b9dfd7c8ee0f9607a94510241394f7",
+            "character_count": 6454
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2db1040ec99478b7a6fb1cffad8979299579193db3136fde9a9c2e6de9a68eeb",
+            "character_count": 12
+          }
+        },
+        {
+          "resource_id": "tei-pb-0138",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/p[7]/pb[1]",
+            "tei_page_label": "131",
+            "tei_facs_ref": "#f0138",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0139",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/p[12]/pb[1]",
+            "tei_page_label": "132",
+            "tei_facs_ref": "#f0139",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0140",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/p[14]/pb[1]",
+            "tei_page_label": "133",
+            "tei_facs_ref": "#f0140",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0141",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/pb[1]",
+            "tei_page_label": "134",
+            "tei_facs_ref": "#f0141",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0142",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/pb[2]",
+            "tei_facs_ref": "#f0142",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0069",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[20]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "#f0142",
+            "tei_type": "contents",
+            "parent_resource_id": "tei-div-0068"
+          },
+          "structural_role": "contents",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "08a87336c3f516d48b1cfcc0b00da7777d12c6300de47221006bc05892974b90",
+            "character_count": 423
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "56f9300edc54e63489e33849ebb91fa6ca6bba0382fbd46a6966c1a8d0638b67",
+            "character_count": 7
+          }
+        },
+        {
+          "resource_id": "tei-pb-0143",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[23]",
+            "tei_facs_ref": "#f0143"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0144",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/pb[24]",
+            "tei_page_label": "[1]",
+            "tei_facs_ref": "#f0144"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0070",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]",
+            "tei_depth": 1,
+            "tei_page_label": "[1]",
+            "tei_n": "1"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3c7ffa355961ac8e39760daf91e9f8c8f8b0a0a8f298f1eaf0f80c4a40306417",
+            "character_count": 11911
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "55b6f50ca02c69d168fc5093aef69986c4fddaf34698cfeaab786c1b1c28a984",
+            "character_count": 22
+          }
+        },
+        {
+          "resource_id": "tei-pb-0145",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[1]",
+            "tei_page_label": "[2]",
+            "tei_facs_ref": "#f0145",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0146",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[2]",
+            "tei_page_label": "3",
+            "tei_facs_ref": "#f0146",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0071",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[1]",
+            "tei_depth": 2,
+            "tei_page_label": "3",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "39fd409880c1ba40d4454acba1d4a8ff45c9600b8f344b6310cfe8645c388609",
+            "character_count": 535
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "99f283f49120f1f699a039f4a8026e7f64dd6d40f7f13aa9c7eed796431ac19a",
+            "character_count": 14
+          }
+        },
+        {
+          "resource_id": "tei-pb-0147",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[3]",
+            "tei_page_label": "4",
+            "tei_facs_ref": "#f0147",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0072",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[2]",
+            "tei_depth": 2,
+            "tei_page_label": "4",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "219ffa1009f0efcc88d0a8486c4ccfe294eeebe6ed8107bbc34d9c761f98c755",
+            "character_count": 2349
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bf7c191f5f71e970f4788b73f599051a03602a6ecb9632f700483aa19a2647c1",
+            "character_count": 20
+          }
+        },
+        {
+          "resource_id": "tei-pb-0148",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[2]/lg[1]/pb[1]",
+            "tei_page_label": "5",
+            "tei_facs_ref": "#f0148",
+            "parent_resource_id": "tei-div-0072"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0149",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[2]/lg[1]/pb[2]",
+            "tei_page_label": "6",
+            "tei_facs_ref": "#f0149",
+            "parent_resource_id": "tei-div-0072"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0150",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[2]/lg[1]/pb[3]",
+            "tei_page_label": "7",
+            "tei_facs_ref": "#f0150",
+            "parent_resource_id": "tei-div-0072"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0151",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[4]",
+            "tei_page_label": "8",
+            "tei_facs_ref": "#f0151",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0073",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[3]",
+            "tei_depth": 2,
+            "tei_page_label": "8",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b59d7f73f89d07fbda9c8bd89226a6776133a75cfea58789605f9e1fff07d029",
+            "character_count": 1148
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a48e5fa737d35cb4fc13694c6d612e7b9b4279c2d6e43c388d2345d002ce1a6f",
+            "character_count": 17
+          }
+        },
+        {
+          "resource_id": "tei-pb-0152",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[3]/lg[1]/pb[1]",
+            "tei_page_label": "9",
+            "tei_facs_ref": "#f0152",
+            "parent_resource_id": "tei-div-0073"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0153",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[5]",
+            "tei_page_label": "10",
+            "tei_facs_ref": "#f0153",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0074",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]",
+            "tei_depth": 2,
+            "tei_page_label": "10",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fb87b7400dc751f43f2cf860df5405b1fe441288c27fcf33869d223bc6853164",
+            "character_count": 1493
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4af7b3b68e8bcca5f29ed1c9bfa3b49e57666a7ee2615b3816866c771600ad38",
+            "character_count": 16
+          }
+        },
+        {
+          "resource_id": "tei-div-0075",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "10",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0074"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "af55f0b7fb82a9b810a57471a39763c1018ae74135df4d198d894347af021db8",
+            "character_count": 436
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-div-0076",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "10",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0074"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "80bcf1ceeacfa93598ee6027ba11ac4affe2a591145ff140727c61d142c40a40",
+            "character_count": 438
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0154",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]/div[2]/lg[1]/pb[1]",
+            "tei_page_label": "11",
+            "tei_facs_ref": "#f0154",
+            "parent_resource_id": "tei-div-0076"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0077",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "11",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0074"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "253c02fdc12c42675cda44360edcaa22271490a52e083a4170527261e0c16831",
+            "character_count": 600
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0155",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[4]/div[3]/lg[1]/pb[1]",
+            "tei_page_label": "12",
+            "tei_facs_ref": "#f0155",
+            "parent_resource_id": "tei-div-0077"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0156",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[6]",
+            "tei_page_label": "13",
+            "tei_facs_ref": "#f0156",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0078",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]",
+            "tei_depth": 2,
+            "tei_page_label": "13",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1a642c2fc6620ffd0d80ed37f704b5f8a09ceb8f75bf9b50284b14f06ab90c39",
+            "character_count": 2566
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "28e1d242e3b22d9f06462fab03a0e33b8732797b7c38bee08f6e74e4da458fa7",
+            "character_count": 18
+          }
+        },
+        {
+          "resource_id": "tei-div-0079",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "13",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0078"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "74ad46b815540f08961dc550219dec1e94997ef06d3d52174db6603e35e3c866",
+            "character_count": 743
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c977dbe785221d34114d345fdf8ff4e18bb4af66750751dbea29407f9738735f",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0157",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[1]/lg[1]/pb[1]",
+            "tei_page_label": "14",
+            "tei_facs_ref": "#f0157",
+            "parent_resource_id": "tei-div-0079"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0080",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[2]",
+            "tei_depth": 3,
+            "tei_page_label": "14",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0078"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "846ec3356decd9ccd09607a317ebb4bb39f48a9a766b8af1b2022f2d35915706",
+            "character_count": 906
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6bc54f13bea593dc5e1c8e6b16249e669d1ce99cbeac65f2a10f36e1d86f1fd4",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0158",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[2]/lg[1]/pb[1]",
+            "tei_page_label": "15",
+            "tei_facs_ref": "#f0158",
+            "parent_resource_id": "tei-div-0080"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0081",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[3]",
+            "tei_depth": 3,
+            "tei_page_label": "15",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0078"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "54b795ff40b1554d53a134d75a5591c7a7ebd801db8e471b5d60f99dc5e42df4",
+            "character_count": 317
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "267c23695b6e8fc29bd88b9f5d1962d3d208fa9c2fafd974614e6ab3b84fa55c",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0159",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/pb[1]",
+            "tei_page_label": "16",
+            "tei_facs_ref": "#f0159",
+            "parent_resource_id": "tei-div-0078"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0082",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[5]/div[4]",
+            "tei_depth": 3,
+            "tei_page_label": "16",
+            "tei_n": "3",
+            "parent_resource_id": "tei-div-0078"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2df6760ddb5114c0a028fe69620d06e591d6e71fce75f6c60ac87f6cb56363b6",
+            "character_count": 578
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23f663630e2f28250c09d7a0c370f55eebf635772f9ce27e46797ab8ef297f4b",
+            "character_count": 2
+          }
+        },
+        {
+          "resource_id": "tei-pb-0160",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/pb[7]",
+            "tei_page_label": "17",
+            "tei_facs_ref": "#f0160",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0083",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]",
+            "tei_depth": 2,
+            "tei_page_label": "17",
+            "tei_n": "2",
+            "parent_resource_id": "tei-div-0070"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ec7065c8d4a88d025e85447c4e19e35506a3fc265073c88306414908cbd2d291",
+            "character_count": 3792
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2c43dfba26aa30e25022b8bdd505b02aed85e857078ead6d2b7bb1a70acd92f7",
+            "character_count": 29
+          }
+        },
+        {
+          "resource_id": "tei-pb-0161",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/lg[1]/pb[1]",
+            "tei_page_label": "18",
+            "tei_facs_ref": "#f0161",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0162",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/lg[1]/pb[2]",
+            "tei_page_label": "19",
+            "tei_facs_ref": "#f0162",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0163",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/lg[1]/pb[3]",
+            "tei_page_label": "20",
+            "tei_facs_ref": "#f0163",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0164",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/lg[1]/pb[4]",
+            "tei_page_label": "21",
+            "tei_facs_ref": "#f0164",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0165",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/pb[1]",
+            "tei_facs_ref": "#f0165",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0166",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/pb[2]",
+            "tei_facs_ref": "#f0166",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-div-0084",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[21]/div[6]/div[1]",
+            "tei_depth": 3,
+            "tei_page_label": "#f0166",
+            "tei_type": "contents",
+            "parent_resource_id": "tei-div-0083"
+          },
+          "structural_role": "contents",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "19923d7f8b74c7f753a5cab6a9b697a7611aa3f34926f15265c9037873309880",
+            "character_count": 134
+          }
+        },
+        {
+          "resource_id": "tei-div-0085",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/back[1]/div[1]",
+            "tei_depth": 1,
+            "tei_page_label": "#f0166",
+            "tei_type": "imprint"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bdc9e83c0a30febca5e7657c9a71da39cb83d30889b69ae3ea7d28dd6d435f6e",
+            "character_count": 35
+          }
+        },
+        {
+          "resource_id": "tei-pb-0167",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/back[1]/pb[1]",
+            "tei_facs_ref": "#f0167"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0168",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/back[1]/pb[2]",
+            "tei_facs_ref": "#f0168"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0169",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/back[1]/pb[3]",
+            "tei_facs_ref": "#f0169"
+          },
+          "structural_role": "page_break"
+        },
+        {
+          "resource_id": "tei-pb-0170",
+          "resource_kind": "tei_page_break",
+          "locator": {
+            "tei_path": "TEI/text[1]/back[1]/pb[4]",
+            "tei_facs_ref": "#f0170"
+          },
+          "structural_role": "page_break"
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5.2026-07-28",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

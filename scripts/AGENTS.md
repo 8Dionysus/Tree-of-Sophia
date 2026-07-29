@@ -41,6 +41,12 @@ from a public clone; an operator may add `--require-local-payloads` for the
 local laboratory. Passing this lane never implies that a human accepted the
 bibliography, text, rights, translation, or semantics.
 
+`build_source_resource_inventories.py` is the focused local companion for
+fixity-verified payloads. It writes tracked, text-free PDF page, EPUB resource,
+and TEI structure inventories from an explicit payload root. It is not a
+release-time acquisition step and its one-way fingerprints are not accepted
+text or alignment evidence.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
@@ -141,4 +147,5 @@ Local owner routes:
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
+| local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |
