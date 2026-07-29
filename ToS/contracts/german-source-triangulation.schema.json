@@ -1,0 +1,495 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/german-source-triangulation.schema.json",
+  "title": "Tree of Sophia German source triangulation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "status",
+    "prepared_at",
+    "work_ref",
+    "target",
+    "bindings",
+    "inputs",
+    "method",
+    "results",
+    "source_posture",
+    "rights_and_transport_boundary",
+    "gate_effects",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/german-source-triangulation.schema.json"
+    },
+    "schema_version": {"const": "tos_german_source_triangulation_v1"},
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.german-source-triangulation\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {"const": "machine_triangulated_candidate"},
+    "prepared_at": {"type": "string", "format": "date-time"},
+    "work_ref": {
+      "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "context_anchor_ref",
+        "critical_locator_siglum",
+        "critical_locator_scope"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "const": "tos-translation-source-review-v2-001"
+        },
+        "context_anchor_ref": {
+          "const": "tos.anchor.zarathustra-translation-pilot-v1.t001"
+        },
+        "critical_locator_siglum": {"const": "Za-I-Vorrede-1"},
+        "critical_locator_scope": {
+          "const": "Zarathustra's Vorrede, section 1"
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assisted_review_plan",
+        "source_review_plan",
+        "metadata_critical_witness_packet"
+      ],
+      "properties": {
+        "assisted_review_plan": {"$ref": "#/$defs/digestBoundRef"},
+        "source_review_plan": {"$ref": "#/$defs/digestBoundRef"},
+        "metadata_critical_witness_packet": {
+          "$ref": "#/$defs/digestBoundRef"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ekgwb", "dta_tei", "naumann_auto_epub"],
+      "properties": {
+        "ekgwb": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_role",
+            "local_payload_ref",
+            "payload_sha256",
+            "byte_size",
+            "retrieval",
+            "selector",
+            "rights",
+            "source_text_tracked"
+          ],
+          "properties": {
+            "source_role": {
+              "const": "critical_edition_candidate_local_copy"
+            },
+            "local_payload_ref": {"$ref": "#/$defs/repoRef"},
+            "payload_sha256": {"$ref": "#/$defs/sha256"},
+            "byte_size": {"type": "integer", "minimum": 1},
+            "retrieval": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "official_endpoint",
+                "fetched_at",
+                "http_status",
+                "media_type",
+                "transport",
+                "tls_authenticity_established",
+                "response_persisted_local_only",
+                "bounded_repeat_fetches",
+                "repeat_fetches_byte_identical"
+              ],
+              "properties": {
+                "official_endpoint": {
+                  "const": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I"
+                },
+                "fetched_at": {"type": "string", "format": "date-time"},
+                "http_status": {"const": 200},
+                "media_type": {"const": "text/html; charset=UTF-8"},
+                "transport": {"const": "unencrypted_http"},
+                "tls_authenticity_established": {"const": false},
+                "response_persisted_local_only": {"const": true},
+                "bounded_repeat_fetches": {"const": 2},
+                "repeat_fetches_byte_identical": {"const": true}
+              }
+            },
+            "selector": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {
+                "kind": {"const": "html_element_id"},
+                "value": {"const": "eKGWB/Za-I-Vorrede-1"}
+              }
+            },
+            "rights": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "declared_license",
+                "license_uri",
+                "official_rights_ref",
+                "human_rights_review",
+                "local_research_only",
+                "redistribution_authorized",
+                "derivative_publication_authorized"
+              ],
+              "properties": {
+                "declared_license": {"const": "CC-BY-NC-ND-4.0"},
+                "license_uri": {
+                  "const": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+                },
+                "official_rights_ref": {
+                  "const": "https://doc.nietzschesource.org/en/rights"
+                },
+                "human_rights_review": {"const": false},
+                "local_research_only": {"const": true},
+                "redistribution_authorized": {"const": false},
+                "derivative_publication_authorized": {"const": false}
+              }
+            },
+            "source_text_tracked": {"const": false}
+          }
+        },
+        "dta_tei": {"$ref": "#/$defs/trackedWitness"},
+        "naumann_auto_epub": {"$ref": "#/$defs/trackedWitness"}
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "normalization",
+        "dta_dehyphenation",
+        "comparison",
+        "model_used_for_text_decision",
+        "translation_performed",
+        "source_text_emitted"
+      ],
+      "properties": {
+        "implementation": {"const": "python-standard-library"},
+        "normalization": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "unicode_nfkc"},
+            {"const": "unicode_casefold"},
+            {"const": "unicode_alpha_token_sequence"}
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "dta_dehyphenation": {
+          "const": "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace_before_tokenization"
+        },
+        "comparison": {
+          "const": "python_stdlib_difflib_sequence_matcher_autojunk_false"
+        },
+        "model_used_for_text_decision": {"const": false},
+        "translation_performed": {"const": false},
+        "source_text_emitted": {"const": false}
+      }
+    },
+    "results": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ekgwb_reference",
+        "dta_exact_comparison",
+        "normalization_failure_control",
+        "naumann_ocr_comparison"
+      ],
+      "properties": {
+        "ekgwb_reference": {
+          "$ref": "#/$defs/exactSectionFingerprint"
+        },
+        "dta_exact_comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "section_selector",
+            "paragraphs",
+            "normalized_tokens",
+            "normalized_sequence_sha256",
+            "equal_paragraphs",
+            "equal_tokens",
+            "exact_after_source_aware_normalization"
+          ],
+          "properties": {
+            "section_selector": {
+              "const": "TEI/text[1]/body[1]/div[1]/div[1]"
+            },
+            "paragraphs": {"const": 12},
+            "normalized_tokens": {"const": 261},
+            "normalized_sequence_sha256": {"$ref": "#/$defs/sha256"},
+            "equal_paragraphs": {"const": 12},
+            "equal_tokens": {"const": 261},
+            "exact_after_source_aware_normalization": {"const": true}
+          }
+        },
+        "normalization_failure_control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "naive_generic_whitespace_join_false_token_splits",
+            "source_aware_dehyphenation_required",
+            "false_discrepancy_preserved"
+          ],
+          "properties": {
+            "naive_generic_whitespace_join_false_token_splits": {"const": 3},
+            "source_aware_dehyphenation_required": {"const": true},
+            "false_discrepancy_preserved": {"const": true}
+          }
+        },
+        "naumann_ocr_comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "epub_members",
+            "candidate_tokens",
+            "equal_reference_tokens",
+            "single_token_replacements",
+            "page_furniture_insertions",
+            "trailing_next_section_tokens",
+            "equal_run_lengths",
+            "exact_textual_identity",
+            "translation_claimed"
+          ],
+          "properties": {
+            "epub_members": {
+              "type": "array",
+              "prefixItems": [
+                {"$ref": "#/$defs/memberRef"},
+                {"$ref": "#/$defs/memberRef"}
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "candidate_tokens": {"const": 392},
+            "equal_reference_tokens": {"const": 260},
+            "single_token_replacements": {"const": 1},
+            "page_furniture_insertions": {"const": 15},
+            "trailing_next_section_tokens": {"const": 116},
+            "equal_run_lengths": {
+              "type": "array",
+              "prefixItems": [
+                {"const": 111},
+                {"const": 53},
+                {"const": 96}
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "exact_textual_identity": {"const": false},
+            "translation_claimed": {"const": false}
+          }
+        }
+      }
+    },
+    "source_posture": {"const": "machine_triangulated_candidate"},
+    "rights_and_transport_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unencrypted_transport_is_authenticity_risk",
+        "all_payloads_remain_local",
+        "tracked_packet_contains_source_text",
+        "rights_clearance_claimed",
+        "critical_edition_admission_authorized"
+      ],
+      "properties": {
+        "unencrypted_transport_is_authenticity_risk": {"const": true},
+        "all_payloads_remain_local": {"const": true},
+        "tracked_packet_contains_source_text": {"const": false},
+        "rights_clearance_claimed": {"const": false},
+        "critical_edition_admission_authorized": {"const": false}
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine_triangulated_units",
+        "human_task_created",
+        "human_debt_units",
+        "source_unit_selected_for_human_review",
+        "accepted_german_units",
+        "critical_edition_units_admitted",
+        "translation_lanes_opened",
+        "semantic_tasks_opened",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "machine_triangulated_units": {"const": 1},
+        "human_task_created": {"const": false},
+        "human_debt_units": {"const": 0},
+        "source_unit_selected_for_human_review": {"const": false},
+        "accepted_german_units": {"const": 0},
+        "critical_edition_units_admitted": {"const": 0},
+        "translation_lanes_opened": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "semantic_tasks_opened": {"const": 0},
+        "promotion_authorized": {"const": false}
+      }
+    },
+    "authority_boundary": {
+      "const": "machine-only text-free triangulation evidence over one local critical-edition candidate, one DTA TEI witness, and one automatic-OCR EPUB witness; not accepted German, critical-edition admission, translation evidence, semantics, rights clearance, or canon authority"
+    },
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "source_authenticity_over_http",
+          "bibliographic_acceptance",
+          "rights_clearance",
+          "accepted_german_text",
+          "german_orthographic_correctness",
+          "german_grammatical_correctness",
+          "german_semantics",
+          "critical_edition_admission",
+          "translation_correspondence",
+          "translation_equivalence",
+          "translation_quality",
+          "semantic_annotation",
+          "canon_promotion"
+        ]
+      },
+      "allOf": [
+        {"contains": {"const": "source_authenticity_over_http"}},
+        {"contains": {"const": "bibliographic_acceptance"}},
+        {"contains": {"const": "rights_clearance"}},
+        {"contains": {"const": "accepted_german_text"}},
+        {"contains": {"const": "german_orthographic_correctness"}},
+        {"contains": {"const": "german_grammatical_correctness"}},
+        {"contains": {"const": "german_semantics"}},
+        {"contains": {"const": "critical_edition_admission"}},
+        {"contains": {"const": "translation_correspondence"}},
+        {"contains": {"const": "translation_equivalence"}},
+        {"contains": {"const": "translation_quality"}},
+        {"contains": {"const": "semantic_annotation"}},
+        {"contains": {"const": "canon_promotion"}}
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "trackedWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "payload_relative_path",
+        "item_manifest",
+        "rights_record",
+        "source_text_tracked"
+      ],
+      "properties": {
+        "item_ref": {
+          "type": "string",
+          "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "file_ref": {
+          "type": "string",
+          "pattern": "^tos\\.file\\.sha256\\.[a-f0-9]{64}$"
+        },
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "payload_relative_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "item_manifest": {"$ref": "#/$defs/digestBoundRef"},
+        "rights_record": {"$ref": "#/$defs/digestBoundRef"},
+        "source_text_tracked": {"const": false}
+      }
+    },
+    "exactSectionFingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paragraphs",
+        "normalized_tokens",
+        "normalized_sequence_sha256"
+      ],
+      "properties": {
+        "paragraphs": {"const": 12},
+        "normalized_tokens": {"const": 261},
+        "normalized_sequence_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "memberRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "results": {
+          "properties": {
+            "ekgwb_reference": {
+              "properties": {
+                "normalized_sequence_sha256": {
+                  "const": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16"
+                }
+              }
+            },
+            "dta_exact_comparison": {
+              "properties": {
+                "normalized_sequence_sha256": {
+                  "const": "6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

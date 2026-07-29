@@ -188,6 +188,7 @@
         "selected_unit_ids",
         "human_debt_units",
         "runs",
+        "machine_triangulated_units",
         "accepted_german_units",
         "prepared_critical_edition_witness_packets",
         "admitted_critical_edition_units",
@@ -207,6 +208,7 @@
         },
         "human_debt_units": {"const": 0},
         "runs": {"type": "integer", "minimum": 0},
+        "machine_triangulated_units": {"type": "integer", "minimum": 0},
         "accepted_german_units": {"type": "integer", "minimum": 0},
         "prepared_critical_edition_witness_packets": {
           "type": "integer",
@@ -244,6 +246,30 @@
     {
       "if": {
         "properties": {
+          "competence_boundary": {
+            "properties": {
+              "operator_german_competence": {"const": "visual_only"}
+            },
+            "required": ["operator_german_competence"]
+          }
+        },
+        "required": ["competence_boundary"]
+      },
+      "then": {
+        "properties": {
+          "current_state": {
+            "properties": {
+              "accepted_german_units": {"const": 0},
+              "translation_lanes_opened": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "status": {"const": "prepared_not_run"}
         },
         "required": ["status"]
@@ -254,6 +280,7 @@
             "properties": {
               "selected_unit_ids": {"maxItems": 0},
               "runs": {"const": 0},
+              "machine_triangulated_units": {"const": 0},
               "accepted_german_units": {"const": 0},
               "admitted_critical_edition_units": {"const": 0},
               "translation_lanes_opened": {"maxItems": 0},

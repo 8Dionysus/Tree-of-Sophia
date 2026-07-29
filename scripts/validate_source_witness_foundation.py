@@ -89,6 +89,9 @@ GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
 CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
     CONTRACT_ROOT / "critical-edition-witness-admission.schema.json"
 )
+GERMAN_SOURCE_TRIANGULATION_SCHEMA = (
+    CONTRACT_ROOT / "german-source-triangulation.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -690,6 +693,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA,
             repo_root,
         )
+        german_source_triangulation_validator, _ = _schema_validator(
+            GERMAN_SOURCE_TRIANGULATION_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -979,6 +986,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         critical_edition_witness_paths = sorted(
             gold_root.glob("critical-edition-witness.*.json")
         )
+        german_source_triangulation_path = (
+            gold_root
+            / "german-source-triangulation."
+            "ekgwb-dta-naumann.za-i-vorrede-1.v1.json"
+        )
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -989,6 +1001,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         graph_provenance_path = gold_root / "graph-provenance.jsonl"
         transfer_provenance_path = gold_root / "transfer-provenance.jsonl"
         evaluation_provenance_path = gold_root / "evaluation-provenance.jsonl"
+        german_source_triangulation_provenance_path = (
+            gold_root / "provenance.german-source-triangulation.jsonl"
+        )
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
             anchor_paths.append(ocr_anchor_path)
@@ -1027,6 +1042,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             for path in critical_edition_witness_paths
             if (payload := _load_json(path, repo_root, issues)) is not None
         ]
+        german_source_triangulation = (
+            _load_json(
+                german_source_triangulation_path,
+                repo_root,
+                issues,
+            )
+            if german_source_triangulation_path.is_file()
+            else None
+        )
         transfer_plan = _load_json(transfer_path, repo_root, issues)
         semantic_samples_plan = _load_json(semantic_samples_path, repo_root, issues)
         llm_tasks_plan = _load_json(llm_tasks_path, repo_root, issues)
@@ -1288,6 +1312,260 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "German assisted-review prepared critical-edition packet count drifted",
                     )
                 )
+        if german_source_triangulation is not None:
+            triangulation_location = _relative(
+                german_source_triangulation_path,
+                repo_root,
+            )
+            _validate_payload(
+                german_source_triangulation,
+                german_source_triangulation_validator,
+                triangulation_location,
+                issues,
+            )
+            bindings = german_source_triangulation.get("bindings", {})
+            critical_packet_path = (
+                critical_edition_witness_paths[0]
+                if len(critical_edition_witness_paths) == 1
+                else None
+            )
+            for field, expected_path in (
+                ("assisted_review_plan", german_assisted_review_path),
+                ("source_review_plan", translation_source_review_path),
+                ("metadata_critical_witness_packet", critical_packet_path),
+            ):
+                if expected_path is None:
+                    issues.append(
+                        (
+                            triangulation_location,
+                            f"{field} has no unique owner artifact",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    bindings.get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"bindings.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((triangulation_location, digest_issue))
+
+            target = german_source_triangulation.get("target", {})
+            source_review_units = (
+                translation_source_review_plan.get("units", [])
+                if isinstance(translation_source_review_plan, dict)
+                else []
+            )
+            target_unit = next(
+                (
+                    unit
+                    for unit in source_review_units
+                    if isinstance(unit, dict)
+                    and unit.get("review_unit_id")
+                    == target.get("review_unit_id")
+                ),
+                None,
+            )
+            if target_unit is None:
+                issues.append(
+                    (
+                        triangulation_location,
+                        "triangulation target is absent from source-review plan",
+                    )
+                )
+            elif target_unit.get("context_anchor_ref") != target.get(
+                "context_anchor_ref"
+            ):
+                issues.append(
+                    (
+                        triangulation_location,
+                        "triangulation target anchor drifted",
+                    )
+                )
+            if len(critical_edition_witnesses) == 1:
+                critical_target = critical_edition_witnesses[0][1].get(
+                    "target",
+                    {},
+                )
+                for field in (
+                    "review_unit_id",
+                    "context_anchor_ref",
+                    "critical_locator_siglum",
+                ):
+                    if target.get(field) != critical_target.get(field):
+                        issues.append(
+                            (
+                                triangulation_location,
+                                f"triangulation target {field} drifted from metadata witness",
+                            )
+                        )
+
+            inputs = german_source_triangulation.get("inputs", {})
+            expected_ekgwb_local_ref = (
+                gold_root
+                / "local-content/translation/source-review/"
+                "critical-edition-candidates/ekgwb/za-i/"
+                "static-html-include.response.html"
+            )
+            if inputs.get("ekgwb", {}).get(
+                "local_payload_ref"
+            ) != _relative(expected_ekgwb_local_ref, repo_root):
+                issues.append(
+                    (
+                        triangulation_location,
+                        "triangulation eKGWB local-only payload route drifted",
+                    )
+                )
+            for witness_name in ("dta_tei", "naumann_auto_epub"):
+                witness = inputs.get(witness_name, {})
+                if not isinstance(witness, dict):
+                    continue
+                manifest_binding = witness.get("item_manifest", {})
+                rights_binding = witness.get("rights_record", {})
+                manifest_ref = (
+                    manifest_binding.get("ref")
+                    if isinstance(manifest_binding, dict)
+                    else None
+                )
+                rights_ref = (
+                    rights_binding.get("ref")
+                    if isinstance(rights_binding, dict)
+                    else None
+                )
+                if not isinstance(manifest_ref, str):
+                    issues.append(
+                        (
+                            triangulation_location,
+                            f"{witness_name} item manifest reference is invalid",
+                        )
+                    )
+                    continue
+                manifest_path = repo_root / manifest_ref
+                if not manifest_path.is_file():
+                    issues.append(
+                        (
+                            triangulation_location,
+                            f"{witness_name} item manifest is unresolved",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    manifest_binding,
+                    expected_path=manifest_path,
+                    repo_root=repo_root,
+                    field=f"inputs.{witness_name}.item_manifest",
+                )
+                if digest_issue is not None:
+                    issues.append((triangulation_location, digest_issue))
+                manifest = _load_json(manifest_path, repo_root, issues)
+                if isinstance(manifest, dict):
+                    try:
+                        manifest_item_root = Path(
+                            manifest_ref
+                        ).parent.relative_to(
+                            Path("ToS/source-witnesses")
+                        )
+                        manifest_payload_relative = Path(
+                            str(
+                                witness.get(
+                                    "payload_relative_path",
+                                    "",
+                                )
+                            )
+                        ).relative_to(manifest_item_root).as_posix()
+                    except ValueError:
+                        manifest_payload_relative = None
+                    matching_payloads = [
+                        row
+                        for row in manifest.get("payload_files", [])
+                        if isinstance(row, dict)
+                        and row.get("file_id") == witness.get("file_ref")
+                        and row.get("sha256") == witness.get("file_sha256")
+                        and row.get("relative_path")
+                        == manifest_payload_relative
+                    ]
+                    if (
+                        manifest.get("item_id") != witness.get("item_ref")
+                        or len(matching_payloads) != 1
+                    ):
+                        issues.append(
+                            (
+                                triangulation_location,
+                                f"{witness_name} does not close over its item manifest",
+                            )
+                        )
+                if not isinstance(rights_ref, str):
+                    issues.append(
+                        (
+                            triangulation_location,
+                            f"{witness_name} rights reference is invalid",
+                        )
+                    )
+                else:
+                    rights_path = repo_root / rights_ref
+                    if not rights_path.is_file():
+                        issues.append(
+                            (
+                                triangulation_location,
+                                f"{witness_name} rights record is unresolved",
+                            )
+                        )
+                    else:
+                        digest_issue = _digest_bound_ref_issue(
+                            rights_binding,
+                            expected_path=rights_path,
+                            repo_root=repo_root,
+                            field=f"inputs.{witness_name}.rights_record",
+                        )
+                        if digest_issue is not None:
+                            issues.append(
+                                (triangulation_location, digest_issue)
+                            )
+            if isinstance(german_assisted_review, dict):
+                current_state = german_assisted_review.get(
+                    "current_state",
+                    {},
+                )
+                expected_unit_id = target.get("review_unit_id")
+                if german_assisted_review.get("status") != "in_progress":
+                    issues.append(
+                        (
+                            triangulation_location,
+                            "machine triangulation requires in-progress assisted review",
+                        )
+                    )
+                if current_state.get("selected_unit_ids") != [
+                    expected_unit_id
+                ]:
+                    issues.append(
+                        (
+                            triangulation_location,
+                            "assisted-review selected unit drifted from triangulation",
+                        )
+                    )
+                if (
+                    current_state.get("runs") != 1
+                    or current_state.get("machine_triangulated_units") != 1
+                ):
+                    issues.append(
+                        (
+                            triangulation_location,
+                            "assisted-review machine-run counters drifted",
+                        )
+                    )
+                if (
+                    current_state.get("accepted_german_units") != 0
+                    or current_state.get("admitted_critical_edition_units") != 0
+                    or current_state.get("translation_lanes_opened")
+                    or current_state.get("promotion_authorized") is not False
+                ):
+                    issues.append(
+                        (
+                            triangulation_location,
+                            "machine triangulation crossed a human or translation gate",
+                        )
+                    )
         for (
             critical_edition_witness_path,
             critical_edition_witness,
@@ -1668,12 +1946,17 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         local_event_ids: set[str] = set()
         local_events_by_id: dict[str, dict[str, Any]] = {}
         graph_events: list[dict[str, Any]] = []
-        for local_provenance_path in (
+        local_provenance_paths = [
             provenance_path,
             graph_provenance_path,
             transfer_provenance_path,
             evaluation_provenance_path,
-        ):
+        ]
+        if german_source_triangulation_provenance_path.is_file():
+            local_provenance_paths.append(
+                german_source_triangulation_provenance_path
+            )
+        for local_provenance_path in local_provenance_paths:
             for index, event in enumerate(
                 _load_jsonl(local_provenance_path, repo_root, issues), start=1
             ):
@@ -1708,6 +1991,41 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "critical-edition witness provenance event is absent from gold-set provenance",
                     )
                 )
+        if german_source_triangulation is not None:
+            triangulation_event_id = (
+                "tos.event.alignment.zarathustra-german-source-triangulation."
+                "za-i-vorrede-1.2026-07-29"
+            )
+            triangulation_event = local_events_by_id.get(
+                triangulation_event_id
+            )
+            triangulation_location = _relative(
+                german_source_triangulation_path,
+                repo_root,
+            )
+            if triangulation_event is None:
+                issues.append(
+                    (
+                        triangulation_location,
+                        "German source triangulation provenance event is absent",
+                    )
+                )
+            else:
+                expected_output = {
+                    "ref": triangulation_location,
+                    "role": "text-free-machine-triangulation-candidate",
+                    "sha256": _sha256(german_source_triangulation_path),
+                }
+                if expected_output not in triangulation_event.get(
+                    "outputs",
+                    [],
+                ):
+                    issues.append(
+                        (
+                            triangulation_location,
+                            "German source triangulation provenance output drifted",
+                        )
+                    )
 
         anchors_by_id: dict[str, dict[str, Any]] = {}
         for anchor_path in anchor_paths:

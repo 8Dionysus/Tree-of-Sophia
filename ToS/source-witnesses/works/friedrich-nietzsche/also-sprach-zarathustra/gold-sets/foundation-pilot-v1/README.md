@@ -33,7 +33,8 @@ Zarathustra golden kernel. It is not a completed gold set.
   inventing German competence. It separates visual human evidence,
   critical-edition witnesses, independent machine candidates, sourced AI
   explanations, and later competent-human acceptance. It currently selects
-  zero units, creates zero human debt, and opens no translation lane.
+  one unit for one machine-only triangulation run, creates zero human debt,
+  accepts zero German units, and opens no translation lane.
 - `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json` freezes one exact
   eKGWB section locator for the first prepared German unit. It stores no
   eKGWB text, records the failed direct-fetch paths, and binds the locator to
@@ -41,6 +42,14 @@ Zarathustra golden kernel. It is not a completed gold set.
   only structural compatibility: the critical passage itself was not fetched
   or compared. Bibliographic and rights review remain pending, no human task
   is created, and no German unit or translation lane is admitted.
+- `german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json`
+  records the first bounded machine-only comparison. The local eKGWB response
+  and DTA part-I section agree on all 12 paragraph token sequences and 261
+  normalized tokens after source-aware DTA dehyphenation; the Naumann
+  automatic EPUB agrees on 260 reference tokens and retains one OCR
+  replacement plus page furniture. The tracked packet contains no source text.
+  Unencrypted HTTP, rights, bibliography, language competence, and all
+  translation/semantic gates remain explicitly open.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current

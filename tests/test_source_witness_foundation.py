@@ -22,6 +22,11 @@ GERMAN_ASSISTED_REVIEW_PATH = (
 CRITICAL_EDITION_WITNESS_PATH = (
     GOLD_ROOT / "critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
 )
+GERMAN_SOURCE_TRIANGULATION_PATH = (
+    GOLD_ROOT
+    / "german-source-triangulation."
+    "ekgwb-dta-naumann.za-i-vorrede-1.v1.json"
+)
 MYSL_WORK_BOUNDARY_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
@@ -44,6 +49,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import validate_source_witness_foundation as foundation
+import build_zarathustra_german_source_triangulation as triangulation_builder
 
 
 PRE_DRAFT_STAGE_NAMES = [
@@ -1434,8 +1440,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ]
         )
         self.assertEqual(30, plan["current_state"]["prepared_units"])
-        self.assertEqual([], plan["current_state"]["selected_unit_ids"])
+        self.assertEqual(
+            ["tos-translation-source-review-v2-001"],
+            plan["current_state"]["selected_unit_ids"],
+        )
         self.assertEqual(0, plan["current_state"]["human_debt_units"])
+        self.assertEqual(1, plan["current_state"]["runs"])
+        self.assertEqual(
+            1,
+            plan["current_state"]["machine_triangulated_units"],
+        )
+        self.assertEqual(0, plan["current_state"]["accepted_german_units"])
         self.assertEqual(
             1,
             plan["current_state"][
@@ -1454,6 +1469,75 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "machine_agreement_supplies_language_competence"
         ] = True
         self.assertTrue(list(validator.iter_errors(false_competence)))
+
+    def test_german_source_triangulation_is_machine_only_and_text_free(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.GERMAN_SOURCE_TRIANGULATION_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            GERMAN_SOURCE_TRIANGULATION_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual("machine_triangulated_candidate", packet["status"])
+        self.assertEqual(
+            12,
+            packet["results"]["dta_exact_comparison"]["equal_paragraphs"],
+        )
+        self.assertEqual(
+            261,
+            packet["results"]["dta_exact_comparison"]["equal_tokens"],
+        )
+        self.assertEqual(
+            260,
+            packet["results"]["naumann_ocr_comparison"][
+                "equal_reference_tokens"
+            ],
+        )
+        self.assertEqual(
+            3,
+            packet["results"]["normalization_failure_control"][
+                "naive_generic_whitespace_join_false_token_splits"
+            ],
+        )
+        self.assertFalse(
+            packet["method"]["model_used_for_text_decision"]
+        )
+        self.assertFalse(packet["method"]["source_text_emitted"])
+        self.assertFalse(
+            packet["inputs"]["ekgwb"]["source_text_tracked"]
+        )
+        self.assertTrue(
+            packet["rights_and_transport_boundary"][
+                "unencrypted_transport_is_authenticity_risk"
+            ]
+        )
+        self.assertEqual([], packet["gate_effects"]["translation_lanes_opened"])
+        self.assertEqual(0, packet["gate_effects"]["accepted_german_units"])
+        self.assertFalse(packet["gate_effects"]["promotion_authorized"])
+
+        false_acceptance = copy.deepcopy(packet)
+        false_acceptance["gate_effects"]["accepted_german_units"] = 1
+        self.assertTrue(list(validator.iter_errors(false_acceptance)))
+
+        false_rights_clearance = copy.deepcopy(packet)
+        false_rights_clearance["rights_and_transport_boundary"][
+            "rights_clearance_claimed"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_rights_clearance)))
+
+        tracked_source_text = copy.deepcopy(packet)
+        tracked_source_text["inputs"]["ekgwb"]["source_text_tracked"] = True
+        self.assertTrue(list(validator.iter_errors(tracked_source_text)))
+
+        raw_tokens = triangulation_builder._alpha_tokens("prüf¬ wort")
+        source_aware_tokens = triangulation_builder._alpha_tokens(
+            triangulation_builder.re.sub(r"¬\s*", "", "prüf¬ wort")
+        )
+        self.assertEqual(["prüf", "wort"], raw_tokens)
+        self.assertEqual(["prüfwort"], source_aware_tokens)
 
     def test_critical_edition_witness_freezes_metadata_without_admission(
         self,

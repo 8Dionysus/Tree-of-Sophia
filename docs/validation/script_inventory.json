@@ -314,6 +314,34 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_german_source_triangulation.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/german-source-triangulation.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-assisted-source-review.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json",
+        "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/translation/source-review/critical-edition-candidates/ekgwb/za-i/static-html-include.response.html",
+        "ToS/source-witnesses/**/payload/*",
+        "ToS/contracts/german-source-triangulation.schema.json"
+      ],
+      "reads": [
+        "one explicit local-only eKGWB HTTP response, one fixity-verified DTA TEI, one fixity-verified Naumann automatic-OCR EPUB, and their tracked plans, manifests, and rights records"
+      ],
+      "writes": [
+        "one reconciled public-safe discovery record, one tracked text-free machine-triangulation packet, and separate provenance unless --check is used"
+      ],
+      "side_effects": "tracked aggregate comparison counts and one-way fingerprints only; no source text, German acceptance, critical-edition admission, translation lane, semantics, or promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_witness_structure_correspondence.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -377,6 +405,7 @@
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
+        "ToS/contracts/german-source-triangulation.schema.json",
         "ToS/contracts/source-gated-evaluation-plan.schema.json",
         "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
       ],

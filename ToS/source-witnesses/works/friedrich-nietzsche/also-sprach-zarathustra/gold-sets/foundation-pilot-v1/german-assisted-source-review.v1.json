@@ -2,10 +2,10 @@
   "$schema": "https://tree-of-sophia.local/ToS/contracts/german-assisted-source-review.schema.json",
   "schema_version": "tos_german_assisted_source_review_v1",
   "plan_id": "tos.german-assisted-review.zarathustra-foundation-v1",
-  "status": "prepared_not_run",
+  "status": "in_progress",
   "method_research": {
     "ref": "ToS/research-packets/foundation-laboratory-2026-07/GERMAN_ASSISTED_REVIEW_RESEARCH.md",
-    "sha256": "9d80828f9dfe275ee8afb98974297c220c9d50531e52bf109fd576b6c5970d8a"
+    "sha256": "96733fa5600387dab9329bec572239e39215ffa9cf8141f862199bea81bbd530"
   },
   "source_review_plan": {
     "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-source-review-plan.v2.json",
@@ -76,9 +76,12 @@
   },
   "current_state": {
     "prepared_units": 30,
-    "selected_unit_ids": [],
+    "selected_unit_ids": [
+      "tos-translation-source-review-v2-001"
+    ],
     "human_debt_units": 0,
-    "runs": 0,
+    "runs": 1,
+    "machine_triangulated_units": 1,
     "accepted_german_units": 0,
     "prepared_critical_edition_witness_packets": 1,
     "admitted_critical_edition_units": 0,

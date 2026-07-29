@@ -43,6 +43,7 @@ judgment true.
 | `translation-source-review-plan.schema.json` | v2 page-triplet source review routing after selector failure, without reusing rejected automatic text |
 | `german-assisted-source-review.schema.json` | solo+AI evidence lanes, visual-only competence boundary, critical-edition witness route, triggered 1-3 unit scheduling, and fail-closed translation consequences |
 | `critical-edition-witness-admission.schema.json` | one exact critical-edition locator, reference identity, local witness structural context distinct from exact critical-text comparison, provenance, content non-capture, rights review, and fail-closed effects before citation-witness admission |
+| `german-source-triangulation.schema.json` | text-free machine comparison of one local critical-edition candidate, one structured TEI witness, and one OCR witness, including source-aware normalization failure controls, transport/rights limits, and zero human/translation/semantic gate effects |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
 
@@ -98,6 +99,10 @@ A schema validator can establish that:
   evidence, independent machine candidates, AI explanations, and
   language-competent acceptance distinct; machine agreement cannot supply
   competence or create a human-only translation;
+- a German source-triangulation packet closes exact input fixity, selectors,
+  aggregate token/paragraph counts, one-way fingerprints, and normalization
+  controls while forcing unencrypted transport, rights review, German
+  acceptance, translation, semantics, and promotion to remain unresolved;
 - a translation-laboratory plan preserves the exact workflow order, keeps all
   four draft lanes blocked before source acceptance, and forbids comparator
   consultation while sealed;

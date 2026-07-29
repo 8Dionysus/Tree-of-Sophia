@@ -262,3 +262,13 @@ keeps source-only `237a` unpaired. The builder reads tracked maps and rights
 records, not either payload or text. A pairing means only “both witnesses
 materialize this structural label”; it is not an exact passage alignment or a
 translation claim.
+
+The Zarathustra foundation pilot also carries one deliberately narrower
+German source-triangulation packet. A deterministic local builder compares an
+ignored eKGWB HTTP response, the exact DTA part-I TEI, and two exact members of
+the Naumann automatic EPUB, then emits only fixity, selectors, aggregate
+counts, and one-way fingerprints. It preserves the failed HTTPS route,
+unencrypted-transport risk, a source-aware dehyphenation control, and the OCR
+residual. Machine agreement is reusable evidence, but it does not admit the
+critical edition, accept German, authorize publication, open translation, or
+create semantic authority.

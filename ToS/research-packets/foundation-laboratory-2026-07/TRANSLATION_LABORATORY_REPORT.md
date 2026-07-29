@@ -3,7 +3,7 @@
 Status: source-review laboratory prepared and mechanically exercised;
 translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
-Report date: 2026-07-23
+Report date: 2026-07-29
 
 ## Result first
 
@@ -22,6 +22,12 @@ blocked.
 
 This is the correct current translation result: the method and human work
 surface exist; translation evidence does not.
+
+One narrower source question has now been exercised without asking the solo
+operator to impersonate German competence. The official eKGWB HTTP candidate,
+DTA part I, and the Naumann automatic EPUB were compared mechanically for
+`Za-I-Vorrede-1`. That creates one machine-triangulated source candidate, not
+an accepted source unit, translation input, or translation result.
 
 ## Evidence sequence
 
@@ -68,7 +74,31 @@ attestation. Three distant source pages were opened and inspected visually for
 correct routing. These checks were performed by `model:codex`; they verify the
 interface, not the German transcription.
 
-### 3. Reference and pre-draft soil
+### 3. One machine-only source triangulation
+
+`german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json`
+binds the exact local inputs and emits no source text. After Unicode NFKC,
+case-folding, alphabetic tokenization, and DTA-specific removal of the printed
+hyphen marker:
+
+| Comparison | Result | Authority |
+| --- | --- | --- |
+| eKGWB candidate section | 12 paragraphs; 261 tokens; normalized sequence SHA-256 `6d3deb76b489989f2a8ed3782f3ae9c12914a0ab6baea1b9f21432bcc8749e16` | local machine reference only |
+| DTA part-I section | 12 / 12 paragraph sequences and 261 / 261 tokens equal | source-structured corroboration, not critical-edition or human acceptance |
+| naive DTA normalization control | 3 manufactured token splits | rejected normalization path |
+| Naumann automatic EPUB | 260 equal reference tokens; 1 replacement; 15 page-furniture tokens; 116 following-section tokens | OCR candidate with explicit residual |
+
+Two fresh HTTPS requests failed before an HTTP response. Two requests to the
+official public SPA's HTTP include route succeeded in 0.979062 and 0.964702
+seconds and were byte-identical. Unencrypted transport remains an authenticity
+risk. The payload is gitignored and local-only; declared BY-NC-ND evidence is
+not a ToS rights decision.
+
+The assisted plan therefore reports selected units 1, machine runs 1,
+machine-triangulated candidates 1, accepted German 0, human debt 0, admitted
+critical witnesses 0, and translation lanes 0.
+
+### 4. Reference and pre-draft soil
 
 `translation-reference-register.v1.json` contains 14 candidates covering all
 nine required categories: dictionaries, corpora, critical-edition resources,
@@ -90,7 +120,8 @@ parallels, evidenced allusions/idioms/cultural links, and a literal
 interlinear. Etymology requires cited external evidence; model memory is not a
 source.
 
-No real pre-draft packet exists because accepted German is 0 of 30.
+No real pre-draft packet exists because accepted German is 0 of 30. Machine
+triangulation does not change that denominator.
 
 ## Frozen translation lifecycle
 
@@ -174,6 +205,9 @@ Missing human time is not zero cost.
 - Promote the v2 review interface, source gate, independent-lane contract,
   comparator seal, reference register, and lifecycle as laboratory method
   only.
+- Preserve the one eKGWB/DTA/Naumann triangulation as a machine candidate and
+  the naive dehyphenation failure as a control; promote neither to accepted
+  German.
 - Block every pre-draft and draft lane until real pass 1 and independent pass
   2 accept all required German units.
 - Block recognized-witness reveal until every blind draft is frozen.
@@ -183,11 +217,14 @@ Missing human time is not zero cost.
 
 ## Next admissible action
 
-A real human copies the blank review JSONL to a new output, completes pass 1
-against the visible source pages, and then performs an independent pass 2.
-Each acceptance must carry human identity, distinct timestamps, uncertainty,
-source boundaries, diplomatic German, and a receipt. Only after 30 final
-acceptances may the independent pre-draft lanes begin.
+Do not turn the 30-unit packet into routine work for the solo operator. The
+next source action is question-triggered: prefer an authenticated or
+institutionally supplied copy of the exact eKGWB witness, then complete
+bibliographic and rights review at the exact layer. German textual acceptance
+still requires actual declared competence and source-visible receipts; the
+current operator may contribute visual identity and Russian-language
+evaluation only. Only accepted source units can enter independent pre-draft
+lanes.
 
 Until then, the honest laboratory conclusion is narrow: Tree of Sophia has a
 translation method capable of preserving source, alternatives, etymological

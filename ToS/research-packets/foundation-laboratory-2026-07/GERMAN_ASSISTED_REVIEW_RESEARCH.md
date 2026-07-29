@@ -3,7 +3,7 @@
 Status: focused method research and protocol decision; no German source
 acceptance, transcription, translation, or human-language competence claim
 
-Research snapshot: 2026-07-28
+Research snapshot: 2026-07-29
 
 ## Question
 
@@ -130,6 +130,44 @@ Sources:
 - [Who Annotates in NLP?](https://arxiv.org/abs/2606.02255)
 - [DocOCR-Eval](https://arxiv.org/abs/2607.16203)
 
+## 4. Focused official-route refresh on 2026-07-29
+
+The first source-ordered discovery run had correctly preserved a negative
+result: the documented HTTPS routes did not return the passage through the
+available network path. A later inspection of the public Nietzsche Source SPA
+exposed its own static HTML include route for `#eKGWB/Za-I`. The exact HTTPS
+form again failed to connect twice. The exact public HTTP form returned status
+200 twice in 0.979062 and 0.964702 seconds; both responses were 180,138 bytes
+and had SHA-256
+`3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061`.
+
+This is a useful originating-project route, but not an authenticated transport:
+HTTP is unencrypted. The response therefore remains a local-only
+critical-edition candidate. Its discovery, acquisition, hash, endpoint,
+declared BY-NC-ND posture, and transport warning are preserved; no response
+text is tracked or authorized for publication.
+
+A source-aware machine comparison then isolated `Za-I-Vorrede-1` without
+copying its text into Git:
+
+- the eKGWB section contains 12 content paragraphs and 261 normalized
+  alphabetic tokens;
+- DTA part I, selected at
+  `TEI/text[1]/body[1]/div[1]/div[1]`, has the same 12 paragraph token
+  sequences and all 261 tokens after the DTA printed-hyphen marker `¬` is
+  removed with its following whitespace;
+- generic whitespace normalization initially manufactured three false token
+  splits, which are retained as a normalization failure control;
+- the two bounded Naumann automatic-EPUB members contain 392 tokens: 260 of
+  the 261 reference tokens occur in three equal runs, with one one-token OCR
+  replacement, 15 page-furniture tokens, and 116 trailing tokens belonging to
+  the next section.
+
+This is `machine_triangulated_candidate`, not accepted German. It establishes
+neither HTTPS authenticity, critical-edition admission, orthographic or
+grammatical correctness, semantics, translation correspondence, rights
+clearance, nor canon.
+
 ## Protocol decision
 
 ### Evidence lanes
@@ -205,19 +243,21 @@ uses synthetic German-like fixtures and does not consume the real packet.
 
 ## Current decision
 
-Adopt the protocol as a prepared, not-run solo+AI route. It improves what can
-be learned without lying about competence, but it does not by itself accept
-one German unit or authorize one translation.
+Adopt the protocol and record one bounded machine-only run for
+`tos-translation-source-review-v2-001`. The assisted plan is now `in_progress`
+with one selected unit, one machine-triangulated candidate, zero human debt,
+zero accepted German units, zero admitted critical-edition units, and no
+translation lane. This is useful source calibration without lying about
+competence.
 
 The first metadata-only critical-edition route is now frozen in
 `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json`. It binds
 `tos-translation-source-review-v2-001` to the eKGWB section locator
 `Za-I-Vorrede-1`, records the edition identity, stable-URL evidence, declared
 BY-NC-ND rights posture, unsuccessful direct browser and shell fetches, and
-exact provenance events. A 2026-07-28 refresh found the official eKGWB and
-rights pages still represented in current search indexes and found independent
-scholarly uses of the exact siglum, but neither current network path could
-fetch the critical passage directly.
+exact provenance events. It remains an honest historical metadata snapshot of
+that event; the later HTTP fallback and comparison do not rewrite its
+observations.
 
 The same refresh performed a separate local structural comparison. The
 fixity-verified Naumann automatic-EPUB member `EPUB/page_55.html` and scan PDF
@@ -228,7 +268,7 @@ compare the eKGWB reading, establish a sentence-level alignment, judge German
 correctness, or turn automatic OCR into source truth. No eKGWB or local source
 text was copied into the tracked packet.
 
-The first protocol-native material-discovery run is preserved in
+The first protocol-native material-discovery run remains preserved in
 `source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json`.
 It reached the GND work authority through its machine interface, but repeated
 direct requests to Nietzsche Source timed out. The bounded exact-siglum
@@ -237,27 +277,41 @@ originating critical-edition passage. The run therefore selected no result,
 downloaded no content, and remains `incomplete`. This is negative discovery
 evidence, not evidence that the critical passage is absent.
 
-That incomplete run now routes to
-`access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json`.
-The public-safe card freezes the exact passage, research purpose, local
-storage posture, permissions needing clarification, and non-redistribution
-boundary. A 2026-07-28 refresh found the official ITEM “Nietzsche et son
-temps” page: the team states that it publishes the improved digital critical
-edition through Nietzsche Source and exposes a current public institutional
-email route for its lead. The tracked card therefore records the institutional
-page and channel class, not a personal recipient or private correspondence.
-Its identity posture remains `probable-needs-human-review`, because a suitable
-research contact is not by itself proof that the same institution can grant
-every requested processing right. The card is still only `draft-not-sent`: no
-message body or private recipient identity was committed, no human send
-approval exists, and no communication occurred.
+The reconciled successor run is
+`source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json`.
+It records the two failed HTTPS requests, the two byte-identical official HTTP
+responses, the local-only acquisition, and the reason HTTP transport cannot
+close authenticity or admission. The separate
+`german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json`
+records only selectors, fixity, counts, one-way fingerprints, method, and gate
+effects. No German passage text is tracked.
 
-This is a prepared admission packet, not an admitted witness. Human
-bibliographic and rights review remain false, exact critical-text comparison
-and passage alignment remain unverified, no German unit was accepted, and no
-human task or translation lane was opened. A later specific source or
-translation question may use this packet as its rights-gated starting point;
-packet existence alone is not a review trigger.
+The access route remains useful after reconciliation and now points to
+`access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json`.
+The public-safe card now asks for an authenticated or institutionally supplied
+copy and clarification of exact local processing scopes rather than pretending
+the HTTP candidate is inaccessible. It freezes the exact passage, research
+purpose, local storage posture, permissions needing clarification, and
+non-redistribution boundary. A 2026-07-28 refresh found the official ITEM
+“Nietzsche et son temps” page: the team states that it publishes the improved
+digital critical edition through Nietzsche Source and exposes a current public
+institutional email route for its lead. The tracked card therefore records the
+institutional page and channel class, not a personal recipient or private
+correspondence. Its identity posture remains
+`probable-needs-human-review`, because a suitable research contact is not by
+itself proof that the same institution can grant every requested processing
+right. The card is still only `draft-not-sent`: no message body or private
+recipient identity was committed, no human send approval exists, and no
+communication occurred.
+
+This remains a candidate route, not an admitted witness. Human bibliographic
+and rights review remain false. Exact normalized machine agreement between
+the local eKGWB response and the DTA section is now recorded, but authenticated
+transport, philological acceptance, and human passage alignment remain
+unverified. No German unit was accepted and no human task or translation lane
+was opened. A later specific source or translation question may use the
+candidate as its rights-gated starting point; packet existence alone is not a
+review trigger.
 
 A second, deliberately different route now exists in the source owner:
 Deutsches Textarchiv's four DTABf/TEI P5 transcriptions for the public

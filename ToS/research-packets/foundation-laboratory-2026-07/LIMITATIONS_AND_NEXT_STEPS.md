@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-07-28
+Snapshot: 2026-07-29
 
 ## Honest boundary
 
@@ -23,7 +23,7 @@ fields. They are the next authority layer.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB `Za-I-Vorrede-1` packet, and four exact DTA source-structured part witnesses | prepared units: 30; prepared critical locators: 1; local section structure compatible: 1; structured historical-part witnesses: 4; external native-check claims: 4; exact critical-text comparisons: 0; selected: 0; runs: 0; admitted: 0; human debt: 0 | bibliographic/rights review and exact critical-text alignment remain pending; DTA is not a critical edition or ToS acceptance; no translation lane is open and German linguistic acceptance remains blocked |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | HTTP transport is unauthenticated; bibliographic/rights and German-competent review remain pending; DTA and machine agreement are not critical-edition admission or ToS acceptance |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -55,8 +55,10 @@ contracts intentionally reject simulated human evidence.
 - The four acquired DTA part TEIs are source-structured German witnesses with
   external native-speaker-checking evidence and page anchors. They represent
   distinct 1883, 1884, and 1891 publications and holding copies, not one
-  silently unified source. None is a critical edition, an exact eKGWB
-  alignment, ToS-accepted German, or gold.
+  silently unified source. Part I now has one exact normalized machine
+  comparison to the local eKGWB HTTP candidate for `Za-I-Vorrede-1`; none is
+  thereby a critical edition, authenticated eKGWB source, ToS-accepted German,
+  or gold.
 - The acquired 1886 Naumann *Jenseits von Gut und Böse* scan is an exact
   source-visible historical witness and a different-work transfer surface.
   Its embedded OCR remains untracked and unaccepted; its 274-page mechanical
@@ -99,6 +101,11 @@ contracts intentionally reject simulated human evidence.
   until that evidence is reviewed at the required layer and jurisdiction.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
+- The eKGWB fallback response came from the official public SPA's HTTP include
+  route twice with identical bytes, but HTTP is unencrypted and does not
+  establish authenticity. Its BY-NC-ND statement is unreviewed evidence, the
+  payload remains gitignored/local-only, and neither redistribution nor
+  derivative publication is authorized.
 - Private correspondence and personal contact data must remain in the ignored
   private lane; only redacted public receipts may be committed.
 - Server plans are metadata-only and `blocked-rights`; no payload was uploaded,
@@ -238,8 +245,9 @@ quality.
    packet language-competence-blocked beyond visual structure. Do not infer
    orthographic, grammatical, semantic, translation, or acceptance evidence
    from visual inspection or machine agreement.
-6. Supply declared German competence or adopt a separately researched,
-   reviewed assisted protocol before opening German textual acceptance.
+6. Keep the adopted assisted protocol machine-only within its present
+   competence boundary. Supply declared German competence before German
+   textual acceptance; exact machine agreement cannot supply it.
 7. Preserve every `reject`, `uncertain`, `defer`, or
    `accept-with-limits` state and all local receipts; no validator promotes a
    unit.
