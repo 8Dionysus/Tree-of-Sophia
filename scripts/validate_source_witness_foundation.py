@@ -2746,6 +2746,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         repo_root / SOURCE_ROOT / "access-requests/provenance.jsonl",
         repo_root / SOURCE_ROOT / "server-import/provenance.jsonl",
     ]
+    boundary_events_by_id: dict[str, dict[str, Any]] = {}
     for provenance_path in boundary_event_paths:
         for index, event in enumerate(
             _load_jsonl(provenance_path, repo_root, issues),
@@ -2759,6 +2760,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 if event_id in event_ids:
                     issues.append((location, f"duplicate event_id: {event_id}"))
                 event_ids.add(event_id)
+                boundary_events_by_id[event_id] = event
 
     discovery_root = repo_root / SOURCE_ROOT / "discovery/runs"
     for path in sorted(discovery_root.glob("*.json")):
@@ -2883,8 +2885,48 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     elif _sha256(rights_path) != rights_policy.get("rights_record_sha256"):
                         issues.append((location, "server plan rights-record digest drifted"))
         for event_ref in payload.get("provenance_event_refs", []):
-            if event_ref not in event_ids:
+            event = boundary_events_by_id.get(event_ref)
+            if event is None:
                 issues.append((location, f"unresolved server-plan provenance event: {event_ref}"))
+                continue
+            if payload.get("contract_version", 1) < 2:
+                continue
+            actual_outputs = {
+                (entry.get("ref"), entry.get("sha256"))
+                for entry in event.get("outputs", [])
+                if isinstance(entry, dict)
+            }
+            expected_output = (location, _sha256(path))
+            if expected_output not in actual_outputs:
+                issues.append(
+                    (
+                        location,
+                        f"server-plan provenance output digest drifted: {event_ref}",
+                    )
+                )
+            rights_policy = payload.get("rights_policy", {})
+            expected_inputs = {
+                (
+                    manifest_evidence.get("ref"),
+                    manifest_evidence.get("sha256"),
+                ),
+                (
+                    rights_policy.get("rights_record_ref"),
+                    rights_policy.get("rights_record_sha256"),
+                ),
+            }
+            actual_inputs = {
+                (entry.get("ref"), entry.get("sha256"))
+                for entry in event.get("inputs", [])
+                if isinstance(entry, dict)
+            }
+            if not expected_inputs.issubset(actual_inputs):
+                issues.append(
+                    (
+                        location,
+                        f"server-plan provenance input digests drifted: {event_ref}",
+                    )
+                )
     if planned_manifest_refs != expected_manifest_refs:
         issues.append(
             (

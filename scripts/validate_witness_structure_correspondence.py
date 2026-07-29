@@ -47,10 +47,27 @@ PARALLEL_ANCHOR_RECORDS_PATH = PARALLEL_MAP_PATH.with_name(
 PARALLEL_SCHEMA_PATH = Path(
     "ToS/contracts/parallel-witness-structure-map.schema.json"
 )
+NUMBERED_UNIT_MAP_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/expressions/de-naumann-1886/"
+    "editions/leipzig-c-g-naumann-1886/items/"
+    "internet-archive-google-harvard-scan-pdf/structure/"
+    "numbered-unit-page-map.json"
+)
+NUMBERED_UNIT_ANCHOR_RECORDS_PATH = NUMBERED_UNIT_MAP_PATH.with_name(
+    "numbered-unit-anchors.jsonl"
+)
+NUMBERED_UNIT_SCHEMA_PATH = Path(
+    "ToS/contracts/numbered-unit-page-map.schema.json"
+)
+NUMBERED_UNIT_EVENT_ID = (
+    "tos.event.numbered-unit-page-map.friedrich-nietzsche."
+    "jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29"
+)
 PARALLEL_EVENT_ID = (
     "tos.event.structure-correspondence.friedrich-nietzsche."
     "jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996."
-    "2026-07-28"
+    "source-237a-correction.2026-07-29"
 )
 ANCHOR_EVENT_ID = (
     "tos.event.structure-anchors.friedrich-nietzsche."
@@ -911,6 +928,70 @@ def validate_parallel_structure_correspondence(
     ):
         issues.append((location, "parallel witnesses must have distinct languages"))
 
+    method = payload.get("method", {})
+    source_unit_binding = (
+        method.get("source_numbered_unit_map")
+        if isinstance(method, dict)
+        else None
+    )
+    source_unit_map: dict[str, Any] | None = None
+    if not isinstance(source_unit_binding, dict):
+        issues.append((location, "source numbered-unit map binding is invalid"))
+    elif source_unit_binding.get("ref") != NUMBERED_UNIT_MAP_PATH.as_posix():
+        issues.append((location, "source numbered-unit map ref drifted"))
+    else:
+        source_unit_map_path = repo_root / NUMBERED_UNIT_MAP_PATH
+        source_unit_map = _load_json(source_unit_map_path, repo_root, issues)
+        if (
+            source_unit_map is not None
+            and source_unit_binding.get("sha256")
+            != _sha256(source_unit_map_path)
+        ):
+            issues.append((location, "source numbered-unit map digest drifted"))
+    if source_unit_map is not None and isinstance(source_witness, dict):
+        expected_source_identity = {
+            "work_ref": payload.get("work_ref"),
+            "expression_ref": source_witness.get("expression_ref"),
+            "item_ref": source_witness.get("item_ref"),
+        }
+        for field, expected in expected_source_identity.items():
+            if source_unit_map.get(field) != expected:
+                issues.append(
+                    (
+                        location,
+                        f"source numbered-unit map {field} differs from witness",
+                    )
+                )
+    supplemental_postures = (
+        method.get("supplemental_unit_postures", [])
+        if isinstance(method, dict)
+        else []
+    )
+    postures_by_key = {
+        posture.get("unit_key"): posture
+        for posture in supplemental_postures
+        if isinstance(posture, dict)
+    }
+    expected_target_states = {
+        "65a": "not_individually_reviewed",
+        "73a": "not_individually_reviewed",
+        "237a": "corresponding_prose_present_without_repeated_unit_label",
+    }
+    if (
+        len(postures_by_key) != len(supplemental_postures)
+        or set(postures_by_key) != set(expected_target_states)
+    ):
+        issues.append((location, "supplemental-unit posture set drifted"))
+    else:
+        for unit_key, target_state in expected_target_states.items():
+            if postures_by_key[unit_key].get("target_state") != target_state:
+                issues.append(
+                    (
+                        location,
+                        f"supplemental unit {unit_key} target posture drifted",
+                    )
+                )
+
     anchor_path = repo_root / PARALLEL_ANCHOR_RECORDS_PATH
     anchors = _load_jsonl(anchor_path, repo_root, issues)
     anchor_validator = _validator(ANCHOR_SCHEMA_PATH, repo_root)
@@ -1187,6 +1268,16 @@ def validate_parallel_structure_correspondence(
                 expected_inputs.add(
                     (boundary_binding.get("ref"), boundary_binding.get("sha256"))
                 )
+        method = payload.get("method", {})
+        source_unit_map = (
+            method.get("source_numbered_unit_map")
+            if isinstance(method, dict)
+            else None
+        )
+        if isinstance(source_unit_map, dict):
+            expected_inputs.add(
+                (source_unit_map.get("ref"), source_unit_map.get("sha256"))
+            )
         actual_inputs = {
             (input_entry.get("ref"), input_entry.get("sha256"))
             for input_entry in event.get("inputs", [])
@@ -1198,10 +1289,346 @@ def validate_parallel_structure_correspondence(
     return issues
 
 
+def _numbered_unit_keys() -> list[str]:
+    keys: list[str] = []
+    for number in range(1, 297):
+        keys.append(str(number))
+        if number in {65, 73, 237}:
+            keys.append(f"{number}a")
+    return keys
+
+
+def validate_numbered_unit_page_map(
+    repo_root: Path = REPO_ROOT,
+) -> list[Issue]:
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    map_path = repo_root / NUMBERED_UNIT_MAP_PATH
+    payload = _load_json(map_path, repo_root, issues)
+    if payload is None:
+        return issues
+    location = NUMBERED_UNIT_MAP_PATH.as_posix()
+    _validate_schema(
+        payload,
+        validator=_validator(NUMBERED_UNIT_SCHEMA_PATH, repo_root),
+        location=location,
+        issues=issues,
+    )
+    for path in _prohibited_key_paths(payload):
+        issues.append((location, f"source-text-bearing key is forbidden: {path}"))
+
+    inventory_binding = payload.get("inventory", {})
+    inventory_ref = (
+        inventory_binding.get("ref")
+        if isinstance(inventory_binding, dict)
+        else None
+    )
+    inventory_path = repo_root / str(inventory_ref)
+    inventory = _load_json(inventory_path, repo_root, issues)
+    if not isinstance(inventory_ref, str) or inventory is None:
+        issues.append((location, "resource inventory binding is invalid"))
+        return issues
+    if inventory_binding.get("sha256") != _sha256(inventory_path):
+        issues.append((location, "resource inventory digest drifted"))
+
+    inventory_files = {
+        file_inventory.get("profile"): file_inventory
+        for file_inventory in inventory.get("files", [])
+        if isinstance(file_inventory, dict)
+    }
+    expected_profiles = {
+        "pdf_pages_v1",
+        "djvu_xml_pages_v1",
+        "abbyy_xml_pages_v1",
+    }
+    if set(inventory_files) != expected_profiles:
+        issues.append((location, "resource inventory profile set drifted"))
+    for profile in expected_profiles:
+        file_inventory = inventory_files.get(profile, {})
+        if file_inventory.get("summary", {}).get("page_count") != 274:
+            issues.append((location, f"{profile} page count drifted"))
+
+    scan_file = payload.get("scan_file", {})
+    pdf_inventory = inventory_files.get("pdf_pages_v1", {})
+    if (
+        scan_file.get("file_ref") != pdf_inventory.get("file_id")
+        or scan_file.get("file_sha256") != pdf_inventory.get("file_sha256")
+    ):
+        issues.append((location, "scan file differs from PDF inventory"))
+    navigation_bindings = {
+        entry.get("inventory_profile"): entry
+        for entry in payload.get("navigation_files", [])
+        if isinstance(entry, dict)
+    }
+    expected_navigation_roles = {
+        "djvu_xml_pages_v1": "djvu_xml",
+        "abbyy_xml_pages_v1": "abbyy_xml_gzip",
+    }
+    if set(navigation_bindings) != set(expected_navigation_roles):
+        issues.append((location, "navigation profile set drifted"))
+    for profile, role in expected_navigation_roles.items():
+        binding = navigation_bindings.get(profile, {})
+        file_inventory = inventory_files.get(profile, {})
+        if (
+            binding.get("role") != role
+            or binding.get("file_ref") != file_inventory.get("file_id")
+            or binding.get("file_sha256") != file_inventory.get("file_sha256")
+        ):
+            issues.append((location, f"{profile} binding differs from inventory"))
+
+    pdf_resources = _resources(pdf_inventory)
+    expected_keys = _numbered_unit_keys()
+    unit_starts = [
+        unit
+        for unit in payload.get("unit_starts", [])
+        if isinstance(unit, dict)
+    ]
+    unit_keys = [unit.get("unit_key") for unit in unit_starts]
+    sequences = [unit.get("sequence") for unit in unit_starts]
+    pages = [unit.get("pdf_page") for unit in unit_starts]
+    if unit_keys != expected_keys:
+        issues.append((location, "numbered-unit sequence drifted"))
+    if sequences != list(range(1, 300)):
+        issues.append((location, "numbered-unit ordinal sequence drifted"))
+    if pages != sorted(pages):
+        issues.append((location, "numbered-unit pages are not monotonic"))
+
+    anchor_path = repo_root / NUMBERED_UNIT_ANCHOR_RECORDS_PATH
+    anchors = _load_jsonl(anchor_path, repo_root, issues)
+    anchor_validator = _validator(ANCHOR_SCHEMA_PATH, repo_root)
+    anchors_by_id: dict[str, dict[str, Any]] = {}
+    for index, anchor in enumerate(anchors, start=1):
+        anchor_location = (
+            f"{NUMBERED_UNIT_ANCHOR_RECORDS_PATH.as_posix()}:{index}"
+        )
+        _validate_schema(
+            anchor,
+            validator=anchor_validator,
+            location=anchor_location,
+            issues=issues,
+        )
+        for path in _prohibited_key_paths(anchor):
+            issues.append(
+                (
+                    anchor_location,
+                    f"source-text-bearing key is forbidden: {path}",
+                )
+            )
+        anchor_id = anchor.get("anchor_id")
+        if not isinstance(anchor_id, str) or anchor_id in anchors_by_id:
+            issues.append((anchor_location, "anchor_id is invalid or duplicated"))
+        else:
+            anchors_by_id[anchor_id] = anchor
+
+    expected_anchor_ids: set[str] = set()
+    basis_counts: Counter[str] = Counter()
+    for unit in unit_starts:
+        unit_key = unit.get("unit_key")
+        page = unit.get("pdf_page")
+        resource_id = unit.get("resource_id")
+        anchor_ref = unit.get("anchor_ref")
+        if isinstance(anchor_ref, str):
+            expected_anchor_ids.add(anchor_ref)
+        basis = unit.get("basis")
+        if isinstance(basis, str):
+            basis_counts[basis] += 1
+        resource = pdf_resources.get(resource_id)
+        if (
+            resource is None
+            or resource.get("resource_kind") != "pdf_page"
+            or resource.get("locator", {}).get("page_index") != page
+        ):
+            issues.append(
+                (location, f"numbered unit {unit_key} leaves the PDF inventory")
+            )
+        anchor = anchors_by_id.get(anchor_ref)
+        if anchor is None:
+            issues.append((location, f"numbered unit {unit_key} has no anchor"))
+            continue
+        expected_passage = (
+            "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese."
+            f"de-naumann-1886.unit-{unit_key}"
+        )
+        if (
+            anchor.get("item_id") != payload.get("item_ref")
+            or anchor.get("file_id") != scan_file.get("file_ref")
+            or anchor.get("file_sha256") != scan_file.get("file_sha256")
+            or anchor.get("passage_id") != expected_passage
+            or anchor.get("status") != "proposed"
+            or anchor.get("provenance_event_ref")
+            != payload.get("provenance_event_ref")
+        ):
+            issues.append(
+                (location, f"numbered unit {unit_key} anchor binding drifted")
+            )
+        selectors = anchor.get("selectors", [])
+        selector_types = [
+            selector.get("type")
+            for selector in selectors
+            if isinstance(selector, dict)
+        ]
+        if selector_types != ["structural", "page_region"]:
+            issues.append(
+                (location, f"numbered unit {unit_key} selector bundle drifted")
+            )
+            continue
+        expected_structural_selector = {
+            "type": "structural",
+            "path": [
+                "work:jenseits-von-gut-und-boese",
+                "expression:de-naumann-1886",
+                f"numbered-unit:{unit_key}",
+            ],
+            "scheme": "jgb-numbered-unit-start-v1",
+        }
+        if selectors[0] != expected_structural_selector:
+            issues.append(
+                (location, f"numbered unit {unit_key} structural selector drifted")
+            )
+        page_selector = selectors[1]
+        expected_page_selector = {
+            "type": "page_region",
+            "page": page,
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1,
+            "coordinate_space": "normalized_0_1",
+        }
+        if page_selector != expected_page_selector:
+            issues.append(
+                (location, f"numbered unit {unit_key} page selector drifted")
+            )
+    if set(anchors_by_id) != expected_anchor_ids or len(anchors) != 299:
+        issues.append((location, "numbered-unit anchor set differs from map"))
+    expected_basis_counts = {
+        "ocr_order_candidate": 266,
+        "source_visible_gap_review": 22,
+        "source_visible_ocr_disambiguation": 10,
+        "source_visible_repeated_number_review": 1,
+    }
+    if dict(basis_counts) != expected_basis_counts:
+        issues.append((location, "numbered-unit basis counts drifted"))
+
+    method = payload.get("method", {})
+    review = method.get("source_visible_review", {}) if isinstance(method, dict) else {}
+    if isinstance(review, dict):
+        declared_basis_keys = {
+            "source_visible_gap_review": set(
+                review.get("gap_review_unit_keys", [])
+            ),
+            "source_visible_ocr_disambiguation": set(
+                review.get("ocr_disambiguation_unit_keys", [])
+            ),
+            "source_visible_repeated_number_review": set(
+                review.get("repeated_number_unit_keys", [])
+            ),
+        }
+        declared_review_keys: set[object] = set()
+        for basis, keys in declared_basis_keys.items():
+            if declared_review_keys & keys:
+                issues.append(
+                    (location, f"declared source-visible {basis} set overlaps")
+                )
+            declared_review_keys.update(keys)
+        materialized_review_keys = {
+            unit.get("unit_key")
+            for unit in unit_starts
+            if unit.get("basis") != "ocr_order_candidate"
+        }
+        if declared_review_keys != materialized_review_keys:
+            issues.append((location, "declared source-visible review set drifted"))
+        for unit in unit_starts:
+            unit_key = unit.get("unit_key")
+            expected_basis = "ocr_order_candidate"
+            for basis, keys in declared_basis_keys.items():
+                if unit_key in keys:
+                    expected_basis = basis
+                    break
+            if unit.get("basis") != expected_basis:
+                issues.append(
+                    (location, f"numbered unit {unit_key} review basis drifted")
+                )
+
+    summary = payload.get("summary", {})
+    if isinstance(summary, dict):
+        if summary.get("numbered_unit_count") != len(unit_starts):
+            issues.append((location, "numbered-unit summary count drifted"))
+        if summary.get("exact_start_page_candidates_materialized") != len(
+            unit_starts
+        ):
+            issues.append((location, "start-page candidate summary drifted"))
+
+    provenance_ref = payload.get("provenance_ref")
+    if not isinstance(provenance_ref, str):
+        issues.append((location, "provenance_ref is invalid"))
+        return issues
+    provenance_path = repo_root / provenance_ref
+    events = _load_jsonl(provenance_path, repo_root, issues)
+    provenance_validator = _validator(PROVENANCE_SCHEMA_PATH, repo_root)
+    for index, event in enumerate(events, start=1):
+        _validate_schema(
+            event,
+            validator=provenance_validator,
+            location=f"{provenance_ref}:{index}",
+            issues=issues,
+        )
+    event_matches = [
+        event
+        for event in events
+        if event.get("event_id") == payload.get("provenance_event_ref")
+    ]
+    if (
+        len(event_matches) != 1
+        or payload.get("provenance_event_ref") != NUMBERED_UNIT_EVENT_ID
+    ):
+        issues.append((provenance_ref, "numbered-unit provenance event does not resolve"))
+    else:
+        event = event_matches[0]
+        expected_outputs = {
+            (
+                NUMBERED_UNIT_MAP_PATH.as_posix(),
+                "tracked-text-free-numbered-unit-page-map",
+                _sha256(map_path),
+            ),
+            (
+                NUMBERED_UNIT_ANCHOR_RECORDS_PATH.as_posix(),
+                "tracked-proposed-whole-page-source-anchors",
+                _sha256(anchor_path),
+            ),
+        }
+        actual_outputs = {
+            (output.get("ref"), output.get("role"), output.get("sha256"))
+            for output in event.get("outputs", [])
+            if isinstance(output, dict)
+        }
+        if actual_outputs != expected_outputs:
+            issues.append((provenance_ref, "numbered-unit event outputs drifted"))
+        expected_inputs = {
+            (scan_file.get("file_ref"), scan_file.get("file_sha256")),
+            (inventory_ref, inventory_binding.get("sha256")),
+            *{
+                (entry.get("file_ref"), entry.get("file_sha256"))
+                for entry in payload.get("navigation_files", [])
+                if isinstance(entry, dict)
+            },
+        }
+        actual_inputs = {
+            (input_entry.get("ref"), input_entry.get("sha256"))
+            for input_entry in event.get("inputs", [])
+            if isinstance(input_entry, dict)
+        }
+        if actual_inputs != expected_inputs:
+            issues.append((provenance_ref, "numbered-unit event inputs drifted"))
+
+    return issues
+
+
 def main() -> int:
     issues = [
         *validate_structure_correspondence(),
         *validate_parallel_structure_correspondence(),
+        *validate_numbered_unit_page_map(),
     ]
     if issues:
         print("Witness-structure correspondence validation failed.", file=sys.stderr)

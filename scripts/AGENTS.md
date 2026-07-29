@@ -43,9 +43,9 @@ bibliography, text, rights, translation, or semantics.
 
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF page, EPUB resource,
-and TEI structure inventories from an explicit payload root. It is not a
-release-time acquisition step and its one-way fingerprints are not accepted
-text or alignment evidence.
+TEI structure, and provider OCR page inventories from an explicit payload
+root. It is not a release-time acquisition step and its one-way fingerprints
+are not accepted text or alignment evidence.
 
 `build_witness_structure_correspondence.py` uses those inventories plus
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
@@ -58,6 +58,15 @@ per-unit page claims, provenance, monotonicity, and the authority ceiling. The
 addresses are reusable IDs, not verified passage boundaries. Neither script
 accepts textual identity, original-language text, translation, semantics,
 rights, or canon.
+
+`build_jenseits_numbered_unit_structure.py` is the exact local companion for
+the Naumann 1886 scan package. It combines ordered ABBYY numeral candidates
+with an explicit bounded set of model-visible scan-review results, then emits
+only 299 proposed start-page addresses for §§1–296 plus 65a, 73a, and 237a.
+The release-safe structure validator checks the tracked result without needing
+the local payloads. Neither a complete address set nor a green validator
+accepts the OCR, the German text, exact line boundaries, a critical-edition
+equivalence, a translation, or semantics.
 
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
@@ -161,4 +170,5 @@ Local owner routes:
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
+| local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

@@ -14,7 +14,7 @@
     "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
     "inventory": {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
-      "sha256": "be58351c10418ed238496c1f79a79b0c5894f762bef32d8339044cd0fa08c618"
+      "sha256": "12c6ae31a748d821e515db864901dcc58a7d0b45d75094c92f4487c710a76587"
     },
     "profile": "pdf_pages_v1",
     "work_boundary": null
@@ -49,6 +49,30 @@
     "machine_text_layers": [
       "embedded_ocr_navigation_only",
       "native_text_navigation_only"
+    ],
+    "source_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+      "sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90"
+    },
+    "supplemental_unit_postures": [
+      {
+        "unit_key": "65a",
+        "source_state": "source_start_page_mapped_separately",
+        "target_state": "not_individually_reviewed",
+        "exact_translation_alignment_claimed": false
+      },
+      {
+        "unit_key": "73a",
+        "source_state": "source_start_page_mapped_separately",
+        "target_state": "not_individually_reviewed",
+        "exact_translation_alignment_claimed": false
+      },
+      {
+        "unit_key": "237a",
+        "source_state": "source_start_page_mapped_separately",
+        "target_state": "corresponding_prose_present_without_repeated_unit_label",
+        "exact_translation_alignment_claimed": false
+      }
     ],
     "cross_lingual_text_matching_used": false,
     "semantic_matching_used": false,
@@ -298,7 +322,7 @@
       "division_key": "chapter-7",
       "division_kind": "numbered_main_division",
       "numbered_unit_span": {"first": 214, "last": 239},
-      "supplemental_numbered_units": [],
+      "supplemental_numbered_units": ["237a"],
       "source": {
         "anchor_ref": "tos.anchor.jenseits-structure.de-naumann-1886-chapter-7",
         "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
@@ -433,18 +457,18 @@
     "anchor_count": 22,
     "numbered_division_count": 9,
     "integer_numbered_units_covered": 296,
-    "supplemental_numbered_units": ["65a", "73a"],
+    "supplemental_numbered_units": ["65a", "73a", "237a"],
     "numbered_unit_locator_granularity": "division_range_only",
     "exact_numbered_unit_start_pages_materialized": 0,
-    "numbered_unit_expansion_status": "deferred_due_source_layer_gaps",
+    "numbered_unit_expansion_status": "source_mapped_separately_target_unit_mapping_deferred",
     "source_start_pages_monotonic": true,
     "target_start_pages_monotonic": true,
     "all_anchor_statuses": ["proposed"],
     "human_review_performed": false
   },
-  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.jsonl",
-  "provenance_event_ref": "tos.event.structure-correspondence.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996.2026-07-28",
-  "map_version": 1,
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.source-237a-correction.jsonl",
+  "provenance_event_ref": "tos.event.structure-correspondence.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996.source-237a-correction.2026-07-29",
+  "map_version": 2,
   "supersedes_map_ref": null,
   "authority_boundary": "model-reviewed parallel division starts, division-level numbered-unit spans, and proposed whole-page addresses only; no source text, exact numbered-unit pages, passage boundaries, textual identity, translation equivalence, semantics, rights clearance, or canon authority",
   "does_not_establish": [

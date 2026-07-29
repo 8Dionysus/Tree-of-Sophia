@@ -146,9 +146,12 @@ contracts intentionally reject simulated human evidence.
   because accepted gold does not exist.
 - The parallel *Jenseits* structure map covers preface, nine numbered
   divisions, and aftersong, with contiguous division-level spans 1–296 plus
-  65a/73a. It intentionally materializes zero individual numbered-unit start
-  pages: the embedded German OCR loses enough numerals that automatic
-  completeness would be false.
+  65a/73a/237a. A separate source-only map now preserves 299 proposed
+  start-page candidates after an embedded-PDF/DjVu/ABBYY A/B/C comparison and
+  bounded model-visible gap review. This does not close exact line boundaries,
+  accepted German, real-human repeat, or target-unit mapping. The Mysl witness
+  carries the prose corresponding to source 237a without a repeated unit
+  label, so the parallel map remains at division granularity.
 
 ## Research and software freshness
 

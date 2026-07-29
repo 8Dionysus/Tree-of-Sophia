@@ -1,0 +1,3130 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/numbered-unit-page-map.schema.json",
+  "schema_version": "tos_numbered_unit_page_map_v1",
+  "map_id": "tos.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+  "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+  "expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
+  "edition_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+  "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+  "scan_file": {
+    "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+    "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+    "inventory_profile": "pdf_pages_v1"
+  },
+  "navigation_files": [
+    {
+      "role": "djvu_xml",
+      "file_ref": "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "file_sha256": "6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "inventory_profile": "djvu_xml_pages_v1"
+    },
+    {
+      "role": "abbyy_xml_gzip",
+      "file_ref": "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "file_sha256": "ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "inventory_profile": "abbyy_xml_pages_v1"
+    }
+  ],
+  "inventory": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+    "sha256": "12c6ae31a748d821e515db864901dcc58a7d0b45d75094c92f4487c710a76587"
+  },
+  "map_authority": "model_reviewed_source_structure_candidate_only",
+  "source_text_included": false,
+  "method": {
+    "name": "ordered-ocr-candidate-plus-source-visible-gap-review",
+    "version": "1",
+    "maker_type": "mixed",
+    "local_payloads_read": true,
+    "layer_trials": [
+      {
+        "layer": "embedded_pdf_text",
+        "result": "substantial numeral loss; insufficient for a complete numbered-unit map",
+        "selected_role": "rejected_as_complete_map_source"
+      },
+      {
+        "layer": "djvu_xml",
+        "result": "274-page word-coordinate navigation retained as an independent provider OCR comparison",
+        "selected_role": "secondary_coordinate_navigation"
+      },
+      {
+        "layer": "abbyy_xml_gzip",
+        "result": "274-page paragraph, line, word, and character geometry selected for ordered numeral candidates",
+        "selected_role": "primary_machine_candidate_navigation"
+      }
+    ],
+    "ordered_abbyy_candidate_matches": 272,
+    "source_visible_review": {
+      "maker_type": "model",
+      "human_repeat_performed": false,
+      "gap_review_unit_keys": [
+        "15",
+        "18",
+        "23",
+        "24",
+        "30",
+        "32",
+        "108",
+        "110",
+        "131",
+        "151",
+        "160",
+        "188",
+        "202",
+        "227",
+        "233",
+        "234",
+        "245",
+        "251",
+        "254",
+        "276",
+        "277",
+        "291"
+      ],
+      "ocr_disambiguation_unit_keys": [
+        "195",
+        "199",
+        "224",
+        "247",
+        "253",
+        "258",
+        "262",
+        "270",
+        "283",
+        "296"
+      ],
+      "repeated_number_unit_keys": [
+        "237a"
+      ]
+    },
+    "cross_lingual_text_matching_used": false,
+    "semantic_matching_used": false,
+    "no_source_text_emitted": true
+  },
+  "unit_starts": [
+    {
+      "sequence": 1,
+      "unit_key": "1",
+      "pdf_page": 11,
+      "resource_id": "pdf-page-0011",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-1.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 2,
+      "unit_key": "2",
+      "pdf_page": 12,
+      "resource_id": "pdf-page-0012",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-2.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 3,
+      "unit_key": "3",
+      "pdf_page": 13,
+      "resource_id": "pdf-page-0013",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-3.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 4,
+      "unit_key": "4",
+      "pdf_page": 14,
+      "resource_id": "pdf-page-0014",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-4.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 5,
+      "unit_key": "5",
+      "pdf_page": 15,
+      "resource_id": "pdf-page-0015",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-5.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 6,
+      "unit_key": "6",
+      "pdf_page": 16,
+      "resource_id": "pdf-page-0016",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-6.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 7,
+      "unit_key": "7",
+      "pdf_page": 17,
+      "resource_id": "pdf-page-0017",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-7.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 8,
+      "unit_key": "8",
+      "pdf_page": 18,
+      "resource_id": "pdf-page-0018",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-8.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 9,
+      "unit_key": "9",
+      "pdf_page": 18,
+      "resource_id": "pdf-page-0018",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-9.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 10,
+      "unit_key": "10",
+      "pdf_page": 19,
+      "resource_id": "pdf-page-0019",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-10.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 11,
+      "unit_key": "11",
+      "pdf_page": 21,
+      "resource_id": "pdf-page-0021",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-11.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 12,
+      "unit_key": "12",
+      "pdf_page": 24,
+      "resource_id": "pdf-page-0024",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-12.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 13,
+      "unit_key": "13",
+      "pdf_page": 25,
+      "resource_id": "pdf-page-0025",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-13.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 14,
+      "unit_key": "14",
+      "pdf_page": 26,
+      "resource_id": "pdf-page-0026",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-14.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 15,
+      "unit_key": "15",
+      "pdf_page": 27,
+      "resource_id": "pdf-page-0027",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-15.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 16,
+      "unit_key": "16",
+      "pdf_page": 27,
+      "resource_id": "pdf-page-0027",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-16.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 17,
+      "unit_key": "17",
+      "pdf_page": 29,
+      "resource_id": "pdf-page-0029",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-17.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 18,
+      "unit_key": "18",
+      "pdf_page": 30,
+      "resource_id": "pdf-page-0030",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-18.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 19,
+      "unit_key": "19",
+      "pdf_page": 30,
+      "resource_id": "pdf-page-0030",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-19.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 20,
+      "unit_key": "20",
+      "pdf_page": 33,
+      "resource_id": "pdf-page-0033",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-20.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 21,
+      "unit_key": "21",
+      "pdf_page": 34,
+      "resource_id": "pdf-page-0034",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-21.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 22,
+      "unit_key": "22",
+      "pdf_page": 36,
+      "resource_id": "pdf-page-0036",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-22.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 23,
+      "unit_key": "23",
+      "pdf_page": 37,
+      "resource_id": "pdf-page-0037",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-23.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 24,
+      "unit_key": "24",
+      "pdf_page": 42,
+      "resource_id": "pdf-page-0042",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-24.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 25,
+      "unit_key": "25",
+      "pdf_page": 43,
+      "resource_id": "pdf-page-0043",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-25.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 26,
+      "unit_key": "26",
+      "pdf_page": 45,
+      "resource_id": "pdf-page-0045",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-26.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 27,
+      "unit_key": "27",
+      "pdf_page": 47,
+      "resource_id": "pdf-page-0047",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-27.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 28,
+      "unit_key": "28",
+      "pdf_page": 47,
+      "resource_id": "pdf-page-0047",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-28.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 29,
+      "unit_key": "29",
+      "pdf_page": 49,
+      "resource_id": "pdf-page-0049",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-29.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 30,
+      "unit_key": "30",
+      "pdf_page": 50,
+      "resource_id": "pdf-page-0050",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-30.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 31,
+      "unit_key": "31",
+      "pdf_page": 51,
+      "resource_id": "pdf-page-0051",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-31.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 32,
+      "unit_key": "32",
+      "pdf_page": 52,
+      "resource_id": "pdf-page-0052",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-32.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 33,
+      "unit_key": "33",
+      "pdf_page": 54,
+      "resource_id": "pdf-page-0054",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-33.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 34,
+      "unit_key": "34",
+      "pdf_page": 55,
+      "resource_id": "pdf-page-0055",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-34.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 35,
+      "unit_key": "35",
+      "pdf_page": 57,
+      "resource_id": "pdf-page-0057",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-35.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 36,
+      "unit_key": "36",
+      "pdf_page": 57,
+      "resource_id": "pdf-page-0057",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-36.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 37,
+      "unit_key": "37",
+      "pdf_page": 59,
+      "resource_id": "pdf-page-0059",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-37.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 38,
+      "unit_key": "38",
+      "pdf_page": 59,
+      "resource_id": "pdf-page-0059",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-38.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 39,
+      "unit_key": "39",
+      "pdf_page": 60,
+      "resource_id": "pdf-page-0060",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-39.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 40,
+      "unit_key": "40",
+      "pdf_page": 61,
+      "resource_id": "pdf-page-0061",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-40.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 41,
+      "unit_key": "41",
+      "pdf_page": 62,
+      "resource_id": "pdf-page-0062",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-41.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 42,
+      "unit_key": "42",
+      "pdf_page": 63,
+      "resource_id": "pdf-page-0063",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-42.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 43,
+      "unit_key": "43",
+      "pdf_page": 63,
+      "resource_id": "pdf-page-0063",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-43.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 44,
+      "unit_key": "44",
+      "pdf_page": 64,
+      "resource_id": "pdf-page-0064",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-44.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 45,
+      "unit_key": "45",
+      "pdf_page": 69,
+      "resource_id": "pdf-page-0069",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-45.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 46,
+      "unit_key": "46",
+      "pdf_page": 70,
+      "resource_id": "pdf-page-0070",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-46.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 47,
+      "unit_key": "47",
+      "pdf_page": 72,
+      "resource_id": "pdf-page-0072",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-47.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 48,
+      "unit_key": "48",
+      "pdf_page": 73,
+      "resource_id": "pdf-page-0073",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-48.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 49,
+      "unit_key": "49",
+      "pdf_page": 75,
+      "resource_id": "pdf-page-0075",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-49.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 50,
+      "unit_key": "50",
+      "pdf_page": 75,
+      "resource_id": "pdf-page-0075",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-50.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 51,
+      "unit_key": "51",
+      "pdf_page": 76,
+      "resource_id": "pdf-page-0076",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-51.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 52,
+      "unit_key": "52",
+      "pdf_page": 76,
+      "resource_id": "pdf-page-0076",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-52.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 53,
+      "unit_key": "53",
+      "pdf_page": 77,
+      "resource_id": "pdf-page-0077",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-53.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 54,
+      "unit_key": "54",
+      "pdf_page": 78,
+      "resource_id": "pdf-page-0078",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-54.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 55,
+      "unit_key": "55",
+      "pdf_page": 78,
+      "resource_id": "pdf-page-0078",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-55.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 56,
+      "unit_key": "56",
+      "pdf_page": 79,
+      "resource_id": "pdf-page-0079",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-56.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 57,
+      "unit_key": "57",
+      "pdf_page": 80,
+      "resource_id": "pdf-page-0080",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-57.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 58,
+      "unit_key": "58",
+      "pdf_page": 80,
+      "resource_id": "pdf-page-0080",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-58.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 59,
+      "unit_key": "59",
+      "pdf_page": 83,
+      "resource_id": "pdf-page-0083",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-59.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 60,
+      "unit_key": "60",
+      "pdf_page": 84,
+      "resource_id": "pdf-page-0084",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-60.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 61,
+      "unit_key": "61",
+      "pdf_page": 85,
+      "resource_id": "pdf-page-0085",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-61.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 62,
+      "unit_key": "62",
+      "pdf_page": 87,
+      "resource_id": "pdf-page-0087",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-62.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 63,
+      "unit_key": "63",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-63.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 64,
+      "unit_key": "64",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-64.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 65,
+      "unit_key": "65",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-65.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 66,
+      "unit_key": "65a",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-65a.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 67,
+      "unit_key": "66",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-66.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 68,
+      "unit_key": "67",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-67.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 69,
+      "unit_key": "68",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-68.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 70,
+      "unit_key": "69",
+      "pdf_page": 92,
+      "resource_id": "pdf-page-0092",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-69.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 71,
+      "unit_key": "70",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-70.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 72,
+      "unit_key": "71",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-71.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 73,
+      "unit_key": "72",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-72.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 74,
+      "unit_key": "73",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-73.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 75,
+      "unit_key": "73a",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-73a.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 76,
+      "unit_key": "74",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-74.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 77,
+      "unit_key": "75",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-75.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 78,
+      "unit_key": "76",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-76.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 79,
+      "unit_key": "77",
+      "pdf_page": 93,
+      "resource_id": "pdf-page-0093",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-77.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 80,
+      "unit_key": "78",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-78.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 81,
+      "unit_key": "79",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-79.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 82,
+      "unit_key": "80",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-80.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 83,
+      "unit_key": "81",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-81.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 84,
+      "unit_key": "82",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-82.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 85,
+      "unit_key": "83",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-83.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 86,
+      "unit_key": "84",
+      "pdf_page": 94,
+      "resource_id": "pdf-page-0094",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-84.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 87,
+      "unit_key": "85",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-85.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 88,
+      "unit_key": "86",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-86.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 89,
+      "unit_key": "87",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-87.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 90,
+      "unit_key": "88",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-88.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 91,
+      "unit_key": "89",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-89.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 92,
+      "unit_key": "90",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-90.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 93,
+      "unit_key": "91",
+      "pdf_page": 95,
+      "resource_id": "pdf-page-0095",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-91.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 94,
+      "unit_key": "92",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-92.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 95,
+      "unit_key": "93",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-93.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 96,
+      "unit_key": "94",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-94.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 97,
+      "unit_key": "95",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-95.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 98,
+      "unit_key": "96",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-96.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 99,
+      "unit_key": "97",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-97.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 100,
+      "unit_key": "98",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-98.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 101,
+      "unit_key": "99",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-99.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 102,
+      "unit_key": "100",
+      "pdf_page": 96,
+      "resource_id": "pdf-page-0096",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-100.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 103,
+      "unit_key": "101",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-101.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 104,
+      "unit_key": "102",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-102.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 105,
+      "unit_key": "103",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-103.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 106,
+      "unit_key": "104",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-104.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 107,
+      "unit_key": "105",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-105.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 108,
+      "unit_key": "106",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-106.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 109,
+      "unit_key": "107",
+      "pdf_page": 97,
+      "resource_id": "pdf-page-0097",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-107.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 110,
+      "unit_key": "108",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-108.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 111,
+      "unit_key": "109",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-109.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 112,
+      "unit_key": "110",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-110.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 113,
+      "unit_key": "111",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-111.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 114,
+      "unit_key": "112",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-112.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 115,
+      "unit_key": "113",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-113.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 116,
+      "unit_key": "114",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-114.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 117,
+      "unit_key": "115",
+      "pdf_page": 98,
+      "resource_id": "pdf-page-0098",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-115.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 118,
+      "unit_key": "116",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-116.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 119,
+      "unit_key": "117",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-117.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 120,
+      "unit_key": "118",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-118.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 121,
+      "unit_key": "119",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-119.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 122,
+      "unit_key": "120",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-120.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 123,
+      "unit_key": "121",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-121.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 124,
+      "unit_key": "122",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-122.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 125,
+      "unit_key": "123",
+      "pdf_page": 99,
+      "resource_id": "pdf-page-0099",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-123.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 126,
+      "unit_key": "124",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-124.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 127,
+      "unit_key": "125",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-125.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 128,
+      "unit_key": "126",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-126.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 129,
+      "unit_key": "127",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-127.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 130,
+      "unit_key": "128",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-128.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 131,
+      "unit_key": "129",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-129.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 132,
+      "unit_key": "130",
+      "pdf_page": 100,
+      "resource_id": "pdf-page-0100",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-130.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 133,
+      "unit_key": "131",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-131.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 134,
+      "unit_key": "132",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-132.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 135,
+      "unit_key": "133",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-133.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 136,
+      "unit_key": "134",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-134.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 137,
+      "unit_key": "135",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-135.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 138,
+      "unit_key": "136",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-136.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 139,
+      "unit_key": "137",
+      "pdf_page": 101,
+      "resource_id": "pdf-page-0101",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-137.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 140,
+      "unit_key": "138",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-138.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 141,
+      "unit_key": "139",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-139.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 142,
+      "unit_key": "140",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-140.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 143,
+      "unit_key": "141",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-141.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 144,
+      "unit_key": "142",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-142.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 145,
+      "unit_key": "143",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-143.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 146,
+      "unit_key": "144",
+      "pdf_page": 102,
+      "resource_id": "pdf-page-0102",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-144.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 147,
+      "unit_key": "145",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-145.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 148,
+      "unit_key": "146",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-146.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 149,
+      "unit_key": "147",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-147.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 150,
+      "unit_key": "148",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-148.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 151,
+      "unit_key": "149",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-149.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 152,
+      "unit_key": "150",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-150.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 153,
+      "unit_key": "151",
+      "pdf_page": 103,
+      "resource_id": "pdf-page-0103",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-151.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 154,
+      "unit_key": "152",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-152.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 155,
+      "unit_key": "153",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-153.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 156,
+      "unit_key": "154",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-154.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 157,
+      "unit_key": "155",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-155.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 158,
+      "unit_key": "156",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-156.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 159,
+      "unit_key": "157",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-157.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 160,
+      "unit_key": "158",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-158.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 161,
+      "unit_key": "159",
+      "pdf_page": 104,
+      "resource_id": "pdf-page-0104",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-159.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 162,
+      "unit_key": "160",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-160.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 163,
+      "unit_key": "161",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-161.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 164,
+      "unit_key": "162",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-162.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 165,
+      "unit_key": "163",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-163.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 166,
+      "unit_key": "164",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-164.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 167,
+      "unit_key": "165",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-165.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 168,
+      "unit_key": "166",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-166.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 169,
+      "unit_key": "167",
+      "pdf_page": 105,
+      "resource_id": "pdf-page-0105",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-167.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 170,
+      "unit_key": "168",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-168.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 171,
+      "unit_key": "169",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-169.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 172,
+      "unit_key": "170",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-170.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 173,
+      "unit_key": "171",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-171.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 174,
+      "unit_key": "172",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-172.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 175,
+      "unit_key": "173",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-173.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 176,
+      "unit_key": "174",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-174.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 177,
+      "unit_key": "175",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-175.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 178,
+      "unit_key": "176",
+      "pdf_page": 106,
+      "resource_id": "pdf-page-0106",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-176.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 179,
+      "unit_key": "177",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-177.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 180,
+      "unit_key": "178",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-178.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 181,
+      "unit_key": "179",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-179.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 182,
+      "unit_key": "180",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-180.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 183,
+      "unit_key": "181",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-181.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 184,
+      "unit_key": "182",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-182.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 185,
+      "unit_key": "183",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-183.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 186,
+      "unit_key": "184",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-184.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 187,
+      "unit_key": "185",
+      "pdf_page": 107,
+      "resource_id": "pdf-page-0107",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-185.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 188,
+      "unit_key": "186",
+      "pdf_page": 109,
+      "resource_id": "pdf-page-0109",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-186.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 189,
+      "unit_key": "187",
+      "pdf_page": 111,
+      "resource_id": "pdf-page-0111",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-187.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 190,
+      "unit_key": "188",
+      "pdf_page": 112,
+      "resource_id": "pdf-page-0112",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-188.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 191,
+      "unit_key": "189",
+      "pdf_page": 115,
+      "resource_id": "pdf-page-0115",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-189.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 192,
+      "unit_key": "190",
+      "pdf_page": 116,
+      "resource_id": "pdf-page-0116",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-190.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 193,
+      "unit_key": "191",
+      "pdf_page": 116,
+      "resource_id": "pdf-page-0116",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-191.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 194,
+      "unit_key": "192",
+      "pdf_page": 118,
+      "resource_id": "pdf-page-0118",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-192.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 195,
+      "unit_key": "193",
+      "pdf_page": 119,
+      "resource_id": "pdf-page-0119",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-193.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 196,
+      "unit_key": "194",
+      "pdf_page": 120,
+      "resource_id": "pdf-page-0120",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-194.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 197,
+      "unit_key": "195",
+      "pdf_page": 122,
+      "resource_id": "pdf-page-0122",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-195.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 198,
+      "unit_key": "196",
+      "pdf_page": 123,
+      "resource_id": "pdf-page-0123",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-196.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 199,
+      "unit_key": "197",
+      "pdf_page": 123,
+      "resource_id": "pdf-page-0123",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-197.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 200,
+      "unit_key": "198",
+      "pdf_page": 123,
+      "resource_id": "pdf-page-0123",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-198.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 201,
+      "unit_key": "199",
+      "pdf_page": 125,
+      "resource_id": "pdf-page-0125",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-199.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 202,
+      "unit_key": "200",
+      "pdf_page": 127,
+      "resource_id": "pdf-page-0127",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-200.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 203,
+      "unit_key": "201",
+      "pdf_page": 128,
+      "resource_id": "pdf-page-0128",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-201.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 204,
+      "unit_key": "202",
+      "pdf_page": 131,
+      "resource_id": "pdf-page-0131",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-202.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 205,
+      "unit_key": "203",
+      "pdf_page": 133,
+      "resource_id": "pdf-page-0133",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-203.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 206,
+      "unit_key": "204",
+      "pdf_page": 138,
+      "resource_id": "pdf-page-0138",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-204.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 207,
+      "unit_key": "205",
+      "pdf_page": 141,
+      "resource_id": "pdf-page-0141",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-205.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 208,
+      "unit_key": "206",
+      "pdf_page": 143,
+      "resource_id": "pdf-page-0143",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-206.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 209,
+      "unit_key": "207",
+      "pdf_page": 144,
+      "resource_id": "pdf-page-0144",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-207.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 210,
+      "unit_key": "208",
+      "pdf_page": 147,
+      "resource_id": "pdf-page-0147",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-208.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 211,
+      "unit_key": "209",
+      "pdf_page": 151,
+      "resource_id": "pdf-page-0151",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-209.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 212,
+      "unit_key": "210",
+      "pdf_page": 153,
+      "resource_id": "pdf-page-0153",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-210.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 213,
+      "unit_key": "211",
+      "pdf_page": 156,
+      "resource_id": "pdf-page-0156",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-211.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 214,
+      "unit_key": "212",
+      "pdf_page": 157,
+      "resource_id": "pdf-page-0157",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-212.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 215,
+      "unit_key": "213",
+      "pdf_page": 159,
+      "resource_id": "pdf-page-0159",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-213.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 216,
+      "unit_key": "214",
+      "pdf_page": 163,
+      "resource_id": "pdf-page-0163",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-214.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 217,
+      "unit_key": "215",
+      "pdf_page": 164,
+      "resource_id": "pdf-page-0164",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-215.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 218,
+      "unit_key": "216",
+      "pdf_page": 164,
+      "resource_id": "pdf-page-0164",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-216.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 219,
+      "unit_key": "217",
+      "pdf_page": 165,
+      "resource_id": "pdf-page-0165",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-217.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 220,
+      "unit_key": "218",
+      "pdf_page": 165,
+      "resource_id": "pdf-page-0165",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-218.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 221,
+      "unit_key": "219",
+      "pdf_page": 166,
+      "resource_id": "pdf-page-0166",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-219.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 222,
+      "unit_key": "220",
+      "pdf_page": 167,
+      "resource_id": "pdf-page-0167",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-220.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 223,
+      "unit_key": "221",
+      "pdf_page": 168,
+      "resource_id": "pdf-page-0168",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-221.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 224,
+      "unit_key": "222",
+      "pdf_page": 169,
+      "resource_id": "pdf-page-0169",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-222.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 225,
+      "unit_key": "223",
+      "pdf_page": 169,
+      "resource_id": "pdf-page-0169",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-223.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 226,
+      "unit_key": "224",
+      "pdf_page": 170,
+      "resource_id": "pdf-page-0170",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-224.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 227,
+      "unit_key": "225",
+      "pdf_page": 173,
+      "resource_id": "pdf-page-0173",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-225.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 228,
+      "unit_key": "226",
+      "pdf_page": 175,
+      "resource_id": "pdf-page-0175",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-226.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 229,
+      "unit_key": "227",
+      "pdf_page": 176,
+      "resource_id": "pdf-page-0176",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-227.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 230,
+      "unit_key": "228",
+      "pdf_page": 177,
+      "resource_id": "pdf-page-0177",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-228.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 231,
+      "unit_key": "229",
+      "pdf_page": 179,
+      "resource_id": "pdf-page-0179",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-229.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 232,
+      "unit_key": "230",
+      "pdf_page": 181,
+      "resource_id": "pdf-page-0181",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-230.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 233,
+      "unit_key": "231",
+      "pdf_page": 184,
+      "resource_id": "pdf-page-0184",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-231.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 234,
+      "unit_key": "232",
+      "pdf_page": 185,
+      "resource_id": "pdf-page-0185",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-232.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 235,
+      "unit_key": "233",
+      "pdf_page": 187,
+      "resource_id": "pdf-page-0187",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-233.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 236,
+      "unit_key": "234",
+      "pdf_page": 187,
+      "resource_id": "pdf-page-0187",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-234.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 237,
+      "unit_key": "235",
+      "pdf_page": 188,
+      "resource_id": "pdf-page-0188",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-235.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 238,
+      "unit_key": "236",
+      "pdf_page": 188,
+      "resource_id": "pdf-page-0188",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-236.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 239,
+      "unit_key": "237",
+      "pdf_page": 188,
+      "resource_id": "pdf-page-0188",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-237.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 240,
+      "unit_key": "237a",
+      "pdf_page": 189,
+      "resource_id": "pdf-page-0189",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-237a.pdf-start-page",
+      "basis": "source_visible_repeated_number_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 241,
+      "unit_key": "238",
+      "pdf_page": 189,
+      "resource_id": "pdf-page-0189",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-238.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 242,
+      "unit_key": "239",
+      "pdf_page": 190,
+      "resource_id": "pdf-page-0190",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-239.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 243,
+      "unit_key": "240",
+      "pdf_page": 196,
+      "resource_id": "pdf-page-0196",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-240.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 244,
+      "unit_key": "241",
+      "pdf_page": 197,
+      "resource_id": "pdf-page-0197",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-241.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 245,
+      "unit_key": "242",
+      "pdf_page": 199,
+      "resource_id": "pdf-page-0199",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-242.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 246,
+      "unit_key": "243",
+      "pdf_page": 201,
+      "resource_id": "pdf-page-0201",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-243.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 247,
+      "unit_key": "244",
+      "pdf_page": 201,
+      "resource_id": "pdf-page-0201",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-244.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 248,
+      "unit_key": "245",
+      "pdf_page": 205,
+      "resource_id": "pdf-page-0205",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-245.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 249,
+      "unit_key": "246",
+      "pdf_page": 207,
+      "resource_id": "pdf-page-0207",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-246.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 250,
+      "unit_key": "247",
+      "pdf_page": 208,
+      "resource_id": "pdf-page-0208",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-247.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 251,
+      "unit_key": "248",
+      "pdf_page": 210,
+      "resource_id": "pdf-page-0210",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-248.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 252,
+      "unit_key": "249",
+      "pdf_page": 210,
+      "resource_id": "pdf-page-0210",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-249.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 253,
+      "unit_key": "250",
+      "pdf_page": 210,
+      "resource_id": "pdf-page-0210",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-250.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 254,
+      "unit_key": "251",
+      "pdf_page": 211,
+      "resource_id": "pdf-page-0211",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-251.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 255,
+      "unit_key": "252",
+      "pdf_page": 214,
+      "resource_id": "pdf-page-0214",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-252.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 256,
+      "unit_key": "253",
+      "pdf_page": 216,
+      "resource_id": "pdf-page-0216",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-253.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 257,
+      "unit_key": "254",
+      "pdf_page": 217,
+      "resource_id": "pdf-page-0217",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-254.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 258,
+      "unit_key": "255",
+      "pdf_page": 220,
+      "resource_id": "pdf-page-0220",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-255.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 259,
+      "unit_key": "256",
+      "pdf_page": 221,
+      "resource_id": "pdf-page-0221",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-256.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 260,
+      "unit_key": "257",
+      "pdf_page": 227,
+      "resource_id": "pdf-page-0227",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-257.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 261,
+      "unit_key": "258",
+      "pdf_page": 228,
+      "resource_id": "pdf-page-0228",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-258.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 262,
+      "unit_key": "259",
+      "pdf_page": 229,
+      "resource_id": "pdf-page-0229",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-259.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 263,
+      "unit_key": "260",
+      "pdf_page": 230,
+      "resource_id": "pdf-page-0230",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-260.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 264,
+      "unit_key": "261",
+      "pdf_page": 235,
+      "resource_id": "pdf-page-0235",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-261.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 265,
+      "unit_key": "262",
+      "pdf_page": 238,
+      "resource_id": "pdf-page-0238",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-262.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 266,
+      "unit_key": "263",
+      "pdf_page": 241,
+      "resource_id": "pdf-page-0241",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-263.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 267,
+      "unit_key": "264",
+      "pdf_page": 242,
+      "resource_id": "pdf-page-0242",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-264.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 268,
+      "unit_key": "265",
+      "pdf_page": 244,
+      "resource_id": "pdf-page-0244",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-265.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 269,
+      "unit_key": "266",
+      "pdf_page": 245,
+      "resource_id": "pdf-page-0245",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-266.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 270,
+      "unit_key": "267",
+      "pdf_page": 245,
+      "resource_id": "pdf-page-0245",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-267.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 271,
+      "unit_key": "268",
+      "pdf_page": 245,
+      "resource_id": "pdf-page-0245",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-268.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 272,
+      "unit_key": "269",
+      "pdf_page": 247,
+      "resource_id": "pdf-page-0247",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-269.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 273,
+      "unit_key": "270",
+      "pdf_page": 250,
+      "resource_id": "pdf-page-0250",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-270.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 274,
+      "unit_key": "271",
+      "pdf_page": 251,
+      "resource_id": "pdf-page-0251",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-271.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 275,
+      "unit_key": "272",
+      "pdf_page": 252,
+      "resource_id": "pdf-page-0252",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-272.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 276,
+      "unit_key": "273",
+      "pdf_page": 252,
+      "resource_id": "pdf-page-0252",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-273.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 277,
+      "unit_key": "274",
+      "pdf_page": 253,
+      "resource_id": "pdf-page-0253",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-274.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 278,
+      "unit_key": "275",
+      "pdf_page": 253,
+      "resource_id": "pdf-page-0253",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-275.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 279,
+      "unit_key": "276",
+      "pdf_page": 254,
+      "resource_id": "pdf-page-0254",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-276.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 280,
+      "unit_key": "277",
+      "pdf_page": 254,
+      "resource_id": "pdf-page-0254",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-277.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 281,
+      "unit_key": "278",
+      "pdf_page": 254,
+      "resource_id": "pdf-page-0254",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-278.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 282,
+      "unit_key": "279",
+      "pdf_page": 255,
+      "resource_id": "pdf-page-0255",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-279.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 283,
+      "unit_key": "280",
+      "pdf_page": 255,
+      "resource_id": "pdf-page-0255",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-280.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 284,
+      "unit_key": "281",
+      "pdf_page": 255,
+      "resource_id": "pdf-page-0255",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-281.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 285,
+      "unit_key": "282",
+      "pdf_page": 256,
+      "resource_id": "pdf-page-0256",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-282.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 286,
+      "unit_key": "283",
+      "pdf_page": 256,
+      "resource_id": "pdf-page-0256",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-283.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 287,
+      "unit_key": "284",
+      "pdf_page": 257,
+      "resource_id": "pdf-page-0257",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-284.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 288,
+      "unit_key": "285",
+      "pdf_page": 257,
+      "resource_id": "pdf-page-0257",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-285.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 289,
+      "unit_key": "286",
+      "pdf_page": 258,
+      "resource_id": "pdf-page-0258",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-286.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 290,
+      "unit_key": "287",
+      "pdf_page": 258,
+      "resource_id": "pdf-page-0258",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-287.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 291,
+      "unit_key": "288",
+      "pdf_page": 259,
+      "resource_id": "pdf-page-0259",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-288.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 292,
+      "unit_key": "289",
+      "pdf_page": 259,
+      "resource_id": "pdf-page-0259",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-289.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 293,
+      "unit_key": "290",
+      "pdf_page": 260,
+      "resource_id": "pdf-page-0260",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-290.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 294,
+      "unit_key": "291",
+      "pdf_page": 261,
+      "resource_id": "pdf-page-0261",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-291.pdf-start-page",
+      "basis": "source_visible_gap_review",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 295,
+      "unit_key": "292",
+      "pdf_page": 261,
+      "resource_id": "pdf-page-0261",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-292.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 296,
+      "unit_key": "293",
+      "pdf_page": 261,
+      "resource_id": "pdf-page-0261",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-293.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 297,
+      "unit_key": "294",
+      "pdf_page": 262,
+      "resource_id": "pdf-page-0262",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-294.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 298,
+      "unit_key": "295",
+      "pdf_page": 263,
+      "resource_id": "pdf-page-0263",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-295.pdf-start-page",
+      "basis": "ocr_order_candidate",
+      "status": "proposed",
+      "human_review_performed": false
+    },
+    {
+      "sequence": 299,
+      "unit_key": "296",
+      "pdf_page": 266,
+      "resource_id": "pdf-page-0266",
+      "anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-296.pdf-start-page",
+      "basis": "source_visible_ocr_disambiguation",
+      "status": "proposed",
+      "human_review_performed": false
+    }
+  ],
+  "summary": {
+    "integer_numbered_unit_count": 296,
+    "supplemental_numbered_units": [
+      "65a",
+      "73a",
+      "237a"
+    ],
+    "numbered_unit_count": 299,
+    "exact_start_page_candidates_materialized": 299,
+    "unresolved_unit_count": 0,
+    "start_pages_monotonic": true,
+    "all_anchor_statuses": [
+      "proposed"
+    ],
+    "human_review_performed": false
+  },
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/provenance.jsonl",
+  "provenance_event_ref": "tos.event.numbered-unit-page-map.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29",
+  "map_version": 1,
+  "supersedes_map_ref": null,
+  "authority_boundary": "model-reviewed source-visible numbered-unit start-page candidates and proposed whole-page addresses for one exact scan only; no source text, exact line boundary, textual acceptance, critical equivalence, translation correspondence, semantics, rights clearance, or canon authority",
+  "does_not_establish": [
+    "source_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "accepted_original_language_text",
+    "critical_edition_equivalence",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ]
+}

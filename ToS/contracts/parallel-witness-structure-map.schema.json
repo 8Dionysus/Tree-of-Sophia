@@ -46,6 +46,8 @@
         "local_payloads_read",
         "source_visible_review",
         "machine_text_layers",
+        "source_numbered_unit_map",
+        "supplemental_unit_postures",
         "cross_lingual_text_matching_used",
         "semantic_matching_used",
         "no_source_text_emitted"
@@ -77,6 +79,37 @@
               "embedded_ocr_navigation_only",
               "native_text_navigation_only"
             ]
+          }
+        },
+        "source_numbered_unit_map": {"$ref": "#/$defs/digestBoundRef"},
+        "supplemental_unit_postures": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_key",
+              "source_state",
+              "target_state",
+              "exact_translation_alignment_claimed"
+            ],
+            "properties": {
+              "unit_key": {
+                "enum": ["65a", "73a", "237a"]
+              },
+              "source_state": {
+                "const": "source_start_page_mapped_separately"
+              },
+              "target_state": {
+                "enum": [
+                  "not_individually_reviewed",
+                  "corresponding_prose_present_without_repeated_unit_label"
+                ]
+              },
+              "exact_translation_alignment_claimed": {"const": false}
+            }
           }
         },
         "cross_lingual_text_matching_used": {"const": false},
@@ -119,7 +152,7 @@
         "numbered_unit_locator_granularity": {"const": "division_range_only"},
         "exact_numbered_unit_start_pages_materialized": {"const": 0},
         "numbered_unit_expansion_status": {
-          "const": "deferred_due_source_layer_gaps"
+          "const": "source_mapped_separately_target_unit_mapping_deferred"
         },
         "source_start_pages_monotonic": {"const": true},
         "target_start_pages_monotonic": {"const": true},

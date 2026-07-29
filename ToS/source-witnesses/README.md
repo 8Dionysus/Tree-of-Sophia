@@ -44,6 +44,7 @@ source-witnesses/
 │           │                       ├── provenance.jsonl
 │           │                       ├── rights.json
 │           │                       ├── forensic-report.md
+│           │                       ├── structure/       # text-free item-specific maps + proposed anchors
 │           │                       └── payload/        # gitignored bytes
 │           ├── texts/                              # reviewed source-near text
 │           └── alignments/                         # multi-expression packets
@@ -102,10 +103,11 @@ record and, when materially distinct, a new item or item version.
 
 `resource-inventory.json` is a tracked mechanical companion generated from the
 exact payload digest. It enumerates PDF page geometry and image counts, EPUB
-member/spine order and member fixity, or TEI page-break/division structure.
-Text-bearing EPUB and TEI resources may carry only one-way normalized
-fingerprints and character counts. The inventory cannot accept a reading,
-settle an edition, clear rights, or expose source text.
+member/spine order and member fixity, TEI page-break/division structure, or
+provider DjVu/ABBYY OCR page geometry and counts. Text-bearing EPUB, TEI, and
+OCR resources may carry only one-way normalized fingerprints and character or
+word counts. The inventory cannot accept a reading, settle an edition, clear
+rights, or expose source text.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,
@@ -157,6 +159,14 @@ still reports the former CC BY-NC 3.0; facsimile-image rights are separate.
 The exact TEIs therefore remain local, gitignored, and metadata-only for
 future server routing while the positive and conflicting evidence stays
 visible.
+
+The transfer seed now also includes the exact 274-page Google/Harvard scan
+package of Nietzsche's 1886 Naumann *Jenseits von Gut und Böse*: the Internet
+Archive PDF, its DjVu XML word-coordinate companion, and its compressed ABBYY
+XML coordinate companion. All three provider files are checksum-reconciled,
+gitignored, and local-only. The OCR companions are not independent textual
+witnesses and are not accepted German; they exist to make structure experiments
+reproducible without hiding machine navigation behind the PDF's embedded text.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
@@ -214,13 +224,23 @@ The Jenseits Naumann 1886 ↔ Polilov/Mysl 1996 map under
 uses the more general parallel-PDF contract. It binds eleven source-visible
 division starts—preface, nine numbered main divisions, and aftersong—to exact
 pages in both fixity-bound witnesses. The nine main divisions cover the
-contiguous integer ranges 1–296 and preserve the supplemental units `65a` and
-`73a`.
+contiguous integer ranges 1–296 and preserve the source supplemental units
+`65a`, `73a`, and `237a`.
 
-That map deliberately stops at division-level number spans. The embedded OCR
-of the 1886 scan loses enough unit numerals that emitting 296 exact German page
-starts would manufacture completeness. The tracked state therefore records
-zero exact numbered-unit start pages and keeps expansion deferred until a
-better source layer or bounded page-visible review can close the gaps. Shared
-order, numbering, or a proposed page pair does not establish textual identity,
-translation equivalence, translation quality, semantics, or acceptance.
+The source item now carries a separate, text-free
+`structure/numbered-unit-page-map.json`. An A/B/C comparison rejected embedded
+PDF text as a complete structure source, retained DjVu XML as a secondary
+coordinate layer, and selected ABBYY XML for ordered candidates. Bounded
+source-visible review closed the remaining numeral gaps and exposed a repeated
+printed `237.` on PDF page 189, retained locally as `237a`. The result is 299
+monotonic proposed start-page candidates for §§1–296 plus 65a, 73a, and 237a,
+with 299 whole-page proposed source anchors.
+
+This does not turn the OCR into text or a page into an exact line boundary.
+The parallel German ↔ Russian map still stops at division granularity and
+materializes zero exact target-unit starts. In the Mysl witness, the prose
+corresponding to source `237a` follows the Seven Sayings without a repeated
+237/237a label; that visible asymmetry is preserved instead of being forced
+into an equivalence. Shared order, numbering, or a proposed page pair does not
+establish textual identity, critical-edition equivalence, translation
+alignment, translation quality, semantics, or acceptance.

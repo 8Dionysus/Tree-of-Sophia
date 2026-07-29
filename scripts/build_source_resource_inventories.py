@@ -2,7 +2,8 @@
 """Build tracked, text-free resource inventories from local source payloads.
 
 The inventories enumerate PDF pages, EPUB container resources, and TEI page
-breaks/divisions. They may contain one-way fingerprints of source text but
+breaks/divisions, plus page geometry and counts from provider DjVu/ABBYY OCR
+companions. They may contain one-way fingerprints of source text or OCR but
 never source text itself. Bibliographic, textual, linguistic, rights, and
 semantic judgments remain outside this generator.
 """
@@ -10,6 +11,7 @@ semantic judgments remain outside this generator.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import mimetypes
@@ -465,6 +467,174 @@ def _tei_inventory(
     }
 
 
+def _djvu_xml_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    try:
+        root = ET.parse(payload_path).getroot()
+    except ET.ParseError as exc:
+        raise InventoryBuildError(f"DjVu XML is not well formed: {exc}") from exc
+    if _local_name(root.tag) != "DjVuXML":
+        raise InventoryBuildError("DjVu XML payload has no DjVuXML root")
+
+    resources: list[dict[str, Any]] = []
+    for page_index, page in enumerate(root.findall(".//OBJECT"), start=1):
+        try:
+            width = int(page.attrib["width"])
+            height = int(page.attrib["height"])
+        except (KeyError, ValueError) as exc:
+            raise InventoryBuildError(
+                f"DjVu XML page {page_index} has invalid geometry"
+            ) from exc
+        dpi = None
+        for parameter in page.findall("./PARAM"):
+            if parameter.get("name") == "DPI" and parameter.get("value"):
+                try:
+                    dpi = int(parameter.get("value", ""))
+                except ValueError as exc:
+                    raise InventoryBuildError(
+                        f"DjVu XML page {page_index} has invalid DPI"
+                    ) from exc
+                break
+        if dpi is None:
+            raise InventoryBuildError(f"DjVu XML page {page_index} has no DPI")
+
+        paragraphs = page.findall(".//PARAGRAPH")
+        lines = page.findall(".//LINE")
+        words = page.findall(".//WORD")
+        page_text = " ".join(word.text or "" for word in words)
+        resources.append(
+            {
+                "resource_id": f"djvu-ocr-page-{page_index:04d}",
+                "resource_kind": "ocr_page",
+                "locator": {
+                    "page_index": page_index,
+                    "width_pixels": width,
+                    "height_pixels": height,
+                    "resolution_dpi": dpi,
+                },
+                "structural_role": "page",
+                "paragraph_count": len(paragraphs),
+                "line_count": len(lines),
+                "word_count": len(words),
+                "content_fingerprint": _fingerprint(page_text),
+            }
+        )
+    if not resources:
+        raise InventoryBuildError("DjVu XML payload yielded no page resources")
+    geometries = {
+        (
+            resource["locator"]["width_pixels"],
+            resource["locator"]["height_pixels"],
+            resource["locator"]["resolution_dpi"],
+        )
+        for resource in resources
+    }
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "djvu_xml_pages_v1",
+        "summary": {
+            "resource_count": len(resources),
+            "page_count": len(resources),
+            "paragraph_count": sum(
+                resource["paragraph_count"] for resource in resources
+            ),
+            "line_count": sum(resource["line_count"] for resource in resources),
+            "word_count": sum(resource["word_count"] for resource in resources),
+            "distinct_page_geometry_count": len(geometries),
+        },
+        "resources": resources,
+    }
+
+
+def _abbyy_xml_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    namespace = (
+        "{http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml}"
+    )
+    resources: list[dict[str, Any]] = []
+    try:
+        with gzip.open(payload_path, "rb") as source:
+            for _event, page in ET.iterparse(source, events=("end",)):
+                if page.tag != f"{namespace}page":
+                    continue
+                page_index = len(resources) + 1
+                try:
+                    width = int(page.attrib["width"])
+                    height = int(page.attrib["height"])
+                    dpi = int(page.attrib["resolution"])
+                except (KeyError, ValueError) as exc:
+                    raise InventoryBuildError(
+                        f"ABBYY XML page {page_index} has invalid geometry"
+                    ) from exc
+                paragraphs = list(page.iter(f"{namespace}par"))
+                lines = list(page.iter(f"{namespace}line"))
+                characters = list(page.iter(f"{namespace}charParams"))
+                page_text = "".join(character.text or "" for character in characters)
+                word_count = sum(
+                    character.get("wordStart") == "true"
+                    for character in characters
+                )
+                resources.append(
+                    {
+                        "resource_id": f"abbyy-ocr-page-{page_index:04d}",
+                        "resource_kind": "ocr_page",
+                        "locator": {
+                            "page_index": page_index,
+                            "width_pixels": width,
+                            "height_pixels": height,
+                            "resolution_dpi": dpi,
+                        },
+                        "structural_role": "page",
+                        "paragraph_count": len(paragraphs),
+                        "line_count": len(lines),
+                        "word_count": word_count,
+                        "content_fingerprint": _fingerprint(page_text),
+                    }
+                )
+                page.clear()
+    except (OSError, EOFError, ET.ParseError) as exc:
+        raise InventoryBuildError(f"ABBYY XML gzip is unreadable: {exc}") from exc
+    if not resources:
+        raise InventoryBuildError("ABBYY XML payload yielded no page resources")
+    geometries = {
+        (
+            resource["locator"]["width_pixels"],
+            resource["locator"]["height_pixels"],
+            resource["locator"]["resolution_dpi"],
+        )
+        for resource in resources
+    }
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "abbyy_xml_pages_v1",
+        "summary": {
+            "resource_count": len(resources),
+            "page_count": len(resources),
+            "paragraph_count": sum(
+                resource["paragraph_count"] for resource in resources
+            ),
+            "line_count": sum(resource["line_count"] for resource in resources),
+            "word_count": sum(resource["word_count"] for resource in resources),
+            "distinct_page_geometry_count": len(geometries),
+        },
+        "resources": resources,
+    }
+
+
 def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> dict[str, Any]:
     media_type = payload_entry["media_type"]
     kwargs = {
@@ -476,6 +646,13 @@ def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> d
         return _pdf_inventory(payload_path, **kwargs)
     if media_type == "application/epub+zip":
         return _epub_inventory(payload_path, **kwargs)
+    if media_type == "application/vnd.djvu+xml":
+        return _djvu_xml_inventory(payload_path, **kwargs)
+    if (
+        media_type == "application/gzip"
+        and payload_entry["relative_path"].endswith(".abbyy.xml.gz")
+    ):
+        return _abbyy_xml_inventory(payload_path, **kwargs)
     if media_type in {"application/tei+xml", "application/xml", "text/xml"}:
         return _tei_inventory(payload_path, **kwargs)
     raise InventoryBuildError(

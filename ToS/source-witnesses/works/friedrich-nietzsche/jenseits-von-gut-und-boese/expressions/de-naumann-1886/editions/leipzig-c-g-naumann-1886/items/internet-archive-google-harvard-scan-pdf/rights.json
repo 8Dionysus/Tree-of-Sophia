@@ -3,7 +3,9 @@
   "rights_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf",
   "scope_refs": [
     "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
-    "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"
+    "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+    "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+    "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
   ],
   "assessment_status": "copyright_undetermined",
   "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
@@ -18,12 +20,12 @@
   "permissions": [
     "local preservation and bounded research use",
     "public bibliographic metadata and provenance may remain tracked",
-    "the source provider marks the exact Internet Archive digital object with Public Domain Mark 1.0 and exposes an open download route"
+    "the source provider marks the exact Internet Archive digital object with Public Domain Mark 1.0 and exposes open download routes for the PDF and OCR companions"
   ],
   "restrictions": [
     "the operator-held payload remains local and is not a future-site upload",
     "Public Domain Mark 1.0 is a source statement rather than a license or a jurisdiction-complete ToS conclusion",
-    "underlying 1886 text, physical scan, Google digitization, Internet Archive derivative, and embedded OCR layers require separate review",
+    "underlying 1886 text, physical scan, Google digitization, Internet Archive PDF, embedded OCR, DjVu XML, and ABBYY XML layers require separate review",
     "any future public-site payload must be independently selected or reacquired through an exact currently authorized route after human rights review"
   ],
   "visibility": "local_only",
@@ -34,10 +36,10 @@
     "agent_ref": "model:codex"
   },
   "assessed_at": "2026-07-28T22:29:32-06:00",
-  "rationale": "The exact 1886 item carries unusually strong positive evidence: a source-visible historical title page, an Internet Archive Public Domain Mark, an open download route, and a public-domain-age underlying work. Those facts make it a serious future publication candidate but do not replace jurisdiction-specific human review or the operator rule that locally held source files are never uploaded to the site. The local copy therefore remains research-only while the public route is preserved for later exact review.",
+  "rationale": "The exact 1886 item carries unusually strong positive evidence: a source-visible historical title page, an Internet Archive Public Domain Mark, open PDF and OCR-companion download routes, and a public-domain-age underlying work. Those facts make the provider package a serious future publication candidate but do not replace jurisdiction-specific human review or the operator rule that locally held source files are never uploaded to the site. The local copies therefore remain research-only while the public routes are preserved for later exact review.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

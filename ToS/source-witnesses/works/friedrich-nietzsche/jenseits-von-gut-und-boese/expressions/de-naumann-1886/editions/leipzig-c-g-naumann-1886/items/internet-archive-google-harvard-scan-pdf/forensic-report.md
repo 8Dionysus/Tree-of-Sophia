@@ -65,6 +65,27 @@ tokens, and 11,432 lines, with SHA-256
 That temporary extraction is untracked, unreviewed, and not accepted as German
 source text.
 
+## Provider OCR companions
+
+The current Internet Archive file record also exposes two exact OCR
+companions derived from the same Google/Harvard scan:
+
+- `bub_gb_YIURAAAAYAAJ_djvu.xml`: 3,581,142 bytes; SHA-256
+  `6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0`;
+- `bub_gb_YIURAAAAYAAJ_abbyy.gz`: 6,445,855 bytes; SHA-256
+  `ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34`.
+
+Their MD5 and SHA-1 values match the provider metadata captured on
+2026-07-28. Both enumerate 274 pages in the same order as the PDF. DjVu XML
+retains word coordinates; decompressed ABBYY XML retains page, paragraph,
+line, word, and character coordinates. The compressed provider files are
+preserved locally; the 88,368,921-byte decompressed ABBYY working copy remains
+only under `/srv/abyss-machine/tmp`.
+
+These are machine OCR derivatives, not independent textual witnesses. Their
+tracked resource inventories expose only page geometry, counts, and one-way
+page fingerprints.
+
 ## Source-visible review
 
 PDF pages 1 through 16 were rendered and inspected by the model:
@@ -82,6 +103,15 @@ PDF pages 1 through 16 were rendered and inspected by the model:
 
 The contact sheet remains machine-local laboratory evidence. No human has
 independently repeated this review.
+
+A later bounded model review used the exact visible scan to resolve OCR numeral
+gaps while recovering numbered-unit start pages. It directly inspected the
+ambiguous starts for units 15, 18, 23, 24, 30, 32, 108, 110, 131, 151, 160,
+188, 195, 199, 202, 224, 227, 233, 234, 245, 247, 251, 253, 254, 258,
+262, 270, 276, 277, 283, 291, and 296. PDF page 189 additionally shows a
+second printed `237.` between the
+“Sieben Weibs-Sprüchlein” verse and unit 238. This is retained structurally as
+`237a`; the observation does not accept the surrounding German text.
 
 ## Search and selection evidence
 
@@ -102,13 +132,13 @@ rights acceptance.
 
 ## Rights posture
 
-Internet Archive advertises Public Domain Mark 1.0 for the exact item and an
-open download route. ToS preserves that positive evidence and the age of the
-underlying 1886 work. It still does not infer a license or a
-jurisdiction-complete legal conclusion across the physical scan, Google
-digitization, Internet Archive derivative, and OCR layers.
+Internet Archive advertises Public Domain Mark 1.0 for the exact item and open
+download routes for the PDF and OCR companions. ToS preserves that positive
+evidence and the age of the underlying 1886 work. It still does not infer a
+license or a jurisdiction-complete legal conclusion across the physical scan,
+Google digitization, Internet Archive derivatives, and OCR layers.
 
-The operator-held file remains local and is not a future-site upload. A future
+The operator-held files remain local and are not future-site uploads. A future
 site may use only a separately reviewed, currently authorized source route.
 
 ## Laboratory posture

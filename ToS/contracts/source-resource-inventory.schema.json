@@ -80,6 +80,9 @@
         "page_index": {"type": "integer", "minimum": 1},
         "width_points": {"type": "number", "exclusiveMinimum": 0},
         "height_points": {"type": "number", "exclusiveMinimum": 0},
+        "width_pixels": {"type": "integer", "minimum": 1},
+        "height_pixels": {"type": "integer", "minimum": 1},
+        "resolution_dpi": {"type": "integer", "minimum": 1},
         "rotation_degrees": {"type": "integer"},
         "member_path": {
           "type": "string",
@@ -108,7 +111,13 @@
           "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
         },
         "resource_kind": {
-          "enum": ["pdf_page", "epub_member", "tei_page_break", "tei_division"]
+          "enum": [
+            "pdf_page",
+            "epub_member",
+            "tei_page_break",
+            "tei_division",
+            "ocr_page"
+          ]
         },
         "locator": {"$ref": "#/$defs/locator"},
         "media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"},
@@ -128,6 +137,9 @@
           ]
         },
         "image_resource_count": {"type": "integer", "minimum": 0},
+        "paragraph_count": {"type": "integer", "minimum": 0},
+        "line_count": {"type": "integer", "minimum": 0},
+        "word_count": {"type": "integer", "minimum": 0},
         "label_fingerprint": {"$ref": "#/$defs/fingerprint"},
         "content_fingerprint": {"$ref": "#/$defs/fingerprint"}
       }
@@ -146,7 +158,10 @@
         "xhtml_count": {"type": "integer", "minimum": 0},
         "page_break_count": {"type": "integer", "minimum": 0},
         "division_count": {"type": "integer", "minimum": 0},
-        "max_division_depth": {"type": "integer", "minimum": 0}
+        "max_division_depth": {"type": "integer", "minimum": 0},
+        "paragraph_count": {"type": "integer", "minimum": 0},
+        "line_count": {"type": "integer", "minimum": 0},
+        "word_count": {"type": "integer", "minimum": 0}
       }
     },
     "fileInventory": {
@@ -164,7 +179,15 @@
         "file_id": {"$ref": "#/$defs/tosId"},
         "file_sha256": {"$ref": "#/$defs/sha256"},
         "media_type": {"type": "string", "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"},
-        "profile": {"enum": ["pdf_pages_v1", "epub_resources_v1", "tei_structure_v1"]},
+        "profile": {
+          "enum": [
+            "pdf_pages_v1",
+            "epub_resources_v1",
+            "tei_structure_v1",
+            "djvu_xml_pages_v1",
+            "abbyy_xml_pages_v1"
+          ]
+        },
         "summary": {"$ref": "#/$defs/summary"},
         "resources": {
           "type": "array",

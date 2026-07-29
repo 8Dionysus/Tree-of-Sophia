@@ -1085,14 +1085,24 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("digitized_physical_copy", manifest["item_kind"])
         self.assertEqual("local_only", manifest["visibility"])
         self.assertEqual(
-            "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
-            manifest["payload_files"][0]["sha256"],
+            {
+                "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+                "6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+                "ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+            },
+            {
+                payload_file["sha256"]
+                for payload_file in manifest["payload_files"]
+            },
         )
         self.assertTrue(
-            foundation._git_ignored(
-                REPO_ROOT,
-                JENSEITS_1886_ITEM_ROOT
-                / manifest["payload_files"][0]["relative_path"],
+            all(
+                foundation._git_ignored(
+                    REPO_ROOT,
+                    JENSEITS_1886_ITEM_ROOT
+                    / payload_file["relative_path"],
+                )
+                for payload_file in manifest["payload_files"]
             )
         )
 
@@ -1109,10 +1119,37 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
 
         self.assertFalse(inventory["source_text_included"])
-        self.assertEqual(274, inventory["files"][0]["summary"]["page_count"])
+        files_by_profile = {
+            file_inventory["profile"]: file_inventory
+            for file_inventory in inventory["files"]
+        }
+        self.assertEqual(
+            {
+                "pdf_pages_v1",
+                "djvu_xml_pages_v1",
+                "abbyy_xml_pages_v1",
+            },
+            set(files_by_profile),
+        )
+        self.assertTrue(
+            all(
+                file_inventory["summary"]["page_count"] == 274
+                for file_inventory in files_by_profile.values()
+            )
+        )
         self.assertEqual(
             820,
-            inventory["files"][0]["summary"]["image_resource_count"],
+            files_by_profile["pdf_pages_v1"]["summary"][
+                "image_resource_count"
+            ],
+        )
+        self.assertEqual(
+            62700,
+            files_by_profile["djvu_xml_pages_v1"]["summary"]["word_count"],
+        )
+        self.assertEqual(
+            61704,
+            files_by_profile["abbyy_xml_pages_v1"]["summary"]["word_count"],
         )
 
         self.assertEqual(
@@ -1135,6 +1172,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("metadata-only", server_plan["access_class"])
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertEqual(3, len(server_plan["payload_files"]))
+        self.assertEqual(2, server_plan["contract_version"])
         self.assertEqual(
             "prohibited",
             server_plan["allowed_derivatives"]["transcription"]["state"],

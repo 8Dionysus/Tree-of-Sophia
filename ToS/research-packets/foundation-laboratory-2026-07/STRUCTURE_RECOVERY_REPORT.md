@@ -156,6 +156,39 @@ transcription. Its improved visible structure on several pages must be
 weighed against page-level errors, omitted witness marks, approximately
 95-minute wall time for 12 pages, and an 11.4 GiB observed owner footprint.
 
+## Exact Naumann 1886 numbered-unit source trial
+
+A later bounded A/B/C trial targeted a different question: whether the exact
+1886 *Jenseits von Gut und Böse* scan could support stable numbered-unit
+start-page navigation without first accepting any OCR text.
+
+- A, the PDF embedded text layer, lost too many printed numerals and was
+  rejected as a complete map source.
+- B, the provider DjVu XML, exposed all 274 pages and word coordinates. It was
+  retained as an independent secondary navigation layer.
+- C, the compressed provider ABBYY XML, exposed the same 274-page order plus
+  paragraph, line, word, and character geometry. A strict ordered alignment
+  produced 272 of the 299 expected machine candidates.
+- The remaining 27 algorithmic gaps were not hidden behind looser matching.
+  Explicit scan-visible review supplied their start pages; additional bounded
+  review retained OCR disambiguations as such.
+
+The exact source page also revealed a structural correction. PDF page 189
+prints `237.` a second time after “Sieben Weibs-Sprüchlein” and before 238.
+The source-only map therefore preserves 299 units: integers 1–296 plus 65a,
+73a, and 237a. It emits 299 proposed whole-page anchors and no OCR strings.
+
+The Russian Mysl witness does not repeat 237/237a at the corresponding prose:
+the prose follows the Seven Sayings before 238. The parallel map records this
+asymmetry and stays at division granularity. No exact translation alignment
+was inferred.
+
+The focused numbered-unit builder completed in about 2.5 seconds on the
+resident CPU after the local companions were present. The broader resource
+inventory rebuild, which re-read all ten locally available source items and
+decompressed the 88 MB ABBYY working stream, took about 65 seconds. These are
+observed route costs, not quality scores.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all
@@ -174,9 +207,10 @@ weighed against page-level errors, omitted witness marks, approximately
    manually recomputed from raw artifacts.
 7. Keep all 15 gold candidates unaccepted until two real source-visible human
    passes are recorded.
-8. Reuse the 246 proposed structural addresses for future bounded review and
-   comparison, but require a narrower reviewed anchor before treating a whole
-   member or page as an exact passage boundary.
+8. Reuse the 246 Zarathustra structural addresses and 299 Jenseits source
+   start-page addresses for future bounded review and comparison, but require
+   a narrower reviewed anchor before treating a whole member or page as an
+   exact passage boundary.
 
 ## What remains unknown
 

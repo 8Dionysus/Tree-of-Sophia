@@ -5,7 +5,7 @@
   "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
   "manifest": {
     "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json",
-    "sha256": "bfc01bd6f567439b4e28aa5f4362f0701aecdefe001ad3c41e7de3f804621a50",
+    "sha256": "79caaa8e52ab42330d7950ce9da0e4cf37854de241a8644a2f533fcc1862cb2e",
     "verified": true
   },
   "payload_files": [
@@ -15,11 +15,25 @@
       "byte_size": 13944828,
       "sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
       "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "relative_path": "payload/jenseits-von-gut-und-boese-naumann-1886.djvu.xml",
+      "byte_size": 3581142,
+      "sha256": "6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "relative_path": "payload/jenseits-von-gut-und-boese-naumann-1886.abbyy.xml.gz",
+      "byte_size": 6445855,
+      "sha256": "ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+      "verified": true
     }
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
-    "rights_record_sha256": "5090f29b207d76e3514631548ca9ed6791d19b19ee7ca18f3e140351d5a963a5",
+    "rights_record_sha256": "68f7475dbbe7bfdf04714931f618717e3ef120ae5f0e75b505b14c0c5e427122",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [],
@@ -118,10 +132,10 @@
     "last_reviewed_at": "2026-07-28T22:39:41-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.jenseits-naumann-1886-internet-archive-google-harvard-scan-pdf.2026-07-28"
+    "tos.event.server-import-plan.jenseits-naumann-1886.internet-archive-google-harvard-scan-package-awareness.2026-07-29"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

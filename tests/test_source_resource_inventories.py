@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 import sys
 import tempfile
@@ -118,6 +119,79 @@ class SourceResourceInventoryTests(unittest.TestCase):
             sizes,
         )
         self.assertEqual({1: 0, 2: 90}, rotations)
+
+    def test_djvu_xml_inventory_emits_geometry_counts_and_no_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sample.djvu.xml"
+            path.write_text(
+                """<DjVuXML><BODY><OBJECT width="100" height="200">
+                <PARAM name="DPI" value="300"/><REGION><PARAGRAPH><LINE>
+                <WORD>Visible</WORD><WORD>source</WORD>
+                </LINE></PARAGRAPH></REGION></OBJECT></BODY></DjVuXML>""",
+                encoding="utf-8",
+            )
+            payload = inventories.build_file_inventory(
+                path,
+                {
+                    "file_id": "tos.file.sha256." + "c" * 64,
+                    "sha256": "c" * 64,
+                    "media_type": "application/vnd.djvu+xml",
+                    "relative_path": "payload/sample.djvu.xml",
+                },
+            )
+
+        self.assertEqual("djvu_xml_pages_v1", payload["profile"])
+        self.assertEqual(1, payload["summary"]["page_count"])
+        self.assertEqual(1, payload["summary"]["paragraph_count"])
+        self.assertEqual(1, payload["summary"]["line_count"])
+        self.assertEqual(2, payload["summary"]["word_count"])
+        self.assertEqual(
+            {
+                "page_index": 1,
+                "width_pixels": 100,
+                "height_pixels": 200,
+                "resolution_dpi": 300,
+            },
+            payload["resources"][0]["locator"],
+        )
+        serialized = json.dumps(payload)
+        self.assertNotIn("Visible", serialized)
+
+    def test_abbyy_xml_gzip_inventory_emits_counts_and_no_text(self) -> None:
+        xml = b"""<document xmlns="http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml">
+        <page width="101" height="201" resolution="400"><block><text><par><line>
+        <formatting><charParams wordStart="true">V</charParams>
+        <charParams>i</charParams><charParams wordStart="true">s</charParams>
+        </formatting></line></par></text></block></page></document>"""
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sample.abbyy.xml.gz"
+            with gzip.open(path, "wb") as target:
+                target.write(xml)
+            payload = inventories.build_file_inventory(
+                path,
+                {
+                    "file_id": "tos.file.sha256." + "d" * 64,
+                    "sha256": "d" * 64,
+                    "media_type": "application/gzip",
+                    "relative_path": "payload/sample.abbyy.xml.gz",
+                },
+            )
+
+        self.assertEqual("abbyy_xml_pages_v1", payload["profile"])
+        self.assertEqual(1, payload["summary"]["page_count"])
+        self.assertEqual(1, payload["summary"]["paragraph_count"])
+        self.assertEqual(1, payload["summary"]["line_count"])
+        self.assertEqual(2, payload["summary"]["word_count"])
+        self.assertEqual(
+            {
+                "page_index": 1,
+                "width_pixels": 101,
+                "height_pixels": 201,
+                "resolution_dpi": 400,
+            },
+            payload["resources"][0]["locator"],
+        )
+        self.assertNotIn("Vis", json.dumps(payload))
 
 
 if __name__ == "__main__":

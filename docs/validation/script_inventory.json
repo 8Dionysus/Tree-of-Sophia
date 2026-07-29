@@ -233,10 +233,34 @@
       "writes": [
         "ToS/source-witnesses/**/resource-inventory.json unless --check is used"
       ],
-      "side_effects": "tracked text-free page, container-resource, and TEI-structure inventories",
+      "side_effects": "tracked text-free PDF, EPUB, TEI, DjVu XML, and ABBYY XML resource inventories",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_source_resource_inventories.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_jenseits_numbered_unit_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/payload/*",
+        "ToS/contracts/numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Naumann 1886 PDF, DjVu XML, and ABBYY XML gzip package plus its tracked resource inventory"
+      ],
+      "writes": [
+        "the tracked text-free Naumann 1886 numbered-unit page map, proposed whole-page source anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "tracked model-reviewed start-page candidates for 299 source units without OCR text or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
       "disposition": "keep"
     },
     {
@@ -325,14 +349,16 @@
         "ToS/contracts/witness-structure-correspondence.schema.json",
         "ToS/contracts/witness-structure-anchor-set.schema.json",
         "ToS/contracts/parallel-witness-structure-map.schema.json",
+        "ToS/contracts/numbered-unit-page-map.schema.json",
         "ToS/contracts/source-anchor.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/source-witnesses/**/resource-inventory.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**",
-        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/**"
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/**"
       ],
       "reads": [
-        "tracked text-free structure-correspondence maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
+        "tracked text-free structure-correspondence and numbered-unit page maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
       ],
       "writes": [],
       "side_effects": "validation output only",

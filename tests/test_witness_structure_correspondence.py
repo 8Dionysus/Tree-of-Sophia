@@ -26,6 +26,64 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
             validator.validate_parallel_structure_correspondence(REPO_ROOT),
         )
 
+    def test_numbered_unit_page_map_closes_over_exact_scan_inventory(self) -> None:
+        self.assertEqual(
+            [],
+            validator.validate_numbered_unit_page_map(REPO_ROOT),
+        )
+
+    def test_numbered_unit_map_materializes_proposed_addresses_not_text(
+        self,
+    ) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.NUMBERED_UNIT_MAP_PATH).read_text(
+                encoding="utf-8"
+            )
+        )
+        anchors = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / validator.NUMBERED_UNIT_ANCHOR_RECORDS_PATH
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+
+        self.assertEqual(299, len(payload["unit_starts"]))
+        self.assertEqual(299, len(anchors))
+        self.assertEqual(
+            ["65a", "73a", "237a"],
+            payload["summary"]["supplemental_numbered_units"],
+        )
+        repeated = next(
+            unit
+            for unit in payload["unit_starts"]
+            if unit["unit_key"] == "237a"
+        )
+        self.assertEqual(189, repeated["pdf_page"])
+        self.assertEqual(
+            "source_visible_repeated_number_review",
+            repeated["basis"],
+        )
+        self.assertFalse(payload["source_text_included"])
+        self.assertEqual(
+            {"structural", "page_region"},
+            {
+                selector["type"]
+                for anchor in anchors
+                for selector in anchor["selectors"]
+            },
+        )
+        self.assertFalse(
+            any(
+                selector["type"] in {"text_quote", "text_position"}
+                for anchor in anchors
+                for selector in anchor["selectors"]
+            )
+        )
+        self.assertEqual({"proposed"}, {anchor["status"] for anchor in anchors})
+
     def test_parallel_candidate_keeps_division_spans_distinct_from_exact_units(
         self,
     ) -> None:
@@ -53,7 +111,7 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
         self.assertEqual(11, len(payload["divisions"]))
         self.assertEqual(22, len(anchors))
         self.assertEqual(
-            ["65a", "73a"],
+            ["65a", "73a", "237a"],
             payload["summary"]["supplemental_numbered_units"],
         )
         self.assertEqual(
