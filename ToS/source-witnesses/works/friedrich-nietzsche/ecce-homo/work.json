@@ -1,0 +1,33 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.friedrich-nietzsche.ecce-homo",
+  "preferred_label": "Ecce homo",
+  "variant_labels": [
+    {
+      "value": "Ecce Homo. Как становятся сами собою",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+    "https://d-nb.info/gnd/4115395-9",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4115395-9",
+      "source_ref": "https://d-nb.info/gnd/4115395-9",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [],
+  "notes": "Work identity follows the current GND work authority. Its embodiment as a Russian translation in the local Mysl volume is represented separately.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

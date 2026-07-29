@@ -24,6 +24,12 @@ The catalog extent of 830 pages and the local PDF container count of 831 are
 both retained; no exact digital-item equivalence or rights conclusion is
 inferred.
 
+`nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json` resolves the six
+previously unrepresented whole-work identities in that volume through current
+DNB/GND authorities. It preserves two section-level `Jenseits von Gut und
+Böse` records and the unrelated `Venedig` result as explicit rejections rather
+than silently merging them with whole works.
+
 `antonovsky-1913-wikimedia-open-witness.2026-07-28.v1.json` separates the
 modern local Antonovsky editions from a source-visible 1913 witness. It selects
 the exact 402-page Wikimedia Commons scan, whose description declares the

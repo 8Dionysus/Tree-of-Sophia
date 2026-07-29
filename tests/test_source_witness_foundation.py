@@ -22,6 +22,11 @@ GERMAN_ASSISTED_REVIEW_PATH = (
 CRITICAL_EDITION_WITNESS_PATH = (
     GOLD_ROOT / "critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
 )
+MYSL_WORK_BOUNDARY_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/collections/friedrich-nietzsche/"
+    "works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1654,6 +1659,57 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 self.assertTrue(
                     list(validator.iter_errors(scheduled_historical_debt))
                 )
+
+    def test_mysl_work_boundaries_are_text_free_contiguous_and_unreviewed(self) -> None:
+        boundary_map = json.loads(
+            (MYSL_WORK_BOUNDARY_ROOT / "work-boundary-map.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        anchors = [
+            json.loads(line)
+            for line in (MYSL_WORK_BOUNDARY_ROOT / "anchors.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+        ]
+
+        self.assertFalse(boundary_map["source_text_included"])
+        self.assertEqual("unreviewed", boundary_map["review_status"])
+        self.assertTrue(
+            all(
+                member["epistemic_status"] == "inferred"
+                for member in boundary_map["members"]
+            )
+        )
+        self.assertEqual(
+            [
+                (5, 237),
+                (238, 406),
+                (407, 524),
+                (525, 555),
+                (556, 630),
+                (631, 692),
+                (693, 769),
+            ],
+            [
+                (member["start_page"], member["end_page"])
+                for member in boundary_map["members"]
+            ],
+        )
+        self.assertEqual(11, len(anchors))
+        self.assertTrue(all(anchor["status"] == "proposed" for anchor in anchors))
+        self.assertTrue(
+            all(
+                selector["type"] == "page_region"
+                for anchor in anchors
+                for selector in anchor["selectors"]
+            )
+        )
+        self.assertIn(
+            "semantic units, signs, concepts, or relations",
+            boundary_map["does_not_establish"],
+        )
 
     def test_current_foundation_validates_without_private_payloads(self) -> None:
         self.assertEqual(

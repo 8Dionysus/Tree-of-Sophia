@@ -52,7 +52,10 @@ source-witnesses/
         └── <collection>/
             ├── collection.json
             ├── editions/
-            └── membership-claims.jsonl
+            ├── membership-claims.jsonl
+            ├── responsibility-claims.jsonl
+            └── structure/
+                └── work-boundaries/       # text-free member ranges + page anchors
 ```
 
 `<responsibility-or-tradition>` is a navigational route, not an authorship
@@ -69,6 +72,13 @@ The corpus follows `work -> expression -> edition -> item -> file`. Aggregate
 volumes route through `collections/` and point to contained works/expressions
 with evidence-bearing membership claims. A collection is not duplicated under
 every contained work.
+
+Collection work-boundary maps bind the source-visible member order to one
+exact item/file digest and its text-free page inventory. They may carry
+whole-page title, table-of-contents, and non-work boundary anchors plus
+unreviewed translator-responsibility claims. Such a map is bibliographic
+structure, not accepted text, edition equivalence, translation quality,
+semantics, rights clearance, or canon.
 
 ## Payload boundary
 

@@ -13,6 +13,7 @@ judgment true.
 | `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, and TEI page-break/division inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
 | `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
+| `collection-work-boundary-map.schema.json` | text-free member-work order, contiguous container-page ranges, exact Work/Expression/claim refs, non-work boundaries, source anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |

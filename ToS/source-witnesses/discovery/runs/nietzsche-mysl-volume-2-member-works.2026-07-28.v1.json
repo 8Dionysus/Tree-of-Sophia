@@ -1,0 +1,282 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.nietzsche-mysl-volume-2-member-works.2026-07-28",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    ],
+    "description": "Current national-authority identities for the six works visible in the Mysl 1996 volume 2 local witness but not yet represented as standalone ToS works.",
+    "required_properties": [
+      "preferred original-language work title",
+      "work-level authority identity",
+      "author attribution",
+      "original publication year",
+      "stable external identifier"
+    ],
+    "acceptable_substitutions": [
+      "another national authority record that distinguishes the whole work from a section, adaptation, or related work"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "MARC21-XML",
+      "JSON-LD"
+    ],
+    "purpose_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-gnd-member-work-authorities",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://services.dnb.de/sru/authorities",
+      "interface_type": "api",
+      "interface_version": "DNB SRU 1.1 and GND linked-data JSON-LD as served 2026-07-28",
+      "exact_query": "For each title in local-volume order, GET DNB authorities SRU with query WOE=\"<title>\" and PER=Nietzsche and BBG=Tu*, recordSchema=MARC21-xml, maximumRecords=100; then GET the selected https://d-nb.info/gnd/<id>/about/lds.jsonld with Accept: application/ld+json. Titles: Jenseits von Gut und Böse; Zur Genealogie der Moral; Der Fall Wagner; Götzen-Dämmerung; Der Antichrist; Ecce homo.",
+      "queried_at": "2026-07-28T21:41:45-06:00",
+      "elapsed_seconds": 16.28,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4211811-6",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://d-nb.info/gnd/4211811-6",
+          "originating_record_url": "https://d-nb.info/gnd/4211811-6",
+          "identifiers": [{"scheme": "GND", "value": "4211811-6"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Whole-work authority with Nietzsche as first author, German language, 1886 publication date, full-title information, and stable GND identifier. The constrained SRU query returned three Nietzsche records; the other two are section-level authorities and are preserved below as rejected results.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live originating authority record was inspected directly; no source payload was needed for this metadata-only identity reconciliation."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1038567068",
+          "rank": 2,
+          "title_as_displayed": "Jenseits von Gut und Böse. Von den Vorurtheilen der Philosophen, 17",
+          "result_url": "https://d-nb.info/gnd/1038567068",
+          "originating_record_url": "https://d-nb.info/gnd/1038567068",
+          "identifiers": [{"scheme": "GND", "value": "1038567068"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Section-level authority for section 17, not the whole work embodied by the volume.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected metadata lead; no snapshot was justified."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1038566967",
+          "rank": 3,
+          "title_as_displayed": "Jenseits von Gut und Böse. Von den Vorurtheilen der Philosophen",
+          "result_url": "https://d-nb.info/gnd/1038566967",
+          "originating_record_url": "https://d-nb.info/gnd/1038566967",
+          "identifiers": [{"scheme": "GND", "value": "1038566967"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Part-level authority for the first division, not the whole work embodied by the volume.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected metadata lead; no snapshot was justified."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4342502-1",
+          "rank": 4,
+          "title_as_displayed": "Zur Genealogie der Moral",
+          "result_url": "https://d-nb.info/gnd/4342502-1",
+          "originating_record_url": "https://d-nb.info/gnd/4342502-1",
+          "identifiers": [{"scheme": "GND", "value": "4342502-1"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The sole Nietzsche work returned by the constrained query; the authority reports German language, 1887, and the fuller title Zur Genealogie der Moral : eine Streitschrift.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live originating authority record was inspected directly."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4226521-6",
+          "rank": 5,
+          "title_as_displayed": "Der Fall Wagner",
+          "result_url": "https://d-nb.info/gnd/4226521-6",
+          "originating_record_url": "https://d-nb.info/gnd/4226521-6",
+          "identifiers": [{"scheme": "GND", "value": "4226521-6"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The sole Nietzsche work returned by the constrained query; the authority reports German language and 1888.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live originating authority record was inspected directly."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4501140-0",
+          "rank": 6,
+          "title_as_displayed": "Götzen-Dämmerung",
+          "result_url": "https://d-nb.info/gnd/4501140-0",
+          "originating_record_url": "https://d-nb.info/gnd/4501140-0",
+          "identifiers": [{"scheme": "GND", "value": "4501140-0"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The sole work returned by the constrained query; the authority reports Nietzsche, German language, and 1889.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live originating authority record was inspected directly."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4373217-3",
+          "rank": 7,
+          "title_as_displayed": "Der Antichrist",
+          "result_url": "https://d-nb.info/gnd/4373217-3",
+          "originating_record_url": "https://d-nb.info/gnd/4373217-3",
+          "identifiers": [{"scheme": "GND", "value": "4373217-3"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The sole Nietzsche work returned by the constrained query; the authority reports German language and first publication in 1895.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live originating authority record was inspected directly."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4115395-9",
+          "rank": 8,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://d-nb.info/gnd/4115395-9",
+          "originating_record_url": "https://d-nb.info/gnd/4115395-9",
+          "identifiers": [{"scheme": "GND", "value": "4115395-9"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Whole-work authority with Nietzsche as first author, German language, 1908 publication date, and the fuller title Ecce homo : wie man wird, was man ist. The second constrained-query result is a different Nietzsche work and is preserved below as rejected.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live originating authority record was inspected directly."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1185708251",
+          "rank": 9,
+          "title_as_displayed": "Venedig",
+          "result_url": "https://d-nb.info/gnd/1185708251",
+          "originating_record_url": "https://d-nb.info/gnd/1185708251",
+          "identifiers": [{"scheme": "GND", "value": "1185708251"}],
+          "available_formats": ["MARC21-XML", "JSON-LD", "RDF"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Different work surfaced through a relation or variant in the broad authority index; it does not identify Ecce homo.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected metadata lead; no snapshot was justified."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-gnd-member-work-authorities",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 16.28,
+      "notes": "The national authority resolves all six whole works and exposes section-level and unrelated false positives explicitly enough to reject them without flattening."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dnb-gnd-4211811-6",
+    "tos-discovery-result.dnb-gnd-4342502-1",
+    "tos-discovery-result.dnb-gnd-4226521-6",
+    "tos-discovery-result.dnb-gnd-4501140-0",
+    "tos-discovery-result.dnb-gnd-4373217-3",
+    "tos-discovery-result.dnb-gnd-4115395-9"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.dnb-gnd-1038567068",
+    "tos-discovery-result.dnb-gnd-1038566967",
+    "tos-discovery-result.dnb-gnd-1185708251"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-07-28T21:41:45-06:00",
+  "ended_at": "2026-07-28T21:42:01-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.nietzsche-mysl-volume-2-member-works.2026-07-28"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

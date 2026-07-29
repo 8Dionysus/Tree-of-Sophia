@@ -44,6 +44,9 @@ PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
 CATALOG_SCHEMA = CONTRACT_ROOT / "source-witness-catalog.schema.json"
 ANCHOR_SCHEMA = CONTRACT_ROOT / "source-anchor.schema.json"
+COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
+    CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
+)
 SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "laboratory-sample-plan.schema.json"
 OCR_VISUAL_SAMPLE_PLAN_SCHEMA = CONTRACT_ROOT / "ocr-visual-sample-plan.schema.json"
 GOLD_STATUS_SCHEMA = CONTRACT_ROOT / "manual-gold-status.schema.json"
@@ -625,6 +628,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
         anchor_validator, _ = _schema_validator(ANCHOR_SCHEMA, repo_root)
+        collection_work_boundary_map_validator, _ = _schema_validator(
+            COLLECTION_WORK_BOUNDARY_MAP_SCHEMA,
+            repo_root,
+        )
         sample_plan_validator, _ = _schema_validator(SAMPLE_PLAN_SCHEMA, repo_root)
         ocr_visual_sample_plan_validator, _ = _schema_validator(
             OCR_VISUAL_SAMPLE_PLAN_SCHEMA,
@@ -2886,30 +2893,206 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             )
         )
 
+    boundary_anchor_ids: set[str] = set()
+    boundary_maps: list[tuple[dict[str, Any], Path]] = []
+    boundary_map_membership_refs: set[str] = set()
+    boundary_map_responsibility_refs: set[str] = set()
+    for map_path in sorted((repo_root / SOURCE_ROOT).rglob("work-boundary-map.json")):
+        boundary_map = _load_json(map_path, repo_root, issues)
+        if boundary_map is None:
+            continue
+        location = _relative(map_path, repo_root)
+        _validate_payload(
+            boundary_map,
+            collection_work_boundary_map_validator,
+            location,
+            issues,
+        )
+        boundary_maps.append((boundary_map, map_path))
+        require_record(boundary_map.get("collection_ref"), "collection", location)
+        require_record(boundary_map.get("edition_ref"), "edition", location)
+        require_record(boundary_map.get("item_ref"), "item", location)
+
+        inventory_ref = boundary_map.get("resource_inventory_ref")
+        inventory_path = repo_root / str(inventory_ref)
+        if not inventory_path.is_file():
+            issues.append((location, f"work-boundary resource inventory is missing: {inventory_ref}"))
+        elif _sha256(inventory_path) != boundary_map.get("resource_inventory_sha256"):
+            issues.append((location, "work-boundary resource inventory digest drifted"))
+
+        item_ref = boundary_map.get("item_ref")
+        file_id = boundary_map.get("file_id")
+        if file_owner_by_id.get(file_id) != item_ref:
+            issues.append((location, "work-boundary file does not belong to its item"))
+        if file_digest_by_id.get(file_id) != boundary_map.get("file_sha256"):
+            issues.append((location, "work-boundary file digest differs from the item manifest"))
+        if boundary_map.get("provenance_event_ref") not in event_ids:
+            issues.append((location, "work-boundary provenance event is unresolved"))
+
+        anchor_path = map_path.with_name("anchors.jsonl")
+        local_anchor_ids: set[str] = set()
+        anchor_page_by_id: dict[str, int] = {}
+        for index, anchor in enumerate(_load_jsonl(anchor_path, repo_root, issues), start=1):
+            anchor_location = f"{_relative(anchor_path, repo_root)}:{index}"
+            _validate_payload(anchor, anchor_validator, anchor_location, issues)
+            anchor_id = anchor.get("anchor_id")
+            if isinstance(anchor_id, str):
+                if anchor_id in boundary_anchor_ids:
+                    issues.append((anchor_location, f"duplicate boundary anchor_id: {anchor_id}"))
+                boundary_anchor_ids.add(anchor_id)
+                local_anchor_ids.add(anchor_id)
+                selectors = anchor.get("selectors", [])
+                page_selectors = [
+                    selector
+                    for selector in selectors
+                    if isinstance(selector, dict) and selector.get("type") == "page_region"
+                ]
+                if len(page_selectors) == 1:
+                    page = page_selectors[0].get("page")
+                    if isinstance(page, int):
+                        anchor_page_by_id[anchor_id] = page
+                        if page > boundary_map.get("page_count", 0):
+                            issues.append((anchor_location, "boundary anchor page exceeds page_count"))
+                else:
+                    issues.append((anchor_location, "boundary anchor must have exactly one page selector"))
+            if anchor.get("item_id") != item_ref:
+                issues.append((anchor_location, "boundary anchor item_id differs from map"))
+            if anchor.get("file_id") != file_id:
+                issues.append((anchor_location, "boundary anchor file_id differs from map"))
+            if anchor.get("file_sha256") != boundary_map.get("file_sha256"):
+                issues.append((anchor_location, "boundary anchor file digest differs from map"))
+            if anchor.get("provenance_event_ref") != boundary_map.get("provenance_event_ref"):
+                issues.append((anchor_location, "boundary anchor provenance differs from map"))
+
+        members = boundary_map.get("members", [])
+        sequences = [
+            member.get("sequence")
+            for member in members
+            if isinstance(member, dict)
+        ]
+        if sequences != list(range(1, len(members) + 1)):
+            issues.append((location, "work-boundary member sequence is not contiguous from 1"))
+        previous_end: int | None = None
+        for member in members:
+            if not isinstance(member, dict):
+                continue
+            require_record(member.get("work_ref"), "work", location)
+            require_record(member.get("expression_ref"), "expression", location)
+            expression = records_by_id.get(member.get("expression_ref"))
+            if expression is not None and expression[0].get("work_ref") != member.get("work_ref"):
+                issues.append((location, f"work-boundary expression belongs to another work: {member.get('expression_ref')}"))
+            start_page = member.get("start_page")
+            end_page = member.get("end_page")
+            if isinstance(start_page, int) and isinstance(end_page, int):
+                if start_page > end_page:
+                    issues.append((location, f"work-boundary start exceeds end for sequence {member.get('sequence')}"))
+                if previous_end is not None and start_page != previous_end + 1:
+                    issues.append((location, f"work-boundary members are not contiguous at sequence {member.get('sequence')}"))
+                previous_end = end_page
+            title_anchor_ref = member.get("title_page_anchor_ref")
+            if title_anchor_ref not in local_anchor_ids:
+                issues.append((location, f"unresolved title-page anchor: {title_anchor_ref}"))
+            elif anchor_page_by_id.get(title_anchor_ref) != start_page:
+                issues.append((location, f"title-page anchor does not match start_page: {title_anchor_ref}"))
+            for anchor_ref in member.get("boundary_evidence_anchor_refs", []):
+                if anchor_ref not in local_anchor_ids:
+                    issues.append((location, f"unresolved member boundary anchor: {anchor_ref}"))
+            membership_ref = member.get("membership_claim_ref")
+            if isinstance(membership_ref, str):
+                boundary_map_membership_refs.add(membership_ref)
+            responsibility_ref = member.get("translation_responsibility_claim_ref")
+            if isinstance(responsibility_ref, str):
+                boundary_map_responsibility_refs.add(responsibility_ref)
+
+        non_member_sections = boundary_map.get("non_member_sections", [])
+        for section in non_member_sections:
+            if not isinstance(section, dict):
+                continue
+            start_page = section.get("start_page")
+            end_page = section.get("end_page")
+            if isinstance(start_page, int) and previous_end is not None and start_page != previous_end + 1:
+                issues.append((location, f"non-member section is not contiguous: {section.get('label')}"))
+            if isinstance(start_page, int) and isinstance(end_page, int):
+                if start_page > end_page:
+                    issues.append((location, f"non-member section start exceeds end: {section.get('label')}"))
+                previous_end = end_page
+            anchor_ref = section.get("boundary_anchor_ref")
+            if anchor_ref not in local_anchor_ids:
+                issues.append((location, f"unresolved non-member boundary anchor: {anchor_ref}"))
+            elif anchor_page_by_id.get(anchor_ref) != start_page:
+                issues.append((location, f"non-member boundary anchor does not match start_page: {anchor_ref}"))
+        if previous_end != boundary_map.get("page_count"):
+            issues.append((location, "work and non-member boundaries do not cover the exact page_count"))
+        for anchor_ref in boundary_map.get("crosscheck_anchor_refs", []):
+            if anchor_ref not in local_anchor_ids:
+                issues.append((location, f"unresolved boundary crosscheck anchor: {anchor_ref}"))
+
     membership_claim_ids: set[str] = set()
-    for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("membership-claims.jsonl")):
-        for index, claim in enumerate(_load_jsonl(claim_path, repo_root, issues), start=1):
-            location = f"{_relative(claim_path, repo_root)}:{index}"
-            _validate_payload(claim, claim_validator, location, issues)
-            claim_id = claim.get("claim_id")
-            if isinstance(claim_id, str):
-                if claim_id in claim_ids:
-                    issues.append((location, f"duplicate claim_id: {claim_id}"))
-                claim_ids.add(claim_id)
-                membership_claim_ids.add(claim_id)
-            for field in ("subject_ref", "object"):
-                ref = claim.get(field)
-                if isinstance(ref, str) and ref.startswith("tos.") and ref not in records_by_id:
-                    issues.append((location, f"unresolved claim {field}: {ref}"))
-            event_ref = claim.get("provenance_event_ref")
-            if isinstance(event_ref, str) and event_ref not in event_ids:
-                issues.append((location, f"unresolved provenance_event_ref: {event_ref}"))
+    responsibility_claim_ids: set[str] = set()
+    claim_routes = (
+        ("membership-claims.jsonl", "contains_work", "collection", "work", membership_claim_ids),
+        ("responsibility-claims.jsonl", "translated_by", "expression", "agent", responsibility_claim_ids),
+    )
+    for filename, predicate, subject_type, object_type, route_ids in claim_routes:
+        for claim_path in sorted((repo_root / SOURCE_ROOT).rglob(filename)):
+            for index, claim in enumerate(_load_jsonl(claim_path, repo_root, issues), start=1):
+                location = f"{_relative(claim_path, repo_root)}:{index}"
+                _validate_payload(claim, claim_validator, location, issues)
+                claim_id = claim.get("claim_id")
+                if isinstance(claim_id, str):
+                    if claim_id in claim_ids:
+                        issues.append((location, f"duplicate claim_id: {claim_id}"))
+                    claim_ids.add(claim_id)
+                    route_ids.add(claim_id)
+                if claim.get("predicate") != predicate:
+                    issues.append((location, f"{filename} claim predicate must be {predicate}"))
+                require_record(claim.get("subject_ref"), subject_type, location)
+                require_record(claim.get("object"), object_type, location)
+                event_ref = claim.get("provenance_event_ref")
+                if isinstance(event_ref, str) and event_ref not in event_ids:
+                    issues.append((location, f"unresolved provenance_event_ref: {event_ref}"))
+                for evidence_ref in claim.get("evidence_refs", []):
+                    if isinstance(evidence_ref, str) and evidence_ref.startswith("tos.anchor."):
+                        if evidence_ref not in boundary_anchor_ids:
+                            issues.append((location, f"unresolved boundary evidence anchor: {evidence_ref}"))
+                    elif isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
+                        if not (repo_root / evidence_ref).is_file():
+                            issues.append((location, f"unresolved repository evidence ref: {evidence_ref}"))
 
     for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "collection"):
         location = _relative(path, repo_root)
         missing = sorted(set(payload.get("membership_claim_refs", [])) - membership_claim_ids)
         if missing:
             issues.append((location, f"unresolved membership claims: {missing}"))
+
+    for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "expression"):
+        location = _relative(path, repo_root)
+        missing = sorted(
+            set(payload.get("responsibility_claim_refs", [])) - responsibility_claim_ids
+        )
+        if missing:
+            issues.append((location, f"unresolved responsibility claims: {missing}"))
+
+    missing_boundary_memberships = sorted(
+        boundary_map_membership_refs - membership_claim_ids
+    )
+    if missing_boundary_memberships:
+        issues.append(
+            (
+                SOURCE_ROOT.as_posix(),
+                f"work-boundary maps reference missing membership claims: {missing_boundary_memberships}",
+            )
+        )
+    missing_boundary_responsibilities = sorted(
+        boundary_map_responsibility_refs - responsibility_claim_ids
+    )
+    if missing_boundary_responsibilities:
+        issues.append(
+            (
+                SOURCE_ROOT.as_posix(),
+                f"work-boundary maps reference missing responsibility claims: {missing_boundary_responsibilities}",
+            )
+        )
 
     try:
         collect_records(repo_root)
