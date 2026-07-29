@@ -1,10 +1,13 @@
 # Retrieval Comparison Report: Foundation Pilot v1
 
-Status: variants A/B/C executed; real human relevance review not started
+Status: text variants A/B/C executed; separate direct-visual challenger
+prepared but resource-blocked before execution; real human relevance review
+not started
 Experiment: `tos-retrieval-foundation-v1`
 Frozen query set: 20 queries, sealed before variant output
 Indexed sample: 36 source-addressable units, of which 24 contain extracted text
 Execution date: 2026-07-22
+Direct-visual admission snapshot: 2026-07-29
 
 ## Result first
 
@@ -19,6 +22,19 @@ promotion, and there is no quality winner before human grading.
   local at inference time, and mechanically reproducible across two separate
   runs. Its 20 ranked-anchor lists and 237,643-byte vector index are identical
   between runs.
+- A separate direct-visual experiment reuses the same 20 query bytes and all
+  36 digest-frozen page PNGs. Its exact Qwen3-VL-Embedding-2B source revision,
+  29-wheel CPU closure, 18-file model tree, isolated offline runtime, visual
+  input-use audit, network audit, source-to-image crosswalk, and immutable
+  text-control receipts are prepared. It is not a fourth result in the
+  comparison below.
+- The latest durable direct-visual preflight is `blocked`, not `ready`.
+  Available memory was 11,545,407,488 bytes against the frozen
+  17,179,869,184-byte minimum, and the host resource owner returned
+  `force_required`. Storage, load, temperature, exact plan, runtime, license,
+  CPU, and local-only network posture all passed. No force was used, the
+  threshold was not weakened, and no run root, page embedding, index, ranking,
+  quality metric, or winner exists.
 - On a common advisory denominator of 19 non-coverage queries, A returns the
   model-proposed target in the first ten for 17 queries, B for 18, and C for
   17. This is not a quality score: the target declarations are model-proposed
@@ -48,6 +64,11 @@ promotion, and there is no quality winner before human grading.
 No nDCG@10, hard-negative error rate, or human correction cost is reported.
 Those fields remain `null`. All successful run packets remain
 `awaiting-manual-review`; no derived index is canonical.
+
+The direct-visual non-run adds no row to the comparable A/B/C measurements.
+Its one-time acquisition and runtime preparation cost is recorded separately
+below; it supplies no retrieval speed, memory peak, relevance, or coverage
+result.
 
 ## Comparable measurements
 
@@ -109,6 +130,86 @@ recorded without reconstructing a receipt. The second C run used identical
 inputs and method, captured the complete owner receipt immediately, and
 reproduced all 20 ranked-anchor lists plus the exact index digest. Both local
 indexes remain isolated under their run roots.
+
+## Direct visual challenger: exact route prepared, no execution
+
+`tos-visual-retrieval-foundation-v1` is a distinct output-blind experiment.
+It does not rename or supersede Granite as text-retrieval variant C. Its own
+challenger C asks a different question: can a Russian or German text query
+retrieve the relevant source page directly from its image when extracted or
+OCR text is absent, corrupt, or contaminated?
+
+The source-owned plan was frozen before model acquisition or challenger output:
+
+- plan SHA-256
+  `27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25`;
+- 20 unchanged private query strings and 36 unchanged page PNGs;
+- render-manifest SHA-256
+  `734e7474923ec2697a243b1e1b322c43c4e2a8b82b6336df57ab82f3bbc8fec7`;
+- immutable text-control receipt SHA-256 values
+  `d6d13bae304ff72afa126143921865415740b2342cb49d0c70e252de51e691fa`
+  for A and
+  `b879670826b2b5f512bceac56f3cc0b48eaeec72e4c7e375f72cc40c9901b3db`
+  for B;
+- `Qwen/Qwen3-VL-Embedding-2B` revision
+  `9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda`, 2,127,532,032 parameters,
+  Apache-2.0, selected 2,048-dimensional output.
+
+The host-owned setup then closed the exact local execution route without
+placing model or runtime bytes in Tree of Sophia:
+
+- frozen acquisition: 4,549,670,315 bytes, comprising 4,271,068,726 model
+  bytes and 278,601,589 bytes across 29 CPU wheels;
+- acquisition receipt SHA-256
+  `c93062e4cd6395b30ab057be184b80afd41a1632203424b528fec14f63c43c73`;
+- isolated runtime: 1,182,279,019 bytes and 27,587 inventoried artifacts;
+- runtime-manifest SHA-256
+  `ff730fe5780216fe84f26b7fbed6c57d0f0de58cabac5026d6af403e094632ba`;
+- runtime artifact-set SHA-256
+  `837f70def92d6808d975f1d2c4871aec24a184443307266531909105a23ebf38`.
+
+Early setup failures remain evidence. The first runtime materialization
+exposed an undeclared `torchvision` import dependency before model load. The
+corrected closure makes that dependency explicit. A later code audit exposed
+that the reviewed upstream helper can catch an image-processing exception and
+fall back to a `NULL` text input. The admitted bridge now fails closed unless
+all 36 requests demonstrably consume exactly one decoded page image. It also
+records and requires zero network attempts. These controls prove execution
+integrity only; they are not model-quality evidence.
+
+The latest durable preflight is stored by the host owner as:
+
+`/srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/preflights/tos-visual-retrieval-foundation-v1-c-20260729t160500z.json`
+
+Its SHA-256 is
+`299cdf3ad98d17c4f3b98b2080eb21e20525c5bae869573b22633c7674195e16`.
+At `2026-07-29T16:05:13.585670+00:00` it established:
+
+| Admission fact | Observed | Frozen requirement / decision |
+| --- | ---: | --- |
+| source plan | exact digest admitted | pass |
+| isolated runtime | exact manifest and artifact set admitted | pass |
+| `/srv` free bytes | 51,723,489,280 | at least 21,474,836,480; pass |
+| storage-owner request | 6,697,153,963 bytes | `allow` |
+| load 1m | 5.7431640625 | at most 8; pass |
+| temperature | 87 °C | below 105 °C watch boundary; pass |
+| available memory | 11,545,407,488 bytes | at least 17,179,869,184; **block** |
+| heavy/indexing owner admission | `force_required` | `allow` required; **block** |
+
+The owner projected that admitting the additional heavy/indexing startup
+demand alongside existing reservations would breach the host reserve. That is
+the reason for the non-run. Temperature and storage are not the reason, and
+the receipt supplies no model failure or retrieval result. The frozen
+pre-output plan intentionally remains unchanged: mutating it after setup would
+break the digest-bound comparison. A later attempt requires a fresh
+`decision=ready` preflight under the same 16 GiB memory floor; it must not use
+force merely to complete the matrix.
+
+Even a successful future run can establish only page-image candidate
+retrieval. A returned image is not a transcription, quotation, source-text
+acceptance, semantic judgment, or philosophical claim. Human review remains
+triggered only if adoption, a material route change, unresolved ambiguity, or
+explicit drift control makes that decision necessary.
 
 ## Variant A: what remains proven
 
@@ -298,10 +399,13 @@ frozen runs; it belongs in a separately declared method revision.
    filtering as future declared variants. Do not retroactively call the
    observed A/B/C outputs a hybrid system.
 10. Keep the isolated B collection and C run-local indexes only through manual
-   review, then delete them
-   unless an explicit retention decision says otherwise.
+    review, then delete them
+    unless an explicit retention decision says otherwise.
 11. Preserve the C runtime/cache only while it supports the remaining frozen
-   laboratory; its versioned removal route is already recorded.
+    laboratory; its versioned removal route is already recorded.
+12. Retain the direct-visual route as an admitted but unexecuted challenger.
+    Do not force the host resource owner, lower the frozen 16 GiB floor, or
+    infer a model result from setup/preflight evidence.
 
 ## Comparison still required
 
@@ -314,6 +418,9 @@ A genuine quality conclusion still requires:
 - separate indexing, query, machine, storage, and human-time costs;
 - candidate-depth and target-language-policy trials declared before output;
 - a corpus-scale Qdrant run large enough to exercise its vector index;
+- one owner-admitted offline direct-visual run, only after a fresh preflight
+  returns `ready`, followed by triggered source-visible review if its output
+  is actually considered for adoption or changes a source-return route;
 - final deletion or retention receipts for all derived indexes.
 
 Until those conditions hold, the defensible conclusion is narrower: lexical

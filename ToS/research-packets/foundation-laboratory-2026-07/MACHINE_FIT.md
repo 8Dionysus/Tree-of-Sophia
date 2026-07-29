@@ -2,7 +2,8 @@
 
 Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C evidence, not a general benchmark result
 
-Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26
+Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26;
+direct-visual runtime and resource admission refreshed 2026-07-29
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -205,7 +206,7 @@ maximum contexts are never the default local test setting.
 | Granite Embedding 311M Multilingual R2 | 348,082,051 bytes already present | strong CPU/OpenVINO fit; independent IBM family; 200+ languages | Retrieval C executed twice; deterministic mechanics proven; human quality unresolved |
 | gte-multilingual-base | new compact artifact | feasible but older repository route requests remote model code | retain as comparator, not selected for C |
 | BGE-M3 | roughly 2.27 GB model artifact | feasible but heavy and multi-mode | retain as literature reference; do not confound current C |
-| Qwen3-VL-Embedding-2B | new 4+ GB source artifact | possible but costly for current scope | defer until visual-retrieval gold case exists |
+| Qwen3-VL-Embedding-2B | exact 4,549,670,315-byte acquisition and 1,182,279,019-byte isolated CPU runtime now present in host-owned storage | exact runtime is mechanically admitted; latest run preflight had 11,545,407,488 available bytes against a 17,179,869,184-byte floor | retain prepared visual challenger; run only after fresh unforced owner `ready`, with no current quality result |
 | PaddleOCR-VL 0.9B | new runtime/models | potentially feasible on Intel path | hard-page conditional only |
 | Qwen3.6 35B-A3B | large new artifact | total-weight and memory/storage pressure | reject first wave |
 
@@ -224,8 +225,10 @@ The safe order is designed to gain evidence before resource cost:
    packet if the final repeatability decision requires it, reveal sealed reference
    witnesses only after independent drafts freeze, and perform manual review;
 7. resident E2B, E4B, and Qwen3 4B sequential LLM proposals;
-8. only then decide whether fusion, visual retrieval, or another service/model
-   install is justified.
+8. preserve the separately frozen visual-retrieval decision and prepared
+   Qwen3-VL CPU route; execute it only after fresh unforced resource admission;
+9. only then decide whether fusion or another service/model install is
+   justified.
 
 OCR, embeddings, LLMs, graph services, and annotation services should not all
 run concurrently. Experiments are small enough that isolation is more

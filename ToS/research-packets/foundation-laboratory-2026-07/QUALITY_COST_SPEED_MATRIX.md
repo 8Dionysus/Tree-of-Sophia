@@ -33,6 +33,7 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | retrieval A / SQLite FTS5 | 24 nonempty passages, 20 queries | model-proposed target top-10 17/19; literal OCR-noise and title retrieval; human judgments 0 | 0.04199 s build; 0.06026 ms warm; 0.36597 ms connection-cold | 200,704-byte database | not measured | exact-form fallback; not semantic/cross-language solution |
 | retrieval B / Qwen3 + Qdrant + reranker | same passages and queries | advisory target top-10 18/19; cross-language recall plus target-language and scan-furniture failures; human judgments 0 | 2.561 s embedding + 0.611 s materialization; 66.27 ms warm dense; 2,424.38 ms warm reranked; 11,546.82 ms cold reranker route | 300,032-byte snapshot; shared resident memory not isolatable | not measured | serious candidate; no winner |
 | retrieval C / Granite R2 CPU | same passages and queries; exact repeat | advisory target top-10 17/19; five rank-1 title/front pages; cross-language policy failures; rankings repeat exactly; human judgments 0 | 0.038 s model read + 0.646 s compile + 7.733 s passage embedding + 0.004 s write; 16.18 ms warm query embedding/rank; 19.213 s repeat runner | 663.5 MB owner peak, zero swap; 237,643-byte vector projection | not measured | independent comparator; no winner |
+| direct visual retrieval C / Qwen3-VL-Embedding-2B CPU | frozen 20 text queries × 36 page images; 0 runs | no page embedding, ranking, coverage, relevance, or quality output; human judgments 0 | run speed not measured; latest preflight blocked before preparation | one-time 4,549,670,315-byte acquisition plus 1,182,279,019-byte isolated runtime; storage owner allowed a 6,697,153,963-byte request with 51,723,489,280 bytes free; runtime exact; 11,545,407,488 available memory failed the 17,179,869,184-byte floor and owner returned `force_required` | not measured; no review scheduled | execution route prepared; resource-blocked non-run; no model verdict or winner |
 | graph A, first | 13 claims, 10 questions | field presence falsely called traceability | 0.000039 s build; 0.002685 ms median warm query | 42,169 packet bytes; 32,030,720 runner peak RSS | not measured | rejected revision; negative retained |
 | graph A, corrected | same claim/query set | 10/10 advisory expectations and real owner-reference closure; claims still unreviewed | 0.023353 s build; 0.002290 ms median warm query | 79,827 packet bytes; 32,071,680 peak RSS | not measured | reference semantics only |
 | graph B, first Neo4j | same claim/query set | literal status leaked into identity; 8/10 advisory expectations | 1.527820 s materialization; 4.549903 ms median warm query | 156,038 packet bytes; 32,301,056 runner peak RSS; shared service store not isolated | not measured | rejected revision; negative retained |
@@ -63,6 +64,9 @@ comparable:
   12-page run; they establish execution and resource profiles, not
   full-scope repeatability or an equal-scope winner;
 - retrieval C's two runs support exact ranking/index reproducibility;
+- direct visual retrieval has setup/runtime integrity and a durable blocked
+  preflight only; it supplies no run measurement and is not comparable with
+  the executed text variants;
 - corrected graph projections support lifecycle and trace-carriage comparison;
 - first and corrected revisions expose specific implementation defects.
 
@@ -79,6 +83,8 @@ The following remain absent rather than zero:
   minutes;
 - structure F1, text accuracy, and correction minutes;
 - retrieval nDCG@10, hard-negative error rate, and human relevance;
+- direct visual page-retrieval ranking, coverage recovery, latency, peak
+  memory, and relevance;
 - graph answer correctness and human trace-review minutes;
 - translation fidelity on all 19 axes, comparator influence, and human effort;
 - semantic annotation agreement, unsupported-promotion rate, and automation

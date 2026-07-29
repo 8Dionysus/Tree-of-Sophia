@@ -70,8 +70,24 @@ It follows the frozen method rather than optimizing toward an observed answer:
 | --- | --- | --- |
 | `gte-multilingual-base` | retain as comparator | July 2025 repository state; documented SentenceTransformers path enables remote model code |
 | BGE-M3 | retain as literature/reference candidate | older, roughly 2.27 GB, and dense+sparse+multi-vector behavior would change more than one variable |
-| Qwen3-VL-Embedding-2B | defer to visual-search experiment | current sample/query lane has text passages, not frozen page images and visual relevance judgments |
+| Qwen3-VL-Embedding-2B | defer from this text run to a separate visual-search experiment | this frozen text lane has passages rather than page images; a later experiment must independently freeze its image corpus and relevance boundary |
 | lexical+dense fusion | defer to derived experiment | combines A/B components and is not the independent C required by the goal |
+
+## Post-freeze visual-route status
+
+This historical decision remains unchanged for text Retrieval C. A distinct
+experiment was subsequently frozen on 2026-07-29 with the same 20 query bytes,
+36 digest-bound page images, immutable completed text controls, and
+`Qwen/Qwen3-VL-Embedding-2B` revision
+`9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda`.
+
+Its exact acquisition and isolated offline CPU runtime are now mechanically
+admitted. Its latest host preflight is nevertheless `blocked`: available
+memory was 11,545,407,488 bytes against the frozen 17,179,869,184-byte
+minimum, and the resource owner returned `force_required`. It has zero runs
+and supplies no relevance, modality, transcription, quotation, model-failure,
+or winner evidence. This later route does not retroactively alter the
+output-blind Granite selection above.
 
 ## Comparability lock
 

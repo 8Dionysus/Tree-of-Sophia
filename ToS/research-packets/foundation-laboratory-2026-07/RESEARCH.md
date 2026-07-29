@@ -1,7 +1,8 @@
 # Corpus Foundation, Semantics, and Laboratory Research
 
 Status: non-authoritative research synthesis
-Snapshot: 2026-07-22; semantic-annotation method refreshed 2026-07-29
+Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
+route refreshed 2026-07-29
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -399,10 +400,13 @@ At the snapshot date:
   and [owner repository](https://github.com/ibm-granite/granite-embedding-models)
   make this a fresher, independent family than the resident Qwen baseline.
 - [Qwen3-VL-Embedding-2B](https://huggingface.co/Qwen/Qwen3-VL-Embedding-2B)
-  is a 2026 visual-document retrieval challenger, but its weight and added
-  modality require evidence before download. It is not substituted for the
-  text challenger: visual retrieval needs a separately frozen page-image query
-  plan and image relevance judgments.
+  is the 2026 visual-document retrieval challenger in a separately frozen
+  experiment; it is not substituted for the text challenger. The exact
+  revision, 20-query/36-page-image plan, acquisition, isolated CPU runtime,
+  source-to-image crosswalk, image-use audit, and offline boundary are now
+  fixed. The latest preflight blocked before execution on available memory and
+  owner resource admission. No page embedding, ranking, image-relevance
+  judgment, quality result, or winner exists.
 - [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) is the plausible fresh
   small general-model challenger. Its very large default context should be
   reduced locally.
@@ -446,7 +450,9 @@ same frozen 20 queries, 24 non-empty passages, anchors, and manual review
 protocol used by A/B remain authoritative. Two post-freeze executions produced
 identical indexes and rankings, but human relevance remains unreviewed.
 BGE-M3 and gte-multilingual-base stay documented comparators;
-Qwen3-VL-Embedding-2B stays deferred to the distinct visual-search experiment.
+Qwen3-VL-Embedding-2B has entered the distinct visual-search experiment with
+an exact host-owned runtime, but execution remains resource-blocked and
+content-quality evidence remains absent.
 
 ### Current graph and retrieval stores
 

@@ -28,7 +28,7 @@ fields. They are the next authority layer.
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
-| retrieval relevance | 20 frozen queries and blind review contract | 0 human judgments | advisory model targets and hard negatives are not gold |
+| retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual C has exact model/runtime/crosswalk but 0 runs after a memory-blocked preflight; human judgments 0 | advisory model targets and hard negatives are not gold; setup admission is not retrieval output |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
 | golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent |
@@ -142,6 +142,16 @@ contracts intentionally reject simulated human evidence.
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
   reported top-k diagnostics are not human relevance scores.
+- Direct visual retrieval is separately frozen over the same 20 query bytes
+  and all 36 page images. Its 4,549,670,315-byte acquisition and
+  1,182,279,019-byte offline CPU runtime are prepared with exact fixity, and
+  its bridge now proves real image consumption instead of accepting the
+  upstream helper's silent `NULL` fallback. The latest durable preflight
+  nevertheless stopped before run preparation: available memory was
+  11,545,407,488 bytes against the frozen 17,179,869,184-byte minimum, and
+  the owner returned `force_required`. Storage, load, 87 °C temperature,
+  runtime, license, and offline gates passed. This is a resource-blocked
+  non-run, not model failure or retrieval evidence.
 - Graph comparison uses 13 unreviewed claims and 10 model-proposed questions.
   It tests projection fidelity, not ontology adequacy or claim truth.
 - Neo4j reuses a resident Community service, while Oxigraph owns an isolated
@@ -232,12 +242,10 @@ not reintroduce a false 90 °C gate.
   Git.
 - The bounded translation runner lifecycle correction is committed in
   `abyss-stack` as `28e4b6b`; all 120 foundation-laboratory tests, package
-  validation, and the full stack validator pass. The current Tree slice passes
-  source-witness, source-home, corpus-index, node, and all release checks up to
-  local KAG-provider validation. That final step exposes a pre-existing
-  `content_hash` drift for the unchanged German-triangulation source against
-  the unchanged `kag/indexes/index_family.manifest.json`; the stale derived
-  KAG family was not rebuilt or presented as current proof.
+  validation, and the full stack validator pass. At that checkpoint the Tree
+  release lane exposed a pre-existing KAG `content_hash` drift for the later
+  modified German-triangulation source; that historical failed check remains
+  evidence rather than being rewritten as a pass.
 - The source-free Qwen runtime diagnosis and stop-line are committed in
   `abyss-stack` as `fed26c8`. The exact current environment passes 120
   foundation-laboratory tests, package validation, stack and nested-agent
@@ -246,6 +254,24 @@ not reintroduce a false 90 °C gate.
   translation-calibration schema registrations, the profile-example mapping,
   the lab-test inventory, and bearer-token isolation in subprocess tests. It
   does not establish the GPU hang's root cause or reopen the translation run.
+- The direct-visual retrieval implementation is committed in `abyss-stack`
+  through `3867617b`. It binds the exact Qwen3-VL-Embedding-2B acquisition and
+  runtime, preserves early dependency failures, audits zero network attempts,
+  and fails closed if the helper does not actually consume one decoded image
+  per request. The latest host preflight SHA-256 is
+  `299cdf3ad98d17c4f3b98b2080eb21e20525c5bae869573b22633c7674195e16`;
+  it blocks on memory/resource admission and creates no run result.
+- The transfer-preparation slice is committed in Tree of Sophia through
+  `0f30c08`. It adds twenty private pre-output page candidates and proposed
+  anchors while retaining zero eligible target units, zero target gold, zero
+  runs, and zero human debt.
+- This report reconciliation fully refreshes the portable KAG family from the
+  staged Tree source, with full/incremental parity and a digest-bound
+  generated-delta/tracked-size receipt. The local provider and derived export
+  validators pass, and the complete Tree release lane passes 192 tests plus
+  one skip when routed read-only to the clean `/srv/AbyssOS/aoa-stats` owner.
+  This resolves projection freshness only; it does not upgrade KAG to source
+  authority or prove visual-retrieval quality.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.
@@ -387,6 +413,30 @@ actual outcomes. The bounded experiment is closed.
    source-free experiment, a separately admitted current image/runtime, one
    synthetic `max_tokens=30` probe, a stop after one hang/reset, and one-factor
    changes only. A passing probe cannot repair or supersede C.
+
+### 2c. Admit direct visual retrieval without forcing the host
+
+Current state: exact source plan, model acquisition, isolated CPU runtime,
+visual-use audit, and execution command are prepared; challenger output is
+absent because the latest owner preflight is `blocked`.
+
+1. Preserve the frozen 20-query/36-image plan and immutable text-control
+   receipts. Do not mutate the source plan merely because runtime setup later
+   completed.
+2. Before any attempt, create a fresh unique preflight receipt. Continue only
+   if it says `decision=ready` under the existing 17,179,869,184-byte available
+   memory floor and the owner heavy/indexing admission says `allow`.
+3. Do not use `force`, lower the floor, stop unrelated user services, or infer
+   that current storage/thermal allowance can substitute for memory
+   admission.
+4. On admission, run once offline through the owner-routed CPU path. Require
+   exactly 36 proven visual inputs, zero silent fallbacks, zero network
+   attempts, exact delete/rebuild evidence, and source-safe anchor-only
+   output.
+5. Keep relevance, coverage recovery, hard-negative behavior, quality,
+   transcription, quotation, and winner fields unclaimed until actual output
+   exists. Open human review only if adoption, material route change,
+   ambiguity, or explicit drift control triggers it.
 
 ### 3. Open translation only after source acceptance
 

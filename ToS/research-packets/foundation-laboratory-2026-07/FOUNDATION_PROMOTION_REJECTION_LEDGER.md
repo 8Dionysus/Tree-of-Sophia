@@ -47,6 +47,7 @@ The promotion authorities remain separate:
 | retrieval A | exact-form fallback; literal other-work title pages rank 1; no semantic relation reasoning | retain exact fallback | explainable literal retrieval including OCR-noise diagnosis | semantic or cross-language solution |
 | retrieval B | multilingual candidate recall and reranking; policy and provenance debt; human labels 0 | retain candidate awaiting human review | future multilingual/rerank trials | winner, trusted target-language policy, promoted index |
 | retrieval C | exact-revision Granite CPU route, reproducible ranked lists and index; human labels 0 | retain independent comparator awaiting human review | reproducible local semantic comparison | literal replacement, content classifier, winner |
+| direct visual retrieval C | exact pre-output 20-query/36-image plan, immutable text controls, exact Qwen3-VL-Embedding-2B acquisition and offline CPU runtime, proven visual-use/network audits; latest preflight blocked on 11,545,407,488 available bytes versus 17,179,869,184 required and owner `force_required`; runs 0 | promote setup and fail-closed admission method only; retain resource-blocked non-run | future OCR-independent page-image challenger after a fresh unforced `ready` receipt | page embedding, ranking, relevance, coverage recovery, transcription, quotation, model failure, winner, or promotion |
 | graph A, first revision | field presence mislabeled as owner-resolved traceability | reject revision; preserve negative | traceability failure test | valid traceability claim |
 | graph A, corrected | owner records read directly; 13 claims and 10 queries mechanically closed | retain reference semantics | minimum claim-first route | truth of any claim |
 | graph B, first revision | literal status leaked into identity results; 8/10 advisory expectations | reject revision; preserve negative | typed-boundary regression case | valid query projection |
@@ -76,7 +77,10 @@ deleted to make the laboratory look cleaner:
    target-language-policy failures;
 8. graph A's false traceability, graph B's identity/literal leak, and graph
    C's runtime-ownership failure;
-9. the golden-kernel transfer non-run and every absent metric.
+9. the direct-visual route's first incomplete runtime dependency closure, the
+   rejected silent image-to-`NULL` fallback risk, and the latest memory-gated
+   non-run;
+10. the golden-kernel transfer non-run and every absent metric.
 
 These are not incidental cleanup notes. They are evidence about where green
 mechanics diverged from source-visible reality.

@@ -2,7 +2,8 @@
 
 Status: research decision scaffold updated with bounded graph, retrieval, structure, and OCR A/B/C evidence; human decisions remain pending
 
-Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26
+Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
+direct-visual retrieval route refreshed 2026-07-29
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md`. That refresh admits no download and no content run.
@@ -154,7 +155,7 @@ packet exists. A metric-only translation route is excluded.
 | Granite Embedding 311M Multilingual R2, revision `44399559930365213510b1ee2eb15ded83374f0e` | selected C, pre-output freeze | independent multilingual dense text challenger | Apache 2.0; official INT8 OpenVINO subset about 350 MB; 200+ languages with German/Russian emphasis; CPU route | no ToS-domain result yet; CLS/tokenization implementation must be proved exactly |
 | gte-multilingual-base | retain comparator, not selected | compact 75-language dense reference | about 305M parameters but July 2025 repository state | documented integration enables remote model code; may add no gain over resident model |
 | BGE-M3 | retain comparator, not selected | dense+sparse+multi-vector reference | roughly 2.27 GB model artifact | age, weight, and multiple retrieval modes would confound this single-method C run |
-| Qwen3-VL-Embedding-2B | defer to visual experiment | visual page retrieval | about 4+ GB BF16 source; Apache 2.0 | no frozen image-query sample yet; text-only evidence cannot evaluate its modality |
+| Qwen3-VL-Embedding-2B, revision `9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda` | selected challenger C in a separate visual experiment; setup complete, execution resource-blocked | direct text-query-to-page-image retrieval without OCR text | exact 4,549,670,315-byte acquisition plus 1,182,279,019-byte isolated CPU runtime; Apache 2.0 model repository | frozen 20-query/36-image sample now exists, but latest preflight failed the 16 GiB available-memory floor and owner admission; zero run or modality-quality result |
 | generic English-only embedding | exclude | none | poor source-language fit | would structurally privilege translation |
 
 ## Retrieval and indexing
@@ -167,7 +168,7 @@ packet exists. A metric-only translation route is excluded.
 | Granite R2 dense index | independent multilingual C | selected, method frozen before output | rebuildable isolated local projection | independent-family cross-language behavior on the identical query set |
 | lexical+dense rank fusion | later derived experiment | conditional | rebuildable but not an independent A/B/C method | recall gain can only be tested after component results are preserved |
 | Qdrant | vector-store implementation | conditional | projection only | filters, reproducibility, operational cost |
-| ColPali/page-image retrieval | visual challenger | defer/conditional | projection only | cases where OCR loses decisive visual evidence |
+| Qwen3-VL direct page-image retrieval | visual challenger C in separate experiment | selected and setup-complete; run conditional on fresh owner admission | projection only | OCR-independent candidate return over the frozen 20-query/36-image packet; no output yet |
 | LLM answer without retrieval trace | exclude | none | no source-return path | unacceptable for corpus truth |
 
 The gold query set must contain exact lexical queries, paraphrases,
