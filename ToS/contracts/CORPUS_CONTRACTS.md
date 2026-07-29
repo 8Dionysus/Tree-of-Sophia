@@ -25,13 +25,13 @@ judgment true.
 | `access-request.schema.json` | public-safe request scope, institutional contact route, separate permission purposes, private-correspondence boundary, response/expiry state, and no-bypass law |
 | `server-import-contract.schema.json` | future item/file manifest handoff, checksum and rights gates, access class, derivative matrix, operator approval, publication/takedown state, and server non-authority |
 | `private-laboratory-evidence-handoff.schema.json` | exact private-raw custody boundary, public-safe aggregate allowlist, reconstructive-detail denylist, governed destination, separate creation/publication effects, and human publication gate |
-| `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse |
-| `claim-packet.schema.json` | evidence-bearing assertion, alternatives, lineage, and human review state |
+| `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse, using distinct occurrence, lexeme, sign, and concept identities |
+| `claim-packet.schema.json` | evidence-bearing assertion over a stable ToS subject, with alternatives, lineage, and human review state |
 | `translation-packet.schema.json` | source-accepted lifecycle packet binding independent frozen analyses to human, AI, machine-alternative, and AI+human drafts before comparator reveal, comparison, change tracking, and human adjudication |
 | `translation-laboratory-plan.schema.json` | exact source-first 17-stage translation order, real-human lane law, sealed comparator, model-candidate posture, and source-acceptance gate |
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
-| `semantic-ladder-packet.schema.json` | exact source-accepted form-to-graph sequence for a promotion-capable sign packet, with honest empty blocked stages, translation evidence posture, a real-human sign checkpoint, competing readings, and a disposable projection boundary; it is not a requirement to review every prepared occurrence |
+| `semantic-ladder-packet.schema.json` | task-specific form-to-graph sequence for a promotion-capable sign packet, including an honest content-free blocked state, distinct occurrence/lexeme/sign/concept/claim/relation identities, language-competence evidence, a triggered real-human sign checkpoint, competing readings, and a disposable projection boundary; it is not a requirement to review every prepared occurrence |
 | `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
 | `source-gated-evaluation-plan.schema.json` | preserved v1 semantic/LLM readiness law and its historical universal source/gold gate; no current plan uses it for scheduling or execution |
 | `source-gated-semantic-evaluation-plan.schema.json` | task-specific semantic A/B/C readiness: accepted evidence per selected task, unassisted baselines only for materialized interpretive tasks, language-competence routing, separate labels and rationales, and exceptional rather than routine second-human review |
@@ -123,13 +123,17 @@ A schema validator can establish that:
   assistance or machine-authored findings in the human-only lane, rejects
   human editing in model lanes, keeps comparators and other lanes hidden, and
   requires cited external evidence for etymology;
-- a semantic-ladder packet cannot begin without accepted source evidence and
-  keeps relations, concepts, counterreadings, and graph projection blocked
-  until its sign candidate receives an attested real-human decision whose
-  status agrees with accept, reject, ambiguity, or deferral; a graph-projected
-  packet cannot skip competing readings or claim its projection as authority;
-  this is a promotion checkpoint for one sign packet, not routine human work
-  for every occurrence, form, concordance row, or machine proposal;
+- a semantic-ladder packet may exist honestly as `blocked-not-materialized`
+  with no source form, anchor, occurrence, lexeme, sign candidate, human task,
+  claim, relation, concept, or projection; materialization requires one
+  packet-local accepted source bundle and language-competence evidence rather
+  than completion of a universal packet; relations, concepts, counterreadings,
+  and graph projection remain blocked until the concrete sign candidate
+  receives an attested real-human decision over a frozen unassisted baseline;
+  accepted signs, concepts, claims, and relations use distinct stable IDs, and
+  graph projection cannot skip competing readings or claim authority; this is
+  a promotion checkpoint for one sign packet, not routine human work for every
+  occurrence, form, concordance row, or machine proposal;
 - a golden-kernel transfer plan keeps title-page scouts ineligible for
   semantic evaluation, requires real-human kernel and target gold before a
   ready state, preserves exact A/B/C isolation, and cannot report runs,

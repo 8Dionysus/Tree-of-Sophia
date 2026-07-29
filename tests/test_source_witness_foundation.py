@@ -573,23 +573,65 @@ def _synthetic_semantic_packet() -> dict:
         "exact_form": {
             "exact_form": "Synthetic exact form",
             "exact_form_sha256": "a" * 64,
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "page_return_verified": True,
         },
         "frequency_and_concordance": {
             "count": 3,
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "concordance_refs": ["synthetic-concordance"],
+            "claim_refs": ["tos.claim.synthetic-frequency"],
             "counting_method_ref": "synthetic-counting-method",
             "frequency_only_basis": False,
         },
+        "context": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "claim_refs": ["tos.claim.synthetic-context"],
+            "bounded_context_note": "Synthetic bounded context.",
+        },
+        "morphology": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "claim_refs": ["tos.claim.synthetic-morphology"],
+            "analysis": {"part_of_speech": "synthetic"},
+        },
+        "lemma": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "lexeme_ref": "tos.lexeme.synthetic-form",
+            "lemma_label": "synthetic-form",
+            "claim_refs": ["tos.claim.synthetic-lemma"],
+        },
+        "recurrence_within_section": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "declared_set_ref": "synthetic-section-set",
+            "claim_refs": ["tos.claim.synthetic-section-recurrence"],
+            "membership_method_ref": "synthetic-membership-method",
+        },
+        "recurrence_within_work": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "declared_set_ref": "synthetic-work-set",
+            "claim_refs": ["tos.claim.synthetic-work-recurrence"],
+            "membership_method_ref": "synthetic-membership-method",
+        },
+        "recurrence_within_author_corpus": {
+            "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "declared_set_ref": "synthetic-author-set",
+            "claim_refs": ["tos.claim.synthetic-author-recurrence"],
+            "membership_method_ref": "synthetic-membership-method",
+        },
         "translation_correspondences": {
             "translation_evidence_ids": ["tos-translation-evidence.synthetic"],
-            "correspondence_claim_refs": ["synthetic-translation-correspondence"],
+            "correspondence_claim_refs": [
+                "tos.claim.synthetic-translation-correspondence"
+            ],
             "translation_differences_preserved": True,
             "recognized_translation_is_ground_truth": False,
         },
         "stable_sign_candidate": {
             "candidate_statement": "Synthetic stable-sign candidate, not a decision.",
+            "candidate_ref": "tos.annotation.synthetic-sign-candidate",
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
+            "lexeme_refs": ["tos.lexeme.synthetic-form"],
+            "proposal_claim_refs": ["tos.claim.synthetic-sign-candidate"],
             "recurrence_evidence_refs": ["synthetic-section", "synthetic-work"],
             "context_variation_considered": True,
             "metaphorical_development_considered": True,
@@ -627,18 +669,25 @@ def _synthetic_semantic_packet() -> dict:
             )
     return {
         "$schema": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json",
-        "schema_version": "tos_semantic_ladder_packet_v2",
+        "schema_version": "tos_semantic_ladder_packet_v3",
         "packet_id": "tos.semantic-ladder-packet.synthetic-foundation",
         "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
         "source_expression_ref": "tos.expression.synthetic-german",
-        "source_review_evidence": {
-            "review_unit_id": "tos-translation-source-review-v2-001",
-            "review_receipt_refs": ["synthetic-pass-1", "synthetic-pass-2"],
-            "accepted_diplomatic_sha256": "a" * 64,
-            "pass_1_performed_by_real_human": True,
-            "pass_2_performed_by_real_human": True,
-            "pass_timestamps_distinct": True,
-            "source_acceptance": "accept",
+        "task_specific_source_gate": {
+            "gate_kind": "task-specific-promotion-candidate-source-bundle",
+            "source_anchor_refs": ["tos.anchor.synthetic-source"],
+            "accepted_source_sha256": "a" * 64,
+            "source_review_event_ref": "tos.event.synthetic-source-review",
+            "local_content_ref": "ToS/local-content/semantic/synthetic-source.txt",
+            "local_content_sha256": "a" * 64,
+            "accepted_source_is_packet_local": True,
+            "universal_packet_completion_required": False,
+            "language_competence_status": "evidence-attested",
+            "language_competence_evidence_refs": [
+                "tos.review.synthetic-language-competence"
+            ],
+            "missing_competence_effect": "leave-unresolved-never-infer-acceptance",
+            "gate_status": "satisfied",
         },
         "source_forms": {
             "diplomatic": "Synthetic exact form",
@@ -647,6 +696,7 @@ def _synthetic_semantic_packet() -> dict:
             "normalized_sha256": "a" * 64,
         },
         "candidate_ref": "tos.annotation.synthetic-sign-candidate",
+        "accepted_sign_ref": None,
         "translation_evidence": [
             {
                 "evidence_id": "tos-translation-evidence.synthetic",
@@ -658,6 +708,26 @@ def _synthetic_semantic_packet() -> dict:
                 "recognized_translation_is_ground_truth": False,
             }
         ],
+        "assurance_policy": {
+            "operating_model": "solo_human_plus_ai",
+            "routine_human_work_for_prepared_packet": False,
+            "promotion_checkpoint_posture": (
+                "opens-only-for-concrete-source-grounded-sign-candidate"
+            ),
+            "unassisted_operator_baseline_required": True,
+            "baseline_frozen_before_model_suggestions": True,
+            "second_human_review_posture": "triggered-exception-not-routine",
+            "second_human_review_triggers": [
+                "declared-language-competence-gap",
+                "high-impact-canon-promotion",
+                "persistent-source-grounded-ambiguity",
+                "operator-baseline-instability",
+            ],
+            "model_disagreement_is_human_perspective": False,
+            "rationale_preserved_separately_from_label": True,
+            "alternatives_uncertainty_and_refusal_preserved": True,
+            "human_work_scheduled": True,
+        },
         "stage_order": SEMANTIC_STAGE_ORDER,
         "stages": stages,
         "frequency_is_not_sufficient": True,
@@ -665,8 +735,17 @@ def _synthetic_semantic_packet() -> dict:
         "model_may_propose_but_not_confirm": True,
         "manual_sign_decision_required_before_interpretation": True,
         "packet_status": "awaiting-manual-sign-decision",
+        "result": {
+            "human_decision_refs": [],
+            "relation_refs": [],
+            "concept_refs": [],
+            "claim_refs": [],
+            "graph_projection_refs": [],
+            "promotion_authorized": False,
+            "conclusion": "Synthetic candidate awaits a real-human decision.",
+        },
         "provenance_event_refs": ["tos.event.synthetic-semantic-packet"],
-        "authority_boundary": "this packet preserves a source-returnable path from exact form to graph; frequency, model proposals, interpretations, and projections cannot confirm a stable sign without a real-human evidence-bearing decision",
+        "authority_boundary": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision",
         "packet_version": 1,
     }
 
@@ -678,8 +757,11 @@ def _accept_synthetic_sign(packet: dict) -> dict:
         body={
             "decision": "accept-with-limits",
             "sign_status_assigned": "stable-sign",
+            "accepted_sign_ref": "tos.sign.synthetic-foundation",
             "rationale": "Synthetic real-human decision fixture.",
-            "review_receipt_ref": "synthetic-manual-sign-review",
+            "review_receipt_ref": "tos.review.synthetic-manual-sign",
+            "unassisted_baseline_ref": "tos.review.synthetic-unassisted-baseline",
+            "model_suggestions_hidden_until_baseline_frozen": True,
             "considered_evidence_refs": ["synthetic-context", "synthetic-recurrence"],
             "decision_owned_by_real_human": True,
             "frequency_was_not_sole_basis": True,
@@ -688,25 +770,71 @@ def _accept_synthetic_sign(packet: dict) -> dict:
         maker=_synthetic_semantic_maker("human"),
     )
     packet["stages"][10]["review_status"] = "accepted-with-limits"
+    packet["accepted_sign_ref"] = "tos.sign.synthetic-foundation"
+    packet["assurance_policy"]["human_work_scheduled"] = False
+    packet["result"]["human_decision_refs"] = [
+        "tos.review.synthetic-manual-sign"
+    ]
+    packet["result"]["promotion_authorized"] = True
+    packet["result"]["conclusion"] = "Synthetic stable sign accepted with limits."
     packet["packet_status"] = "manual-sign-accepted"
     return packet
 
 
 def _project_synthetic_semantic_graph(packet: dict) -> dict:
-    for index in (11, 12, 13):
-        stage_name = SEMANTIC_STAGE_ORDER[index]
-        packet["stages"][index] = _synthetic_semantic_stage(
-            stage_name,
-            status="proposed",
-            body={"claim_refs": [f"tos.claim.synthetic-{index}"]},
-            maker=_synthetic_semantic_maker(),
-        )
+    packet["stages"][11] = _synthetic_semantic_stage(
+        "relations_between_signs",
+        status="proposed",
+        body={
+            "sign_refs": [
+                "tos.sign.synthetic-foundation",
+                "tos.sign.synthetic-related",
+            ],
+            "relation_records": [
+                {
+                    "relation_ref": "tos.relation.synthetic-sign-relation",
+                    "subject_sign_ref": "tos.sign.synthetic-foundation",
+                    "predicate": "synthetic_relation",
+                    "object_sign_ref": "tos.sign.synthetic-related",
+                    "claim_ref": "tos.claim.synthetic-sign-relation",
+                    "evidence_anchor_refs": ["tos.anchor.synthetic-source"],
+                    "review_status": "unreviewed",
+                }
+            ],
+            "each_relation_resolves_to_claim_and_evidence": True,
+        },
+        maker=_synthetic_semantic_maker(),
+    )
+    packet["stages"][12] = _synthetic_semantic_stage(
+        "conceptual_interpretations",
+        status="proposed",
+        body={
+            "accepted_sign_ref": "tos.sign.synthetic-foundation",
+            "concept_refs": ["tos.concept.synthetic-interpretation"],
+            "claim_refs": ["tos.claim.synthetic-concept"],
+            "interpretation_statement": "Synthetic conceptual interpretation.",
+        },
+        maker=_synthetic_semantic_maker(),
+    )
+    packet["stages"][13] = _synthetic_semantic_stage(
+        "competing_readings",
+        status="proposed",
+        body={
+            "primary_claim_refs": ["tos.claim.synthetic-concept"],
+            "competing_claim_refs": ["tos.claim.synthetic-counterreading"],
+            "bounded_rationale": "Synthetic competing reading.",
+            "unresolved_is_allowed": True,
+        },
+        maker=_synthetic_semantic_maker(),
+    )
     packet["stages"][14] = _synthetic_semantic_stage(
         "graph_projection",
         status="projected",
         body={
             "projection_ref": "ToS/derived-exports/synthetic-semantic-graph.json",
             "projection_sha256": "c" * 64,
+            "sign_refs": ["tos.sign.synthetic-foundation"],
+            "relation_refs": ["tos.relation.synthetic-sign-relation"],
             "claim_refs": ["tos.claim.synthetic-graph"],
             "rebuildable_from_stronger_records": True,
             "projection_is_authority": False,
@@ -719,6 +847,18 @@ def _project_synthetic_semantic_graph(packet: dict) -> dict:
             "model_refs": [],
         },
     )
+    packet["result"]["relation_refs"] = ["tos.relation.synthetic-sign-relation"]
+    packet["result"]["concept_refs"] = ["tos.concept.synthetic-interpretation"]
+    packet["result"]["claim_refs"] = [
+        "tos.claim.synthetic-sign-relation",
+        "tos.claim.synthetic-concept",
+        "tos.claim.synthetic-counterreading",
+        "tos.claim.synthetic-graph",
+    ]
+    packet["result"]["graph_projection_refs"] = [
+        "ToS/derived-exports/synthetic-semantic-graph.json"
+    ]
+    packet["result"]["conclusion"] = "Synthetic graph projection completed."
     packet["packet_status"] = "graph-projected"
     return packet
 
@@ -921,6 +1061,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         awaiting_human = _synthetic_semantic_packet()
         self.assertEqual([], list(validator.iter_errors(awaiting_human)))
+        self.assertEqual(
+            [],
+            foundation._semantic_ladder_identity_issues(awaiting_human),
+        )
 
         premature_relations = copy.deepcopy(awaiting_human)
         premature_relations["stages"][11] = _synthetic_semantic_stage(
@@ -937,6 +1081,21 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         accepted = _accept_synthetic_sign(copy.deepcopy(awaiting_human))
         self.assertEqual([], list(validator.iter_errors(accepted)))
+        self.assertEqual(
+            [],
+            foundation._semantic_ladder_identity_issues(accepted),
+        )
+
+        mismatched_sign_identity = copy.deepcopy(accepted)
+        mismatched_sign_identity["accepted_sign_ref"] = (
+            "tos.sign.synthetic-different"
+        )
+        self.assertIn(
+            "human sign decision identity differs from packet accepted_sign_ref",
+            foundation._semantic_ladder_identity_issues(
+                mismatched_sign_identity
+            ),
+        )
 
         simulated_human = copy.deepcopy(accepted)
         simulated_human["stages"][10]["maker"]["performed_by_real_human"] = False
@@ -954,6 +1113,19 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         graph_packet = _project_synthetic_semantic_graph(copy.deepcopy(accepted))
         self.assertEqual([], list(validator.iter_errors(graph_packet)))
+        self.assertEqual(
+            [],
+            foundation._semantic_ladder_identity_issues(graph_packet),
+        )
+
+        missing_relation_result = copy.deepcopy(graph_packet)
+        missing_relation_result["result"]["relation_refs"] = []
+        self.assertIn(
+            "relation identities are absent from packet result",
+            foundation._semantic_ladder_identity_issues(
+                missing_relation_result
+            ),
+        )
 
         skipped_counterreading = copy.deepcopy(graph_packet)
         skipped_counterreading["stages"][13] = _synthetic_semantic_stage(
@@ -966,6 +1138,44 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authoritative_projection = copy.deepcopy(graph_packet)
         authoritative_projection["stages"][14]["body"]["projection_is_authority"] = True
         self.assertTrue(list(validator.iter_errors(authoritative_projection)))
+
+    def test_initial_sign_packet_is_tracked_without_invented_content_or_human_debt(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.SEMANTIC_LADDER_PACKET_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            (GOLD_ROOT / "initial-sign-packet.v3.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual("blocked-not-materialized", packet["packet_status"])
+        self.assertEqual("blocked", packet["task_specific_source_gate"]["gate_status"])
+        self.assertEqual([], packet["task_specific_source_gate"]["source_anchor_refs"])
+        self.assertIsNone(packet["source_forms"])
+        self.assertIsNone(packet["candidate_ref"])
+        self.assertIsNone(packet["accepted_sign_ref"])
+        self.assertFalse(packet["assurance_policy"]["human_work_scheduled"])
+        self.assertTrue(all(stage["status"] == "blocked" for stage in packet["stages"]))
+        self.assertTrue(all(stage["body"] == {} for stage in packet["stages"]))
+        self.assertFalse(packet["result"]["promotion_authorized"])
+
+        fabricated_form = copy.deepcopy(packet)
+        fabricated_form["source_forms"] = {
+            "diplomatic": "fabricated",
+            "diplomatic_sha256": "a" * 64,
+            "normalized": "fabricated",
+            "normalized_sha256": "a" * 64,
+        }
+        self.assertTrue(list(validator.iter_errors(fabricated_form)))
+
+        fabricated_human_debt = copy.deepcopy(packet)
+        fabricated_human_debt["assurance_policy"]["human_work_scheduled"] = True
+        self.assertTrue(list(validator.iter_errors(fabricated_human_debt)))
 
     def test_discovery_access_and_server_boundaries_fail_closed(self) -> None:
         discovery_validator, _ = foundation._schema_validator(

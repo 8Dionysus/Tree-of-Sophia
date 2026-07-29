@@ -10,10 +10,12 @@
     "packet_id",
     "work_ref",
     "source_expression_ref",
-    "source_review_evidence",
+    "task_specific_source_gate",
     "source_forms",
     "candidate_ref",
+    "accepted_sign_ref",
     "translation_evidence",
+    "assurance_policy",
     "stage_order",
     "stages",
     "frequency_is_not_sufficient",
@@ -21,6 +23,7 @@
     "model_may_propose_but_not_confirm",
     "manual_sign_decision_required_before_interpretation",
     "packet_status",
+    "result",
     "provenance_event_refs",
     "authority_boundary",
     "packet_version"
@@ -29,59 +32,164 @@
     "$schema": {
       "const": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json"
     },
-    "schema_version": {"const": "tos_semantic_ladder_packet_v2"},
+    "schema_version": {"const": "tos_semantic_ladder_packet_v3"},
     "packet_id": {
       "type": "string",
       "pattern": "^tos\\.semantic-ladder-packet\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
     "work_ref": {"$ref": "#/$defs/tosId"},
     "source_expression_ref": {"$ref": "#/$defs/tosId"},
-    "source_review_evidence": {
+    "task_specific_source_gate": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "review_unit_id",
-        "review_receipt_refs",
-        "accepted_diplomatic_sha256",
-        "pass_1_performed_by_real_human",
-        "pass_2_performed_by_real_human",
-        "pass_timestamps_distinct",
-        "source_acceptance"
+        "gate_kind",
+        "source_anchor_refs",
+        "accepted_source_sha256",
+        "source_review_event_ref",
+        "local_content_ref",
+        "local_content_sha256",
+        "accepted_source_is_packet_local",
+        "universal_packet_completion_required",
+        "language_competence_status",
+        "language_competence_evidence_refs",
+        "missing_competence_effect",
+        "gate_status"
       ],
       "properties": {
-        "review_unit_id": {
-          "type": "string",
-          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        "gate_kind": {
+          "const": "task-specific-promotion-candidate-source-bundle"
         },
-        "review_receipt_refs": {
+        "source_anchor_refs": {
           "type": "array",
-          "minItems": 2,
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {"$ref": "#/$defs/anchorId"}
         },
-        "accepted_diplomatic_sha256": {"$ref": "#/$defs/sha256"},
-        "pass_1_performed_by_real_human": {"const": true},
-        "pass_2_performed_by_real_human": {"const": true},
-        "pass_timestamps_distinct": {"const": true},
-        "source_acceptance": {"const": "accept"}
-      }
+        "accepted_source_sha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "source_review_event_ref": {
+          "oneOf": [{"$ref": "#/$defs/eventId"}, {"type": "null"}]
+        },
+        "local_content_ref": {
+          "oneOf": [{"$ref": "#/$defs/repoRelativePath"}, {"type": "null"}]
+        },
+        "local_content_sha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "accepted_source_is_packet_local": {"const": true},
+        "universal_packet_completion_required": {"const": false},
+        "language_competence_status": {
+          "enum": ["blocked", "evidence-attested"]
+        },
+        "language_competence_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "missing_competence_effect": {
+          "const": "leave-unresolved-never-infer-acceptance"
+        },
+        "gate_status": {"enum": ["blocked", "satisfied"]}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"gate_status": {"const": "blocked"}},
+            "required": ["gate_status"]
+          },
+          "then": {
+            "properties": {
+              "source_anchor_refs": {"maxItems": 0},
+              "accepted_source_sha256": {"type": "null"},
+              "source_review_event_ref": {"type": "null"},
+              "local_content_ref": {"type": "null"},
+              "local_content_sha256": {"type": "null"},
+              "language_competence_status": {"const": "blocked"},
+              "language_competence_evidence_refs": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "properties": {
+              "source_anchor_refs": {"minItems": 1},
+              "accepted_source_sha256": {"$ref": "#/$defs/sha256"},
+              "source_review_event_ref": {"$ref": "#/$defs/eventId"},
+              "local_content_ref": {"$ref": "#/$defs/repoRelativePath"},
+              "local_content_sha256": {"$ref": "#/$defs/sha256"},
+              "language_competence_status": {"const": "evidence-attested"},
+              "language_competence_evidence_refs": {"minItems": 1}
+            }
+          }
+        }
+      ]
     },
     "source_forms": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["diplomatic", "diplomatic_sha256", "normalized", "normalized_sha256"],
-      "properties": {
-        "diplomatic": {"type": "string", "minLength": 1},
-        "diplomatic_sha256": {"$ref": "#/$defs/sha256"},
-        "normalized": {"type": "string", "minLength": 1},
-        "normalized_sha256": {"$ref": "#/$defs/sha256"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["diplomatic", "diplomatic_sha256", "normalized", "normalized_sha256"],
+          "properties": {
+            "diplomatic": {"type": "string", "minLength": 1},
+            "diplomatic_sha256": {"$ref": "#/$defs/sha256"},
+            "normalized": {"type": "string", "minLength": 1},
+            "normalized_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        {"type": "null"}
+      ]
     },
-    "candidate_ref": {"$ref": "#/$defs/tosId"},
+    "candidate_ref": {
+      "oneOf": [{"$ref": "#/$defs/candidateId"}, {"type": "null"}]
+    },
+    "accepted_sign_ref": {
+      "oneOf": [{"$ref": "#/$defs/signId"}, {"type": "null"}]
+    },
     "translation_evidence": {
       "type": "array",
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/translationEvidence"}
+    },
+    "assurance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operating_model",
+        "routine_human_work_for_prepared_packet",
+        "promotion_checkpoint_posture",
+        "unassisted_operator_baseline_required",
+        "baseline_frozen_before_model_suggestions",
+        "second_human_review_posture",
+        "second_human_review_triggers",
+        "model_disagreement_is_human_perspective",
+        "rationale_preserved_separately_from_label",
+        "alternatives_uncertainty_and_refusal_preserved",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "operating_model": {"const": "solo_human_plus_ai"},
+        "routine_human_work_for_prepared_packet": {"const": false},
+        "promotion_checkpoint_posture": {
+          "const": "opens-only-for-concrete-source-grounded-sign-candidate"
+        },
+        "unassisted_operator_baseline_required": {"const": true},
+        "baseline_frozen_before_model_suggestions": {"const": true},
+        "second_human_review_posture": {
+          "const": "triggered-exception-not-routine"
+        },
+        "second_human_review_triggers": {
+          "const": [
+            "declared-language-competence-gap",
+            "high-impact-canon-promotion",
+            "persistent-source-grounded-ambiguity",
+            "operator-baseline-instability"
+          ]
+        },
+        "model_disagreement_is_human_perspective": {"const": false},
+        "rationale_preserved_separately_from_label": {"const": true},
+        "alternatives_uncertainty_and_refusal_preserved": {"const": true},
+        "human_work_scheduled": {"type": "boolean"}
+      }
     },
     "stage_order": {
       "type": "array",
@@ -135,6 +243,7 @@
     "manual_sign_decision_required_before_interpretation": {"const": true},
     "packet_status": {
       "enum": [
+        "blocked-not-materialized",
         "preparing",
         "observational-analysis",
         "awaiting-manual-sign-decision",
@@ -145,14 +254,56 @@
         "superseded"
       ]
     },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_decision_refs",
+        "relation_refs",
+        "concept_refs",
+        "claim_refs",
+        "graph_projection_refs",
+        "promotion_authorized",
+        "conclusion"
+      ],
+      "properties": {
+        "human_decision_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidenceRef"}
+        },
+        "relation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relationId"}
+        },
+        "concept_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/conceptId"}
+        },
+        "claim_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimId"}
+        },
+        "graph_projection_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/repoRelativePath"}
+        },
+        "promotion_authorized": {"type": "boolean"},
+        "conclusion": {"type": "string", "minLength": 1}
+      }
+    },
     "provenance_event_refs": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {"$ref": "#/$defs/eventId"}
     },
     "authority_boundary": {
-      "const": "this packet preserves a source-returnable path from exact form to graph; frequency, model proposals, interpretations, and projections cannot confirm a stable sign without a real-human evidence-bearing decision"
+      "const": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision"
     },
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
@@ -166,6 +317,143 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "blocked-not-materialized"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {"gate_status": {"const": "blocked"}}
+          },
+          "source_forms": {"type": "null"},
+          "candidate_ref": {"type": "null"},
+          "accepted_sign_ref": {"type": "null"},
+          "translation_evidence": {"maxItems": 0},
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": false}}
+          },
+          "stages": {"$ref": "#/$defs/allStagesBlocked"},
+          "result": {
+            "properties": {
+              "human_decision_refs": {"maxItems": 0},
+              "relation_refs": {"maxItems": 0},
+              "concept_refs": {"maxItems": 0},
+              "claim_refs": {"maxItems": 0},
+              "graph_projection_refs": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {
+            "enum": [
+              "preparing",
+              "observational-analysis",
+              "awaiting-manual-sign-decision",
+              "manual-sign-rejected",
+              "manual-sign-accepted",
+              "interpretive-analysis",
+              "graph-projected"
+            ]
+          }
+        },
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {"gate_status": {"const": "satisfied"}}
+          },
+          "source_forms": {"type": "object"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {
+            "enum": [
+              "awaiting-manual-sign-decision",
+              "manual-sign-rejected",
+              "manual-sign-accepted",
+              "interpretive-analysis",
+              "graph-projected"
+            ]
+          }
+        },
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {"candidate_ref": {"$ref": "#/$defs/candidateId"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {
+            "enum": ["manual-sign-accepted", "interpretive-analysis", "graph-projected"]
+          }
+        },
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "accepted_sign_ref": {"$ref": "#/$defs/signId"},
+          "result": {
+            "properties": {
+              "human_decision_refs": {"minItems": 1},
+              "promotion_authorized": {"const": true}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "awaiting-manual-sign-decision"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "accepted_sign_ref": {"type": "null"},
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": true}}
+          },
+          "result": {
+            "properties": {
+              "human_decision_refs": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"packet_status": {"const": "manual-sign-rejected"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "accepted_sign_ref": {"type": "null"},
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": false}}
+          },
+          "result": {
+            "properties": {
+              "human_decision_refs": {"minItems": 1},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
@@ -192,6 +480,27 @@
               {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
               {"properties": {"status": {"const": "human-rejected"}}}
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "packet_status": {
+            "enum": [
+              "manual-sign-accepted",
+              "interpretive-analysis",
+              "graph-projected"
+            ]
+          }
+        },
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": false}}
           }
         }
       }
@@ -256,7 +565,122 @@
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "anchorId": {
+      "type": "string",
+      "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "occurrenceId": {
+      "type": "string",
+      "pattern": "^tos\\.occurrence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "lexemeId": {
+      "type": "string",
+      "pattern": "^tos\\.lexeme\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "candidateId": {
+      "type": "string",
+      "pattern": "^tos\\.(annotation|claim)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "signId": {
+      "type": "string",
+      "pattern": "^tos\\.sign\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "conceptId": {
+      "type": "string",
+      "pattern": "^tos\\.concept\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "claimId": {
+      "type": "string",
+      "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "relationId": {
+      "type": "string",
+      "pattern": "^tos\\.relation\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "reviewId": {
+      "type": "string",
+      "pattern": "^tos\\.review\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "evidenceRef": {
+      "anyOf": [
+        {"$ref": "#/$defs/reviewId"},
+        {"$ref": "#/$defs/eventId"},
+        {"$ref": "#/$defs/repoRelativePath"}
+      ]
+    },
+    "relationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_ref",
+        "subject_sign_ref",
+        "predicate",
+        "object_sign_ref",
+        "claim_ref",
+        "evidence_anchor_refs",
+        "review_status"
+      ],
+      "properties": {
+        "relation_ref": {"$ref": "#/$defs/relationId"},
+        "subject_sign_ref": {"$ref": "#/$defs/signId"},
+        "predicate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$"
+        },
+        "object_sign_ref": {"$ref": "#/$defs/signId"},
+        "claim_ref": {"$ref": "#/$defs/claimId"},
+        "evidence_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/anchorId"}
+        },
+        "review_status": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "accepted-with-limits",
+            "rejected",
+            "ambiguous",
+            "deferred",
+            "superseded"
+          ]
+        }
+      }
+    },
+    "allStagesBlocked": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "prefixItems": [
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}},
+        {"properties": {"status": {"const": "blocked"}}}
+      ],
+      "items": false
     },
     "activeInterpretiveStatus": {
       "enum": ["proposed", "source-observed", "human-accepted", "ambiguous", "deferred"]
@@ -344,9 +768,8 @@
         },
         "source_anchor_refs": {
           "type": "array",
-          "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/tosId"}
+          "items": {"$ref": "#/$defs/anchorId"}
         },
         "source_return_verified": {"type": "boolean"},
         "body": {"type": "object"},
@@ -389,8 +812,9 @@
           "else": {
             "properties": {
               "body": {"minProperties": 1},
+              "source_anchor_refs": {"minItems": 1},
               "maker": {"$ref": "#/$defs/maker"},
-              "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+              "provenance_event_ref": {"$ref": "#/$defs/eventId"},
               "source_return_verified": {"const": true},
               "blocker_refs": {"maxItems": 0}
             }
@@ -412,6 +836,31 @@
         "required": ["status"]
       }
     },
+    "recurrenceBody": {
+      "type": "object",
+      "required": [
+        "occurrence_refs",
+        "declared_set_ref",
+        "claim_refs",
+        "membership_method_ref"
+      ],
+      "properties": {
+        "occurrence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/occurrenceId"}
+        },
+        "declared_set_ref": {"type": "string", "minLength": 1},
+        "claim_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimId"}
+        },
+        "membership_method_ref": {"type": "string", "minLength": 1}
+      }
+    },
     "exactFormStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
@@ -421,10 +870,21 @@
           "then": {
             "properties": {
               "body": {
-                "required": ["exact_form", "exact_form_sha256", "page_return_verified"],
+                "required": [
+                  "exact_form",
+                  "exact_form_sha256",
+                  "occurrence_refs",
+                  "page_return_verified"
+                ],
                 "properties": {
                   "exact_form": {"type": "string", "minLength": 1},
                   "exact_form_sha256": {"$ref": "#/$defs/sha256"},
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
                   "page_return_verified": {"const": true}
                 }
               }
@@ -442,13 +902,32 @@
           "then": {
             "properties": {
               "body": {
-                "required": ["count", "concordance_refs", "counting_method_ref", "frequency_only_basis"],
+                "required": [
+                  "count",
+                  "occurrence_refs",
+                  "concordance_refs",
+                  "claim_refs",
+                  "counting_method_ref",
+                  "frequency_only_basis"
+                ],
                 "properties": {
                   "count": {"type": "integer", "minimum": 0},
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
                   "concordance_refs": {
                     "type": "array",
                     "minItems": 1,
                     "items": {"type": "string", "minLength": 1}
+                  },
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
                   },
                   "counting_method_ref": {"type": "string", "minLength": 1},
                   "frequency_only_basis": {"const": false}
@@ -462,37 +941,130 @@
     "contextStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "context"}}}
+        {"properties": {"stage": {"const": "context"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": ["occurrence_refs", "claim_refs", "bounded_context_note"],
+                "properties": {
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  },
+                  "bounded_context_note": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "morphologyStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "morphology"}}}
+        {"properties": {"stage": {"const": "morphology"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": ["occurrence_refs", "claim_refs", "analysis"],
+                "properties": {
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  },
+                  "analysis": {"type": "object", "minProperties": 1}
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "lemmaStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "lemma"}}}
+        {"properties": {"stage": {"const": "lemma"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "occurrence_refs",
+                  "lexeme_ref",
+                  "lemma_label",
+                  "claim_refs"
+                ],
+                "properties": {
+                  "occurrence_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
+                  "lexeme_ref": {"$ref": "#/$defs/lexemeId"},
+                  "lemma_label": {"type": "string", "minLength": 1},
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "sectionRecurrenceStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "recurrence_within_section"}}}
+        {"properties": {"stage": {"const": "recurrence_within_section"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {"properties": {"body": {"$ref": "#/$defs/recurrenceBody"}}}
+        }
       ]
     },
     "workRecurrenceStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "recurrence_within_work"}}}
+        {"properties": {"stage": {"const": "recurrence_within_work"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {"properties": {"body": {"$ref": "#/$defs/recurrenceBody"}}}
+        }
       ]
     },
     "authorRecurrenceStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "recurrence_within_author_corpus"}}}
+        {"properties": {"stage": {"const": "recurrence_within_author_corpus"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {"properties": {"body": {"$ref": "#/$defs/recurrenceBody"}}}
+        }
       ]
     },
     "translationStage": {
@@ -521,7 +1093,7 @@
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {"type": "string", "minLength": 1}
+                    "items": {"$ref": "#/$defs/claimId"}
                   },
                   "translation_differences_preserved": {"const": true},
                   "recognized_translation_is_ground_truth": {"const": false}
@@ -543,7 +1115,10 @@
               "body": {
                 "required": [
                   "candidate_statement",
+                  "candidate_ref",
                   "occurrence_refs",
+                  "lexeme_refs",
+                  "proposal_claim_refs",
                   "recurrence_evidence_refs",
                   "context_variation_considered",
                   "metaphorical_development_considered",
@@ -557,11 +1132,24 @@
                 ],
                 "properties": {
                   "candidate_statement": {"type": "string", "minLength": 1},
+                  "candidate_ref": {"$ref": "#/$defs/candidateId"},
                   "occurrence_refs": {
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {"$ref": "#/$defs/tosId"}
+                    "items": {"$ref": "#/$defs/occurrenceId"}
+                  },
+                  "lexeme_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/lexemeId"}
+                  },
+                  "proposal_claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
                   },
                   "recurrence_evidence_refs": {
                     "type": "array",
@@ -603,8 +1191,11 @@
                 "required": [
                   "decision",
                   "sign_status_assigned",
+                  "accepted_sign_ref",
                   "rationale",
                   "review_receipt_ref",
+                  "unassisted_baseline_ref",
+                  "model_suggestions_hidden_until_baseline_frozen",
                   "considered_evidence_refs",
                   "decision_owned_by_real_human",
                   "frequency_was_not_sole_basis",
@@ -615,8 +1206,13 @@
                     "enum": ["accept", "accept-with-limits", "reject", "ambiguous", "defer"]
                   },
                   "sign_status_assigned": {"enum": ["stable-sign", "rejected", "unresolved"]},
+                  "accepted_sign_ref": {
+                    "oneOf": [{"$ref": "#/$defs/signId"}, {"type": "null"}]
+                  },
                   "rationale": {"type": "string", "minLength": 1},
-                  "review_receipt_ref": {"type": "string", "minLength": 1},
+                  "review_receipt_ref": {"$ref": "#/$defs/evidenceRef"},
+                  "unassisted_baseline_ref": {"$ref": "#/$defs/evidenceRef"},
+                  "model_suggestions_hidden_until_baseline_frozen": {"const": true},
                   "considered_evidence_refs": {
                     "type": "array",
                     "minItems": 1,
@@ -644,7 +1240,12 @@
           "then": {
             "properties": {
               "status": {"const": "human-accepted"},
-              "body": {"properties": {"sign_status_assigned": {"const": "stable-sign"}}}
+              "body": {
+                "properties": {
+                  "sign_status_assigned": {"const": "stable-sign"},
+                  "accepted_sign_ref": {"$ref": "#/$defs/signId"}
+                }
+              }
             }
           }
         },
@@ -661,7 +1262,12 @@
           "then": {
             "properties": {
               "status": {"const": "human-rejected"},
-              "body": {"properties": {"sign_status_assigned": {"const": "rejected"}}}
+              "body": {
+                "properties": {
+                  "sign_status_assigned": {"const": "rejected"},
+                  "accepted_sign_ref": {"type": "null"}
+                }
+              }
             }
           }
         },
@@ -678,7 +1284,12 @@
           "then": {
             "properties": {
               "status": {"enum": ["ambiguous", "deferred"]},
-              "body": {"properties": {"sign_status_assigned": {"const": "unresolved"}}}
+              "body": {
+                "properties": {
+                  "sign_status_assigned": {"const": "unresolved"},
+                  "accepted_sign_ref": {"type": "null"}
+                }
+              }
             }
           }
         }
@@ -687,19 +1298,110 @@
     "signRelationsStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "relations_between_signs"}}}
+        {"properties": {"stage": {"const": "relations_between_signs"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "sign_refs",
+                  "relation_records",
+                  "each_relation_resolves_to_claim_and_evidence"
+                ],
+                "properties": {
+                  "sign_refs": {
+                    "type": "array",
+                    "minItems": 2,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/signId"}
+                  },
+                  "relation_records": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/relationRecord"}
+                  },
+                  "each_relation_resolves_to_claim_and_evidence": {"const": true}
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "conceptsStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "conceptual_interpretations"}}}
+        {"properties": {"stage": {"const": "conceptual_interpretations"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "accepted_sign_ref",
+                  "concept_refs",
+                  "claim_refs",
+                  "interpretation_statement"
+                ],
+                "properties": {
+                  "accepted_sign_ref": {"$ref": "#/$defs/signId"},
+                  "concept_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/conceptId"}
+                  },
+                  "claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  },
+                  "interpretation_statement": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "counterreadingsStage": {
       "allOf": [
         {"$ref": "#/$defs/stage"},
-        {"properties": {"stage": {"const": "competing_readings"}}}
+        {"properties": {"stage": {"const": "competing_readings"}}},
+        {
+          "if": {"$ref": "#/$defs/activeBodyCondition"},
+          "then": {
+            "properties": {
+              "body": {
+                "required": [
+                  "primary_claim_refs",
+                  "competing_claim_refs",
+                  "bounded_rationale",
+                  "unresolved_is_allowed"
+                ],
+                "properties": {
+                  "primary_claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  },
+                  "competing_claim_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/claimId"}
+                  },
+                  "bounded_rationale": {"type": "string", "minLength": 1},
+                  "unresolved_is_allowed": {"const": true}
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "graphStage": {
@@ -715,18 +1417,32 @@
                 "required": [
                   "projection_ref",
                   "projection_sha256",
+                  "sign_refs",
+                  "relation_refs",
                   "claim_refs",
                   "rebuildable_from_stronger_records",
                   "projection_is_authority"
                 ],
                 "properties": {
-                  "projection_ref": {"type": "string", "minLength": 1},
+                  "projection_ref": {"$ref": "#/$defs/repoRelativePath"},
                   "projection_sha256": {"$ref": "#/$defs/sha256"},
+                  "sign_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/signId"}
+                  },
+                  "relation_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "#/$defs/relationId"}
+                  },
                   "claim_refs": {
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {"$ref": "#/$defs/tosId"}
+                    "items": {"$ref": "#/$defs/claimId"}
                   },
                   "rebuildable_from_stronger_records": {"const": true},
                   "projection_is_authority": {"const": false}

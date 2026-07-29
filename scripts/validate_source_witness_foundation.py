@@ -532,6 +532,173 @@ def _discovery_decision_issues(payload: object) -> list[str]:
     return issues
 
 
+def _semantic_ladder_identity_issues(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["semantic ladder packet is not an object"]
+
+    issues: list[str] = []
+    stages = {
+        stage.get("stage"): stage
+        for stage in payload.get("stages", [])
+        if isinstance(stage, dict) and isinstance(stage.get("stage"), str)
+    }
+    result = payload.get("result", {})
+    if not isinstance(result, dict):
+        result = {}
+
+    candidate_stage = stages.get("stable_sign_candidate", {})
+    candidate_body = candidate_stage.get("body", {})
+    if (
+        isinstance(candidate_body, dict)
+        and candidate_stage.get("status") not in {"blocked", "not-started"}
+    ):
+        if candidate_body.get("candidate_ref") != payload.get("candidate_ref"):
+            issues.append(
+                "stable-sign candidate identity differs from packet candidate_ref"
+            )
+        earlier_occurrences = {
+            ref
+            for stage_name in (
+                "exact_form",
+                "frequency_and_concordance",
+                "context",
+                "morphology",
+                "lemma",
+                "recurrence_within_section",
+                "recurrence_within_work",
+                "recurrence_within_author_corpus",
+            )
+            for ref in stages.get(stage_name, {}).get("body", {}).get(
+                "occurrence_refs",
+                [],
+            )
+            if isinstance(ref, str)
+        }
+        candidate_occurrences = {
+            ref
+            for ref in candidate_body.get("occurrence_refs", [])
+            if isinstance(ref, str)
+        }
+        if not candidate_occurrences or not candidate_occurrences.issubset(
+            earlier_occurrences
+        ):
+            issues.append(
+                "stable-sign candidate does not resolve to earlier occurrence evidence"
+            )
+
+    manual_stage = stages.get("manual_confirmation_or_rejection", {})
+    manual_body = manual_stage.get("body", {})
+    if manual_stage.get("status") == "human-accepted":
+        if not isinstance(manual_body, dict) or manual_body.get(
+            "accepted_sign_ref"
+        ) != payload.get("accepted_sign_ref"):
+            issues.append(
+                "human sign decision identity differs from packet accepted_sign_ref"
+            )
+        if isinstance(manual_body, dict) and manual_body.get(
+            "review_receipt_ref"
+        ) not in result.get("human_decision_refs", []):
+            issues.append(
+                "human sign decision receipt is absent from packet result"
+            )
+
+    relation_stage = stages.get("relations_between_signs", {})
+    relation_body = relation_stage.get("body", {})
+    relation_records = (
+        relation_body.get("relation_records", [])
+        if isinstance(relation_body, dict)
+        else []
+    )
+    relation_refs = {
+        record.get("relation_ref")
+        for record in relation_records
+        if isinstance(record, dict) and isinstance(record.get("relation_ref"), str)
+    }
+    relation_claim_refs = {
+        record.get("claim_ref")
+        for record in relation_records
+        if isinstance(record, dict) and isinstance(record.get("claim_ref"), str)
+    }
+    relation_sign_values = (
+        relation_body.get("sign_refs", [])
+        if isinstance(relation_body, dict)
+        else []
+    )
+    declared_sign_refs = {
+        ref for ref in relation_sign_values if isinstance(ref, str)
+    }
+    if relation_records:
+        record_sign_refs = {
+            ref
+            for record in relation_records
+            if isinstance(record, dict)
+            for ref in (
+                record.get("subject_sign_ref"),
+                record.get("object_sign_ref"),
+            )
+            if isinstance(ref, str)
+        }
+        if record_sign_refs != declared_sign_refs:
+            issues.append(
+                "relation record sign endpoints differ from declared sign_refs"
+            )
+        if not relation_refs.issubset(set(result.get("relation_refs", []))):
+            issues.append("relation identities are absent from packet result")
+        if not relation_claim_refs.issubset(set(result.get("claim_refs", []))):
+            issues.append("relation claims are absent from packet result")
+
+    concept_stage = stages.get("conceptual_interpretations", {})
+    concept_body = concept_stage.get("body", {})
+    if (
+        isinstance(concept_body, dict)
+        and concept_stage.get("status") not in {"blocked", "not-started"}
+    ):
+        if concept_body.get("accepted_sign_ref") != payload.get(
+            "accepted_sign_ref"
+        ):
+            issues.append(
+                "concept interpretation sign differs from packet accepted_sign_ref"
+            )
+        if not set(concept_body.get("concept_refs", [])).issubset(
+            set(result.get("concept_refs", []))
+        ):
+            issues.append("concept identities are absent from packet result")
+        if not set(concept_body.get("claim_refs", [])).issubset(
+            set(result.get("claim_refs", []))
+        ):
+            issues.append("concept claims are absent from packet result")
+
+    counter_stage = stages.get("competing_readings", {})
+    counter_body = counter_stage.get("body", {})
+    if (
+        isinstance(counter_body, dict)
+        and counter_stage.get("status") not in {"blocked", "not-started"}
+    ):
+        counter_claim_refs = set(counter_body.get("primary_claim_refs", []))
+        counter_claim_refs.update(counter_body.get("competing_claim_refs", []))
+        if not counter_claim_refs.issubset(set(result.get("claim_refs", []))):
+            issues.append("competing-reading claims are absent from packet result")
+
+    graph_stage = stages.get("graph_projection", {})
+    graph_body = graph_stage.get("body", {})
+    if graph_stage.get("status") == "projected" and isinstance(graph_body, dict):
+        if not set(graph_body.get("relation_refs", [])).issubset(relation_refs):
+            issues.append(
+                "graph relation identities do not resolve to relation records"
+            )
+        if not set(graph_body.get("claim_refs", [])).issubset(
+            set(result.get("claim_refs", []))
+        ):
+            issues.append("graph claims are absent from packet result")
+        if graph_body.get("projection_ref") not in result.get(
+            "graph_projection_refs",
+            [],
+        ):
+            issues.append("graph projection is absent from packet result")
+
+    return issues
+
+
 def _git_ignored(repo_root: Path, path: Path) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
@@ -666,7 +833,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         _schema_validator(TRANSLATION_PRE_DRAFT_ANALYSIS_SCHEMA, repo_root)
         _schema_validator(TRANSLATION_PACKET_SCHEMA, repo_root)
-        _schema_validator(SEMANTIC_LADDER_PACKET_SCHEMA, repo_root)
+        semantic_ladder_packet_validator, _ = _schema_validator(
+            SEMANTIC_LADDER_PACKET_SCHEMA,
+            repo_root,
+        )
         golden_kernel_transfer_plan_validator, _ = _schema_validator(
             GOLDEN_KERNEL_TRANSFER_PLAN_SCHEMA,
             repo_root,
@@ -1010,6 +1180,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             / "bounded-translation-research-input."
             "za-i-vorrede-1-opening-sentence.v1.json"
         )
+        initial_sign_packet_path = gold_root / "initial-sign-packet.v3.json"
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -1083,6 +1254,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if bounded_translation_research_input_path.is_file()
             else None
         )
+        initial_sign_packet = _load_json(
+            initial_sign_packet_path,
+            repo_root,
+            issues,
+        )
         transfer_plan = _load_json(transfer_path, repo_root, issues)
         semantic_samples_plan = _load_json(semantic_samples_path, repo_root, issues)
         llm_tasks_plan = _load_json(llm_tasks_path, repo_root, issues)
@@ -1127,6 +1303,96 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 _relative(transfer_path, repo_root),
                 issues,
             )
+        if initial_sign_packet is not None:
+            initial_sign_location = _relative(
+                initial_sign_packet_path,
+                repo_root,
+            )
+            _validate_payload(
+                initial_sign_packet,
+                semantic_ladder_packet_validator,
+                initial_sign_location,
+                issues,
+            )
+            issues.extend(
+                (initial_sign_location, message)
+                for message in _semantic_ladder_identity_issues(
+                    initial_sign_packet
+                )
+            )
+            if initial_sign_packet.get("packet_status") != "blocked-not-materialized":
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet must remain blocked until content is materialized",
+                    )
+                )
+            source_gate = initial_sign_packet.get(
+                "task_specific_source_gate",
+                {},
+            )
+            if (
+                source_gate.get("gate_status") != "blocked"
+                or source_gate.get("source_anchor_refs") != []
+                or source_gate.get("language_competence_status") != "blocked"
+                or source_gate.get("language_competence_evidence_refs") != []
+            ):
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet source and competence gate drifted",
+                    )
+                )
+            if (
+                initial_sign_packet.get("source_forms") is not None
+                or initial_sign_packet.get("candidate_ref") is not None
+                or initial_sign_packet.get("accepted_sign_ref") is not None
+                or initial_sign_packet.get("translation_evidence") != []
+            ):
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet manufactured source or semantic content",
+                    )
+                )
+            stages = initial_sign_packet.get("stages", [])
+            if (
+                len(stages) != 15
+                or any(
+                    not isinstance(stage, dict)
+                    or stage.get("status") != "blocked"
+                    or stage.get("source_anchor_refs") != []
+                    or stage.get("body") != {}
+                    or stage.get("maker") is not None
+                    or stage.get("provenance_event_ref") is not None
+                    for stage in stages
+                )
+            ):
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet stages must be content-free and blocked",
+                    )
+                )
+            result = initial_sign_packet.get("result", {})
+            if (
+                initial_sign_packet.get("assurance_policy", {}).get(
+                    "human_work_scheduled"
+                )
+                is not False
+                or result.get("human_decision_refs") != []
+                or result.get("relation_refs") != []
+                or result.get("concept_refs") != []
+                or result.get("claim_refs") != []
+                or result.get("graph_projection_refs") != []
+                or result.get("promotion_authorized") is not False
+            ):
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet created human debt or promotion output",
+                    )
+                )
         for evaluation_path, evaluation_plan, evaluation_validator in (
             (
                 semantic_samples_path,
@@ -2267,6 +2533,47 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         (
                             bounded_location,
                             "bounded translation research-input provenance output drifted",
+                        )
+                    )
+        if initial_sign_packet is not None:
+            initial_sign_location = _relative(
+                initial_sign_packet_path,
+                repo_root,
+            )
+            initial_sign_event_refs = initial_sign_packet.get(
+                "provenance_event_refs",
+                [],
+            )
+            if initial_sign_event_refs != [
+                "tos.event.annotation.zarathustra-initial-sign-packet-v3.2026-07-29"
+            ]:
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet provenance event identity drifted",
+                    )
+                )
+            else:
+                initial_sign_event = local_events_by_id.get(
+                    initial_sign_event_refs[0]
+                )
+                expected_output = {
+                    "ref": initial_sign_location,
+                    "role": "content-free-blocked-initial-sign-packet",
+                    "sha256": _sha256(initial_sign_packet_path),
+                }
+                if initial_sign_event is None:
+                    issues.append(
+                        (
+                            initial_sign_location,
+                            "initial sign packet provenance event is absent",
+                        )
+                    )
+                elif expected_output not in initial_sign_event.get("outputs", []):
+                    issues.append(
+                        (
+                            initial_sign_location,
+                            "initial sign packet provenance output drifted",
                         )
                     )
 

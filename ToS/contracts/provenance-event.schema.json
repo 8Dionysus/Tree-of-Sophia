@@ -109,7 +109,7 @@
   "$defs": {
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "repoRelativePath": {

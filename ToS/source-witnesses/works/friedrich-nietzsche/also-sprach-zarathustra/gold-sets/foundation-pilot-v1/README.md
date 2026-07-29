@@ -79,9 +79,13 @@ Zarathustra golden kernel. It is not a completed gold set.
   future real-human-only morphology-to-interlinear pass. It forbids AI aids,
   other-lane analysis, comparator exposure, and premature drafting; it does
   not claim that any human work has occurred.
-- `INITIAL_SIGN_PACKET_ROUTE.md` preserves the fifteen-stage form-to-graph
-  route and the manual review questions without inventing an initial sign.
-  The populated packet remains blocked by the same 0-of-30 German source gate.
+- `INITIAL_SIGN_PACKET_ROUTE.md` and `initial-sign-packet.v3.json` preserve the
+  fifteen-stage form-to-graph route as a tracked
+  `blocked-not-materialized` packet. It contains no source form, occurrence,
+  lexeme, sign candidate, human task, relation, concept, claim, or graph
+  projection. Its gate is one packet-local accepted German source bundle plus
+  language-competence evidence; the historical 0-of-30 packet does not
+  schedule this work.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic
@@ -89,11 +93,12 @@ Zarathustra golden kernel. It is not a completed gold set.
   kernel gold units, accepted sign and translation packets, and 20
   double-checked content-bearing target passages. `transfer-provenance.jsonl`
   binds that non-run decision to the current source and gold gates.
-- `semantic-samples.json` retains the v1 universal 30-source/15-gold gate as
-  the reproducible historical semantic plan. `llm-tasks.json` now uses the
-  separate task-specific LLM v2 contract. Both remain
-  `blocked-not-materialized`, contain zero tasks and zero runs, but they no
-  longer have to share one provenance event or one readiness law.
+- `semantic-samples.json` uses the task-specific semantic v2 contract while
+  retaining the universal 30-source/15-gold gate only as a digest-bound
+  historical snapshot without scheduling or execution authority.
+  `llm-tasks.json` uses the separate task-specific LLM v2 contract. Both
+  remain `blocked-not-materialized`, contain zero tasks and zero runs, and
+  keep their own provenance and readiness law.
 - `llm-tasks.json` freezes one content-free
   `sign-candidate-and-refusal` question, its output boundary, the
   10-random/10-hard shape, and the `abyss-stack` resident-profile route. It

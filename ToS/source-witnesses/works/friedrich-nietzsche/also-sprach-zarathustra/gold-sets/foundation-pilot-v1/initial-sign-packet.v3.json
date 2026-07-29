@@ -1,0 +1,282 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json",
+  "schema_version": "tos_semantic_ladder_packet_v3",
+  "packet_id": "tos.semantic-ladder-packet.zarathustra-foundation-initial",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "source_expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+  "task_specific_source_gate": {
+    "gate_kind": "task-specific-promotion-candidate-source-bundle",
+    "source_anchor_refs": [],
+    "accepted_source_sha256": null,
+    "source_review_event_ref": null,
+    "local_content_ref": null,
+    "local_content_sha256": null,
+    "accepted_source_is_packet_local": true,
+    "universal_packet_completion_required": false,
+    "language_competence_status": "blocked",
+    "language_competence_evidence_refs": [],
+    "missing_competence_effect": "leave-unresolved-never-infer-acceptance",
+    "gate_status": "blocked"
+  },
+  "source_forms": null,
+  "candidate_ref": null,
+  "accepted_sign_ref": null,
+  "translation_evidence": [],
+  "assurance_policy": {
+    "operating_model": "solo_human_plus_ai",
+    "routine_human_work_for_prepared_packet": false,
+    "promotion_checkpoint_posture": "opens-only-for-concrete-source-grounded-sign-candidate",
+    "unassisted_operator_baseline_required": true,
+    "baseline_frozen_before_model_suggestions": true,
+    "second_human_review_posture": "triggered-exception-not-routine",
+    "second_human_review_triggers": [
+      "declared-language-competence-gap",
+      "high-impact-canon-promotion",
+      "persistent-source-grounded-ambiguity",
+      "operator-baseline-instability"
+    ],
+    "model_disagreement_is_human_perspective": false,
+    "rationale_preserved_separately_from_label": true,
+    "alternatives_uncertainty_and_refusal_preserved": true,
+    "human_work_scheduled": false
+  },
+  "stage_order": [
+    "exact_form",
+    "frequency_and_concordance",
+    "context",
+    "morphology",
+    "lemma",
+    "recurrence_within_section",
+    "recurrence_within_work",
+    "recurrence_within_author_corpus",
+    "translation_correspondences",
+    "stable_sign_candidate",
+    "manual_confirmation_or_rejection",
+    "relations_between_signs",
+    "conceptual_interpretations",
+    "competing_readings",
+    "graph_projection"
+  ],
+  "stages": [
+    {
+      "stage": "exact_form",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "task-specific-source-gate-not-satisfied",
+        "german-language-competence-not-attested"
+      ]
+    },
+    {
+      "stage": "frequency_and_concordance",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "task-specific-source-gate-not-satisfied",
+        "exact-form-not-materialized"
+      ]
+    },
+    {
+      "stage": "context",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "task-specific-source-gate-not-satisfied",
+        "exact-occurrences-not-materialized"
+      ]
+    },
+    {
+      "stage": "morphology",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "task-specific-source-gate-not-satisfied",
+        "german-language-competence-not-attested"
+      ]
+    },
+    {
+      "stage": "lemma",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "task-specific-source-gate-not-satisfied",
+        "german-language-competence-not-attested"
+      ]
+    },
+    {
+      "stage": "recurrence_within_section",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "occurrences-and-lexeme-not-materialized"
+      ]
+    },
+    {
+      "stage": "recurrence_within_work",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "occurrences-and-lexeme-not-materialized"
+      ]
+    },
+    {
+      "stage": "recurrence_within_author_corpus",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "occurrences-and-lexeme-not-materialized"
+      ]
+    },
+    {
+      "stage": "translation_correspondences",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "accepted-translation-evidence-not-materialized"
+      ]
+    },
+    {
+      "stage": "stable_sign_candidate",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "source-grounded-recurrence-and-translation-evidence-not-materialized"
+      ]
+    },
+    {
+      "stage": "manual_confirmation_or_rejection",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "concrete-source-grounded-sign-candidate-not-materialized"
+      ]
+    },
+    {
+      "stage": "relations_between_signs",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "human-sign-promotion-decision-absent"
+      ]
+    },
+    {
+      "stage": "conceptual_interpretations",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "human-sign-promotion-decision-absent"
+      ]
+    },
+    {
+      "stage": "competing_readings",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "interpretive-claims-not-materialized"
+      ]
+    },
+    {
+      "stage": "graph_projection",
+      "status": "blocked",
+      "source_anchor_refs": [],
+      "source_return_verified": false,
+      "body": {},
+      "maker": null,
+      "provenance_event_ref": null,
+      "review_status": "not-started",
+      "blocker_refs": [
+        "accepted-sign-relations-claims-and-counterreadings-not-materialized"
+      ]
+    }
+  ],
+  "frequency_is_not_sufficient": true,
+  "every_stage_returns_to_source_page": true,
+  "model_may_propose_but_not_confirm": true,
+  "manual_sign_decision_required_before_interpretation": true,
+  "packet_status": "blocked-not-materialized",
+  "result": {
+    "human_decision_refs": [],
+    "relation_refs": [],
+    "concept_refs": [],
+    "claim_refs": [],
+    "graph_projection_refs": [],
+    "promotion_authorized": false,
+    "conclusion": "The initial Zarathustra sign packet is structurally present but contains no source form, occurrence, lexeme, sign candidate, human decision, relation, concept, claim, or graph projection. It remains blocked until one concrete packet-local German source bundle is accepted with language-competence evidence."
+  },
+  "provenance_event_refs": [
+    "tos.event.annotation.zarathustra-initial-sign-packet-v3.2026-07-29"
+  ],
+  "authority_boundary": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision",
+  "packet_version": 3,
+  "supersedes_packet_ref": null
+}

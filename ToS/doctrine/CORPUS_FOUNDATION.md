@@ -23,7 +23,7 @@ Semantic growth begins on this floor. It is not collapsed into it.
 | Posture | Meaning | Examples |
 | --- | --- | --- |
 | immutable | the recorded value never changes; a change creates another object/event | acquired file bytes, SHA-256 digest, signed receipt, review event |
-| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, passage, annotation, claim |
+| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, passage, occurrence, lexeme, sign, concept, relation, annotation, claim |
 | versioned assertion | content may be superseded without erasing lineage | title attribution, date, lemma, etymology, translation, concept boundary, relation |
 | derived projection | safely rebuildable from stronger tracked surfaces | search index, vector index, graph store, KAG export, visualization |
 
@@ -57,7 +57,8 @@ tos.<class>.<stable-local-name>
 
 where `<class>` is one of `agent`, `work`, `expression`, `edition`,
 `collection`, `item`, `file`, `passage`, `region`, `anchor`, `occurrence`,
-`annotation`, `claim`, `rights`, `review`, or `event`.
+`lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
+`review`, or `event`.
 
 Rules:
 
@@ -129,6 +130,24 @@ timeless semantic entity.
 
 The identity of a record may be stable while its interpretation is corrected.
 No model may silently lift an occurrence into a concept.
+
+The semantic identities remain distinct:
+
+- `occurrence_id` identifies one addressable appearance in an exact witness;
+- `lexeme_id` identifies a linguistic normalization whose membership remains
+  a versioned claim;
+- `sign_id` is assigned only after an evidence-bearing human promotion
+  decision over a concrete candidate;
+- `concept_id` identifies a contestable interpretation family, not a hidden
+  synonym for a sign;
+- `claim_id` identifies one versioned assertion with maker, time, method,
+  evidence, alternatives, uncertainty, and review;
+- `relation_id` identifies one typed relation record whose claim and evidence
+  remain separately resolvable.
+
+Before sign promotion, the stable candidate identity is an `annotation_id` or
+`claim_id`, never a prematurely minted `sign_id`. Labels remain mutable and do
+not determine any of these identities.
 
 ## Assertion layers
 
