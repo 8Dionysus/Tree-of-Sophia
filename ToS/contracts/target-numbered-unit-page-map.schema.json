@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/target-numbered-unit-page-map.schema.json",
+  "title": "Tree of Sophia target-expression numbered-unit page map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "map_id",
+    "work_ref",
+    "expression_ref",
+    "edition_ref",
+    "item_ref",
+    "scan_file",
+    "inventory",
+    "work_boundary",
+    "map_authority",
+    "source_text_included",
+    "method",
+    "unit_starts",
+    "numbering_asymmetries",
+    "summary",
+    "provenance_ref",
+    "provenance_event_ref",
+    "map_version",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/target-numbered-unit-page-map.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_target_numbered_unit_page_map_v1"
+    },
+    "map_id": {
+      "type": "string",
+      "pattern": "^tos\\.target-numbered-unit-page-map\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "expression_ref": {"$ref": "#/$defs/tosId"},
+    "edition_ref": {"$ref": "#/$defs/tosId"},
+    "item_ref": {"$ref": "#/$defs/tosId"},
+    "scan_file": {"$ref": "#/$defs/fileBinding"},
+    "inventory": {"$ref": "#/$defs/digestBoundRef"},
+    "work_boundary": {"$ref": "#/$defs/workBoundaryBinding"},
+    "map_authority": {
+      "const": "model_reviewed_target_structure_candidate_only"
+    },
+    "source_text_included": {"const": false},
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "maker_type",
+        "local_payloads_read",
+        "navigation_tool",
+        "layer_trials",
+        "candidate_filter",
+        "ordered_bbox_candidate_matches",
+        "source_visible_review",
+        "cross_lingual_text_matching_used",
+        "semantic_matching_used",
+        "no_source_text_emitted"
+      ],
+      "properties": {
+        "name": {
+          "const": "ordered-embedded-pdf-bbox-candidate-plus-source-visible-gap-review"
+        },
+        "version": {"const": "1"},
+        "maker_type": {"const": "mixed"},
+        "local_payloads_read": {"const": true},
+        "navigation_tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "mode"],
+          "properties": {
+            "name": {"const": "pdftotext"},
+            "version": {"const": "26.01.0"},
+            "mode": {"const": "bbox-layout"}
+          }
+        },
+        "layer_trials": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["layer", "result", "selected_role"],
+            "properties": {
+              "layer": {
+                "enum": [
+                  "embedded_plain_text",
+                  "embedded_bbox_unordered_candidates",
+                  "embedded_bbox_ordered_candidates_plus_source_visible_gap_review"
+                ]
+              },
+              "result": {"type": "string", "minLength": 1},
+              "selected_role": {
+                "enum": [
+                  "rejected_as_complete_map_source",
+                  "rejected_without_order_constraint",
+                  "selected_bounded_structure_route"
+                ]
+              }
+            }
+          }
+        },
+        "candidate_filter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "single_word_line_only",
+            "x_min_points",
+            "y_min_points",
+            "maximum_stripped_character_count",
+            "normalizations"
+          ],
+          "properties": {
+            "single_word_line_only": {"const": true},
+            "x_min_points": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["minimum", "maximum"],
+              "properties": {
+                "minimum": {"const": 145},
+                "maximum": {"const": 175}
+              }
+            },
+            "y_min_points": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["minimum", "maximum"],
+              "properties": {
+                "minimum": {"const": 40},
+                "maximum": {"const": 490}
+              }
+            },
+            "maximum_stripped_character_count": {"const": 5},
+            "normalizations": {
+              "const": [
+                "trim surrounding whitespace and terminal periods",
+                "map Cyrillic а/А to structural suffix a",
+                "map the isolated OCR glyph Cyrillic б to candidate 6"
+              ]
+            }
+          }
+        },
+        "ordered_bbox_candidate_matches": {
+          "const": 265
+        },
+        "source_visible_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maker_type",
+            "human_repeat_performed",
+            "gap_review_unit_keys",
+            "ocr_disambiguation_unit_keys",
+            "supplemental_label_unit_keys"
+          ],
+          "properties": {
+            "maker_type": {"const": "model"},
+            "human_repeat_performed": {"const": false},
+            "gap_review_unit_keys": {
+              "type": "array",
+              "minItems": 33,
+              "maxItems": 33,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/unitKey"}
+            },
+            "ocr_disambiguation_unit_keys": {
+              "const": ["6"]
+            },
+            "supplemental_label_unit_keys": {
+              "const": ["65a", "73a"]
+            }
+          }
+        },
+        "cross_lingual_text_matching_used": {"const": false},
+        "semantic_matching_used": {"const": false},
+        "no_source_text_emitted": {"const": true}
+      }
+    },
+    "unit_starts": {
+      "type": "array",
+      "minItems": 298,
+      "maxItems": 298,
+      "items": {"$ref": "#/$defs/unitStart"}
+    },
+    "numbering_asymmetries": {
+      "const": [
+        {
+          "source_unit_key": "237a",
+          "source_map_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json",
+          "source_map_sha256": "fb7c15005968bb5795388714ab2b725593f5f29f31cb29c71cece77f751b2b90",
+          "target_state": "corresponding_prose_present_without_repeated_unit_label",
+          "target_numbered_unit_materialized": false,
+          "exact_translation_alignment_claimed": false
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integer_numbered_unit_count",
+        "supplemental_numbered_units",
+        "source_only_nonmaterialized_numbered_units",
+        "numbered_unit_count",
+        "exact_start_page_candidates_materialized",
+        "unresolved_unit_count",
+        "start_pages_monotonic",
+        "all_anchor_statuses",
+        "human_review_performed"
+      ],
+      "properties": {
+        "integer_numbered_unit_count": {"const": 296},
+        "supplemental_numbered_units": {"const": ["65a", "73a"]},
+        "source_only_nonmaterialized_numbered_units": {"const": ["237a"]},
+        "numbered_unit_count": {"const": 298},
+        "exact_start_page_candidates_materialized": {"const": 298},
+        "unresolved_unit_count": {"const": 0},
+        "start_pages_monotonic": {"const": true},
+        "all_anchor_statuses": {"const": ["proposed"]},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "provenance_ref": {"$ref": "#/$defs/repoRelativePath"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "map_version": {"type": "integer", "minimum": 1},
+    "supersedes_map_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/repoRelativePath"},
+        {"type": "null"}
+      ]
+    },
+    "authority_boundary": {
+      "const": "model-reviewed target-visible numbered-label start-page candidates and proposed whole-page addresses for one exact translation scan only; no target text, exact line boundary, translation alignment, translation equivalence or quality, textual identity, semantics, rights clearance, or canon authority"
+    },
+    "does_not_establish": {
+      "const": [
+        "target_text",
+        "exact_line_boundaries",
+        "exact_passage_end_boundaries",
+        "accepted_translation_text",
+        "translation_correspondence",
+        "translation_equivalence",
+        "translation_quality",
+        "textual_identity",
+        "semantics",
+        "rights_clearance",
+        "canon_promotion"
+      ]
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_ref", "file_sha256", "inventory_profile"],
+      "properties": {
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "inventory_profile": {"const": "pdf_pages_v1"}
+      }
+    },
+    "workBoundaryBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256",
+        "member_sequence",
+        "start_page",
+        "end_page",
+        "epistemic_status",
+        "review_status"
+      ],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "member_sequence": {"const": 2},
+        "start_page": {"const": 238},
+        "end_page": {"const": 406},
+        "epistemic_status": {"const": "inferred"},
+        "review_status": {"const": "unreviewed"}
+      }
+    },
+    "unitKey": {
+      "type": "string",
+      "pattern": "^(?:[1-9]|[1-9][0-9]|[12][0-9]{2})(?:a)?$"
+    },
+    "unitStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "unit_key",
+        "pdf_page",
+        "resource_id",
+        "anchor_ref",
+        "basis",
+        "status",
+        "human_review_performed"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 298},
+        "unit_key": {"$ref": "#/$defs/unitKey"},
+        "pdf_page": {"type": "integer", "minimum": 238, "maximum": 406},
+        "resource_id": {
+          "type": "string",
+          "pattern": "^pdf-page-[0-9]{4}$"
+        },
+        "anchor_ref": {"$ref": "#/$defs/tosId"},
+        "basis": {
+          "enum": [
+            "embedded_pdf_bbox_order_candidate",
+            "source_visible_gap_review",
+            "source_visible_ocr_disambiguation"
+          ]
+        },
+        "status": {"const": "proposed"},
+        "human_review_performed": {"const": false}
+      }
+    }
+  }
+}

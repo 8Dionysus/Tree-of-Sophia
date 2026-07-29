@@ -68,6 +68,16 @@ the local payloads. Neither a complete address set nor a green validator
 accepts the OCR, the German text, exact line boundaries, a critical-edition
 equivalence, a translation, or semantics.
 
+`build_jenseits_polilov_numbered_unit_structure.py` is the separate target-only
+companion for the Polilov/Mysl 1996 expression. It compares plain text,
+unordered bbox candidates, and ordered bbox candidates plus bounded visible
+gap review over the exact local PDF, then emits 298 proposed target-label
+starts for 1–296, 65a, and 73a. It preserves source-only 237a as an explicit
+nonmaterialized asymmetry instead of manufacturing a Russian label or
+source-to-target alignment. Its green rebuild and validator prove only
+deterministic address closure, not accepted Russian, translation equivalence
+or quality, semantics, rights, or canon.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream
@@ -171,4 +181,5 @@ Local owner routes:
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
+| local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

@@ -241,6 +241,16 @@ The parallel German ↔ Russian map still stops at division granularity and
 materializes zero exact target-unit starts. In the Mysl witness, the prose
 corresponding to source `237a` follows the Seven Sayings without a repeated
 237/237a label; that visible asymmetry is preserved instead of being forced
-into an equivalence. Shared order, numbering, or a proposed page pair does not
-establish textual identity, critical-edition equivalence, translation
-alignment, translation quality, semantics, or acceptance.
+into an equivalence.
+
+The Polilov/Mysl expression now also carries its own target-only
+`structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json`.
+Its A/B/C route rejects plain embedded text as a complete map source, rejects
+unordered bbox numerals without an order constraint, and selects ordered bbox
+candidates plus bounded source-visible gap review. It materializes 298
+monotonic proposed target-label starts for 1–296, `65a`, and `73a`, with the
+absent target label `237a` recorded only as a source-map asymmetry. This layer
+does not pair any target unit to a source unit. Shared order, numbering, or
+separate proposed page addresses do not establish textual identity,
+critical-edition equivalence, translation alignment, translation quality,
+semantics, or acceptance.

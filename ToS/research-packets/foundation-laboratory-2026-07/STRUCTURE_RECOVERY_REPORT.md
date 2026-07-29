@@ -189,6 +189,37 @@ inventory rebuild, which re-read all ten locally available source items and
 decompressed the 88 MB ABBYY working stream, took about 65 seconds. These are
 observed route costs, not quality scores.
 
+## Exact Polilov/Mysl 1996 target-label trial
+
+A separate bounded A/B/C trial then asked a narrower target-only question:
+whether the exact local Polilov/Mysl 1996 PDF could expose stable Russian
+numbered-label start pages without transcribing the translation or aligning it
+to the German.
+
+- A, plain embedded PDF text, preserved substantial readable material but
+  mixed reading order, running heads, and damaged numerals. It was rejected as
+  a complete deterministic label map.
+- B, bbox-filtered numerals without an order constraint, narrowed the search
+  but still admitted unrelated page numbers. It was rejected on its own.
+- C, the same bbox geometry constrained by the expected target label order,
+  supplied 265 machine candidates. All 33 gaps were checked against visible
+  pages instead of being hidden behind a looser OCR rule.
+
+The selected route yields 298 monotonic proposed whole-page starts for
+integers 1–296 plus visibly printed `65a` and `73a`. One embedded OCR glyph for
+§6 was preserved as a source-visible OCR disambiguation rather than silently
+treated as a clean machine match.
+
+The target does not print a second 237/237a label. The separate source map's
+`237a` is therefore recorded as a source-only, nonmaterialized asymmetry.
+Nothing in the target map pairs a Russian unit with a German unit. It
+establishes neither accepted Russian text nor source-to-target alignment,
+translation equivalence, translation quality, or semantics.
+
+The local builder reproduced the final map from the fixity-bound PDF in under
+one second on the resident host during this run. That is route-cost evidence
+for this exact embedded layer, not a quality score or a general OCR benchmark.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all
@@ -207,10 +238,13 @@ observed route costs, not quality scores.
    manually recomputed from raw artifacts.
 7. Keep all 15 gold candidates unaccepted until two real source-visible human
    passes are recorded.
-8. Reuse the 246 Zarathustra structural addresses and 299 Jenseits source
-   start-page addresses for future bounded review and comparison, but require
-   a narrower reviewed anchor before treating a whole member or page as an
-   exact passage boundary.
+8. Reuse the 246 Zarathustra structural addresses, 299 Jenseits source starts,
+   and 298 target-only Polilov/Mysl starts for future bounded review and
+   comparison, but require a narrower reviewed anchor before treating a whole
+   member or page as an exact passage boundary.
+9. Keep source and target numbered-unit maps independent. Shared labels may
+   later seed explicit alignment candidates, but they do not themselves prove
+   textual, translational, or semantic correspondence.
 
 ## What remains unknown
 
@@ -221,6 +255,8 @@ observed route costs, not quality scores.
 - correction minutes and therefore real human-inclusive cost;
 - whether a clean scan-derived German witness disagrees materially with the
   provided auto-EPUB text;
+- whether independently reviewed narrow source and target anchors support any
+  unit-level translation alignment beyond shared visible numbering;
 - whether any structure output is stable enough to seed translation,
   semantic, sign, relation, concept, or graph work.
 

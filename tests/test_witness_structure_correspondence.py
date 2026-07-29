@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import build_witness_structure_correspondence as builder
+import build_jenseits_polilov_numbered_unit_structure as target_builder
 import validate_witness_structure_correspondence as validator
 
 
@@ -31,6 +32,98 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
             [],
             validator.validate_numbered_unit_page_map(REPO_ROOT),
         )
+
+    def test_target_numbered_unit_map_closes_over_exact_scan_and_boundary(
+        self,
+    ) -> None:
+        self.assertEqual(
+            [],
+            validator.validate_target_numbered_unit_page_map(REPO_ROOT),
+        )
+
+    def test_target_map_materializes_only_visible_target_labels(self) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.TARGET_NUMBERED_UNIT_MAP_PATH).read_text(
+                encoding="utf-8"
+            )
+        )
+        anchors = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT
+                / validator.TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        units = {
+            unit["unit_key"]: unit for unit in payload["unit_starts"]
+        }
+
+        self.assertEqual(298, len(units))
+        self.assertEqual(298, len(anchors))
+        self.assertEqual(
+            ["65a", "73a"],
+            payload["summary"]["supplemental_numbered_units"],
+        )
+        self.assertNotIn("237a", units)
+        self.assertEqual(
+            ["237a"],
+            payload["summary"]["source_only_nonmaterialized_numbered_units"],
+        )
+        self.assertEqual(
+            "source_visible_ocr_disambiguation",
+            units["6"]["basis"],
+        )
+        self.assertEqual(244, units["6"]["pdf_page"])
+        self.assertEqual(291, units["65a"]["pdf_page"])
+        self.assertEqual(292, units["73a"]["pdf_page"])
+        self.assertEqual(399, units["285"]["pdf_page"])
+        asymmetry = payload["numbering_asymmetries"][0]
+        self.assertFalse(asymmetry["target_numbered_unit_materialized"])
+        self.assertFalse(asymmetry["exact_translation_alignment_claimed"])
+        self.assertFalse(payload["source_text_included"])
+        self.assertEqual({"proposed"}, {anchor["status"] for anchor in anchors})
+        self.assertEqual(
+            {"structural", "page_region"},
+            {
+                selector["type"]
+                for anchor in anchors
+                for selector in anchor["selectors"]
+            },
+        )
+
+    def test_target_contract_rejects_materialized_source_only_237a(self) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.TARGET_NUMBERED_UNIT_MAP_PATH).read_text(
+                encoding="utf-8"
+            )
+        )
+        payload["numbering_asymmetries"][0][
+            "target_numbered_unit_materialized"
+        ] = True
+        schema_validator = validator._validator(
+            validator.TARGET_NUMBERED_UNIT_SCHEMA_PATH,
+            REPO_ROOT,
+        )
+
+        self.assertTrue(list(schema_validator.iter_errors(payload)))
+
+    def test_target_bbox_order_route_keeps_missing_units_explicit(self) -> None:
+        matches, skipped, raw_matches = target_builder._ordered_candidate_matches(
+            ["1", "2", "3", "4"],
+            [
+                {"page": 10, "normalized": "1", "raw": "1."},
+                {"page": 11, "normalized": "3", "raw": "3."},
+                {"page": 12, "normalized": "2", "raw": "2."},
+                {"page": 13, "normalized": "4", "raw": "4."},
+            ],
+        )
+
+        self.assertEqual({"1": 10, "3": 11, "4": 13}, matches)
+        self.assertEqual(["2"], skipped)
+        self.assertEqual({"1": "1.", "3": "3.", "4": "4."}, raw_matches)
 
     def test_numbered_unit_map_materializes_proposed_addresses_not_text(
         self,

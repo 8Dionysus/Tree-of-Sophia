@@ -240,6 +240,32 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/target-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/numbered-unit-page-map.json",
+        "ToS/contracts/target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Polilov/Mysl 1996 PDF, its tracked resource inventory and work boundary, plus the digest-bound source map only for explicit numbering asymmetry"
+      ],
+      "writes": [
+        "the tracked text-free target numbered-unit page map, proposed whole-page target anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "tracked model-reviewed start-page candidates for 298 visible target labels without target text, cross-lingual alignment, or acceptance",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -350,15 +376,17 @@
         "ToS/contracts/witness-structure-anchor-set.schema.json",
         "ToS/contracts/parallel-witness-structure-map.schema.json",
         "ToS/contracts/numbered-unit-page-map.schema.json",
+        "ToS/contracts/target-numbered-unit-page-map.schema.json",
         "ToS/contracts/source-anchor.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/source-witnesses/**/resource-inventory.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**",
         "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/**",
-        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/**"
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/**"
       ],
       "reads": [
-        "tracked text-free structure-correspondence and numbered-unit page maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
+        "tracked text-free structure-correspondence, source and target numbered-unit page maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
       ],
       "writes": [],
       "side_effects": "validation output only",

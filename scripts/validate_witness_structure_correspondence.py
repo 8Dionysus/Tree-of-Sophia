@@ -60,6 +60,22 @@ NUMBERED_UNIT_ANCHOR_RECORDS_PATH = NUMBERED_UNIT_MAP_PATH.with_name(
 NUMBERED_UNIT_SCHEMA_PATH = Path(
     "ToS/contracts/numbered-unit-page-map.schema.json"
 )
+TARGET_NUMBERED_UNIT_MAP_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/"
+    "structure/mysl-1996-volume-2-operator-pdf/"
+    "numbered-unit-page-map.json"
+)
+TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH = (
+    TARGET_NUMBERED_UNIT_MAP_PATH.with_name("numbered-unit-anchors.jsonl")
+)
+TARGET_NUMBERED_UNIT_SCHEMA_PATH = Path(
+    "ToS/contracts/target-numbered-unit-page-map.schema.json"
+)
+TARGET_NUMBERED_UNIT_EVENT_ID = (
+    "tos.event.target-numbered-unit-page-map.friedrich-nietzsche."
+    "jenseits-von-gut-und-boese.ru-polilov-mysl-1996.2026-07-29"
+)
 NUMBERED_UNIT_EVENT_ID = (
     "tos.event.numbered-unit-page-map.friedrich-nietzsche."
     "jenseits-von-gut-und-boese.de-naumann-1886.2026-07-29"
@@ -1624,11 +1640,403 @@ def validate_numbered_unit_page_map(
     return issues
 
 
+def _target_numbered_unit_keys() -> list[str]:
+    keys: list[str] = []
+    for number in range(1, 297):
+        keys.append(str(number))
+        if number in {65, 73}:
+            keys.append(f"{number}a")
+    return keys
+
+
+def validate_target_numbered_unit_page_map(
+    repo_root: Path = REPO_ROOT,
+) -> list[Issue]:
+    """Close the target-only numbered-label map over tracked evidence.
+
+    This establishes reference and arithmetic closure only. It deliberately
+    does not compare source and target text or infer translation equivalence.
+    """
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    map_path = repo_root / TARGET_NUMBERED_UNIT_MAP_PATH
+    payload = _load_json(map_path, repo_root, issues)
+    if payload is None:
+        return issues
+    location = TARGET_NUMBERED_UNIT_MAP_PATH.as_posix()
+    _validate_schema(
+        payload,
+        validator=_validator(TARGET_NUMBERED_UNIT_SCHEMA_PATH, repo_root),
+        location=location,
+        issues=issues,
+    )
+    for path in _prohibited_key_paths(payload):
+        issues.append((location, f"source-text-bearing key is forbidden: {path}"))
+
+    inventory_binding = payload.get("inventory", {})
+    inventory_ref = (
+        inventory_binding.get("ref")
+        if isinstance(inventory_binding, dict)
+        else None
+    )
+    if not isinstance(inventory_ref, str):
+        issues.append((location, "target resource inventory binding is invalid"))
+        return issues
+    inventory_path = repo_root / inventory_ref
+    inventory = _load_json(inventory_path, repo_root, issues)
+    if inventory is None:
+        return issues
+    if inventory_binding.get("sha256") != _sha256(inventory_path):
+        issues.append((location, "target resource inventory digest drifted"))
+
+    inventory_files = [
+        file_inventory
+        for file_inventory in inventory.get("files", [])
+        if isinstance(file_inventory, dict)
+    ]
+    if len(inventory_files) != 1:
+        issues.append((location, "target resource inventory file set drifted"))
+        return issues
+    pdf_inventory = inventory_files[0]
+    if (
+        pdf_inventory.get("profile") != "pdf_pages_v1"
+        or pdf_inventory.get("summary", {}).get("page_count") != 831
+    ):
+        issues.append((location, "target PDF inventory profile or count drifted"))
+
+    scan_file = payload.get("scan_file", {})
+    if (
+        not isinstance(scan_file, dict)
+        or scan_file.get("file_ref") != pdf_inventory.get("file_id")
+        or scan_file.get("file_sha256") != pdf_inventory.get("file_sha256")
+        or scan_file.get("inventory_profile") != "pdf_pages_v1"
+        or inventory.get("item_id") != payload.get("item_ref")
+    ):
+        issues.append((location, "target scan file differs from inventory"))
+
+    boundary_binding = payload.get("work_boundary", {})
+    boundary_ref = (
+        boundary_binding.get("ref")
+        if isinstance(boundary_binding, dict)
+        else None
+    )
+    if not isinstance(boundary_ref, str):
+        issues.append((location, "target work-boundary binding is invalid"))
+        return issues
+    boundary_path = repo_root / boundary_ref
+    boundary = _load_json(boundary_path, repo_root, issues)
+    if boundary is None:
+        return issues
+    if boundary_binding.get("sha256") != _sha256(boundary_path):
+        issues.append((location, "target work-boundary digest drifted"))
+    members = [
+        member
+        for member in boundary.get("members", [])
+        if isinstance(member, dict)
+        and member.get("sequence") == boundary_binding.get("member_sequence")
+        and member.get("work_ref") == payload.get("work_ref")
+        and member.get("expression_ref") == payload.get("expression_ref")
+    ]
+    if len(members) != 1:
+        issues.append((location, "target work boundary does not resolve exactly once"))
+        member: dict[str, Any] = {}
+    else:
+        member = members[0]
+        expected_boundary_fields = {
+            "start_page": member.get("start_page"),
+            "end_page": member.get("end_page"),
+            "epistemic_status": member.get("epistemic_status"),
+            "review_status": member.get("review_status"),
+        }
+        for field, value in expected_boundary_fields.items():
+            if boundary_binding.get(field) != value:
+                issues.append((location, f"target work-boundary {field} drifted"))
+
+    resources = _resources(pdf_inventory)
+    expected_keys = _target_numbered_unit_keys()
+    unit_starts = [
+        unit
+        for unit in payload.get("unit_starts", [])
+        if isinstance(unit, dict)
+    ]
+    unit_keys = [unit.get("unit_key") for unit in unit_starts]
+    sequences = [unit.get("sequence") for unit in unit_starts]
+    pages = [unit.get("pdf_page") for unit in unit_starts]
+    if unit_keys != expected_keys:
+        issues.append((location, "target numbered-unit sequence drifted"))
+    if "237a" in unit_keys:
+        issues.append((location, "source-only 237a was materialized in target"))
+    if sequences != list(range(1, 299)):
+        issues.append((location, "target numbered-unit ordinal sequence drifted"))
+    if pages != sorted(pages):
+        issues.append((location, "target numbered-unit pages are not monotonic"))
+    if member and not all(
+        member.get("start_page") <= page <= member.get("end_page")
+        for page in pages
+        if isinstance(page, int)
+    ):
+        issues.append((location, "target numbered-unit page leaves work boundary"))
+
+    anchor_path = repo_root / TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH
+    anchors = _load_jsonl(anchor_path, repo_root, issues)
+    anchor_validator = _validator(ANCHOR_SCHEMA_PATH, repo_root)
+    anchors_by_id: dict[str, dict[str, Any]] = {}
+    for index, anchor in enumerate(anchors, start=1):
+        anchor_location = (
+            f"{TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH.as_posix()}:{index}"
+        )
+        _validate_schema(
+            anchor,
+            validator=anchor_validator,
+            location=anchor_location,
+            issues=issues,
+        )
+        for path in _prohibited_key_paths(anchor):
+            issues.append(
+                (
+                    anchor_location,
+                    f"source-text-bearing key is forbidden: {path}",
+                )
+            )
+        anchor_id = anchor.get("anchor_id")
+        if not isinstance(anchor_id, str) or anchor_id in anchors_by_id:
+            issues.append((anchor_location, "anchor_id is invalid or duplicated"))
+        else:
+            anchors_by_id[anchor_id] = anchor
+
+    expected_anchor_ids: set[str] = set()
+    basis_counts: Counter[str] = Counter()
+    basis_keys: defaultdict[str, set[object]] = defaultdict(set)
+    for unit in unit_starts:
+        unit_key = unit.get("unit_key")
+        page = unit.get("pdf_page")
+        resource_id = unit.get("resource_id")
+        anchor_ref = unit.get("anchor_ref")
+        if isinstance(anchor_ref, str):
+            expected_anchor_ids.add(anchor_ref)
+        basis = unit.get("basis")
+        if isinstance(basis, str):
+            basis_counts[basis] += 1
+            basis_keys[basis].add(unit_key)
+        resource = resources.get(resource_id)
+        if (
+            resource is None
+            or resource.get("resource_kind") != "pdf_page"
+            or resource.get("locator", {}).get("page_index") != page
+        ):
+            issues.append(
+                (location, f"target numbered unit {unit_key} leaves inventory")
+            )
+        anchor = anchors_by_id.get(anchor_ref)
+        if anchor is None:
+            issues.append((location, f"target numbered unit {unit_key} has no anchor"))
+            continue
+        expected_passage = (
+            "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese."
+            f"ru-polilov-mysl-1996.unit-{unit_key}"
+        )
+        if (
+            anchor.get("item_id") != payload.get("item_ref")
+            or anchor.get("file_id") != scan_file.get("file_ref")
+            or anchor.get("file_sha256") != scan_file.get("file_sha256")
+            or anchor.get("passage_id") != expected_passage
+            or anchor.get("status") != "proposed"
+            or anchor.get("provenance_event_ref")
+            != payload.get("provenance_event_ref")
+        ):
+            issues.append(
+                (location, f"target numbered unit {unit_key} anchor binding drifted")
+            )
+        selectors = anchor.get("selectors", [])
+        selector_types = [
+            selector.get("type")
+            for selector in selectors
+            if isinstance(selector, dict)
+        ]
+        if selector_types != ["structural", "page_region"]:
+            issues.append(
+                (location, f"target numbered unit {unit_key} selectors drifted")
+            )
+            continue
+        expected_structural_selector = {
+            "type": "structural",
+            "path": [
+                "work:jenseits-von-gut-und-boese",
+                "expression:ru-polilov-mysl-1996",
+                f"numbered-unit:{unit_key}",
+            ],
+            "scheme": "jgb-target-numbered-unit-start-v1",
+        }
+        if selectors[0] != expected_structural_selector:
+            issues.append(
+                (
+                    location,
+                    f"target numbered unit {unit_key} structural selector drifted",
+                )
+            )
+        expected_page_selector = {
+            "type": "page_region",
+            "page": page,
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1,
+            "coordinate_space": "normalized_0_1",
+        }
+        if selectors[1] != expected_page_selector:
+            issues.append(
+                (location, f"target numbered unit {unit_key} page selector drifted")
+            )
+    if set(anchors_by_id) != expected_anchor_ids or len(anchors) != 298:
+        issues.append((location, "target numbered-unit anchor set differs from map"))
+    expected_basis_counts = {
+        "embedded_pdf_bbox_order_candidate": 264,
+        "source_visible_gap_review": 33,
+        "source_visible_ocr_disambiguation": 1,
+    }
+    if dict(basis_counts) != expected_basis_counts:
+        issues.append((location, "target numbered-unit basis counts drifted"))
+
+    method = payload.get("method", {})
+    review = (
+        method.get("source_visible_review", {})
+        if isinstance(method, dict)
+        else {}
+    )
+    if isinstance(review, dict):
+        declared_gap_keys = set(review.get("gap_review_unit_keys", []))
+        declared_disambiguation_keys = set(
+            review.get("ocr_disambiguation_unit_keys", [])
+        )
+        if declared_gap_keys != basis_keys["source_visible_gap_review"]:
+            issues.append((location, "target declared gap-review set drifted"))
+        if (
+            declared_disambiguation_keys
+            != basis_keys["source_visible_ocr_disambiguation"]
+        ):
+            issues.append(
+                (location, "target declared OCR-disambiguation set drifted")
+            )
+        if review.get("supplemental_label_unit_keys") != ["65a", "73a"]:
+            issues.append((location, "target supplemental-label review drifted"))
+
+    asymmetries = payload.get("numbering_asymmetries", [])
+    if len(asymmetries) != 1 or not isinstance(asymmetries[0], dict):
+        issues.append((location, "target numbering asymmetry set drifted"))
+        asymmetry: dict[str, Any] = {}
+    else:
+        asymmetry = asymmetries[0]
+    source_map_ref = asymmetry.get("source_map_ref")
+    if not isinstance(source_map_ref, str):
+        issues.append((location, "target source-map asymmetry ref is invalid"))
+    else:
+        source_map_path = repo_root / source_map_ref
+        source_map = _load_json(source_map_path, repo_root, issues)
+        if source_map is not None:
+            if asymmetry.get("source_map_sha256") != _sha256(source_map_path):
+                issues.append((location, "target source-map asymmetry digest drifted"))
+            source_keys = {
+                unit.get("unit_key")
+                for unit in source_map.get("unit_starts", [])
+                if isinstance(unit, dict)
+            }
+            if "237a" not in source_keys:
+                issues.append((location, "bound source map does not contain 237a"))
+    if (
+        asymmetry.get("source_unit_key") != "237a"
+        or asymmetry.get("target_numbered_unit_materialized") is not False
+        or asymmetry.get("exact_translation_alignment_claimed") is not False
+    ):
+        issues.append((location, "target 237a asymmetry posture drifted"))
+
+    summary = payload.get("summary", {})
+    if isinstance(summary, dict):
+        expected_summary = {
+            "integer_numbered_unit_count": 296,
+            "supplemental_numbered_units": ["65a", "73a"],
+            "source_only_nonmaterialized_numbered_units": ["237a"],
+            "numbered_unit_count": len(unit_starts),
+            "exact_start_page_candidates_materialized": len(unit_starts),
+            "unresolved_unit_count": 0,
+            "start_pages_monotonic": pages == sorted(pages),
+            "all_anchor_statuses": ["proposed"],
+            "human_review_performed": False,
+        }
+        for field, value in expected_summary.items():
+            if summary.get(field) != value:
+                issues.append((location, f"target summary {field} drifted"))
+
+    provenance_ref = payload.get("provenance_ref")
+    if not isinstance(provenance_ref, str):
+        issues.append((location, "target provenance_ref is invalid"))
+        return issues
+    provenance_path = repo_root / provenance_ref
+    events = _load_jsonl(provenance_path, repo_root, issues)
+    provenance_validator = _validator(PROVENANCE_SCHEMA_PATH, repo_root)
+    for index, event in enumerate(events, start=1):
+        _validate_schema(
+            event,
+            validator=provenance_validator,
+            location=f"{provenance_ref}:{index}",
+            issues=issues,
+        )
+    event_matches = [
+        event
+        for event in events
+        if event.get("event_id") == payload.get("provenance_event_ref")
+    ]
+    if (
+        len(event_matches) != 1
+        or payload.get("provenance_event_ref") != TARGET_NUMBERED_UNIT_EVENT_ID
+    ):
+        issues.append(
+            (provenance_ref, "target numbered-unit provenance event does not resolve")
+        )
+    else:
+        event = event_matches[0]
+        expected_outputs = {
+            (
+                TARGET_NUMBERED_UNIT_MAP_PATH.as_posix(),
+                "tracked-text-free-target-numbered-unit-page-map",
+                _sha256(map_path),
+            ),
+            (
+                TARGET_NUMBERED_UNIT_ANCHOR_RECORDS_PATH.as_posix(),
+                "tracked-proposed-whole-page-target-anchors",
+                _sha256(anchor_path),
+            ),
+        }
+        actual_outputs = {
+            (output.get("ref"), output.get("role"), output.get("sha256"))
+            for output in event.get("outputs", [])
+            if isinstance(output, dict)
+        }
+        if actual_outputs != expected_outputs:
+            issues.append((provenance_ref, "target event outputs drifted"))
+        expected_inputs = {
+            (scan_file.get("file_ref"), scan_file.get("file_sha256")),
+            (inventory_ref, inventory_binding.get("sha256")),
+            (boundary_ref, boundary_binding.get("sha256")),
+            (source_map_ref, asymmetry.get("source_map_sha256")),
+        }
+        actual_inputs = {
+            (input_entry.get("ref"), input_entry.get("sha256"))
+            for input_entry in event.get("inputs", [])
+            if isinstance(input_entry, dict)
+        }
+        if actual_inputs != expected_inputs:
+            issues.append((provenance_ref, "target event inputs drifted"))
+
+    return issues
+
+
 def main() -> int:
     issues = [
         *validate_structure_correspondence(),
         *validate_parallel_structure_correspondence(),
         *validate_numbered_unit_page_map(),
+        *validate_target_numbered_unit_page_map(),
     ]
     if issues:
         print("Witness-structure correspondence validation failed.", file=sys.stderr)
