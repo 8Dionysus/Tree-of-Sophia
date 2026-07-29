@@ -24,7 +24,7 @@ fields. They are the next authority layer.
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
 | German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | HTTP transport is unauthenticated; bibliographic/rights and German-competent review remain pending; DTA and machine agreement are not critical-edition admission or ToS acceptance |
-| bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A/B/C runs: 0; accepted German: 0; accepted translation lanes: 0 | it may measure local machine method, cost, and speed, but cannot establish German correctness, translation fidelity, rights clearance, semantics, or canon |
+| bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen GPU runtime failure without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and failures still cannot establish German correctness, translation fidelity, rights clearance, semantics, or canon |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -128,9 +128,10 @@ contracts intentionally reject simulated human evidence.
   evidence or full-scope repeatability.
 - Alignment A/B/C, accepted-translation A/B/C, semantic annotation A/B/C,
   LLM assistance A/B/C, and golden-kernel transfer A/B/C have not been
-  executed as quality experiments. One exact source string is now eligible
-  for a separate local translation-method calibration, but that calibration
-  has not yet run and cannot promote its output.
+  executed as quality experiments. The separate one-string local
+  translation-method calibration has run A/B/C, but only A returned a complete
+  candidate, its Russian surface is defective, and none of the three outcomes
+  can promote content.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -203,9 +204,9 @@ not reintroduce a false 90 °C gate.
   frozen PaddleOCR-VL selection, progress/receipt closure, and fail-closed
   tests are committed in `abyss-stack` as `cc4e0da`. All 68 laboratory tests,
   package validation, Python compilation, and the full stack validator pass.
-- Both owner worktrees are clean apart from deliberately ignored payload,
-  laboratory-content, cache, and test-cache paths. No source PDF, EPUB, model,
-  cache, or heavy run artifact entered Git.
+- At that earlier checkpoint both owner worktrees were clean apart from
+  deliberately ignored payload, laboratory-content, cache, and test-cache
+  paths. No source PDF, EPUB, model, cache, or heavy run artifact entered Git.
 - The task-specific LLM readiness correction is committed in Tree of Sophia as
   `e9b9cca` and bound into `abyss-stack` preflight as `0f4ff86e`. The Tree
   source-foundation validator, 160 tests plus one skip, corpus/KAG checks, and
@@ -220,6 +221,14 @@ not reintroduce a false 90 °C gate.
   the local ten-payload inventory check, portable KAG family validation, and
   the complete release lane pass; no source or translation text was added to
   Git.
+- The bounded translation runner lifecycle correction is committed in
+  `abyss-stack` as `28e4b6b`; all 120 foundation-laboratory tests, package
+  validation, and the full stack validator pass. The current Tree slice passes
+  source-witness, source-home, corpus-index, node, and all release checks up to
+  local KAG-provider validation. That final step exposes a pre-existing
+  `content_hash` drift for the unchanged German-triangulation source against
+  the unchanged `kag/indexes/index_family.manifest.json`; the stale derived
+  KAG family was not rebuilt or presented as current proof.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.
@@ -296,14 +305,21 @@ execution remain blocked.
 
 ### 2b. Execute one bounded translation-method calibration
 
-Current state: one source string is eligible; no model run or result exists.
+Current state: one source string is eligible and A/B/C are frozen at their
+actual outcomes. The bounded experiment is closed.
 
 1. Read the source string only from the ignored local artifact and verify its
    artifact and source-text digests before each run.
-2. Use resident `abyss-stack` routes first; freeze exact model, runtime,
-   prompt, decoding, hardware, timing, resource, and output receipts.
-3. Keep A/B/C source input and measurement definitions identical. Preserve
-   refusals, malformed outputs, and runtime failures.
+2. A used the resident Gemma E2B direct prompt and completed the output
+   contract with visible Russian defects. B used the same model/runtime and
+   changed only to the source-aware prompt; it was slower and its outer JSON
+   truncated at the frozen limit. Both outputs are immutable.
+3. C preserved B's source-aware prompt and decoding and changed only to the
+   exact resident Qwen3 4B/OVMS route. After corrected persistent startup and
+   live owner admission, its single request failed with GPU
+   `CL_OUT_OF_RESOURCES`, returned no candidate, and stopped the sidecar.
+   Preserve both the earlier detached loopback-helper failure and this final
+   inference failure; do not rerun or tune any variant under the same run.
 4. Keep the recognized Russian comparator sealed until all candidates are
    frozen. Also hide the pre-existing authored Russian/English canon node and
    public compatibility mirror; their presence is a recorded contamination
@@ -313,7 +329,11 @@ Current state: one source string is eligible; no model run or result exists.
    Keep German correctness and cross-language fidelity explicitly unjudged.
 6. Return only source-safe aggregates and candidate lineage to the tracked
    Tree packet. Source text and candidate translation text remain local until
-   a separate rights and authority route admits any derivative.
+   a separate rights and authority route admits any derivative. Container
+   health, loopback endpoint health, and owner admission remain separate
+   evidence.
+7. Treat any later Qwen/OVMS diagnosis as a newly declared runtime experiment,
+   not as a repeat intended to repair this A/B/C result.
 
 ### 3. Open translation only after source acceptance
 

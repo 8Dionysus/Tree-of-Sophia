@@ -2,7 +2,7 @@
 
 Status: mechanical measurements consolidated and one raw-artifact aggregate
 independently recomputed; human quality and correction cost remain open
-Snapshot: 2026-07-28
+Snapshot: 2026-07-29
 
 ## Reading rule
 
@@ -40,7 +40,9 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | graph C, first Oxigraph launch | no materialization | runtime-ownership check followed symlink into system Python | not run | launch receipt only | not measured | launch path rejected; negative retained |
 | graph C, corrected Oxigraph | 13 claims, 10 questions, 537 quads | 10/10 advisory expectations; deterministic N-Quads; human graph receipts 0 | 0.074591 s build; 0.179564 ms median warm query; 0.000359 s deletion; 0.078919 s rebuild | 306,207-byte store; 470,377 packet bytes; 33,464,320 peak RSS | not measured | portable projection awaiting human review |
 | translation v2 interface | 30 blind review units, 89 pages | exact interface closure; human passes and accepted German 0 | 40.706 s service wall | 142.961 MiB peak, zero swap; 45,034,156 bytes / 94 files; learned estimate 178.701 MiB | not measured | method prepared; all drafts blocked |
-| translation A/B/C | no accepted source; no drafts | no translation-quality evidence | not measured | no model/runtime acquisition attributable to a translation run | not measured | not run; no winner |
+| bounded translation A / Gemma E2B direct | one calibration-only 20-token source string; no accepted source or draft | schema-valid machine candidate; direct AI inspection finds obvious Russian grammar defects; German fidelity unjudged | 146.973579 s; 5.007703 completion tokens/s; 542 prompt + 736 completion tokens | resident 3,184,494,720-byte exact GGUF and existing llama.cpp route; no acquisition | not measured | frozen private method evidence; no translation-quality claim |
+| bounded translation B / Gemma E2B source-aware | same exact source/model/runtime and decoding; prompt family changed | incomplete outer JSON at the 768-token ceiling; visible Russian repeats A defect; parser defect preserved and repaired without rerun | 169.745670 s; 4.524416 completion tokens/s; 574 prompt + 768 completion tokens | same resident artifact/runtime as A; no acquisition | not measured | frozen invalid-model-output evidence; no winner |
+| bounded translation C / Qwen3 4B OVMS | same source-aware prompt/decoding; one exact request | GPU `CL_OUT_OF_RESOURCES`; no HTTP response, tokens, candidate, or language-quality evidence | 35.420039 s to failure; throughput unavailable | existing 2,290,768,181-byte immutable 18-file payload and exact OVMS image; 8 GiB cold start and 2 GiB warm request admitted without force; container exit 139, `OOMKilled=false` | not measured | frozen failed-and-retained runtime evidence; no rerun, tuning, or winner |
 | semantic annotation A/B/C | source-gated plan, zero tasks | no sign, relation, concept, or annotation-quality evidence | not measured | no experiment runtime | not measured | blocked-not-materialized |
 | LLM assistance A/B/C | source-gated plan, zero tasks | no source-grounded accuracy, hallucination, or abstention result | not measured | no experiment runtime or challenger download | not measured | blocked-not-materialized |
 | golden-kernel transfer A/B/C | three title-page scouts, zero semantic tasks | no benefit, harm, sign-reuse, or ontology-imposition evidence | not measured | no experiment runtime | not measured | blocked-not-run |

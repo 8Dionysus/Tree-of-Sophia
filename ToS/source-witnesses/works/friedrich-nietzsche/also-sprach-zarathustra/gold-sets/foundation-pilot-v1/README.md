@@ -58,6 +58,12 @@ Zarathustra golden kernel. It is not a completed gold set.
   translation plan remains at 0 of 30 accepted German units with every draft
   lane blocked. The recognized comparator and the pre-existing authored
   Russian/English canon surfaces are all sealed from calibration candidates.
+- `provenance.bounded-translation-calibration.jsonl` records the closed
+  private A/B/C machine-method run without copying source or candidate text.
+  A returned a contract-complete but Russian-defective candidate, B retained a
+  truncated invalid output, and C retained a GPU runtime failure with no
+  candidate. All accepted German, translation, semantic, graph, and canon
+  effects remain zero.
 - `translation-laboratory-plan.v1.json` freezes the full 17-stage
   source-to-adjudication order, model candidate posture, evaluation axes,
   separate personal read-aloud layer, and comparator reveal gate while current
