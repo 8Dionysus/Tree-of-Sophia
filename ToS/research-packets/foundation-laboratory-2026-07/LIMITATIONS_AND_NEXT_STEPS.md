@@ -23,7 +23,7 @@ fields. They are the next authority layer.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source acceptance | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; solo reviewer is visual-only | the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation; AI agreement cannot supply that competence |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB `Za-I-Vorrede-1` packet, and one exact DTA 1883 source-structured witness | prepared units: 30; prepared critical locators: 1; local section structure compatible: 1; structured first-edition witnesses: 1; external native-check claim: 1; exact critical-text comparisons: 0; selected: 0; runs: 0; admitted: 0; human debt: 0 | bibliographic/rights review and exact critical-text alignment remain pending; DTA is not a critical edition or ToS acceptance; no translation lane is open and German linguistic acceptance remains blocked |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB `Za-I-Vorrede-1` packet, and four exact DTA source-structured part witnesses | prepared units: 30; prepared critical locators: 1; local section structure compatible: 1; structured historical-part witnesses: 4; external native-check claims: 4; exact critical-text comparisons: 0; selected: 0; runs: 0; admitted: 0; human debt: 0 | bibliographic/rights review and exact critical-text alignment remain pending; DTA is not a critical edition or ToS acceptance; no translation lane is open and German linguistic acceptance remains blocked |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign review | 15-stage ladder and initial packet route | 0 accepted or rejected signs | a model cannot set `performed_by_real_human` or promote its own proposal |
@@ -49,9 +49,11 @@ contracts intentionally reject simulated human evidence.
   witness, but its embedded ABBYY layer is visibly corrupt and remains
   unaccepted. The separately licensed Wikisource transcription reports
   incomplete proofreading and is a comparison candidate, not gold.
-- The acquired DTA 1883 part-1 TEI is a source-structured German witness with
-  external native-speaker-checking evidence and page anchors. It is not a
-  critical edition, an exact eKGWB alignment, ToS-accepted German, or gold.
+- The four acquired DTA part TEIs are source-structured German witnesses with
+  external native-speaker-checking evidence and page anchors. They represent
+  distinct 1883, 1884, and 1891 publications and holding copies, not one
+  silently unified source. None is a critical edition, an exact eKGWB
+  alignment, ToS-accepted German, or gold.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -73,10 +75,10 @@ contracts intentionally reject simulated human evidence.
 - Irrespective of source-provider permission, the operator-held copy of the
   1913 scan remains local and is not a future-site upload source. A later site
   may serve only a separately reviewed, explicitly authorized material route.
-- The current DTA terms and exact TEI header report CC BY-SA 4.0 for the
-  annotated text, while a live official Dublin Core field still reports the
-  former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
-  statements. The exact TEI remains local and its server plan metadata-only
+- The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
+  annotated text, while every live official Dublin Core field still reports
+  the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
+  statements. The exact TEIs remain local and their server plans metadata-only
   until that evidence is reviewed at the required layer and jurisdiction.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.

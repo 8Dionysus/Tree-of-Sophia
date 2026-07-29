@@ -1,0 +1,45 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.zarathustra-leipzig-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+  "scope_refs": [
+    "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+    "tos.file.sha256.ffc34ce6bea3f0b906c37f313bc66e5e58d9a8b0e69b53ea497a778c15dadd0d"
+  ],
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": null,
+  "license_uri": null,
+  "jurisdictions_reviewed": [],
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/source-metadata-snapshot.json",
+    "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+    "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
+    "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra04_1891",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "permissions": [
+    "local preservation and bounded research use",
+    "the current DTA terms and current TEI header affirm reuse of annotated full text under CC BY-SA 4.0 with attribution and share-alike conditions",
+    "the DTA terms describe the distinct pure-text layer as unrestricted public-domain text"
+  ],
+  "restrictions": [
+    "the live Dublin Core field still reports the former CC BY-NC 3.0 license and must be reconciled before public routing",
+    "the acquired object is annotated TEI rather than the distinct pure-text layer",
+    "DTA facsimile rights and holding-library conditions do not transfer to this TEI record",
+    "the operator-held local copy remains off the future public site",
+    "no public payload redistribution or derivative publication is authorized by this unreviewed ToS record"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "unknown",
+  "derivative_posture": "unknown",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-07-28T19:57:30-06:00",
+  "rationale": "The exact acquired TEI has strong positive current license evidence from both its live TEI header and DTA terms. The same official service still emits a stale CC BY-NC 3.0 Dublin Core rights field, while facsimiles have a different holding-library posture. ToS therefore preserves the positive route and the conflict separately, keeps the bytes local, and defers public routing rather than treating either openness or caution as a blanket conclusion.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

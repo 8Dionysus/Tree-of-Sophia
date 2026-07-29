@@ -40,3 +40,11 @@ TextGrid alternates as cross-checks. The run preserves DTA's external
 native-speaker-checking statement, the current open-license evidence, the
 stale conflicting Dublin Core field, and the separate facsimile-rights layer.
 None of those facts makes the text ToS-accepted or critical.
+
+`dta-zarathustra-parts-2-4-open-structured-witnesses.2026-07-28.v1.json`
+continues the same ordered route across parts 2 and 3 and the 1891 first public
+edition of part 4. It selects the three direct DTA objects, preserves the
+unchanged five-result TextGrid order and exact response digest, and acquires
+three checksum-matched local TEI items. The run keeps their distinct years,
+publishers, holding copies, source scopes, and rights records rather than
+collapsing them into one supposed “original text.”

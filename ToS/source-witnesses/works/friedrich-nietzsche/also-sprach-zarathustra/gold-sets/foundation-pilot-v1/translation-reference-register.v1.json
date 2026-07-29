@@ -247,7 +247,7 @@
       "reference_id": "tos-ref.dta.historical-corpus",
       "category": "historical_corpus",
       "research_tier": "classical-official-documentation",
-      "title": "Deutsches Textarchiv (DTA)",
+      "title": "Deutsches Textarchiv (DTA) and the Zarathustra public part sequence",
       "languages": ["de"],
       "responsibility": {
         "institutions": ["Berlin-Brandenburgische Akademie der Wissenschaften, Zentrum Sprache"],
@@ -258,25 +258,27 @@
       },
       "dating": {
         "original_or_coverage_date": "German-language texts approximately 1600-1900",
-        "edition_or_version": "DTA corpus plus the 1883 Schmeitzner first edition of part 1, DTA ID 16840, current generated DTABf/TEI P5 object",
+        "edition_or_version": "DTA corpus plus four separate Zarathustra part witnesses: Schmeitzner 1883 parts 1–2, Schmeitzner 1884 part 3, and Naumann 1891 public part 4; DTA IDs 16840–16843",
         "verified_at": "2026-07-28"
       },
       "identifiers": [
         {"scheme": "resource-name", "value": "DTA"},
         {"scheme": "encoding-profile", "value": "DTABf / TEI P5"},
-        {"scheme": "DTA-ID", "value": "16840"},
-        {"scheme": "URN", "value": "urn:nbn:de:kobv:b4-200905194290"},
-        {"scheme": "holding-shelfmark", "value": "SBB-PK 19 ZZ 10200-1/3"}
+        {"scheme": "DTA-ID-sequence", "value": "16840-16843"},
+        {"scheme": "holding-shelfmark", "value": "SBB-PK 19 ZZ 10200-1/3; SUB Göttingen 8 PHIL I, 7352:4 RARA"}
       ],
       "primary_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
       "evidence_urls": [
         "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884",
+        "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891",
         "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra01_1883",
         "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
         "https://deutschestextarchiv.github.io/dtabf/einfuehrung.html",
         "https://textgridlab.org/1.0/tgsearch-public/search"
       ],
-      "scholarly_posture": "historical New High German reference corpus plus an exact, source-structured 1883 Zarathustra part-1 witness; DTA reports OCR followed by native-speaker checking under its transcription guidelines, which is external quality evidence rather than ToS acceptance",
+      "scholarly_posture": "historical New High German reference corpus plus four exact, source-structured Zarathustra part witnesses; DTA reports OCR followed by native-speaker checking under its transcription guidelines, which is external quality evidence rather than ToS acceptance or whole-work equivalence",
       "intended_uses": [
         "historical-concordance",
         "historical-sense-evidence",
@@ -287,9 +289,10 @@
         "corpus frequency does not establish Nietzsche's sense",
         "every selected document retains its own source and license",
         "DTABf documentation license does not automatically license corpus texts or images",
-        "the DTA reading is not a critical-edition reading and has not been accepted by ToS",
+        "the DTA readings are not critical-edition readings and have not been accepted by ToS",
+        "the four different publications and holding-copy routes must not be flattened into one silent text",
         "facsimile-image rights remain separate from the annotated text",
-        "current DTA terms and TEI header report CC BY-SA 4.0 while the live Dublin Core field still reports the former CC BY-NC 3.0"
+        "current DTA terms and four TEI headers report CC BY-SA 4.0 while all four live Dublin Core fields still report the former CC BY-NC 3.0"
       ],
       "access": {
         "access_state": "local-only",
@@ -310,19 +313,43 @@
         "rights_evidence_urls": [
           "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
           "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
-          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra01_1883"
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra01_1883",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra02_1883",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra03_1884",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra03_1884",
+          "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
+          "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra04_1891"
         ]
       },
       "tos_refs": {
         "record_refs": [
           "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
           "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
-          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-2",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1884-part-3",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-naumann-1891-part-4",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
         ],
         "path_refs": [
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/expression.json",
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/edition.json",
-          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json"
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json"
         ]
       },
       "admission": {
@@ -334,10 +361,10 @@
           "no period-matched comparison corpus slice has been frozen",
           "the exact annotated-text license evidence is internally conflicting",
           "no exact comparison to a critical-edition passage has been completed",
-          "no German-competent ToS reviewer has accepted the reading"
+          "no German-competent ToS reviewer has accepted any reading"
         ]
       },
-      "notes": "The exact TEI is checksum-bound in local gitignored custody. Use it as an independently sourced structured witness with page-return anchors; do not treat institutional checking, open-license evidence, or schema validity as ToS textual acceptance."
+      "notes": "Four exact TEIs are checksum-bound in local gitignored custody. Use each as an independently sourced structured witness with page-return anchors and explicit edition identity; do not treat institutional checking, open-license evidence, cross-part concatenation, or schema validity as ToS textual acceptance."
     },
     {
       "reference_id": "tos-ref.nietzsche-source.ekgwb",

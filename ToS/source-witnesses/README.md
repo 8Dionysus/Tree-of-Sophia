@@ -107,9 +107,11 @@ collection containing it. The seed deliberately includes:
 - a checksum-verified 402-page scan of Yu. M. Antonovsky's 1913 Russian
   translation from Wikimedia Commons, kept distinct from both the later
   Antonovsky expression and the separately licensed Wikisource transcription;
-- a checksum-verified DTABf/TEI P5 transcription of the 1883 Schmeitzner first
-  edition of part 1 from Deutsches Textarchiv, grounded in the SBB-PK holding
-  copy and kept distinct from DTA's facsimile layer and from a critical
+- checksum-verified DTABf/TEI P5 transcriptions of all four public part
+  witnesses from Deutsches Textarchiv: Schmeitzner parts 1 and 2 from 1883,
+  Schmeitzner part 3 from 1884, and Naumann's first public edition of part 4
+  from 1891. Each remains grounded in its exact SBB-PK or SUB Göttingen
+  holding copy and distinct from DTA's facsimile layer and from a critical
   edition.
 
 The EPUB and image-container PDF are distinct acquired items descended from
@@ -126,14 +128,15 @@ operator policy. The Wikisource transcription is an independent CC BY-SA
 candidate layer and remains deferred: its index reports incomplete
 proofreading, so open licensing does not make it accepted text or gold.
 
-The DTA TEI adds an institutionally corrected, source-structured German
-witness. DTA reports OCR followed by native-speaker checking, but ToS records
-that as external quality evidence, not as its own linguistic acceptance. The
-current DTA terms and TEI header report CC BY-SA 4.0 while a live official
-Dublin Core field still reports the former CC BY-NC 3.0; facsimile-image
-rights are separate. The exact TEI therefore remains local, gitignored, and
-metadata-only for future server routing while the positive and conflicting
-evidence stays visible.
+The four DTA TEIs add an institutionally corrected, source-structured German
+sequence without inventing whole-work textual unity. DTA reports OCR followed
+by native-speaker checking for every part, but ToS records that as external
+quality evidence, not as its own linguistic acceptance. The current DTA terms
+and TEI headers report CC BY-SA 4.0 while every live official Dublin Core field
+still reports the former CC BY-NC 3.0; facsimile-image rights are separate.
+The exact TEIs therefore remain local, gitignored, and metadata-only for
+future server routing while the positive and conflicting evidence stays
+visible.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

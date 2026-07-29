@@ -10,9 +10,10 @@ candidate without bypassing the operator's local-payload rule. The Commons
 public-domain statement is retained for later exact rights review; the current
 plan still exposes metadata/provenance only and transfers no local file.
 
-The DTA 1883 part-1 TEI adds a sixth plan. Current DTA terms and the live TEI
-header provide positive CC BY-SA evidence, but the same official service still
-emits its former CC BY-NC value through Dublin Core and keeps facsimiles under
-a distinct holding-library posture. The plan therefore preserves the open
-route without uploading the operator-held TEI or pretending the layer conflict
-has already been reviewed.
+The four DTA TEIs bring the plan set to nine. Current DTA terms and all four
+live TEI headers provide positive CC BY-SA evidence, but the same official
+service still emits its former CC BY-NC value through Dublin Core and keeps
+facsimiles under distinct holding-library postures. Each plan therefore
+preserves an open route for its exact part without uploading the operator-held
+TEI, collapsing the printed witnesses, or pretending the layer conflict has
+already been reviewed.

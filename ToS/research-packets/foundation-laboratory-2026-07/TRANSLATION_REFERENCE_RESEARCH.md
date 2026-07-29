@@ -120,12 +120,17 @@ Limits:
 The BBAW *Deutsches Textarchiv* (DTA) is a cross-disciplinary reference corpus
 of German-language texts from approximately 1600–1900, with text/image views,
 downloadable records, TEI P5 annotation, and item-specific rights evidence.
-The exact [1883 Schmeitzner part-1 object](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883)
-has now been resolved to DTA ID `16840`, SBB-PK shelfmark
-`19 ZZ 10200-1/3`, and a checksum-bound local DTABf/TEI P5 item. Its live
+The full public part sequence has now been resolved as four exact DTA objects:
+Schmeitzner parts [1](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883)
+and [2](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883)
+from 1883, [part 3](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra03_1884)
+from 1884, and Naumann's [first public part 4](https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891)
+from 1891. DTA IDs `16840`–`16843`, exact holding copies, and four
+checksum-bound local DTABf/TEI P5 items are preserved separately. Every live
 header reports OCR followed by native-speaker checking under DTA's
 transcription guidelines. That is stronger external source-quality evidence,
-not ToS textual acceptance or a critical-edition reading. The
+not ToS textual acceptance, whole-work equivalence, or a critical-edition
+reading. The
 [DTABf documentation](https://deutschestextarchiv.github.io/dtabf/einfuehrung.html)
 defines a constrained TEI P5 profile and provides its own citation and CC
 BY-SA 3.0 DE notice.
@@ -139,8 +144,9 @@ Limits:
 - every result must return to the exact document, source edition, and image;
 - the DTABf documentation license does not license every DTA text or image;
 - every selected item retains its own rights and citation record;
-- the current DTA terms and TEI header say CC BY-SA 4.0 for the annotated text,
-  while the live Dublin Core field still carries the former CC BY-NC 3.0;
+- the current DTA terms and all four TEI headers say CC BY-SA 4.0 for the
+  annotated text, while all four live Dublin Core fields still carry the former
+  CC BY-NC 3.0;
 - DTA facsimile rights remain separate from the annotated text.
 
 ## II. Established scholarly resources
