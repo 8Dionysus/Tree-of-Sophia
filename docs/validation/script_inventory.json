@@ -324,13 +324,15 @@
       "source_truth": [
         "ToS/contracts/witness-structure-correspondence.schema.json",
         "ToS/contracts/witness-structure-anchor-set.schema.json",
+        "ToS/contracts/parallel-witness-structure-map.schema.json",
         "ToS/contracts/source-anchor.schema.json",
         "ToS/contracts/provenance-event.schema.json",
         "ToS/source-witnesses/**/resource-inventory.json",
-        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**"
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/**"
       ],
       "reads": [
-        "tracked text-free structure-correspondence map, proposed structural anchors, provenance, and cited resource inventories"
+        "tracked text-free structure-correspondence maps, proposed structural anchors, provenance, cited resource inventories, and target work boundary"
       ],
       "writes": [],
       "side_effects": "validation output only",

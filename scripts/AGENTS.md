@@ -51,10 +51,13 @@ text or alignment evidence.
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
 division-start candidates and stable proposed TEI, EPUB-member, and PDF-page
 addresses for each candidate. `validate_witness_structure_correspondence.py`
-checks inventory closure, address/schema closure, provenance, monotonicity, and
-the authority ceiling. The addresses are reusable IDs, not verified passage
-boundaries. Neither script accepts textual identity, German, translation,
-semantics, rights, or canon.
+also checks the model-reviewed parallel-PDF division map for the Naumann 1886
+and Polilov/Mysl 1996 Jenseits witnesses: inventory closure, proposed page
+addresses, contiguous division-level number spans, explicit absence of exact
+per-unit page claims, provenance, monotonicity, and the authority ceiling. The
+addresses are reusable IDs, not verified passage boundaries. Neither script
+accepts textual identity, original-language text, translation, semantics,
+rights, or canon.
 
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped

@@ -208,3 +208,19 @@ heading, context score, monotonic route, or matching page number does not prove
 textual identity, edition equivalence, correct German, translation
 correspondence, semantic correspondence, or canon fitness. The local rebuild
 and tracked validation routes live in [`scripts/AGENTS.md`](../../scripts/AGENTS.md).
+
+The Jenseits Naumann 1886 ↔ Polilov/Mysl 1996 map under
+`works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/`
+uses the more general parallel-PDF contract. It binds eleven source-visible
+division starts—preface, nine numbered main divisions, and aftersong—to exact
+pages in both fixity-bound witnesses. The nine main divisions cover the
+contiguous integer ranges 1–296 and preserve the supplemental units `65a` and
+`73a`.
+
+That map deliberately stops at division-level number spans. The embedded OCR
+of the 1886 scan loses enough unit numerals that emitting 296 exact German page
+starts would manufacture completeness. The tracked state therefore records
+zero exact numbered-unit start pages and keeps expansion deferred until a
+better source layer or bounded page-visible review can close the gaps. Shared
+order, numbering, or a proposed page pair does not establish textual identity,
+translation equivalence, translation quality, semantics, or acceptance.

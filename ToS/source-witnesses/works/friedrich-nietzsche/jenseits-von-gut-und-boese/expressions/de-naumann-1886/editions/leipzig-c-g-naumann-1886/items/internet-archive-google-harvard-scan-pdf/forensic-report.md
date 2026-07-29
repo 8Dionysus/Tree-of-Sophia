@@ -74,8 +74,8 @@ PDF pages 1 through 16 were rendered and inspected by the model:
   Jackson Fund;
 - page 3 is the historical title page;
 - page 4 carries Harvard holding and rights furniture;
-- page 5 is blank;
-- pages 6–8 contain the printed preface;
+- page 5 begins the printed preface;
+- pages 6–8 continue the printed preface;
 - page 9 contains the printed contents;
 - page 10 is the first chapter title page;
 - page 11 begins the main text.

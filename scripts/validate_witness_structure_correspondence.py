@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Validate the tracked text-free Zarathustra witness-structure map.
+"""Validate tracked text-free witness-structure maps.
 
 This validator checks schema shape, inventory/resource closure, digest-bound
-provenance, page-enumeration arithmetic, summaries, and monotonicity. Passing
-does not establish textual identity, edition equivalence, accepted German,
-translation, semantics, or canon authority.
+provenance, page-enumeration arithmetic, summaries, numbered spans, and
+monotonicity. Passing does not establish textual identity, edition
+equivalence, accepted original-language text, translation, semantics, or
+canon authority.
 """
 
 from __future__ import annotations
@@ -35,6 +36,22 @@ ANCHOR_SET_SCHEMA_PATH = Path(
 )
 ANCHOR_SCHEMA_PATH = Path("ToS/contracts/source-anchor.schema.json")
 PROVENANCE_SCHEMA_PATH = Path("ToS/contracts/provenance-event.schema.json")
+PARALLEL_MAP_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/alignments/structure/"
+    "naumann-1886-polilov-mysl-1996/structure-correspondence.json"
+)
+PARALLEL_ANCHOR_RECORDS_PATH = PARALLEL_MAP_PATH.with_name(
+    "structure-anchors.jsonl"
+)
+PARALLEL_SCHEMA_PATH = Path(
+    "ToS/contracts/parallel-witness-structure-map.schema.json"
+)
+PARALLEL_EVENT_ID = (
+    "tos.event.structure-correspondence.friedrich-nietzsche."
+    "jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996."
+    "2026-07-28"
+)
 ANCHOR_EVENT_ID = (
     "tos.event.structure-anchors.friedrich-nietzsche."
     "also-sprach-zarathustra.dta-parts-to-naumann-1893.2026-07-28"
@@ -799,17 +816,402 @@ def validate_structure_correspondence(repo_root: Path = REPO_ROOT) -> list[Issue
     return issues
 
 
+def _load_parallel_witness(
+    witness: dict[str, Any],
+    *,
+    repo_root: Path,
+    issues: list[Issue],
+    location: str,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]] | None:
+    inventory_binding = witness.get("inventory")
+    if not isinstance(inventory_binding, dict):
+        issues.append((location, "witness inventory binding is invalid"))
+        return None
+    inventory_ref = inventory_binding.get("ref")
+    if not isinstance(inventory_ref, str):
+        issues.append((location, "witness inventory ref is invalid"))
+        return None
+    inventory_path = repo_root / inventory_ref
+    inventory = _load_json(inventory_path, repo_root, issues)
+    if inventory is None:
+        return None
+    if inventory_binding.get("sha256") != _sha256(inventory_path):
+        issues.append((location, "witness inventory digest drifted"))
+    if inventory.get("item_id") != witness.get("item_ref"):
+        issues.append((location, "witness item_ref differs from inventory"))
+    files = [
+        item
+        for item in inventory.get("files", [])
+        if isinstance(item, dict) and item.get("file_id") == witness.get("file_ref")
+    ]
+    if len(files) != 1:
+        issues.append((location, "witness file_ref does not resolve exactly once"))
+        return None
+    file_inventory = files[0]
+    if file_inventory.get("file_sha256") != witness.get("file_sha256"):
+        issues.append((location, "witness file digest differs from inventory"))
+    if file_inventory.get("profile") != witness.get("profile"):
+        issues.append((location, "witness profile differs from inventory"))
+
+    work_boundary = witness.get("work_boundary")
+    if isinstance(work_boundary, dict):
+        boundary_ref = work_boundary.get("ref")
+        if not isinstance(boundary_ref, str):
+            issues.append((location, "work-boundary ref is invalid"))
+        else:
+            boundary_path = repo_root / boundary_ref
+            if not boundary_path.is_file():
+                issues.append((location, "work-boundary artifact is missing"))
+            elif work_boundary.get("sha256") != _sha256(boundary_path):
+                issues.append((location, "work-boundary digest drifted"))
+    return file_inventory, _resources(file_inventory)
+
+
+def validate_parallel_structure_correspondence(
+    repo_root: Path = REPO_ROOT,
+) -> list[Issue]:
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    map_path = repo_root / PARALLEL_MAP_PATH
+    payload = _load_json(map_path, repo_root, issues)
+    if payload is None:
+        return issues
+    location = PARALLEL_MAP_PATH.as_posix()
+    _validate_schema(
+        payload,
+        validator=_validator(PARALLEL_SCHEMA_PATH, repo_root),
+        location=location,
+        issues=issues,
+    )
+    for path in _prohibited_key_paths(payload):
+        issues.append((location, f"source-text-bearing key is forbidden: {path}"))
+
+    source_witness = payload.get("source_witness", {})
+    target_witness = payload.get("target_witness", {})
+    witness_resources: dict[str, dict[str, dict[str, Any]]] = {}
+    for role, witness in (
+        ("source", source_witness),
+        ("target", target_witness),
+    ):
+        if not isinstance(witness, dict):
+            issues.append((location, f"{role}_witness is invalid"))
+            continue
+        result = _load_parallel_witness(
+            witness,
+            repo_root=repo_root,
+            issues=issues,
+            location=f"{location}:{role}_witness",
+        )
+        if result is not None and isinstance(witness.get("item_ref"), str):
+            witness_resources[witness["item_ref"]] = result[1]
+    if (
+        isinstance(source_witness, dict)
+        and isinstance(target_witness, dict)
+        and source_witness.get("language") == target_witness.get("language")
+    ):
+        issues.append((location, "parallel witnesses must have distinct languages"))
+
+    anchor_path = repo_root / PARALLEL_ANCHOR_RECORDS_PATH
+    anchors = _load_jsonl(anchor_path, repo_root, issues)
+    anchor_validator = _validator(ANCHOR_SCHEMA_PATH, repo_root)
+    anchors_by_id: dict[str, dict[str, Any]] = {}
+    for index, anchor in enumerate(anchors, start=1):
+        anchor_location = f"{PARALLEL_ANCHOR_RECORDS_PATH.as_posix()}:{index}"
+        _validate_schema(
+            anchor,
+            validator=anchor_validator,
+            location=anchor_location,
+            issues=issues,
+        )
+        for path in _prohibited_key_paths(anchor):
+            issues.append(
+                (
+                    anchor_location,
+                    f"source-text-bearing key is forbidden: {path}",
+                )
+            )
+        anchor_id = anchor.get("anchor_id")
+        if not isinstance(anchor_id, str) or anchor_id in anchors_by_id:
+            issues.append((anchor_location, "anchor_id is invalid or duplicated"))
+        else:
+            anchors_by_id[anchor_id] = anchor
+
+    divisions = [
+        division
+        for division in payload.get("divisions", [])
+        if isinstance(division, dict)
+    ]
+    sequences: list[int] = []
+    source_pages: list[int] = []
+    target_pages: list[int] = []
+    expected_anchor_ids: set[str] = set()
+    numbered_spans: list[tuple[int, int]] = []
+    supplemental_units: list[str] = []
+    for index, division in enumerate(divisions, start=1):
+        entry_location = f"{location}:divisions[{index}]"
+        sequence = division.get("sequence")
+        if isinstance(sequence, int):
+            sequences.append(sequence)
+        span = division.get("numbered_unit_span")
+        kind = division.get("division_kind")
+        if kind == "numbered_main_division":
+            if not isinstance(span, dict):
+                issues.append((entry_location, "numbered division lacks a span"))
+            else:
+                first = span.get("first")
+                last = span.get("last")
+                if isinstance(first, int) and isinstance(last, int):
+                    if first > last:
+                        issues.append((entry_location, "numbered span is reversed"))
+                    numbered_spans.append((first, last))
+            if "numbered_unit_boundary" not in division.get(
+                "correspondence_basis", []
+            ):
+                issues.append(
+                    (entry_location, "numbered division lacks boundary basis")
+                )
+        elif span is not None:
+            issues.append((entry_location, "non-numbered division carries a span"))
+        supplemental_units.extend(division.get("supplemental_numbered_units", []))
+
+        for role, witness, page_accumulator in (
+            ("source", source_witness, source_pages),
+            ("target", target_witness, target_pages),
+        ):
+            locator = division.get(role, {})
+            if not isinstance(locator, dict) or not isinstance(witness, dict):
+                issues.append((entry_location, f"{role} locator is invalid"))
+                continue
+            for locator_field, witness_field in (
+                ("item_ref", "item_ref"),
+                ("file_ref", "file_ref"),
+            ):
+                if locator.get(locator_field) != witness.get(witness_field):
+                    issues.append(
+                        (
+                            entry_location,
+                            f"{role} {locator_field} differs from witness",
+                        )
+                    )
+            inventory_binding = witness.get("inventory", {})
+            if locator.get("inventory_ref") != inventory_binding.get("ref"):
+                issues.append(
+                    (entry_location, f"{role} inventory_ref differs from witness")
+                )
+            resource = witness_resources.get(locator.get("item_ref"), {}).get(
+                locator.get("resource_id")
+            )
+            if resource is None:
+                issues.append((entry_location, f"{role} resource is unresolved"))
+            elif (
+                resource.get("resource_kind") != "pdf_page"
+                or resource.get("locator", {}).get("page_index")
+                != locator.get("pdf_page")
+            ):
+                issues.append(
+                    (entry_location, f"{role} page differs from inventory")
+                )
+            page = locator.get("pdf_page")
+            if isinstance(page, int):
+                page_accumulator.append(page)
+
+            anchor_ref = locator.get("anchor_ref")
+            if isinstance(anchor_ref, str):
+                expected_anchor_ids.add(anchor_ref)
+            anchor = anchors_by_id.get(anchor_ref)
+            if anchor is None:
+                issues.append((entry_location, f"{role} anchor is unresolved"))
+                continue
+            expected_file_digest = witness.get("file_sha256")
+            if (
+                anchor.get("item_id") != witness.get("item_ref")
+                or anchor.get("file_id") != witness.get("file_ref")
+                or anchor.get("file_sha256") != expected_file_digest
+            ):
+                issues.append(
+                    (entry_location, f"{role} anchor crosses its witness")
+                )
+            if anchor.get("status") != "proposed":
+                issues.append((entry_location, f"{role} anchor is not proposed"))
+            if anchor.get("provenance_event_ref") != payload.get(
+                "provenance_event_ref"
+            ):
+                issues.append(
+                    (entry_location, f"{role} anchor provenance differs from map")
+                )
+            selectors = anchor.get("selectors", [])
+            if len(selectors) != 1 or not isinstance(selectors[0], dict):
+                issues.append(
+                    (entry_location, f"{role} anchor must have one selector")
+                )
+            else:
+                selector = selectors[0]
+                expected_selector = {
+                    "type": "page_region",
+                    "page": page,
+                    "x": 0,
+                    "y": 0,
+                    "width": 1,
+                    "height": 1,
+                    "coordinate_space": "normalized_0_1",
+                }
+                if selector != expected_selector:
+                    issues.append(
+                        (
+                            entry_location,
+                            f"{role} anchor is not the declared whole page",
+                        )
+                    )
+
+    if sequences != list(range(1, len(divisions) + 1)):
+        issues.append((location, "division sequence is not contiguous"))
+    if source_pages != sorted(source_pages) or len(set(source_pages)) != len(
+        source_pages
+    ):
+        issues.append((location, "source division pages are not strictly monotonic"))
+    if target_pages != sorted(target_pages) or len(set(target_pages)) != len(
+        target_pages
+    ):
+        issues.append((location, "target division pages are not strictly monotonic"))
+    if set(anchors_by_id) != expected_anchor_ids:
+        issues.append((location, "anchor records differ from division bindings"))
+
+    flattened_units = [
+        number
+        for first, last in numbered_spans
+        for number in range(first, last + 1)
+    ]
+    if flattened_units != list(range(1, 297)):
+        issues.append(
+            (
+                location,
+                "numbered division spans do not cover integers 1 through 296 once",
+            )
+        )
+
+    boundary_binding = (
+        target_witness.get("work_boundary")
+        if isinstance(target_witness, dict)
+        else None
+    )
+    if isinstance(boundary_binding, dict):
+        boundary_path = repo_root / str(boundary_binding.get("ref"))
+        boundary = _load_json(boundary_path, repo_root, issues)
+        if boundary is not None:
+            members = [
+                member
+                for member in boundary.get("members", [])
+                if isinstance(member, dict)
+                and member.get("work_ref") == payload.get("work_ref")
+                and member.get("expression_ref")
+                == target_witness.get("expression_ref")
+            ]
+            if len(members) != 1:
+                issues.append(
+                    (location, "target work boundary does not resolve exactly once")
+                )
+            elif target_pages and not all(
+                members[0].get("start_page") <= page <= members[0].get("end_page")
+                for page in target_pages
+            ):
+                issues.append((location, "target division page leaves work boundary"))
+
+    summary = payload.get("summary", {})
+    if isinstance(summary, dict):
+        expected_summary = {
+            "division_correspondence_count": len(divisions),
+            "anchor_count": len(anchors),
+            "numbered_division_count": len(numbered_spans),
+            "integer_numbered_units_covered": len(flattened_units),
+            "supplemental_numbered_units": supplemental_units,
+        }
+        for field, value in expected_summary.items():
+            if summary.get(field) != value:
+                issues.append((location, f"summary {field} drifted"))
+
+    provenance_ref = payload.get("provenance_ref")
+    if not isinstance(provenance_ref, str):
+        issues.append((location, "provenance_ref is invalid"))
+        return issues
+    provenance_path = repo_root / provenance_ref
+    events = _load_jsonl(provenance_path, repo_root, issues)
+    provenance_validator = _validator(PROVENANCE_SCHEMA_PATH, repo_root)
+    for index, event in enumerate(events, start=1):
+        _validate_schema(
+            event,
+            validator=provenance_validator,
+            location=f"{provenance_ref}:{index}",
+            issues=issues,
+        )
+    event_matches = [
+        event
+        for event in events
+        if event.get("event_id") == payload.get("provenance_event_ref")
+    ]
+    if len(event_matches) != 1 or payload.get("provenance_event_ref") != PARALLEL_EVENT_ID:
+        issues.append((provenance_ref, "parallel provenance event does not resolve"))
+    else:
+        event = event_matches[0]
+        expected_outputs = {
+            (
+                PARALLEL_MAP_PATH.as_posix(),
+                "tracked_text_free_parallel_structure_candidate",
+                _sha256(map_path),
+            ),
+            (
+                PARALLEL_ANCHOR_RECORDS_PATH.as_posix(),
+                "tracked_proposed_parallel_page_anchors",
+                _sha256(anchor_path),
+            ),
+        }
+        actual_outputs = {
+            (output.get("ref"), output.get("role"), output.get("sha256"))
+            for output in event.get("outputs", [])
+            if isinstance(output, dict)
+        }
+        if actual_outputs != expected_outputs:
+            issues.append((provenance_ref, "parallel event outputs drifted"))
+
+        expected_inputs: set[tuple[object, object]] = set()
+        for witness in (source_witness, target_witness):
+            if not isinstance(witness, dict):
+                continue
+            expected_inputs.add((witness.get("file_ref"), witness.get("file_sha256")))
+            inventory_binding = witness.get("inventory", {})
+            if isinstance(inventory_binding, dict):
+                expected_inputs.add(
+                    (inventory_binding.get("ref"), inventory_binding.get("sha256"))
+                )
+            boundary_binding = witness.get("work_boundary")
+            if isinstance(boundary_binding, dict):
+                expected_inputs.add(
+                    (boundary_binding.get("ref"), boundary_binding.get("sha256"))
+                )
+        actual_inputs = {
+            (input_entry.get("ref"), input_entry.get("sha256"))
+            for input_entry in event.get("inputs", [])
+            if isinstance(input_entry, dict)
+        }
+        if actual_inputs != expected_inputs:
+            issues.append((provenance_ref, "parallel event inputs drifted"))
+
+    return issues
+
+
 def main() -> int:
-    issues = validate_structure_correspondence()
+    issues = [
+        *validate_structure_correspondence(),
+        *validate_parallel_structure_correspondence(),
+    ]
     if issues:
         print("Witness-structure correspondence validation failed.", file=sys.stderr)
         for location, message in issues:
             print(f"- {location}: {message}", file=sys.stderr)
         return 1
-    print("[ok] validated text-free Zarathustra witness-structure correspondence")
+    print("[ok] validated text-free witness-structure correspondences")
     print(
-        "[boundary] locator candidates only; no textual identity, accepted German, "
-        "translation, semantics, or canon promotion"
+        "[boundary] locator candidates only; no textual identity, accepted "
+        "original-language text, translation, semantics, or canon promotion"
     )
     return 0
 

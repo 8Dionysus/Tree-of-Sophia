@@ -20,6 +20,70 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
     def test_tracked_candidate_closes_over_resource_inventories(self) -> None:
         self.assertEqual([], validator.validate_structure_correspondence(REPO_ROOT))
 
+    def test_parallel_candidate_closes_over_both_pdf_inventories(self) -> None:
+        self.assertEqual(
+            [],
+            validator.validate_parallel_structure_correspondence(REPO_ROOT),
+        )
+
+    def test_parallel_candidate_keeps_division_spans_distinct_from_exact_units(
+        self,
+    ) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.PARALLEL_MAP_PATH).read_text(encoding="utf-8")
+        )
+        anchors = [
+            json.loads(line)
+            for line in (REPO_ROOT / validator.PARALLEL_ANCHOR_RECORDS_PATH)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+
+        numbered_units = [
+            number
+            for division in payload["divisions"]
+            if division["numbered_unit_span"] is not None
+            for number in range(
+                division["numbered_unit_span"]["first"],
+                division["numbered_unit_span"]["last"] + 1,
+            )
+        ]
+        self.assertEqual(list(range(1, 297)), numbered_units)
+        self.assertEqual(11, len(payload["divisions"]))
+        self.assertEqual(22, len(anchors))
+        self.assertEqual(
+            ["65a", "73a"],
+            payload["summary"]["supplemental_numbered_units"],
+        )
+        self.assertEqual(
+            0,
+            payload["summary"]["exact_numbered_unit_start_pages_materialized"],
+        )
+        self.assertFalse(payload["source_text_included"])
+        self.assertFalse(payload["summary"]["human_review_performed"])
+        self.assertEqual(
+            {"page_region"},
+            {
+                selector["type"]
+                for anchor in anchors
+                for selector in anchor["selectors"]
+            },
+        )
+        self.assertEqual({"proposed"}, {anchor["status"] for anchor in anchors})
+
+    def test_parallel_contract_rejects_translation_equivalence_claim(self) -> None:
+        payload = json.loads(
+            (REPO_ROOT / validator.PARALLEL_MAP_PATH).read_text(encoding="utf-8")
+        )
+        payload["divisions"][0]["translation_equivalence_claimed"] = True
+        schema_validator = validator._validator(
+            validator.PARALLEL_SCHEMA_PATH,
+            REPO_ROOT,
+        )
+
+        self.assertTrue(list(schema_validator.iter_errors(payload)))
+
     def test_every_correspondence_has_three_stable_proposed_addresses(self) -> None:
         anchor_set = json.loads(
             (REPO_ROOT / validator.ANCHOR_SET_PATH).read_text(encoding="utf-8")

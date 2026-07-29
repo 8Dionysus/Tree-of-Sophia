@@ -60,7 +60,11 @@ contracts intentionally reject simulated human evidence.
 - The acquired 1886 Naumann *Jenseits von Gut und Böse* scan is an exact
   source-visible historical witness and a different-work transfer surface.
   Its embedded OCR remains untracked and unaccepted; its 274-page mechanical
-  inventory is not German textual acceptance or a translation anchor set.
+  inventory is not German textual acceptance. Eleven model-reviewed division
+  starts now bind it structurally to the Polilov/Mysl witness through 22
+  proposed whole-page anchors and division-level number spans. This is not an
+  exact per-unit page map, a translation anchor set at passage granularity, or
+  evidence of textual, translation, or semantic equivalence.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -140,6 +144,11 @@ contracts intentionally reject simulated human evidence.
   with zero file/count mismatches and matching derived speed/confidence values.
   No content-quality metric can yet be recomputed against real-human gold
   because accepted gold does not exist.
+- The parallel *Jenseits* structure map covers preface, nine numbered
+  divisions, and aftersong, with contiguous division-level spans 1–296 plus
+  65a/73a. It intentionally materializes zero individual numbered-unit start
+  pages: the embedded German OCR loses enough numerals that automatic
+  completeness would be false.
 
 ## Research and software freshness
 
@@ -192,6 +201,12 @@ not reintroduce a false 90 °C gate.
   produced 1,287 passes and two skips with only one bearer-environment-sensitive
   lifecycle test failing, and that exact test passed when inherited connector
   tokens were removed.
+- The current *Jenseits* parallel-structure slice closes eleven division
+  correspondences and twenty-two proposed page anchors over both exact
+  resource inventories and the *Mysl* work boundary. All 174 repository tests,
+  the local ten-payload inventory check, portable KAG family validation, and
+  the complete release lane pass; no source or translation text was added to
+  Git.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.
@@ -289,9 +304,12 @@ execution remain blocked.
 ### 5. Test the golden kernel on unseen content
 
 1. Advance the exact 1886 *Jenseits von Gut und Böse* source tree from a
-   source-visible witness to admitted text anchors only through the German
-   source gate; separately promote *On the Genealogy of Morality* and *The
-   Antichrist* beyond provisional collection-member expressions.
+   source-visible witness and division-level page anchors to admitted text
+   anchors only through the German source gate. Expand units 1–296 to exact
+   pages only after a better source layer or bounded source-visible review
+   closes the OCR numeral gaps; separately promote *On the Genealogy of
+   Morality* and *The Antichrist* beyond provisional collection-member
+   expressions.
 2. Freeze 20 content-bearing target passages, including hard negatives and
    passages that demand target-specific signs.
 3. Run A without the kernel, B with general contracts only, and C with

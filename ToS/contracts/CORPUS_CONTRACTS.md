@@ -13,6 +13,7 @@ judgment true.
 | `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, and TEI page-break/division inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
 | `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
+| `parallel-witness-structure-map.schema.json` | text-free parallel PDF division starts and division-level numbered-unit spans across an original-language expression and one translation expression, with exact witness inventories, proposed page addresses, an explicit zero-exact-unit-page state, and no translation-equivalence claim |
 | `collection-work-boundary-map.schema.json` | text-free member-work order, contiguous container-page ranges, exact Work/Expression/claim refs, non-work boundaries, source anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
@@ -134,6 +135,10 @@ A schema validator can establish that:
 - a witness-structure map closes every cited division, EPUB member, and PDF
   page over exact resource inventories, preserves monotonic part routes, and
   emits no source text;
+- a parallel-witness structure map closes each proposed division start and
+  whole-page anchor over the exact original-language and translation
+  inventories, keeps numbered spans contiguous, and leaves individual
+  numbered-unit pages explicitly unmaterialized;
 - an access-request record cannot label a draft as sent or granted without
   real-human send approval and the corresponding private/redacted evidence
   boundary;
@@ -153,6 +158,8 @@ It cannot establish that:
 - metadata, OCR, segmentation, lemma, etymology, or alignment is correct;
 - a resource fingerprint or structural correspondence proves textual identity;
 - a candidate locator makes two editions equivalent or accepts their German;
+- matching division order, numbered spans, or page addresses makes a
+  translation equivalent, faithful, or semantically aligned;
 - a translation is faithful or philosophically adequate;
 - a rights determination is legally sufficient;
 - a semantic claim or relation should enter canon.
