@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build tracked, text-free resource inventories from local source payloads.
 
-The inventories enumerate PDF pages, EPUB container resources, and TEI page
-breaks/divisions, plus page geometry and counts from provider DjVu/ABBYY OCR
-companions. They may contain one-way fingerprints of source text or OCR but
-never source text itself. Bibliographic, textual, linguistic, rights, and
-semantic judgments remain outside this generator.
+The inventories enumerate PDF and bundled DjVu pages, EPUB container resources,
+and TEI page breaks/divisions, plus page geometry and counts from provider
+DjVu/ABBYY OCR companions. They may contain one-way fingerprints of source text
+or OCR but never source text itself. Bibliographic, textual, linguistic, rights,
+and semantic judgments remain outside this generator.
 """
 
 from __future__ import annotations
@@ -553,6 +553,188 @@ def _djvu_xml_inventory(
     }
 
 
+def _djvu_page_info(data: bytes, *, form_offset: int) -> tuple[int, int, int]:
+    if data[form_offset : form_offset + 4] != b"FORM":
+        raise InventoryBuildError(
+            f"DjVu directory target at byte {form_offset} is not a FORM chunk"
+        )
+    form_size = int.from_bytes(data[form_offset + 4 : form_offset + 8], "big")
+    form_end = form_offset + 8 + form_size
+    if form_end > len(data):
+        raise InventoryBuildError(
+            f"DjVu page FORM at byte {form_offset} exceeds the payload"
+        )
+    if data[form_offset + 8 : form_offset + 12] != b"DJVU":
+        raise InventoryBuildError(
+            f"DjVu directory target at byte {form_offset} is not a DJVU page"
+        )
+
+    cursor = form_offset + 12
+    while cursor + 8 <= form_end:
+        chunk_type = data[cursor : cursor + 4]
+        chunk_size = int.from_bytes(data[cursor + 4 : cursor + 8], "big")
+        chunk_start = cursor + 8
+        chunk_end = chunk_start + chunk_size
+        if chunk_end > form_end:
+            raise InventoryBuildError(
+                f"DjVu {chunk_type!r} chunk at byte {cursor} exceeds its page FORM"
+            )
+        if chunk_type == b"INFO":
+            if chunk_size < 10:
+                raise InventoryBuildError(
+                    f"DjVu INFO chunk at byte {cursor} is shorter than 10 bytes"
+                )
+            info = data[chunk_start : chunk_start + 10]
+            width = int.from_bytes(info[0:2], "big")
+            height = int.from_bytes(info[2:4], "big")
+            dpi = int.from_bytes(info[6:8], "little")
+            if width < 1 or height < 1 or dpi < 1:
+                raise InventoryBuildError(
+                    f"DjVu INFO chunk at byte {cursor} has invalid page geometry"
+                )
+            return width, height, dpi
+        cursor = chunk_end + (chunk_size % 2)
+
+    raise InventoryBuildError(
+        f"DjVu page FORM at byte {form_offset} contains no INFO chunk"
+    )
+
+
+def _djvu_page_form_offsets(data: bytes) -> list[int]:
+    if not data.startswith(b"AT&TFORM") or len(data) < 16:
+        raise InventoryBuildError("DjVu payload has no AT&T FORM header")
+    root_size = int.from_bytes(data[8:12], "big")
+    root_end = 12 + root_size
+    if root_end != len(data):
+        raise InventoryBuildError(
+            "DjVu root FORM size does not match the payload byte size"
+        )
+
+    root_type = data[12:16]
+    if root_type == b"DJVU":
+        return [4]
+    if root_type != b"DJVM":
+        raise InventoryBuildError(
+            f"DjVu root FORM has unsupported type {root_type!r}"
+        )
+
+    cursor = 16
+    directory: bytes | None = None
+    while cursor + 8 <= root_end:
+        chunk_type = data[cursor : cursor + 4]
+        chunk_size = int.from_bytes(data[cursor + 4 : cursor + 8], "big")
+        chunk_start = cursor + 8
+        chunk_end = chunk_start + chunk_size
+        if chunk_end > root_end:
+            raise InventoryBuildError(
+                f"DjVu root chunk {chunk_type!r} at byte {cursor} exceeds the root FORM"
+            )
+        if chunk_type == b"DIRM":
+            directory = data[chunk_start:chunk_end]
+            break
+        cursor = chunk_end + (chunk_size % 2)
+
+    if directory is None:
+        raise InventoryBuildError("bundled DjVu payload has no DIRM chunk")
+    if len(directory) < 3:
+        raise InventoryBuildError("DjVu DIRM chunk is shorter than three bytes")
+
+    entry_count = int.from_bytes(directory[1:3], "big")
+    offsets_end = 3 + 4 * entry_count
+    if entry_count < 1 or len(directory) < offsets_end:
+        raise InventoryBuildError("DjVu DIRM chunk has an invalid entry table")
+    component_offsets = [
+        int.from_bytes(directory[index : index + 4], "big")
+        for index in range(3, offsets_end, 4)
+    ]
+    if component_offsets != sorted(set(component_offsets)):
+        raise InventoryBuildError(
+            "DjVu DIRM component offsets are not strictly increasing and unique"
+        )
+    if any(offset < 16 or offset + 12 > root_end for offset in component_offsets):
+        raise InventoryBuildError(
+            "DjVu DIRM component offset falls outside the root FORM"
+        )
+
+    page_offsets: list[int] = []
+    for offset in component_offsets:
+        if data[offset : offset + 4] != b"FORM":
+            raise InventoryBuildError(
+                f"DjVu DIRM target at byte {offset} is not a FORM chunk"
+            )
+        component_size = int.from_bytes(data[offset + 4 : offset + 8], "big")
+        component_end = offset + 8 + component_size
+        if component_end > root_end:
+            raise InventoryBuildError(
+                f"DjVu DIRM component at byte {offset} exceeds the root FORM"
+            )
+        component_type = data[offset + 8 : offset + 12]
+        if component_type == b"DJVU":
+            page_offsets.append(offset)
+        elif component_type not in {b"DJVI", b"THUM"}:
+            raise InventoryBuildError(
+                f"DjVu DIRM component at byte {offset} has unsupported FORM type "
+                f"{component_type!r}"
+            )
+    if not page_offsets:
+        raise InventoryBuildError("bundled DjVu payload has no DJVU page components")
+    return page_offsets
+
+
+def _djvu_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    try:
+        data = payload_path.read_bytes()
+    except OSError as exc:
+        raise InventoryBuildError(f"DjVu payload is unreadable: {exc}") from exc
+
+    resources: list[dict[str, Any]] = []
+    for page_index, form_offset in enumerate(
+        _djvu_page_form_offsets(data),
+        start=1,
+    ):
+        width, height, dpi = _djvu_page_info(data, form_offset=form_offset)
+        resources.append(
+            {
+                "resource_id": f"djvu-page-{page_index:04d}",
+                "resource_kind": "djvu_page",
+                "locator": {
+                    "page_index": page_index,
+                    "width_pixels": width,
+                    "height_pixels": height,
+                    "resolution_dpi": dpi,
+                },
+                "structural_role": "page",
+            }
+        )
+
+    geometries = {
+        (
+            resource["locator"]["width_pixels"],
+            resource["locator"]["height_pixels"],
+            resource["locator"]["resolution_dpi"],
+        )
+        for resource in resources
+    }
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "djvu_pages_v1",
+        "summary": {
+            "resource_count": len(resources),
+            "page_count": len(resources),
+            "distinct_page_geometry_count": len(geometries),
+        },
+        "resources": resources,
+    }
+
+
 def _abbyy_xml_inventory(
     payload_path: Path,
     *,
@@ -646,6 +828,8 @@ def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> d
         return _pdf_inventory(payload_path, **kwargs)
     if media_type == "application/epub+zip":
         return _epub_inventory(payload_path, **kwargs)
+    if media_type == "image/vnd.djvu":
+        return _djvu_inventory(payload_path, **kwargs)
     if media_type == "application/vnd.djvu+xml":
         return _djvu_xml_inventory(payload_path, **kwargs)
     if (

@@ -4742,7 +4742,31 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         ]
         if sequences != list(range(1, len(members) + 1)):
             issues.append((location, "work-boundary member sequence is not contiguous from 1"))
+        coverage_posture = boundary_map.get("coverage_posture")
+        explicit_coverage = isinstance(coverage_posture, str)
+        source_sequences = [
+            member.get("source_sequence")
+            for member in members
+            if isinstance(member, dict) and "source_sequence" in member
+        ]
+        if coverage_posture == "partial_membership_representation":
+            if len(source_sequences) != len(members):
+                issues.append(
+                    (
+                        location,
+                        "partial work-boundary members must carry source_sequence",
+                    )
+                )
+            elif source_sequences != sorted(set(source_sequences)):
+                issues.append(
+                    (
+                        location,
+                        "partial work-boundary source_sequence values must be "
+                        "strictly increasing and unique",
+                    )
+                )
         previous_end: int | None = None
+        represented_ranges: list[tuple[int, int, str]] = []
         for member in members:
             if not isinstance(member, dict):
                 continue
@@ -4756,9 +4780,16 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if isinstance(start_page, int) and isinstance(end_page, int):
                 if start_page > end_page:
                     issues.append((location, f"work-boundary start exceeds end for sequence {member.get('sequence')}"))
-                if previous_end is not None and start_page != previous_end + 1:
+                if (
+                    not explicit_coverage
+                    and previous_end is not None
+                    and start_page != previous_end + 1
+                ):
                     issues.append((location, f"work-boundary members are not contiguous at sequence {member.get('sequence')}"))
                 previous_end = end_page
+                represented_ranges.append(
+                    (start_page, end_page, f"member sequence {member.get('sequence')}")
+                )
             title_anchor_ref = member.get("title_page_anchor_ref")
             if title_anchor_ref not in local_anchor_ids:
                 issues.append((location, f"unresolved title-page anchor: {title_anchor_ref}"))
@@ -4770,11 +4801,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             membership_ref = member.get("membership_claim_ref")
             if isinstance(membership_ref, str):
                 boundary_map_membership_refs.add(membership_ref)
-            responsibility_ref = member.get("translation_responsibility_claim_ref")
+            responsibility_ref = member.get("responsibility_claim_ref")
+            if responsibility_ref is None:
+                responsibility_ref = member.get("translation_responsibility_claim_ref")
             if isinstance(responsibility_ref, str):
                 boundary_map_responsibility_refs.add(responsibility_ref)
 
         non_member_sections = boundary_map.get("non_member_sections", [])
+        if explicit_coverage:
+            previous_end = None
         for section in non_member_sections:
             if not isinstance(section, dict):
                 continue
@@ -4786,12 +4821,75 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 if start_page > end_page:
                     issues.append((location, f"non-member section start exceeds end: {section.get('label')}"))
                 previous_end = end_page
+                represented_ranges.append(
+                    (start_page, end_page, f"non-member section {section.get('label')}")
+                )
             anchor_ref = section.get("boundary_anchor_ref")
             if anchor_ref not in local_anchor_ids:
                 issues.append((location, f"unresolved non-member boundary anchor: {anchor_ref}"))
             elif anchor_page_by_id.get(anchor_ref) != start_page:
                 issues.append((location, f"non-member boundary anchor does not match start_page: {anchor_ref}"))
-        if previous_end != boundary_map.get("page_count"):
+
+        unrepresented_sections = boundary_map.get("unrepresented_sections", [])
+        if (
+            coverage_posture == "complete_membership_representation"
+            and unrepresented_sections
+        ):
+            issues.append(
+                (
+                    location,
+                    "complete work-boundary representation cannot contain "
+                    "unrepresented sections",
+                )
+            )
+        if (
+            coverage_posture == "partial_membership_representation"
+            and not unrepresented_sections
+        ):
+            issues.append(
+                (
+                    location,
+                    "partial work-boundary representation requires at least one "
+                    "unrepresented section",
+                )
+            )
+        for section in unrepresented_sections:
+            if not isinstance(section, dict):
+                continue
+            start_page = section.get("start_page")
+            end_page = section.get("end_page")
+            if isinstance(start_page, int) and isinstance(end_page, int):
+                if start_page > end_page:
+                    issues.append((location, f"unrepresented section start exceeds end: {section.get('label')}"))
+                represented_ranges.append(
+                    (start_page, end_page, f"unrepresented section {section.get('label')}")
+                )
+            anchor_ref = section.get("boundary_anchor_ref")
+            if anchor_ref not in local_anchor_ids:
+                issues.append((location, f"unresolved unrepresented boundary anchor: {anchor_ref}"))
+            elif anchor_page_by_id.get(anchor_ref) != start_page:
+                issues.append((location, f"unrepresented boundary anchor does not match start_page: {anchor_ref}"))
+
+        if explicit_coverage:
+            ordered_ranges = sorted(represented_ranges)
+            coverage_end = 0
+            for start_page, end_page, label in ordered_ranges:
+                if start_page != coverage_end + 1:
+                    issues.append(
+                        (
+                            location,
+                            f"explicit work-boundary coverage has a gap or overlap before {label}",
+                        )
+                    )
+                coverage_end = max(coverage_end, end_page)
+            if coverage_end != boundary_map.get("page_count"):
+                issues.append(
+                    (
+                        location,
+                        "explicit work-boundary coverage does not cover the exact page_count",
+                    )
+                )
+        elif previous_end != boundary_map.get("page_count"):
             issues.append((location, "work and non-member boundaries do not cover the exact page_count"))
         for anchor_ref in boundary_map.get("crosscheck_anchor_refs", []):
             if anchor_ref not in local_anchor_ids:

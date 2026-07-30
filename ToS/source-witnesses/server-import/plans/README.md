@@ -34,3 +34,11 @@ route evidence. ToS nevertheless keeps its jurisdictional assessment
 unreviewed, the operator-held PDF local, all content-bearing derivatives
 prohibited, and the future route limited to public-safe metadata until a
 separately reviewed object is selected or reacquired.
+
+The twelfth plan covers the exact Commons/Stanford DjVu of the 1906 Naumann
+*Nietzsche's Werke*, Band VIII aggregate that contains *Der Antichrist*.
+Commons' public-domain declaration, exact checksum, and open route are
+retained as strong positive evidence. The plan still keeps the operator-held
+DjVu local, all source-bearing derivatives prohibited, the model-only partial
+boundary visibly unreviewed, and server consumption limited to public-safe
+metadata until a current authorized object and applicable rights are reviewed.

@@ -28,6 +28,9 @@ The valid result is therefore a stopped result before execution:
   any variant output as **ineligible preparation soil**, not target gold;
 - retain the exact 1892 second-edition *Genealogie* source item as stronger
   source soil without treating it as accepted text or target gold;
+- retain the exact 1906 aggregate witness and proposed *Antichrist* member
+  boundary as stronger source soil without treating that archive-edition text
+  as accepted, critical, or target gold;
 - admit no sign, translation, concept, relation, or ontology from
   *Zarathustra* into another work;
 - schedule no routine human backlog: in solo+AI operation, open a bounded
@@ -105,6 +108,13 @@ source-witness route for the 1892 second Naumann edition. That route does not
 alter the status of the Russian collection page, establish a translation
 relation, supply an admitted passage, or make any of the six prepared
 *Genealogie* target pages eligible for variant execution.
+
+*Der Antichrist* now likewise has a distinct exact historical German route
+through the 1906 Naumann aggregate, with a fixity-bound 523-page DjVu
+inventory and a proposed member range at scan pages 228-329. That route does
+not alter the Russian collection page, establish translation correspondence,
+equate the archive edition with the manuscript, 1895 first printing, or a
+critical text, or make any prepared *Antichrist* page eligible for execution.
 
 ## Prepared target-candidate soil
 

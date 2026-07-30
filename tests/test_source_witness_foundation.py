@@ -69,6 +69,21 @@ GENEALOGIE_1892_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "genealogie-naumann-1892-open-scan-witness.2026-07-30.v1.json"
 )
+ANTICHRIST_1906_COLLECTION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/collections/friedrich-nietzsche/"
+    "nietzsches-werke-erste-abtheilung-band-viii-naumann-1906"
+)
+ANTICHRIST_1906_ITEM_ROOT = (
+    ANTICHRIST_1906_COLLECTION_ROOT
+    / "editions/leipzig-c-g-naumann-1906/items/"
+    "wikimedia-commons-stanford-scan-djvu"
+)
+ANTICHRIST_1906_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1686,6 +1701,201 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "leipzig-c-g-naumann-1892-second",
                 "tos.item.friedrich-nietzsche.zur-genealogie-der-moral."
                 "de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+            }.issubset(catalog_ids)
+        )
+
+    def test_antichrist_1906_witness_advances_source_not_content(self) -> None:
+        manifest = json.loads(
+            (ANTICHRIST_1906_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (ANTICHRIST_1906_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (ANTICHRIST_1906_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source_snapshot = json.loads(
+            (ANTICHRIST_1906_ITEM_ROOT / "source-metadata-snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        boundary_map = json.loads(
+            (
+                ANTICHRIST_1906_COLLECTION_ROOT
+                / "structure/work-boundaries/work-boundary-map.json"
+            ).read_text(encoding="utf-8")
+        )
+        discovery = json.loads(
+            ANTICHRIST_1906_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        server_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "der-antichrist-naumann-1906-wikimedia-commons-stanford-"
+                "scan-djvu.server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("digitized_physical_copy", manifest["item_kind"])
+        self.assertEqual("local_gitignored_payload", manifest["storage_posture"])
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertEqual(1, len(manifest["payload_files"]))
+        payload_file = manifest["payload_files"][0]
+        self.assertEqual(24324176, payload_file["byte_size"])
+        self.assertEqual(
+            "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+            payload_file["sha256"],
+        )
+        self.assertTrue(
+            foundation._git_ignored(
+                REPO_ROOT,
+                ANTICHRIST_1906_ITEM_ROOT / payload_file["relative_path"],
+            )
+        )
+
+        self.assertEqual(
+            "https://creativecommons.org/publicdomain/mark/1.0/",
+            rights["rights_statement_uri"],
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual([], rights["jurisdictions_reviewed"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("local_only", rights["visibility"])
+
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual(1, len(inventory["files"]))
+        inventory_file = inventory["files"][0]
+        self.assertEqual("djvu_pages_v1", inventory_file["profile"])
+        self.assertEqual(523, inventory_file["summary"]["page_count"])
+        self.assertEqual(
+            1,
+            inventory_file["summary"]["distinct_page_geometry_count"],
+        )
+        self.assertEqual(523, len(inventory_file["resources"]))
+        self.assertEqual(
+            list(range(1, 524)),
+            [
+                resource["locator"]["page_index"]
+                for resource in inventory_file["resources"]
+            ],
+        )
+        self.assertTrue(
+            all(
+                resource["resource_kind"] == "djvu_page"
+                and resource["locator"]["width_pixels"] == 4034
+                and resource["locator"]["height_pixels"] == 5834
+                and resource["locator"]["resolution_dpi"] == 600
+                for resource in inventory_file["resources"]
+            )
+        )
+
+        commons = source_snapshot["wikimedia_commons_record"]
+        archive = source_snapshot["internet_archive_source_lineage"]
+        self.assertEqual(16394410, commons["page_id"])
+        self.assertFalse(commons["copyrighted"])
+        self.assertFalse(commons["attribution_required"])
+        self.assertTrue(commons["local_sha1_match"])
+        self.assertEqual(
+            "confirmed-source-visible-conflict",
+            archive["metadata_contamination_status"],
+        )
+        self.assertFalse(
+            source_snapshot["source_visible_scan"]["human_repeat_performed"]
+        )
+
+        self.assertEqual(
+            "partial_membership_representation",
+            boundary_map["coverage_posture"],
+        )
+        self.assertEqual(1, len(boundary_map["members"]))
+        member = boundary_map["members"][0]
+        self.assertEqual("tos.work.friedrich-nietzsche.der-antichrist", member["work_ref"])
+        self.assertEqual(4, member["source_sequence"])
+        self.assertEqual((228, 329), (member["start_page"], member["end_page"]))
+        self.assertIsNone(member["responsibility_claim_ref"])
+        self.assertEqual(
+            [(1, 227), (330, 523)],
+            [
+                (section["start_page"], section["end_page"])
+                for section in boundary_map["unrepresented_sections"]
+            ],
+        )
+        self.assertIn(
+            "textual identity with the 1888 manuscript, 1895 first printing, or any critical edition",
+            boundary_map["does_not_establish"],
+        )
+
+        self.assertEqual(
+            [
+                "channel-dnb-der-antichrist-work-authority",
+                "channel-dta-der-antichrist-author-corpus",
+                "channel-textgrid-der-antichrist-corpus",
+                "channel-internet-archive-der-antichrist",
+                "channel-google-books-der-antichrist-1895-cornell",
+                "channel-wikimedia-commons-naumann-1906-volume-8",
+                "channel-hadw-critical-commentary-der-antichrist",
+                "channel-wikisource-naumann-1906-volume-8",
+                "channel-general-web-der-antichrist",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            [
+                "tos-discovery-result.wikimedia-commons-"
+                "nietzsches-werke-band-8-naumann-1906"
+            ],
+            discovery["selected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        self.assertEqual(
+            "prohibited",
+            server_plan["allowed_derivatives"]["transcription"]["state"],
+        )
+        self.assertEqual(
+            "conditional",
+            server_plan["allowed_derivatives"]["graph_projection"]["state"],
+        )
+
+        catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
+        catalog_ids = {
+            record["record_id"]
+            for catalog_name in (
+                "works.jsonl",
+                "expressions.jsonl",
+                "editions.jsonl",
+                "collections.jsonl",
+                "items.jsonl",
+            )
+            for line in (catalog_root / catalog_name)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+            for record in (json.loads(line),)
+        }
+        self.assertTrue(
+            {
+                "tos.work.friedrich-nietzsche.der-antichrist",
+                "tos.expression.friedrich-nietzsche.der-antichrist."
+                "de-naumann-1906-volume-8",
+                "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8."
+                "leipzig-c-g-naumann-1906",
+                "tos.collection.friedrich-nietzsche."
+                "nietzsches-werke-erste-abtheilung-band-8-naumann-1906",
+                "tos.item.friedrich-nietzsche.nietzsches-werke-band-8."
+                "naumann-1906.wikimedia-commons-stanford-scan-djvu",
             }.issubset(catalog_ids)
         )
 

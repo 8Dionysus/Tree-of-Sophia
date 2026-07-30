@@ -44,12 +44,22 @@
     "resource_inventory_ref": {"$ref": "#/$defs/repoRelativePath"},
     "resource_inventory_sha256": {"$ref": "#/$defs/sha256"},
     "page_count": {"type": "integer", "minimum": 1},
+    "coverage_posture": {
+      "enum": [
+        "complete_membership_representation",
+        "partial_membership_representation"
+      ]
+    },
     "members": {
       "type": "array",
       "minItems": 1,
       "items": {"$ref": "#/$defs/member"}
     },
     "non_member_sections": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonMemberSection"}
+    },
+    "unrepresented_sections": {
       "type": "array",
       "items": {"$ref": "#/$defs/nonMemberSection"}
     },
@@ -95,6 +105,47 @@
       ]
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "coverage_posture": {
+            "const": "complete_membership_representation"
+          }
+        },
+        "required": ["coverage_posture"]
+      },
+      "then": {
+        "properties": {
+          "unrepresented_sections": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage_posture": {
+            "const": "partial_membership_representation"
+          }
+        },
+        "required": ["coverage_posture"]
+      },
+      "then": {
+        "required": ["unrepresented_sections"],
+        "properties": {
+          "unrepresented_sections": {"minItems": 1},
+          "members": {
+            "items": {
+              "allOf": [
+                {"$ref": "#/$defs/member"},
+                {"required": ["source_sequence"]}
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "tosId": {
       "type": "string",
@@ -114,7 +165,6 @@
         "work_ref",
         "expression_ref",
         "membership_claim_ref",
-        "translation_responsibility_claim_ref",
         "title_page_anchor_ref",
         "boundary_evidence_anchor_refs",
         "start_page",
@@ -124,9 +174,16 @@
       ],
       "properties": {
         "sequence": {"type": "integer", "minimum": 1},
+        "source_sequence": {"type": "integer", "minimum": 1},
         "work_ref": {"$ref": "#/$defs/tosId"},
         "expression_ref": {"$ref": "#/$defs/tosId"},
         "membership_claim_ref": {"$ref": "#/$defs/tosId"},
+        "responsibility_claim_ref": {
+          "oneOf": [
+            {"$ref": "#/$defs/tosId"},
+            {"type": "null"}
+          ]
+        },
         "translation_responsibility_claim_ref": {"$ref": "#/$defs/tosId"},
         "title_page_anchor_ref": {"$ref": "#/$defs/tosId"},
         "boundary_evidence_anchor_refs": {

@@ -92,3 +92,14 @@ Commons revision of the source-visible 1892 second Naumann edition. It
 preserves Commons' public-domain statement, the current Internet Archive
 PDF's byte divergence, and failed or wrong-language channels without treating
 embedded OCR as accepted German or the operator-held file as publishable.
+
+`der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json` continues
+the transfer-source route through DNB/GND, DTA, TextGrid, Internet Archive,
+Google Books, Wikimedia Commons, historical-critical commentary, Wikisource,
+and only then general web discovery. It rejects an unprovenanced apparent
+1895 upload, keeps the no-view Cornell 1895 record as an unsent access lead,
+and selects the exact Commons/Stanford DjVu of the 1906 Naumann aggregate.
+The run preserves Internet Archive metadata contamination, the edition's
+known editorial risk, and the absence of an accepted Wikisource transcription
+for *Der Antichrist*. It accepts neither provider OCR nor the 1906 text as the
+manuscript, 1895 first printing, critical text, or publishable German.

@@ -9,6 +9,13 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added an exact German historical source route for *Der Antichrist* inside
+  the 1906 Naumann *Nietzsche's Werke*, Band VIII aggregate: ordered
+  discovery, a checksum-reconciled Wikimedia Commons/Stanford DjVu, a
+  text-free 523-page bundled-DjVu inventory, an explicitly partial
+  work-boundary map, fail-closed rights, and a metadata-only future-server
+  plan. The 1906 witness is not equated with Nietzsche's manuscript, the 1895
+  first printing, a critical text, accepted German, or publishable content.
 - Added an exact German source tree for the 1892 second Naumann *Zur
   Genealogie der Moral*: ordered discovery evidence, a checksum-reconciled
   Wikimedia Commons/UNC scan revision, text-free 208-page inventory,

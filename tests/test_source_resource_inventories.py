@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import struct
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,47 @@ import build_source_resource_inventories as inventories
 
 
 class SourceResourceInventoryTests(unittest.TestCase):
+    @staticmethod
+    def _djvu_page(width: int, height: int, dpi: int) -> bytes:
+        info = (
+            struct.pack(">HH", width, height)
+            + bytes((25, 0))
+            + struct.pack("<H", dpi)
+            + bytes((22, 1))
+        )
+        info_chunk = b"INFO" + struct.pack(">I", len(info)) + info
+        form_payload = b"DJVU" + info_chunk
+        return b"FORM" + struct.pack(">I", len(form_payload)) + form_payload
+
+    @classmethod
+    def _bundled_djvu(cls) -> bytes:
+        components = [
+            cls._djvu_page(1000, 2000, 300),
+            b"FORM" + struct.pack(">I", 4) + b"DJVI",
+            cls._djvu_page(1100, 2100, 400),
+        ]
+        directory_size = 3 + 4 * len(components)
+        directory_chunk_size = 8 + directory_size + (directory_size % 2)
+        first_page_offset = 16 + directory_chunk_size
+        offsets = []
+        next_offset = first_page_offset
+        for component in components:
+            offsets.append(next_offset)
+            next_offset += len(component)
+        directory = (
+            bytes((0x81,))
+            + struct.pack(">H", len(components))
+            + b"".join(struct.pack(">I", offset) for offset in offsets)
+        )
+        directory_chunk = (
+            b"DIRM"
+            + struct.pack(">I", len(directory))
+            + directory
+            + (b"\x00" if len(directory) % 2 else b"")
+        )
+        root_payload = b"DJVM" + directory_chunk + b"".join(components)
+        return b"AT&TFORM" + struct.pack(">I", len(root_payload)) + root_payload
+
     def test_epub_inventory_preserves_order_and_hides_text(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "sample.epub"
@@ -156,6 +198,37 @@ class SourceResourceInventoryTests(unittest.TestCase):
         )
         serialized = json.dumps(payload)
         self.assertNotIn("Visible", serialized)
+
+    def test_bundled_djvu_inventory_emits_page_geometry_without_ocr(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sample.djvu"
+            path.write_bytes(self._bundled_djvu())
+            payload = inventories.build_file_inventory(
+                path,
+                {
+                    "file_id": "tos.file.sha256." + "e" * 64,
+                    "sha256": "e" * 64,
+                    "media_type": "image/vnd.djvu",
+                    "relative_path": "payload/sample.djvu",
+                },
+            )
+
+        self.assertEqual("djvu_pages_v1", payload["profile"])
+        self.assertEqual(2, payload["summary"]["page_count"])
+        self.assertEqual(2, payload["summary"]["distinct_page_geometry_count"])
+        self.assertEqual(
+            {
+                "page_index": 1,
+                "width_pixels": 1000,
+                "height_pixels": 2000,
+                "resolution_dpi": 300,
+            },
+            payload["resources"][0]["locator"],
+        )
+        self.assertEqual("djvu_page", payload["resources"][1]["resource_kind"])
+        serialized = json.dumps(payload)
+        self.assertNotIn("content_fingerprint", serialized)
+        self.assertNotIn("word_count", serialized)
 
     def test_abbyy_xml_gzip_inventory_emits_counts_and_no_text(self) -> None:
         xml = b"""<document xmlns="http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml">

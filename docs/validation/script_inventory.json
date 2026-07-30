@@ -233,7 +233,7 @@
       "writes": [
         "ToS/source-witnesses/**/resource-inventory.json unless --check is used"
       ],
-      "side_effects": "tracked text-free PDF, EPUB, TEI, DjVu XML, and ABBYY XML resource inventories",
+      "side_effects": "tracked text-free PDF, bundled DjVu, EPUB, TEI, DjVu XML, and ABBYY XML resource inventories",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_source_resource_inventories.py",

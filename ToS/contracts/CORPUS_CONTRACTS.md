@@ -10,7 +10,7 @@ judgment true.
 | --- | --- |
 | `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item catalog identity |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
-| `source-resource-inventory.schema.json` | text-free PDF page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
+| `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |
 | `lexical-index-projection.schema.json` | rebuild receipt and non-sequential form-hash/count/page/division read model over exact local witnesses, with working local query probes but no accepted source, lemma, sign, context, or publication claim |
 | `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, sequentially blocked contextual A/B/C follow-up, explicit layer/competence/rights boundaries, and zero automatic linguistic or semantic promotion |
@@ -21,7 +21,7 @@ judgment true.
 | `target-numbered-unit-page-map.schema.json` | text-free target-expression numbered-label start-page candidates bound to one exact translation scan, its work boundary and source-map asymmetry reference, while forbidding source-to-target alignment, equivalence, quality, or semantic claims |
 | `parallel-numbered-unit-label-map.schema.json` | release-safe intersection of independently materialized source and target number-label keys, binding both maps, anchors, rights records, and source-only asymmetries without comparing text or asserting passage/translation alignment |
 | `parallel-witness-structure-map.schema.json` | text-free parallel PDF division starts and division-level numbered-unit spans across an original-language expression and one translation expression, bound to any separate source-only numbered-unit map while preserving supplemental-unit asymmetries, zero exact target-unit pages, and no translation-equivalence claim |
-| `collection-work-boundary-map.schema.json` | text-free member-work order, contiguous container-page ranges, exact Work/Expression/claim refs, non-work boundaries, source anchors, and an explicit bibliographic-only ceiling for aggregate items |
+| `collection-work-boundary-map.schema.json` | text-free complete or explicitly partial member-work representation, contiguous represented/non-member/unrepresented container-page coverage, exact Work/Expression/claim refs, optional evidence-bearing responsibility refs, source order and anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |

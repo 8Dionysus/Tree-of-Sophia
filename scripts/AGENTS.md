@@ -42,10 +42,10 @@ local laboratory. Passing this lane never implies that a human accepted the
 bibliography, text, rights, translation, or semantics.
 
 `build_source_resource_inventories.py` is the focused local companion for
-fixity-verified payloads. It writes tracked, text-free PDF page, EPUB resource,
-TEI structure, and provider OCR page inventories from an explicit payload
-root. It is not a release-time acquisition step and its one-way fingerprints
-are not accepted text or alignment evidence.
+fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
+EPUB resource, TEI structure, and provider OCR page inventories from an
+explicit payload root. It is not a release-time acquisition step and its
+one-way fingerprints are not accepted text or alignment evidence.
 
 `build_zarathustra_lexical_index.py` is the explicit-local companion over the
 four DTA first-edition part witnesses. It materializes exact forms, source

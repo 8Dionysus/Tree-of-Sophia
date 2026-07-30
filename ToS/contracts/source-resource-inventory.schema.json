@@ -113,6 +113,7 @@
         "resource_kind": {
           "enum": [
             "pdf_page",
+            "djvu_page",
             "epub_member",
             "tei_page_break",
             "tei_division",
@@ -182,6 +183,7 @@
         "profile": {
           "enum": [
             "pdf_pages_v1",
+            "djvu_pages_v1",
             "epub_resources_v1",
             "tei_structure_v1",
             "djvu_xml_pages_v1",

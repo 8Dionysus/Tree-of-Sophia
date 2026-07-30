@@ -78,9 +78,11 @@ every contained work.
 Collection work-boundary maps bind the source-visible member order to one
 exact item/file digest and its text-free page inventory. They may carry
 whole-page title, table-of-contents, and non-work boundary anchors plus
-unreviewed translator-responsibility claims. Such a map is bibliographic
-structure, not accepted text, edition equivalence, translation quality,
-semantics, rights clearance, or canon.
+an optional evidence-bearing expression-responsibility claim. Translation
+responsibility remains explicit where applicable and is `null`, not
+manufactured, for a source-language member without a separate responsibility
+claim. Such a map is bibliographic structure, not accepted text, edition
+equivalence, translation quality, semantics, rights clearance, or canon.
 
 ## Payload boundary
 
@@ -103,12 +105,12 @@ Payload files are immutable after intake. Changed bytes create a new file
 record and, when materially distinct, a new item or item version.
 
 `resource-inventory.json` is a tracked mechanical companion generated from the
-exact payload digest. It enumerates PDF page geometry and image counts, EPUB
-member/spine order and member fixity, TEI page-break/division structure, or
-provider DjVu/ABBYY OCR page geometry and counts. Text-bearing EPUB, TEI, and
-OCR resources may carry only one-way normalized fingerprints and character or
-word counts. The inventory cannot accept a reading, settle an edition, clear
-rights, or expose source text.
+exact payload digest. It enumerates PDF page geometry and image counts, bundled
+DjVu page order and geometry, EPUB member/spine order and member fixity, TEI
+page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
+counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
+normalized fingerprints and character or word counts. The inventory cannot
+accept a reading, settle an edition, clear rights, or expose source text.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,
@@ -148,7 +150,11 @@ collection containing it. The seed deliberately includes:
 - an exact Wikimedia Commons revision of the UNC/Internet Archive scan of
   Nietzsche's 1892 second Naumann *Zur Genealogie der Moral*, with visible
   edition statement, exact file fixity, and a text-free 208-page resource
-  inventory.
+  inventory;
+- an exact Wikimedia Commons/Stanford DjVu of the 1906 Naumann
+  *Nietzsche's Werke*, Band VIII aggregate, with a text-free 523-page bundled
+  DjVu inventory and an explicitly partial proposed boundary for *Der
+  Antichrist*.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -191,6 +197,17 @@ public-domain declaration is strong publication-route evidence, but the
 operator-held PDF remains local, the embedded OCR remains unaccepted, and no
 German text, translation relation, semantic claim, or server payload is
 admitted.
+
+The third transfer-work route advances *Der Antichrist* beyond its
+provisional Russian collection expression without flattening the newly found
+aggregate. The source-visible 1906 Naumann volume, Stanford holding marks,
+exact Commons fixity, and scan pages 228-329 support one proposed member
+boundary; pages 1-227 and 330-523 remain explicitly unrepresented rather than
+being mislabeled as non-work material. Internet Archive's contaminated
+description is preserved as a conflict, while the 1906 archive-edition text
+is kept distinct from Nietzsche's 1888 manuscript, the 1895 first printing,
+a critical edition, accepted German, and provider OCR. The local DjVu is not a
+future-site upload source.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

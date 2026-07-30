@@ -41,12 +41,12 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- Four other *Mysl* member works remain verified Work identities with
+- Three other *Mysl* member works remain verified Work identities with
   provisional Russian collection-member expressions rather than standalone
-  reviewed Edition / Item trees. *Jenseits von Gut und Böse* and *Zur
-  Genealogie der Moral* now additionally have exact German
-  Expression / Edition / Item routes—1886 first Naumann and 1892 second
-  Naumann respectively—while their Russian *Mysl* expressions and
+  reviewed Edition / Item trees. *Jenseits von Gut und Böse*, *Zur Genealogie
+  der Moral*, and *Der Antichrist* now additionally have exact German source
+  routes—1886 first Naumann, 1892 second Naumann, and the 1906 Naumann
+  aggregate respectively—while their Russian *Mysl* expressions and
   translation-responsibility claims remain unreviewed.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
@@ -77,6 +77,15 @@ contracts intentionally reject simulated human evidence.
   expression. They do not establish the 1887 first-edition text, accept its
   embedded OCR or German, create passage anchors, or make the work eligible
   for transfer A/B/C.
+- The acquired Commons/Stanford *Nietzsche's Werke*, Band VIII DjVu is an
+  exact source-visible 1906 aggregate witness containing *Der Antichrist*.
+  Its 523-page text-free inventory and proposed scan-page range 228-329
+  advance the source route beyond provisional Russian collection membership.
+  The map is deliberately partial: pages 1-227 and 330-523 remain
+  unrepresented. The current Internet Archive description is visibly
+  contaminated, and the selected archive-edition text is not Nietzsche's 1888
+  manuscript, the 1895 first printing, a critical edition, accepted German,
+  provider OCR, or transfer gold.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -112,6 +121,12 @@ contracts intentionally reject simulated human evidence.
   derivatives. The local copy remains off the future site; its server plan is
   metadata-only and requires independent current-route selection or
   reacquisition before any different publication decision.
+- Wikimedia Commons likewise declares the exact 1906-volume DjVu public
+  domain, `Copyrighted=False`, and attribution-free. This is strong evidence
+  for that exact Commons object, not a jurisdiction-complete verdict over the
+  historical text, Stanford copy, Google scan, contaminated Internet Archive
+  lineage, Commons revision, OCR, or derivatives. The local DjVu remains off
+  the future site and the server plan remains metadata-only.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
@@ -544,9 +559,11 @@ from the calibration-only route in section 2b.
    closes the OCR numeral gaps. *Zur Genealogie der Moral* is now separately
    promoted beyond provisional collection membership at the source-witness
    level through its exact 1892 second-edition item, but it still needs an
-   admitted German text and exact passage anchors before transfer. *The
-   Antichrist* remains provisional and needs its own ordered exact-source
-   discovery and Edition / Item tree.
+   admitted German text and exact passage anchors before transfer. *Der
+   Antichrist* now also has an ordered exact-source discovery receipt and a
+   1906 aggregate Edition / Item route with proposed member boundaries; it
+   still needs a better editorial witness or explicitly justified use of this
+   one, admitted German text, and exact passage anchors before transfer.
 2. If the user deliberately activates the transfer experiment, advance the
    twenty already frozen private page candidates into exact source-visible
    target passages and target gold without viewing variant outputs. Introduce
