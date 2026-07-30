@@ -1,0 +1,53 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.ekgwb.za-i-vorrede-1.v1",
+  "scope_refs": [
+    "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "tos.critical-edition-witness.ekgwb.za-i-vorrede-1.v1",
+    "tos-discovery-result.ekgwb-official-http-static-za-i"
+  ],
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": "https://doc.nietzschesource.org/en/rights",
+  "license_uri": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+  "jurisdictions_reviewed": [
+    "CC-4.0-International",
+    "DE"
+  ],
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md",
+    "https://doc.nietzschesource.org/en/ekgwb",
+    "https://doc.nietzschesource.org/en/rights",
+    "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.en",
+    "https://www.gesetze-im-internet.de/urhg/__70.html",
+    "https://www.item.ens.fr/ekgwb/",
+    "https://doi.org/10.1590/2316-82422024v4503pd"
+  ],
+  "permissions": [
+    "public bibliographic metadata, stable locator, citations, and non-content provenance may remain tracked",
+    "non-commercial private local reproduction and adaptation for bounded research are supported by CC BY-NC-ND 4.0",
+    "unmodified licensed material may be shared non-commercially under the license conditions, but ToS does not authorize that route for this captured payload"
+  ],
+  "restrictions": [
+    "adapted material may not be shared under CC BY-NC-ND 4.0",
+    "commercial use is not authorized",
+    "the current HTTP-only exact response is not an authenticated critical source",
+    "underlying text, scientific-edition layer, digital editorial layer, and website presentation require separate rights reasoning",
+    "no source payload or recoverable adapted text may be published by ToS without separate human rights review and explicit operator approval",
+    "this model-authored record is not legal advice or human rights clearance"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "metadata_only",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-07-30T12:54:20Z",
+  "rationale": "The current official rights surface declares CC BY-NC-ND 4.0 while also asserting public-domain status for the Colli-Montinari scientific text. CC BY-NC-ND 4.0 positively permits non-commercial production and reproduction of private adaptations but prohibits sharing them. The layer scope of the public-domain assertion and the current unauthenticated HTTP transport remain unresolved, so the exact response is retained only for local research and is not admitted as critical source truth or authorized for publication.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": "ToS/source-witnesses/access-requests/public-ledger/nietzsche-source-ekgwb.access-request.json",
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

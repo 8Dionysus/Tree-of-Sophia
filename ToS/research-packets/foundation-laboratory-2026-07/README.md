@@ -4,7 +4,8 @@ Status: research scaffold with bounded executed laboratory evidence, not source 
 
 Research snapshot: 2026-07-23; local software/LLM admission refreshed
 2026-07-26; semantic-annotation assurance and historical-German
-morphology/lemmatization admission refreshed 2026-07-29
+morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
+transport refreshed 2026-07-30
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -42,6 +43,7 @@ and what must be tested manually.
 | `translation-source-selector-inspection.v1.json` | Which exact 30 candidate hashes, pages, advisory decisions, and failure modes close the selector rejection? |
 | `TRANSLATION_SOURCE_REVIEW_V2.md` | Was the blind two-pass source-review interface actually materialized, checked beyond validator green, and kept short of human acceptance? |
 | `TRANSLATION_REFERENCE_RESEARCH.md` | Which lexical, corpus, critical-edition, and translation witnesses are defensible candidates, and what do access and rights actually permit? |
+| `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` | What does current CC BY-NC-ND 4.0 actually permit for private local adaptation, what does it prohibit sharing, and why transport authentication and source admission remain separate? |
 | `TRANSLATION_LABORATORY_REPORT.md` | What translation work was prepared or rejected, what actually ran, and why every draft and quality claim remains blocked? |
 | `QUALITY_COST_SPEED_MATRIX.md` | Which mechanical speed/resource values exist, which are comparable, and where quality and human correction cost remain unmeasured? |
 | `GOLDEN_KERNEL_TRANSFER_REPORT.md` | Is cross-work A/B/C epistemically runnable, what do the three title-page scouts and twenty private pre-output page candidates prove, and what exact evidence gate still blocks a false transfer claim? |

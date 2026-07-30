@@ -42,6 +42,12 @@ Zarathustra golden kernel. It is not a completed gold set.
   only structural compatibility: the critical passage itself was not fetched
   or compared. Bibliographic and rights review remain pending, no human task
   is created, and no German unit or translation lane is admitted.
+- `rights.ekgwb.za-i-vorrede-1.v1.json` is the later model-authored rights and
+  transport assessment for that exact route. It records that CC BY-NC-ND 4.0
+  permits non-commercial private local adaptation while prohibiting its
+  sharing, and keeps the HTTP payload local-only, unauthenticated, unadmitted,
+  and publication-blocked. It does not rewrite the digest-bound historical
+  critical-witness packet.
 - `german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json`
   records the first bounded machine-only comparison. The local eKGWB response
   and DTA part-I section agree on all 12 paragraph token sequences and 261

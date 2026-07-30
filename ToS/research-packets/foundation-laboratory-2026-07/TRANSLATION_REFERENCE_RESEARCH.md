@@ -1,8 +1,10 @@
 # Translation Reference Research
 
-Status: bounded research complete; zero reference content admitted; human bibliographic and rights review pending
+Status: bounded research complete; eKGWB rights/transport refreshed
+2026-07-30; zero reference content admitted; human bibliographic and rights
+review pending
 
-Research snapshot: 2026-07-23
+Research snapshot: 2026-07-23; eKGWB rights/transport refresh: 2026-07-30
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
@@ -173,7 +175,16 @@ Limits:
 - eKGWB does not replace the acquired Naumann scan or its source-visible
   review;
 - search hits are observations, not semantic conclusions;
-- ToS must not turn a no-derivatives edition into a freely transformed corpus.
+- ToS must not share a transformed eKGWB corpus under NoDerivatives.
+
+The later
+[`EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md`](EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md)
+corrects the earlier, broader local-use assumption. CC BY-NC-ND 4.0 permits
+non-commercial production and reproduction of private adaptations while
+prohibiting their sharing. Private local indexing, embeddings, normalization,
+and analysis can therefore be researched with full provenance and
+source-return. This does not authorize publication, authenticate the current
+HTTP response, admit a critical source, or establish German competence.
 
 ### Print critical route
 
@@ -300,6 +311,25 @@ eKGWB search and Nietzsche Online only if lawful access is obtained and its
 edition-specific omissions are measured. It must not silently define the
 Nietzsche corpus.
 
+### eKGWB live rights and transport refresh
+
+The 2026-07-30 ordered refresh checked current official documentation and
+law, established eKGWB scholarship, and the live host route. The resulting
+model-authored rights record separates:
+
+- private non-commercial adaptation, which CC BY-NC-ND 4.0 permits;
+- sharing adapted material, which it prohibits;
+- unmodified sharing that the license can permit, but which current ToS
+  operator policy does not authorize for the captured payload;
+- source admission, which remains blocked because the exact route is HTTP-only
+  from this host;
+- linguistic and translation acceptance, which remains competence-blocked.
+
+The unsent access request is retained for an authenticated or institutionally
+supplied exact passage and clarification of any server, quotation, or sharing
+scope. It is no longer treated as necessary merely for private local
+adaptation.
+
 ### Freshness rule
 
 At execution time, recheck all of the following even if this register remains
@@ -336,6 +366,8 @@ The result is deliberately **zero admitted content entries**:
 
 - zero human bibliographic reviews;
 - zero human rights reviews;
+- one model-authored eKGWB rights/transport record separating private
+  adaptation from shared derivatives;
 - zero permission requests sent;
 - zero dictionary articles frozen;
 - zero corpus slices frozen;
@@ -345,10 +377,12 @@ The result is deliberately **zero admitted content entries**:
 - zero recognized or additional translation passages revealed;
 - zero accepted lexical senses or etymologies.
 
-The laboratory remains blocked first on the 30-unit real-human two-pass German
-source review. When that gate closes, reference admission still proceeds item
-by item; source acceptance does not automatically clear rights, and rights
-clearance does not automatically establish a scholarly reading.
+The laboratory remains blocked on authenticated critical-source admission and
+German-competent source acceptance. The 30-unit interface remains an
+unscheduled reusable option rather than a standing human backlog. When a
+concrete source question triggers review, reference admission still proceeds
+item by item: source acceptance does not automatically clear publication
+rights, and a private-use rights route does not establish a scholarly reading.
 
 ## Planned use order after source acceptance
 

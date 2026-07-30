@@ -32,6 +32,9 @@ BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH = (
     / "bounded-translation-research-input."
     "za-i-vorrede-1-opening-sentence.v1.json"
 )
+EKGWB_RIGHTS_PATH = (
+    GOLD_ROOT / "rights.ekgwb.za-i-vorrede-1.v1.json"
+)
 MYSL_WORK_BOUNDARY_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
@@ -956,6 +959,61 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_ekgwb_rights_separate_private_adaptation_from_sharing(self) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        rights = json.loads(EKGWB_RIGHTS_PATH.read_text(encoding="utf-8"))
+
+        self.assertEqual([], list(validator.iter_errors(rights)))
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("metadata_only", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertTrue(
+            any(
+                "private local reproduction and adaptation" in permission
+                for permission in rights["permissions"]
+            )
+        )
+        self.assertTrue(
+            any(
+                "adapted material may not be shared" in restriction
+                for restriction in rights["restrictions"]
+            )
+        )
+        self.assertEqual("unreviewed", rights["review_status"])
+
+        for ref in [*rights["source_refs"], rights["access_request_ref"]]:
+            if ref.startswith("ToS/"):
+                self.assertTrue((REPO_ROOT / ref).is_file(), ref)
+
+        access_request = json.loads(
+            (REPO_ROOT / rights["access_request_ref"]).read_text(encoding="utf-8")
+        )
+        self.assertEqual("draft-not-sent", access_request["request_status"])
+        self.assertFalse(access_request["human_send_approval"])
+        self.assertEqual(
+            {
+                "ocr_or_transcription": "not-requested",
+                "indexing": "not-requested",
+                "embeddings": "not-requested",
+                "derivative_publication": "not-requested",
+                "source_redistribution": "not-requested",
+            },
+            {
+                key: access_request["requested_permissions"][key]
+                for key in (
+                    "ocr_or_transcription",
+                    "indexing",
+                    "embeddings",
+                    "derivative_publication",
+                    "source_redistribution",
+                )
+            },
+        )
+
     def test_blind_pre_draft_contract_enforces_independent_lane_evidence(self) -> None:
         validator, _ = foundation._schema_validator(
             foundation.TRANSLATION_PRE_DRAFT_ANALYSIS_SCHEMA,

@@ -9,6 +9,10 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a current eKGWB rights and transport assessment that separates
+  permitted private non-commercial adaptation from prohibited sharing of
+  adapted material while keeping the HTTP witness unauthenticated, local-only,
+  unadmitted, and publication-blocked.
 - Added a text-free, schema-bound return receipt and independent recorder for
   the exact owner-local Zarathustra direct-page-image retrieval C run,
   preserving private artifact fixity, normalization, resource cost, r8/r9

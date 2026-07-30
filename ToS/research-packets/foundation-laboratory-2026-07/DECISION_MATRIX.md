@@ -245,7 +245,7 @@ raw traversal speed alone does not win.
 | DNB SRU and authority records | baseline | bibliographic identity | metadata terms still recorded |
 | DNB SPARQL beta | challenger | linked discovery | beta behavior versioned |
 | KVK | baseline lead source | locate originating catalogs | never cite KVK as owning record |
-| Nietzsche Source eKGWB | reference/permission target | critical text and stable addresses | CC BY-NC-ND; no derivative corpus assumption |
+| Nietzsche Source eKGWB | local research reference plus authenticated-source/permission target | critical text, stable addresses, private non-commercial indexing and analysis | CC BY-NC-ND 4.0 permits private adaptations but prohibits sharing them; the current HTTP response is not authenticated, and ToS authorizes neither source admission nor payload publication |
 | Nietzsche-Wörterbuch | access-request target | lexical/sense evidence | subscription/copyright restricted |
 | Europeana | conditional | item discovery | content and metadata rights separate |
 | Google Books / Internet Archive / HathiTrust | conditional | digital-item leads | repository availability is not permission |
