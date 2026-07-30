@@ -35,6 +35,10 @@ The valid result is therefore a stopped result before execution:
   *Götzen-Dämmerung* MDZ items as stronger author-proximate source soil without
   changing the frozen three-work sampling frame or treating either item as
   accepted German, critical text, transfer input, or target gold;
+- retain the exact posthumous 1908 Richter/Insel *Ecce homo* item as stronger
+  editorially stratified source soil without changing the frozen three-work
+  frame or treating it as author-final, critical, accepted German, transfer
+  input, or target gold;
 - admit no sign, translation, concept, relation, or ontology from
   *Zarathustra* into another work;
 - schedule no routine human backlog: in solo+AI operation, open a bounded
@@ -134,6 +138,14 @@ accept German, create a translation relation, authorize use of the local PDF
 as a site source, or expand the already frozen target quotas. A future transfer
 experiment may choose a new versioned sampling frame; this v1 report may not
 silently absorb it.
+
+*Ecce Homo* now has a distinct exact historical German route through the
+posthumous 1908 Richter/Insel edition, copy 965. The route preserves the
+source-visible transition from Nietzsche's body to Richter's afterword, the
+DNB/IA page-count conflict, and the difference between this editorial object
+and a stronger critical reconstruction. It does not expand the frozen target
+works or quotas, supply an accepted passage, authorize the local PDF for the
+site, or make any kernel-transfer claim.
 
 ## Prepared target-candidate soil
 

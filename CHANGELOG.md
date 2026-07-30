@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the first exact historical German source tree for *Ecce homo*: the
+  posthumous 1908 Richter/Insel edition, Getty copy 965, through permanent
+  Wikimedia Commons revision `1074063624`; exact local fixity; a text-free
+  166-page inventory; DNB/IA/Open Library pagination-conflict preservation;
+  source-visible separation of Nietzsche's body from Richter's afterword;
+  ordered official, established, 2025, and 2026 research evidence; fail-closed
+  rights; and a metadata-only future-server plan. The item is historical soil,
+  not an author-final or critical text, accepted OCR/German, semantics, or
+  publishable local payload.
 - Added exact standalone German historical source routes for *Der Fall Wagner*
   (the unlabelled 1888 Naumann issue, Bamberg copy `30.1972`) and
   *Götzen-Dämmerung* (the 1889 Naumann first-publication witness, BSB copy

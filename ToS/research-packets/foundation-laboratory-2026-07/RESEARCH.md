@@ -777,6 +777,62 @@ keeps both operator-held PDFs local, and authorizes only public-safe metadata
 until current conditions, attribution, jurisdiction, and explicit operator
 review support a separate public route.
 
+### *Ecce Homo* foundation-witness refresh — 2026-07-30
+
+The last *Mysl* member without its own exact historical German tree was
+researched in the same order, with a stricter editorial-strata question.
+
+1. **Classical and official layer.** The current
+   [DNB/GND work authority](https://d-nb.info/gnd/4115395-9) separates
+   production beginning in 1888 from publication in 1908. The exact
+   [DNB 1908 bibliographic record](https://d-nb.info/999650270) identifies
+   Leipzig, Insel-Verlag, Nietzsche, Raoul Richter's afterword, Henry van de
+   Velde, Friedrich Richter, and a catalog extent of 155 pages. DTA has no
+   Nietzsche *Ecce Homo* object; its exact-title hit is an unrelated 1650
+   sermon. TextGrid's current Kolimo+ TEI is a useful modern corpus challenger,
+   not a historical copy or critical edition.
+2. **Established scholarly layer.** Andreas Urs Sommer's
+   [HAdW commentary, Band 6/2](https://doi.org/10.11588/diglit.70914),
+   shows that the 1908 first edition substantially follows the Köselitz copy,
+   that material had been removed or destroyed in the family editorial
+   history, and that the later Colli/Montinari reconstruction is
+   philologically stronger. It also corroborates Richter's editing, van de
+   Velde's design, and the 1,250-copy issue.
+3. **Fresh and frontier layer.** Groddeck's
+   [2025 study](https://doi.org/10.1515/nietzstu-2024-0035) treats the book as
+   completed yet transmitted through a complex editorial object and makes
+   paratextual composition relevant to later semantics. Röllin's
+   [2025 study](https://doi.org/10.1515/nietzstu-2025-0024) adds current
+   evidence from a Köselitz copy and revises the chronology of one important
+   section toward early January 1889. A
+   [2026 chapter](https://doi.org/10.1515/9783110688436-006) was available
+   only as an abstract; its self-quotation/re-performance thesis remains a
+   frontier lead, not an admitted finding. No restricted full text was
+   bypassed.
+4. **Exact digital object.** Getty's physical copy was digitized into
+   Internet Archive item
+   [`eccehomo00niet_0`](https://archive.org/details/eccehomo00niet_0) and
+   preserved as permanent
+   [Commons revision 1074063624](https://commons.wikimedia.org/w/index.php?oldid=1074063624).
+   The acquired 9,703,400-byte PDF has SHA-256
+   `f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc`,
+   166 PDF pages, and 498 image/mask resources. The current Internet Archive
+   PDF differs bytewise and is retained as lineage rather than silently
+   substituted.
+
+The visual item makes the semantic boundary concrete. Nietzsche's body ends
+at printed page 130; a separate editor-title leaf, a blank leaf, and Richter's
+afterword follow from printed page 133 through 154. Any future transcription,
+lexical index, graph, quotation analysis, or semantic annotation must retain
+that change of responsibility. The DNB extent `155 S.` and the
+IA/Open Library `154 p.` claim also remain distinct.
+
+Commons applies `PD-US-expired`, not a jurisdiction-complete global license.
+Richter's editorial contribution, van de Velde's binding and ornaments, the
+Getty scan, the IA derivative, Commons revision, OCR, and later derivatives
+remain separate rights layers. The exact local PDF is research soil only; its
+server plan exposes metadata and transfers no payload.
+
 ---
 
 ## Foundation model proposed for contract work

@@ -41,15 +41,13 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- *Ecce Homo* is now the only *Mysl* member that remains solely a verified Work
-  identity plus provisional Russian collection-member expression rather than
-  having a distinct exact German Edition / Item tree. *Jenseits von Gut und
-  Böse*, *Zur Genealogie der Moral*, *Der Antichrist*, *Der Fall Wagner*, and
-  *Götzen-Dämmerung* now additionally have exact German source routes—1886
-  first Naumann, 1892 second Naumann, the 1906 Naumann aggregate, the
-  unlabelled 1888 Naumann issue, and the 1889 Naumann first-publication witness
-  respectively—while their Russian *Mysl* expressions and
-  translation-responsibility claims remain unreviewed.
+- All seven *Mysl* members now have distinct exact historical German
+  Edition / Item routes in addition to their provisional Russian
+  collection-member expressions. *Ecce Homo* closes the former tree gap with
+  the posthumous 1908 Richter/Insel witness, not with an author-final or
+  critical text. The Russian expressions and translation-responsibility
+  claims remain unreviewed, and exact item coverage does not establish
+  textual equivalence among expressions.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
   critical text.
@@ -102,6 +100,15 @@ contracts intentionally reject simulated human evidence.
   carries no edition statement and is retained as a first-publication witness;
   it is not the textually altered 1893 second edition, Nietzsche's manuscript,
   a critical text, accepted German, passage gold, or transfer eligibility.
+- The acquired Commons revision of the Getty/Internet Archive *Ecce Homo* PDF
+  is an exact source-visible witness to the posthumous 1908 Insel edition,
+  copy 965. Its 166-page inventory preserves the visible boundary between
+  Nietzsche's work through printed page 130 and Richter's separately titled
+  afterword from printed page 133. It is not Nietzsche's lost author-approved
+  state, Montinari's reconstruction, accepted OCR or German, a passage anchor
+  set, or semantic gold. The next source-quality gap is a stronger
+  manuscript/author-proof/critical route, not another convenient standalone
+  scan.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -157,6 +164,12 @@ contracts intentionally reject simulated human evidence.
   or future-site publication. The operator-held PDF remains local and its
   server plan stays metadata-only until a current route and human rights review
   authorize a separate public material path.
+- Commons marks the exact acquired *Ecce Homo* revision `PD-US-expired`.
+  That is positive United States evidence, not a global conclusion. Raoul
+  Richter's editorial layer, Henry van de Velde's binding and ornaments, the
+  Getty scan, Internet Archive lineage, Commons revision, embedded OCR, and
+  future derivatives remain separately reviewable. The operator-held PDF
+  stays local and its server plan remains metadata-only.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct

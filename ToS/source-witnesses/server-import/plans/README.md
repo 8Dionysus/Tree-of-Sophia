@@ -58,3 +58,11 @@ positive evidence, while attribution details, current provider conditions,
 jurisdiction, and public-route selection remain unreviewed. The current plan
 therefore transfers no local file and authorizes no OCR, transcription,
 translation, snippet, embedding, or content-bearing graph/search projection.
+
+The fifteenth plan covers permanent Commons revision `1074063624` of the
+Getty/Internet Archive scan of the posthumous 1908 Insel *Ecce homo*, copy
+965. Commons' `PD-US-expired` statement is retained as positive but explicitly
+US-scoped evidence. Richter's editorial layer, van de Velde's binding and
+ornaments, the Getty scan, the Commons derivative, and every content-bearing
+derivative remain separately reviewable. The operator-held PDF stays local;
+only public-safe metadata may be projected.

@@ -1,0 +1,49 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+  "preferred_label": "Ecce homo, Leipzig, Insel-Verlag, 1908",
+  "variant_labels": [
+    {
+      "value": "Ecce homo. Wie man wird — was man ist",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+    "https://d-nb.info/999650270",
+    "https://archive.org/details/eccehomo00niet_0"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "DNB",
+      "value": "999650270",
+      "source_ref": "https://d-nb.info/999650270",
+      "status": "verified"
+    },
+    {
+      "scheme": "Open Library edition",
+      "value": "OL33158796M",
+      "source_ref": "https://openlibrary.org/books/OL33158796M",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "9422039",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908"
+  ],
+  "edition_statement": "First published edition, posthumously edited by Raoul Richter",
+  "publication_claim_refs": [],
+  "notes": "The source-visible title, DNB record, colophon, and holding metadata identify the 1908 Insel edition. The item carries Nietzsche's text through printed page 130, a separate editor-title leaf, and Richter's afterword through printed page 154. DNB reports 155 pages while the Internet Archive/Open Library lineage reports 154 pages; this catalog conflict is preserved rather than normalized.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

@@ -106,6 +106,18 @@ GOETZEN_1889_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30.v1.json"
 )
+ECCE_HOMO_1908_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "ecce-homo/expressions/de-richter-insel-1908/"
+    "editions/leipzig-insel-verlag-1908/items/"
+    "wikimedia-commons-getty-scan-pdf"
+)
+ECCE_HOMO_1908_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "ecce-homo-insel-1908-open-scan-witness.2026-07-30.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -2181,6 +2193,177 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     ],
                 )
                 self.assertTrue(case["catalog_ids"].issubset(catalog_ids))
+
+    def test_ecce_homo_1908_witness_preserves_editorial_and_rights_boundaries(
+        self,
+    ) -> None:
+        manifest = json.loads(
+            (ECCE_HOMO_1908_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (ECCE_HOMO_1908_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (ECCE_HOMO_1908_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source_snapshot = json.loads(
+            (ECCE_HOMO_1908_ITEM_ROOT / "source-metadata-snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        discovery = json.loads(
+            ECCE_HOMO_1908_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        server_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "ecce-homo-insel-1908-wikimedia-commons-getty-scan-pdf."
+                "server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        payload = manifest["payload_files"][0]
+        self.assertEqual(9_703_400, payload["byte_size"])
+        self.assertEqual(
+            "f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+            payload["sha256"],
+        )
+        self.assertTrue(
+            foundation._git_ignored(
+                REPO_ROOT,
+                ECCE_HOMO_1908_ITEM_ROOT / payload["relative_path"],
+            )
+        )
+
+        inventory_file = inventory["files"][0]
+        self.assertEqual("pdf_pages_v1", inventory_file["profile"])
+        self.assertEqual(
+            {
+                "resource_count": 166,
+                "page_count": 166,
+                "image_resource_count": 498,
+                "distinct_page_geometry_count": 5,
+            },
+            inventory_file["summary"],
+        )
+        self.assertFalse(inventory["source_text_included"])
+
+        self.assertEqual(
+            {
+                "dnb_extent": "155 S.",
+                "internet_archive_extent": "154 p.",
+                "openlibrary_extent": "154 p.",
+                "last_visible_printed_page": 154,
+                "decision": (
+                    "preserve all catalog claims and the source-visible endpoint; "
+                    "do not silently normalize the edition extent"
+                ),
+            },
+            source_snapshot["pagination_conflict"],
+        )
+        observations = source_snapshot["source_visible_scan"]["observations"]
+        self.assertTrue(
+            any(
+                "Nachwort des Herausgebers" in observation
+                and "page 137 begins Raoul Richter" in observation
+                for observation in observations
+            )
+        )
+        self.assertEqual(
+            (
+                "admit the 1908 physical witness and its edition-scoped expression "
+                "without treating it as an author-final or critical text"
+            ),
+            source_snapshot["editorial_and_critical_boundary"]["decision"],
+        )
+
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual([], rights["jurisdictions_reviewed"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertIn(
+            "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+            rights["rights_statement_uri"],
+        )
+        self.assertTrue(
+            any("Henry van de Velde" in restriction for restriction in rights["restrictions"])
+        )
+
+        self.assertEqual(
+            [
+                "channel-dnb-ecce-homo-authorities",
+                "channel-dta-ecce-homo",
+                "channel-textgrid-ecce-homo",
+                "channel-hadw-ecce-homo-commentary",
+                "channel-current-ecce-homo-scholarship",
+                "channel-frontier-ecce-homo-2026",
+                "channel-ia-openlibrary-ecce-homo",
+                "channel-wikimedia-commons-ecce-homo",
+                "channel-general-web-ecce-homo",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            ["tos-discovery-result.wikimedia-commons-ecce-homo-insel-1908"],
+            discovery["selected_result_ids"],
+        )
+        self.assertTrue(discovery["general_web_search_is_last_resort"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(
+            server_plan["operator_transfer_approval"]["approved_by_real_human"]
+        )
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual("metadata-only", server_plan["publication_status"])
+        for derivative in (
+            "ocr",
+            "transcription",
+            "page_images",
+            "snippets",
+            "embeddings",
+            "alignments",
+            "translations",
+            "annotations",
+        ):
+            self.assertEqual(
+                "prohibited",
+                server_plan["allowed_derivatives"][derivative]["state"],
+            )
+
+        catalog_ids = {
+            record["record_id"]
+            for catalog_name in (
+                "works.jsonl",
+                "expressions.jsonl",
+                "editions.jsonl",
+                "items.jsonl",
+            )
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/catalog" / catalog_name
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+            for record in (json.loads(line),)
+        }
+        self.assertTrue(
+            {
+                "tos.work.friedrich-nietzsche.ecce-homo",
+                "tos.expression.friedrich-nietzsche.ecce-homo."
+                "de-richter-insel-1908",
+                "tos.edition.friedrich-nietzsche.ecce-homo."
+                "leipzig-insel-verlag-1908",
+                "tos.item.friedrich-nietzsche.ecce-homo."
+                "de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+            }.issubset(catalog_ids)
+        )
 
     def test_golden_kernel_transfer_plan_fails_closed_without_human_kernel(self) -> None:
         validator, _ = foundation._schema_validator(

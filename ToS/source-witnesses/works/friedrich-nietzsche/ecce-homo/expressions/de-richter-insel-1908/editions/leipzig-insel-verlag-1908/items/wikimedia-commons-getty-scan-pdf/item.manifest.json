@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+  "item_kind": "digitized_physical_copy",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+      "relative_path": "payload/ecce-homo-insel-1908.pdf",
+      "original_basename": "Ecce_homo_(IA_eccehomo00niet_0).pdf",
+      "media_type": "application/pdf",
+      "byte_size": 9703400,
+      "sha256": "f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+      "fixity_verified_at": "2026-07-30T10:38:00-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.2026-07-30",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/edition.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+    "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+    "https://archive.org/details/eccehomo00niet_0"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

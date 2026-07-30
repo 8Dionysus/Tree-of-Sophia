@@ -162,7 +162,12 @@ collection containing it. The seed deliberately includes:
 - an exact official MDZ PDF of the Bayerische Staatsbibliothek
   `Ph.pr. 881 kc` copy of the standalone 1889 Naumann
   *Götzen-Dämmerung*, with 164 ordered IIIF canvases, the same explicit
-  provider-cover offset, local fixity, and a text-free 165-page inventory.
+  provider-cover offset, local fixity, and a text-free 165-page inventory;
+- the exact permanent Wikimedia Commons revision of the Getty/Internet
+  Archive scan of the posthumous 1908 Insel *Ecce homo*, copy 965, with local
+  fixity, a text-free 166-page inventory, a source-visible Nietzsche/Richter
+  responsibility boundary, and the DNB 155-page versus IA/Open Library
+  154-page catalog conflict preserved.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -237,6 +242,16 @@ a critical text. MDZ declares the exact digital object `CC BY-NC-SA 4.0`; that
 positive evidence remains model-assessed and unreviewed, the operator-held PDF
 stays local, and any future public route still requires current conditions,
 attribution, ShareAlike, jurisdiction, and explicit operator review.
+
+The sixth route gives *Ecce homo* its first distinct exact historical German
+tree. It admits the 1908 Insel physical-copy witness without pretending that
+the posthumous Richter/Köselitz expression is Nietzsche's lost author-final
+state or a modern critical reconstruction. The visible book itself separates
+Nietzsche's text through printed page 130 from Richter's separately titled
+afterword beginning at printed page 133. Commons' `PD-US-expired` statement is
+positive but US-scoped evidence; van de Velde's binding and ornaments and the
+other object layers remain unreviewed. The local PDF is not a future-site
+upload source.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

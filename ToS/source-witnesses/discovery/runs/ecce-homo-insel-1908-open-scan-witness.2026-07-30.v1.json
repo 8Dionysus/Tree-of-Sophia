@@ -1,0 +1,704 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.ecce-homo-insel-1908-open-scan-witness.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.ecce-homo"
+    ],
+    "description": "An exact historical German Ecce Homo item whose edition, editorial strata, physical-copy provenance, fixity, current scholarship context, and rights evidence can be kept distinct.",
+    "required_properties": [
+      "original German historical edition",
+      "source-visible edition and contributor evidence",
+      "stable work and edition identifiers",
+      "institutional physical-copy and scan lineage",
+      "exact digital-object fixity",
+      "author/editor boundary preserved",
+      "positive rights evidence kept separate from ToS legal review"
+    ],
+    "acceptable_substitutions": [
+      "an exact critical-edition object with stronger textual authority and equally explicit provenance",
+      "a manuscript or proof witness from a recognized holding institution with exact access and responsibility metadata"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "PDF page images",
+      "embedded OCR candidate",
+      "scholarly commentary"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-ecce-homo-authorities",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek GND and DNB bibliographic services",
+      "endpoint_url": "https://d-nb.info/",
+      "interface_type": "api",
+      "interface_version": "GND JSON-LD and DNB SRU/JSON-LD as served 2026-07-30",
+      "exact_query": "GET https://d-nb.info/gnd/4115395-9/about/lds.jsonld; GET https://d-nb.info/999650270/about/lds.jsonld; DNB SRU exact record 999650270",
+      "queried_at": "2026-07-30T09:40:00-06:00",
+      "elapsed_seconds": 1.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4115395-9-ecce-homo",
+          "rank": 1,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://d-nb.info/gnd/4115395-9",
+          "originating_record_url": "https://d-nb.info/gnd/4115395-9",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4115395-9"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The work authority fixes identity, Nietzsche authorship, production beginning in 1888, and publication in 1908; it is not a physical item or text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "315846a137c4c55ec6bed9a2afd54998bc83f6d15b8da435c563035d44343e26",
+            "reason": "Exact authority response digest and parsed identity retained without source text."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-999650270-ecce-homo-1908",
+          "rank": 2,
+          "title_as_displayed": "Ecce homo / [Verf.:] Friedrich Nietzsche. [Nachw. v. Raoul Richter]",
+          "result_url": "https://d-nb.info/999650270",
+          "originating_record_url": "https://d-nb.info/999650270",
+          "identifiers": [
+            {
+              "scheme": "DNB",
+              "value": "999650270"
+            },
+            {
+              "scheme": "Raoul Richter GND",
+              "value": "116512857"
+            },
+            {
+              "scheme": "Henry van de Velde GND",
+              "value": "118626442"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "MARC XML",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The exact 1908 record fixes publisher, place, editor, designer, printer, and a 155-page catalog extent, but provides no digital payload.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "6b416ca9249ae9439be3ae0922d34229e2873bc8b264599b4c9b2c819ea28749",
+            "reason": "Exact DNB item metadata retained with the separate SRU response digest in the item snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-ecce-homo",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-30",
+      "exact_query": "Nietzsche author corpus; exact metadata title query \"Ecce homo\"",
+      "queried_at": "2026-07-30T09:44:00-06:00",
+      "elapsed_seconds": 1.2,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-textgrid-ecce-homo",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search and TG-crud APIs",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository APIs as served 2026-07-30",
+      "exact_query": "q=title:\"Ecce homo\" AND edition.agent.value:\"Nietzsche, Friedrich\"; target=metadata; allProjects=true",
+      "queried_at": "2026-07-30T09:45:00-06:00",
+      "elapsed_seconds": 0.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-ecce-homo",
+          "rank": 1,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://www.textgridrep.org/browse/4k1f3.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1f3.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k1f3.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k17q.0"
+            },
+            {
+              "scheme": "TextGrid data URI",
+              "value": "textgrid:4k1mw.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1f3.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The Kolimo+ text is a modern corpus challenger, not an exact historical physical copy or recognized critical edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "153cb84d56181628f17341edf6601e240a824da560bb70272f928377d75ff4ad",
+            "reason": "The exact two-record aggregate/data response and current issued date are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-ecce-homo-commentary",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften historical-critical Nietzsche commentary",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70914",
+      "interface_type": "web",
+      "interface_version": "digitized 2013 commentary as served 2026-07-30",
+      "exact_query": "Band 6/2, Ecce Homo commentary and edition history, digital pages 0356-0369",
+      "queried_at": "2026-07-30T09:50:00-06:00",
+      "elapsed_seconds": 4.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-ecce-homo-2013",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/2",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0357",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70914",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70914"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bsz:16-diglit-709149"
+            }
+          ],
+          "available_formats": [
+            "digitized scholarly monograph pages",
+            "bibliographic metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.11588/diglit.70914",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "Established commentary shows that the 1908 edition substantially follows the Köselitz copy, omits destroyed passages, and is textually weaker than the Colli/Montinari reconstruction; it contextualizes but does not replace the item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "194d3ce82685e6813ee1e477f697a634b344e6e97a738d8f18b3a3d0e559441c",
+            "reason": "Digest of the most important edition-history page retained; adjacent pages are represented in the research notes."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-ecce-homo-scholarship",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche-Studien 54 and current publisher records",
+      "endpoint_url": "https://doi.org/10.1515/nietzstu-2024-0035",
+      "interface_type": "web",
+      "interface_version": "2025 articles and records checked 2026-07-30",
+      "exact_query": "Ecce Homo textual transmission, paratext, Köselitz copy, and late-1888/early-1889 chronology",
+      "queried_at": "2026-07-30T10:00:00-06:00",
+      "elapsed_seconds": 6.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.groddeck-lisez-nietzsche-2025",
+          "rank": 1,
+          "title_as_displayed": "„lisez: Nietzsche“. Anmerkungen zu Nietzsches letztem Buch",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0035",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2024-0035",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0035"
+            }
+          ],
+          "available_formats": [
+            "PDF",
+            "HTML metadata"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2024-0035",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The 2025 study treats Ecce Homo as completed yet transmitted through a complex editorial object and makes paratextual composition relevant to later semantics.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "43acc4e4de9b448cbdf3e539cfb950f211db81bb9c22d3676f2c5b6f0d2bd291",
+            "reason": "Exact open article PDF retained only in the temporary research lane; ToS records its digest and conclusion boundary."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.roellin-post-fuer-nietzsche-dionysos-2025",
+          "rank": 2,
+          "title_as_displayed": "Post für Nietzsche Dionysos. Zu Ecce homo, Warum ich so weise bin 3",
+          "result_url": "https://doi.org/10.1515/nietzstu-2025-0024",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2025-0024",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2025-0024"
+            }
+          ],
+          "available_formats": [
+            "article record"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2025-0024",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The study provides current evidence for a more authentic section version recovered through a Köselitz copy and a revised early-January-1889 chronology. No mistaken frontmatter download is treated as the article.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current article record and bounded findings retained; the locally returned PDF was volume frontmatter, not the article."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-frontier-ecce-homo-2026",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "lead-only",
+      "source_name": "De Gruyter chapter record",
+      "endpoint_url": "https://doi.org/10.1515/9783110688436-006",
+      "interface_type": "web",
+      "interface_version": "2026 restricted chapter abstract checked 2026-07-30",
+      "exact_query": "Ecce Homo – Notes on Duplicates: The Great Politics of the Self",
+      "queried_at": "2026-07-30T10:12:00-06:00",
+      "elapsed_seconds": 1.5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.notes-on-duplicates-2026",
+          "rank": 1,
+          "title_as_displayed": "Ecce Homo – Notes on Duplicates: The Great Politics of the Self",
+          "result_url": "https://doi.org/10.1515/9783110688436-006",
+          "originating_record_url": "https://doi.org/10.1515/9783110688436-006",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110688436-006"
+            }
+          ],
+          "available_formats": [
+            "abstract",
+            "restricted full text"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The abstract is a frontier semantic lead about non-identical self-quotation as re-performance. Restricted full text was not accessed, so no substantive claim is admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The attempted HTML response was empty; the DOI and abstract-level lead remain discovery-only."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ia-openlibrary-ecce-homo",
+      "sequence": 7,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive and Open Library APIs",
+      "endpoint_url": "https://archive.org/metadata/eccehomo00niet_0",
+      "interface_type": "api",
+      "interface_version": "Internet Archive and Open Library APIs as served 2026-07-30",
+      "exact_query": "GET /metadata/eccehomo00niet_0; GET /books/OL33158796M.json",
+      "queried_at": "2026-07-30T10:20:00-06:00",
+      "elapsed_seconds": 1.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-eccehomo00niet-0",
+          "rank": 1,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://archive.org/details/eccehomo00niet_0",
+          "originating_record_url": "https://archive.org/metadata/eccehomo00niet_0",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "eccehomo00niet_0"
+            },
+            {
+              "scheme": "Internet Archive ARK",
+              "value": "ark:/13960/t0002sf78"
+            },
+            {
+              "scheme": "Open Library edition",
+              "value": "OL33158796M"
+            },
+            {
+              "scheme": "Getty catalog control number",
+              "value": "9925562160001551"
+            }
+          ],
+          "available_formats": [
+            "PDF page images",
+            "DjVu text",
+            "DjVu XML",
+            "ABBYY XML gzip",
+            "scandata XML",
+            "MARC XML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "Strong Getty holding and scan provenance, but no current rights field; the current IA PDF differs bytewise from the selected Commons revision.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "410cc09fc75d081030d15aece50f62b615653c2604313dd1c0c520b7d5b48cb9",
+            "reason": "Current item metadata, files, Getty lineage, derivative fixity, and 154-page extent retained by digest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-ecce-homo",
+      "sequence": 8,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons MediaWiki API and permanent revision",
+      "endpoint_url": "https://commons.wikimedia.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki imageinfo and permanent revision as served 2026-07-30",
+      "exact_query": "File:Ecce homo (IA eccehomo00niet_0).pdf; imageinfo size, SHA-1, timestamp, uploader, extmetadata; permanent oldid=1074063624",
+      "queried_at": "2026-07-30T10:25:00-06:00",
+      "elapsed_seconds": 0.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikimedia-commons-ecce-homo-insel-1908",
+          "rank": 1,
+          "title_as_displayed": "Ecce homo (IA eccehomo00niet_0).pdf",
+          "result_url": "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+          "originating_record_url": "https://commons.wikimedia.org/w/index.php?curid=95001469",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "95001469"
+            },
+            {
+              "scheme": "Wikimedia Commons revision",
+              "value": "1074063624"
+            },
+            {
+              "scheme": "source-lineage Internet Archive identifier",
+              "value": "eccehomo00niet_0"
+            },
+            {
+              "scheme": "source SHA-1",
+              "value": "c8d7cd1891e1d32a878e93694db5fff0d473bdf6"
+            }
+          ],
+          "available_formats": [
+            "PDF page images",
+            "MediaWiki metadata",
+            "page thumbnails"
+          ],
+          "declared_rights": {
+            "statement": "Public domain in the United States; PD-US-expired",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The permanent Commons revision exposes exact fixity, Getty/IA lineage, source-visible edition and copy evidence, and a US-scoped rights statement. It is selected as historical soil, not a critical text or global publication authority.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-30T10:38:00-06:00",
+            "byte_size": 9703400,
+            "sha256": "f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+            "event_ref": "tos.event.acquisition.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.2026-07-30"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "54b994f016a76ff92b242f6656c808b6808c997a35330dc726e2abe21bb97630",
+            "reason": "The permanent revision snapshot preserves exact file identity, source-visible metadata, and rights scope without source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-ecce-homo",
+      "sequence": 9,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Google Books API and general web search",
+      "endpoint_url": "https://www.googleapis.com/books/v1/volumes",
+      "interface_type": "web",
+      "interface_version": "current interfaces checked 2026-07-30",
+      "exact_query": "intitle:\"Ecce homo\" inauthor:\"Friedrich Nietzsche\"; exact DOI and historical-edition cross-checks",
+      "queried_at": "2026-07-30T10:30:00-06:00",
+      "elapsed_seconds": 2.0,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-ecce-homo-authorities",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 3,
+      "machine_seconds": 1.9,
+      "notes": "Best work and edition identity route; exposes contributor responsibility and the 155-page catalog claim."
+    },
+    {
+      "channel_id": "channel-dta-ecce-homo",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 2,
+      "machine_seconds": 1.2,
+      "notes": "No Nietzsche Ecce Homo object; exact-title false positive is an unrelated 1650 sermon."
+    },
+    {
+      "channel_id": "channel-textgrid-ecce-homo",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2,
+      "machine_seconds": 0.8,
+      "notes": "Stable open modern corpus challenger, but not a historical item or critical-text authority."
+    },
+    {
+      "channel_id": "channel-hadw-ecce-homo-commentary",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 8,
+      "machine_seconds": 4.1,
+      "notes": "Established critical baseline for distinguishing the 1908 editorial object from stronger reconstruction."
+    },
+    {
+      "channel_id": "channel-current-ecce-homo-scholarship",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 12,
+      "machine_seconds": 6.2,
+      "notes": "Fresh 2025 research sharpens textual-strata and semantic cautions without replacing primary evidence."
+    },
+    {
+      "channel_id": "channel-frontier-ecce-homo-2026",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3,
+      "machine_seconds": 1.5,
+      "notes": "Abstract-only frontier lead; no bypass, no full-text inference, no accepted semantic claim."
+    },
+    {
+      "channel_id": "channel-ia-openlibrary-ecce-homo",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 6,
+      "machine_seconds": 1.1,
+      "notes": "Strong Getty scan lineage and derivative evidence; current rights absent and PDF revision differs."
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-ecce-homo",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 8,
+      "machine_seconds": 0.7,
+      "notes": "Selected exact permanent revision; positive US-scoped rights evidence remains insufficient for global publication."
+    },
+    {
+      "channel_id": "channel-general-web-ecce-homo",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "poor",
+      "human_minutes": 2,
+      "machine_seconds": 2.0,
+      "notes": "Used last. Google Books returned HTTP 429; no bypass and no claim imported."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.wikimedia-commons-ecce-homo-insel-1908"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T09:40:00-06:00",
+  "ended_at": "2026-07-30T10:58:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.ecce-homo.insel-1908-open-scan.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
