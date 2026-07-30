@@ -3,8 +3,8 @@
 Status: non-authoritative research synthesis
 Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
 route refreshed 2026-07-29; exact standalone Nietzsche source-route research
-and the *Ecce Homo* / *Zarathustra* authorial-witness routes refreshed
-2026-07-30
+and the *Ecce Homo* / *Zarathustra* / *Jenseits von Gut und Böse*
+authorial-witness routes refreshed 2026-07-30
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -64,6 +64,28 @@ identity but the forthcoming August 2026 Stanford translation by Paul S.
 Loeb and David F. Tinsley. It is registered as a deferred metadata candidate
 until publication, manifestation, rights, and passage-level suitability are
 actually verified.
+
+### First cross-work source correction
+
+The same law now reaches the first prepared work beyond the golden kernel.
+*Jenseits von Gut und Böse* is not one line from notebook to final text:
+
+- W I 3-W I 8 contain region-specific preparatory material alongside other
+  work and therefore cannot be admitted wholesale;
+- D 18 (`GSA 71/26`) is a cut, assembled, reordered, and repeatedly
+  renumbered print manuscript with several compositional stages;
+- HAAB C 4615 is a partial correction proof, while C 4619 is Nietzsche's
+  complete correction copy and carries later authorial changes;
+- the 1886 first print, later numbering history, and the 302-address eKGWB
+  surface remain distinct witnesses;
+- ORES/Kalliope and DFGA expose different leaf, canvas, sheet, image, and
+  logical-address counts that require a future crosswalk, not normalization.
+
+Axel Pichler's 2025 textual-genetic use of §22 gives ToS its first exact
+cross-work method candidate: W I 7 leaves 44v-45r -> D 18 leaf 27r ->
+published §22. It remains deferred until exact source access, rights,
+independent diplomatic reading, German competence, and blind A/B/C controls
+exist. No text, semantics, or human task was admitted.
 
 ## Research method
 
@@ -908,6 +930,39 @@ beyond personal use. Nietzsche Source separately states CC BY-NC-ND 4.0 and
 describes a DFGA non-commercial-derivative agreement. ToS preserves these as
 layered, currently unreconciled evidence. The route creates no source payload,
 accepted German, publication permission, semantic record, access request, or
+human backlog.
+
+### *Jenseits von Gut und Böse* authorial-witness follow-up — 2026-07-30
+
+The first transfer work now has an exact upstream route recorded in
+`JENSEITS_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive and correction layer.** Current GSA ORES and Kalliope
+   resolve D 18 as `GSA 71/26`, 108 leaves, with 232 ORES canvases and nine
+   archival child groups. W I 3-W I 8 are explicitly only partly used in the
+   work. HAAB resolves the complete Nietzsche correction copy C 4619 and the
+   partial proof C 4615 as distinct objects. Their open viewers do not supply
+   usable publication permission.
+2. **Digital and independent print layer.** A bounded DFGA observation
+   reported 116 folio sheets, 224 image records, and 240 logical identifiers;
+   a later same-day refresh timed out. Two bounded eKGWB observations exposed
+   302 stable critical addresses without retaining the body. ZB Zürich
+   e-rara supplies an independent official-library 1886 first-print route
+   with Public Domain Mark evidence; no duplicate was acquired.
+3. **Established layer.** Röllin's 2013 genetic study and Sommer's 2016 HAdW
+   commentary establish D 18 as a late, physically reworked stage, preserve
+   the recoverable 308-aphorism arrangement, and distinguish later C 4619
+   corrections and Köselitz's 1894 numbering intervention.
+4. **Fresh layer.** Röllin's 2024 chronology remains the current dating
+   control. Pichler's 2025 §22 study supplies the exact W I 7 -> D 18 ->
+   publication comparison route and demonstrates why semantic change must be
+   asserted between versions rather than collapsed into one graph node.
+
+The freshness search through 2026-07-30 found no 2026 philological
+publication changing D 18 identity. This dated negative result, the current
+Nietzsche Source timeout, and all rights ambiguities remain explicit. The
+route creates no manuscript or correction payload, accepted German,
+author-final synthesis, semantic claim, duplicate Item, access request, or
 human backlog.
 
 ---

@@ -129,3 +129,16 @@ private-print ensemble without claiming an author-final text. The current
 Loeb/Tinsley Stanford translation is recorded as forthcoming August 2026 and
 deferred; no source body, review-copy request, local Item, human backlog,
 translation authority, or publication permission is created.
+
+`jenseits-authorial-witness-route.2026-07-30.v1.json` connects the existing
+1886 first-print Item to its metadata-only upstream and critical route. It
+separates mixed W I and loose-leaf regions, D 18 (`GSA 71/26`), the partial
+HAAB C 4615 proof, Nietzsche's C 4619 correction copy, the first print, and
+302 stable eKGWB addresses. It preserves the 108-leaf / 232-canvas archive
+view beside DFGA's 116-sheet / 224-image-record / 240-logical-ID view, plus
+the later same-day Nietzsche Source timeout. The independent e-rara first
+print is retained as a remote alternative, not acquired. Established
+scholarship precedes the 2024 chronology and 2025 §22 textual-genetic method;
+general web remains last. No source body, manuscript image, duplicate Item,
+accepted German, semantic claim, human backlog, or publication permission is
+created.

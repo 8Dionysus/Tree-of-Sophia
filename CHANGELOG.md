@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Jenseits von Gut und Böse* authorial and critical
+  route through current GSA ORES/Kalliope, HAAB correction witnesses, DFGA,
+  eKGWB, an independent e-rara first print, established genesis scholarship,
+  and 2024-2025 textual-genetic work. It preserves region-only W I/Mp
+  membership, D 18's internally layered assembly, C 4615/C 4619 correction
+  responsibility, representation-specific counts, the current Nietzsche
+  Source timeout, 302 critical addresses, and a deferred §22 A/B/C candidate.
+  It creates no remote Item, source payload, accepted German, author-final
+  synthesis, semantics, human backlog, or publication permission.
 - Added the metadata-only *Also sprach Zarathustra* authorial and critical
   route through current GSA ORES, DFGA, eKGWB, KSA/HAdW, the corrected Peter
   Gast private-print ensemble, and 2025-2026 freshness evidence. The route

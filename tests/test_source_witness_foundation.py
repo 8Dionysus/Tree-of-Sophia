@@ -57,6 +57,11 @@ JENSEITS_1886_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json"
 )
+JENSEITS_AUTHORIAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "jenseits-authorial-witness-route.2026-07-30.v1.json"
+)
 GENEALOGIE_1892_ITEM_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -1599,6 +1604,80 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "prohibited",
             server_plan["allowed_derivatives"]["transcription"]["state"],
         )
+
+    def test_jenseits_authorial_route_keeps_regions_and_witnesses_distinct(
+        self,
+    ) -> None:
+        discovery = json.loads(
+            JENSEITS_AUTHORIAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        work = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "jenseits-von-gut-und-boese/work.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "channel-gsa-ores-jenseits-authorial-route",
+                "channel-haab-jenseits-correction-copies",
+                "channel-nietzsche-source-jenseits-critical-route",
+                "channel-erara-jenseits-first-print",
+                "channel-established-jenseits-genesis",
+                "channel-fresh-jenseits-textual-genetics",
+                "channel-general-web-jenseits-authorial-route",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(13, len(discovery["selected_result_ids"]))
+        self.assertEqual([], discovery["rejected_result_ids"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+        self.assertEqual([], discovery["channels"][-1]["results"])
+
+        results = {
+            result["result_id"]: result
+            for channel in discovery["channels"]
+            for result in channel["results"]
+        }
+        self.assertEqual(
+            "select",
+            results["tos-discovery-result.gsa-71-26-jenseits-d18"][
+                "decision"
+            ],
+        )
+        self.assertIn(
+            "region",
+            results["tos-discovery-result.gsa-jenseits-w-i-3-8-family"][
+                "rationale"
+            ],
+        )
+        self.assertIn(
+            "partial",
+            results["tos-discovery-result.haab-c4615-jenseits-correction-proof"][
+                "rationale"
+            ],
+        )
+        self.assertEqual(
+            "unknown",
+            results["tos-discovery-result.dfga-jenseits-d18"]["availability"],
+        )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                and result["snapshot"]["state"] == "not-captured"
+                for result in results.values()
+            )
+        )
+        self.assertEqual(2, work["record_version"])
+        self.assertIn(
+            "ToS/source-witnesses/discovery/runs/"
+            "jenseits-authorial-witness-route.2026-07-30.v1.json",
+            work["source_refs"],
+        )
+        self.assertIn("no remote Item", work["notes"])
+        self.assertIn("semantic authority", work["notes"])
 
     def test_genealogie_1892_witness_advances_source_not_content(self) -> None:
         manifest = json.loads(

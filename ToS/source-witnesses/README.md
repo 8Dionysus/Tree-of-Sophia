@@ -277,6 +277,17 @@ not an admitted text or manuscript map. No remote manuscript or print becomes
 a local Item without custody, fixity, rights evidence, and an acquisition
 event.
 
+The first transfer work, *Jenseits von Gut und Böse*, now has a matching
+metadata-only route. W I 3-W I 8 and the Mp XV/Mp XVI complexes remain mixed,
+region-addressed material; D 18 (`GSA 71/26`) is a reassembled print
+manuscript rather than an immutable original; HAAB C 4615 and C 4619 are
+distinct proof/correction witnesses; and the existing 1886 local Item remains
+separate from the 302-address eKGWB critical surface. ORES/Kalliope and DFGA
+leaf, canvas, sheet, image, and logical-ID counts are representation-specific.
+The deferred §22 route may open only for a concrete source-visible question
+with rights and German-competence gates; it does not create a whole-notebook
+membership claim, source text, semantic edge, duplicate Item, or human queue.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

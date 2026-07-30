@@ -26,6 +26,14 @@ Item, accept a reading, resolve authorial finality, or schedule all regions
 for review. A content-bearing episode opens only when one exact question has
 source access, rights posture, region crosswalk, and language competence.
 
+The new *Jenseits* route makes that same gate concrete outside the golden
+kernel. It separates W I 3-W I 8 regions, D 18 (`GSA 71/26`), HAAB C 4615 and
+C 4619, the 1886 print, and 302 eKGWB comparison addresses. It also preserves
+the 108-leaf / 232-canvas archive view beside the DFGA 116-sheet /
+224-image-record / 240-logical-ID view. The exact §22 route is only a deferred
+question-specific candidate; it opens no text processing, semantic work, or
+human review by itself.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -326,6 +334,12 @@ evidence separates D 17, mixed notebooks, historical prints, the corrected
 GSA 71/25a ensemble, and eKGWB. The same pass found no 2026 philology changing
 those identities and registered the forthcoming August 2026 Loeb/Tinsley
 Stanford translation only as a deferred metadata candidate.
+The first cross-work route was refreshed the same day in
+`JENSEITS_AUTHORIAL_WITNESS_ROUTE.md`: current GSA/Kalliope, HAAB, DFGA,
+eKGWB, e-rara, established genesis scholarship, and 2024-2025 textual-genetic
+work now connect exact witness identities without admitting source content.
+The 2026 freshness search found no D 18 identity change; the current
+Nietzsche Source timeout is preserved beside the earlier bounded observation.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:

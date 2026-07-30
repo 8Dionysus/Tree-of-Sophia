@@ -5,8 +5,8 @@ Status: research scaffold with bounded executed laboratory evidence, not source 
 Research snapshot: 2026-07-23; local software/LLM admission refreshed
 2026-07-26; semantic-annotation assurance and historical-German
 morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
-transport plus *Ecce Homo* and *Zarathustra* authorial-witness routes refreshed
-2026-07-30
+transport plus *Ecce Homo*, *Zarathustra*, and *Jenseits von Gut und Böse*
+authorial-witness routes refreshed 2026-07-30
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -47,6 +47,7 @@ and what must be tested manually.
 | `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` | What does current CC BY-NC-ND 4.0 permit for private local adaptation, what does it prohibit sharing, what does the Arquivo.pt WARC witness corroborate, and why publisher-origin authentication and source admission remain separate? |
 | `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` | Which exact GSA, DFGA, and eKGWB objects lead from late compositional layers through D 25/D 25a and the replacement section to the critical text; which identifiers, dates, and rights conflict; and why this creates no false local item or author-final text? |
 | `ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md` | Which exact GSA, DFGA, and eKGWB routes lead from mixed compositional notebooks through the surviving part-IV print manuscript D 17 and the separately corrected GSA 71/25a private print; what parts I-III no longer preserve; what the forthcoming August 2026 Stanford translation changes; and why stable IDs and region claims—not a synthetic immutable text—form the golden foundation? |
+| `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md` | Which exact region-level route leads from W I 3-W I 8 and dictated sheets through the reassembled D 18 print manuscript, HAAB correction witnesses, the 1886 print, and eKGWB; why the layers and their page systems cannot be collapsed; and why §22 is only a deferred textual-genetic A/B/C candidate? |
 | `TRANSLATION_LABORATORY_REPORT.md` | What translation work was prepared or rejected, what actually ran, and why every draft and quality claim remains blocked? |
 | `QUALITY_COST_SPEED_MATRIX.md` | Which mechanical speed/resource values exist, which are comparable, and where quality and human correction cost remain unmeasured? |
 | `GOLDEN_KERNEL_TRANSFER_REPORT.md` | Is cross-work A/B/C epistemically runnable, what do the three title-page scouts and twenty private pre-output page candidates prove, and what exact evidence gate still blocks a false transfer claim? |
