@@ -41,12 +41,13 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- Five other *Mysl* member works remain verified Work identities with
+- Four other *Mysl* member works remain verified Work identities with
   provisional Russian collection-member expressions rather than standalone
-  reviewed Edition / Item trees. *Jenseits von Gut und Böse* now additionally
-  has an exact German 1886 Expression / Edition / Item route, while its
-  Russian *Mysl* expression and translation-responsibility claim remain
-  unreviewed.
+  reviewed Edition / Item trees. *Jenseits von Gut und Böse* and *Zur
+  Genealogie der Moral* now additionally have exact German
+  Expression / Edition / Item routes—1886 first Naumann and 1892 second
+  Naumann respectively—while their Russian *Mysl* expressions and
+  translation-responsibility claims remain unreviewed.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
   critical text.
@@ -69,6 +70,13 @@ contracts intentionally reject simulated human evidence.
   proposed whole-page anchors and division-level number spans. This is not an
   exact per-unit page map, a translation anchor set at passage granularity, or
   evidence of textual, translation, or semantic equivalence.
+- The acquired Commons revision of the UNC/Internet Archive *Zur Genealogie
+  der Moral* scan is an exact source-visible witness to the 1892 second
+  Naumann edition. Its 208-page text-free inventory and visible edition
+  statement advance source identity beyond the provisional Russian collection
+  expression. They do not establish the 1887 first-edition text, accept its
+  embedded OCR or German, create passage anchors, or make the work eligible
+  for transfer A/B/C.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -96,6 +104,14 @@ contracts intentionally reject simulated human evidence.
   decision across scan, digitization, PDF, and OCR layers. Its operator-held
   copy remains local; any future public object must be independently reviewed
   and selected or reacquired through a current authorized route.
+- Wikimedia Commons declares the exact acquired 2020 *Genealogie* file
+  revision public domain, `Copyrighted=False`, and covered by its
+  `PD-US-expired` template. This is strong exact-file evidence, not a
+  jurisdiction-complete ToS verdict over the 1892 text, UNC physical copy and
+  scan, Internet Archive lineage, Commons revision, embedded OCR, or later
+  derivatives. The local copy remains off the future site; its server plan is
+  metadata-only and requires independent current-route selection or
+  reacquisition before any different publication decision.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
@@ -525,9 +541,12 @@ from the calibration-only route in section 2b.
    source-visible witness and division-level page anchors to admitted text
    anchors only through the German source gate. Expand units 1–296 to exact
    pages only after a better source layer or bounded source-visible review
-   closes the OCR numeral gaps; separately promote *On the Genealogy of
-   Morality* and *The Antichrist* beyond provisional collection-member
-   expressions.
+   closes the OCR numeral gaps. *Zur Genealogie der Moral* is now separately
+   promoted beyond provisional collection membership at the source-witness
+   level through its exact 1892 second-edition item, but it still needs an
+   admitted German text and exact passage anchors before transfer. *The
+   Antichrist* remains provisional and needs its own ordered exact-source
+   discovery and Edition / Item tree.
 2. If the user deliberately activates the transfer experiment, advance the
    twenty already frozen private page candidates into exact source-visible
    target passages and target gold without viewing variant outputs. Introduce

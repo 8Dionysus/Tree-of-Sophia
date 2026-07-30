@@ -26,6 +26,8 @@ The valid result is therefore a stopped result before execution:
 - reject those pages as semantic-transfer evaluation units;
 - retain twenty private, content-bearing whole-page candidates selected before
   any variant output as **ineligible preparation soil**, not target gold;
+- retain the exact 1892 second-edition *Genealogie* source item as stronger
+  source soil without treating it as accepted text or target gold;
 - admit no sign, translation, concept, relation, or ontology from
   *Zarathustra* into another work;
 - schedule no routine human backlog: in solo+AI operation, open a bounded
@@ -97,6 +99,12 @@ Expression records now exist for all three named works, but the collection
 boundaries, expression identities, translator claims, and source text remain
 provisional or unreviewed. The title pages therefore remain routing evidence,
 not semantic targets or a completed bibliographic catalog.
+
+*Zur Genealogie der Moral* now additionally has a distinct exact German
+source-witness route for the 1892 second Naumann edition. That route does not
+alter the status of the Russian collection page, establish a translation
+relation, supply an admitted passage, or make any of the six prepared
+*Genealogie* target pages eligible for variant execution.
 
 ## Prepared target-candidate soil
 

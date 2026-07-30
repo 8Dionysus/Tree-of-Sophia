@@ -82,3 +82,13 @@ the exact Google Books API quota failure. It selects and checksum-reconciles
 the source-visible 1886 Naumann Harvard/Google scan. The provider's Public
 Domain Mark is preserved as positive evidence without accepting its OCR,
 granting publication, or making the operator-held file a future-site upload.
+
+`genealogie-naumann-1892-open-scan-witness.2026-07-30.v1.json` advances a
+second transfer work beyond provisional collection membership. The ordered
+run begins with DNB/GND, records the target's absence from DTA, defers
+TextGrid's later Kolimo+ text as a non-item-specific challenger, reconciles
+the UNC/Internet Archive lineage, and selects the exact 2020 Wikimedia
+Commons revision of the source-visible 1892 second Naumann edition. It
+preserves Commons' public-domain statement, the current Internet Archive
+PDF's byte divergence, and failed or wrong-language channels without treating
+embedded OCR as accepted German or the operator-held file as publishable.

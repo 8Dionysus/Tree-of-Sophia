@@ -57,6 +57,18 @@ JENSEITS_1886_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json"
 )
+GENEALOGIE_1892_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "zur-genealogie-der-moral/expressions/de-naumann-1892-second/"
+    "editions/leipzig-c-g-naumann-1892-second-edition/items/"
+    "wikimedia-commons-unc-scan-pdf"
+)
+GENEALOGIE_1892_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "genealogie-naumann-1892-open-scan-witness.2026-07-30.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1537,6 +1549,144 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             "prohibited",
             server_plan["allowed_derivatives"]["transcription"]["state"],
+        )
+
+    def test_genealogie_1892_witness_advances_source_not_content(self) -> None:
+        manifest = json.loads(
+            (GENEALOGIE_1892_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (GENEALOGIE_1892_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (GENEALOGIE_1892_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source_snapshot = json.loads(
+            (GENEALOGIE_1892_ITEM_ROOT / "source-metadata-snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        discovery = json.loads(
+            GENEALOGIE_1892_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        server_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "genealogie-naumann-1892-wikimedia-commons-unc-scan-pdf."
+                "server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("digitized_physical_copy", manifest["item_kind"])
+        self.assertEqual("local_gitignored_payload", manifest["storage_posture"])
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertEqual(1, len(manifest["payload_files"]))
+        payload_file = manifest["payload_files"][0]
+        self.assertEqual(13227300, payload_file["byte_size"])
+        self.assertEqual(
+            "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+            payload_file["sha256"],
+        )
+        self.assertTrue(
+            foundation._git_ignored(
+                REPO_ROOT,
+                GENEALOGIE_1892_ITEM_ROOT / payload_file["relative_path"],
+            )
+        )
+
+        self.assertEqual(
+            "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+            rights["rights_statement_uri"],
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual([], rights["jurisdictions_reviewed"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("local_only", rights["visibility"])
+
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual(1, len(inventory["files"]))
+        inventory_file = inventory["files"][0]
+        self.assertEqual("pdf_pages_v1", inventory_file["profile"])
+        self.assertEqual(208, inventory_file["summary"]["page_count"])
+        self.assertEqual(624, inventory_file["summary"]["image_resource_count"])
+        self.assertEqual(6, inventory_file["summary"]["distinct_page_geometry_count"])
+        self.assertEqual(208, len(inventory_file["resources"]))
+
+        commons = source_snapshot["wikimedia_commons_record"]
+        archive = source_snapshot["internet_archive_source_lineage"]
+        self.assertEqual(95720779, commons["page_id"])
+        self.assertFalse(commons["copyrighted"])
+        self.assertTrue(commons["local_sha1_match"])
+        self.assertTrue(
+            archive["current_pdf_differs_from_acquired_commons_revision"]
+        )
+        self.assertFalse(
+            source_snapshot["source_visible_scan"]["human_repeat_performed"]
+        )
+
+        self.assertEqual(
+            [
+                "channel-dnb-genealogie-work-authority",
+                "channel-dta-genealogie-author-corpus",
+                "channel-textgrid-genealogie-corpus",
+                "channel-internet-archive-genealogie",
+                "channel-wikimedia-commons-genealogie",
+                "channel-general-web-genealogie",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            ["tos-discovery-result.wikimedia-commons-genealogie-naumann-1892"],
+            discovery["selected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        self.assertEqual(
+            "prohibited",
+            server_plan["allowed_derivatives"]["transcription"]["state"],
+        )
+        self.assertEqual(
+            "conditional",
+            server_plan["allowed_derivatives"]["graph_projection"]["state"],
+        )
+
+        catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
+        catalog_ids = {
+            record["record_id"]
+            for catalog_name in (
+                "works.jsonl",
+                "expressions.jsonl",
+                "editions.jsonl",
+                "items.jsonl",
+            )
+            for line in (catalog_root / catalog_name)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+            for record in (json.loads(line),)
+        }
+        self.assertTrue(
+            {
+                "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+                "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral."
+                "de-naumann-1892-second",
+                "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral."
+                "leipzig-c-g-naumann-1892-second",
+                "tos.item.friedrich-nietzsche.zur-genealogie-der-moral."
+                "de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+            }.issubset(catalog_ids)
         )
 
     def test_golden_kernel_transfer_plan_fails_closed_without_human_kernel(self) -> None:

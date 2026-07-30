@@ -9,6 +9,12 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added an exact German source tree for the 1892 second Naumann *Zur
+  Genealogie der Moral*: ordered discovery evidence, a checksum-reconciled
+  Wikimedia Commons/UNC scan revision, text-free 208-page inventory,
+  fail-closed rights record, and metadata-only future-server plan. The local
+  PDF, embedded OCR, German text, and all content derivatives remain
+  unpublished and unaccepted.
 - Added a current eKGWB rights and transport assessment that separates
   permitted private non-commercial adaptation from prohibited sharing of
   adapted material while keeping the HTTP witness unauthenticated, local-only,

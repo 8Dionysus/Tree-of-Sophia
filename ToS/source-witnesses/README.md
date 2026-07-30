@@ -144,7 +144,11 @@ collection containing it. The seed deliberately includes:
   Schmeitzner part 3 from 1884, and Naumann's first public edition of part 4
   from 1891. Each remains grounded in its exact SBB-PK or SUB Göttingen
   holding copy and distinct from DTA's facsimile layer and from a critical
-  edition.
+  edition;
+- an exact Wikimedia Commons revision of the UNC/Internet Archive scan of
+  Nietzsche's 1892 second Naumann *Zur Genealogie der Moral*, with visible
+  edition statement, exact file fixity, and a text-free 208-page resource
+  inventory.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -177,6 +181,16 @@ XML coordinate companion. All three provider files are checksum-reconciled,
 gitignored, and local-only. The OCR companions are not independent textual
 witnesses and are not accepted German; they exist to make structure experiments
 reproducible without hiding machine navigation behind the PDF's embedded text.
+
+The second transfer-work source tree advances *Zur Genealogie der Moral*
+beyond a provisional Russian collection-member expression. Its acquired file
+is the exact 2020 Commons revision descended from the UNC/Internet Archive
+scan of the 1892 second Naumann edition; the current Internet Archive PDF is
+recorded as a different byte revision rather than silently equated. Commons'
+public-domain declaration is strong publication-route evidence, but the
+operator-held PDF remains local, the embedded OCR remains unaccepted, and no
+German text, translation relation, semantic claim, or server payload is
+admitted.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

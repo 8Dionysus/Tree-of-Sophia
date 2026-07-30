@@ -1,0 +1,525 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.genealogie-naumann-1892-open-scan-witness.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.zur-genealogie-der-moral"
+    ],
+    "description": "An exact, source-visible, openly reachable original-German historical edition of Zur Genealogie der Moral that can move the transfer work beyond its provisional Russian collection expression.",
+    "required_properties": [
+      "original German",
+      "source-visible edition statement",
+      "institutional holding provenance",
+      "stable digital-object identifier",
+      "exact object fixity",
+      "positive rights evidence kept separate from ToS legal review"
+    ],
+    "acceptable_substitutions": [
+      "an exact 1887 first-edition scan with source-visible pages and equally explicit object-level rights evidence",
+      "another historical German Naumann edition with stronger holding-copy provenance and exact downloadable fixity"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "PDF page images",
+      "embedded OCR candidate"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-genealogie-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4342502-1/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-30",
+      "exact_query": "GET https://d-nb.info/gnd/4342502-1/about/lds.jsonld",
+      "queried_at": "2026-07-30T07:59:02-06:00",
+      "elapsed_seconds": 0.83,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4342502-1-genealogie",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral",
+          "result_url": "https://d-nb.info/gnd/4342502-1",
+          "originating_record_url": "https://d-nb.info/gnd/4342502-1",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4342502-1"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The authority record fixes work identity, Nietzsche authorship, and 1887. It does not identify a physical or digital source item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "055bc7fb0bf665f633e4c393d1a502046e3beeb956fcb6d2fb1a02c7bafb2674",
+            "reason": "The exact authority response digest and parsed work identity are retained without source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-genealogie-author-corpus",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-30",
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche",
+      "queried_at": "2026-07-30T07:59:06-06:00",
+      "elapsed_seconds": 1.06,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-textgrid-genealogie-corpus",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search and TG-crud APIs",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository APIs as served 2026-07-30",
+      "exact_query": "q=title:\"Zur Genealogie der Moral\" AND edition.agent.value:\"Nietzsche, Friedrich\" AND format:\"text/tg.edition+tg.aggregation+xml\"; target=metadata; order=asc:issued; limit=100; allProjects=true",
+      "queried_at": "2026-07-30T07:59:05-06:00",
+      "elapsed_seconds": 0.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-genealogie",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral Jenseits von Gut und Böse. Zur Genealogie der Moral",
+          "result_url": "https://www.textgridrep.org/browse/4k1p6.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k1p6.0"
+            },
+            {
+              "scheme": "TextGrid text URI",
+              "value": "textgrid:4k212.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k1p6.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML",
+            "ORE aggregation XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The 2016 Kolimo+ corpus text is a useful future textual challenger, but its combined title and imported corpus metadata do not identify the exact 1892 physical copy or the 1887 first edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "d6df212ef58c9165a3b816a8bfcf3bb1d7be2632caf3387628e40a0875e77879",
+            "reason": "The exact one-hit response, identifiers, combined title, corpus date, and license claim are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-internet-archive-genealogie",
+      "sequence": 4,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive advanced search and metadata APIs",
+      "endpoint_url": "https://archive.org/advancedsearch.php",
+      "interface_type": "api",
+      "interface_version": "Internet Archive APIs as served 2026-07-30",
+      "exact_query": "q=title:(\"Zur Genealogie der Moral\") AND creator:(Nietzsche); fl=identifier,title,creator,date,year,publisher,language,rights,licenseurl; sort=date asc; rows=100; page=1; output=json; then GET /metadata/zurgenealogieder00niet",
+      "queried_at": "2026-07-30T07:59:03-06:00",
+      "elapsed_seconds": 0.87,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.internet-archive-zurgenealogieder00niet",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral : eine Streitschrift",
+          "result_url": "https://archive.org/details/zurgenealogieder00niet",
+          "originating_record_url": "https://archive.org/metadata/zurgenealogieder00niet",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "zurgenealogieder00niet"
+            },
+            {
+              "scheme": "Internet Archive ARK",
+              "value": "ark:/13960/t06x1t53z"
+            },
+            {
+              "scheme": "Open Library edition",
+              "value": "OL25582970M"
+            },
+            {
+              "scheme": "UNC catalog record",
+              "value": "b1754874"
+            }
+          ],
+          "available_formats": [
+            "PDF page images",
+            "DjVu text",
+            "DjVu XML",
+            "ABBYY XML gzip",
+            "scandata XML",
+            "metadata XML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The object gives strong UNC holding and scan provenance for the 1892 second edition, but its current metadata has no rights or license field and its current PDF is a different byte revision from the Commons file.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "18ceb73f46992940a5434b6b10c18ffc79ef97036345df8198044c8e278a3481",
+            "reason": "The current item metadata, file list, holdings, source lineage, and current derivative fixity are retained by digest."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.internet-archive-hofenberg-2016",
+          "rank": 2,
+          "title_as_displayed": "Zur Genealogie der Moral (German Edition)",
+          "result_url": "https://archive.org/details/isbn_9783843021333",
+          "originating_record_url": "https://archive.org/metadata/isbn_9783843021333",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "isbn_9783843021333"
+            }
+          ],
+          "available_formats": [
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "This is a 2016 Hofenberg item, not a historical Naumann edition or a source-visible first-edition witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2a13936a0036429247c712b0c91bc7c7be593be247ce210f7ebd5759348e9676",
+            "reason": "The two-result ordered search response is retained so the modern item is not rediscovered as a historical source."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-genealogie",
+      "sequence": 5,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons MediaWiki API",
+      "endpoint_url": "https://commons.wikimedia.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki imageinfo and revision API as served 2026-07-30",
+      "exact_query": "action=query; format=json; formatversion=2; prop=imageinfo|revisions; titles=File:Zur Genealogie der Moral - eine Streitschrift (IA zurgenealogieder00niet).pdf; iiprop=url|size|sha1|mime|timestamp|user|canonicaltitle|extmetadata; rvprop=ids|timestamp|user|comment|sha1|contentmodel",
+      "queried_at": "2026-07-30T07:59:05-06:00",
+      "elapsed_seconds": 0.42,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikimedia-commons-genealogie-naumann-1892",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral - eine Streitschrift (IA zurgenealogieder00niet).pdf",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+          "originating_record_url": "https://commons.wikimedia.org/w/index.php?curid=95720779",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "95720779"
+            },
+            {
+              "scheme": "source-lineage Internet Archive identifier",
+              "value": "zurgenealogieder00niet"
+            },
+            {
+              "scheme": "source SHA-1",
+              "value": "babdcddf6d519d4084f6705333e467fd1a63ba25"
+            }
+          ],
+          "available_formats": [
+            "PDF page images",
+            "MediaWiki metadata",
+            "page thumbnails"
+          ],
+          "declared_rights": {
+            "statement": "Public domain; Copyrighted=False; PD-US-expired",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact 2020 Commons file revision exposes byte size and SHA-1, preserves the UNC/Internet Archive scan lineage, visibly identifies the 1892 second Naumann edition, and carries an explicit public-domain statement. It is acquired as a historical source-visible witness, not accepted German or a critical edition.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-30T07:54:23-06:00",
+            "byte_size": 13227300,
+            "sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+            "event_ref": "tos.event.acquisition.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.2026-07-30"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "d535be2f4fd8aa0bab6fa7a8faf81fe93e129f802d77a2878bdb06d1867bdc76",
+            "reason": "The exact API response preserves file revision identity, fixity, source lineage, and provider rights fields without retaining source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-genealogie",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-07-30",
+      "exact_query": "\"Zur Genealogie der Moral\" 1892 C.G. Naumann digital scan; \"Zur Genealogie der Moral\" 1887 digital scan",
+      "queried_at": "2026-07-30T07:50:00-06:00",
+      "elapsed_seconds": 2.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-commons-genealogie-lead",
+          "rank": 1,
+          "title_as_displayed": "File:Zur Genealogie der Moral - eine Streitschrift (IA zurgenealogieder00niet).pdf",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "HTML lead"
+          ],
+          "declared_rights": {
+            "statement": "Search snippet reports public domain in the United States.",
+            "scope": "unknown",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The lead was followed to the Commons API and exact source-visible file before selection; the search result itself is not authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The general-search page is non-authoritative and mutable; exact downstream provider evidence was captured instead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.general-web-bnf-french-genealogie",
+          "rank": 2,
+          "title_as_displayed": "La généalogie de la Morale (3e édition) / Frédéric Nietzsche ; traduit par Henri Albert",
+          "result_url": "https://gallica.bnf.fr/ark:/12148/bpt6k5507939b",
+          "originating_record_url": "https://data.bnf.fr/12045090/friedrich_nietzsche_zur_genealogie_der_moral/",
+          "identifiers": [
+            {
+              "scheme": "Gallica ARK",
+              "value": "ark:/12148/bpt6k5507939b"
+            }
+          ],
+          "available_formats": [
+            "facsimile viewer"
+          ],
+          "declared_rights": {
+            "statement": "Gallica permits free non-commercial use under its current terms with source attribution.",
+            "scope": "digital-object",
+            "evidence_url": "https://gallica.bnf.fr/accueil/fr/html/aide-a-la-recherche",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "This is Henri Albert's French 1900 translation, not an original-German historical-edition witness for the current target.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Gallica API requests were access-blocked; the exact ARK and negative identity result are retained without bypass."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-genealogie-work-authority",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 1,
+      "machine_seconds": 0.83,
+      "notes": "Best current work-identity authority; no item or content route."
+    },
+    {
+      "channel_id": "channel-dta-genealogie-author-corpus",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 1,
+      "machine_seconds": 1.06,
+      "notes": "Useful source-structured project, but the current author result has no Genealogie item."
+    },
+    {
+      "channel_id": "channel-textgrid-genealogie-corpus",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2,
+      "machine_seconds": 0.7,
+      "notes": "Open TEI and stable PIDs, but the corpus record does not identify the targeted historical physical edition."
+    },
+    {
+      "channel_id": "channel-internet-archive-genealogie",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 4,
+      "machine_seconds": 0.87,
+      "notes": "Strong institutional scan and holding provenance; current record has no rights field and its current PDF differs from the Commons revision."
+    },
+    {
+      "channel_id": "channel-wikimedia-commons-genealogie",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 5,
+      "machine_seconds": 0.42,
+      "notes": "Selected exact file revision: source-visible 1892 edition, explicit fixity, IA/UNC lineage, and positive rights evidence."
+    },
+    {
+      "channel_id": "channel-general-web-genealogie",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4,
+      "machine_seconds": 2.3,
+      "notes": "Used only after protocol-native channels; it located Commons and exposed the Gallica translation false lead."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.wikimedia-commons-genealogie-naumann-1892"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.internet-archive-hofenberg-2016",
+    "tos-discovery-result.general-web-bnf-french-genealogie"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T07:46:00-06:00",
+  "ended_at": "2026-07-30T07:59:07-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.zur-genealogie-der-moral.naumann-1892-second-open-scan.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -28,7 +28,8 @@ The promotion authorities remain separate:
 | Surface | Evidence reached | Decision | Admitted durable use | Explicitly not admitted |
 | --- | --- | --- | --- | --- |
 | `ToS/` source topology | Work/Expression/Edition/Item routes, manifests, fixity, rights, local payload boundary, tracked metadata | promote foundation mechanics | speaking storage topology and evidence spine | catalog completeness or philosophical truth |
-| four acquired source items | exact bytes, sizes, SHA-256, forensic reports, acquisition/provenance routes | retain as local research witnesses | item identity, fixity, format observations | public redistribution, clean transcription, edition authority |
+| eleven local source items | exact bytes, sizes, SHA-256, forensic reports, acquisition/provenance routes, and text-free resource inventories | retain as local research witnesses | item identity, fixity, format and resource observations | public redistribution, clean transcription, accepted text, edition authority |
+| 1892 second Naumann *Zur Genealogie der Moral* item | ordered discovery, exact Commons revision checksum, UNC/Internet Archive lineage, visible edition statement, 208-page inventory, and positive provider public-domain evidence | promote source-witness mechanics with limits | distinct German Expression / Edition / Item route beyond provisional collection membership | 1887 first-edition equivalence, critical text, accepted OCR or German, translation relation, target gold, semantics, payload transfer, or publication |
 | rights records | source-visible preliminary assessments | retain with limits | fail-closed local research and non-redistribution posture | jurisdiction-complete legal conclusion or publication permission |
 | native structure A, first run | real 36-unit run; XHTML head title copied into body | reject runner revision; preserve negative | defect evidence and reproduction lineage | structure or text candidate |
 | native structure A, corrected run | all 36 anchors resolved; 24 nonempty; outline PDF still empty; human receipts 0 | retain with limits | container inventory, anchors, EPUB body extraction, selected readable ABBYY mechanics | accepted text, structural F1, general transcription, quality winner |
@@ -59,7 +60,7 @@ The promotion authorities remain separate:
 | 13 graph claims | all remain `unreviewed`; human review arrays empty | block claim promotion | projection test soil only | bibliographic, textual, translation, sign, or interpretive truth |
 | golden-kernel transfer | v2 plan frozen; three title-page scouts plus twenty private pre-output whole-page candidates; eligible target units 0; kernel and target gold absent; human debt 0; runs 0 | promote method and candidate preparation only; block experiment result | A/B/C law, metrics, scouting boundaries, deterministic 10-random/10-mechanical-hard sampling, private digest/anchor route | candidate text or page as gold, usefulness, harm, sign reuse, ontology transfer, winner |
 | access request | Nietzsche-Wörterbuch request drafted, not sent; human approval false | retain draft; no external action | future human-reviewed request channel | sent request, permission, response, access |
-| server import | exact plans for all four item manifests; metadata-only; rights-blocked; operator approval false | retain future contract; block transfer | manifest/checksum/rights/takedown import boundary | payload upload, deployment, publication, server authority |
+| server import | exact plans for all eleven item manifests; metadata-only; rights-blocked; operator approval false | retain future contract; block transfer | manifest/checksum/rights/takedown import boundary | payload upload, deployment, publication, server authority |
 
 ## Negative evidence that must remain
 

@@ -25,3 +25,12 @@ positive publication-candidate evidence. The plan still transfers no local
 payload: a future site may only select or reacquire an independently reviewed
 authorized object, and neither the embedded OCR nor any German–Russian
 derivative inherits publication approval from the scan record.
+
+The eleventh plan covers the exact Wikimedia Commons revision of the
+UNC/Internet Archive scan of the 1892 second Naumann *Zur Genealogie der
+Moral*. Commons declares that file public domain and not copyrighted, while
+the historical edition and source-visible title page provide strong positive
+route evidence. ToS nevertheless keeps its jurisdictional assessment
+unreviewed, the operator-held PDF local, all content-bearing derivatives
+prohibited, and the future route limited to public-safe metadata until a
+separately reviewed object is selected or reacquired.
