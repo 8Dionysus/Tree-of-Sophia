@@ -798,17 +798,18 @@ researched in the same order, with a stricter editorial-strata question.
    history, and that the later Colli/Montinari reconstruction is
    philologically stronger. It also corroborates Richter's editing, van de
    Velde's design, and the 1,250-copy issue.
-3. **Fresh and frontier layer.** Groddeck's
+3. **Fresh current layer.** Groddeck's
    [2025 study](https://doi.org/10.1515/nietzstu-2024-0035) treats the book as
    completed yet transmitted through a complex editorial object and makes
    paratextual composition relevant to later semantics. Röllin's
    [2025 study](https://doi.org/10.1515/nietzstu-2025-0024) adds current
    evidence from a Köselitz copy and revises the chronology of one important
-   section toward early January 1889. A
-   [2026 chapter](https://doi.org/10.1515/9783110688436-006) was available
-   only as an abstract; its self-quotation/re-performance thesis remains a
-   frontier lead, not an admitted finding. No restricted full text was
-   bypassed.
+   section toward early January 1889. Parkhurst's restricted
+   [self-quotation chapter](https://doi.org/10.1515/9783110688436-006)
+   remains an abstract-only semantic lead, but the current bibliographic
+   record places it in a 2022 book. A 2026 copyright/download stamp on the
+   current publisher surface was not a fresh publication date. No restricted
+   full text was bypassed.
 4. **Exact digital object.** Getty's physical copy was digitized into
    Internet Archive item
    [`eccehomo00niet_0`](https://archive.org/details/eccehomo00niet_0) and
@@ -832,6 +833,52 @@ Richter's editorial contribution, van de Velde's binding and ornaments, the
 Getty scan, the IA derivative, Commons revision, OCR, and later derivatives
 remain separate rights layers. The exact local PDF is research soil only; its
 server plan exposes metadata and transfers no payload.
+
+### *Ecce Homo* authorial-witness follow-up — 2026-07-30
+
+The stronger route required by the 1908-witness limitation was then resolved
+without downloading a manuscript corpus or creating a false locally held
+item. The complete evidence and conflict register lives in
+`ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive and edition layer.** Current GSA ORES resolves
+   Nietzsche's print-ready manuscript as
+   [GSA 71/32, D 25](https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75105)
+   and the Köselitz/Peter Gast print-ready copy as
+   [GSA 71/33, D 25a](https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75106).
+   It also exposes the surviving
+   [replacement-section copy](https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1730),
+   an undigitized
+   [three-leaf deletions/change file](https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1731),
+   and the Z II 1, W II 9, W II 10, and Mp XVI draft complexes. DFGA provides
+   matching digital-book identities and codicological metadata. eKGWB provides
+   74 stable critical-text blocks and two correction popups; three current
+   HTTP responses were byte-identical, but no body was retained or admitted.
+2. **Established layer.** HAdW commentary connects those archive records to
+   the production and posthumous edition history and explicitly maps D 25 to
+   current GSA 71/32.
+3. **Current layer.** Röllin's
+   [2024 manuscript chronology](https://doi.org/10.1515/nietzstu-2024-0001)
+   makes inscription-layer uncertainty explicit and distinguishes early
+   W II 9 composition, successive print manuscripts, proof correction, and
+   late-December/early-January additions. The two 2025 studies then sharpen
+   paratextual and replacement-section questions.
+
+Two exact identifier conflicts are preserved. Groddeck's fresh article figure
+captions use `GSA 71/31` for D 25, while current ORES, Kalliope, and HAdW agree
+on `71/32`; current
+[GSA 71/31](https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75104)
+is D 24, *Dionysos-Dithyramben*. ORES metadata for GSA 71/232 names
+`Mp-XVI-2a`, its outgoing link names `Mp-XVI-2b`, and the current DFGA API
+exposes both as distinct books.
+
+The GSA IIIF manifests declare their exact digital objects `Public Domain`,
+while the general GSA regulations require prior approval for reproduction use
+beyond personal use. Nietzsche Source separately states CC BY-NC-ND 4.0 and
+describes a DFGA non-commercial-derivative agreement. ToS preserves these as
+layered, currently unreconciled evidence. The route creates no source payload,
+accepted German, publication permission, semantic record, access request, or
+human backlog.
 
 ---
 

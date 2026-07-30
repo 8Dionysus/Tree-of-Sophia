@@ -5,7 +5,7 @@ Status: research scaffold with bounded executed laboratory evidence, not source 
 Research snapshot: 2026-07-23; local software/LLM admission refreshed
 2026-07-26; semantic-annotation assurance and historical-German
 morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
-transport refreshed 2026-07-30
+transport and *Ecce Homo* authorial-witness route refreshed 2026-07-30
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -44,6 +44,7 @@ and what must be tested manually.
 | `TRANSLATION_SOURCE_REVIEW_V2.md` | Was the blind two-pass source-review interface actually materialized, checked beyond validator green, and kept short of human acceptance? |
 | `TRANSLATION_REFERENCE_RESEARCH.md` | Which lexical, corpus, critical-edition, and translation witnesses are defensible candidates, and what do access and rights actually permit? |
 | `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` | What does current CC BY-NC-ND 4.0 permit for private local adaptation, what does it prohibit sharing, what does the Arquivo.pt WARC witness corroborate, and why publisher-origin authentication and source admission remain separate? |
+| `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` | Which exact GSA, DFGA, and eKGWB objects lead from late compositional layers through D 25/D 25a and the replacement section to the critical text; which identifiers, dates, and rights conflict; and why this creates no false local item or author-final text? |
 | `TRANSLATION_LABORATORY_REPORT.md` | What translation work was prepared or rejected, what actually ran, and why every draft and quality claim remains blocked? |
 | `QUALITY_COST_SPEED_MATRIX.md` | Which mechanical speed/resource values exist, which are comparable, and where quality and human correction cost remain unmeasured? |
 | `GOLDEN_KERNEL_TRANSFER_REPORT.md` | Is cross-work A/B/C epistemically runnable, what do the three title-page scouts and twenty private pre-output page candidates prove, and what exact evidence gate still blocks a false transfer claim? |

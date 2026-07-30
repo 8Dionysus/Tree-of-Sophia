@@ -9,12 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Ecce Homo* authorial and critical route through
+  current GSA ORES, DFGA, eKGWB, Kalliope, HAdW, and 2024-2025 philology:
+  D 25 (`GSA 71/32`), D 25a (`GSA 71/33`), the surviving replacement copy,
+  the undigitized deletion/change file, four related draft complexes, stable
+  critical addresses, layered access/rights evidence, two exact identifier
+  conflicts, and one false-2026 freshness correction. No manuscript or
+  critical source body, local Item, accepted German, human backlog, semantics,
+  or publication authority is created.
 - Added the first exact historical German source tree for *Ecce homo*: the
   posthumous 1908 Richter/Insel edition, Getty copy 965, through permanent
   Wikimedia Commons revision `1074063624`; exact local fixity; a text-free
   166-page inventory; DNB/IA/Open Library pagination-conflict preservation;
   source-visible separation of Nietzsche's body from Richter's afterword;
-  ordered official, established, 2025, and 2026 research evidence; fail-closed
+  ordered official, established, 2025, and restricted 2022-lead evidence; fail-closed
   rights; and a metadata-only future-server plan. The item is historical soil,
   not an author-final or critical text, accepted OCR/German, semantics, or
   publishable local payload.

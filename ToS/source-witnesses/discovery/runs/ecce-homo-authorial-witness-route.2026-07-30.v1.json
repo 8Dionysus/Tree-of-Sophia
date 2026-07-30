@@ -1,0 +1,1346 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.ecce-homo-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.ecce-homo"
+    ],
+    "description": "An exact, responsibility-aware route from Ecce Homo archival manuscripts and print-ready copies to the current Colli/Montinari critical text, without flattening authorial, copyist, editorial, digital-surrogate, or rights layers.",
+    "required_properties": [
+      "current holding archive and exact shelfmarks",
+      "Nietzsche-hand and copyist-hand responsibility kept distinct",
+      "print-manuscript, draft, replacement-section, and critical-text strata kept distinct",
+      "stable archival, DFGA, and eKGWB identifiers",
+      "digital-object access and rights evidence recorded separately",
+      "current scholarship checked after official and established sources",
+      "identifier conflicts preserved instead of silently normalized"
+    ],
+    "acceptable_substitutions": [
+      "a recognized facsimile edition with exact archival lineage and stronger textual authority",
+      "an archive-supplied reproduction of a currently undigitized witness after operator-approved acquisition",
+      "a publisher-authenticated critical-edition object with stable section addresses"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "archival metadata",
+      "IIIF Presentation 2",
+      "manuscript facsimile",
+      "critical-edition HTML",
+      "scholarly commentary"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-ecce-homo",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES archival database and IIIF service",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75105",
+      "interface_type": "iiif",
+      "interface_version": "ORES records as edited 2000-2022 and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Direct record and IIIF-manifest reconciliation for ORES IDs 75105, 75106, 1730, 1731, 75239, 75274, 75275, 212283, and conflict-control ID 75104; no image-service requests",
+      "queried_at": "2026-07-30T11:32:05-06:00",
+      "elapsed_seconds": 14.57,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-71-32-ecce-homo-d25",
+          "rank": 1,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75105",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75105",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/32"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75105"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 25"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-25"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "121 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; the GSA usage regulations separately require prior archive approval for reproduction use beyond personal use, especially publication.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75105/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Primary official route to Nietzsche's print-ready manuscript: 58 leaves, 121 canvases, classified as Druckmanuskripte, with Nietzsche, Elisabeth Förster-Nietzsche, Peter Gast, and an additional hand represented. It is not silently equated with a final author-approved text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live record and manifest were inspected; neither manuscript images nor a metadata body were persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-33-ecce-homo-d25a",
+          "rank": 2,
+          "title_as_displayed": "Ecce homo",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75106",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75106",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/33"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75106"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-25a"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "136 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; the GSA usage regulations separately require prior archive approval for reproduction use beyond personal use, especially publication.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75106/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Primary official route to the 63-leaf Köselitz/Peter Gast print-ready copy. Its copyist and later editorial responsibility must remain distinct from Nietzsche's own hand and from the 1908 print.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live record and manifest were inspected; neither manuscript images nor a metadata body were persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-102-734-ecce-homo-replacement-copy",
+          "rank": 3,
+          "title_as_displayed": "Abschrift eines von Nietzsche Ende Dezember 1888 an Naumann gesandten Abschnittes zu \"Ecce homo\", der gegen Abschnitt 3 ausgetauscht werden sollte",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1730",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1730",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "102/734"
+            },
+            {
+              "scheme": "ORES",
+              "value": "1730"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "2 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; the GSA usage regulations separately govern publication and other use beyond personal use.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/1730/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact Peter-Gast-estate copy route for a replacement section sent to Naumann. Fresh scholarship changes the likely date of the lost Nietzsche original, so the catalog description and later dating claim must coexist as sourced claims.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image or source-text acquisition was required to establish the route."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-102-735-ecce-homo-deletions",
+          "rank": 4,
+          "title_as_displayed": "Aus \"Ecce homo\" gestrichene Stellen und Änderungen",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1731",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:1731",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "102/735"
+            },
+            {
+              "scheme": "ORES",
+              "value": "1731"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "paid photo-order route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.klassik-stiftung.de/goethe-und-schiller-archiv/benutzung/kopien-digitalisate-publikationsgenehmigung/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The exact three-leaf record is relevant to deletions and changes but has zero digital images. A paid photo order is a future operator-approved acquisition option, not a request sent by this run.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Metadata-only access gap retained; no order or correspondence was initiated."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-139-z-ii-1",
+          "rank": 5,
+          "title_as_displayed": "Aphorismen und Pläne zu Also sprach Zarathustra III und IV; Entwürfe zu Ecce homo und Nietzsche contra Wagner",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75239",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75239",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/139"
+            },
+            {
+              "scheme": "Mette",
+              "value": "Z II 1"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Z-II-1"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "116 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75239/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Mixed notebook route linking earlier Zarathustra work and later Ecce Homo/Nietzsche contra Wagner drafts. Its mixed chronology and work membership must remain explicit.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image or source-text payload was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-165-w-ii-9",
+          "rank": 6,
+          "title_as_displayed": "Entwürfe zu Götzen-Dämmerung und Ecce homo",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75274",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75274",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/165"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 9"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "W-II-9"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "138 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75274/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to the notebook containing an early Ecce Homo compositional stage. One Peter Gast leaf is separately recorded from Nietzsche's hand.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image or source-text payload was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-166-w-ii-10",
+          "rank": 7,
+          "title_as_displayed": "Entwürfe zu Dionysos-Dithyramben und Ecce homo; Plan zu Nietzsche contra Wagner",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75275",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75275",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/166"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 10"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "W-II-10"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "218 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75275/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to the late notebook containing Ecce Homo and adjacent last-work drafts through early January 1889. Three leaves in an additional hand remain separately described.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image or source-text payload was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-232-mp-xvi",
+          "rank": 8,
+          "title_as_displayed": "Aufzeichnungen zu Zur Genealogie der Moral, Götzen-Dämmerung, Ecce homo und Nietzsche contra Wagner",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:212283",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:212283",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/232"
+            },
+            {
+              "scheme": "Mette",
+              "value": "Mp XVI 1-6"
+            },
+            {
+              "scheme": "DFGA metadata",
+              "value": "Mp-XVI-1, Mp-XVI-2a, Mp-XVI-3, Mp-XVI-4, Mp-XVI-5, Mp-XVI-6"
+            },
+            {
+              "scheme": "ORES outgoing link conflict",
+              "value": "Mp-XVI-2b"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "232 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/212283/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Mixed loose-leaf complex with a 36-leaf Mp XVI 5 subdivision explicitly assigned to Antichrist and Ecce Homo. The record's metadata names Mp-XVI-2a while its outgoing DFGA link names Mp-XVI-2b; both are preserved pending reconciliation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image or source-text payload was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-31-dionysos-dithyramben-d24",
+          "rank": 9,
+          "title_as_displayed": "Dionysos-Dithyramben",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75104",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75104",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/31"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75104"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 24"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "48 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75104/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "reject",
+          "rationale": "Current official ORES identifies 71/31 as D 24, Dionysos-Dithyramben. It is retained as the exact control disproving its use as the D 25 Ecce Homo print-manuscript shelfmark, despite that signature appearing in figure captions of a recent study.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current official record was inspected only to preserve the identifier conflict."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dfga-ecce-homo",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Nietzsche Source Digitale Faksimile Gesamtausgabe",
+      "endpoint_url": "http://www.nietzschesource.org/DFGA/D-25",
+      "interface_type": "api",
+      "interface_version": "DFGA API and Muruca application as served 2026-07-30; current application revision b72dd01",
+      "exact_query": "GET /DFGAapi/api/fe/book/{D-25,D-25a,Z-II-1,W-II-9,W-II-10,Mp-XVI-1,Mp-XVI-2a,Mp-XVI-2b,Mp-XVI-3,Mp-XVI-4,Mp-XVI-5,Mp-XVI-6}; direct HTTP only because current HTTPS connection failed",
+      "queried_at": "2026-07-30T11:32:20-06:00",
+      "elapsed_seconds": 10.82,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dfga-d25",
+          "rank": 1,
+          "title_as_displayed": "D-25",
+          "result_url": "http://www.nietzschesource.org/DFGA/D-25",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/D-25",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "D-25"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/32"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "111 image records",
+            "121 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; scope and interaction with the GSA record require reconciliation.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "DFGA gives the strongest current digital codicological description of Nietzsche's print-ready manuscript, including sheet formats, pasted/cut construction, and authorial pagination. The API marks the book non-public even though metadata and miniature-image routes respond, so access is not converted into permission.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-d25a",
+          "rank": 2,
+          "title_as_displayed": "D-25a",
+          "result_url": "http://www.nietzschesource.org/DFGA/D-25a",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/D-25a",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "D-25a"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/33"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "69 image records",
+            "203 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; scope and interaction with the GSA record require reconciliation.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "DFGA identifies the gilt-edged 124-page quarto notebook in Köselitz's hand and gives chapter-level page ranges. The API marks the book non-public; no accessibility or rights inference follows from responding metadata.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-z-ii-1",
+          "rank": 3,
+          "title_as_displayed": "Z-II-1",
+          "result_url": "http://www.nietzschesource.org/DFGA/Z-II-1",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/Z-II-1",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "Z-II-1"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/139"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "59 image records",
+            "173 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; exact downstream reuse remains unresolved.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Publicly flagged DFGA notebook route for mixed Zarathustra and late Ecce Homo/Nietzsche contra Wagner draft layers.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-w-ii-9",
+          "rank": 4,
+          "title_as_displayed": "W-II-9",
+          "result_url": "http://www.nietzschesource.org/DFGA/W-II-9",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/W-II-9",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "W-II-9"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/165"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "69 image records",
+            "203 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; exact downstream reuse remains unresolved.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "DFGA route to the notebook containing the earliest distinguishable Ecce Homo compositional stage. The API marks it non-public.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-w-ii-10",
+          "rank": 5,
+          "title_as_displayed": "W-II-10",
+          "result_url": "http://www.nietzschesource.org/DFGA/W-II-10",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/W-II-10",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "W-II-10"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/166"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "111 image records",
+            "325 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; exact downstream reuse remains unresolved.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Publicly flagged DFGA route to late Ecce Homo, Dionysos-Dithyramben, and Nietzsche contra Wagner drafts through the beginning of January 1889.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-mp-xvi-1-6",
+          "rank": 6,
+          "title_as_displayed": "Mp-XVI-1 — Mp-XVI-6",
+          "result_url": "http://www.nietzschesource.org/DFGA/Mp-XVI-1",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/Mp-XVI-1",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-1"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-2a"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-2b"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-3"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-4"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-5"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Mp-XVI-6"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/232"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "218 image records across seven current API books",
+            "246 logical image identifiers across seven current API books",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source's rights page states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; exact downstream reuse remains unresolved.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact current API exposes both Mp-XVI-2a and Mp-XVI-2b as distinct non-public books. This prevents silently resolving the ORES metadata/link conflict and preserves the full loose-leaf route, especially Mp-XVI-5 for Antichrist and Ecce Homo.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, manuscript image, or source text was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ekgwb-ecce-homo",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche Source eKGWB",
+      "endpoint_url": "http://www.nietzschesource.org/eKGWB/EH",
+      "interface_type": "api",
+      "interface_version": "Static HTML include as served 2026-07-30; official edition documentation currently unreachable from this machine",
+      "exact_query": "Three bounded GET requests to /resources/scripts/static_html_include.php?book=%23eKGWB%2FEH plus stable-anchor enumeration; HTTPS failed and no transport bypass was used",
+      "queried_at": "2026-07-30T11:32:25-06:00",
+      "elapsed_seconds": 4.69,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ekgwb-ecce-homo",
+          "rank": 1,
+          "title_as_displayed": "eKGWB/EH",
+          "result_url": "http://www.nietzschesource.org/eKGWB/EH",
+          "originating_record_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FEH",
+          "identifiers": [
+            {
+              "scheme": "eKGWB book siglum",
+              "value": "EH"
+            },
+            {
+              "scheme": "observed response SHA-256",
+              "value": "eb883ca5d2898677a174de390517b72acd12af11efa3dabe28a57f08e1e51e72"
+            }
+          ],
+          "available_formats": [
+            "critical-edition HTML",
+            "74 stable content blocks",
+            "2 correction popups"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source declares CC BY-NC-ND 4.0 for its content.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current critical comparison route with stable EH section anchors from the preface through EH-Schicksal-9. Three bounded responses were byte-identical at 283824 bytes, but transport is unauthenticated HTTP and no response body was retained or admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the observed response size, digest, stable-anchor family, and transport posture are retained; no source text was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-kalliope-ecce-homo",
+      "sequence": 4,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Kalliope union catalog GSA Nietzsche finding aid",
+      "endpoint_url": "https://kalliope-verbund.info/findingaid?fa.enum=375&fa.id=DE-2060-BE-71&htmlFull=false&lang=de&lastparam=true&q.page=1",
+      "interface_type": "web",
+      "interface_version": "Kalliope finding aid as served 2026-07-30",
+      "exact_query": "Finding-aid search within DE-2060-BE-71 for Mette D 25 and D 25a; verify shelfmarks and leaf counts",
+      "queried_at": "2026-07-30T11:14:00-06:00",
+      "elapsed_seconds": 3.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.kalliope-gsa-71-32-d25",
+          "rank": 1,
+          "title_as_displayed": "D 25: Ecce homo",
+          "result_url": "https://kalliope-verbund.info/findingaid?fa.enum=375&fa.id=DE-2060-BE-71&htmlFull=false&lang=de&lastparam=true&q.page=1",
+          "originating_record_url": "https://kalliope-verbund.info/findingaid?fa.enum=375&fa.id=DE-2060-BE-71&htmlFull=false&lang=de&lastparam=true&q.page=1",
+          "identifiers": [
+            {
+              "scheme": "Kalliope holding",
+              "value": "DE-2060"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/32"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 25"
+            }
+          ],
+          "available_formats": [
+            "EAD-derived finding aid metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "Independent national-union-catalog corroboration of GSA 71/32, D 25, and 58 leaves. ORES remains the originating current archive record.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No finding-aid body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kalliope-gsa-71-33-d25a",
+          "rank": 2,
+          "title_as_displayed": "D 25a: Ecce homo",
+          "result_url": "https://kalliope-verbund.info/findingaid?fa.enum=375&fa.id=DE-2060-BE-71&htmlFull=false&lang=de&lastparam=true&q.page=1",
+          "originating_record_url": "https://kalliope-verbund.info/findingaid?fa.enum=375&fa.id=DE-2060-BE-71&htmlFull=false&lang=de&lastparam=true&q.page=1",
+          "identifiers": [
+            {
+              "scheme": "Kalliope holding",
+              "value": "DE-2060"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/33"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 25a"
+            }
+          ],
+          "available_formats": [
+            "EAD-derived finding aid metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "Independent national-union-catalog corroboration of GSA 71/33, D 25a, and 63 leaves. ORES remains the originating current archive record.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No finding-aid body was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-ecce-homo-text-history",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften historical-critical Nietzsche commentary",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70914",
+      "interface_type": "web",
+      "interface_version": "Historischer und kritischer Kommentar, volume 6/2, 2013 digitization as served 2026-07-30",
+      "exact_query": "Ecce Homo genesis, manuscript, print-copy, replacement-section, edition-history, and current-shelfmark commentary",
+      "queried_at": "2026-07-30T11:16:00-06:00",
+      "elapsed_seconds": 4.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-ecce-homo-authorial-route",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/2",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0357",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70914",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70914"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bsz:16-diglit-709149"
+            }
+          ],
+          "available_formats": [
+            "digitized scholarly monograph pages",
+            "bibliographic metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.11588/diglit.70914",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established commentary fixes the production and edition-history baseline, explicitly maps D 25 to current GSA 71/32, distinguishes the Köselitz copy and replacement section, and explains why the 1908 print is textually weaker than the Colli/Montinari reconstruction.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The established scholarly route is cited, not copied into the source tree."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-ecce-homo-philology",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Current De Gruyter Brill Nietzsche-Studien and book records",
+      "endpoint_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0001/html",
+      "interface_type": "web",
+      "interface_version": "Publisher records and open articles as served 2026-07-30",
+      "exact_query": "Ecce Homo manuscript chronology, textual transmission, replacement section, paratext, and supposedly 2026 frontier chapter; exact DOI records checked after official and established routes",
+      "queried_at": "2026-07-30T11:20:00-06:00",
+      "elapsed_seconds": 8.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rollin-manuscript-chronology-2024",
+          "rank": 1,
+          "title_as_displayed": "Chronologie der Manuskripte 1885–89. Nachtrag zu KGW IX",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0001/html",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0001"
+            }
+          ],
+          "available_formats": [
+            "open HTML article",
+            "PDF",
+            "publisher metadata"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0",
+            "scope": "content",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0001/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current KGW IX chronological supplement provides inscription-layer chronology and explicit uncertainty law for the late notebooks. For Ecce Homo it supports a staged route from W II 9 through successive print manuscripts and proof/addition phases rather than a single immutable original.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article remains an external scholarly source; no content was copied into the source tree."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.groddeck-lisez-nietzsche-2025-authorial-route",
+          "rank": 2,
+          "title_as_displayed": "„lisez: Nietzsche“. Anmerkungen zu Nietzsches letztem Buch",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0035/html",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2024-0035",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0035"
+            }
+          ],
+          "available_formats": [
+            "open HTML article",
+            "PDF",
+            "publisher metadata"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0",
+            "scope": "content",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0035/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "Fresh philology makes paratext and compositional fragmentation relevant, but its figure captions repeatedly identify D 25 as GSA 71/31. Current ORES, Kalliope, and HAdW identify D 25 as 71/32 and 71/31 as D 24; the conflict is retained rather than silently corrected.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article remains an external scholarly source; no content was copied into the source tree."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.rollin-post-fuer-nietzsche-dionysos-2025",
+          "rank": 3,
+          "title_as_displayed": "Post für Nietzsche Dionysos. Zu Ecce homo, Warum ich so weise bin 3",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2025-0024/html",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2025-0024",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2025-0024"
+            }
+          ],
+          "available_formats": [
+            "open HTML article",
+            "PDF",
+            "publisher metadata"
+          ],
+          "declared_rights": {
+            "statement": "CC BY 4.0",
+            "scope": "content",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2025-0024/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh evidence grounds the surviving Köselitz copy of the lost replacement section and revises its likely composition from late December 1888 toward early January 1889. This creates a versioned chronology claim, not authority to rewrite the archive description.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article remains an external scholarly source; no content was copied into the source tree."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.parkhurst-ecce-homo-duplicates-2022",
+          "rank": 4,
+          "title_as_displayed": "Ecce Homo – Notes on Duplicates: The Great Politics of the Self",
+          "result_url": "https://www.degruyterbrill.com/document/doi/10.1515/9783110688436-006/pdf?licenseType=restricted",
+          "originating_record_url": "https://doi.org/10.1515/9783110688436-006",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110688436-006"
+            }
+          ],
+          "available_formats": [
+            "publisher abstract",
+            "restricted chapter"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/9783110688436-006",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The self-quotation thesis is relevant to later semantic work, but the publisher record identifies this as a 2022 chapter, not a fresh 2026 study. A 2026 copyright/download stamp on the restricted surface was previously mistaken for publication freshness; only the abstract is retained as a non-source lead and no bypass occurred.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The chapter is restricted and no access control was bypassed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-ecce-homo-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search used only after direct official, catalog, established, and current publisher routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"GSA 71/32\" \"Ecce homo\"; \"10.1515/nietzstu-2025-0024\"; \"10.1515/nietzstu-2024-0001\"; all claims re-opened at originating records",
+      "queried_at": "2026-07-30T11:23:00-06:00",
+      "elapsed_seconds": 3.4,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-ecce-homo",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 18,
+      "machine_seconds": 14.57,
+      "notes": "Authoritative current holding records and exact IIIF object counts; manifest Public Domain labels and general publication rules must remain separate."
+    },
+    {
+      "channel_id": "channel-dfga-ecce-homo",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 14,
+      "machine_seconds": 10.82,
+      "notes": "Best codicological and facsimile cross-route, but current access is HTTP-only and public flags, responding APIs, site rights, and GSA rights are not equivalent."
+    },
+    {
+      "channel_id": "channel-ekgwb-ecce-homo",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 8,
+      "machine_seconds": 4.69,
+      "notes": "Stable section-address route to the current critical text; unauthenticated HTTP and no admitted payload."
+    },
+    {
+      "channel_id": "channel-kalliope-ecce-homo",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 4,
+      "machine_seconds": 3.1,
+      "notes": "Independent current corroboration of D 25 = 71/32 and D 25a = 71/33; not the digital-object owner."
+    },
+    {
+      "channel_id": "channel-hadw-ecce-homo-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 15,
+      "machine_seconds": 4.3,
+      "notes": "Established production and edition-history baseline connecting archive records to Colli/Montinari."
+    },
+    {
+      "channel_id": "channel-current-ecce-homo-philology",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 22,
+      "machine_seconds": 8.6,
+      "notes": "Current chronology and replacement-section research materially improve the route; one current signature conflict and one false freshness label remain explicit."
+    },
+    {
+      "channel_id": "channel-general-web-ecce-homo-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3,
+      "machine_seconds": 3.4,
+      "notes": "Used last for discovery only; no search-result claim was imported without reopening the originating record."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-71-32-ecce-homo-d25",
+    "tos-discovery-result.gsa-71-33-ecce-homo-d25a",
+    "tos-discovery-result.gsa-102-734-ecce-homo-replacement-copy",
+    "tos-discovery-result.gsa-71-139-z-ii-1",
+    "tos-discovery-result.gsa-71-165-w-ii-9",
+    "tos-discovery-result.gsa-71-166-w-ii-10",
+    "tos-discovery-result.gsa-71-232-mp-xvi",
+    "tos-discovery-result.dfga-d25",
+    "tos-discovery-result.dfga-d25a",
+    "tos-discovery-result.dfga-z-ii-1",
+    "tos-discovery-result.dfga-w-ii-9",
+    "tos-discovery-result.dfga-w-ii-10",
+    "tos-discovery-result.dfga-mp-xvi-1-6",
+    "tos-discovery-result.ekgwb-ecce-homo",
+    "tos-discovery-result.hadw-sommer-ecce-homo-authorial-route",
+    "tos-discovery-result.rollin-manuscript-chronology-2024",
+    "tos-discovery-result.rollin-post-fuer-nietzsche-dionysos-2025"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.gsa-71-31-dionysos-dithyramben-d24"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T11:05:00-06:00",
+  "ended_at": "2026-07-30T11:33:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.ecce-homo.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

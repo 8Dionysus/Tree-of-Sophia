@@ -103,3 +103,15 @@ The run preserves Internet Archive metadata contamination, the edition's
 known editorial risk, and the absence of an accepted Wikisource transcription
 for *Der Antichrist*. It accepts neither provider OCR nor the 1906 text as the
 manuscript, 1895 first printing, critical text, or publishable German.
+
+`ecce-homo-authorial-witness-route.2026-07-30.v1.json` follows the 1908
+publication witness into the current archive and critical-edition route. It
+resolves GSA 71/32 = D 25, GSA 71/33 = D 25a, the Peter-Gast-estate
+replacement copy, the undigitized deletions/change file, four related
+notebook/loose-leaf complexes, their DFGA books, and the 74-block eKGWB
+critical address family. It preserves the fresh-article `71/31` conflict, the
+ORES `Mp-XVI-2a`/`2b` conflict, the GSA manifest/general-regulations rights
+scope split, HTTP-only Nietzsche Source transport, and a false 2026-freshness
+label that resolves bibliographically to a 2022 chapter. No manuscript image,
+critical text, metadata snapshot, access request, paid order, source item,
+accepted German, or semantic object is created.

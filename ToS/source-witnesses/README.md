@@ -253,6 +253,18 @@ positive but US-scoped evidence; van de Velde's binding and ornaments and the
 other object layers remain unreviewed. The local PDF is not a future-site
 upload source.
 
+The metadata-only authorial follow-up gives that publication witness an exact
+upstream and critical comparison route without pretending ToS holds the
+remote objects. Current GSA ORES resolves Nietzsche's D 25 print manuscript
+as `GSA 71/32`, the Köselitz/Peter Gast D 25a copy as `GSA 71/33`, the
+surviving replacement-section copy as `GSA 102/734`, the undigitized
+deletions/change file as `GSA 102/735`, and four relevant notebook/loose-leaf
+complexes. DFGA supplies matching book identities; eKGWB supplies stable
+critical section addresses. Since no payload was acquired, no new
+Expression/Edition/Item branch is manufactured. The route admits only remote
+identity and provenance evidence, not author-final reconstruction, accepted
+German, rights clearance, or publication.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

@@ -106,9 +106,16 @@ contracts intentionally reject simulated human evidence.
   Nietzsche's work through printed page 130 and Richter's separately titled
   afterword from printed page 133. It is not Nietzsche's lost author-approved
   state, Montinari's reconstruction, accepted OCR or German, a passage anchor
-  set, or semantic gold. The next source-quality gap is a stronger
-  manuscript/author-proof/critical route, not another convenient standalone
-  scan.
+  set, or semantic gold.
+- The stronger *Ecce Homo* manuscript/author-proof/critical route is now
+  resolved at metadata level through current GSA ORES, DFGA, eKGWB, Kalliope,
+  HAdW, and 2024-2025 philology. It distinguishes D 25 (`GSA 71/32`), D 25a
+  (`GSA 71/33`), the surviving replacement-section copy, the undigitized
+  deletions/change file, and four related draft complexes. It acquires no
+  payload and therefore creates no false Item, accepted text, leaf/region
+  collation, author-final reconstruction, translation lane, or semantic gold.
+  One exact future question and reconciled acquisition/rights scope must
+  precede any bounded manuscript comparison.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -170,6 +177,15 @@ contracts intentionally reject simulated human evidence.
   Getty scan, Internet Archive lineage, Commons revision, embedded OCR, and
   future derivatives remain separately reviewable. The operator-held PDF
   stays local and its server plan remains metadata-only.
+- The exact GSA IIIF manifests for the selected *Ecce Homo* manuscript route
+  declare their digital objects `Public Domain`, while the general GSA usage
+  regulations require prior approval for reproduction use beyond personal
+  use, especially publication. Nietzsche Source separately states
+  CC BY-NC-ND 4.0 and describes a DFGA non-commercial-derivative agreement.
+  Current DFGA/eKGWB access is HTTP-only from this machine. These are
+  source- and layer-specific facts, not a combined publication grant. No GSA
+  or Nietzsche Source source body is held by ToS; public payload, quotation,
+  transcription, derivative, and server routes remain closed.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
