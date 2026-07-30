@@ -36,6 +36,15 @@ its early-region / print-manuscript / publication-critical stages are not the
 golden-kernel A/B/C variants. It opens no text processing, semantic work,
 transfer unit, or human review by itself.
 
+The new *Genealogie* route now separates region-only W II 1 evidence, D 20a
+and D 20b (`GSA 71/27,1` and `71/27,2`), partial K 11/C 4616 correction
+sheets, the 1887 E 40 first print, unresolved later copies, the existing 1892
+second-edition Item, and critical addresses. The December 2025 Basel
+documentary edition supplies exact source-surface navigation, not another
+historical witness or reusable ToS source body. These named stages are neither
+golden-kernel A/B/C variants nor eligible transfer units; the route opens no
+text processing, semantic work, or human review by itself.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -96,6 +105,15 @@ contracts intentionally reject simulated human evidence.
   expression. They do not establish the 1887 first-edition text, accept its
   embedded OCR or German, create passage anchors, or make the work eligible
   for transfer A/B/C.
+- The stronger *Genealogie* print-manuscript/correction/first-print/critical
+  route is now resolved at metadata level through GSA ORES/Kalliope, HAAB,
+  the University of Basel documentary edition, Nietzsche Source, HAdW, and
+  current research. It keeps D 20a/D 20b, partial K 11/C 4616, E 40, the
+  unresolved C 4620/C 4621/unnamed hand-copy layer, and the existing 1892
+  Item distinct. It acquires no remote payload and therefore creates no false
+  Item, accepted German, source-surface collation, author-final reconstruction,
+  translation lane, semantic gold, or transfer unit. One exact question and
+  reconciled source/rights/competence gates must precede a bounded comparison.
 - The acquired Commons/Stanford *Nietzsche's Werke*, Band VIII DjVu is an
   exact source-visible 1906 aggregate witness containing *Der Antichrist*.
   Its 523-page text-free inventory and proposed scan-page range 228-329
@@ -342,6 +360,13 @@ eKGWB, e-rara, established genesis scholarship, and 2024-2025 textual-genetic
 work now connect exact witness identities without admitting source content.
 The 2026 freshness search found no D 18 identity change; the current
 Nietzsche Source timeout is preserved beside the earlier bounded observation.
+The second cross-work route was then refreshed in
+`GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md`: current GSA/Kalliope, HAAB, the
+Basel D 20/K 11/E 40 edition, Nietzsche Source, HAdW, and 2024-2026 research
+now connect exact documentary stages without admitting source content. The
+Basel edition first became freely viewable in December 2025 and is the
+freshest direct philological result; no 2026 publication changing those
+witness identities was found, and the current eKGWB request timed out.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:
@@ -655,11 +680,14 @@ from the calibration-only route in section 2b.
    candidates. Advance a printed passage to admitted text anchors only
    through the German source gate and only when a bounded question requires
    it. *Zur Genealogie der Moral* is separately promoted beyond provisional
-   collection membership through its exact 1892 second-edition item, but
-   still needs admitted German and exact passage anchors. *Der Antichrist*
-   likewise has an exact-source discovery receipt and a 1906 aggregate route
-   with proposed member boundaries, but still needs an explicitly justified
-   witness, admitted German, and exact passage anchors.
+   collection membership through its exact 1892 second-edition Item and now
+   has a metadata-only D 20a/D 20b -> partial K 11/C 4616 -> E 40 -> later
+   print/critical route. Those named documentary stages are not transfer
+   variants, admitted text, or target gold; an exact source-surface question,
+   rights, German competence, and passage anchors remain necessary.
+   *Der Antichrist* likewise has an exact-source discovery receipt and a 1906
+   aggregate route with proposed member boundaries, but still needs an
+   explicitly justified witness, admitted German, and exact passage anchors.
 3. If the user deliberately activates the transfer experiment, advance the
    twenty already frozen private page candidates into exact source-visible
    target passages and target gold without viewing variant outputs. Introduce

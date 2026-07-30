@@ -29,8 +29,11 @@ The valid result is therefore a stopped result before execution:
 - retain the exact *Jenseits* §22 route from W I 7 through D 18 to the
   publication/critical comparison as separate textual-genetic source soil,
   outside both the twenty-page sampling frame and the A/B/C transfer variants;
-- retain the exact 1892 second-edition *Genealogie* source item as stronger
-  source soil without treating it as accepted text or target gold;
+- retain the *Genealogie* route from region-only W II 1 evidence through
+  split D 20a/D 20b, partial K 11/C 4616, E 40, unresolved later copies, and
+  the exact 1892 second-edition source Item as stronger source soil without
+  treating documentary stages as transfer variants, accepted text, or target
+  gold;
 - retain the exact 1906 aggregate witness and proposed *Antichrist* member
   boundary as stronger source soil without treating that archive-edition text
   as accepted, critical, or target gold;
@@ -155,11 +158,34 @@ Only a later deliberately versioned transfer plan could decide whether an
 admitted §22 passage belongs in a new target sampling frame. The present v1
 plan remains frozen and `blocked-not-run`.
 
-*Zur Genealogie der Moral* now additionally has a distinct exact German
-source-witness route for the 1892 second Naumann edition. That route does not
-alter the status of the Russian collection page, establish a translation
-relation, supply an admitted passage, or make any of the six prepared
-*Genealogie* target pages eligible for variant execution.
+### Separate *Genealogie* documentary route
+
+*Zur Genealogie der Moral* now has both a distinct exact German source-witness
+Item for the 1892 second Naumann edition and a metadata-only upstream route:
+
+```text
+bounded W II 1 regions
+  -> D 20a / D 20b print manuscript
+    -> partial K 11 / HAAB C 4616 correction sheets
+      -> E 40 Naumann 1887 first print
+        -> unresolved later-copy layer
+          -> 1892 second-edition Item
+            -> critical addresses
+```
+
+The December 2025 Basel documentary edition exposes D 20, K 11, and E 40
+separately and supplies exact source-surface navigation. It is a remote
+scholarly representation, not a historical physical witness, a local Item, or
+an admitted source body. C 4616 is partial; W II 1 is mixed; and the 1887
+first print, 1892 second edition, and critical text are not equivalent.
+
+These documentary stages are deliberately named, not lettered. Reusing A/B/C
+would conflate textual genesis with **A = no kernel**, **B = method only**, and
+**C = reviewed Zarathustra kernel**. The *Genealogie* route does not modify or
+supersede `transfer-samples.json`, replace one of its frozen pages, alter its
+quotas, or make any of the six prepared *Genealogie* candidates eligible.
+It establishes no translation relation, admitted passage, target gold, sign,
+semantic claim, human task, or transfer result.
 
 *Der Antichrist* now likewise has a distinct exact historical German route
 through the 1906 Naumann aggregate, with a fixity-bound 523-page DjVu

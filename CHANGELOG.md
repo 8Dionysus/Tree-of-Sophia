@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Zur Genealogie der Moral* authorial and critical
+  route through current GSA ORES/Kalliope, HAAB correction evidence, the
+  University of Basel D 20/K 11/E 40 documentary edition, DFGA/eKGWB,
+  established HAdW/genetic research, and 2024-2026 freshness evidence. It
+  preserves region-only W II 1 attribution, split D 20a/D 20b responsibility,
+  partial C 4616 coverage, unresolved later copies, first-print versus 1892
+  versus critical-text separation, the current Nietzsche Source timeout, and
+  open-view/rights asymmetries. The named document stages remain outside the
+  frozen transfer A/B/C variants and create no remote Item, source payload,
+  accepted German, semantic or transfer unit, human backlog, or publication
+  permission.
 - Added the metadata-only *Jenseits von Gut und Böse* authorial and critical
   route through current GSA ORES/Kalliope, HAAB correction witnesses, DFGA,
   eKGWB, an independent e-rara first print, established genesis scholarship,

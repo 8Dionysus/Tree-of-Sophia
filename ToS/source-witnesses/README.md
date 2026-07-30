@@ -288,6 +288,16 @@ The deferred §22 route may open only for a concrete source-visible question
 with rights and German-competence gates; it does not create a whole-notebook
 membership claim, source text, semantic edge, duplicate Item, or human queue.
 
+The second transfer work, *Zur Genealogie der Moral*, now has its own
+metadata-only documentary route. It keeps region-only W II 1 evidence, D 20a
+and D 20b, partial K 11/C 4616 correction sheets, E 40, unresolved later
+copies, the existing 1892 second-edition Item, and critical addresses
+distinct. The December 2025 Basel edition is registered as a remote scholarly
+representation with source-surface navigation, not another historical witness
+or a local Item. No open viewer, IIIF placeholder, or digital-edition route
+admits its source body, collapses responsibility, creates transfer A/B/C, or
+opens a human queue.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

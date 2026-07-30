@@ -1,0 +1,954 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.genealogie-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf"
+    ],
+    "description": "An exact, responsibility-aware route from bounded preparatory regions through D 20a/D 20b, partial correction sheets K 11, the 1887 first print E 40, unresolved hand-copy evidence, the existing 1892 second-edition Item, and critical addresses.",
+    "required_properties": [
+      "current archive, library, digital-edition, and critical-address routes",
+      "D 20a and D 20b retained as distinct archive objects",
+      "partial correction-sheet evidence not generalized to missing sheets",
+      "W II 1 admitted only through exact source-backed regions",
+      "Nietzsche, Louise Roeder-Wiederhold, and Heinrich Koeselitz responsibilities kept distinct",
+      "1887 first print, 1892 second edition, and critical text not collapsed",
+      "digital-edition access and reusable-content rights recorded separately",
+      "official evidence checked before established and fresh scholarship",
+      "no source text, image, XML, OCR, semantics, or human task admitted"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "an independently held 1887 first-print object with clear exact-object reuse evidence"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "archival metadata",
+      "library catalog",
+      "IIIF Presentation 2",
+      "digital scholarly edition",
+      "print manuscript",
+      "correction sheets",
+      "historical print",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "research publication"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-genealogie-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES and Kalliope",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75094",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records, Kalliope EAD SRU, and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Direct ORES record and manifest reconciliation for GSA 71/27,1, GSA 71/27,2, and GSA 71/157; exact Kalliope SRU queries ead.unitid=\"GSA 71/27,1\" and ead.unitid=\"GSA 71/27,2\"; no image-service requests",
+      "queried_at": "2026-07-30T15:35:00-06:00",
+      "elapsed_seconds": 2.113421,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-71-27-1-genealogie-d20a",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral: Titel, Vorrede, Abhandlung I und II",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75094",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75094",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/27,1"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75094"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 20"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-20a"
+            },
+            {
+              "scheme": "Kalliope",
+              "value": "DE-2060-BE-71-75094"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope EAD record",
+            "IIIF Presentation 2 manifest",
+            "82 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES IIIF manifest declares the digitized object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75094/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to the 41-leaf D 20a print manuscript containing title, preface, Treatise I, and Treatise II, chiefly in Nietzsche's hand with separately recorded corrections by Louise Roeder-Wiederhold and Peter Gast.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live record and manifest metadata were inspected; no manuscript image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-27-2-genealogie-d20b",
+          "rank": 2,
+          "title_as_displayed": "Zur Genealogie der Moral: Abhandlung III und Inhalt",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75097",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75097",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/27,2"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75097"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 20"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-20b"
+            },
+            {
+              "scheme": "Kalliope",
+              "value": "DE-2060-BE-71-75097"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope EAD record",
+            "IIIF Presentation 2 manifest",
+            "141 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES IIIF manifest declares the digitized object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75097/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to the 70-leaf D 20b print manuscript containing Treatise III and the contents, in Nietzsche's hand with separately recorded corrections by Peter Gast.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live record and manifest metadata were inspected; no manuscript image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-157-genealogie-wii1-regions",
+          "rank": 3,
+          "title_as_displayed": "Plaene und Aphorismen aus der Umwertungszeit",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75266",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75266",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/157"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75266"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 1"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "W-II-1"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "150 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES IIIF manifest declares the digitized object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75266/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Mixed 1887-1888 notebook route. Only source-backed regions such as the title design may be connected to Genealogie; whole-notebook work membership is prohibited.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact record and manifest metadata were inspected."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-haab-genealogie-correction-copies",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Herzogin Anna Amalia Bibliothek catalog and digital collections",
+      "endpoint_url": "https://haab-digital.klassik-stiftung.de/viewer/metsresolver?id=1649471971",
+      "interface_type": "iiif",
+      "interface_version": "HAAB METS/MODS and IIIF Presentation manifest as served 2026-07-30",
+      "exact_query": "Direct EPN 1649471971, PPN 307154114, shelfmark C 4616 reconciliation; historical-critical cross-check of C 4620, C 4621, and unnamed Handexemplar; no image-service requests",
+      "queried_at": "2026-07-30T15:35:05-06:00",
+      "elapsed_seconds": 1.204718,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.haab-c4616-genealogie-correction-sheets",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral [Korrekturbogenexemplar]",
+          "result_url": "https://haab-digital.klassik-stiftung.de/viewer/api/v1/records/1649471971/manifest/",
+          "originating_record_url": "https://haab-digital.klassik-stiftung.de/viewer/metsresolver?id=1649471971",
+          "identifiers": [
+            {
+              "scheme": "HAAB shelfmark",
+              "value": "C 4616"
+            },
+            {
+              "scheme": "PPN",
+              "value": "307154114"
+            },
+            {
+              "scheme": "EPN",
+              "value": "1649471971"
+            },
+            {
+              "scheme": "GBV EPN",
+              "value": "547711808"
+            }
+          ],
+          "available_formats": [
+            "METS/MODS metadata",
+            "digital viewer",
+            "IIIF Presentation manifest",
+            "55 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The IIIF license field is the literal placeholder iiif_license; the METS/MODS record states InC 1.0 and Alle Rechte vorbehalten.",
+            "scope": "unknown",
+            "evidence_url": "https://haab-digital.klassik-stiftung.de/viewer/metsresolver?id=1649471971",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route to a partial correction-sheet copy preserving pages 1-16 and 145-160, duplicated sheet 1, one handwritten leaf, Nietzsche provenance, and multiple responsibility layers. It cannot stand for all corrections.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Catalog and manifest metadata were inspected; no page image or source body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.haab-genealogie-unresolved-hand-copy-layer",
+          "rank": 2,
+          "title_as_displayed": "C 4620, C 4621, and unnamed Handexemplar",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2/0023",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2/0023",
+          "identifiers": [
+            {
+              "scheme": "HAAB shelfmark",
+              "value": "C 4620"
+            },
+            {
+              "scheme": "HAAB shelfmark",
+              "value": "C 4621"
+            }
+          ],
+          "available_formats": [
+            "historical-critical commentary",
+            "library-copy status"
+          ],
+          "declared_rights": {
+            "statement": "The HAdW commentary is in copyright; this result records copy-status claims only.",
+            "scope": "content",
+            "evidence_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2/0023",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "C 4620 is reported without Nietzsche reading traces; C 4621 was reported missing as of 2018; Montinari's unnamed hand copy has no settled shelfmark. No synthetic witness or Item is created.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the bounded scholarly copy-status evidence was recorded."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-basel-genealogie-documentary-edition",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "University of Basel Nietzsche Edition, Im Schreib-Druck",
+      "endpoint_url": "https://nietzsche.philhist.unibas.ch/gm/",
+      "interface_type": "web",
+      "interface_version": "Public digital edition and static metadata registry as served 2026-07-30",
+      "exact_query": "Direct inspection of project page, GM edition landing page, data.json object registry, D 20/K 11/E 40 structural indexes, appendix, timeline, and concordance; no XML or facsimile body acquisition",
+      "queried_at": "2026-07-30T15:35:10-06:00",
+      "elapsed_seconds": 1.457936,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.basel-genealogie-d20-k11-e40-edition",
+          "rank": 1,
+          "title_as_displayed": "Zur Genealogie der Moral (1887). Druckdokumente",
+          "result_url": "https://nietzsche.philhist.unibas.ch/gm/",
+          "originating_record_url": "https://germanistik.philhist.unibas.ch/de/forschung/forschungsprojekte/ndl/im-schreib-druck/",
+          "identifiers": [
+            {
+              "scheme": "Basel data object",
+              "value": "D20.xml"
+            },
+            {
+              "scheme": "Basel data object",
+              "value": "K11.xml"
+            },
+            {
+              "scheme": "Basel data object",
+              "value": "E40.xml"
+            }
+          ],
+          "available_formats": [
+            "digital scholarly edition",
+            "document-surface indexes",
+            "concordance",
+            "timeline",
+            "appendix metadata",
+            "static object registry"
+          ],
+          "declared_rights": {
+            "statement": "The edition is freely viewable; no explicit reusable-content license was found on the inspected edition and project pages.",
+            "scope": "unknown",
+            "evidence_url": "https://nietzsche.philhist.unibas.ch/gm/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest direct documentary edition. It keeps D 20, K 11, and E 40 distinct and maps manuscript surfaces to printed sections, making it the strongest future crosswalk route without becoming a historical witness or local Item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only live public metadata and navigation were inspected; no XML, text, image, or site snapshot was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.basel-genealogie-d20-surface-index",
+          "rank": 2,
+          "title_as_displayed": "Zur Genealogie der Moral. Druckmanuskript D 20",
+          "result_url": "https://nietzsche.philhist.unibas.ch/dm/index.html",
+          "originating_record_url": "https://nietzsche.philhist.unibas.ch/gm/",
+          "identifiers": [
+            {
+              "scheme": "Basel source-surface family",
+              "value": "a1r-a41r; b1r-b69r"
+            }
+          ],
+          "available_formats": [
+            "source-surface navigation",
+            "section crosswalk",
+            "addition and correction labels"
+          ],
+          "declared_rights": {
+            "statement": "No explicit reusable-content license was found; navigation availability is not permission to ingest the displayed transcription.",
+            "scope": "unknown",
+            "evidence_url": "https://nietzsche.philhist.unibas.ch/dm/index.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact surface-to-section route, including manuscript additions, pre-stages, and corrections to print sheets. It can support future address crosswalks without flattening genesis.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No displayed transcription or source-bearing payload was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-genealogie-critical-route",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Nietzsche Source DFGA and eKGWB",
+      "endpoint_url": "http://www.nietzschesource.org/eKGWB/GM",
+      "interface_type": "web",
+      "interface_version": "DFGA/eKGWB routes and rights documentation checked 2026-07-30",
+      "exact_query": "Direct DFGA/D-20a, DFGA/D-20b, eKGWB/GM, and static include request for book=#eKGWB/GM with 30-second timeout; rights page checked separately",
+      "queried_at": "2026-07-30T15:35:15-06:00",
+      "elapsed_seconds": 30.000875,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-genealogie-d20-critical-routes",
+          "rank": 1,
+          "title_as_displayed": "DFGA D-20a, D-20b and eKGWB GM",
+          "result_url": "http://www.nietzschesource.org/eKGWB/GM",
+          "originating_record_url": "https://doc.nietzschesource.org/en/rights",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "D-20a"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-20b"
+            },
+            {
+              "scheme": "eKGWB",
+              "value": "GM"
+            }
+          ],
+          "available_formats": [
+            "facsimile application route",
+            "critical-edition route",
+            "rights documentation"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source documents CC BY-NC-ND 4.0 for its content and a separate agreement for non-commercial DFGA derivatives; those scopes are not combined.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Stable intended facsimile and critical addresses remain useful. The bounded static include request timed out after 30 seconds, so no current body, address count, or text claim was admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The request timed out; no response body or application content was captured."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-genealogie-genetics",
+      "sequence": 5,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Established historical-critical and genetic Genealogie scholarship",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70912",
+      "interface_type": "web",
+      "interface_version": "HAdW and DOI/publisher records as served 2026-07-30",
+      "exact_query": "Established direct studies of Genealogie textual genesis, print history, correction sheets, hand copies, and preface revisions; official identities retained as controlling metadata",
+      "queried_at": "2026-07-30T15:35:50-06:00",
+      "elapsed_seconds": 1.049526,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-genealogie-commentary-2019",
+          "rank": 1,
+          "title_as_displayed": "Kommentar zu Nietzsches Zur Genealogie der Moral",
+          "result_url": "https://doi.org/10.11588/diglit.70912",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70912"
+            },
+            {
+              "scheme": "HAdW commentary",
+              "value": "NK 5/2"
+            }
+          ],
+          "available_formats": [
+            "historical-critical commentary",
+            "bibliographic metadata",
+            "open-view facsimile"
+          ],
+          "declared_rights": {
+            "statement": "The HAdW commentary is in copyright and is used only as scholarship.",
+            "scope": "content",
+            "evidence_url": "https://digi.hadw-bw.de/view/nietzsche_kom5_2",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established control for D 20, C 4616, responsibility, print chronology, executed corrections, and the unresolved later-copy layer.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No commentary body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.parkhurst-genealogie-preface-2022",
+          "rank": 2,
+          "title_as_displayed": "A Genetic Interpretation of the Preface of The Genealogy of Morals",
+          "result_url": "https://doi.org/10.3390/genealogy6040081",
+          "originating_record_url": "https://www.mdpi.com/2313-5778/6/4/81",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.3390/genealogy6040081"
+            }
+          ],
+          "available_formats": [
+            "open-access article",
+            "genetic preface study"
+          ],
+          "declared_rights": {
+            "statement": "The publisher labels the article Open Access; exact article license terms remain article-level evidence rather than source-witness permission.",
+            "scope": "content",
+            "evidence_url": "https://www.mdpi.com/2313-5778/6/4/81",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Leading direct genetic case study of the preface across multiple documentary stages. Its interpretation is not imported as semantic truth and its terminology does not override archive identities.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bibliographic and bounded methodological evidence was recorded."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-genealogie-research",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "mixed",
+      "source_name": "Current Genealogie correspondence, chronology, documentary edition, and method research",
+      "endpoint_url": "https://doi.org/10.1515/nietzstu-2024-0018",
+      "interface_type": "web",
+      "interface_version": "Official DOI, publisher, Basel project, and institutional records as served 2026-07-30",
+      "exact_query": "2024-2026 publications directly relevant to Genealogie textual genesis, responsibility, manuscript chronology, digital edition, and philosophical method; publication dates and exact scope checked",
+      "queried_at": "2026-07-30T15:35:55-06:00",
+      "elapsed_seconds": 1.232914,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.jung-carbone-nietzsche-letters-2024",
+          "rank": 1,
+          "title_as_displayed": "Fuenf noch unveroeffentlichte Briefe Friedrich Nietzsches",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0018",
+          "originating_record_url": "https://www.degruyter.com/document/doi/10.1515/nietzstu-2024-0018/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0018"
+            }
+          ],
+          "available_formats": [
+            "journal article",
+            "document descriptions",
+            "correspondence transcriptions"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution 4.0 International.",
+            "scope": "content",
+            "evidence_url": "https://www.degruyter.com/document/doi/10.1515/nietzstu-2024-0018/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh responsibility and chronology evidence including Nietzsche's letter to Louise Roeder-Wiederhold of 3 August 1887; not a new print-manuscript witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No article or correspondence body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.roellin-manuscript-chronology-2024",
+          "rank": 2,
+          "title_as_displayed": "Chronologie der Manuskripte 1885-89. Nachtrag zu KGW IX",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0001"
+            }
+          ],
+          "available_formats": [
+            "journal metadata",
+            "manuscript chronology"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current chronology control for mixed 1885-1889 manuscript layers, including the restraint required for W II 1.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No article body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.basel-genealogie-launch-2025",
+          "rank": 3,
+          "title_as_displayed": "Basler Nietzsche-Forschung: digitale Genealogie edition",
+          "result_url": "https://fag-basel.ch/Unser-Verein/Beispiele-Gefoerderter-Projekte/Basler-Nietzsche-Forschung/",
+          "originating_record_url": "https://fag-basel.ch/Unser-Verein/Beispiele-Gefoerderter-Projekte/Basler-Nietzsche-Forschung/",
+          "identifiers": [],
+          "available_formats": [
+            "institutional project report",
+            "December 2025 edition-launch statement",
+            "current genesis synthesis"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://fag-basel.ch/Unser-Verein/Beispiele-Gefoerderter-Projekte/Basler-Nietzsche-Forschung/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Institutional confirmation that the digital edition first became freely accessible in December 2025 and that Genealogie largely emerged during print-manuscript finalization.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the live institutional project statement was inspected."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.prescott-couch-genealogy-method-2025",
+          "rank": 4,
+          "title_as_displayed": "Nietzschean Genealogy and Philosophical Methodology",
+          "result_url": "https://doi.org/10.1093/arisoc/aoaf006",
+          "originating_record_url": "https://doi.org/10.1093/arisoc/aoaf006",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1093/arisoc/aoaf006"
+            },
+            {
+              "scheme": "correction DOI",
+              "value": "10.1093/arisoc/aoag007"
+            }
+          ],
+          "available_formats": [
+            "philosophical-method article",
+            "publisher correction"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1093/arisoc/aoaf006",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Fresh semantic-method lead about Nietzschean genealogy, but neither the 2025 article nor its 2026 correction changes D 20/K 11/E 40 witness identity. It remains outside the authorial route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No article body was retained; only scope and freshness were classified."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-genealogie-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22Zur+Genealogie+der+Moral%22+Druckmanuskript+2026",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"Zur Genealogie der Moral\" Druckmanuskript 2026; \"Genealogie der Moral\" textgenetisch 2026; exact first-edition scan; all useful leads reopened at archive, library, DOI, publisher, or institutional records",
+      "queried_at": "2026-07-30T15:36:00-06:00",
+      "elapsed_seconds": 0.418662,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-genealogie-modern-original-reprints",
+          "rank": 1,
+          "title_as_displayed": "Modern reprints marketed as original manuscript or original edition",
+          "result_url": "https://www.google.com/search?q=%22Zur+Genealogie+der+Moral%22+%22original+manuscript%22",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search leads",
+            "commercial modern reprints"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No originating archival or bibliographic identity and frequent conflation of modern reprint, first edition, and manuscript. No result was admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No noisy search-result page or commercial reprint metadata was retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-genealogie-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 27,
+      "machine_seconds": 2.113421,
+      "notes": "Authoritative split D 20 identities, hands, extents, mixed W II 1 warning, and exact IIIF routes; object-level Public Domain labels and general publication rules remain separate."
+    },
+    {
+      "channel_id": "channel-haab-genealogie-correction-copies",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 23,
+      "machine_seconds": 1.204718,
+      "notes": "Exact partial C 4616 route and explicit unresolved later-copy layer; IIIF placeholder and METS in-copyright statement are preserved as conflicting layers."
+    },
+    {
+      "channel_id": "channel-basel-genealogie-documentary-edition",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 34,
+      "machine_seconds": 1.457936,
+      "notes": "Fresh documentary triad and unusually precise source-surface navigation; no explicit reusable-content license and no source body admitted."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-genealogie-critical-route",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "poor",
+      "human_minutes": 8,
+      "machine_seconds": 30.000875,
+      "notes": "Stable intended DFGA/eKGWB addresses and rights documentation; current include transport timed out and supplied no body or address census."
+    },
+    {
+      "channel_id": "channel-established-genealogie-genetics",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 29,
+      "machine_seconds": 1.049526,
+      "notes": "Established print-history, responsibility, and direct genetic baseline without overriding current official identities."
+    },
+    {
+      "channel_id": "channel-fresh-genealogie-research",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 25,
+      "machine_seconds": 1.232914,
+      "notes": "Fresh correspondence, chronology, December 2025 documentary-edition launch, and semantic-method scope check through 2026."
+    },
+    {
+      "channel_id": "channel-general-web-genealogie-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4,
+      "machine_seconds": 0.418662,
+      "notes": "Used last for freshness and missing-route leads; noisy modern reprints and original-manuscript claims were rejected."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-71-27-1-genealogie-d20a",
+    "tos-discovery-result.gsa-71-27-2-genealogie-d20b",
+    "tos-discovery-result.gsa-71-157-genealogie-wii1-regions",
+    "tos-discovery-result.haab-c4616-genealogie-correction-sheets",
+    "tos-discovery-result.basel-genealogie-d20-k11-e40-edition",
+    "tos-discovery-result.basel-genealogie-d20-surface-index",
+    "tos-discovery-result.hadw-sommer-genealogie-commentary-2019",
+    "tos-discovery-result.parkhurst-genealogie-preface-2022",
+    "tos-discovery-result.jung-carbone-nietzsche-letters-2024",
+    "tos-discovery-result.roellin-manuscript-chronology-2024",
+    "tos-discovery-result.basel-genealogie-launch-2025"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.general-web-genealogie-modern-original-reprints"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T15:05:00-06:00",
+  "ended_at": "2026-07-30T15:36:01-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.genealogie.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

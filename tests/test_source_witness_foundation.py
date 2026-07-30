@@ -74,6 +74,11 @@ GENEALOGIE_1892_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "genealogie-naumann-1892-open-scan-witness.2026-07-30.v1.json"
 )
+GENEALOGIE_AUTHORIAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "genealogie-authorial-witness-route.2026-07-30.v1.json"
+)
 ANTICHRIST_1906_COLLECTION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
@@ -1832,6 +1837,133 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
             }.issubset(catalog_ids)
         )
+
+    def test_genealogie_authorial_route_keeps_document_stages_distinct(
+        self,
+    ) -> None:
+        discovery = json.loads(
+            GENEALOGIE_AUTHORIAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        work = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "zur-genealogie-der-moral/work.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "channel-gsa-ores-genealogie-authorial-route",
+                "channel-haab-genealogie-correction-copies",
+                "channel-basel-genealogie-documentary-edition",
+                "channel-nietzsche-source-genealogie-critical-route",
+                "channel-established-genealogie-genetics",
+                "channel-fresh-genealogie-research",
+                "channel-general-web-genealogie-authorial-route",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(11, len(discovery["selected_result_ids"]))
+        self.assertEqual(
+            [
+                "tos-discovery-result."
+                "general-web-genealogie-modern-original-reprints"
+            ],
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        results = {
+            result["result_id"]: result
+            for channel in discovery["channels"]
+            for result in channel["results"]
+        }
+        self.assertEqual(
+            "select",
+            results["tos-discovery-result.gsa-71-27-1-genealogie-d20a"][
+                "decision"
+            ],
+        )
+        self.assertEqual(
+            "select",
+            results["tos-discovery-result.gsa-71-27-2-genealogie-d20b"][
+                "decision"
+            ],
+        )
+        self.assertIn(
+            "whole-notebook",
+            results[
+                "tos-discovery-result.gsa-71-157-genealogie-wii1-regions"
+            ]["rationale"],
+        )
+        self.assertIn(
+            "partial",
+            results[
+                "tos-discovery-result.haab-c4616-genealogie-correction-sheets"
+            ]["rationale"],
+        )
+        self.assertEqual(
+            "unknown",
+            results[
+                "tos-discovery-result."
+                "nietzsche-source-genealogie-d20-critical-routes"
+            ]["availability"],
+        )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                and result["snapshot"]["state"] == "not-captured"
+                for result in results.values()
+            )
+        )
+
+        self.assertEqual(3, work["record_version"])
+        self.assertIn(
+            "ToS/source-witnesses/discovery/runs/"
+            "genealogie-authorial-witness-route.2026-07-30.v1.json",
+            work["source_refs"],
+        )
+        self.assertIn("partial K 11/C 4616", work["notes"])
+        self.assertIn("rather than a historical witness or ToS Item", work["notes"])
+        self.assertEqual("no_equivalence_claim", work["same_as_posture"])
+
+        provenance_events = [
+            json.loads(line)
+            for line in (
+                GENEALOGIE_1892_ITEM_ROOT / "provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(
+            "tos.event.discovery.genealogie."
+            "authorial-witness-route.2026-07-30",
+            provenance_events[-1]["event_id"],
+        )
+        self.assertFalse(
+            provenance_events[-1]["method"]["configuration"][
+                "human_task_created"
+            ]
+        )
+        self.assertEqual(
+            0,
+            provenance_events[-1]["method"]["configuration"][
+                "semantic_objects_created"
+            ],
+        )
+
+        route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("D 20a", route)
+        self.assertIn("D 20b", route)
+        self.assertIn("K 11 / HAAB C 4616", route)
+        self.assertIn("Naumann 1887 first print E 40", route)
+        self.assertIn("remote scholarly representation", route)
+        self.assertIn("deliberately named rather than called A/B/C", route)
+        self.assertNotIn("Genealogie A/B/C witness route", route)
 
     def test_antichrist_1906_witness_advances_source_not_content(self) -> None:
         manifest = json.loads(

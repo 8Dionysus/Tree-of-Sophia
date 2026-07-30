@@ -967,6 +967,41 @@ route creates no manuscript or correction payload, accepted German,
 author-final synthesis, semantic claim, duplicate Item, access request, or
 human backlog.
 
+### *Zur Genealogie der Moral* authorial-witness follow-up — 2026-07-30
+
+The second work in the frozen transfer frame now has an exact upstream route
+recorded in `GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive layer.** Current GSA ORES and Kalliope split D 20 into
+   `GSA 71/27,1` / DFGA `D-20a` for title, preface, and Treatises I-II, and
+   `GSA 71/27,2` / `D-20b` for Treatise III and contents. W II 1
+   (`GSA 71/157`) remains a mixed 1887-1888 notebook from which only exact
+   source-backed regions may be attributed.
+2. **Correction and documentary-edition layer.** HAAB C 4616 preserves only
+   sheets 1 and 10 plus one handwritten leaf; its IIIF placeholder conflicts
+   with the METS `InC 1.0` / all-rights-reserved statement. The University of
+   Basel edition, first freely viewable in December 2025, co-edits D 20, K 11,
+   and E 40 as distinct objects and exposes source-surface-to-section
+   navigation without supplying an explicit reusable-content license.
+3. **Established layer.** Sommer's 2019 HAdW commentary controls print history,
+   responsibility, C 4616, and the unresolved C 4620/C 4621/unnamed hand-copy
+   layer. Parkhurst's 2022 preface study demonstrates a bounded genetic
+   comparison without overriding official object identities.
+4. **Fresh layer.** The newly published 3 August 1887 Nietzsche letter in
+   Jung/Carbone 2024 strengthens responsibility and chronology; Röllin 2024
+   controls mixed manuscript dating; the Basel December 2025 edition is the
+   freshest direct philological result. Current 2025-2026 philosophical-method
+   work was classified separately because it does not change D 20/K 11/E 40
+   identity.
+
+The current Nietzsche Source include request timed out after 30 seconds. The
+stable DFGA/eKGWB routes remain registered, but no response body, critical
+address census, XML, manuscript image, OCR, or accepted reading was retained.
+The existing 1892 second-edition Item remains a later historical witness, not
+E 40, a critical text, or a transfer unit. The route creates no semantic
+claim, translation judgment, publication permission, access request, or human
+backlog.
+
 ---
 
 ## Foundation model proposed for contract work
