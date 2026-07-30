@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 7406429,
+  "allowed_tracked_bytes": 15344617,
+  "approved_by": "repository-owner",
+  "base_ref": "0dd80ef98bb49e06b4f89d9d8aae351f820f047b",
+  "changed_generated_bytes": 7406429,
+  "changed_generated_files": 199,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "3e2efac133d6f8f3c9011645c693720be7b5fbcc97cb00d18478267a4464754c",
+  "reason": "Refresh the portable source-return family for the completed DWDSmor A morphology census evidence slice. The measured 7.4 MB delta counts whole content-addressed shard files changed by deterministic repartitioning, while the family itself grows by 3 source records, 95 anchors, 1 event, 10 shards and about 127 KB tracked. The owner slice adds a strict text-free result contract, verified aggregate result receipt, deterministic private-run inspector, tests and documentation updates. It publishes no source text, provider output, lemmas, lexemes, context, semantic claims, accuracy authority, rights clearance or B/C equivalence.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 15344617,
+  "tracked_bytes_max": 11534336
+}

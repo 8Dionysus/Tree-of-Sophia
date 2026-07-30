@@ -291,6 +291,29 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/record_zarathustra_morphology_census_result.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-input-receipt.v1.json",
+        "ToS/contracts/morphology-census-result-receipt.schema.json",
+        "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A"
+      ],
+      "reads": [
+        "one exact owner-local morphology A run, its private raw rows and receipts, the frozen Tree plan, the private input packet, and the admitted runtime manifest"
+      ],
+      "writes": [
+        "one tracked text-free morphology census result receipt unless --check is used"
+      ],
+      "side_effects": "recomputed aggregate provider coverage, ambiguity, unknown-residue shape, repeat determinism, performance, and artifact fixity only; no source strings, provider lemma strings, accepted morphology, lemma, lexeme, sign, semantics, rights clearance, publication, B/C materialization, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

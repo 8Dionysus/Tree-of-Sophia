@@ -99,11 +99,17 @@ Zarathustra golden kernel. It is not a completed gold set.
   bounded question without pretending that all morphology is ready. Its
   ignored 11,352-row input packet covers every exact form and represents
   86,287 token occurrences; the tracked receipt exposes only fixity and
-  counts. The admitted first execution is the direct DWDSmor Open 0.18.0 A
-  census. A later contextual A/B/C sample remains unmaterialized until real A
-  residue or a concrete source/translation/sign/retrieval question triggers
-  it, and no German gold, accepted lemma, lexeme, semantic effect, or human
-  backlog is created.
+  counts. The direct DWDSmor Open 0.18.0 A census has now executed twice over
+  the same exact-form order with a byte-identical provider-output stream. Its
+  tracked result receipt contains no source or provider-lemma strings: 6,610
+  of 11,352 form types and 75,872 of 86,287 token-weighted occurrences
+  received at least one provider analysis; 4,742 types with weight 10,415
+  remain mechanically unknown. Coverage is not accuracy, the residue has not
+  been reviewed, and German-competent gold remains zero. A contextual A/B/C
+  sample therefore remains unmaterialized until reviewed A residue or a
+  concrete source/translation/sign/retrieval question triggers it; B and C
+  remain unacquired, and no accepted morphology, lemma, lexeme, semantic
+  effect, or human backlog is created.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic

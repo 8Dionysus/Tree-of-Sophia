@@ -28,7 +28,7 @@ and what must be tested manually.
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
-| `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` | Which exact surface, normalization, lemma, POS, morphology, and review layers must remain distinct; which current A/B/C methods may later be tested; and why no install, output, or accepted lexeme exists yet? |
+| `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` | Which exact surface, normalization, lemma, POS, morphology, and review layers must remain distinct; what the executed exhaustive DWDSmor A census actually measured; and why its reproducible coverage and residue still create no accepted morphology, lexeme, B/C task, or human backlog? |
 | `OCR_ADMISSION.md` | What the sequential OCR A/B/C executions produced, which failures remain preserved, and what still blocks quality claims? |
 | `HUMAN_GOLD_REVIEW_PACKET.md` | Is the 15-page source-visible double-review interface real, blind, hash-closed, and still honestly 0/15? |
 | `HUMAN_ASSURANCE_RESEARCH.md` | How should solo+AI review, delayed self-recheck, AI exposure, language competence, and balanced A/B/C assignment be stated without false gold? |

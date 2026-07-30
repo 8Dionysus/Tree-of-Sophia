@@ -1,0 +1,640 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-census-result-receipt.schema.json",
+  "title": "Tree of Sophia text-free morphology census result receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "recorded_at_utc",
+    "status",
+    "experiment_id",
+    "variant",
+    "plan",
+    "generator",
+    "private_run",
+    "provider",
+    "source_input",
+    "runtime",
+    "private_artifacts",
+    "coverage",
+    "distributions",
+    "mechanical_unknown_residue",
+    "repeat_determinism",
+    "performance",
+    "accuracy",
+    "followup",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/morphology-census-result-receipt.schema.json"
+    },
+    "schema_version": {"const": "tos_morphology_census_result_receipt_v1"},
+    "generated_or_authored": {"const": "generated_from_private_provider_census"},
+    "receipt_id": {
+      "const": "morphology-census-result:zarathustra-dta-first-editions-parts-1-4.a.dwdsmor-open-0.18.0.v1"
+    },
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "status": {"const": "a-census-executed-awaiting-triggered-review"},
+    "experiment_id": {"const": "tos-historical-german-morphology-v1"},
+    "variant": {"const": "A"},
+    "plan": {"$ref": "#/$defs/plan"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "private_run": {"$ref": "#/$defs/privateRun"},
+    "provider": {"$ref": "#/$defs/provider"},
+    "source_input": {"$ref": "#/$defs/sourceInput"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "private_artifacts": {"$ref": "#/$defs/privateArtifacts"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "distributions": {"$ref": "#/$defs/distributions"},
+    "mechanical_unknown_residue": {"$ref": "#/$defs/unknownResidue"},
+    "repeat_determinism": {"$ref": "#/$defs/repeatDeterminism"},
+    "performance": {"$ref": "#/$defs/performance"},
+    "accuracy": {"$ref": "#/$defs/accuracy"},
+    "followup": {"$ref": "#/$defs/followup"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "authority_boundary": {"type": "string", "minLength": 80}
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoPath": {
+      "type": "string",
+      "pattern": "^(ToS|scripts)/[A-Za-z0-9._/-]+$"
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "numericCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^(0|[1-9][0-9]*)$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "providerPosCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "<none>",
+          "ADJ",
+          "ADV",
+          "ART",
+          "CARD",
+          "CONJ",
+          "DEM",
+          "INDEF",
+          "INTJ",
+          "NN",
+          "NPROP",
+          "ORD",
+          "POSS",
+          "POSTP",
+          "PPRO",
+          "PREP",
+          "PREPART",
+          "PROADV",
+          "PTCL",
+          "REL",
+          "V",
+          "WPRO"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "providerCategoryCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "<none>",
+          "AdjComp",
+          "AdjSup",
+          "Coord",
+          "Def",
+          "Indef",
+          "InfCl",
+          "Int",
+          "Neg",
+          "Pers",
+          "Rec",
+          "Refl",
+          "Sub"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "occurrenceBucketCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": ["1", "2-4", "5-9", "10-49", "50-plus"]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "lengthBucketCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": ["1-2", "3-5", "6-10", "11-20", "21-plus"]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "caseBucketCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": ["lower", "upper", "title", "mixed-or-uncased"]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "characterBucketCountMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "alphabetic-only",
+          "contains-joiner",
+          "contains-digit",
+          "contains-other"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/nonNegativeInteger"
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_id", "ref", "sha256", "frozen_before_variant_outputs"],
+      "properties": {
+        "plan_id": {
+          "const": "morphology-evaluation-plan:zarathustra-dta-first-editions-parts-1-4-v1"
+        },
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "frozen_before_variant_outputs": {"const": true}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"const": "scripts/record_zarathustra_morphology_census_result.py"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "privateRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_owner",
+        "relative_ref",
+        "run_id",
+        "status",
+        "started_at_utc",
+        "finished_at_utc",
+        "retention_decision",
+        "visibility",
+        "manual_review_count",
+        "model_inspection_count"
+      ],
+      "properties": {
+        "artifact_owner": {
+          "const": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab"
+        },
+        "relative_ref": {
+          "type": "string",
+          "pattern": "^tos-historical-german-morphology-v1/[a-z0-9-]+/variant-A$"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^zarathustra-dwdsmor-a-[a-z0-9]+$"
+        },
+        "status": {"const": "awaiting-triggered-review"},
+        "started_at_utc": {"type": "string", "format": "date-time"},
+        "finished_at_utc": {"type": "string", "format": "date-time"},
+        "retention_decision": {"const": "retain"},
+        "visibility": {"const": "owner-local-only"},
+        "manual_review_count": {"const": 0},
+        "model_inspection_count": {"const": 0}
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "edition",
+        "version",
+        "source_commit",
+        "wheel_sha256",
+        "execution_posture"
+      ],
+      "properties": {
+        "artifact": {"const": "DWDSmor Open"},
+        "edition": {"const": "open"},
+        "version": {"const": "0.18.0"},
+        "source_commit": {
+          "const": "f97b92ce2a5d6db8750afbdb222eb39470e57cf6"
+        },
+        "wheel_sha256": {
+          "const": "395a15e15286b0c191b42355b6e3c2a43c8959621ccf3563336c2e30399a2973"
+        },
+        "execution_posture": {
+          "const": "proposal-only-preserve-all-analyses-and-unknowns"
+        }
+      }
+    },
+    "sourceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "packet_ref",
+        "packet_sha256",
+        "packet_bytes",
+        "packet_mode",
+        "exact_form_row_count",
+        "token_occurrence_count",
+        "exact_surface_mutated",
+        "source_text_accepted",
+        "rights_cleared"
+      ],
+      "properties": {
+        "work_ref": {
+          "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "packet_ref": {"$ref": "#/$defs/repoPath"},
+        "packet_sha256": {"$ref": "#/$defs/digest"},
+        "packet_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "packet_mode": {"const": "0600"},
+        "exact_form_row_count": {"$ref": "#/$defs/positiveInteger"},
+        "token_occurrence_count": {"$ref": "#/$defs/positiveInteger"},
+        "exact_surface_mutated": {"const": false},
+        "source_text_accepted": {"const": false},
+        "rights_cleared": {"const": false}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "manifest_sha256",
+        "artifact_set_sha256",
+        "runtime_bytes",
+        "license",
+        "network_used"
+      ],
+      "properties": {
+        "runtime_id": {
+          "const": "dwdsmor-open-0.18.0-f97b92ce-py312"
+        },
+        "manifest_sha256": {"$ref": "#/$defs/digest"},
+        "artifact_set_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "license": {"const": "GPL-2.0-only"},
+        "network_used": {"const": false}
+      }
+    },
+    "metadataArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "bytes", "mode", "source_bearing"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"$ref": "#/$defs/positiveInteger"},
+        "mode": {"enum": ["0600", "0644"]},
+        "source_bearing": {"const": false}
+      }
+    },
+    "sourceBearingArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "bytes", "mode", "source_bearing"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"$ref": "#/$defs/positiveInteger"},
+        "mode": {"const": "0600"},
+        "source_bearing": {"const": true}
+      }
+    },
+    "privateArtifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_receipt",
+        "experiment_spec",
+        "preflight",
+        "execution",
+        "repeat_determinism",
+        "host_resource_launch",
+        "metrics",
+        "raw_output"
+      ],
+      "properties": {
+        "run_receipt": {"$ref": "#/$defs/metadataArtifact"},
+        "experiment_spec": {"$ref": "#/$defs/metadataArtifact"},
+        "preflight": {"$ref": "#/$defs/metadataArtifact"},
+        "execution": {"$ref": "#/$defs/sourceBearingArtifact"},
+        "repeat_determinism": {"$ref": "#/$defs/metadataArtifact"},
+        "host_resource_launch": {"$ref": "#/$defs/metadataArtifact"},
+        "metrics": {"$ref": "#/$defs/metadataArtifact"},
+        "raw_output": {"$ref": "#/$defs/sourceBearingArtifact"}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "covered_type_count",
+        "covered_token_count",
+        "unknown_type_count",
+        "unknown_token_count",
+        "form_type_coverage",
+        "token_weighted_coverage",
+        "unknown_form_rate",
+        "root_type_count",
+        "root_token_count",
+        "coverage_is_accuracy"
+      ],
+      "properties": {
+        "covered_type_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "covered_token_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "unknown_type_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "unknown_token_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "form_type_coverage": {"$ref": "#/$defs/ratio"},
+        "token_weighted_coverage": {"$ref": "#/$defs/ratio"},
+        "unknown_form_rate": {"$ref": "#/$defs/ratio"},
+        "root_type_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "root_token_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "coverage_is_accuracy": {"const": false}
+      }
+    },
+    "distributions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lemma_analysis_count",
+        "root_analysis_count",
+        "provider_pos",
+        "provider_category",
+        "lemma_analysis_total",
+        "root_analysis_total"
+      ],
+      "properties": {
+        "lemma_analysis_count": {"$ref": "#/$defs/numericCountMap"},
+        "root_analysis_count": {"$ref": "#/$defs/numericCountMap"},
+        "provider_pos": {"$ref": "#/$defs/providerPosCountMap"},
+        "provider_category": {"$ref": "#/$defs/providerCategoryCountMap"},
+        "lemma_analysis_total": {"$ref": "#/$defs/nonNegativeInteger"},
+        "root_analysis_total": {"$ref": "#/$defs/nonNegativeInteger"}
+      }
+    },
+    "weightedOccurrenceBuckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type_counts", "token_weights"],
+      "properties": {
+        "type_counts": {"$ref": "#/$defs/occurrenceBucketCountMap"},
+        "token_weights": {"$ref": "#/$defs/occurrenceBucketCountMap"}
+      }
+    },
+    "weightedLengthBuckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type_counts", "token_weights"],
+      "properties": {
+        "type_counts": {"$ref": "#/$defs/lengthBucketCountMap"},
+        "token_weights": {"$ref": "#/$defs/lengthBucketCountMap"}
+      }
+    },
+    "weightedCaseBuckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type_counts", "token_weights"],
+      "properties": {
+        "type_counts": {"$ref": "#/$defs/caseBucketCountMap"},
+        "token_weights": {"$ref": "#/$defs/caseBucketCountMap"}
+      }
+    },
+    "weightedCharacterBuckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type_counts", "token_weights"],
+      "properties": {
+        "type_counts": {"$ref": "#/$defs/characterBucketCountMap"},
+        "token_weights": {"$ref": "#/$defs/characterBucketCountMap"}
+      }
+    },
+    "unknownResidue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_status",
+        "triggers_contextual_followup",
+        "type_count",
+        "token_weight",
+        "maximum_occurrence_count",
+        "maximum_codepoint_length",
+        "occurrence_frequency",
+        "codepoint_length",
+        "case_shape",
+        "character_shape",
+        "source_strings_included"
+      ],
+      "properties": {
+        "review_status": {"const": "unreviewed-mechanical-aggregation"},
+        "triggers_contextual_followup": {"const": false},
+        "type_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "token_weight": {"$ref": "#/$defs/nonNegativeInteger"},
+        "maximum_occurrence_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "maximum_codepoint_length": {"$ref": "#/$defs/nonNegativeInteger"},
+        "occurrence_frequency": {
+          "$ref": "#/$defs/weightedOccurrenceBuckets"
+        },
+        "codepoint_length": {"$ref": "#/$defs/weightedLengthBuckets"},
+        "case_shape": {"$ref": "#/$defs/weightedCaseBuckets"},
+        "character_shape": {"$ref": "#/$defs/weightedCharacterBuckets"},
+        "source_strings_included": {"const": false}
+      }
+    },
+    "repeatDeterminism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic",
+        "pass_1_stream_sha256",
+        "pass_2_stream_sha256",
+        "mismatch_count",
+        "second_pass_raw_output_retained"
+      ],
+      "properties": {
+        "deterministic": {"const": true},
+        "pass_1_stream_sha256": {"$ref": "#/$defs/digest"},
+        "pass_2_stream_sha256": {"$ref": "#/$defs/digest"},
+        "mismatch_count": {"const": 0},
+        "second_pass_raw_output_retained": {"const": false}
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_1_wall_seconds",
+        "pass_1_cpu_seconds",
+        "pass_2_wall_seconds",
+        "pass_2_cpu_seconds",
+        "forms_per_second_pass_1",
+        "peak_rss_bytes",
+        "host_service_wall_seconds",
+        "host_service_cpu_seconds",
+        "host_cgroup_memory_peak_bytes",
+        "host_cgroup_swap_peak_bytes"
+      ],
+      "properties": {
+        "pass_1_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "pass_1_cpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "pass_2_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "pass_2_cpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "forms_per_second_pass_1": {"type": "number", "exclusiveMinimum": 0},
+        "peak_rss_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_service_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "host_service_cpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "host_cgroup_memory_peak_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_cgroup_swap_peak_bytes": {"$ref": "#/$defs/nonNegativeInteger"}
+      }
+    },
+    "accuracy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "german_competent_gold_count",
+        "accepted_morphology_count",
+        "accepted_lemma_count",
+        "coverage_is_accuracy",
+        "machine_agreement_is_gold"
+      ],
+      "properties": {
+        "status": {"const": "unmeasured-no-german-competent-gold"},
+        "german_competent_gold_count": {"const": 0},
+        "accepted_morphology_count": {"const": 0},
+        "accepted_lemma_count": {"const": 0},
+        "coverage_is_accuracy": {"const": false},
+        "machine_agreement_is_gold": {"const": false}
+      }
+    },
+    "followup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "b_acquired",
+        "c_acquired",
+        "human_work_scheduled",
+        "mechanical_residue_is_reviewed_residue",
+        "trigger"
+      ],
+      "properties": {
+        "status": {"const": "blocked-not-materialized"},
+        "b_acquired": {"const": false},
+        "c_acquired": {"const": false},
+        "human_work_scheduled": {"const": false},
+        "mechanical_residue_is_reviewed_residue": {"const": false},
+        "trigger": {
+          "const": "reviewed-a-census-residue-or-concrete-source-translation-sign-retrieval-question"
+        }
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "private_source_and_raw_output",
+        "tracked_receipt_contains_source_strings",
+        "tracked_receipt_contains_sequence",
+        "tracked_receipt_contains_context",
+        "tracked_receipt_contains_provider_lemma_strings",
+        "source_payload_publication_authorized",
+        "raw_output_publication_authorized",
+        "tracked_receipt_publication_authorized",
+        "future_site_route"
+      ],
+      "properties": {
+        "private_source_and_raw_output": {"const": "owner-local-only"},
+        "tracked_receipt_contains_source_strings": {"const": false},
+        "tracked_receipt_contains_sequence": {"const": false},
+        "tracked_receipt_contains_context": {"const": false},
+        "tracked_receipt_contains_provider_lemma_strings": {"const": false},
+        "source_payload_publication_authorized": {"const": false},
+        "raw_output_publication_authorized": {"const": false},
+        "tracked_receipt_publication_authorized": {"const": false},
+        "future_site_route": {"const": "blocked"}
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creates_accepted_source",
+        "creates_morphology",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_sign_candidate",
+        "creates_sign",
+        "creates_semantic_claim",
+        "creates_translation",
+        "creates_graph_fact",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "creates_accepted_source": {"const": false},
+        "creates_morphology": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_semantic_claim": {"const": false},
+        "creates_translation": {"const": false},
+        "creates_graph_fact": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    }
+  }
+}

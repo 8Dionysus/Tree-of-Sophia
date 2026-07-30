@@ -30,7 +30,7 @@ fields. They are the next authority layer.
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
 | retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual C has exact model/runtime/crosswalk but 0 runs after a memory-blocked preflight; human judgments 0 | advisory model targets and hard negatives are not gold; setup admission is not retrieval output |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
-| historical-German morphology A/B/C | ordered official -> established -> current research; identity control; exact DWDSmor Open 0.18.0, ZDL `de_zdl_lg 4.0.0`, and rights-gated DTAEC-assisted methods | 0 acquired artifacts, profiles, tasks, outputs, competent gold, accepted lemmas, or lexemes; human debt 0 | a concrete source/translation/sign/retrieval question, source-local packet, `abyss-stack` profile, artifact-level rights review, host preflight, and declared German competence must precede any quality or acceptance claim |
+| historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
 | golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent |
 
@@ -147,9 +147,16 @@ contracts intentionally reject simulated human evidence.
   projection contains hashes, counts, and resource refs but no strings,
   sequence, context, or positions. Low-entropy hashes are
   dictionary-recoverable and not secrecy. The DTA rights conflict and review
-  remain open, German is not accepted, and morphology, lemma, lexeme,
-  translation correspondence, sign candidacy, and semantic packet opening
-  remain blocked.
+  remain open and German is not accepted. A separate exact-form DWDSmor Open
+  census now supplies mechanical candidate coverage for every form: 6,610 of
+  11,352 types and 75,872 of 86,287 token-weighted occurrences receive at
+  least one provider analysis; 4,742 types with weight 10,415 remain
+  mechanically unknown. The two provider-output passes are byte-identical,
+  and a distinct Tree recorder recomputes all tracked aggregates from the
+  private raw rows. This still creates zero accepted morphology, lemmas,
+  lexemes, translation correspondences, sign candidates, or semantic packets.
+  The residue has not been reviewed, B/C remain unacquired, and no human work
+  is scheduled.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -337,6 +344,14 @@ quality.
    time and both competing claim families.
 5. Preserve every disagreement and negative result rather than overwriting
    the executed packet.
+6. Preserve the completed whole-vocabulary morphology A census and its private
+   raw evidence. Do not turn 4,742 machine-unknown forms into a review queue:
+   mechanical residue is not reviewed residue. Freeze a contextual comparison
+   packet only after reviewed A residue or a concrete
+   source/translation/sign/retrieval question triggers it. B/C still require
+   rights review, sequential acquisition, and a fresh host preflight; machine
+   coverage does not create accepted German, morphology, a lemma, or
+   `lexeme_id`.
 
 ### 2a. Freeze, but do not yet execute, the resident LLM packet
 
@@ -517,16 +532,16 @@ from the calibration-only route in section 2b.
 | --- | --- |
 | safe repository preparation and preserved user work | satisfied on local owner branches; commits and validation complete, no external push/merge performed |
 | speaking topology, source storage, manifests, fixity, provenance, rights | prepared and validated |
-| research, decision matrix, machine fit, A/B/C specifications | prepared; time-sensitive surfaces require refresh before future runs |
+| research, decision matrix, machine fit, A/B/C specifications | prepared; morphology A mechanics executed reproducibly, while its contextual B/C and all time-sensitive future runs require fresh admission |
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
 | translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted and bounded machine A/B/C executed; no accepted source, accepted lane, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
-| automatic metrics manually rechecked | incomplete |
-| quality, cost, speed, and human correction time | mechanical speed/cost recorded; human quality/correction incomplete |
-| A/B/C reproducibility | demonstrated for bounded mechanical slices only; Structure B/C have one corrected full-scope run each under different frozen scopes, not repeated equal-scope quality runs |
+| automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
+| quality, cost, speed, and human correction time | morphology A and other mechanical speed/cost recorded; human quality/correction incomplete |
+| A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |
 | limitations and continuation route explicit | satisfied by this document and the promotion ledger |

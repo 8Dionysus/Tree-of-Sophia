@@ -1,8 +1,7 @@
 # Historical German Morphology and Lemmatization Admission
 
-Status: ordered research and preparation-only A/B/C admission; no software or
-model acquired, no corpus task materialized, no German linguistic analysis
-accepted
+Status: ordered research, source-gated A census executed, contextual B/C
+unacquired and blocked; no German linguistic analysis accepted
 
 Research snapshot: 2026-07-29
 
@@ -21,10 +20,12 @@ three deliberately different routes:
    normalization-assisted proposal, with the unmodified surface and every
    normalization edit retained.
 
-The routes are admitted as methods to test, not installed artifacts and not
-future winners. A real run still requires an `abyss-stack` experiment profile,
-exact artifact acquisition receipts, current host preflight, a frozen
-source-local input packet, and the rights gates below.
+The routes are admitted as methods to test, not future winners. The exhaustive
+A census now has an exact `abyss-stack` experiment profile, acquisition and
+runtime receipts, a current host preflight, a frozen source-local input packet,
+and one retained private run. Those receipts admit no contextual B/C run.
+Every later run still requires its own exact packet, rights gate, artifact
+closure, and fresh host admission.
 
 No route may create an accepted lemma, `lexeme_id`, sign, concept, translation
 decision, or source correction. German linguistic acceptance remains blocked
@@ -635,7 +636,8 @@ Promotion is deliberately narrow:
 5. sign, concept, translation, etymology, and graph relations remain later
    independent decisions.
 
-No current artifact crosses step 2.
+The private A output occupies step 2 and no current artifact crosses beyond
+it.
 
 ## 9. Rejected shortcuts and watchlist
 
@@ -662,18 +664,27 @@ No current artifact crosses step 2.
 | exact A/B/C identities | frozen as admission candidates |
 | exact current package/model revisions | frozen for A, B, and C research |
 | license review | A clear for local GPL experiment; B dataset/model terms need artifact-level review; C research-only rights ambiguity open |
-| source-local input packet | absent |
-| `abyss-stack` experiment profile | absent |
-| host preflight | not run because no acquisition/run is admitted yet |
-| package/model acquisition | zero |
-| morphology tasks | zero |
-| machine outputs | zero |
+| source-local input packet | exact ignored 11,352-row JSONL; 86,287 token weight; 4,213,466 bytes; mode 0600; SHA-256 `1c734e6f8371e28b863d58e216b7a649aa6d603192f1f7310056e8caa022eb9a` |
+| `abyss-stack` experiment profile | present for the source-gated whole-vocabulary A census and later gated B/C challengers |
+| host preflight | exact A plan, input, runtime, storage, memory, load, thermal, CPU, license, and offline gates returned `ready` |
+| package/model acquisition | A acquired as a seven-wheel exact closure; principal DWDSmor wheel 4,803,531 bytes; B/C zero |
+| runtime | exact offline Python 3.12 runtime; 23,451,336 bytes; 1,043 artifacts; artifact-set SHA-256 `6fa42ae80572f582a2dbcab49dbcaa42012279458a106b0ba6717262fa0c260d` |
+| morphology tasks | one exhaustive private A census over all exact form types; contextual task packet zero |
+| machine outputs | A raw 54,495,917 bytes, mode 0600, retained owner-locally; two byte-identical passes; tracked receipt contains no source or provider-lemma strings |
+| A mechanical coverage | 6,610 / 11,352 form types (0.5822762508809021); 75,872 / 86,287 token weight (0.8792981561533023); 4,742 mechanically unknown types with weight 10,415 |
+| A measured execution | pass 1: 3.137308178 s; pass 2: 3.111671021 s; 3,618.3886 forms/s on pass 1; process peak RSS 44,339,200 bytes; host cgroup peak 118,292,480 bytes; swap peak 0 |
+| A accuracy / residue review | unmeasured; coverage is not accuracy; unknown and ambiguity aggregates remain unreviewed |
+| contextual B/C | unacquired, unmaterialized, and unexecuted; mechanical A residue alone does not satisfy the review trigger |
+| human work | zero scheduled; no routine backlog created |
 | competent German gold | zero |
 | accepted lemmas / lexemes | zero |
 | sign, semantic, translation, graph effects | zero |
 
-The next legitimate action is not a model download. It is to materialize one
-exact morphology question from an admitted source use, then add the matching
-`abyss-stack` profile and host preflight. Until that trigger exists, this
-packet closes research and experimental design without manufacturing human
-debt or linguistic truth.
+The next legitimate action is not a B or C download and not a review of 4,742
+forms merely because they are unknown to A. First inspect only text-free
+aggregate residue and wait for either reviewed A residue or a concrete
+source/translation/sign/retrieval question. Then freeze the same contextual
+occurrences before any B/C output, review artifact rights, and obtain a new
+host preflight. Until that trigger exists, the exhaustive A mechanics are
+closed while contextual comparison, competent quality, acceptance, and all
+semantic effects remain blocked.
