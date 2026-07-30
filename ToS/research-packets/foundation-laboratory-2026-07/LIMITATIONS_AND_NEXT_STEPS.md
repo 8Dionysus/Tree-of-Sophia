@@ -23,7 +23,7 @@ fields. They are the next authority layer.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source-acceptance option | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; all 30 rows unscheduled; human debt 0; solo reviewer is visual-only | the packet remains reusable evidence, not a backlog; a later task opens only the exact source unit it needs, and the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one current private-use rights record, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | private non-commercial adaptation is supported, but HTTP transport remains unauthenticated; bibliography, German-competent review, public sharing, and publication remain open; DTA and machine agreement are not critical-edition admission or ToS acceptance |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | private non-commercial adaptation and independent historical byte corroboration are supported, but the current owner HTTP route is unauthenticated and the archive disclaims source validation; publisher origin, bibliography, German-competent review, public sharing, and publication remain open; archive/DTA/machine agreement is not critical-edition admission or ToS acceptance |
 | bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and runtime failure still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or the GPU hang's root cause |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
@@ -105,11 +105,17 @@ contracts intentionally reject simulated human evidence.
   not been approved by a human, sent, answered, or granted.
 - The eKGWB fallback response came from the official public SPA's HTTP include
   route twice with identical bytes, but HTTP is unencrypted and does not
-  establish authenticity. The 2026-07-30 official-law -> established-work ->
-  fresh-transport refresh confirms that CC BY-NC-ND 4.0 permits private
-  non-commercial adaptation while prohibiting its sharing. The payload remains
-  gitignored/local-only; no source admission, public derivative, payload
-  publication, or human/legal clearance follows from that private-use route.
+  establish authenticity. A later protocol-native pass found an exact
+  Arquivo.pt snapshot with FCT/FCCN custody, original URL, capture time,
+  archive digest, collection, WARC file, and byte offset. Its target block
+  matches the 2024-dated owner object and 2026 include, but the archive's terms
+  explicitly disclaim source/content validation. The result is independent
+  preservation corroboration, not publisher-origin authentication. The
+  official-law -> established-work -> fresh-transport refresh also confirms
+  that CC BY-NC-ND 4.0 permits private non-commercial adaptation while
+  prohibiting its sharing. The payload remains gitignored/local-only; no source
+  admission, public derivative, payload publication, or human/legal clearance
+  follows from either route.
 - Private correspondence and personal contact data must remain in the ignored
   private lane; only redacted public receipts may be committed.
 - Server plans are metadata-only and `blocked-rights`; no payload was uploaded,
@@ -213,7 +219,8 @@ the same official-docs -> established-research -> freshest-peer-reviewed order.
 That pass changed scheduling and assurance law but materialized no task.
 The exact eKGWB rights/transport route was separately refreshed on 2026-07-30
 in `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md`; it corrected the local-use boundary
-without admitting a source or opening human work.
+and then added institutional WARC-backed byte corroboration without claiming
+publisher origin, admitting a source, or opening human work.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:

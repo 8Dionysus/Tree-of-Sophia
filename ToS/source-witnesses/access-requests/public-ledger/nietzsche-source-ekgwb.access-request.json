@@ -23,7 +23,8 @@
     ],
     "discovery_refs": [
       "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1.2026-07-28.v1.json",
-      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json"
+      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json",
+      "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json"
     ]
   },
   "rights_holder_or_institution": {
@@ -45,8 +46,8 @@
     "personal_contact_committed": false
   },
   "project_description_ref": "README.md",
-  "research_purpose": "Authenticate one exact German critical-edition passage already observed through the public HTTP SPA route, verify it against fixity-bound historical witnesses before any translation or semantic work, and clarify only external server, quotation, metadata-publication, or sharing scopes beyond private non-commercial local research.",
-  "requested_format": "An authenticated HTTPS or institutionally supplied passage-level HTML or TEI copy with a citable edition identifier, plus clarification of the requested external-use scopes; no bulk delivery is requested.",
+  "research_purpose": "Obtain publisher-origin authentication for one exact German critical-edition passage already observed through the public HTTP SPA route and independently preserved by Arquivo.pt, verify it against fixity-bound historical witnesses before any translation or semantic work, and clarify only external server, quotation, metadata-publication, or sharing scopes beyond private non-commercial local research.",
+  "requested_format": "A publisher-authenticated current HTTPS passage or direct current publisher or institutional-deposit HTML/TEI copy with a citable edition identifier, plus clarification of the requested external-use scopes; an institutional historical archive witness already exists, and no bulk delivery is requested.",
   "requested_permissions": {
     "local_access": "requested",
     "ocr_or_transcription": "not-requested",
@@ -90,7 +91,8 @@
     "tos.event.access-request-draft.nietzsche-source-ekgwb.2026-07-28",
     "tos.event.access-request-route-refresh.nietzsche-source-ekgwb.2026-07-28",
     "tos.event.access-request-scope-reconciliation.nietzsche-source-ekgwb.2026-07-29",
-    "tos.event.rights-assessment.ekgwb-local-research-route.2026-07-30"
+    "tos.event.rights-assessment.ekgwb-local-research-route.2026-07-30",
+    "tos.event.access-request-scope-reconciliation.nietzsche-source-ekgwb-institutional-archive.2026-07-30"
   ],
-  "record_version": 4
+  "record_version": 5
 }

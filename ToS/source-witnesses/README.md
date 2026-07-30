@@ -283,6 +283,14 @@ residual. Machine agreement is reusable evidence, but it does not admit the
 critical edition, accept German, authorize publication, open translation, or
 create semantic authority.
 
+A later tracked discovery receipt adds a distinct evidence layer: Arquivo.pt
+preserves a 2023 snapshot of the same owner URL with capture timestamp,
+collection, archive digest, WARC file, and offset. Its exact target block
+matches the current owner object and include. This is independent historical
+fixity corroboration; because the archive explicitly does not validate
+archived source or content, it is not publisher-origin authentication, source
+admission, German acceptance, or publication authority.
+
 One derived sentence from that route is now preserved below the pilot's
 ignored `local-content/translation/research-inputs/` branch. Its tracked
 companion records the DTA selector, transformations, fixity, token count,

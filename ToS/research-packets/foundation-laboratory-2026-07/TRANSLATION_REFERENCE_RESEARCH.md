@@ -321,14 +321,22 @@ model-authored rights record separates:
 - sharing adapted material, which it prohibits;
 - unmodified sharing that the license can permit, but which current ToS
   operator policy does not authorize for the captured payload;
-- source admission, which remains blocked because the exact route is HTTP-only
-  from this host;
+- institutional preservation corroboration, now supported by an Arquivo.pt
+  HTTPS replay with WARC lineage and a target block matching the current owner
+  object;
+- source admission, which remains blocked because neither the current
+  HTTP-only owner route nor the archive's own non-validation posture
+  establishes publisher-origin authentication;
 - linguistic and translation acceptance, which remains competence-blocked.
 
-The unsent access request is retained for an authenticated or institutionally
-supplied exact passage and clarification of any server, quotation, or sharing
+The exact target block is byte-identical across the 2023 institutional
+snapshot, the 2024-dated current owner object, and the 2026 owner include
+(`f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398`).
+This is fixity corroboration, not source acceptance. The unsent access request
+is retained only for a publisher-authenticated current copy or direct
+publisher deposit and clarification of any server, quotation, or sharing
 scope. It is no longer treated as necessary merely for private local
-adaptation.
+adaptation or as if no institutional archive witness existed.
 
 ### Freshness rule
 
@@ -368,6 +376,8 @@ The result is deliberately **zero admitted content entries**:
 - zero human rights reviews;
 - one model-authored eKGWB rights/transport record separating private
   adaptation from shared derivatives;
+- one institutional WARC-backed preservation corroboration receipt, with zero
+  admitted content;
 - zero permission requests sent;
 - zero dictionary articles frozen;
 - zero corpus slices frozen;
@@ -377,12 +387,13 @@ The result is deliberately **zero admitted content entries**:
 - zero recognized or additional translation passages revealed;
 - zero accepted lexical senses or etymologies.
 
-The laboratory remains blocked on authenticated critical-source admission and
-German-competent source acceptance. The 30-unit interface remains an
-unscheduled reusable option rather than a standing human backlog. When a
-concrete source question triggers review, reference admission still proceeds
-item by item: source acceptance does not automatically clear publication
-rights, and a private-use rights route does not establish a scholarly reading.
+The laboratory remains blocked on publisher-origin authentication,
+critical-source admission, and German-competent source acceptance. The
+30-unit interface remains an unscheduled reusable option rather than a
+standing human backlog. When a concrete source question triggers review,
+reference admission still proceeds item by item: source acceptance does not
+automatically clear publication rights, and a private-use rights route does
+not establish a scholarly reading.
 
 ## Planned use order after source acceptance
 

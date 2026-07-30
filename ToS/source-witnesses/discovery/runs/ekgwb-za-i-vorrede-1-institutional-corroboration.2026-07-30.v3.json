@@ -1,0 +1,603 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893"
+    ],
+    "description": "An owner-served or institutionally preserved exact eKGWB witness containing Za-I-Vorrede-1, with source origin, transport, preservation, rights, and source admission kept separate.",
+    "required_properties": [
+      "critical-edition identity",
+      "exact stable section locator",
+      "directly inspectable current or preserved passage",
+      "originating scholarly record",
+      "institutional preservation evidence",
+      "declared rights evidence separated from ToS rights judgment"
+    ],
+    "acceptable_substitutions": [
+      "an authenticated publisher response for the exact eKGWB section",
+      "a direct institutional deposit of the exact eKGWB section",
+      "another scholarly critical edition with exact passage-level addressability and a reviewable rights route"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "HTML",
+      "TEI",
+      "WARC"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-nietzsche-source-owner",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Nietzsche Source",
+      "endpoint_url": "http://www.nietzschesource.org/texts/eKGWB/Za-I",
+      "interface_type": "web",
+      "interface_version": "static owner HTML last modified 2024-09-08 and live-checked 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:14Z, GET https://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1 with curl 8.18.0, 8-second connect timeout, and 20-second total timeout; connection to port 443 failed with curl exit 7 before an HTTP response. Then at 2026-07-30T13:29:15Z, two GET requests to http://www.nietzschesource.org/texts/eKGWB/Za-I and one HEAD request to the same URL; both bodies were 245352 bytes with SHA-256 5ea54ed2b5409d93ae8b65db6c5901d31dd6c32868562dce2722dba4a8fb5a83, Last-Modified Sun, 08 Sep 2024 18:50:09 GMT, and ETag 3be68-621a01c07e8d0.",
+      "queried_at": "2026-07-30T13:29:14Z",
+      "elapsed_seconds": 4.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ekgwb-owner-http-texts-za-i-2026-07-30",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche Source eKGWB, Also sprach Zarathustra I",
+          "result_url": "http://www.nietzschesource.org/texts/eKGWB/Za-I",
+          "originating_record_url": "http://www.nietzschesource.org/eKGWB/Za-I-Vorrede-1",
+          "identifiers": [
+            {
+              "scheme": "eKGWB",
+              "value": "Za-I-Vorrede-1"
+            },
+            {
+              "scheme": "HTTP response SHA-256",
+              "value": "5ea54ed2b5409d93ae8b65db6c5901d31dd6c32868562dce2722dba4a8fb5a83"
+            },
+            {
+              "scheme": "exact target block SHA-256",
+              "value": "f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398"
+            },
+            {
+              "scheme": "HTTP ETag",
+              "value": "3be68-621a01c07e8d0"
+            }
+          ],
+          "available_formats": [
+            "HTML"
+          ],
+          "declared_rights": {
+            "statement": "CC BY-NC-ND 4.0",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current owner URL contains the exact target block and is repeatable, but it remains available only through unauthenticated HTTP from this host. Selection means current owner-channel corroboration only; it is not authenticated source admission.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The response was streamed for bounded digest comparison and not retained as a new payload; the earlier v2 ignored local capture remains a separate acquisition."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hal-author-record",
+      "sequence": 2,
+      "channel_type": "identifier-registry",
+      "role": "originating-record",
+      "source_name": "HAL open archive",
+      "endpoint_url": "https://api.archives-ouvertes.fr/search/",
+      "interface_type": "api",
+      "interface_version": "HAL search API response last indexed 2026-06-16",
+      "exact_query": "At 2026-07-30T13:29:18Z, GET https://api.archives-ouvertes.fr/search/?q=halId_s%3Ahal-04973084&fl=halId_s,title_s,uri_s,fileMain_s,openAccess_bool,docType_s,publisher_s,authFullName_s,producedDate_s,submittedDate_s,dateLastIndexed_tdate&rows=1&wt=json.",
+      "queried_at": "2026-07-30T13:29:18Z",
+      "elapsed_seconds": 1.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hal-ekgwb-04973084",
+          "rank": 1,
+          "title_as_displayed": "Friedrich Nietzsche, Digitale Kritische Gesamtausgabe Werke und Briefe",
+          "result_url": "https://hal.science/hal-04973084v1",
+          "originating_record_url": "https://hal.science/hal-04973084v1",
+          "identifiers": [
+            {
+              "scheme": "HAL",
+              "value": "hal-04973084"
+            },
+            {
+              "scheme": "author",
+              "value": "Paolo D'Iorio"
+            },
+            {
+              "scheme": "publisher",
+              "value": "Paris, Nietzsche Source"
+            }
+          ],
+          "available_formats": [
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The author-deposited institutional record identifies D'Iorio, Nietzsche Source, the edition title, and its 2009 publication posture. It is marked non-open-access and exposes no exact passage file, so it corroborates edition identity but is not the requested source object.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live institutional API metadata is sufficient for this identity cross-check; it contains no source payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-arquivo-pt",
+      "sequence": 3,
+      "channel_type": "collection-aggregator",
+      "role": "digital-object-record",
+      "source_name": "Arquivo.pt Portuguese web archive",
+      "endpoint_url": "https://arquivo.pt/textsearch",
+      "interface_type": "api",
+      "interface_version": "Arquivo.pt URL version-history API and pywb original-file replay as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:19Z, GET https://arquivo.pt/textsearch with versionHistory=www.nietzschesource.org/texts/eKGWB/Za-I and maxItems=50. Then at 2026-07-30T13:29:20Z, two GET requests to the returned linkToOriginalFile https://arquivo.pt/noFrame/replay/20230320222635id_/http://www.nietzschesource.org/texts/eKGWB/Za-I; both raw archived bodies were 245769 bytes with SHA-256 0f55f84dab7b9f53c72075d9b32b37baafff6e3a83dc9807f9519a00ce4a16f3.",
+      "queried_at": "2026-07-30T13:29:19Z",
+      "elapsed_seconds": 5.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.arquivo-pt-ekgwb-za-i-20230320222635",
+          "rank": 1,
+          "title_as_displayed": "Archived Nietzsche Source /texts/eKGWB/Za-I",
+          "result_url": "https://arquivo.pt/noFrame/replay/20230320222635id_/http://www.nietzschesource.org/texts/eKGWB/Za-I",
+          "originating_record_url": "http://www.nietzschesource.org/texts/eKGWB/Za-I",
+          "identifiers": [
+            {
+              "scheme": "Arquivo.pt capture timestamp",
+              "value": "20230320222635"
+            },
+            {
+              "scheme": "Arquivo.pt digest",
+              "value": "R5QLSPAJMRVEOB36UI4XEV2FTU3JXHYL"
+            },
+            {
+              "scheme": "Arquivo.pt collection",
+              "value": "EAWP43"
+            },
+            {
+              "scheme": "Arquivo.pt WARC file",
+              "value": "WEB-20230320222620763-p100.arquivo.pt.warc.gz"
+            },
+            {
+              "scheme": "Arquivo.pt WARC offset",
+              "value": "74314371"
+            },
+            {
+              "scheme": "archived raw body SHA-256",
+              "value": "0f55f84dab7b9f53c72075d9b32b37baafff6e3a83dc9807f9519a00ce4a16f3"
+            },
+            {
+              "scheme": "exact target block SHA-256",
+              "value": "f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "provider WARC replay"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://sobre.arquivo.pt/en/about/terms-and-conditions/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "FCT/FCCN's national public web archive supplies an HTTPS replay, capture time, original URL, WARC filename, collection, offset, and archive digest for the official Nietzsche Source object. Its terms explicitly do not validate archived content, so selection establishes institutional preservation and independent byte corroboration, not publisher-origin authentication or rights clearance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Arquivo.pt retains the WARC-backed snapshot; ToS streamed the raw replay for comparison but did not acquire a new local source payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-github-repositories",
+      "sequence": 4,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "GitHub public repository search",
+      "endpoint_url": "https://api.github.com/search/repositories",
+      "interface_type": "api",
+      "interface_version": "GitHub REST API 2022-11-28 compatible response as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:24Z, GET https://api.github.com/search/repositories?q=eKGWB+in%3Aname%2Cdescription%2Creadme&per_page=20 with Accept application/vnd.github+json. The API returned total_count 5 in the order preserved below.",
+      "queried_at": "2026-07-30T13:29:24Z",
+      "elapsed_seconds": 0.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.github-brtholomy-nat",
+          "rank": 1,
+          "title_as_displayed": "brtholomy/nat",
+          "result_url": "https://github.com/brtholomy/nat",
+          "originating_record_url": "https://github.com/brtholomy/nat",
+          "identifiers": [],
+          "available_formats": [
+            "Git repository"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "A current third-party Nietzsche archive transpiler with no detected repository license, no publisher identity, and an explicitly heuristic mapping method. It may be an implementation lead but is not an originating or institutionally preserved critical source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected third-party implementation lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.github-uva39-nietzsche-kr-translation",
+          "rank": 2,
+          "title_as_displayed": "uva39/Nietzsche-KR-Translation",
+          "result_url": "https://github.com/uva39/Nietzsche-KR-Translation",
+          "originating_record_url": "https://github.com/uva39/Nietzsche-KR-Translation",
+          "identifiers": [],
+          "available_formats": [
+            "Git repository"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Third-party translation repository; not an eKGWB publisher, institutional deposit, or exact German critical-edition source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected unrelated translation lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.github-sarachodosh-workshop1-nietzsche",
+          "rank": 3,
+          "title_as_displayed": "sarachodosh/workshop1-nietzsche",
+          "result_url": "https://github.com/sarachodosh/workshop1-nietzsche",
+          "originating_record_url": "https://github.com/sarachodosh/workshop1-nietzsche",
+          "identifiers": [],
+          "available_formats": [
+            "Git repository"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Third-party workshop repository; not an originating record, institutional deposit, or exact eKGWB source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected unrelated workshop lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.github-uvacoder-nietzsche-app",
+          "rank": 4,
+          "title_as_displayed": "Uvacoder/nietzsche-app",
+          "result_url": "https://github.com/Uvacoder/nietzsche-app",
+          "originating_record_url": "https://github.com/Uvacoder/nietzsche-app",
+          "identifiers": [],
+          "available_formats": [
+            "Git repository"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Third-party application repository; not an originating record, institutional deposit, or exact eKGWB source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected unrelated application lead."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.github-vivipazos-nietzsche-app",
+          "rank": 5,
+          "title_as_displayed": "vivipazos/nietzsche-app",
+          "result_url": "https://github.com/vivipazos/nietzsche-app",
+          "originating_record_url": "https://github.com/vivipazos/nietzsche-app",
+          "identifiers": [],
+          "available_formats": [
+            "Git repository"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Third-party application repository; not an originating record, institutional deposit, or exact eKGWB source.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected unrelated application lead."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-gitlab-projects",
+      "sequence": 5,
+      "channel_type": "meta-search",
+      "role": "lead-only",
+      "source_name": "GitLab public project search",
+      "endpoint_url": "https://gitlab.com/api/v4/projects",
+      "interface_type": "api",
+      "interface_version": "GitLab v4 public API as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:24Z, GET https://gitlab.com/api/v4/projects?search=eKGWB&simple=true&per_page=20. The API returned an empty ordered array.",
+      "queried_at": "2026-07-30T13:29:24Z",
+      "elapsed_seconds": 0.5,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-zenodo-records",
+      "sequence": 6,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Zenodo",
+      "endpoint_url": "https://zenodo.org/api/records",
+      "interface_type": "api",
+      "interface_version": "Zenodo records API as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:25Z, GET https://zenodo.org/api/records?q=eKGWB&size=20. The API returned total 0.",
+      "queried_at": "2026-07-30T13:29:25Z",
+      "elapsed_seconds": 1.0,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-datacite-dois",
+      "sequence": 7,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "DataCite",
+      "endpoint_url": "https://api.datacite.org/dois",
+      "interface_type": "api",
+      "interface_version": "DataCite REST API as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:26Z, GET https://api.datacite.org/dois?query=eKGWB&page%5Bsize%5D=20. The API returned total 0.",
+      "queried_at": "2026-07-30T13:29:26Z",
+      "elapsed_seconds": 1.0,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 8,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "DuckDuckGo HTML",
+      "endpoint_url": "https://html.duckduckgo.com/html/?q=%22eKGWB%22+%22Za-I%22+XML+TEI+download",
+      "interface_type": "web",
+      "interface_version": "HTML endpoint as served 2026-07-30",
+      "exact_query": "At 2026-07-30T13:29:27Z, q=\"eKGWB\" \"Za-I\" XML TEI download. The 14265-byte response contained an automated-access challenge and no inspectable ordered results. A prior parsing attempt at 2026-07-30T13:28:30Z also produced the challenge; no challenge was solved or bypassed.",
+      "queried_at": "2026-07-30T13:29:27Z",
+      "elapsed_seconds": 0.5,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-nietzsche-source-owner",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 4.0,
+      "notes": "Current owner response and exact target block are repeatable, but HTTP transport remains unauthenticated and no direct TEI endpoint was exposed."
+    },
+    {
+      "channel_id": "channel-hal-author-record",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.0,
+      "notes": "Strong author and publisher identity metadata, but no exact passage file and no open-access source object."
+    },
+    {
+      "channel_id": "channel-arquivo-pt",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 5.0,
+      "notes": "One exact original-URL capture with WARC lineage and HTTPS replay; archive custody corroborates bytes but does not validate publisher origin or rights."
+    },
+    {
+      "channel_id": "channel-github-repositories",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 1,
+      "machine_seconds": 0.4,
+      "notes": "Five ordered third-party repositories and no official owner repository; the only current transpiler lead has no detected license and is not source authority."
+    },
+    {
+      "channel_id": "channel-gitlab-projects",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.5,
+      "notes": "No public GitLab project matched the exact eKGWB query."
+    },
+    {
+      "channel_id": "channel-zenodo-records",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.0,
+      "notes": "No Zenodo record matched eKGWB."
+    },
+    {
+      "channel_id": "channel-datacite-dois",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.0,
+      "notes": "No DataCite DOI record matched eKGWB."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "unknown",
+      "metadata_precision": "unknown",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "poor",
+      "human_minutes": 0,
+      "machine_seconds": 0.5,
+      "notes": "The final general-web endpoint returned an automated-access challenge. No bypass was attempted and no result was fabricated."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ekgwb-owner-http-texts-za-i-2026-07-30",
+    "tos-discovery-result.arquivo-pt-ekgwb-za-i-20230320222635"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.github-brtholomy-nat",
+    "tos-discovery-result.github-uva39-nietzsche-kr-translation",
+    "tos-discovery-result.github-sarachodosh-workshop1-nietzsche",
+    "tos-discovery-result.github-uvacoder-nietzsche-app",
+    "tos-discovery-result.github-vivipazos-nietzsche-app"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T13:29:14Z",
+  "ended_at": "2026-07-30T13:29:45Z",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30"
+  ],
+  "record_version": 3,
+  "supersedes_discovery_ref": "tos.discovery.ekgwb-za-i-vorrede-1-http-fallback.2026-07-29"
+}

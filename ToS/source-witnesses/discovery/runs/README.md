@@ -11,6 +11,25 @@ The run is intentionally `incomplete`: it selected no critical-edition
 witness, downloaded no source payload, inferred no rights, and opened no
 source-review or translation lane.
 
+`ekgwb-za-i-vorrede-1-http-fallback.2026-07-29.v2.json` records a later exact
+owner-route reconciliation. Two HTTPS attempts failed before HTTP response;
+two exact HTTP requests to the public SPA include returned byte-identical
+bodies. One response is retained only in ignored local custody. The run
+establishes repeatable current-owner transport evidence, not authenticated
+publisher origin, rights clearance, source admission, German acceptance, or
+publication authority.
+
+`ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json` repeats
+the search in owner -> author-deposit -> institutional archive -> repository
+and identifier registry -> general-web order. Arquivo.pt supplies an HTTPS
+replay with original URL, capture timestamp, collection, archive digest, WARC
+file, and byte offset. The exact `Za-I-Vorrede-1` block is byte-identical
+across the 2023 archive snapshot, the current 2024-dated owner object, and the
+2026 owner include. Arquivo.pt explicitly disclaims validation of archived
+content, so the run establishes institutional preservation and independent
+byte corroboration while leaving publisher-origin authentication unresolved.
+It acquires no new ToS source payload and admits no text.
+
 `antonovsky-cultural-revolution-2007-volume-4.2026-07-28.v1.json` reconciles
 the supplied Antonovsky edition against the originating Russian State Library
 record. The selected record supports edition identity, responsibility,

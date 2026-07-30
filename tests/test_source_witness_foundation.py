@@ -35,6 +35,11 @@ BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH = (
 EKGWB_RIGHTS_PATH = (
     GOLD_ROOT / "rights.ekgwb.za-i-vorrede-1.v1.json"
 )
+EKGWB_INSTITUTIONAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json"
+)
 MYSL_WORK_BOUNDARY_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
@@ -1013,6 +1018,81 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 )
             },
         )
+
+    def test_ekgwb_institutional_archive_corroborates_without_admission(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.MATERIAL_DISCOVERY_SCHEMA,
+            REPO_ROOT,
+        )
+        discovery = json.loads(
+            EKGWB_INSTITUTIONAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(discovery)))
+        self.assertEqual("reconciled", discovery["status"])
+        self.assertEqual(3, discovery["record_version"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+        self.assertEqual(
+            {
+                "tos-discovery-result.ekgwb-owner-http-texts-za-i-2026-07-30",
+                "tos-discovery-result.arquivo-pt-ekgwb-za-i-20230320222635",
+            },
+            set(discovery["selected_result_ids"]),
+        )
+
+        channels = {
+            channel["channel_id"]: channel for channel in discovery["channels"]
+        }
+        self.assertEqual(
+            max(channel["sequence"] for channel in discovery["channels"]),
+            channels["channel-general-web-last"]["sequence"],
+        )
+        owner = channels["channel-nietzsche-source-owner"]["results"][0]
+        archive = channels["channel-arquivo-pt"]["results"][0]
+
+        def identifier_map(result: dict) -> dict[str, str]:
+            return {
+                entry["scheme"]: entry["value"]
+                for entry in result["identifiers"]
+            }
+
+        owner_ids = identifier_map(owner)
+        archive_ids = identifier_map(archive)
+        self.assertEqual(
+            owner_ids["exact target block SHA-256"],
+            archive_ids["exact target block SHA-256"],
+        )
+        self.assertEqual(
+            "20230320222635",
+            archive_ids["Arquivo.pt capture timestamp"],
+        )
+        self.assertEqual(
+            "R5QLSPAJMRVEOB36UI4XEV2FTU3JXHYL",
+            archive_ids["Arquivo.pt digest"],
+        )
+        self.assertEqual(
+            "WEB-20230320222620763-p100.arquivo.pt.warc.gz",
+            archive_ids["Arquivo.pt WARC file"],
+        )
+        self.assertIn("not publisher-origin authentication", archive["rationale"])
+        self.assertIn("not authenticated source admission", owner["rationale"])
+
+        access_request = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/access-requests/public-ledger/"
+                "nietzsche-source-ekgwb.access-request.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertIn(
+            EKGWB_INSTITUTIONAL_DISCOVERY_PATH.relative_to(REPO_ROOT).as_posix(),
+            access_request["material"]["discovery_refs"],
+        )
+        self.assertEqual("requested", access_request["requested_permissions"]["local_access"])
+        self.assertEqual("draft-not-sent", access_request["request_status"])
+        self.assertFalse(access_request["human_send_approval"])
+        self.assertEqual(5, access_request["record_version"])
 
     def test_blind_pre_draft_contract_enforces_independent_lane_evidence(self) -> None:
         validator, _ = foundation._schema_validator(

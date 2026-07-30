@@ -96,6 +96,47 @@ The previously captured HTTP response remains repeatable transport evidence,
 not authenticated source admission. Repetition and byte identity do not
 replace server authentication.
 
+## IV. Institutional preservation corroboration
+
+A later protocol-native pass on 2026-07-30 followed the owner -> author
+deposit -> institutional archive -> repository and identifier registry ->
+general-web order recorded in
+`ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json`.
+
+The owner documentation still describes eKGWB as XML-TEI, but the current
+public client exposed only the HTML object and print route. Requests for
+`application/tei+xml`, `application/xml`, `text/xml`, and `text/plain`
+returned the same HTML representation; no direct current TEI endpoint was
+found. HAL's author-deposited record `hal-04973084` independently identifies
+Paolo D'Iorio, Nietzsche Source, and the 2009 digital edition, but it is marked
+non-open-access and exposes no passage file.
+
+[Arquivo.pt](https://arquivo.pt/) supplied one HTTPS replay of the exact
+original owner URL captured at `20230320222635`, together with collection
+`EAWP43`, archive digest `R5QLSPAJMRVEOB36UI4XEV2FTU3JXHYL`, WARC file
+`WEB-20230320222620763-p100.arquivo.pt.warc.gz`, and byte offset `74314371`.
+The exact target block is byte-identical across:
+
+- the 2023 Arquivo.pt snapshot;
+- the current owner object whose headers report a 2024 last modification;
+- the current owner static include observed in 2026.
+
+The shared target-block SHA-256 is
+`f58a13c189bcf22db19fcbca2345e660a771656c89010c67d55eb4a00c4cc398`.
+This is materially stronger than a repeated HTTP response: an independent
+national research infrastructure preserved the same original-URL object and
+WARC lineage before the current checks. It is still not cryptographic or
+publisher-signed origin authentication. Arquivo.pt's
+[terms](https://sobre.arquivo.pt/en/about/terms-and-conditions/) explicitly
+state that the service does not validate the archived content, accuracy, or
+source.
+
+GitHub yielded five third-party repositories and no publisher repository;
+GitLab, Zenodo, and DataCite returned no exact deposit; the final general-web
+endpoint returned an automated-access challenge. No challenge was bypassed,
+no third-party implementation was selected as source authority, and no new
+source payload was acquired.
+
 ## Decision
 
 | Action | Current posture | Reason |
@@ -103,7 +144,8 @@ replace server authentication.
 | Preserve public metadata, locator, citations, and rights evidence | allowed | no source payload is published |
 | Keep the already captured exact response in ignored local custody | allowed for bounded research | operator policy is local-only and the license supports non-commercial private use |
 | Produce private local indexes, embeddings, normalization, comparison, or analysis | allowed as a research route, not admitted truth | CC BY-NC-ND 4.0 permits private non-commercial adaptations; provenance and source-return remain mandatory |
-| Treat the HTTP response as an authenticated critical source | blocked | transport authenticity is unresolved |
+| Use the Arquivo.pt snapshot as independent preservation corroboration | allowed as evidence | HTTPS replay, WARC lineage, and exact-block agreement support historical fixity but not publisher origin |
+| Treat the HTTP or archive response as a publisher-authenticated critical source | blocked | no publisher signature, authenticated current delivery, or direct publisher deposit was obtained |
 | Accept German readings, grammar, semantics, or translation quality | blocked | no German-competent human authority has reviewed them |
 | Share or publish an adapted eKGWB corpus, index containing recoverable adapted text, or derivative text | blocked | NoDerivatives prohibits sharing adapted material |
 | Commercial use | blocked without separate permission | NonCommercial condition |
@@ -113,8 +155,9 @@ replace server authentication.
 
 The existing request remains unsent. Its useful purpose is narrower now:
 
-1. obtain an authenticated or institutionally supplied copy of the exact
-   passage;
+1. obtain a publisher-authenticated current copy or direct publisher deposit
+   of the exact passage, because an institutional historical archive witness
+   is already available;
 2. clarify any intended server-side, quotation, or sharing scope beyond
    private local research;
 3. preserve a direct institutional answer if the live license or project

@@ -13,6 +13,10 @@ Tracking starts with the community-docs baseline for this repository.
   permitted private non-commercial adaptation from prohibited sharing of
   adapted material while keeping the HTTP witness unauthenticated, local-only,
   unadmitted, and publication-blocked.
+- Added protocol-native institutional corroboration for the eKGWB target:
+  Arquivo.pt WARC lineage and an exact block match across 2023, 2024-dated, and
+  2026 owner surfaces, while preserving the archive's non-validation disclaimer
+  and leaving publisher-origin authentication and source admission open.
 - Added a text-free, schema-bound return receipt and independent recorder for
   the exact owner-local Zarathustra direct-page-image retrieval C run,
   preserving private artifact fixity, normalization, resource cost, r8/r9
