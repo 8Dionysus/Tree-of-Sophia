@@ -1,0 +1,247 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-result-receipt.schema.json",
+  "schema_version": "tos_visual_retrieval_result_receipt_v1",
+  "generated_or_authored": "generated_from_private_direct_visual_retrieval_run",
+  "receipt_id": "visual-retrieval-result:zarathustra-foundation-pilot-v1.c.qwen3-vl-embedding-2b.v1",
+  "recorded_at_utc": "2026-07-30T11:53:40.785922+00:00",
+  "status": "c-executed-triggered-review-open-unscheduled",
+  "experiment_id": "tos-visual-retrieval-foundation-v1",
+  "variant": "C",
+  "plan": {
+    "plan_id": "tos.visual-retrieval-plan.zarathustra-foundation-pilot-v1",
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-plan.v1.json",
+    "sha256": "27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25",
+    "frozen_before_challenger_outputs": true
+  },
+  "generator": {
+    "ref": "scripts/record_zarathustra_visual_retrieval_result.py",
+    "sha256": "c03e0ffa901959b676e6596fdb57ff7039c5cc77b5bd79e89ec432118e642b6a"
+  },
+  "private_run": {
+    "artifact_owner": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab",
+    "relative_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C",
+    "run_id": "zarathustra-qwen-vl-visual-c-20260730t1059z-r9",
+    "status": "awaiting-triggered-review",
+    "started_at_utc": "2026-07-30T11:06:54.023571+00:00",
+    "finished_at_utc": "2026-07-30T11:53:40.785922+00:00",
+    "retention_decision": "retain",
+    "visibility": "owner-local-only",
+    "manual_review_count": 0,
+    "model_inspection_count": 1
+  },
+  "prior_audit_incomplete_run": {
+    "relative_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t0652z-r8/variant-C",
+    "run_id": "zarathustra-qwen-vl-visual-c-20260730t0652z-r8",
+    "classification": "executed-audit-incomplete",
+    "run_receipt_sha256": "2a5ea1517a24e93bc8aae5383594ccb31ad6e8edc3880f8006a9141af05d517e",
+    "missing_evidence": "persisted-normalization-audit",
+    "rankings_and_scores_identical_query_count": 20,
+    "query_count": 20,
+    "retained": true,
+    "promotion_authorized": false
+  },
+  "method": {
+    "model_id": "Qwen/Qwen3-VL-Embedding-2B",
+    "repository_revision": "9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda",
+    "vector_dimension": 2048,
+    "distance": "cosine-via-normalized-dot-product",
+    "normalization": "L2",
+    "runtime_route": "isolated-offline-python-3.12-cpu",
+    "network_used": false,
+    "unreviewed_remote_code_executed": false
+  },
+  "inputs": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "query_count": 20,
+    "page_image_count": 36,
+    "tree_plan_sha256": "27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25",
+    "source_sample_plan_sha256": "a813f0a19361ccc773d1427ab696a76296993c999abb2ff35376bae422bbb9d1",
+    "visual_sample_plan_sha256": "3fd111023cf2ffdbee935d771f36f314d8087677d57e9ef34a64e19e27ddae06",
+    "query_plan_sha256": "481e1f8ea32b9f7b40eb73a59e7bc3e614d08a3b8958bebd7b0c7fce94fed7a4",
+    "query_content_sha256": "5c9ce96fb362512a9ef775bd7d7212b5df6b00570226961a96d51478ba980a1e",
+    "render_manifest_sha256": "734e7474923ec2697a243b1e1b322c43c4e2a8b82b6336df57ab82f3bbc8fec7",
+    "png_set_sha256": "78653333866c8759c83febaf9b59815e7c61630dae6f40888f02724c209909e7",
+    "png_total_bytes": 15662617,
+    "source_or_query_content_copied": false
+  },
+  "runtime": {
+    "runtime_id": "qwen3-vl-embedding-2b-9f2f7e71-cpu",
+    "manifest_sha256": "ff730fe5780216fe84f26b7fbed6c57d0f0de58cabac5026d6af403e094632ba",
+    "artifact_set_sha256": "837f70def92d6808d975f1d2c4871aec24a184443307266531909105a23ebf38",
+    "model_artifact_count": 18,
+    "model_artifact_bytes": 4271068726,
+    "model_artifact_set_sha256": "036649b72c054a4b3c896efea2f22ffe1629a6d772564ead7af98d080e0fd9ed",
+    "runner_sha256": "e7f778aa91318aa1da93549a1ef83c4d376e5f7ed48419756eeb49b5218f8931",
+    "bridge_sha256": "bb82ac96a67d6988321fdba7c00555ef1612b8a1d00d149a45bf8c988a3a2a57",
+    "reviewed_helper_sha256": "8ffa74a1a6bb759610c57865ea416fd4daf9936cb787520e1112a3e1d547f36a",
+    "normalization_audit_schema": "tos_qwen_vl_runtime_and_model_v2",
+    "normalization_record_count": 76,
+    "offline_attempted_event_count": 0,
+    "permitted_loopback_bind_count": 1
+  },
+  "private_artifacts": {
+    "run_receipt": {
+      "sha256": "4c35a7ad7e72d57ffd0bc741a14e1cea1bd7908b35e76e571f7316a7b51e7123",
+      "bytes": 4447,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "experiment_spec": {
+      "sha256": "703e8e3ad7346a247597176db8eda71070e542af07da89d3c420fe5346d8f972",
+      "bytes": 9935,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "preflight": {
+      "sha256": "f414a54061695e3692cd237703e67b2e4934a1b79f419ec5e5faf04dc2dd8449",
+      "bytes": 79418,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "input_manifest": {
+      "sha256": "5732e97c7f0d514626af405730aa826bb9f72554e866c5d964cdaad55eb8e943",
+      "bytes": 23691,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "fixed_controls": {
+      "sha256": "86a9b839e670fa4929a0cdf1373ff975848dec4b5c37d9da6e33e82985bac15e",
+      "bytes": 7710,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "vector_index": {
+      "sha256": "f53c6bc6f1b39ad12b8a963cdbf65128944eaacc0f5e38c717d2842b49d0f1f3",
+      "bytes": 1588701,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "abc_comparison": {
+      "sha256": "a980cfd83da986199f9cf83879e628d63ed781a108cd143868196e0b896c670d",
+      "bytes": 56072,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "index_lifecycle": {
+      "sha256": "d9901f2e44ce1ee46bee5260fc3a51e70e95f6fc7c068db0d1b69eb4307765e2",
+      "bytes": 724,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "invocation": {
+      "sha256": "e8300dc6f1466855b31ed8198e9d265838f664803c35ada87cbf6e936264f1e9",
+      "bytes": 3352,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "runtime_and_model": {
+      "sha256": "63f8c5e736e20bcdddd5733b8b9f4f83ded98140e9e050078dee3789cadf1dca",
+      "bytes": 31267,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "metrics": {
+      "sha256": "427d380f15b773a93022d82d11d6dc521555d8cb007ce9aba710e10b6e1302c4",
+      "bytes": 2096,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "host_resource_launch": {
+      "sha256": "d2fcc9ef3e6af0d0421bedc516bac7850876f0318822443c611d69eee012ddc4",
+      "bytes": 36756,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "query_results": {
+      "file_count": 20,
+      "total_bytes": 170939,
+      "set_sha256": "03dddcb7b5bdfff874c90557b124638374e2ecde5d971ed8d9d767b0b43f84fb",
+      "source_bearing": false
+    }
+  },
+  "mechanical_reconstruction": {
+    "status": "completed-without-unresolved-mechanical-issue",
+    "performed_by": "model:codex-independent-reconstruction",
+    "frozen_digest_checks": 7,
+    "png_fixity_checks": 36,
+    "control_fixity_checks": 42,
+    "model_artifact_fixity_checks": 18,
+    "page_vector_count": 36,
+    "vector_dimension": 2048,
+    "normalization_record_count": 76,
+    "resolved_ranked_result_count": 200,
+    "private_text_leak_count": 0,
+    "copied_source_or_image_file_count": 0,
+    "r8_r9_identical_rankings_and_scores": 20,
+    "maximum_pre_normalization_error": 0.002344965934753418,
+    "maximum_post_normalization_error": 3.5762786865234375e-07,
+    "query_vector_recomputation": "not-possible-query-vectors-not-persisted"
+  },
+  "advisory_results": {
+    "stable_rankings": 20,
+    "query_count": 20,
+    "model_proposed_target_at_10": 19,
+    "evaluable_query_count": 19,
+    "coverage_recovery": 1,
+    "hard_negative_presence": 9,
+    "hard_negative_slots": 10,
+    "hard_negative_outranks_expected": 4,
+    "cross_language_expected_hits": 2,
+    "cross_language_query_count": 2,
+    "resolved_ranked_results": 200,
+    "advisory_only": true
+  },
+  "performance": {
+    "model_load_seconds": 1.0416237039971747,
+    "image_encoding_seconds_total": 2507.903663854013,
+    "first_query_latency_ms_median": 6800.708579503407,
+    "warm_query_latency_ms_median": 6955.080615498446,
+    "total_runner_seconds": 2806.7620161290033,
+    "host_elapsed_seconds": 2807.234,
+    "index_bytes": 1588701,
+    "packet_bytes_before_host_receipt": 1971928,
+    "bridge_peak_rss_bytes": 4742041600,
+    "host_runner_peak_rss_bytes": 63909888,
+    "host_cgroup_memory_peak_bytes": 4808843264,
+    "host_cgroup_swap_peak_bytes": 380157952,
+    "host_cgroup_footprint_peak_mib": 4948.617
+  },
+  "triggered_review": {
+    "status": "open-unscheduled",
+    "routine_review_scheduled": false,
+    "review_opened": true,
+    "human_judgment_status": "not_started",
+    "human_debt_count": 0,
+    "trigger_conditions_met": [
+      "challenger-materially-changes-a-source-return-route",
+      "hard-negative-or-cross-language-behavior-remains-ambiguous"
+    ],
+    "query_ids": [
+      "tos-query-003",
+      "tos-query-009",
+      "tos-query-010",
+      "tos-query-011",
+      "tos-query-020"
+    ],
+    "query_count": 5,
+    "review_scope": "criteria-only-source-visible-ranking-review-no-retyping",
+    "review_interface_materialized": false
+  },
+  "quality_and_promotion": {
+    "human_ndcg_at_10": null,
+    "human_hard_negative_error_rate": null,
+    "human_review_minutes": null,
+    "winner": null,
+    "method_adoption_under_consideration": false,
+    "promotion_authorized": false
+  },
+  "rights_and_visibility": {
+    "private_source_and_query_content": "owner-local-only",
+    "tracked_receipt_contains_source_strings": false,
+    "tracked_receipt_contains_query_strings": false,
+    "tracked_receipt_contains_vectors": false,
+    "public_page_images_authorized": false,
+    "publication_authorized": false
+  },
+  "authority_boundary": "This receipt proves one exact offline direct-page-image retrieval run, its frozen inputs, private artifact fixity, persisted normalization audit, source-anchor closure, measured resource cost, and a narrow trigger decision. It does not accept relevance, transcription, quotation, German or Russian text, translation, semantics, a sign, concept, claim, relation, graph edge, rights clearance, publication, method adoption, winner, or promotion."
+}

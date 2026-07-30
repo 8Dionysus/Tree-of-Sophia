@@ -75,6 +75,17 @@ reference. Mechanical residue is not reviewed residue: the recorder cannot
 accept German, morphology, a lemma or lexeme, open B/C or a human task, clear
 rights, authorize publication, or create semantic and graph authority.
 
+`record_zarathustra_visual_retrieval_result.py` is the return route from one
+exact owner-local direct-page-image retrieval C run. It independently
+reconstructs frozen-input and artifact fixity, normalization evidence,
+repeat-ranking stability, source-anchor resolution, advisory A/B/C aggregates,
+resource cost, and whether a declared rare-review trigger opened. The tracked
+receipt contains no source or query strings, page images, vectors, or absolute
+owner paths. The recorder cannot accept relevance, transcription, translation,
+a sign or semantic relation, choose a winner, adopt or promote the method,
+authorize publication, create a routine human backlog, or materialize another
+review interface.
+
 `build_witness_structure_correspondence.py` uses those inventories plus
 explicit local DTA/EPUB payloads to produce a tracked, text-free map of named
 division-start candidates and stable proposed TEI, EPUB-member, and PDF-page
@@ -239,6 +250,7 @@ Local owner routes:
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
 | local Zarathustra morphology census input | `python scripts/build_zarathustra_morphology_input.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`; omit `--check` only to intentionally rebuild the ignored exact-form JSONL and its tracked text-free receipt before any morphology output |
 | private Zarathustra morphology A result | `python scripts/record_zarathustra_morphology_census_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A --check`; omit `--check` only to intentionally record an exact owner-local run as the tracked text-free aggregate receipt |
+| private Zarathustra direct-visual retrieval C result | `python scripts/record_zarathustra_visual_retrieval_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<run-id>/variant-C --prior-run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<prior-run-id>/variant-C --local-query-content /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/retrieval/queries.v1.json --check`; omit `--check` only to intentionally record the exact owner-local run as a tracked text-free mechanical and trigger receipt |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |

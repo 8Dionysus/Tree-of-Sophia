@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-07-29
+Snapshot: 2026-07-30
 
 ## Honest boundary
 
@@ -28,7 +28,7 @@ fields. They are the next authority layer.
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
-| retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual C has exact model/runtime/crosswalk but 0 runs after a memory-blocked preflight; human judgments 0 | advisory model targets and hard negatives are not gold; setup admission is not retrieval output |
+| retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual r9 executed audit-complete with 20/20 stable rankings, 200 resolved anchors, one A/B-missed route recovery, four hard-negative outranks, and two ambiguous cross-language cases; five trigger queries open but unscheduled; human judgments 0 | advisory model targets, route recovery, and hard negatives are not gold; exact execution and independent mechanical reconstruction still cannot supply relevance, nDCG, adoption, or promotion |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
@@ -163,14 +163,15 @@ contracts intentionally reject simulated human evidence.
   reported top-k diagnostics are not human relevance scores.
 - Direct visual retrieval is separately frozen over the same 20 query bytes
   and all 36 page images. Its 4,549,670,315-byte acquisition and
-  1,182,279,019-byte offline CPU runtime are prepared with exact fixity, and
+  1,182,279,019-byte offline CPU runtime have exact fixity, and
   its bridge now proves real image consumption instead of accepting the
-  upstream helper's silent `NULL` fallback. The latest durable preflight
-  nevertheless stopped before run preparation: available memory was
-  11,545,407,488 bytes against the frozen 17,179,869,184-byte minimum, and
-  the owner returned `force_required`. Storage, load, 87 °C temperature,
-  runtime, license, and offline gates passed. This is a resource-blocked
-  non-run, not model failure or retrieval evidence.
+  upstream helper's silent `NULL` fallback. A fresh unforced preflight later
+  passed with 19,101,630,464 available bytes against the unchanged
+  17,179,869,184-byte minimum. Owner-routed r9 completed offline in
+  2,807.234 s, persisted 36 page vectors and all 76 normalization records,
+  resolved 200/200 anchors, and retained measured memory/swap peaks. The
+  prior r8 rankings and scores match 20/20 but r8 remains audit-incomplete
+  because it did not persist those normalization rows.
 - Graph comparison uses 13 unreviewed claims and 10 model-proposed questions.
   It tests projection fidelity, not ontology adequacy or claim truth.
 - Neo4j reuses a resident Community service, while Oxigraph owns an isolated
@@ -273,13 +274,17 @@ not reintroduce a false 90 °C gate.
   translation-calibration schema registrations, the profile-example mapping,
   the lab-test inventory, and bearer-token isolation in subprocess tests. It
   does not establish the GPU hang's root cause or reopen the translation run.
-- The direct-visual retrieval implementation is committed in `abyss-stack`
-  through `3867617b`. It binds the exact Qwen3-VL-Embedding-2B acquisition and
+- The direct-visual retrieval implementation is committed in the isolated
+  `abyss-stack` branch through `0fc7d22`. It binds the exact
+  Qwen3-VL-Embedding-2B acquisition and
   runtime, preserves early dependency failures, audits zero network attempts,
   and fails closed if the helper does not actually consume one decoded image
-  per request. The latest host preflight SHA-256 is
-  `299cdf3ad98d17c4f3b98b2080eb21e20525c5bae869573b22633c7674195e16`;
-  it blocks on memory/resource admission and creates no run result.
+  per request. The successful ready preflight SHA-256 is
+  `f414a54061695e3692cd237703e67b2e4934a1b79f419ec5e5faf04dc2dd8449`;
+  the copied host launch receipt SHA-256 is
+  `d2fcc9ef3e6af0d0421bedc516bac7850876f0318822443c611d69eee012ddc4`.
+  The tracked Tree result remains text-free and explicitly leaves relevance,
+  adoption, promotion, and publication unclaimed.
 - The transfer-preparation slice is committed in Tree of Sophia through
   `0f30c08`. It adds twenty private pre-output page candidates and proposed
   anchors while retaining zero eligible target units, zero target gold, zero
@@ -338,8 +343,12 @@ quality.
    only if an exact-reference question is explicitly opened.
 2. Grade structure boundaries, reading order, omissions, additions, and
    correction time.
-3. Grade 10 random and 10 hard retrieval queries, adjudicate translation
-   parallels versus hard negatives, and manually recompute one nDCG@10.
+3. For a text-retrieval adoption comparison, grade 10 random and 10 hard
+   queries, adjudicate translation parallels versus hard negatives, and
+   manually recompute one nDCG@10. For direct visual retrieval, do not widen
+   the current trigger: only queries `003`, `009`, `010`, `011`, and `020`
+   may enter the narrow criteria-only source-visible review, and only when a
+   real adoption or source-return decision needs it.
 4. Grade all 10 graph questions and 10 random plus 10 hard edges; record trace
    time and both competing claim families.
 5. Preserve every disagreement and negative result rather than overwriting
@@ -446,29 +455,33 @@ actual outcomes. The bounded experiment is closed.
    synthetic `max_tokens=30` probe, a stop after one hang/reset, and one-factor
    changes only. A passing probe cannot repair or supersede C.
 
-### 2c. Admit direct visual retrieval without forcing the host
+### 2c. Preserve direct visual retrieval evidence and defer human judgment
 
-Current state: exact source plan, model acquisition, isolated CPU runtime,
-visual-use audit, and execution command are prepared; challenger output is
-absent because the latest owner preflight is `blocked`.
+Current state: the exact source plan was admitted without mutation; owner-routed
+r9 completed offline and was independently reconstructed; r8 and all failed
+admission/setup evidence are preserved; the narrow review trigger is open but
+unscheduled.
 
 1. Preserve the frozen 20-query/36-image plan and immutable text-control
    receipts. Do not mutate the source plan merely because runtime setup later
    completed.
-2. Before any attempt, create a fresh unique preflight receipt. Continue only
-   if it says `decision=ready` under the existing 17,179,869,184-byte available
-   memory floor and the owner heavy/indexing admission says `allow`.
-3. Do not use `force`, lower the floor, stop unrelated user services, or infer
-   that current storage/thermal allowance can substitute for memory
-   admission.
-4. On admission, run once offline through the owner-routed CPU path. Require
-   exactly 36 proven visual inputs, zero silent fallbacks, zero network
-   attempts, exact delete/rebuild evidence, and source-safe anchor-only
+2. Retain the successful `ready` preflight and exact owner launch receipt
+   beside the run; do not replace them with mutable latest-only host state.
+3. Preserve r8 as `executed-audit-incomplete`, the earlier memory-gated
+   preflights, and the quarantined prepared-only wrong-output-root packet. None
+   is a substitute for r9 and none should be deleted to clean the narrative.
+4. Keep the audit-complete r9 private packet owner-local. The tracked result
+   may expose only digests, counts, opaque relative owner refs, measurements,
+   trigger IDs, and authority boundaries—not query strings, page images,
+   vectors, source strings, or absolute paths.
+5. Treat 19/19 model-proposed target presence, one route recovery, hard-negative
+   ordering, and cross-language behavior as advisory observations. The opened
+   five-query review is criteria-only, source-visible, and no-retyping; it
+   remains unscheduled and does not create human debt.
+6. Do not rerun merely to obtain another green receipt or test the UI. A new
+   run needs a new declared research question, fresh unique preflight, owner
+   admission without force, and a one-factor comparison plan frozen before
    output.
-5. Keep relevance, coverage recovery, hard-negative behavior, quality,
-   transcription, quotation, and winner fields unclaimed until actual output
-   exists. Open human review only if adoption, material route change,
-   ambiguity, or explicit drift control triggers it.
 
 ### 3. Open translation only after source acceptance
 

@@ -143,6 +143,20 @@ Zarathustra golden kernel. It is not a completed gold set.
   Page images and query content remain local-only. The plan schedules no
   routine human work and establishes no transcription, quotation, semantic,
   winner, publication, or promotion result.
+- `visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json` is the text-free
+  return receipt for the owner-local audit-complete r9 execution. An
+  independent Tree recorder rechecks frozen input, PNG, control, model,
+  runtime, index, normalization, ranking, anchor, resource, and r8/r9 parity
+  evidence from the private run while exposing no query/source strings, page
+  images, vectors, or absolute owner paths. It records 20/20 stable rankings,
+  200/200 resolved anchors, 19/19 evaluable model-proposed target presence,
+  one source-return recovery, and four hard-negative outranks as advisory
+  mechanics only. The preserved r8 result is classified
+  `executed-audit-incomplete` because its 20/20 identical rankings and scores
+  lack the persisted 76-row normalization audit. Two declared conditions open
+  only the unscheduled criteria-review set `003`, `009`, `010`, `011`, and
+  `020`; human judgments, human debt, winner, adoption, promotion, and
+  publication remain zero or blocked, and no review interface is created.
 - `graph-claims.jsonl` fixes 13 unreviewed claims across bibliographic,
   textual, provenance, and interpretive layers. Two alternative families are
   deliberately unresolved.

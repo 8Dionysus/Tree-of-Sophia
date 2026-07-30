@@ -404,9 +404,11 @@ At the snapshot date:
   experiment; it is not substituted for the text challenger. The exact
   revision, 20-query/36-page-image plan, acquisition, isolated CPU runtime,
   source-to-image crosswalk, image-use audit, and offline boundary are now
-  fixed. The latest preflight blocked before execution on available memory and
-  owner resource admission. No page embedding, ranking, image-relevance
-  judgment, quality result, or winner exists.
+  fixed. After a preserved memory-gated preflight, a fresh owner admission
+  returned `ready` without force and audit-complete r9 executed all 36 images
+  and 20 queries. Mechanical ranking, anchor, normalization, latency, memory,
+  swap, and route-recovery evidence now exists; human image relevance,
+  hard-negative correctness, quality, winner, adoption, and promotion do not.
 - [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) is the plausible fresh
   small general-model challenger. Its very large default context should be
   reduced locally.
@@ -451,8 +453,10 @@ protocol used by A/B remain authoritative. Two post-freeze executions produced
 identical indexes and rankings, but human relevance remains unreviewed.
 BGE-M3 and gte-multilingual-base stay documented comparators;
 Qwen3-VL-Embedding-2B has entered the distinct visual-search experiment with
-an exact host-owned runtime, but execution remains resource-blocked and
-content-quality evidence remains absent.
+an exact host-owned runtime. Audit-complete r9 now supplies direct-page-image
+ranking, anchor, normalization, and resource evidence, while the five-query
+human relevance trigger remains unscheduled and content-quality, adoption,
+promotion, and winner evidence remain absent.
 
 ### Current graph and retrieval stores
 

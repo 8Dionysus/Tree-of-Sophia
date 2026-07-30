@@ -36,7 +36,7 @@ and what must be tested manually.
 | `private-evidence-handoff.v1.json` | Which exact public-safe destination, aggregation boundary, prohibited disclosures, owners, effects, and human publication gate must exist before private laboratory evidence is read? |
 | `RETRIEVAL_C_ADMISSION.md` | Which exact independent embedding challenger was frozen before C output, why, and with what artifact/comparability boundary? |
 | `STRUCTURE_RECOVERY_REPORT.md` | What did the first real Structure A runs produce, and what was rejected? |
-| `RETRIEVAL_COMPARISON_REPORT.md` | What do the executed lexical A and resident semantic/rerank B routes prove, disagree about, and leave for C and human judgment? |
+| `RETRIEVAL_COMPARISON_REPORT.md` | What do the executed text A/B/C routes and the separate audit-complete direct-page-image challenger prove, disagree about, cost, and still leave to rare human judgment? |
 | `GRAPH_PROJECTION_COMPARISON_REPORT.md` | Can claim-first graph mechanics preserve layers, alternatives, real evidence resolution, and explicit non-acceptance? |
 | `TRANSLATION_SOURCE_SELECTOR_INSPECTION.md` | Did the first frozen German fragment selector survive exhaustive source-visible inspection, and what must v2 change? |
 | `translation-source-selector-inspection.v1.json` | Which exact 30 candidate hashes, pages, advisory decisions, and failure modes close the selector rejection? |

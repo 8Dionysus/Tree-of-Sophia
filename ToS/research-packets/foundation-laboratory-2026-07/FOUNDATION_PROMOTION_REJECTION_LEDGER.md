@@ -2,7 +2,7 @@
 
 Status: current decisions for the July 2026 foundation slice; human content
 and philosophical promotion remains open
-Decision date: 2026-07-29
+Decision date: 2026-07-30
 
 ## Authority boundary
 
@@ -49,7 +49,7 @@ The promotion authorities remain separate:
 | retrieval A | exact-form fallback; literal other-work title pages rank 1; no semantic relation reasoning | retain exact fallback | explainable literal retrieval including OCR-noise diagnosis | semantic or cross-language solution |
 | retrieval B | multilingual candidate recall and reranking; policy and provenance debt; human labels 0 | retain candidate awaiting human review | future multilingual/rerank trials | winner, trusted target-language policy, promoted index |
 | retrieval C | exact-revision Granite CPU route, reproducible ranked lists and index; human labels 0 | retain independent comparator awaiting human review | reproducible local semantic comparison | literal replacement, content classifier, winner |
-| direct visual retrieval C | exact pre-output 20-query/36-image plan, immutable text controls, exact Qwen3-VL-Embedding-2B acquisition and offline CPU runtime, proven visual-use/network audits; latest preflight blocked on 11,545,407,488 available bytes versus 17,179,869,184 required and owner `force_required`; runs 0 | promote setup and fail-closed admission method only; retain resource-blocked non-run | future OCR-independent page-image challenger after a fresh unforced `ready` receipt | page embedding, ranking, relevance, coverage recovery, transcription, quotation, model failure, winner, or promotion |
+| direct visual retrieval C | exact pre-output 20-query/36-image plan and immutable text controls; fresh unforced `ready` preflight; exact Qwen3-VL-Embedding-2B offline CPU r9 execution; 20/20 stable rankings, 200/200 resolved anchors, 19/19 evaluable model-proposed target presence, one A/B-missed route recovery, 9/10 hard-negative presence, four hard-negative outranks, two cross-language hits with unresolved ordering; 76 persisted normalization records; independent fixity and aggregate reconstruction; human judgments 0 | promote audit-complete r9 mechanics and text-free trigger receipt with limits; retain r8 as audit-incomplete negative; open the five-query review trigger without scheduling it | exact OCR-independent page-image candidate route, repeat behavior, source-return evidence, resource cost, explicit r8/r9 audit lineage, and rare-review routing | relevance, nDCG, hard-negative correctness, transcription, quotation, source acceptance, semantics, winner, method adoption, promotion, publication, routine human backlog, or review interface |
 | graph A, first revision | field presence mislabeled as owner-resolved traceability | reject revision; preserve negative | traceability failure test | valid traceability claim |
 | graph A, corrected | owner records read directly; 13 claims and 10 queries mechanically closed | retain reference semantics | minimum claim-first route | truth of any claim |
 | graph B, first revision | literal status leaked into identity results; 8/10 advisory expectations | reject revision; preserve negative | typed-boundary regression case | valid query projection |
@@ -80,8 +80,9 @@ deleted to make the laboratory look cleaner:
 8. graph A's false traceability, graph B's identity/literal leak, and graph
    C's runtime-ownership failure;
 9. the direct-visual route's first incomplete runtime dependency closure, the
-   rejected silent image-to-`NULL` fallback risk, and the latest memory-gated
-   non-run;
+   rejected silent image-to-`NULL` fallback risk, the preserved memory-gated
+   preflights, the prepared-only wrong-output-root packet quarantined without
+   execution, and r8's missing persisted normalization audit;
 10. the golden-kernel transfer non-run and every absent metric.
 
 These are not incidental cleanup notes. They are evidence about where green
@@ -107,6 +108,9 @@ triggered decisions are:
 - source-visible review of only the OCR, structure, retrieval, or graph units
   selected by a future quality question; the remaining prepared rows stay
   unscheduled;
+- for direct visual retrieval, only `tos-query-003`, `009`, `010`, `011`, and
+  `020` are currently trigger-selected, and even those remain unscheduled
+  until an adoption or source-return decision actually needs human judgment;
 - German-competent source review for only the source units actually selected
   by a translation, morphology, lemma, or semantic task;
 - human bibliographic and rights review of reference candidates before use;

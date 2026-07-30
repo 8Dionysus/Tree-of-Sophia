@@ -1,13 +1,13 @@
 # Retrieval Comparison Report: Foundation Pilot v1
 
-Status: text variants A/B/C executed; separate direct-visual challenger
-prepared but resource-blocked before execution; real human relevance review
-not started
+Status: text variants A/B/C and the separate direct-visual challenger C
+executed; rare direct-visual review trigger open but unscheduled; real human
+relevance judgments remain zero
 Experiment: `tos-retrieval-foundation-v1`
 Frozen query set: 20 queries, sealed before variant output
 Indexed sample: 36 source-addressable units, of which 24 contain extracted text
 Execution date: 2026-07-22
-Direct-visual admission snapshot: 2026-07-29
+Direct-visual execution snapshot: 2026-07-30
 
 ## Result first
 
@@ -23,18 +23,27 @@ promotion, and there is no quality winner before human grading.
   runs. Its 20 ranked-anchor lists and 237,643-byte vector index are identical
   between runs.
 - A separate direct-visual experiment reuses the same 20 query bytes and all
-  36 digest-frozen page PNGs. Its exact Qwen3-VL-Embedding-2B source revision,
+  36 digest-frozen page PNGs. Its exact Qwen3-VL-Embedding-2B revision,
   29-wheel CPU closure, 18-file model tree, isolated offline runtime, visual
   input-use audit, network audit, source-to-image crosswalk, and immutable
-  text-control receipts are prepared. It is not a fourth result in the
-  comparison below.
-- The latest durable direct-visual preflight is `blocked`, not `ready`.
-  Available memory was 11,545,407,488 bytes against the frozen
-  17,179,869,184-byte minimum, and the host resource owner returned
-  `force_required`. Storage, load, temperature, exact plan, runtime, license,
-  CPU, and local-only network posture all passed. No force was used, the
-  threshold was not weakened, and no run root, page embedding, index, ranking,
-  quality metric, or winner exists.
+  text-control receipts were admitted without force and executed once in the
+  audit-complete r9 packet. It remains a different experiment, not a fourth
+  text-retrieval result in the comparison table below.
+- A fresh durable preflight returned `ready` with 19,101,630,464 available
+  memory bytes against the unchanged 17,179,869,184-byte floor, 125,899,755,520
+  free `/srv` bytes, load 3.3755, and 100 °C within the owner's monitored
+  100–105 °C active range. `abyss-machine resource launch` then admitted the
+  heavy/indexing foreground run with a declared 12 GiB demand and no force.
+- The r9 challenger produced stable first/warm rankings for 20/20 queries,
+  resolved all 200 returned anchors, and returned the model-proposed target
+  for 19/19 evaluable queries. That last number is advisory, not relevance
+  gold. It recovered one source-return route missed by both text controls;
+  declared hard negatives appeared in 9/10 slots and outranked the proposed
+  expected result in four queries. Both cross-language proposed targets were
+  present, but same-language hard negatives outranked them.
+- The earlier r8 execution is retained as an audit-incomplete negative:
+  rankings and scores match r9 for 20/20 queries, but it did not persist the
+  76-row normalization audit. It is not substituted for r9 or promoted.
 - On a common advisory denominator of 19 non-coverage queries, A returns the
   model-proposed target in the first ten for 17 queries, B for 18, and C for
   17. This is not a quality score: the target declarations are model-proposed
@@ -65,10 +74,10 @@ No nDCG@10, hard-negative error rate, or human correction cost is reported.
 Those fields remain `null`. All successful run packets remain
 `awaiting-manual-review`; no derived index is canonical.
 
-The direct-visual non-run adds no row to the comparable A/B/C measurements.
-Its one-time acquisition and runtime preparation cost is recorded separately
-below; it supplies no retrieval speed, memory peak, relevance, or coverage
-result.
+The direct-visual result remains outside the comparable text A/B/C table
+because it indexes page images, not the same 24 extracted-text passages. Its
+separate measurements below establish execution, stability, source-return
+behavior, and cost, but not human relevance or a winner.
 
 ## Comparable measurements
 
@@ -131,7 +140,7 @@ inputs and method, captured the complete owner receipt immediately, and
 reproduced all 20 ranked-anchor lists plus the exact index digest. Both local
 indexes remain isolated under their run roots.
 
-## Direct visual challenger: exact route prepared, no execution
+## Direct visual challenger: audit-complete execution, human quality open
 
 `tos-visual-retrieval-foundation-v1` is a distinct output-blind experiment.
 It does not rename or supersede Granite as text-retrieval variant C. Its own
@@ -177,39 +186,70 @@ all 36 requests demonstrably consume exactly one decoded page image. It also
 records and requires zero network attempts. These controls prove execution
 integrity only; they are not model-quality evidence.
 
-The latest durable preflight is stored by the host owner as:
+The earlier 2026-07-29 blocked preflight remains valid negative admission
+evidence. After unrelated reservations cleared, the same frozen plan and
+unchanged 16 GiB floor received a fresh owner `ready` decision:
 
-`/srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/preflights/tos-visual-retrieval-foundation-v1-c-20260729t160500z.json`
+`tos-visual-retrieval-foundation-v1/preflight-receipts/visual-c-run-20260730t1059z-r9-ready.json`
 
 Its SHA-256 is
-`299cdf3ad98d17c4f3b98b2080eb21e20525c5bae869573b22633c7674195e16`.
-At `2026-07-29T16:05:13.585670+00:00` it established:
+`f414a54061695e3692cd237703e67b2e4934a1b79f419ec5e5faf04dc2dd8449`.
+At `2026-07-30T10:59:29.798724+00:00` it established:
 
 | Admission fact | Observed | Frozen requirement / decision |
 | --- | ---: | --- |
 | source plan | exact digest admitted | pass |
 | isolated runtime | exact manifest and artifact set admitted | pass |
-| `/srv` free bytes | 51,723,489,280 | at least 21,474,836,480; pass |
+| `/srv` free bytes | 125,899,755,520 | at least 21,474,836,480; pass |
 | storage-owner request | 6,697,153,963 bytes | `allow` |
-| load 1m | 5.7431640625 | at most 8; pass |
-| temperature | 87 °C | below 105 °C watch boundary; pass |
-| available memory | 11,545,407,488 bytes | at least 17,179,869,184; **block** |
-| heavy/indexing owner admission | `force_required` | `allow` required; **block** |
+| load 1m | 3.37548828125 | at most 8; pass |
+| temperature | 100 °C | at most 105 °C watch boundary; pass with owner observation |
+| available memory | 19,101,630,464 bytes | at least 17,179,869,184; pass |
+| heavy/indexing owner admission | `allow` | `allow` required; pass |
 
-The owner projected that admitting the additional heavy/indexing startup
-demand alongside existing reservations would breach the host reserve. That is
-the reason for the non-run. Temperature and storage are not the reason, and
-the receipt supplies no model failure or retrieval result. The frozen
-pre-output plan intentionally remains unchanged: mutating it after setup would
-break the digest-bound comparison. A later attempt requires a fresh
-`decision=ready` preflight under the same 16 GiB memory floor; it must not use
-force merely to complete the matrix.
+The run started at `2026-07-30T11:06:54.023571+00:00` and finished at
+`2026-07-30T11:53:40.785922+00:00` with exit 0. It was launched only through
+the host owner, with no force. The copied owner launch receipt has SHA-256
+`d2fcc9ef3e6af0d0421bedc516bac7850876f0318822443c611d69eee012ddc4`.
+The retained audit-complete packet is
+`tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C`.
 
-Even a successful future run can establish only page-image candidate
-retrieval. A returned image is not a transcription, quotation, source-text
-acceptance, semantic judgment, or philosophical claim. Human review remains
-triggered only if adoption, a material route change, unresolved ambiguity, or
-explicit drift control makes that decision necessary.
+| Direct-visual r9 evidence | Observed |
+| --- | ---: |
+| page images / queries | 36 / 20 |
+| vector dimension / persisted normalization rows | 2,048 / 76 |
+| stable first/warm rankings | 20 / 20 |
+| resolved ranked anchors | 200 / 200 |
+| model-proposed target at 10 | 19 / 19 evaluable |
+| C recovery where A and B missed | 1 |
+| hard-negative presence / declared slots | 9 / 10 |
+| hard negative outranks proposed expected | 4 queries |
+| cross-language proposed target present | 2 / 2 |
+| model load / page encoding | 1.042 s / 2,507.904 s |
+| median first / warm query latency | 6,800.709 / 6,955.081 ms |
+| runner / owner wall | 2,806.762 / 2,807.234 s |
+| bridge / host-runner peak RSS | 4,742,041,600 / 63,909,888 bytes |
+| owner cgroup memory / swap peak | 4,808,843,264 / 380,157,952 bytes |
+
+An independent reconstruction rechecked seven frozen digests, 36 PNGs, 42
+control artifacts, 18 model artifacts, all 76 normalization records, 36
+serialized 2,048-dimensional page vectors, 200 returned anchors, and r8/r9
+ranking-score parity without importing the laboratory validator. The maximum
+persisted post-serialization norm error was
+`3.5762786865234375e-7`. Query vectors were not persisted, so their norms
+cannot be recomputed from output bytes; that limitation remains explicit.
+
+Two declared triggers opened: one material source-return recovery and
+hard-negative/cross-language ambiguity. The resulting narrow review scope is
+only `tos-query-003`, `009`, `010`, `011`, and `020`; it is unscheduled, has
+zero human judgments, and requires criteria-based source-visible ranking
+review without retyping. No interface was materialized and no routine human
+backlog was created.
+
+A returned image is still not a transcription, quotation, source-text
+acceptance, semantic judgment, or philosophical claim. The tracked text-free
+result receipt proves exact mechanics and the trigger boundary; it does not
+select a winner, adopt the method, or authorize promotion or publication.
 
 ## Variant A: what remains proven
 
@@ -403,9 +443,10 @@ frozen runs; it belongs in a separately declared method revision.
     unless an explicit retention decision says otherwise.
 11. Preserve the C runtime/cache only while it supports the remaining frozen
     laboratory; its versioned removal route is already recorded.
-12. Retain the direct-visual route as an admitted but unexecuted challenger.
-    Do not force the host resource owner, lower the frozen 16 GiB floor, or
-    infer a model result from setup/preflight evidence.
+12. Retain direct-visual r9 as the audit-complete challenger and r8 as a
+    preserved audit-incomplete negative. Keep the narrow five-query review
+    open but unscheduled until a real adoption or source-return decision needs
+    it; do not turn the trigger into routine human work.
 
 ## Comparison still required
 
@@ -418,9 +459,9 @@ A genuine quality conclusion still requires:
 - separate indexing, query, machine, storage, and human-time costs;
 - candidate-depth and target-language-policy trials declared before output;
 - a corpus-scale Qdrant run large enough to exercise its vector index;
-- one owner-admitted offline direct-visual run, only after a fresh preflight
-  returns `ready`, followed by triggered source-visible review if its output
-  is actually considered for adoption or changes a source-return route;
+- the already-open five-query direct-visual source-visible review if its
+  output is actually considered for adoption or used to change a
+  source-return route;
 - final deletion or retention receipts for all derived indexes.
 
 Until those conditions hold, the defensible conclusion is narrower: lexical

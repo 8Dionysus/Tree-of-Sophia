@@ -2,7 +2,7 @@
 
 Status: mechanical measurements consolidated and raw morphology/OCR aggregates
 independently recomputed; human quality and correction cost remain open
-Snapshot: 2026-07-29
+Snapshot: 2026-07-30
 
 ## Reading rule
 
@@ -36,7 +36,7 @@ deterministic rebuild is mechanical evidence—not source-visible human quality.
 | retrieval A / SQLite FTS5 | 24 nonempty passages, 20 queries | model-proposed target top-10 17/19; literal OCR-noise and title retrieval; human judgments 0 | 0.04199 s build; 0.06026 ms warm; 0.36597 ms connection-cold | 200,704-byte database | not measured | exact-form fallback; not semantic/cross-language solution |
 | retrieval B / Qwen3 + Qdrant + reranker | same passages and queries | advisory target top-10 18/19; cross-language recall plus target-language and scan-furniture failures; human judgments 0 | 2.561 s embedding + 0.611 s materialization; 66.27 ms warm dense; 2,424.38 ms warm reranked; 11,546.82 ms cold reranker route | 300,032-byte snapshot; shared resident memory not isolatable | not measured | serious candidate; no winner |
 | retrieval C / Granite R2 CPU | same passages and queries; exact repeat | advisory target top-10 17/19; five rank-1 title/front pages; cross-language policy failures; rankings repeat exactly; human judgments 0 | 0.038 s model read + 0.646 s compile + 7.733 s passage embedding + 0.004 s write; 16.18 ms warm query embedding/rank; 19.213 s repeat runner | 663.5 MB owner peak, zero swap; 237,643-byte vector projection | not measured | independent comparator; no winner |
-| direct visual retrieval C / Qwen3-VL-Embedding-2B CPU | frozen 20 text queries × 36 page images; 0 runs | no page embedding, ranking, coverage, relevance, or quality output; human judgments 0 | run speed not measured; latest preflight blocked before preparation | one-time 4,549,670,315-byte acquisition plus 1,182,279,019-byte isolated runtime; storage owner allowed a 6,697,153,963-byte request with 51,723,489,280 bytes free; runtime exact; 11,545,407,488 available memory failed the 17,179,869,184-byte floor and owner returned `force_required` | not measured; no review scheduled | execution route prepared; resource-blocked non-run; no model verdict or winner |
+| direct visual retrieval C / Qwen3-VL-Embedding-2B CPU | frozen 20 text queries × 36 page images; one audit-complete r9 run plus preserved audit-incomplete r8 | 20/20 repeat-stable rankings; 200/200 anchors resolve; advisory target top-10 19/19 evaluable; one route recovered where A/B miss; hard negatives present 9/10 and outrank proposed expected in 4 queries; cross-language proposed targets 2/2 but hard negatives outrank both; human judgments 0 | 1.042 s model load; 2,507.904 s page encoding; 6,800.709 ms first and 6,955.081 ms warm median query; 2,806.762 s runner / 2,807.234 s owner wall | 4,742,041,600-byte bridge peak RSS; 4,808,843,264-byte owner memory peak + 380,157,952-byte swap peak; 1,588,701-byte vector index; one-time 4,549,670,315-byte acquisition + 1,182,279,019-byte runtime; 76 persisted normalization records; r8/r9 rankings and scores identical 20/20 | not measured; narrow five-query criteria-only review open but unscheduled; human debt 0 | retain r9 mechanical and trigger evidence plus r8 negative; no relevance verdict, adoption, promotion, or winner |
 | graph A, first | 13 claims, 10 questions | field presence falsely called traceability | 0.000039 s build; 0.002685 ms median warm query | 42,169 packet bytes; 32,030,720 runner peak RSS | not measured | rejected revision; negative retained |
 | graph A, corrected | same claim/query set | 10/10 advisory expectations and real owner-reference closure; claims still unreviewed | 0.023353 s build; 0.002290 ms median warm query | 79,827 packet bytes; 32,071,680 peak RSS | not measured | reference semantics only |
 | graph B, first Neo4j | same claim/query set | literal status leaked into identity; 8/10 advisory expectations | 1.527820 s materialization; 4.549903 ms median warm query | 156,038 packet bytes; 32,301,056 runner peak RSS; shared service store not isolated | not measured | rejected revision; negative retained |
@@ -67,9 +67,11 @@ comparable:
   12-page run; they establish execution and resource profiles, not
   full-scope repeatability or an equal-scope winner;
 - retrieval C's two runs support exact ranking/index reproducibility;
-- direct visual retrieval has setup/runtime integrity and a durable blocked
-  preflight only; it supplies no run measurement and is not comparable with
-  the executed text variants;
+- direct visual retrieval has one audit-complete execution and one preserved
+  audit-incomplete execution with identical 20/20 rankings and scores; this
+  supports internal repeat behavior and direct-page-image cost measurement,
+  but the task and corpus differ from the text variants and human relevance
+  remains absent;
 - the full-work DTA lexical observation index proves a different source-layer
   capability from retrieval A: exact local navigation over four structured
   witnesses. It has no shared quality labels and is not a fourth retrieval
@@ -90,8 +92,9 @@ The following remain absent rather than zero:
   minutes;
 - structure F1, text accuracy, and correction minutes;
 - retrieval nDCG@10, hard-negative error rate, and human relevance;
-- direct visual page-retrieval ranking, coverage recovery, latency, peak
-  memory, and relevance;
+- direct visual human relevance, nDCG@10, hard-negative error rate, and human
+  correction time; machine ranking, advisory coverage, latency, and resource
+  peaks are measured but are not quality labels;
 - graph answer correctness and human trace-review minutes;
 - translation fidelity on all 19 axes, comparator influence, and human effort;
 - semantic annotation agreement, unsupported-promotion rate, and automation
@@ -117,7 +120,9 @@ questions are opened, their remaining evidence requirements are:
 
 1. two source-visible human passes on 15 OCR/structure gold candidates;
 2. two source-visible human passes on 30 German source units;
-3. 10 random and 10 hard blind human judgments for retrieval and graph;
+3. 10 random and 10 hard blind human judgments for a text retrieval or graph
+   adoption comparison; the direct-visual challenger currently opens only its
+   five declared trigger queries, not a broad standing batch;
 4. real correction/adjudication timers rather than estimated labor;
 5. repeat the independent raw-artifact method for the exact content-quality
    metric once accepted gold exists;

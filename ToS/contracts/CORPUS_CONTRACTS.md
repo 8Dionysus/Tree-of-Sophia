@@ -52,6 +52,7 @@ judgment true.
 | `bounded-translation-research-input.schema.json` | one DTA-derived ignored local source artifact admitted only to blind machine-method calibration, with exact selector, transformation, digest, corroboration, rights posture, explicit sealing of pre-existing authored translation surfaces, and zero accepted-German, translation, semantic, graph, or canon effects |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
 | `visual-retrieval-plan.schema.json` | output-blind direct page-image retrieval challenger over the same frozen queries, digest-bound visual crosswalk and local renders, immutable completed text controls, exact model revision, triggered-only human review, and zero automatic promotion |
+| `visual-retrieval-result-receipt.schema.json` | text-free return receipt for one exact owner-local direct-page-image run: frozen-input and private-artifact fixity, persisted normalization, source-anchor closure, measured resource cost, preserved audit-incomplete lineage, narrow declared review triggers, and closed relevance, adoption, promotion, publication, and routine-human-work gates |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
 
 ## Common laws

@@ -3,7 +3,7 @@
 Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C evidence, not a general benchmark result
 
 Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26;
-direct-visual runtime and resource admission refreshed 2026-07-29
+direct-visual runtime, admission, and execution refreshed 2026-07-30
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -206,7 +206,7 @@ maximum contexts are never the default local test setting.
 | Granite Embedding 311M Multilingual R2 | 348,082,051 bytes already present | strong CPU/OpenVINO fit; independent IBM family; 200+ languages | Retrieval C executed twice; deterministic mechanics proven; human quality unresolved |
 | gte-multilingual-base | new compact artifact | feasible but older repository route requests remote model code | retain as comparator, not selected for C |
 | BGE-M3 | roughly 2.27 GB model artifact | feasible but heavy and multi-mode | retain as literature reference; do not confound current C |
-| Qwen3-VL-Embedding-2B | exact 4,549,670,315-byte acquisition and 1,182,279,019-byte isolated CPU runtime now present in host-owned storage | exact runtime is mechanically admitted; latest run preflight had 11,545,407,488 available bytes against a 17,179,869,184-byte floor | retain prepared visual challenger; run only after fresh unforced owner `ready`, with no current quality result |
+| Qwen3-VL-Embedding-2B | exact 4,549,670,315-byte acquisition and 1,182,279,019-byte isolated CPU runtime in host-owned storage | fresh unforced preflight passed with 19,101,630,464 available bytes against the unchanged 17,179,869,184-byte floor; r9 completed in 2,807.234 s with 4,808,843,264-byte memory and 380,157,952-byte swap peaks | retain audit-complete r9 mechanics and r8 negative; no rerun without a new question; human relevance and adoption remain open |
 | PaddleOCR-VL 0.9B | new runtime/models | potentially feasible on Intel path | hard-page conditional only |
 | Qwen3.6 35B-A3B | large new artifact | total-weight and memory/storage pressure | reject first wave |
 

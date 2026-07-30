@@ -82,12 +82,16 @@ experiment was subsequently frozen on 2026-07-29 with the same 20 query bytes,
 `9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda`.
 
 Its exact acquisition and isolated offline CPU runtime are now mechanically
-admitted. Its latest host preflight is nevertheless `blocked`: available
-memory was 11,545,407,488 bytes against the frozen 17,179,869,184-byte
-minimum, and the resource owner returned `force_required`. It has zero runs
-and supplies no relevance, modality, transcription, quotation, model-failure,
-or winner evidence. This later route does not retroactively alter the
-output-blind Granite selection above.
+admitted. The 2026-07-29 memory-gated preflight remains preserved negative
+evidence, but a fresh 2026-07-30 preflight later returned `ready` without
+changing the 17,179,869,184-byte floor or using force. Owner-routed r9 then
+completed over all 36 images and 20 queries with a persisted normalization
+audit and text-free Tree result receipt. Its rankings and scores match the
+preserved audit-incomplete r8 execution 20/20. Human relevance remains
+unjudged; the five-query ambiguity/route-change trigger is open but
+unscheduled, and no transcription, quotation, source acceptance, winner,
+adoption, or promotion follows. This later route does not retroactively alter
+the output-blind Granite selection above.
 
 ## Comparability lock
 

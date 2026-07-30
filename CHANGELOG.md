@@ -9,12 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a text-free, schema-bound return receipt and independent recorder for
+  the exact owner-local Zarathustra direct-page-image retrieval C run,
+  preserving private artifact fixity, normalization, resource cost, r8/r9
+  audit lineage, and rare-review triggers without source/query content or
+  promotion claims.
 - Added the Zarathustra golden-growth-kernel architecture and accepted
   `TOS-D-0019`, preserving the founder-borne five-year lived provenance while
   keeping lived witness below source, scholarly, and canon authority.
 
 ### Changed
 
+- Reconciled the foundation retrieval, cost, limitations, completion-audit,
+  and promotion reports with the unforced audit-complete Qwen3-VL r9 result;
+  human relevance, method adoption, winner, and publication remain open.
 - Coupled the world-philosophy corpus-soil direction to a first complete
   Zarathustra learning cycle across root design, source-home doctrine, roadmap,
   route cards, and review law.
