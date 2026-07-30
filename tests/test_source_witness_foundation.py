@@ -1679,6 +1679,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("no remote Item", work["notes"])
         self.assertIn("semantic authority", work["notes"])
 
+        route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "JENSEITS_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "## 6. First bounded textual-genetic witness route",
+            route,
+        )
+        self.assertIn(
+            "outside the frozen\n  golden-kernel transfer plan",
+            route,
+        )
+        self.assertNotIn("First bounded A/B/C candidate", route)
+        self.assertNotIn("§22 A/B/C candidate", route)
+
     def test_genealogie_1892_witness_advances_source_not_content(self) -> None:
         manifest = json.loads(
             (GENEALOGIE_1892_ITEM_ROOT / "item.manifest.json").read_text(
@@ -2576,9 +2592,29 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for output in event["outputs"]
             if output["ref"].endswith("/transfer-samples.json")
         )
+        transfer_digest = hashlib.sha256(transfer_path.read_bytes()).hexdigest()
         self.assertEqual(
-            hashlib.sha256(transfer_path.read_bytes()).hexdigest(),
-            output["sha256"],
+            "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6",
+            transfer_digest,
+        )
+        self.assertEqual(transfer_digest, output["sha256"])
+
+        report = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "GOLDEN_KERNEL_TRANSFER_REPORT.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "### Deferred *Jenseits* §22 textual-genetic route",
+            report,
+        )
+        self.assertIn(
+            "does not modify or supersede `transfer-samples.json`",
+            report,
+        )
+        self.assertIn(
+            "The present v1\nplan remains frozen and `blocked-not-run`.",
+            report,
         )
 
     def test_human_gold_requires_materialized_content_and_review_receipts(self) -> None:

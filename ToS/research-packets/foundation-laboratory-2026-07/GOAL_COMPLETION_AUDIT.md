@@ -128,7 +128,7 @@ gold, accepted text, or public derivative was created.
 | 25 | graph projection comparison report | canonical JSON, Neo4j, and Oxigraph projections ran with source-return mechanics and preserved failures | partial | human truth/trace review of claims and questions |
 | 26 | quality/cost/speed matrix | machine speed, memory, swap, and storage measurements are consolidated; morphology A separates coverage, speed, memory, bytes, unmeasured accuracy, and zero human cost; direct-visual C now separates one-time acquisition/runtime bytes from 2,807.234 s owner wall, 4,808,843,264-byte cgroup memory peak, 380,157,952-byte swap peak, index bytes, query latency, and still-unmeasured human quality/cost | partial with morphology A and direct-visual C mechanics measured | morphology and visual human quality/correction cost remain incomplete; the first observed OCR candidate-review time is display-position-confounded |
 | 27 | manual error ledger | an owner path and empty ledger exist | open | source-visible human errors, adjudication, and accepted/rejected outcomes |
-| 28 | golden-kernel transfer report | a fail-closed v2 plan and honest `blocked-not-run` report exist; twenty private whole-page candidates (10 digest-random, 10 mechanically hard), their local digests, and twenty proposed anchors are frozen before variant outputs | preparation soil proven; experiment blocked; human debt 0 | accepted kernel packets, exact eligible target passages, target gold, and A/B/C runs |
+| 28 | golden-kernel transfer report | a fail-closed v2 plan and honest `blocked-not-run` report exist; twenty private whole-page candidates (10 digest-random, 10 mechanically hard), their local digests, and twenty proposed anchors are frozen before variant outputs; the exact §22 early-region -> print-manuscript -> publication-critical route is documented separately and does not mutate that sampling frame or reuse the A/B/C labels | preparation soil and route separation proven; experiment blocked; eligible target units 0; human debt 0 | accepted kernel packets, exact eligible target passages, target gold, and A/B/C runs; §22 still needs its own source-gated textual-genetic episode before it can support any later deliberately versioned target plan |
 | 29 | promotion/rejection decisions | `FOUNDATION_PROMOTION_REJECTION_LEDGER.md` promotes mechanics and preserves negative runs | proven for method decisions; content open | superseding human receipts for any text, sign, relation, or transfer promotion |
 | 30 | future server-import contract | schemas, protocol, fifteen item plans, rights gate, takedown fields, and metadata-only status exist; the operator policy keeps present local payloads off the future public site while permitting public-safe source identity and provenance; the new *Ecce Homo* plan records its US-scoped Commons statement and unresolved editorial/design layers while authorizing no payload transfer, OCR, transcription, snippet, embedding, or content-bearing projection | proven as blocked contract and payload non-publication policy | separate reviewed publication decision and operator approval for any material that may actually be published |
 | 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates; `HUMAN_ASSURANCE_RESEARCH.md` and `gold-assurance.v2.json` reconcile solo+AI review and language competence; `private-evidence-handoff.v1.json` freezes a public-safe destination before raw inspection | proven for current assurance and handoff contracts | an actual derivative, its rights/correlation review, and later authority-bearing review progress remain open |
@@ -160,7 +160,7 @@ gold, accepted text, or public derivative was created.
 | heavy models/caches use host-owned storage | proven for current laboratory acquisitions, including the exact direct-visual model/cache and 1,182,279,019-byte isolated CPU runtime | rerun host admission before every setup or execution and honor a block without force |
 | A/B/C results are reproducible | partial; direct-visual r8/r9 rankings and scores are identical 20/20, but only r9 has complete persisted normalization evidence | current mechanical slices are reproducible; human content-quality repeats remain incomplete |
 | negative results are retained | proven | keep superseded and failed receipts addressable |
-| golden-kernel benefit and danger are tested | blocked; twenty pre-output target candidates are prepared but ineligible | deliberately activate and execute the target-content transfer plan only after both gold routes exist |
+| golden-kernel benefit and danger are tested | blocked; twenty pre-output target candidates are prepared but ineligible; the deferred §22 witness route is outside the plan | deliberately activate and execute the target-content transfer plan only after both gold routes exist; never substitute witness stages for transfer variants |
 | no completeness claim is made for philosophy | proven | keep catalog scope explicit |
 | remaining uncertainty is explicit | proven by this audit and limitations packet | update the audit after every authority-bearing pass |
 | a later agent can resume without chat reconstruction | partial | reconcile the three pressures below in owner contracts and tracked handoffs |
@@ -430,10 +430,15 @@ exhaustive page-identity review or a human acceptance event.
    truth.
 6. Open the accepted translation lifecycle only after its exact German anchors
    reach a philologically admitted source posture.
-7. Follow accepted translation with sign review, retrieval/graph adjudication,
+7. If one exact textual-genetic question genuinely requires §22, open its
+   W I 7 -> D 18 -> publication-critical route as a separate source-gated
+   episode. Do not treat those stages as transfer A/B/C, target gold, or a
+   replacement for a frozen page.
+8. Follow accepted translation with sign review, retrieval/graph adjudication,
    and only then—if deliberately activated—advance the twenty frozen private
    target candidates into exact eligible passages and run golden-kernel
-   transfer. Candidate preparation itself schedules no human backlog.
+   transfer. Candidate preparation and the §22 route itself schedule no human
+   backlog.
 
 ## Stop line
 

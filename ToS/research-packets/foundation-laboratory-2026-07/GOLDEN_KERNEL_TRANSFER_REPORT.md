@@ -26,6 +26,9 @@ The valid result is therefore a stopped result before execution:
 - reject those pages as semantic-transfer evaluation units;
 - retain twenty private, content-bearing whole-page candidates selected before
   any variant output as **ineligible preparation soil**, not target gold;
+- retain the exact *Jenseits* §22 route from W I 7 through D 18 to the
+  publication/critical comparison as separate textual-genetic source soil,
+  outside both the twenty-page sampling frame and the A/B/C transfer variants;
 - retain the exact 1892 second-edition *Genealogie* source item as stronger
   source soil without treating it as accepted text or target gold;
 - retain the exact 1906 aggregate witness and proposed *Antichrist* member
@@ -110,6 +113,47 @@ Expression records now exist for all three named works, but the collection
 boundaries, expression identities, translator claims, and source text remain
 provisional or unreviewed. The title pages therefore remain routing evidence,
 not semantic targets or a completed bibliographic catalog.
+
+### Deferred *Jenseits* §22 textual-genetic route
+
+The authorial-witness research now resolves one exact question-specific
+sequence:
+
+```text
+early region: W I 7, GSA 71/155, leaves 44v-45r
+  -> print manuscript: D 18, GSA 71/26, leaf 27r
+    -> publication/critical comparison: 1886 print §22 and a stable eKGWB
+       address whose exact ID still requires source-visible resolution
+```
+
+This is stronger source-method soil than an isolated printed page because it
+can preserve wording stages and test whether a semantic change is actually
+supported by distinct witnesses. It is not, however, a golden-kernel transfer
+result or even one of this experiment's target units.
+
+The three textual-genetic stages are deliberately named rather than lettered.
+The frozen transfer experiment uses **A = no kernel**, **B = method only**, and
+**C = reviewed kernel**. Calling W I 7 / D 18 / publication another A/B/C would
+conflate source genesis with the independent question of whether
+*Zarathustra* helps annotate another work.
+
+The §22 route therefore:
+
+- does not modify or supersede `transfer-samples.json`, its SHA-256, the three
+  scouting units, the twenty `candidate_target_units`, their quotas, or the
+  empty `target_units`;
+- does not replace one of the frozen whole-page candidates and was not chosen
+  by the frozen random/mechanical-hard sampling law;
+- supplies no admitted manuscript, proof, print, or critical text; no accepted
+  German; no target gold; no sign or semantic relation; and no human task;
+- may be activated only as a separate versioned, source-gated
+  textual-genetic question after exact leaf/page/section crosswalks, rights,
+  independent diplomatic readings, German competence, comparator
+  concealment, and a frozen unassisted observation exist.
+
+Only a later deliberately versioned transfer plan could decide whether an
+admitted §22 passage belongs in a new target sampling frame. The present v1
+plan remains frozen and `blocked-not-run`.
 
 *Zur Genealogie der Moral* now additionally has a distinct exact German
 source-witness route for the 1892 second Naumann edition. That route does not

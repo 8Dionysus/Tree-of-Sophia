@@ -31,8 +31,10 @@ kernel. It separates W I 3-W I 8 regions, D 18 (`GSA 71/26`), HAAB C 4615 and
 C 4619, the 1886 print, and 302 eKGWB comparison addresses. It also preserves
 the 108-leaf / 232-canvas archive view beside the DFGA 116-sheet /
 224-image-record / 240-logical-ID view. The exact §22 route is only a deferred
-question-specific candidate; it opens no text processing, semantic work, or
-human review by itself.
+question-specific textual-genetic candidate outside the frozen transfer plan;
+its early-region / print-manuscript / publication-critical stages are not the
+golden-kernel A/B/C variants. It opens no text processing, semantic work,
+transfer unit, or human review by itself.
 
 ## Unfinished human decisions
 
@@ -49,7 +51,7 @@ human review by itself.
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
-| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent |
+| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -640,28 +642,34 @@ from the calibration-only route in section 2b.
 
 ### 5. Test the golden kernel on unseen content
 
-1. Advance the exact 1886 *Jenseits von Gut und Böse* source tree from a
-   source-visible witness and division-level page anchors to admitted text
-   anchors only through the German source gate. Expand units 1–296 to exact
-   pages only after a better source layer or bounded source-visible review
-   closes the OCR numeral gaps. *Zur Genealogie der Moral* is now separately
-   promoted beyond provisional collection membership at the source-witness
-   level through its exact 1892 second-edition item, but it still needs an
-   admitted German text and exact passage anchors before transfer. *Der
-   Antichrist* now also has an ordered exact-source discovery receipt and a
-   1906 aggregate Edition / Item route with proposed member boundaries; it
-   still needs a better editorial witness or explicitly justified use of this
-   one, admitted German text, and exact passage anchors before transfer.
-2. If the user deliberately activates the transfer experiment, advance the
+1. Keep the exact *Jenseits von Gut und Böse* §22 route separate from the
+   frozen golden-kernel sampling frame. Its source stages are early region
+   W I 7 leaves 44v-45r, print-manuscript D 18 leaf 27r, and the 1886
+   print/eKGWB publication-critical comparison. Open that route only for one
+   declared textual-genetic question and only after exact crosswalks, intended
+   use and rights, independent diplomatic readings, German competence, and a
+   blind stage-comparison protocol exist. It does not replace a frozen page,
+   become target gold, or satisfy a kernel-transfer gate.
+2. Do not expand all *Jenseits* units 1–296 by default. Their existing
+   numbered-unit starts and division/page mappings remain structural
+   candidates. Advance a printed passage to admitted text anchors only
+   through the German source gate and only when a bounded question requires
+   it. *Zur Genealogie der Moral* is separately promoted beyond provisional
+   collection membership through its exact 1892 second-edition item, but
+   still needs admitted German and exact passage anchors. *Der Antichrist*
+   likewise has an exact-source discovery receipt and a 1906 aggregate route
+   with proposed member boundaries, but still needs an explicitly justified
+   witness, admitted German, and exact passage anchors.
+3. If the user deliberately activates the transfer experiment, advance the
    twenty already frozen private page candidates into exact source-visible
    target passages and target gold without viewing variant outputs. Introduce
    hard negatives only after an accepted kernel sign exists; preparation
    itself schedules no human backlog.
-3. Run A without the kernel, B with general contracts only, and C with
+4. Run A without the kernel, B with general contracts only, and C with
    human-accepted *Zarathustra* packets under identical runtime conditions.
-4. Measure speed, accuracy, correction, traceability, hallucinated relations,
+5. Measure speed, accuracy, correction, traceability, hallucinated relations,
    reusable-sign utility, ontology imposition, and machine cost.
-5. Preserve a harmful or null transfer result with the same standing as a
+6. Preserve a harmful or null transfer result with the same standing as a
    positive one.
 
 ### 6. Rights-aware expansion and future server use

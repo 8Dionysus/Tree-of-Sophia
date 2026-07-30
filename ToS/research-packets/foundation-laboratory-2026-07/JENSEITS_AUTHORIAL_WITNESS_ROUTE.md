@@ -285,19 +285,28 @@ separating textual genesis from philosophical validity. It demonstrates why
 different wording stages may differ semantically and why a graph may not
 collapse them into one proposition.
 
-This is the strongest first content-bearing transfer experiment currently
-identified for ToS. It is a candidate, not a started experiment.
+This is the strongest first content-bearing textual-genetic source question
+currently identified for ToS outside the *Zarathustra* kernel. It is a
+candidate route, not a started experiment and not a golden-kernel transfer
+unit.
 
-## 6. First bounded A/B/C candidate
+## 6. First bounded textual-genetic witness route
 
 If and only if a concrete question justifies content-bearing work:
 
-- **A — early region:** W I 7, leaves 44v-45r;
-- **B — print manuscript:** D 18, leaf 27r;
-- **C — publication/critical comparison:** 1886 print §22 and the stable
-  eKGWB address;
+- **early region:** W I 7, leaves 44v-45r;
+- **print manuscript:** D 18, leaf 27r;
+- **publication/critical comparison:** 1886 print §22 and the corresponding
+  stable eKGWB address, whose exact ID remains to be resolved
+  source-visibly;
 - **conditional correction control:** C 4615 and C 4619 only if the same
   region is present and relevant.
+
+These labels name successive witness stages. They are deliberately not called
+A/B/C: the separate golden-kernel transfer experiment already reserves A for
+no kernel, B for method only, and C for a reviewed *Zarathustra* kernel.
+Conflating the two axes would make a textual-genetic comparison look like
+evidence for cross-work semantic transfer.
 
 Before any output:
 
@@ -323,7 +332,8 @@ Admitted:
 - representation-specific counts without false one-to-one equivalence;
 - distinct object-level and institutional rights evidence;
 - established and fresh scholarly controls;
-- one deferred, exact §22 A/B/C candidate.
+- one deferred, exact §22 textual-genetic witness route outside the frozen
+  golden-kernel transfer plan.
 
 Not admitted:
 

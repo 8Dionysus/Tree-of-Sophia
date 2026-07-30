@@ -82,10 +82,12 @@ The same law now reaches the first prepared work beyond the golden kernel.
   logical-address counts that require a future crosswalk, not normalization.
 
 Axel Pichler's 2025 textual-genetic use of §22 gives ToS its first exact
-cross-work method candidate: W I 7 leaves 44v-45r -> D 18 leaf 27r ->
-published §22. It remains deferred until exact source access, rights,
-independent diplomatic reading, German competence, and blind A/B/C controls
-exist. No text, semantics, or human task was admitted.
+textual-genetic method candidate outside the kernel: W I 7 leaves 44v-45r ->
+D 18 leaf 27r -> published §22. It remains deferred until exact source access,
+rights, independent diplomatic reading, German competence, and a blind
+stage-comparison protocol exist. The three witness stages must not be confused
+with the no-kernel / method-only / reviewed-kernel A/B/C variants. No text,
+semantics, transfer unit, or human task was admitted.
 
 ## Research method
 
