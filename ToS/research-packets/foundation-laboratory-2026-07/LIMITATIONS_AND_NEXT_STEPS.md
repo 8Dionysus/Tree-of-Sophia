@@ -17,6 +17,15 @@ text, a translation, a semantic sign, a philosophical relation, a quality
 winner, or a successful golden-kernel transfer. Those are not small missing
 fields. They are the next authority layer.
 
+The new metadata-only *Zarathustra* authorial route narrows that future work
+without opening a standing human backlog. It establishes current remote
+identity for mixed compositional notebooks, D 17 (`GSA 71/25`) for part IV,
+the separately corrected GSA 71/25a private-print ensemble, and the 181-address
+eKGWB comparison surface. It does not acquire a manuscript, create a local
+Item, accept a reading, resolve authorial finality, or schedule all regions
+for review. A content-bearing episode opens only when one exact question has
+source access, rights posture, region crosswalk, and language competence.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -311,6 +320,12 @@ The exact eKGWB rights/transport route was separately refreshed on 2026-07-30
 in `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md`; it corrected the local-use boundary
 and then added institutional WARC-backed byte corroboration without claiming
 publisher origin, admitting a source, or opening human work.
+The *Zarathustra* authorial-witness route was then refreshed on 2026-07-30 in
+`ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md`: current archive and critical
+evidence separates D 17, mixed notebooks, historical prints, the corrected
+GSA 71/25a ensemble, and eKGWB. The same pass found no 2026 philology changing
+those identities and registered the forthcoming August 2026 Loeb/Tinsley
+Stanford translation only as a deferred metadata candidate.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:

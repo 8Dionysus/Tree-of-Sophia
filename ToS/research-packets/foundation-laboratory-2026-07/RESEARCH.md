@@ -3,7 +3,8 @@
 Status: non-authoritative research synthesis
 Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
 route refreshed 2026-07-29; exact standalone Nietzsche source-route research
-refreshed 2026-07-30
+and the *Ecce Homo* / *Zarathustra* authorial-witness routes refreshed
+2026-07-30
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -34,6 +35,35 @@ revised, disputed, or rejected without changing the witness.
 The graph is therefore a projection of reviewed claims, not the container of
 truth. Search indexes are also rebuildable projections. The tracked corpus
 catalog, contracts, claims, decisions, and receipts remain authoritative.
+
+### Golden-kernel source correction
+
+The 2026-07-30 authorial-witness refresh strengthens this conclusion at the
+heart of ToS. The current archive and critical route exposes no one immutable
+four-part *Zarathustra* original:
+
+- the print manuscripts for parts I-III are not preserved according to the
+  current critical sigla;
+- D 17 (`GSA 71/25`) is the surviving authorial print manuscript for part IV;
+- notebooks and loose leaves mix *Zarathustra* stages with *Fröhliche
+  Wissenschaft*, *Jenseits von Gut und Böse*, *Ecce Homo*, and other work;
+- the corrected Peter Gast private-print ensemble (`GSA 71/25a`) preserves a
+  distinct late-correction route that the holding evidence says did not enter
+  later editions;
+- the whole-work eKGWB surface supplies 181 stable critical addresses and 47
+  correction popups, not manuscript leaves or an admitted author-final text.
+
+The foundation is therefore stable witness identity plus region-level,
+versioned provenance and responsibility claims. Exact words become stable
+observations only inside that addressable witness. Meaning, preferred reading,
+authorial finality, translation, and conceptual relation remain separately
+reviewable assertions.
+
+The freshest directly relevant 2026 development is not a new manuscript
+identity but the forthcoming August 2026 Stanford translation by Paul S.
+Loeb and David F. Tinsley. It is registered as a deferred metadata candidate
+until publication, manifestation, rights, and passage-level suitability are
+actually verified.
 
 ## Research method
 

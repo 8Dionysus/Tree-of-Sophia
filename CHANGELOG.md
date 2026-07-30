@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Also sprach Zarathustra* authorial and critical
+  route through current GSA ORES, DFGA, eKGWB, KSA/HAdW, the corrected Peter
+  Gast private-print ensemble, and 2025-2026 freshness evidence. The route
+  separates mixed notebooks, the unpreserved print manuscripts for parts
+  I-III, D 17 (`GSA 71/25`) for part IV, GSA 71/25a, 181 critical addresses,
+  and the forthcoming August 2026 Loeb/Tinsley Stanford translation. It
+  creates no remote Item, manuscript or critical-text payload, accepted
+  German, translation authority, human backlog, semantics, or publication
+  permission.
 - Added the metadata-only *Ecce Homo* authorial and critical route through
   current GSA ORES, DFGA, eKGWB, Kalliope, HAdW, and 2024-2025 philology:
   D 25 (`GSA 71/32`), D 25a (`GSA 71/33`), the surviving replacement copy,

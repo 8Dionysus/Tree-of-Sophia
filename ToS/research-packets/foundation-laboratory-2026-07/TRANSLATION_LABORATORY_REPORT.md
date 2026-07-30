@@ -150,11 +150,14 @@ English witnesses are also hidden until every calibration candidate freezes.
 
 ### 5. Reference and pre-draft soil
 
-`translation-reference-register.v1.json` contains 14 candidates covering all
+`translation-reference-register.v1.json` contains 15 candidates covering all
 nine required categories: dictionaries, corpora, critical-edition resources,
 Nietzsche-specific lexical resources, and recognized translation witnesses.
 It keeps scholarly role, access, rights, citation, contact, and content
-admission separate.
+admission separate. The fifteenth is the Loeb/Tinsley Stanford translation
+scheduled for August 2026: it remains a metadata-only deferred candidate with
+no acquired manifestation, passage inspection, review-copy request, or
+authority in the independent lanes.
 
 Current admission counts are deliberately zero:
 

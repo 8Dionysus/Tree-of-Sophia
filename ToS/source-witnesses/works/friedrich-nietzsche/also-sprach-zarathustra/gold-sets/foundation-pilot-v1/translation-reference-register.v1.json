@@ -4,7 +4,7 @@
   "register_id": "tos.translation-reference-register.zarathustra-foundation-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-  "research_snapshot": "2026-07-23",
+  "research_snapshot": "2026-07-30",
   "status": "researched-not-content-admitted",
   "research_order": [
     "classical-official-documentation",
@@ -1121,11 +1121,98 @@
         ]
       },
       "notes": "Use to test preservation of versification and poetic form after independent lanes, alongside rather than instead of Parkes."
+    },
+    {
+      "reference_id": "tos-ref.en.loeb-tinsley-stanford-2026-forthcoming",
+      "category": "additional_en_translation_candidate",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Thus Spoke Zarathustra, Complete Works of Friedrich Nietzsche, volume 7, translated with an afterword by Paul S. Loeb and David F. Tinsley",
+      "languages": ["en"],
+      "responsibility": {
+        "institutions": ["Stanford University"],
+        "publishers": ["Stanford University Press"],
+        "authors": ["Friedrich Nietzsche"],
+        "editors": [],
+        "translators": ["Paul S. Loeb", "David F. Tinsley"]
+      },
+      "dating": {
+        "original_or_coverage_date": "scheduled for August 2026",
+        "edition_or_version": "Complete Works volume 7; 424 pages; current publisher metadata only; no published manifestation inspected as of 2026-07-30",
+        "verified_at": "2026-07-30"
+      },
+      "identifiers": [
+        {"scheme": "ISBN-hardcover", "value": "9780804728799"},
+        {"scheme": "ISBN-paperback", "value": "9781503647282"},
+        {"scheme": "Complete Works volume", "value": "7"}
+      ],
+      "primary_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+      "evidence_urls": [
+        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+      ],
+      "scholarly_posture": "forthcoming publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison",
+      "intended_uses": [
+        "translation-witness",
+        "critical-source-comparison",
+        "allusion-notes",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "the volume is forthcoming, not an inspectable or admitted translation",
+        "publisher description is not passage-level quality evidence",
+        "newness does not establish recognition, accuracy, or superiority",
+        "the in-copyright text has not been acquired and no review-copy request was sent",
+        "publication date, manifestation identity, pagination, and actual contents require post-release verification"
+      ],
+      "access": {
+        "access_state": "metadata-only",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": true,
+        "contact_routes": [
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+        ],
+        "request_state": "blocked-pending-rights-route"
+      },
+      "rights": {
+        "assessment": "in-copyright",
+        "license_uri": null,
+        "redistribution": "not-authorized",
+        "derivative_use": "not-authorized",
+        "citation_requirements": [
+          "after release, cite both translators, exact manifestation, Complete Works volume 7, ISBN, publication date, and page or stable locator"
+        ],
+        "rights_evidence_urls": [
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+        ]
+      },
+      "tos_refs": {
+        "record_refs": [],
+        "path_refs": [
+          "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
+          "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json"
+        ]
+      },
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "the scheduled publication has not occurred",
+          "no exact manifestation or content has been inspected",
+          "rights and permissible research-use scope remain unreviewed",
+          "passage-level comparison and recognition evidence do not yet exist"
+        ]
+      },
+      "notes": "Refresh after actual publication. Until then this entry is a dated metadata lead only and must not be revealed to independent translation lanes as a comparator."
     }
   ],
   "coverage": {
     "required_category_count": 9,
-    "entry_count": 14,
+    "entry_count": 15,
     "all_required_categories_present": true,
     "content_admitted_entries": 0,
     "human_bibliographic_reviews": 0,

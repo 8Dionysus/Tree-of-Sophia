@@ -1,16 +1,16 @@
 # Translation Reference Research
 
 Status: bounded research complete; eKGWB rights/transport refreshed
-2026-07-30; zero reference content admitted; human bibliographic and rights
-review pending
+2026-07-30; forthcoming Stanford translation route added; zero reference
+content admitted; human bibliographic and rights review pending
 
-Research snapshot: 2026-07-23; eKGWB rights/transport refresh: 2026-07-30
+Research snapshot: 2026-07-30; eKGWB rights/transport refresh: 2026-07-30
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`ca13678398516ed950472185788f4e21005884ef9365dfc6e935ca5de7028f77`
+`70f6c15e0a21553a4c2eca8fcbd57b6efe7be3c252888ab93de03b421a417f5f`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -356,9 +356,26 @@ structurally valid:
 An early-2026 catalog update is evidence of a dated surface, not proof that a
 resource remains unchanged.
 
+### Forthcoming 2026 translation frontier
+
+The current
+[Stanford University Press record](https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra)
+lists *Thus Spoke Zarathustra*, Complete Works volume 7, translated with an
+afterword by Paul S. Loeb and David F. Tinsley, for August 2026. The publisher
+announces 424 pages, ISBNs `9780804728799` and `9781503647282`, notebook
+variant cross-references, discussion of translation problems, and a key-term
+glossary.
+
+On 2026-07-30 this is metadata for a forthcoming work, not an inspectable
+translation. The register therefore marks it as a deferred research
+candidate. No review-copy request was sent. After publication, the exact
+manifestation, actual publication date, contents, rights, independent
+reception, and passage-level suitability must be checked before it enters any
+comparison lane. Newness alone establishes neither recognition nor quality.
+
 ## Admission result
 
-The register contains 14 candidates covering all nine required categories:
+The register contains 15 candidates covering all nine required categories:
 
 - historical German dictionary;
 - modern German dictionary;
@@ -385,6 +402,8 @@ The result is deliberately **zero admitted content entries**:
 - one eKGWB section locator registered as metadata-only, with zero text
   capture and zero citation-witness admission;
 - zero recognized or additional translation passages revealed;
+- one forthcoming August 2026 English translation registered as metadata-only
+  and deferred;
 - zero accepted lexical senses or etymologies.
 
 The laboratory remains blocked on publisher-origin authentication,

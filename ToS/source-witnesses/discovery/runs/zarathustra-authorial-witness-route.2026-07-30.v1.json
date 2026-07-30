@@ -1,0 +1,1025 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.zarathustra-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    ],
+    "description": "An exact, responsibility-aware route from the four-part Zarathustra compositional manuscripts and surviving part-IV print manuscript through historical prints, a separately corrected private-print witness, and the current Colli/Montinari critical address family.",
+    "required_properties": [
+      "current holding archive and exact shelfmark routes",
+      "notebook, loose-leaf, print-manuscript, private-print, correction, and critical-text layers kept distinct",
+      "whole-notebook identity not flattened into whole-work membership",
+      "stable GSA, ORES, Mette, DFGA, and eKGWB identifiers",
+      "digital access and rights evidence recorded separately",
+      "established commentary checked before fresh scholarship",
+      "forthcoming 2026 translation deferred rather than treated as recognized or inspected"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "a publisher-authenticated post-publication copy of the forthcoming translation after manifestation and rights review"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "archival metadata",
+      "IIIF Presentation 2",
+      "manuscript facsimile",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "publisher metadata"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-zarathustra-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES archival database and IIIF service",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75091",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Exact title search for Also sprach Zarathustra followed by direct record and manifest reconciliation for GSA 71/25, 71/25a, the N V/N VI, Z I/Z II, W I, and Mp XV families; no image-service requests",
+      "queried_at": "2026-07-30T09:40:00-06:00",
+      "elapsed_seconds": 18.72,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-71-25-zarathustra-d17",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra. Ein Buch für Alle und Keinen. Vierter und letzter Theil",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75091",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75091",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/25"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75091"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 17"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-17"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "270 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; the GSA usage regulations separately require prior archive approval for reproduction use beyond personal use, especially publication.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75091/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Current official route to the surviving authorial print-ready manuscript for part IV. It does not supply print manuscripts for parts I-III and is not silently treated as an author-final whole-work text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact archival record and manifest were inspected; no manuscript image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-25a-zarathustra-corrected-private-print",
+          "rank": 2,
+          "title_as_displayed": "Also sprach Zarathustra. Vierter und letzter Theil",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:471226",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:471226",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/25a"
+            },
+            {
+              "scheme": "ORES",
+              "value": "471226"
+            },
+            {
+              "scheme": "Mette",
+              "value": "E 37 (D 17)"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "156 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact IIIF manifest declares the digitized object Public Domain; general GSA reproduction and publication-permission rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/471226/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Separate private-print witness in the Peter Gast route. Official acquisition evidence associates it with a Nietzsche correction leaf and changes not carried into later editions, so it cannot be collapsed into D 17, the public part-IV print, or eKGWB.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No image, correction text, or metadata body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-zarathustra-n-v-n-vi-family",
+          "rank": 3,
+          "title_as_displayed": "N V 8-N VI 9 notebook family",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75383",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75383",
+          "identifiers": [
+            {
+              "scheme": "GSA range",
+              "value": "71/198-71/208"
+            },
+            {
+              "scheme": "ORES set",
+              "value": "75383-75393"
+            },
+            {
+              "scheme": "Mette family",
+              "value": "N V 8, N V 9, N VI 1-N VI 9"
+            }
+          ],
+          "available_formats": [
+            "eleven archival records",
+            "eleven IIIF Presentation 2 manifests",
+            "1755 total ORES canvases"
+          ],
+          "declared_rights": {
+            "statement": "Each exact checked IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain separate.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75383/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official early-germ through part-IV preparation family. Records include Fröhliche Wissenschaft and later reuse, so exact region attribution is required and whole-notebook work membership is prohibited.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact live record and manifest metadata were inspected."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-zarathustra-z-w-mp-family",
+          "rank": 4,
+          "title_as_displayed": "Z I, Z II, W I, and Mp XV compositional family",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75235",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75235",
+          "identifiers": [
+            {
+              "scheme": "GSA set",
+              "value": "71/136, 71/138-71/150, 71/231"
+            },
+            {
+              "scheme": "ORES set",
+              "value": "75235, 75238-75259, 212281"
+            },
+            {
+              "scheme": "Mette family",
+              "value": "Z I 2, Z I 4, Z II 1-Z II 10, W I 1-W I 2, Mp XV 1-3"
+            }
+          ],
+          "available_formats": [
+            "fifteen archival records",
+            "fourteen non-empty IIIF Presentation 2 manifests",
+            "1990 total ORES canvases, excluding zero-canvas Z II 2"
+          ],
+          "declared_rights": {
+            "statement": "Each exact non-empty checked IIIF manifest declares the digitized object Public Domain; general GSA publication rules remain separate.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75235/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Official route through plans, drafts, poems, and fair-copy stages for parts II-IV. The records also expose adjacent and later works, making region-level responsibility and chronology mandatory.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No source-bearing image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-140-z-ii-2-zero-canvases",
+          "rank": 5,
+          "title_as_displayed": "Aphorismen und Pläne zu Also sprach Zarathustra III und IV",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75240",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75240",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/140"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75240"
+            },
+            {
+              "scheme": "Mette",
+              "value": "Z II 2"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "Z-II-2"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "zero ORES IIIF canvases",
+            "separate responding DFGA route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75240",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "Current ORES exposes no images while current DFGA exposes 20 image records and 56 logical identifiers. The layer asymmetry is preserved rather than converted into a single availability claim.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current zero-canvas state was observed only as metadata."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dfga-zarathustra-authorial-route",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Nietzsche Source Digitale Faksimile Gesamtausgabe",
+      "endpoint_url": "http://www.nietzschesource.org/DFGA/D-17",
+      "interface_type": "api",
+      "interface_version": "DFGA API and Muruca application as served 2026-07-30",
+      "exact_query": "GET /DFGAapi/api/fe/book/{D-17,Z-I-2,Z-I-4,Z-II-1..Z-II-10,W-I-1,W-I-2,N-V-8,N-V-9,N-VI-1..N-VI-9}; direct HTTP only because current HTTPS connection failed",
+      "queried_at": "2026-07-30T10:05:00-06:00",
+      "elapsed_seconds": 21.44,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dfga-zarathustra-d17",
+          "rank": 1,
+          "title_as_displayed": "D-17",
+          "result_url": "http://www.nietzschesource.org/DFGA/D-17",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/D-17",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "D-17"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/25"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "240 image records",
+            "300 logical image identifiers",
+            "interactive manuscript facsimile"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; scope and interaction with GSA reproduction rules require reconciliation.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The API marks D-17 public and gives the most detailed current codicological route to the 135-leaf authorial print manuscript. Its image and logical-address counts are not asserted to map one-to-one onto 270 ORES canvases.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No DFGA body, miniature, or manuscript image was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-zarathustra-notebook-family",
+          "rank": 2,
+          "title_as_displayed": "Z-I-2 through N-VI-9 Zarathustra-period notebook routes",
+          "result_url": "http://www.nietzschesource.org/DFGA/Z-I-2",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/Z-I-2",
+          "identifiers": [
+            {
+              "scheme": "DFGA family",
+              "value": "Z-I-2, Z-I-4, Z-II-1-Z-II-10, W-I-1-W-I-2, N-V-8-N-V-9, N-VI-1-N-VI-9"
+            }
+          ],
+          "available_formats": [
+            "twenty-five DFGA metadata JSON books",
+            "1787 image records",
+            "5261 logical image identifiers",
+            "mixed current public flags"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source states CC BY-NC-ND 4.0 for site content while separately describing a DFGA agreement permitting non-commercial derivative work; book-level public flags do not resolve downstream rights.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Current facsimile address family for the principal compositional notebooks. It preserves mixed work membership and mixed public flags instead of treating the family as a downloadable Zarathustra corpus.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only transient counts and identity fields were inspected."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dfga-z-ii-2-layer-asymmetry",
+          "rank": 3,
+          "title_as_displayed": "Z-II-2",
+          "result_url": "http://www.nietzschesource.org/DFGA/Z-II-2",
+          "originating_record_url": "http://www.nietzschesource.org/DFGAapi/api/fe/book/Z-II-2",
+          "identifiers": [
+            {
+              "scheme": "DFGA",
+              "value": "Z-II-2"
+            },
+            {
+              "scheme": "GSA",
+              "value": "71/140"
+            }
+          ],
+          "available_formats": [
+            "DFGA metadata JSON",
+            "20 image records",
+            "56 logical image identifiers",
+            "current public flag false"
+          ],
+          "declared_rights": {
+            "statement": "Responding DFGA metadata and images do not establish public reuse permission.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The responding DFGA book is retained alongside the zero-canvas ORES state. No digital layer is treated as the sole truth about physical or legal availability.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No response body or image was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-ekgwb-zarathustra-critical-route",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche Source eKGWB",
+      "endpoint_url": "http://www.nietzschesource.org/eKGWB/Za-I",
+      "interface_type": "api",
+      "interface_version": "Static HTML includes as served 2026-07-30; current access from this machine is HTTP-only",
+      "exact_query": "Two bounded GET requests per part to static_html_include.php?book=%23eKGWB%2FZa-{I,II,III,IV}, stable content-ID and correction-popup enumeration; no response body retained",
+      "queried_at": "2026-07-30T10:24:00-06:00",
+      "elapsed_seconds": 8.31,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ekgwb-zarathustra-parts-i-iv",
+          "rank": 1,
+          "title_as_displayed": "eKGWB/Za-I-IV",
+          "result_url": "http://www.nietzschesource.org/eKGWB/Za-I",
+          "originating_record_url": "http://www.nietzschesource.org/resources/scripts/static_html_include.php?book=%23eKGWB%2FZa-I",
+          "identifiers": [
+            {
+              "scheme": "eKGWB book sigla",
+              "value": "Za-I, Za-II, Za-III, Za-IV"
+            },
+            {
+              "scheme": "observed response SHA-256 set",
+              "value": "3ad9b3f601eccf45446c71f2758d1aa5fd70fb01cc67c81453526f1b7eeb7061; 5d68ed6c8c360aba975d6ce610eff235f2a47317e4b4772c0016af9b137273f4; b490c0c8d85d7dc9bb72e278c3f4c94b2db6ad7b28b9afdf7a9a2496360c08e1; 18956c8e7c03ebf4c08919cdf192139c68e64a3d2babffff68410253caf56d61"
+            }
+          ],
+          "available_formats": [
+            "critical-edition HTML",
+            "181 stable content addresses",
+            "47 correction popups"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source declares CC BY-NC-ND 4.0 for its content.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Whole-work critical comparison address family. Within each part the two transient observations were byte-identical, but unauthenticated HTTP, no retained body, and no claim of manuscript or late-correction exhaustiveness remain explicit.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact counts and transient response hashes were recorded without persisting the critical text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-kulturstiftung-zarathustra-correction-ensemble",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Kulturstiftung der Länder acquisition record",
+      "endpoint_url": "https://www.kulturstiftung.de/buch-mit-biss/",
+      "interface_type": "web",
+      "interface_version": "Official acquisition account as served 2026-07-30",
+      "exact_query": "GSA acquisition identity, Peter Gast working copy, accompanying Nietzsche correction leaf, Das Honig-Opfer extension, and edition-transmission statement",
+      "queried_at": "2026-07-30T10:35:00-06:00",
+      "elapsed_seconds": 2.88,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.kulturstiftung-buch-mit-biss-gsa-71-25a",
+          "rank": 1,
+          "title_as_displayed": "Buch mit Biss",
+          "result_url": "https://www.kulturstiftung.de/buch-mit-biss/",
+          "originating_record_url": "https://www.kulturstiftung.de/buch-mit-biss/",
+          "identifiers": [
+            {
+              "scheme": "GSA current route",
+              "value": "71/25a"
+            }
+          ],
+          "available_formats": [
+            "official acquisition account",
+            "bibliographic and provenance narrative"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.kulturstiftung.de/buch-mit-biss/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Official evidence that Peter Gast's private-print copy is accompanied by a Nietzsche correction leaf and carries changes, including a six-line Das Honig-Opfer extension, reported as absent from the first public part-IV edition and later editions. No correction text or image was acquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The official account is cited as external provenance evidence; no source-bearing media were copied."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-zarathustra-commentary",
+      "sequence": 5,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "KSA sigla and Heidelberger Akademie historical-critical Zarathustra commentary",
+      "endpoint_url": "https://doi.org/10.1515/9783110293319",
+      "interface_type": "web",
+      "interface_version": "KSA 14 publisher preview and HAdW commentary volumes 4/1-4/2 publisher previews as served 2026-07-30",
+      "exact_query": "Print-manuscript preservation, four-part composition chronology, D 17 identity, notebook sigla, publication sequence, and open-work continuation; public previews only",
+      "queried_at": "2026-07-30T10:42:00-06:00",
+      "elapsed_seconds": 9.47,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ksa14-zarathustra-print-manuscript-sigla",
+          "rank": 1,
+          "title_as_displayed": "Sämtliche Werke. Kritische Studienausgabe, Band 14, Siglenverzeichnis",
+          "result_url": "https://api.pageplace.de/preview/DT0400.9783112419120_A46527570/preview-9783112419120_A46527570.pdf",
+          "originating_record_url": "https://doi.org/10.1515/9783112419120",
+          "identifiers": [
+            {
+              "scheme": "critical siglum",
+              "value": "D 17"
+            },
+            {
+              "scheme": "ISBN",
+              "value": "9783112419120"
+            }
+          ],
+          "available_formats": [
+            "publisher preview",
+            "critical-edition sigla"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/9783112419120",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established direct statement that D 17 is the authorial print manuscript for part IV and that the print manuscripts for parts I-III are not preserved. The preview was consulted without acquiring the edition body.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No critical-edition body was admitted or retained in ToS."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.hadw-graetz-zarathustra-commentary-2024",
+          "rank": 2,
+          "title_as_displayed": "Kommentar zu Nietzsches Also sprach Zarathustra, Bände 4/1 und 4/2",
+          "result_url": "https://doi.org/10.1515/9783110293319",
+          "originating_record_url": "https://doi.org/10.1515/9783110293319",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110293319"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110293333"
+            }
+          ],
+          "available_formats": [
+            "publisher bibliographic records",
+            "public previews",
+            "restricted full commentary"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/9783110293319",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established current whole-work commentary links the four-part composition chronology, surviving notebook stages, D 17, publication sequence, and open continuation horizon. Only public preview material was inspected; no restricted access was bypassed.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The full commentary is restricted and was not acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-stanford-zarathustra-fragment-baseline",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "originating-record",
+      "source_name": "Stanford University Press Complete Works volumes 14 and 15",
+      "endpoint_url": "https://www.sup.org/books/theory-and-philosophy/unpublished-fragments-period-thus-spoke-zarathustra-summer-1882-2",
+      "interface_type": "web",
+      "interface_version": "Official preliminary note and volume records as served 2026-07-30",
+      "exact_query": "Manuscript count, notebook and loose-leaf classes, work-membership limits, and part-IV period coverage in published volumes 14 and 15",
+      "queried_at": "2026-07-30T10:55:00-06:00",
+      "elapsed_seconds": 4.16,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.stanford-zarathustra-fragments-volumes-14-15",
+          "rank": 1,
+          "title_as_displayed": "Unpublished Fragments from the Period of Thus Spoke Zarathustra, volumes 14 and 15",
+          "result_url": "https://www.sup.org/books/theory-and-philosophy/unpublished-fragments-period-thus-spoke-zarathustra-summer-1882-2",
+          "originating_record_url": "https://www.sup.org/books/theory-and-philosophy/unpublished-fragments-period-thus-spoke-zarathustra-summer-1882-winter",
+          "identifiers": [
+            {
+              "scheme": "Complete Works volume",
+              "value": "14"
+            },
+            {
+              "scheme": "Complete Works volume",
+              "value": "15"
+            },
+            {
+              "scheme": "ISBN set",
+              "value": "9780804728874; 9780804728881"
+            }
+          ],
+          "available_formats": [
+            "official preliminary note",
+            "publisher metadata",
+            "in-copyright published volumes"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.sup.org/books/theory-and-philosophy/unpublished-fragments-period-thus-spoke-zarathustra-summer-1882-winter",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Official established corpus boundary: thirty-six manuscripts comprise twenty-one large notebooks, twelve pocket notebooks, and three loose-leaf binders, with approximately half the period material not literarily related to Zarathustra. This prohibits whole-notebook attribution by date alone.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only official publisher documentation was consulted; no book content was acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-zarathustra-2025-2026",
+      "sequence": 7,
+      "channel_type": "publisher-catalog",
+      "role": "mixed",
+      "source_name": "Current Nietzsche scholarship and Stanford University Press forthcoming translation record",
+      "endpoint_url": "https://www.nietzsche-gesellschaft.de/assets/Programm-ZA.pdf",
+      "interface_type": "web",
+      "interface_version": "Official conference, journal DOI, and publisher records as served 2026-07-30",
+      "exact_query": "2025-2026 Zarathustra manuscript, textual-genetic, commentary-review, and translation frontier; current dates verified against originating records",
+      "queried_at": "2026-07-30T11:05:00-06:00",
+      "elapsed_seconds": 7.26,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.zarathustra-als-erzieher-2025-d17",
+          "rank": 1,
+          "title_as_displayed": "Zarathustra als Erzieher. Neue Wege zu Nietzsches Meisterwerk",
+          "result_url": "https://www.nietzsche-gesellschaft.de/assets/Programm-ZA.pdf",
+          "originating_record_url": "https://www.nietzsche-gesellschaft.de/veranstaltungen/ausser-der-reihe-kooperationen/",
+          "identifiers": [
+            {
+              "scheme": "DFGA address",
+              "value": "D-17,5vet6"
+            },
+            {
+              "scheme": "event date",
+              "value": "2025-06-28"
+            }
+          ],
+          "available_formats": [
+            "official conference program",
+            "DFGA manuscript citation"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://www.nietzsche-gesellschaft.de/assets/Programm-ZA.pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh specialist evidence that D 17 remains an active exact-address manuscript surface. The interpretive conference does not supersede archive, facsimile, or critical-edition authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The public program was consulted as a current lead; no source text was acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.nietzsche-studien-graetz-review-2025",
+          "rank": 2,
+          "title_as_displayed": "Review of Katharina Grätz, Kommentar zu Nietzsches Also sprach Zarathustra",
+          "result_url": "https://doi.org/10.1515/nietzstu-2025-0022",
+          "originating_record_url": "https://doi.org/10.1515/nietzstu-2025-0022",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2025-0022"
+            }
+          ],
+          "available_formats": [
+            "publisher abstract and metadata",
+            "journal review"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2025-0022",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh review supports the open work-in-progress reconstruction, especially for part IV, without changing witness identity or granting access to the commentary body.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Restricted review content was not acquired or bypassed."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-loeb-tinsley-zarathustra-2026",
+          "rank": 3,
+          "title_as_displayed": "Thus Spoke Zarathustra, Complete Works volume 7",
+          "result_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "originating_record_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "identifiers": [
+            {
+              "scheme": "ISBN hardcover",
+              "value": "9780804728799"
+            },
+            {
+              "scheme": "ISBN paperback",
+              "value": "9781503647282"
+            },
+            {
+              "scheme": "Complete Works volume",
+              "value": "7"
+            }
+          ],
+          "available_formats": [
+            "official publisher metadata",
+            "forthcoming 424-page translation",
+            "review-copy request route"
+          ],
+          "declared_rights": {
+            "statement": "The forthcoming translation is in copyright; no content-use or redistribution permission has been granted to ToS.",
+            "scope": "content",
+            "evidence_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "As of 2026-07-30 the publisher schedules the Loeb/Tinsley translation for August 2026. Its notebook cross-references, translation afterword, and key-term glossary are highly relevant, but no manifestation or passage can yet be inspected; no review-copy request was sent.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The current publisher record is sufficient to register a forthcoming deferred candidate; no book content exists in the ToS route."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-zarathustra-authorial-route",
+      "sequence": 8,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search used only after official, established, and current originating routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"D 17\" \"Also sprach Zarathustra\"; \"Dm I-III\" Zarathustra; \"Buch mit Biss\" Nietzsche; \"10.1515/nietzstu-2025-0022\"; all selected claims reopened at originating records",
+      "queried_at": "2026-07-30T11:14:00-06:00",
+      "elapsed_seconds": 4.02,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-zarathustra-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 28,
+      "machine_seconds": 18.72,
+      "notes": "Authoritative current holding records and exact IIIF coverage; object-level Public Domain labels and general archive publication rules remain separate."
+    },
+    {
+      "channel_id": "channel-dfga-zarathustra-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 22,
+      "machine_seconds": 21.44,
+      "notes": "Strongest current codicological address route; HTTP-only access, mixed public flags, Nietzsche Source rights, and GSA rights are not equivalent."
+    },
+    {
+      "channel_id": "channel-ekgwb-zarathustra-critical-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 14,
+      "machine_seconds": 8.31,
+      "notes": "Whole-work critical address family with exact transient fixity; no retained or admitted critical text."
+    },
+    {
+      "channel_id": "channel-kulturstiftung-zarathustra-correction-ensemble",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 10,
+      "machine_seconds": 2.88,
+      "notes": "Crucial official provenance for the corrected Peter Gast copy and Nietzsche leaf; exact region collation and reuse rights remain open."
+    },
+    {
+      "channel_id": "channel-established-zarathustra-commentary",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 24,
+      "machine_seconds": 9.47,
+      "notes": "Established print-manuscript and genesis baseline; full commentary bodies remain restricted."
+    },
+    {
+      "channel_id": "channel-stanford-zarathustra-fragment-baseline",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 9,
+      "machine_seconds": 4.16,
+      "notes": "Official published fragment-corpus boundary prevents whole-notebook work attribution."
+    },
+    {
+      "channel_id": "channel-fresh-zarathustra-2025-2026",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 18,
+      "machine_seconds": 7.26,
+      "notes": "Fresh search confirms current D 17 use and registers the forthcoming 2026 translation without pretending it is published, inspected, or admitted."
+    },
+    {
+      "channel_id": "channel-general-web-zarathustra-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4,
+      "machine_seconds": 4.02,
+      "notes": "Used last for discovery only; no search-result claim was imported without reopening the originating record."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-71-25-zarathustra-d17",
+    "tos-discovery-result.gsa-71-25a-zarathustra-corrected-private-print",
+    "tos-discovery-result.gsa-zarathustra-n-v-n-vi-family",
+    "tos-discovery-result.gsa-zarathustra-z-w-mp-family",
+    "tos-discovery-result.dfga-zarathustra-d17",
+    "tos-discovery-result.dfga-zarathustra-notebook-family",
+    "tos-discovery-result.ekgwb-zarathustra-parts-i-iv",
+    "tos-discovery-result.kulturstiftung-buch-mit-biss-gsa-71-25a",
+    "tos-discovery-result.ksa14-zarathustra-print-manuscript-sigla",
+    "tos-discovery-result.hadw-graetz-zarathustra-commentary-2024",
+    "tos-discovery-result.stanford-zarathustra-fragments-volumes-14-15",
+    "tos-discovery-result.zarathustra-als-erzieher-2025-d17",
+    "tos-discovery-result.nietzsche-studien-graetz-review-2025"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T09:35:00-06:00",
+  "ended_at": "2026-07-30T11:15:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.zarathustra.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

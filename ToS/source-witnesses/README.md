@@ -265,6 +265,18 @@ Expression/Edition/Item branch is manufactured. The route admits only remote
 identity and provenance evidence, not author-final reconstruction, accepted
 German, rights clearance, or publication.
 
+The *Zarathustra* golden kernel now has the same responsibility-aware
+upstream discipline. Current GSA ORES and DFGA records separate mixed
+compositional notebooks from the surviving authorial part-IV print manuscript
+D 17 (`GSA 71/25`), the 1885 private print, and the separately corrected Peter
+Gast ensemble (`GSA 71/25a`). The current critical route reports that print
+manuscripts for parts I-III are not preserved. Whole-notebook work membership
+is therefore prohibited: an exact region and sourced attribution claim are
+required. The eKGWB route supplies 181 stable critical comparison addresses,
+not an admitted text or manuscript map. No remote manuscript or print becomes
+a local Item without custody, fixity, rights evidence, and an acquisition
+event.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

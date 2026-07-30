@@ -3451,7 +3451,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             translation_laboratory_plan["recognized_comparator"]["visibility"],
         )
         self.assertEqual(17, len(translation_laboratory_plan["workflow_order"]))
-        self.assertEqual(14, len(translation_reference_register["entries"]))
+        self.assertEqual(15, len(translation_reference_register["entries"]))
         self.assertEqual(
             set(translation_reference_register["required_categories"]),
             {
@@ -3482,6 +3482,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn(
             translation_laboratory_plan["recognized_comparator"]["item_ref"],
             comparator_entry["tos_refs"]["record_refs"],
+        )
+        forthcoming_entry = next(
+            entry
+            for entry in translation_reference_register["entries"]
+            if entry["reference_id"]
+            == "tos-ref.en.loeb-tinsley-stanford-2026-forthcoming"
+        )
+        self.assertEqual("metadata-only", forthcoming_entry["access"]["access_state"])
+        self.assertEqual(
+            "not-acquired",
+            forthcoming_entry["access"]["acquisition_state"],
+        )
+        self.assertFalse(forthcoming_entry["admission"]["accepted_as_truth"])
+        self.assertIn(
+            "the scheduled publication has not occurred",
+            forthcoming_entry["admission"]["blocking_reasons"],
         )
         self.assertTrue(retrieval_plan["frozen_before_variant_outputs"])
         self.assertEqual(20, len(retrieval_plan["queries"]))

@@ -115,3 +115,17 @@ scope split, HTTP-only Nietzsche Source transport, and a false 2026-freshness
 label that resolves bibliographically to a 2022 chapter. No manuscript image,
 critical text, metadata snapshot, access request, paid order, source item,
 accepted German, or semantic object is created.
+
+`zarathustra-authorial-witness-route.2026-07-30.v1.json` gives the golden
+kernel its own metadata-only upstream and critical route. It records D 17 as
+the surviving authorial print manuscript for part IV, preserves the current
+critical statement that the print manuscripts for parts I-III are not
+preserved, maps the principal mixed notebook families through GSA ORES and
+DFGA, and enumerates the 181-address / 47-correction-popup eKGWB comparison
+surface without retaining its body. It keeps the zero-canvas ORES `Z II 2`
+state beside the responding DFGA book, distinguishes ORES canvases from DFGA
+image/logical addresses, and routes the separately corrected GSA 71/25a
+private-print ensemble without claiming an author-final text. The current
+Loeb/Tinsley Stanford translation is recorded as forthcoming August 2026 and
+deferred; no source body, review-copy request, local Item, human backlog,
+translation authority, or publication permission is created.
