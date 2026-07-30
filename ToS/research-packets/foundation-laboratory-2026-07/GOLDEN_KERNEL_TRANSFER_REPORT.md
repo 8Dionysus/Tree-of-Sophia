@@ -31,6 +31,10 @@ The valid result is therefore a stopped result before execution:
 - retain the exact 1906 aggregate witness and proposed *Antichrist* member
   boundary as stronger source soil without treating that archive-edition text
   as accepted, critical, or target gold;
+- retain the exact standalone 1888 *Fall Wagner* and 1889
+  *Götzen-Dämmerung* MDZ items as stronger author-proximate source soil without
+  changing the frozen three-work sampling frame or treating either item as
+  accepted German, critical text, transfer input, or target gold;
 - admit no sign, translation, concept, relation, or ontology from
   *Zarathustra* into another work;
 - schedule no routine human backlog: in solo+AI operation, open a bounded
@@ -115,6 +119,21 @@ inventory and a proposed member range at scan pages 228-329. That route does
 not alter the Russian collection page, establish translation correspondence,
 equate the archive edition with the manuscript, 1895 first printing, or a
 critical text, or make any prepared *Antichrist* page eligible for execution.
+
+*Der Fall Wagner* now has a distinct exact standalone German route through the
+unlabelled 1888 Naumann/Bamberg item. The route preserves the nominal
+`Zweite Auflage` issue risk, exact MDZ object/page topology, and `NoC-NC 1.0`
+research boundary. It neither changes the provisional Russian collection
+expression nor adds a target work, accepted passage, or eligible transfer unit
+to this frozen experiment.
+
+*Götzen-Dämmerung* now has a distinct exact standalone German route through
+the 1889 Naumann/BSB first-publication item, explicitly separated from the
+altered 1893 second edition. The provider's `CC BY-NC-SA 4.0` evidence does not
+accept German, create a translation relation, authorize use of the local PDF
+as a site source, or expand the already frozen target quotas. A future transfer
+experiment may choose a new versioned sampling frame; this v1 report may not
+silently absorb it.
 
 ## Prepared target-candidate soil
 

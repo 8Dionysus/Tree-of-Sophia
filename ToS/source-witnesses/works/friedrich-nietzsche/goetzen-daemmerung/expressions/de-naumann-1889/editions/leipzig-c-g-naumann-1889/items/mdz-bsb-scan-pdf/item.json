@@ -1,0 +1,51 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf",
+  "preferred_label": "MDZ immediate PDF of the BSB Ph.pr. 881 kc copy of Götzen-Dämmerung (1889)",
+  "variant_labels": [
+    {
+      "value": "München, Bayerische Staatsbibliothek — Ph.pr. 881 kc; MDZ digital object bsb00069119",
+      "language": "en",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/forensic-report.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+    "https://www.digitale-sammlungen.de/en/details/bsb00069119"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "MDZ digital object",
+      "value": "bsb00069119",
+      "source_ref": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+      "status": "verified"
+    },
+    {
+      "scheme": "URN",
+      "value": "urn:nbn:de:bvb:12-bsb00069119-0",
+      "source_ref": "https://mdz-nbn-resolving.de/urn:nbn:de:bvb:12-bsb00069119-0",
+      "status": "verified"
+    },
+    {
+      "scheme": "BSB ID",
+      "value": "991127423009707356",
+      "source_ref": "https://opacplus.bsb-muenchen.de/title/BV020368110",
+      "status": "verified"
+    },
+    {
+      "scheme": "holding call number",
+      "value": "München, Bayerische Staatsbibliothek -- Ph.pr. 881 kc",
+      "source_ref": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/item.manifest.json",
+  "notes": "The local payload is the exact MDZ immediate-download PDF generated from the 164-canvas IIIF object. PDF page 1 is an MDZ bibliographic cover; PDF pages 2-165 map in order to IIIF canvases 1-164. No book OCR is embedded or accepted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

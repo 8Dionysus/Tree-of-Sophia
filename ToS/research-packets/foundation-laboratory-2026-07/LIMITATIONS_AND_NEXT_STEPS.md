@@ -41,12 +41,14 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- Three other *Mysl* member works remain verified Work identities with
-  provisional Russian collection-member expressions rather than standalone
-  reviewed Edition / Item trees. *Jenseits von Gut und Böse*, *Zur Genealogie
-  der Moral*, and *Der Antichrist* now additionally have exact German source
-  routes—1886 first Naumann, 1892 second Naumann, and the 1906 Naumann
-  aggregate respectively—while their Russian *Mysl* expressions and
+- *Ecce Homo* is now the only *Mysl* member that remains solely a verified Work
+  identity plus provisional Russian collection-member expression rather than
+  having a distinct exact German Edition / Item tree. *Jenseits von Gut und
+  Böse*, *Zur Genealogie der Moral*, *Der Antichrist*, *Der Fall Wagner*, and
+  *Götzen-Dämmerung* now additionally have exact German source routes—1886
+  first Naumann, 1892 second Naumann, the 1906 Naumann aggregate, the
+  unlabelled 1888 Naumann issue, and the 1889 Naumann first-publication witness
+  respectively—while their Russian *Mysl* expressions and
   translation-responsibility claims remain unreviewed.
 - The German auto-EPUB contains automatic OCR and scan furniture. The image
   PDF is the source-visible review surface; neither automatically becomes a
@@ -86,6 +88,20 @@ contracts intentionally reject simulated human evidence.
   contaminated, and the selected archive-edition text is not Nietzsche's 1888
   manuscript, the 1895 first printing, a critical edition, accepted German,
   provider OCR, or transfer gold.
+- The acquired MDZ/Bamberg *Der Fall Wagner* PDF is an exact source-visible
+  surrogate for the standalone 1888 Naumann copy `30.1972`. Its 75-page
+  inventory contains one MDZ bibliographic cover followed by the 74 IIIF
+  canvases. The title page lacks `Zweite Auflage`, while the scholarly
+  production history reports that nominal label on the latter half of the
+  same 1000-copy run. The route therefore does not identify a differently
+  labelled copy, accept German, establish critical-text equivalence, create
+  passage anchors, or make the prepared transfer pages eligible.
+- The acquired MDZ/BSB *Götzen-Dämmerung* PDF is an exact source-visible
+  surrogate for the standalone 1889 Naumann copy `Ph.pr. 881 kc`. Its 165-page
+  inventory contains one MDZ cover followed by 164 IIIF canvases. The copy
+  carries no edition statement and is retained as a first-publication witness;
+  it is not the textually altered 1893 second edition, Nietzsche's manuscript,
+  a critical text, accepted German, passage gold, or transfer eligibility.
 - The Antonovsky PDF uses vector outlines and is empty under native text
   extraction. OCR output remains unaccepted.
 - The Mysl PDF's embedded ABBYY layer contains material corruption and cannot
@@ -127,6 +143,20 @@ contracts intentionally reject simulated human evidence.
   historical text, Stanford copy, Google scan, contaminated Internet Archive
   lineage, Commons revision, OCR, or derivatives. The local DjVu remains off
   the future site and the server plan remains metadata-only.
+- MDZ marks the exact *Der Fall Wagner* object `NoC-NC 1.0`. That is concrete
+  permission evidence for bounded local non-commercial research, not a
+  free-culture license or a ToS authorization to redistribute the generated
+  PDF, page images, source text, OCR, or derivatives. The local PDF stays off
+  the future site; its plan is metadata-only and requires a then-current
+  route/conditions check, attribution review, jurisdiction review, and
+  explicit operator approval before any stronger decision.
+- MDZ marks the exact *Götzen-Dämmerung* digital object
+  `CC BY-NC-SA 4.0`. ToS preserves that stronger open-license evidence without
+  pretending a model has settled attribution, ShareAlike scope, the
+  relationship among historical text/holding copy/digitization/derivatives,
+  or future-site publication. The operator-held PDF remains local and its
+  server plan stays metadata-only until a current route and human rights review
+  authorize a separate public material path.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
   the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct

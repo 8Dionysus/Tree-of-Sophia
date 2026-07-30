@@ -2,7 +2,8 @@
 
 Status: non-authoritative research synthesis
 Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
-route refreshed 2026-07-29
+route refreshed 2026-07-29; exact standalone Nietzsche source-route research
+refreshed 2026-07-30
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -726,6 +727,55 @@ search lead
 
 No system may infer `public domain` only from a date, a repository badge, a
 download link, or a filename. Unknown and conflicting rights are valid states.
+
+### Exact standalone Nietzsche source-route refresh — 2026-07-30
+
+The transfer-work source search was repeated in the same ordered style rather
+than treating a recent corpus hit or a convenient download button as truth.
+
+1. **Classical and official identity layer.** Current
+   [DNB/GND](https://d-nb.info/gnd/4226521-6) work authority was reconciled
+   with the originating
+   [MDZ/B3Kat *Der Fall Wagner* object](https://www.digitale-sammlungen.de/en/details/bsb11827837),
+   while [DNB/GND](https://d-nb.info/gnd/4501140-0) was reconciled with the
+   originating
+   [MDZ/B3Kat *Götzen-Dämmerung* object](https://www.digitale-sammlungen.de/en/details/bsb00069119).
+   IIIF manifests, MARC, RDF, URNs, holding institutions, call numbers, and
+   visible title pages agree on the standalone Naumann 1888 and 1889 item
+   identities.
+2. **Established scholarly layer.** Andreas Urs Sommer's official HAdW
+   historical-critical commentary,
+   [Band 6/1](https://doi.org/10.11588/diglit.70913), changes the
+   interpretation of apparently simple dates. The 1888 *Fall Wagner* run
+   comprised 1000 copies whose latter half was nominally labelled
+   `Zweite Auflage`; the exact Bamberg title page is unlabelled. The
+   1889-dated *Götzen-Dämmerung* reached booksellers at the end of January
+   1889, while Köselitz's textually changed second edition followed in 1893.
+3. **Fresh current-service layer.** The live DTA Nietzsche author corpus
+   contains neither target. Current TextGrid records are useful Kolimo+
+   corpus-text challengers, but their 2026 repository issue does not create
+   historical-copy or critical-text identity. Google Books supplied useful
+   bibliographic leads, yet its tested download responses were HTML challenge
+   or not-found pages; no source bytes were admitted and no bypass was used.
+   The official MDZ immediate-PDF service supplied the selected objects after
+   their current rights notices were acknowledged.
+
+The acquired PDF for `bsb11827837` has SHA-256
+`37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed`,
+75 PDF pages, and 74 ordered source canvases after one provider cover. The
+acquired PDF for `bsb00069119` has SHA-256
+`f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086`,
+165 PDF pages, and 164 source canvases after one provider cover. Neither
+contains accepted book OCR.
+
+Rights remain object- and layer-specific. MDZ reports
+[`NoC-NC 1.0`](https://rightsstatements.org/vocab/NoC-NC/1.0/) for the
+*Fall Wagner* object and
+[`CC BY-NC-SA 4.0`](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+for the *Götzen-Dämmerung* object. ToS preserves those positive statements,
+keeps both operator-held PDFs local, and authorizes only public-safe metadata
+until current conditions, attribution, jurisdiction, and explicit operator
+review support a separate public route.
 
 ---
 

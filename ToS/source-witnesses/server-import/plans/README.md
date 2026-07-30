@@ -42,3 +42,19 @@ retained as strong positive evidence. The plan still keeps the operator-held
 DjVu local, all source-bearing derivatives prohibited, the model-only partial
 boundary visibly unreviewed, and server consumption limited to public-safe
 metadata until a current authorized object and applicable rights are reviewed.
+
+The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
+`30.1972` copy of the standalone 1888 Naumann *Der Fall Wagner*. MDZ's
+`NoC-NC 1.0` statement is retained as a positive local non-commercial research
+route, not a free-culture license or server-transfer authorization. The
+operator-held PDF and all source-bearing derivatives remain prohibited; only
+public-safe identity, holding, provenance, issue-risk, and rights-status
+metadata may be projected.
+
+The fourteenth plan covers the exact MDZ PDF generated for the BSB
+`Ph.pr. 881 kc` copy of the standalone 1889 Naumann
+*Götzen-Dämmerung*. Its `CC BY-NC-SA 4.0` declaration is retained as concrete
+positive evidence, while attribution details, current provider conditions,
+jurisdiction, and public-route selection remain unreviewed. The current plan
+therefore transfers no local file and authorizes no OCR, transcription,
+translation, snippet, embedding, or content-bearing graph/search projection.

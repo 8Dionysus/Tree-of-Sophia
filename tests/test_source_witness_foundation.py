@@ -84,6 +84,28 @@ ANTICHRIST_1906_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json"
 )
+FALL_WAGNER_1888_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "der-fall-wagner/expressions/de-naumann-1888/"
+    "editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf"
+)
+FALL_WAGNER_1888_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30.v1.json"
+)
+GOETZEN_1889_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "goetzen-daemmerung/expressions/de-naumann-1889/"
+    "editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf"
+)
+GOETZEN_1889_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30.v1.json"
+)
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1898,6 +1920,267 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "naumann-1906.wikimedia-commons-stanford-scan-djvu",
             }.issubset(catalog_ids)
         )
+
+    def test_exact_fall_and_goetzen_witnesses_advance_source_not_content(
+        self,
+    ) -> None:
+        cases = [
+            {
+                "item_root": FALL_WAGNER_1888_ITEM_ROOT,
+                "discovery_path": FALL_WAGNER_1888_DISCOVERY_PATH,
+                "server_plan": (
+                    "der-fall-wagner-naumann-1888-mdz-bamberg-scan-pdf."
+                    "server-import.json"
+                ),
+                "byte_size": 31518299,
+                "sha256": (
+                    "37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed"
+                ),
+                "page_count": 75,
+                "image_count": 76,
+                "geometry_count": 32,
+                "mdz_object_id": "bsb11827837",
+                "canvas_count": 74,
+                "rights_statement_uri": (
+                    "https://rightsstatements.org/vocab/NoC-NC/1.0/"
+                ),
+                "license_uri": None,
+                "redistribution_posture": "not_authorized",
+                "channels": [
+                    "channel-dnb-der-fall-wagner-work-authority",
+                    "channel-dta-der-fall-wagner-author-corpus",
+                    "channel-textgrid-der-fall-wagner-corpus",
+                    "channel-hadw-der-fall-wagner-text-history",
+                    "channel-google-books-der-fall-wagner-1888",
+                    "channel-mdz-bamberg-der-fall-wagner-1888",
+                    "channel-general-web-der-fall-wagner",
+                ],
+                "selected_result": (
+                    "tos-discovery-result.mdz-bsb11827837-bamberg-"
+                    "der-fall-wagner-1888"
+                ),
+                "catalog_ids": {
+                    "tos.work.friedrich-nietzsche.der-fall-wagner",
+                    "tos.expression.friedrich-nietzsche.der-fall-wagner."
+                    "de-naumann-1888",
+                    "tos.edition.friedrich-nietzsche.der-fall-wagner."
+                    "leipzig-c-g-naumann-1888",
+                    "tos.item.friedrich-nietzsche.der-fall-wagner."
+                    "de-naumann-1888.mdz-bamberg-scan-pdf",
+                },
+            },
+            {
+                "item_root": GOETZEN_1889_ITEM_ROOT,
+                "discovery_path": GOETZEN_1889_DISCOVERY_PATH,
+                "server_plan": (
+                    "goetzen-daemmerung-naumann-1889-mdz-bsb-scan-pdf."
+                    "server-import.json"
+                ),
+                "byte_size": 68398920,
+                "sha256": (
+                    "f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086"
+                ),
+                "page_count": 165,
+                "image_count": 166,
+                "geometry_count": 83,
+                "mdz_object_id": "bsb00069119",
+                "canvas_count": 164,
+                "rights_statement_uri": None,
+                "license_uri": (
+                    "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                ),
+                "redistribution_posture": "unknown",
+                "channels": [
+                    "channel-dnb-goetzen-daemmerung-work-authority",
+                    "channel-dta-goetzen-daemmerung-author-corpus",
+                    "channel-textgrid-goetzen-daemmerung-corpus",
+                    "channel-hadw-goetzen-daemmerung-text-history",
+                    "channel-google-books-goetzen-daemmerung-1889",
+                    "channel-mdz-bsb-goetzen-daemmerung-1889",
+                    "channel-general-web-goetzen-daemmerung",
+                ],
+                "selected_result": (
+                    "tos-discovery-result.mdz-bsb00069119-"
+                    "goetzen-daemmerung-1889"
+                ),
+                "catalog_ids": {
+                    "tos.work.friedrich-nietzsche.goetzen-daemmerung",
+                    "tos.expression.friedrich-nietzsche.goetzen-daemmerung."
+                    "de-naumann-1889",
+                    "tos.edition.friedrich-nietzsche.goetzen-daemmerung."
+                    "leipzig-c-g-naumann-1889",
+                    "tos.item.friedrich-nietzsche.goetzen-daemmerung."
+                    "de-naumann-1889.mdz-bsb-scan-pdf",
+                },
+            },
+        ]
+
+        catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
+        catalog_ids = {
+            record["record_id"]
+            for catalog_name in (
+                "works.jsonl",
+                "expressions.jsonl",
+                "editions.jsonl",
+                "items.jsonl",
+            )
+            for line in (catalog_root / catalog_name)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+            for record in (json.loads(line),)
+        }
+
+        for case in cases:
+            with self.subTest(item_root=case["item_root"]):
+                item_root = case["item_root"]
+                manifest = json.loads(
+                    (item_root / "item.manifest.json").read_text(encoding="utf-8")
+                )
+                rights = json.loads(
+                    (item_root / "rights.json").read_text(encoding="utf-8")
+                )
+                inventory = json.loads(
+                    (item_root / "resource-inventory.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                source_snapshot = json.loads(
+                    (item_root / "source-metadata-snapshot.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                discovery = json.loads(
+                    case["discovery_path"].read_text(encoding="utf-8")
+                )
+                server_plan = json.loads(
+                    (
+                        REPO_ROOT
+                        / "ToS/source-witnesses/server-import/plans"
+                        / case["server_plan"]
+                    ).read_text(encoding="utf-8")
+                )
+
+                self.assertEqual(
+                    "digitized_physical_copy",
+                    manifest["item_kind"],
+                )
+                self.assertEqual(
+                    "local_gitignored_payload",
+                    manifest["storage_posture"],
+                )
+                self.assertEqual("local_only", manifest["visibility"])
+                self.assertEqual(1, len(manifest["payload_files"]))
+                payload_file = manifest["payload_files"][0]
+                self.assertEqual(case["byte_size"], payload_file["byte_size"])
+                self.assertEqual(case["sha256"], payload_file["sha256"])
+                self.assertTrue(
+                    foundation._git_ignored(
+                        REPO_ROOT,
+                        item_root / payload_file["relative_path"],
+                    )
+                )
+
+                self.assertEqual(
+                    case["rights_statement_uri"],
+                    rights["rights_statement_uri"],
+                )
+                self.assertEqual(case["license_uri"], rights["license_uri"])
+                self.assertEqual(
+                    "copyright_undetermined",
+                    rights["assessment_status"],
+                )
+                self.assertEqual("unreviewed", rights["review_status"])
+                self.assertEqual([], rights["jurisdictions_reviewed"])
+                self.assertEqual(
+                    case["redistribution_posture"],
+                    rights["redistribution_posture"],
+                )
+                self.assertEqual("local_only", rights["visibility"])
+
+                self.assertFalse(inventory["source_text_included"])
+                self.assertEqual(1, len(inventory["files"]))
+                inventory_file = inventory["files"][0]
+                self.assertEqual("pdf_pages_v1", inventory_file["profile"])
+                self.assertEqual(
+                    case["page_count"],
+                    inventory_file["summary"]["page_count"],
+                )
+                self.assertEqual(
+                    case["image_count"],
+                    inventory_file["summary"]["image_resource_count"],
+                )
+                self.assertEqual(
+                    case["geometry_count"],
+                    inventory_file["summary"]["distinct_page_geometry_count"],
+                )
+                self.assertEqual(
+                    case["page_count"],
+                    len(inventory_file["resources"]),
+                )
+                self.assertEqual(
+                    list(range(1, case["page_count"] + 1)),
+                    [
+                        resource["locator"]["page_index"]
+                        for resource in inventory_file["resources"]
+                    ],
+                )
+                self.assertEqual(
+                    2,
+                    inventory_file["resources"][0]["image_resource_count"],
+                )
+
+                mdz = source_snapshot["mdz_digital_object"]
+                pdf = source_snapshot["mdz_immediate_pdf"]
+                self.assertEqual(case["mdz_object_id"], mdz["digital_object_id"])
+                self.assertEqual(case["canvas_count"], mdz["iiif_canvas_count"])
+                self.assertEqual(case["page_count"], pdf["pdf_page_count"])
+                self.assertFalse(pdf["embedded_book_ocr_present"])
+                self.assertEqual(
+                    case["sha256"],
+                    pdf["sha256"],
+                )
+                self.assertFalse(
+                    source_snapshot["source_visible_scan"][
+                        "human_repeat_performed"
+                    ]
+                )
+                self.assertFalse(
+                    source_snapshot["scholarly_text_history"][
+                        "critical_text_admitted"
+                    ]
+                )
+
+                self.assertEqual(
+                    case["channels"],
+                    [channel["channel_id"] for channel in discovery["channels"]],
+                )
+                self.assertEqual(
+                    [case["selected_result"]],
+                    discovery["selected_result_ids"],
+                )
+                self.assertFalse(discovery["technical_access_bypass_used"])
+
+                self.assertEqual("metadata-only", server_plan["access_class"])
+                self.assertEqual(
+                    "blocked-rights",
+                    server_plan["server_import_status"],
+                )
+                self.assertFalse(server_plan["payload_transfer_authorized"])
+                self.assertFalse(
+                    server_plan["operator_transfer_approval"]["approved"]
+                )
+                self.assertEqual(
+                    "prohibited",
+                    server_plan["allowed_derivatives"]["transcription"]["state"],
+                )
+                self.assertEqual(
+                    "conditional",
+                    server_plan["allowed_derivatives"]["graph_projection"][
+                        "state"
+                    ],
+                )
+                self.assertTrue(case["catalog_ids"].issubset(catalog_ids))
 
     def test_golden_kernel_transfer_plan_fails_closed_without_human_kernel(self) -> None:
         validator, _ = foundation._schema_validator(

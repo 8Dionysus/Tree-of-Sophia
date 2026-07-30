@@ -1,0 +1,43 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.goetzen-daemmerung.leipzig-c-g-naumann-1889",
+  "preferred_label": "Götzen-Dämmerung, Leipzig, C. G. Naumann, 1889",
+  "variant_labels": [
+    {
+      "value": "Götzen-Dämmerung oder Wie man mit dem Hammer philosophirt",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+    "https://opacplus.bsb-muenchen.de/title/BV020368110",
+    "https://d-nb.info/gnd/4501140-0"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "B3Kat",
+      "value": "BV020368110",
+      "source_ref": "https://opacplus.bsb-muenchen.de/title/BV020368110",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "21010699",
+      "source_ref": "https://opacplus.bsb-muenchen.de/title/BV020368110",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889"
+  ],
+  "edition_statement": null,
+  "publication_claim_refs": [],
+  "notes": "The title page, MDZ IIIF manifest, and B3Kat MARC record agree on Nietzsche, Leipzig, Naumann, 1889, and 144 pages. No edition statement is printed or catalogued. The HAdW commentary identifies the altered Köselitz second edition as 1893, so this 1889 manifestation is retained as the first-publication edition while critical-text equivalence remains unclaimed.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

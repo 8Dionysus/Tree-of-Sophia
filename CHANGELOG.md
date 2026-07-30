@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added exact standalone German historical source routes for *Der Fall Wagner*
+  (the unlabelled 1888 Naumann issue, Bamberg copy `30.1972`) and
+  *Götzen-Dämmerung* (the 1889 Naumann first-publication witness, BSB copy
+  `Ph.pr. 881 kc`): ordered authority/scholarly/institutional discovery,
+  official MDZ PDFs with local fixity, text-free 75- and 165-page inventories,
+  source-visible issue and edition-risk records, fail-closed rights, focused
+  regression coverage, and metadata-only future-server plans. Neither item
+  accepts OCR or German text, becomes a critical edition, authorizes upload of
+  the operator-held PDF, or makes prepared transfer pages eligible for A/B/C.
 - Added an exact German historical source route for *Der Antichrist* inside
   the 1906 Naumann *Nietzsche's Werke*, Band VIII aggregate: ordered
   discovery, a checksum-reconciled Wikimedia Commons/Stanford DjVu, a

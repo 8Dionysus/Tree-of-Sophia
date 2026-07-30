@@ -1,0 +1,466 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.der-fall-wagner"
+    ],
+    "description": "An exact, source-visible, original-German historical item witness for the standalone 1888 Naumann publication of Der Fall Wagner.",
+    "required_properties": [
+      "original German historical witness",
+      "exact standalone publication identity",
+      "holding-copy and scan lineage",
+      "stable institutional identifiers",
+      "exact acquired-object fixity",
+      "positive rights evidence kept separate from ToS publication authority",
+      "explicit non-equivalence to manuscript, critical text, and later collected editions"
+    ],
+    "acceptable_substitutions": [
+      "another exact 1888 standalone copy with stronger holding provenance",
+      "an author-corrected copy or critical-edition witness with exact citation identity",
+      "a non-downloadable institutional copy retained as a written-access-request candidate"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "metadata",
+      "IIIF page images",
+      "PDF page images",
+      "provider transcription challenger"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/LIMITATIONS_AND_NEXT_STEPS.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-der-fall-wagner-work-authority",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4226521-6/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-07-30",
+      "exact_query": "GET https://d-nb.info/gnd/4226521-6/about/lds.jsonld",
+      "queried_at": "2026-07-30T09:36:52-06:00",
+      "elapsed_seconds": 0.882,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4226521-6-der-fall-wagner",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner",
+          "result_url": "https://d-nb.info/gnd/4226521-6",
+          "originating_record_url": "https://d-nb.info/gnd/4226521-6",
+          "identifiers": [
+            {
+              "scheme": "GND",
+              "value": "4226521-6"
+            },
+            {
+              "scheme": "author GND",
+              "value": "118587943"
+            }
+          ],
+          "available_formats": [
+            "JSON-LD",
+            "RDF"
+          ],
+          "declared_rights": {
+            "statement": "CC0 1.0 for the DNB metadata record",
+            "scope": "metadata",
+            "evidence_url": "http://creativecommons.org/publicdomain/zero/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The authority record fixes work identity, Nietzsche authorship, and publication year 1888, but does not identify a physical or digital item.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "81602870b4bbe381ac8de4839ea47a4fe86ef079ff83d7352bb35b3932c2631c",
+            "reason": "The exact current authority response is retained as metadata-only evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-der-fall-wagner-author-corpus",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/search",
+      "interface_type": "web",
+      "interface_version": "DTA metadata search as served 2026-07-30",
+      "exact_query": "GET https://www.deutschestextarchiv.de/search?in=metadata&q=Nietzsche and exact-title checks for Der Fall Wagner",
+      "queried_at": "2026-07-30T09:37:00-06:00",
+      "elapsed_seconds": 1.211,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-textgrid-der-fall-wagner-corpus",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-search API",
+      "endpoint_url": "https://textgridlab.org/1.0/tgsearch-public/search",
+      "interface_type": "api",
+      "interface_version": "TextGrid public repository API as served 2026-07-30",
+      "exact_query": "title:\"Der Fall Wagner\" AND edition.agent.value:\"Nietzsche, Friedrich\"; target=metadata; allProjects=true",
+      "queried_at": "2026-07-30T09:37:30-06:00",
+      "elapsed_seconds": 0.917,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-der-fall-wagner",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner",
+          "result_url": "https://www.textgridrep.org/browse/4k22h.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k22h.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k22h.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k190.0"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML",
+            "ORE aggregation XML"
+          ],
+          "declared_rights": {
+            "statement": "Edition metadata reports CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k22h.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The Kolimo+ record is a useful modern corpus-text challenger, but its 2026 repository issue date and corpus metadata do not identify a historical physical copy or a critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "b0e06d348a3741289191154c65f734a3fd42895cb03e397d954e280bbe3bd940",
+            "reason": "The exact one-hit metadata response and its modern corpus identity are retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-der-fall-wagner-text-history",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften digital Historischer und kritischer Kommentar",
+      "endpoint_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_1/0022",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary as served 2026-07-30; DOI 10.11588/diglit.70913",
+      "exact_query": "Bounded commentary pages 0022-0027 for the production and issue history of Der Fall Wagner",
+      "queried_at": "2026-07-30T09:38:41-06:00",
+      "elapsed_seconds": 2.641,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-der-fall-wagner-production-history",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/1",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_1/0022",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70913",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70913"
+            }
+          ],
+          "available_formats": [
+            "page image",
+            "OCR reading view",
+            "PDF volume"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The scholarly commentary establishes the 1888 production history and the nominal Zweite-Auflage split within the same 1000-copy run. It is editorial-risk evidence, not a replacement source item or accepted critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "8e2fab88d388b0554b891f2b14e588ed734cdf298e80bd665c677998fc97c435",
+            "reason": "A bounded local response set preserves the production-history evidence without importing it as source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-google-books-der-fall-wagner-1888",
+      "sequence": 5,
+      "channel_type": "collection-aggregator",
+      "role": "lead-only",
+      "source_name": "Google Books",
+      "endpoint_url": "https://books.google.com/books",
+      "interface_type": "web",
+      "interface_version": "Google Books record and offered links as served 2026-07-30",
+      "exact_query": "GET https://books.google.com/books?id=n38ktXZkxHkC and inspect offered EPUB/PDF routes without bypassing access controls",
+      "queried_at": "2026-07-30T09:40:00-06:00",
+      "elapsed_seconds": 1.842,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.google-books-n38ktxzkxhkc-der-fall-wagner",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner",
+          "result_url": "https://books.google.com/books?id=n38ktXZkxHkC",
+          "originating_record_url": "https://books.google.com/books?id=n38ktXZkxHkC",
+          "identifiers": [
+            {
+              "scheme": "Google Books volume ID",
+              "value": "n38ktXZkxHkC"
+            }
+          ],
+          "available_formats": [
+            "bibliographic metadata",
+            "offered EPUB link",
+            "offered PDF link"
+          ],
+          "declared_rights": {
+            "statement": "Google presents a full-view/public-domain bibliographic lead, but the tested download responses did not yield source bytes.",
+            "scope": "digital-object",
+            "evidence_url": "https://books.google.com/books?id=n38ktXZkxHkC",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The record is a useful lead to the Bavarian State Library 1888 object. Its EPUB response was an HTML anti-bot challenge and its PDF response was an HTML not-found page, so neither was admitted and no bypass was attempted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "bca4d300234f728d18cda060e6cdea17035833cd854f9a37b1bf78fe72273ea7",
+            "reason": "The current volume response and the failed offered routes are retained as lead and negative acquisition evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-mdz-bamberg-der-fall-wagner-1888",
+      "sequence": 6,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Münchener DigitalisierungsZentrum and B3Kat",
+      "endpoint_url": "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb11827837/manifest",
+      "interface_type": "iiif",
+      "interface_version": "MDZ IIIF Presentation 2 manifest, detail record, MARC, RDF, and immediate PDF service as served 2026-07-30",
+      "exact_query": "GET exact IIIF object bsb11827837; reconcile MDZ details, B3Kat BV020338451, URN, Bamberg holding 30.1972, and request canvases 1-74 through the documented immediate PDF service",
+      "queried_at": "2026-07-30T09:55:05-06:00",
+      "elapsed_seconds": 3.442,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.mdz-bsb11827837-bamberg-der-fall-wagner-1888",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner: Ein Musikanten-Problem",
+          "result_url": "https://www.digitale-sammlungen.de/en/details/bsb11827837",
+          "originating_record_url": "https://opacplus.bsb-muenchen.de/title/BV020338451",
+          "identifiers": [
+            {
+              "scheme": "MDZ digital object",
+              "value": "bsb11827837"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bvb:12-bsb11827837-1"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020338451"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "217629023"
+            }
+          ],
+          "available_formats": [
+            "IIIF Presentation manifest",
+            "IIIF page images",
+            "MARC",
+            "RDF",
+            "generated PDF"
+          ],
+          "declared_rights": {
+            "statement": "No Copyright - Non-Commercial Use Only 1.0",
+            "scope": "digital-object",
+            "evidence_url": "https://rightsstatements.org/vocab/NoC-NC/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The institutional record and visible pages establish the unlabelled 1888 standalone Naumann issue, the Bamberg 30.1972 copy, 74 ordered canvases, stable identifiers, and an exact official PDF route. It is admitted as an item witness only; no OCR, German text, critical-text equivalence, or publication authority follows.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-07-30T09:51:23-06:00",
+            "byte_size": 31518299,
+            "sha256": "37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed",
+            "event_ref": "tos.event.acquisition.der-fall-wagner-naumann-1888.mdz-bamberg-scan-pdf.2026-07-30"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "0e16c8152ff92a18c223191bde452f08334c547ad2126af8da5b756fffdef681",
+            "reason": "The exact IIIF manifest digest retains publication, holding, rights, service, and ordered-canvas identity."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-der-fall-wagner",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-07-30",
+      "exact_query": "\"Der Fall Wagner\" 1888 Naumann first edition scan; current institutional object, scholarly commentary, and rights route",
+      "queried_at": "2026-07-30T09:56:00-06:00",
+      "elapsed_seconds": 1.9,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dnb-der-fall-wagner-work-authority",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 1.0,
+      "machine_seconds": 0.882,
+      "notes": "Best work-identity authority; no item bytes or holding-copy identity."
+    },
+    {
+      "channel_id": "channel-dta-der-fall-wagner-author-corpus",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0.5,
+      "machine_seconds": 1.211,
+      "notes": "The current author corpus has seven Nietzsche objects but no target."
+    },
+    {
+      "channel_id": "channel-textgrid-der-fall-wagner-corpus",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2.0,
+      "machine_seconds": 0.917,
+      "notes": "Useful modern text challenger; weak historical-item identity."
+    },
+    {
+      "channel_id": "channel-hadw-der-fall-wagner-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 5.0,
+      "machine_seconds": 2.641,
+      "notes": "Best source for production and nominal issue history; not a source item."
+    },
+    {
+      "channel_id": "channel-google-books-der-fall-wagner-1888",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 4.0,
+      "machine_seconds": 1.842,
+      "notes": "Good lead to the holding institution, but its tested downloads returned HTML and were not admitted."
+    },
+    {
+      "channel_id": "channel-mdz-bamberg-der-fall-wagner-1888",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 15.0,
+      "machine_seconds": 3.442,
+      "notes": "Best exact institutional item route, with ordered images, stable identifiers, holding provenance, rights statement, and acquired-byte fixity."
+    },
+    {
+      "channel_id": "channel-general-web-der-fall-wagner",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 3.0,
+      "machine_seconds": 1.9,
+      "notes": "Used last for leads and current-route cross-checks; no result was selected as authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.mdz-bsb11827837-bamberg-der-fall-wagner-1888"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T09:36:52-06:00",
+  "ended_at": "2026-07-30T09:56:02-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

@@ -154,7 +154,15 @@ collection containing it. The seed deliberately includes:
 - an exact Wikimedia Commons/Stanford DjVu of the 1906 Naumann
   *Nietzsche's Werke*, Band VIII aggregate, with a text-free 523-page bundled
   DjVu inventory and an explicitly partial proposed boundary for *Der
-  Antichrist*.
+  Antichrist*;
+- an exact official MDZ PDF of the Bamberg Staatsbibliothek `30.1972` copy of
+  the standalone 1888 Naumann *Der Fall Wagner*, with 74 ordered IIIF
+  canvases, a one-page provider-cover offset, local fixity, and a text-free
+  75-page inventory;
+- an exact official MDZ PDF of the Bayerische Staatsbibliothek
+  `Ph.pr. 881 kc` copy of the standalone 1889 Naumann
+  *Götzen-Dämmerung*, with 164 ordered IIIF canvases, the same explicit
+  provider-cover offset, local fixity, and a text-free 165-page inventory.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -208,6 +216,27 @@ description is preserved as a conflict, while the 1906 archive-edition text
 is kept distinct from Nietzsche's 1888 manuscript, the 1895 first printing,
 a critical edition, accepted German, and provider OCR. The local DjVu is not a
 future-site upload source.
+
+The fourth route advances *Der Fall Wagner* beyond its provisional Russian
+collection expression through an exact standalone 1888 Naumann item. DNB fixes
+the work identity; MDZ IIIF, B3Kat, the Bamberg holding furniture, and the
+visible title page jointly fix the copy. HAdW's historical-critical commentary
+reports one 1000-copy run whose latter half was nominally marked
+`Zweite Auflage`; because this title page carries no such label, ToS preserves
+the exact unlabelled issue and the distinction instead of flattening copies.
+The MDZ `NoC-NC 1.0` statement supports bounded local non-commercial research,
+not payload redistribution, accepted German, critical-text equivalence, or
+server publication.
+
+The fifth route advances *Götzen-Dämmerung* through the exact standalone 1889
+Naumann BSB item. Its title and catalog records carry no edition statement,
+while the scholarly publication history places Köselitz's textually altered
+second edition in 1893. ToS therefore retains the 1889 object as a
+first-publication witness without equating it with Nietzsche's manuscript or
+a critical text. MDZ declares the exact digital object `CC BY-NC-SA 4.0`; that
+positive evidence remains model-assessed and unreviewed, the operator-held PDF
+stays local, and any future public route still requires current conditions,
+attribution, ShareAlike, jurisdiction, and explicit operator review.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
