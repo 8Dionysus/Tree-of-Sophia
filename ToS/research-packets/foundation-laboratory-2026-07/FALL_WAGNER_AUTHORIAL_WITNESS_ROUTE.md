@@ -196,6 +196,34 @@ one digitized copy into an author-final abstraction or a critical edition.
 Likewise, a nominal `Zweite Auflage` label does not by itself prove a second
 textual state.
 
+### Machine-readable publication-claim prototype
+
+The 1888 Edition now owns six sibling `tos_claim_packet_v1` rows in
+`publication-claims.jsonl`. They make separately queryable:
+
+- the observed `1888` title-page year;
+- the reported author-supervised first-publication role;
+- reported printing completion in September 1888;
+- the reported official publication date, 22 September 1888;
+- the reported single 1000-copy production run;
+- the reported `Zweite Auflage` label on its latter half.
+
+The final claim deliberately carries both
+`textual_identity_status: unresolved` and
+`textual_difference_status: unresolved`. It records that the current Item
+does not bear the label and that no separate ToS Item has been created for
+the nominally labelled half. Thus the bibliographic distinction becomes
+queryable without manufacturing a witness or deciding a collation question
+that the present evidence cannot answer.
+
+All six claims are model-made, `unreviewed`, and
+`public_metadata_only`. A separate annotation event digest-binds the claim
+file to this route, the ordered discovery receipt, and the claim contract.
+This is a second, contrasting exercise of the Edition-owned publication-claim
+mechanism; it is not human acceptance, textual comparison, critical
+equivalence, a canonical graph, or evidence that every Edition should now be
+bulk-populated.
+
 ## 3. Critical addresses and current transport
 
 Nietzsche Source documents eKGWB as the digital Colli/Montinari critical

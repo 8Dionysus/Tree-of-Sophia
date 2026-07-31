@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a contrasting Edition-owned publication claim family for the 1888
+  *Der Fall Wagner* Edition. Six unreviewed, evidence-bearing
+  `tos_claim_packet_v1` records separate the observed title-page year from
+  reported author-supervised first publication, month-precision printing
+  completion, official publication date, one 1000-copy run, and its nominal
+  `Zweite Auflage` latter half. The final object keeps textual identity and
+  textual difference independently `unresolved`, records that the current
+  Item is unlabelled, and creates no second Item. The Edition closes over the
+  exact claim set and an annotation event digest-binds it to evidence. This
+  proves uncertainty-preserving claim mechanics, not human acceptance,
+  collation, critical equivalence, publication authority, graph truth, canon,
+  or a mandate to populate every Edition.
 - Added the first Edition-owned publication claim family: six unreviewed,
   evidence-bearing `tos_claim_packet_v1` records for the 1889
   *Götzen-Dämmerung* Edition. They separate the observed title-page year from

@@ -89,10 +89,12 @@ An Edition may route its `publication_claim_refs` to a sibling
 `publication-claims.jsonl`. Every row remains an evidence-bearing
 `tos_claim_packet_v1`: the Edition is the subject, its provenance event and
 evidence resolve, and its review state remains explicit. A title-page year,
-printing date, authorial receipt, sale release, publication role, and later
-editorial state are separate assertions. Their presence does not turn a
-reported chronology into an observed fact, equate editions, create a remote
-Item, accept a text, or promote anything to canon.
+    printing date, authorial receipt, sale release, publication role, print-run
+    extent, and later edition or issue state are separate assertions. An issue
+    claim must preserve unresolved textual identity and difference when no
+    compared witness supports either conclusion. The claims' presence does not
+    turn a reported chronology into an observed fact, equate editions, create a
+    remote Item, accept a text, or promote anything to canon.
 
 ## Payload boundary
 
@@ -333,6 +335,17 @@ identity or difference. Open archive routes create no admitted source body,
 accepted German, author-final reconstruction, publication permission,
 transfer unit, semantic object, or human queue.
 
+The 1888 Edition now exercises `publication_claim_refs` through six sibling,
+unreviewed claim packets. The title-page year is observed; author-supervised
+publication role, September printing completion, 22 September publication,
+the single 1000-copy run, and the nominal later issue state remain scholarly
+reports. The issue-state object explicitly keeps both textual identity and
+textual difference `unresolved`, records that the current Item is unlabelled,
+and creates no separate Item. The claims are digest-bound to provenance and
+evidence; they are not human acceptance, collation, critical equivalence,
+publication authority, a canonical graph, or a signal to bulk-populate every
+Edition.
+
 The exact 1889-dated *Götzen-Dämmerung* Item now also has a metadata-only
 documentary route. W II preparatory notebooks remain mixed surfaces whose
 work relation requires exact regions and inscription layers. D 21
@@ -348,7 +361,8 @@ downstream routes. Open archive records create no admitted source body,
 accepted German, synthetic author-final text, publication permission,
 transfer unit, semantic object, or human queue.
 
-The 1889 Edition now also exercises the existing `publication_claim_refs`
+The 1889 *Götzen-Dämmerung* Edition also exercises the existing
+`publication_claim_refs`
 contract through six sibling, unreviewed claim packets. They keep the
 title-page year, printing completion, authorial receipt, public-sale release,
 first-publication role, and the separate changed 1893 editorial state

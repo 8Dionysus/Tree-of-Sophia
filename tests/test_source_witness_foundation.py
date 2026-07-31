@@ -99,11 +99,17 @@ ANTICHRIST_AUTHORIAL_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "antichrist-authorial-witness-route.2026-07-30.v1.json"
 )
-FALL_WAGNER_1888_ITEM_ROOT = (
+FALL_WAGNER_1888_EDITION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
     "der-fall-wagner/expressions/de-naumann-1888/"
-    "editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf"
+    "editions/leipzig-c-g-naumann-1888"
+)
+FALL_WAGNER_1888_ITEM_ROOT = (
+    FALL_WAGNER_1888_EDITION_ROOT / "items/mdz-bamberg-scan-pdf"
+)
+FALL_WAGNER_1888_PUBLICATION_CLAIMS_PATH = (
+    FALL_WAGNER_1888_EDITION_ROOT / "publication-claims.jsonl"
 )
 FALL_WAGNER_1888_DISCOVERY_PATH = (
     REPO_ROOT
@@ -2415,6 +2421,87 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("D 21 / GSA 71/28", work["notes"])
         self.assertEqual("no_equivalence_claim", work["same_as_posture"])
 
+        edition = json.loads(
+            (FALL_WAGNER_1888_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        publication_claims = [
+            json.loads(line)
+            for line in FALL_WAGNER_1888_PUBLICATION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        claims_by_predicate = {
+            claim["predicate"]: claim for claim in publication_claims
+        }
+        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(6, len(publication_claims))
+        self.assertEqual(
+            set(edition["publication_claim_refs"]),
+            {claim["claim_id"] for claim in publication_claims},
+        )
+        self.assertTrue(
+            all(
+                claim["subject_ref"] == edition["record_id"]
+                and claim["claim_type"] == "bibliographic"
+                and claim["review_status"] == "unreviewed"
+                and claim["reviews"] == []
+                and claim["visibility"] == "public_metadata_only"
+                for claim in publication_claims
+            )
+        )
+        self.assertEqual(
+            "1888",
+            claims_by_predicate["title_page_year"]["object"],
+        )
+        self.assertEqual(
+            "observed",
+            claims_by_predicate["title_page_year"]["epistemic_status"],
+        )
+        self.assertEqual(
+            "author_supervised_first_publication_edition",
+            claims_by_predicate["publication_role"]["object"],
+        )
+        self.assertEqual(
+            {
+                "year": 1888,
+                "month": 9,
+                "precision": "month",
+            },
+            claims_by_predicate["printing_completed_in"]["object"],
+        )
+        self.assertEqual(
+            "1888-09-22",
+            claims_by_predicate["official_publication_on"]["object"],
+        )
+        self.assertEqual(
+            {
+                "copies_reported": 1000,
+                "production_run_count": 1,
+            },
+            claims_by_predicate["print_run_extent"]["object"],
+        )
+        nominal_state = claims_by_predicate[
+            "has_nominal_later_issue_state"
+        ]["object"]
+        self.assertEqual("Zweite Auflage", nominal_state["label"])
+        self.assertEqual(
+            "latter_half_of_same_1000_copy_run",
+            nominal_state["relation_to_run"],
+        )
+        self.assertFalse(nominal_state["current_item_carries_label"])
+        self.assertFalse(nominal_state["separate_tos_item_created"])
+        self.assertEqual(
+            "unresolved",
+            nominal_state["textual_identity_status"],
+        )
+        self.assertEqual(
+            "unresolved",
+            nominal_state["textual_difference_status"],
+        )
+
         provenance_events = [
             json.loads(line)
             for line in (
@@ -2422,7 +2509,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        event = provenance_events[-1]
+        event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.discovery.fall-wagner."
+            "authorial-witness-route.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.discovery.fall-wagner."
             "authorial-witness-route.2026-07-30",
@@ -2442,6 +2535,38 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             0,
             event["method"]["configuration"]["semantic_objects_created"],
         )
+        claim_event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.annotation.der-fall-wagner."
+            "naumann-1888-publication-claims.2026-07-30",
+            claim_event["event_id"],
+        )
+        self.assertEqual(
+            {
+                "ref": (
+                    "ToS/source-witnesses/works/friedrich-nietzsche/"
+                    "der-fall-wagner/expressions/de-naumann-1888/"
+                    "editions/leipzig-c-g-naumann-1888/"
+                    "publication-claims.jsonl"
+                ),
+                "role": "unreviewed-evidence-bearing-publication-claims",
+                "sha256": hashlib.sha256(
+                    FALL_WAGNER_1888_PUBLICATION_CLAIMS_PATH.read_bytes()
+                ).hexdigest(),
+            },
+            claim_event["outputs"][0],
+        )
+        self.assertEqual(
+            {
+                "source_claims_materialized": 6,
+                "publication_claims_reviewed": 0,
+                "remote_items_created": 0,
+                "source_text_admitted": False,
+                "semantic_claims_created": 0,
+                "canon_promotion_performed": False,
+            },
+            claim_event["method"]["configuration"],
+        )
 
         route = (
             REPO_ROOT
@@ -2453,6 +2578,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("two complete manuscript states", route)
         self.assertIn("sole surviving leaf", route)
         self.assertIn("nominally labelled \"Zweite Auflage\"", route)
+        self.assertIn(
+            "`textual_identity_status: unresolved`",
+            route,
+        )
+        self.assertIn(
+            "`textual_difference_status: unresolved`",
+            route,
+        )
         self.assertIn("deliberately named rather than called A/B/C", route)
         self.assertNotIn("Fall Wagner A/B/C witness route", route)
 

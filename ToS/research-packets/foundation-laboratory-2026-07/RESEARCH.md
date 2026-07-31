@@ -1080,6 +1080,17 @@ recorded in `FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md`.
    but current requests timed out and no body or complete address census was
    retained. Current 2025 TEI and interpretive leads plus a directly titled
    2026 chapter remain downstream challengers; none changes witness identity.
+5. **Typed publication-claim layer.** The Edition now owns six sibling
+   `publication-claims.jsonl` packets. They separate the observed title-page
+   year from reported author-supervised publication role, month-precision
+   printing completion, official publication date, print-run extent, and the
+   nominal later issue state. The last claim says neither “same text” nor
+   “different text”: both statuses remain `unresolved`, the current Item is
+   explicitly unlabelled, and no second Item exists. A digest-bearing
+   annotation event closes provenance. This contrasting second prototype
+   proves that the existing claim contract can preserve issue uncertainty; it
+   does not create accepted bibliography, collation, or a bulk-population
+   mandate.
 
 The freshness search through 2026-07-30 found no newer direct philological
 result changing W II 6/W II 7, the two lost complete manuscript states,
