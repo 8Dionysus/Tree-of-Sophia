@@ -187,12 +187,33 @@ quotas, or make any of the six prepared *Genealogie* candidates eligible.
 It establishes no translation relation, admitted passage, target gold, sign,
 semantic claim, human task, or transfer result.
 
-*Der Antichrist* now likewise has a distinct exact historical German route
-through the 1906 Naumann aggregate, with a fixity-bound 523-page DjVu
-inventory and a proposed member range at scan pages 228-329. That route does
-not alter the Russian collection page, establish translation correspondence,
-equate the archive edition with the manuscript, 1895 first printing, or a
-critical text, or make any prepared *Antichrist* page eligible for execution.
+### Separate *Antichrist* documentary route
+
+*Der Antichrist* now has both a distinct exact historical German Item inside
+the 1906 Naumann aggregate and a metadata-only upstream route:
+
+```text
+exact W II note regions
+  -> D 22 / GSA 71/29 print manuscript
+    -> independent Overbeck NL 53 : A 311 copy
+      -> Koegel/Naumann 1895 first print with known interventions
+        -> existing 1906 aggregate Item
+          -> de-suppressed and critical layers
+```
+
+The proposed ending is kept on a separate branch from D 22: the struck
+printer instruction after AC 62 leads to GSA 71/32 fol. 47 as a contested
+associated adjunct. The leaf's physical D 25 container, proposed
+*Antichrist* association, and later editorial placement are not interchangeable,
+and it is not admitted as `AC 63`.
+
+These documentary stages are deliberately named rather than called A/B/C.
+They do not alter the Russian collection page, modify or supersede
+`transfer-samples.json`, establish translation correspondence, equate D 22,
+A 311, the 1895 print, the 1906 archive edition, or the critical text, or make
+any prepared *Antichrist* page eligible for execution. No source body,
+accepted German, target gold, sign, semantic relation, or human task is
+created.
 
 *Der Fall Wagner* now has a distinct exact standalone German route through the
 unlabelled 1888 Naumann/Bamberg item. The route preserves the nominal

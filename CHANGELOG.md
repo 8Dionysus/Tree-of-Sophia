@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Der Antichrist* authorial, editorial, and critical
+  route through current GSA ORES/Kalliope, University Library Basel A 311,
+  the Koegel/Naumann 1895 publication history, Nietzsche Source, HAdW/KGW IX,
+  2025 direct genesis and method work, and a 2026 intertextual lead. It
+  preserves exact-region-only W II attribution, D 22's material and
+  responsibility layers, A 311 as an independent copy, four 1895
+  interventions, the later 1906 aggregate Item, and GSA 71/32 fol. 47 as a
+  contested associated adjunct rather than `AC 63`. No remote source body,
+  new Item, accepted German, author-final reconstruction, semantic or transfer
+  unit, human backlog, rights clearance, or publication permission is created.
 - Added the metadata-only *Zur Genealogie der Moral* authorial and critical
   route through current GSA ORES/Kalliope, HAAB correction evidence, the
   University of Basel D 20/K 11/E 40 documentary edition, DFGA/eKGWB,

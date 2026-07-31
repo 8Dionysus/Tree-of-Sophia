@@ -1002,6 +1002,52 @@ E 40, a critical text, or a transfer unit. The route creates no semantic
 claim, translation judgment, publication permission, access request, or human
 backlog.
 
+### *Der Antichrist* authorial-witness follow-up — 2026-07-30
+
+The third work in the frozen transfer frame now has a responsibility-aware
+route recorded in `ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive layer.** Current GSA ORES and Kalliope identify D 22
+   (`GSA 71/29`) as the 51-leaf print manuscript and preserve its nontrivial
+   leaf order, original title leaf, and an earlier *Ecce homo* /
+   *Der Fall Wagner* state on leaf 51v. W II 1-W II 6 are mixed
+   revaluation-period notebooks: only exact source-backed regions, including
+   later W II 3/W II 4 preliminary states, may be connected to the work.
+   GSA 71/32 fol. 47 is a physically separate, two-sided leaf in the D 25
+   container whose proposed *Antichrist* association is strong but contested;
+   neither container nor later editorial placement makes it `AC 63`.
+2. **Independent-copy and first-print layer.** University Library Basel
+   `NL 53 : A 311` is Overbeck's early-1889, IV + 113-page copy. It is
+   independent comparison evidence, not Nietzsche's autograph or an
+   author-approved print, and it omits the associated `Gesetz` leaf. The
+   Koegel/Naumann 1895 first print restored an older subtitle, silently
+   incorporated Köselitz corrections, and suppressed or altered four
+   passages. The exact Cornell/Google Books lead is no-view and remains
+   deferred; no unprovenanced apparent 1895 scan was accepted.
+3. **Established layer.** Sommer's 2013 HAdW commentary controls the two D 22
+   title states, correction responsibility, A 311, the 1895 interventions,
+   their propagation through archive editions, Schlechta's 1956
+   de-suppression, Colli/Montinari KGW VI 3 (1969), and the material
+   complication of the associated leaf. Basel KGW IX method requires spatial
+   topology, deletions, overwriting, and revision to survive instead of being
+   smoothed into detached fragments.
+4. **Fresh layer.** Brobjer's chapter, first online 2025-11-04, supplies the
+   freshest located direct genesis hypothesis and motivates exact
+   note-region-to-section comparison without proving whole-notebook work
+   membership. Di Sarno 2025 supplies a method counterweight against hidden
+   intention or detached Nachlass becoming semantic authority. Zittel's
+   in-press 2026 intertextual work is retained as a future semantic lead; it
+   changes no witness identity.
+
+The freshness search through 2026-07-30 found no 2026 philological result
+changing D 22, A 311, the 1895 intervention history, or GSA 71/32 fol. 47.
+Four bounded Nietzsche Source requests timed out after 30 seconds and retained
+no body. The existing 1906 Item remains a later archive-edition witness, not
+proof that 1895 interventions were repaired. No manuscript image, source
+text, critical body, accepted German, author-final synthesis, translation
+alignment, semantic claim, transfer unit, publication permission, access
+request, or human backlog was created.
+
 ---
 
 ## Foundation model proposed for contract work

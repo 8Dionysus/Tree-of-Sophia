@@ -6,7 +6,8 @@ Research snapshot: 2026-07-23; local software/LLM admission refreshed
 2026-07-26; semantic-annotation assurance and historical-German
 morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
 transport plus *Ecce Homo*, *Zarathustra*, and *Jenseits von Gut und Böse*
-authorial-witness routes refreshed 2026-07-30
+plus *Zur Genealogie der Moral* and *Der Antichrist* authorial-witness routes
+refreshed 2026-07-30
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -49,6 +50,7 @@ and what must be tested manually.
 | `ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md` | Which exact GSA, DFGA, and eKGWB routes lead from mixed compositional notebooks through the surviving part-IV print manuscript D 17 and the separately corrected GSA 71/25a private print; what parts I-III no longer preserve; what the forthcoming August 2026 Stanford translation changes; and why stable IDs and region claims—not a synthetic immutable text—form the golden foundation? |
 | `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md` | Which exact region-level route leads from W I 3-W I 8 and dictated sheets through the reassembled D 18 print manuscript, HAAB correction witnesses, the 1886 print, and eKGWB; why the layers and their page systems cannot be collapsed; and why §22 is only a deferred textual-genetic witness route outside the frozen golden-kernel transfer plan? |
 | `GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md` | How do the split D 20a/D 20b print manuscript, partial K 11/C 4616 correction sheets, E 40 first print, unresolved hand-copy layer, 1892 second edition, and critical addresses remain distinct; what the December 2025 Basel documentary edition adds; and why W II 1, open viewing, and document stages cannot be promoted into whole-work membership, reusable text, or transfer A/B/C? |
+| `ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md` | How do region-only W II evidence, the materially layered D 22 print manuscript, Overbeck A 311, the editorially intervened 1895 first print, the existing 1906 Item, and critical addresses remain distinct; why GSA 71/32 fol. 47 is a contested associated adjunct rather than `AC 63`; and why object-level public-domain labels create neither admitted text nor publication authority? |
 | `TRANSLATION_LABORATORY_REPORT.md` | What translation work was prepared or rejected, what actually ran, and why every draft and quality claim remains blocked? |
 | `QUALITY_COST_SPEED_MATRIX.md` | Which mechanical speed/resource values exist, which are comparable, and where quality and human correction cost remain unmeasured? |
 | `GOLDEN_KERNEL_TRANSFER_REPORT.md` | Is cross-work A/B/C epistemically runnable, what do the three title-page scouts and twenty private pre-output page candidates prove, and what exact evidence gate still blocks a false transfer claim? |

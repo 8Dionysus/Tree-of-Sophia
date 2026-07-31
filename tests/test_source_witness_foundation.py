@@ -94,6 +94,11 @@ ANTICHRIST_1906_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "der-antichrist-naumann-1906-open-scan-witness.2026-07-30.v1.json"
 )
+ANTICHRIST_AUTHORIAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antichrist-authorial-witness-route.2026-07-30.v1.json"
+)
 FALL_WAGNER_1888_ITEM_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -2159,6 +2164,134 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "naumann-1906.wikimedia-commons-stanford-scan-djvu",
             }.issubset(catalog_ids)
         )
+
+    def test_antichrist_authorial_route_keeps_regions_and_layers_distinct(
+        self,
+    ) -> None:
+        discovery = json.loads(
+            ANTICHRIST_AUTHORIAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        work = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "der-antichrist/work.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "channel-gsa-ores-antichrist-authorial-route",
+                "channel-basel-overbeck-antichrist-copy",
+                "channel-first-print-antichrist-1895",
+                "channel-nietzsche-source-antichrist-critical-route",
+                "channel-established-antichrist-text-history",
+                "channel-fresh-antichrist-research",
+                "channel-general-web-antichrist-authorial-route",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(9, len(discovery["selected_result_ids"]))
+        self.assertEqual(
+            [
+                "tos-discovery-result."
+                "general-web-antichrist-original-manuscript-reprints"
+            ],
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        results = {
+            result["result_id"]: result
+            for channel in discovery["channels"]
+            for result in channel["results"]
+        }
+        self.assertEqual(
+            "select",
+            results["tos-discovery-result.gsa-71-29-antichrist-d22"][
+                "decision"
+            ],
+        )
+        self.assertIn(
+            "whole-notebook",
+            results[
+                "tos-discovery-result.gsa-antichrist-wii1-wii6-regions"
+            ]["rationale"],
+        )
+        self.assertIn(
+            "not AC 63",
+            results[
+                "tos-discovery-result."
+                "gsa-71-32-fol47-antichrist-gesetz-adjunct"
+            ]["rationale"],
+        )
+        self.assertIn(
+            "not Nietzsche's autograph",
+            results[
+                "tos-discovery-result."
+                "basel-nl53-a311-overbeck-antichrist-copy"
+            ]["rationale"],
+        )
+        self.assertEqual(
+            "unknown",
+            results[
+                "tos-discovery-result."
+                "nietzsche-source-antichrist-live-addresses-timeout"
+            ]["availability"],
+        )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                and result["snapshot"]["state"] == "not-captured"
+                for result in results.values()
+            )
+        )
+
+        self.assertEqual(3, work["record_version"])
+        self.assertIn(
+            "ToS/source-witnesses/discovery/runs/"
+            "antichrist-authorial-witness-route.2026-07-30.v1.json",
+            work["source_refs"],
+        )
+        self.assertIn("NL 53 : A 311", work["notes"])
+        self.assertIn("GSA 71/32 fol. 47", work["notes"])
+        self.assertEqual("no_equivalence_claim", work["same_as_posture"])
+
+        provenance_events = [
+            json.loads(line)
+            for line in (
+                ANTICHRIST_1906_ITEM_ROOT / "provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(
+            "tos.event.discovery.antichrist."
+            "authorial-witness-route.2026-07-30",
+            provenance_events[-1]["event_id"],
+        )
+        self.assertFalse(
+            provenance_events[-1]["method"]["configuration"][
+                "human_task_created"
+            ]
+        )
+        self.assertEqual(
+            0,
+            provenance_events[-1]["method"]["configuration"][
+                "semantic_objects_created"
+            ],
+        )
+
+        route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("D 22 / GSA 71/29", route)
+        self.assertIn("NL 53 : A 311", route)
+        self.assertIn("Koegel/Naumann 1895 first print", route)
+        self.assertIn("contested associated adjunct", route)
+        self.assertIn("deliberately named rather than called A/B/C", route)
+        self.assertNotIn("Antichrist A/B/C witness route", route)
 
     def test_exact_fall_and_goetzen_witnesses_advance_source_not_content(
         self,

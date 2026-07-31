@@ -45,6 +45,16 @@ historical witness or reusable ToS source body. These named stages are neither
 golden-kernel A/B/C variants nor eligible transfer units; the route opens no
 text processing, semantic work, or human review by itself.
 
+The new *Antichrist* route now separates exact W II regions, materially
+layered D 22 (`GSA 71/29`), the independent Overbeck A 311 copy, the
+editorially intervened 1895 first print, the existing 1906 Item, and later
+critical addresses. GSA 71/32 fol. 47 remains a contested associated adjunct,
+not `AC 63`; physical container, proposed work association, and editorial
+placement are separate claims. These named documentary stages are not
+golden-kernel A/B/C variants. The route admits no source body, accepted
+German, author-final reconstruction, translation relation, semantic object,
+transfer unit, human review task, rights clearance, or publication route.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -123,6 +133,17 @@ contracts intentionally reject simulated human evidence.
   contaminated, and the selected archive-edition text is not Nietzsche's 1888
   manuscript, the 1895 first printing, a critical edition, accepted German,
   provider OCR, or transfer gold.
+- The stronger *Antichrist* preparatory/print-manuscript/copy/first-print/
+  critical route is now resolved at metadata level through GSA
+  ORES/Kalliope, University Library Basel/e-manuscripta, Nietzsche Source,
+  HAdW, KGW IX, and current 2025-2026 research. It preserves region-only W II
+  attribution, D 22's leaf and responsibility layers, A 311's independent-copy
+  status, the four 1895 interventions, the current Nietzsche Source timeout,
+  and GSA 71/32 fol. 47 as a contested adjunct. No remote payload was acquired,
+  so the route creates no false Item, manuscript transcription, admitted
+  German, author-final text, source-surface collation, translation lane,
+  semantic gold, or transfer unit. One exact question plus reconciled
+  source/rights/competence gates must precede a bounded comparison.
 - The acquired MDZ/Bamberg *Der Fall Wagner* PDF is an exact source-visible
   surrogate for the standalone 1888 Naumann copy `30.1972`. Its 75-page
   inventory contains one MDZ bibliographic cover followed by the 74 IIIF

@@ -104,6 +104,19 @@ known editorial risk, and the absence of an accepted Wikisource transcription
 for *Der Antichrist*. It accepts neither provider OCR nor the 1906 text as the
 manuscript, 1895 first printing, critical text, or publishable German.
 
+`antichrist-authorial-witness-route.2026-07-30.v1.json` follows that acquired
+1906 witness upstream without manufacturing another Item. Current GSA
+ORES/Kalliope resolves region-only W II 1-W II 6 soil, D 22 (`GSA 71/29`),
+and the separately stored GSA 71/32 fol. 47 adjunct; University Library Basel
+resolves the independent Overbeck A 311 copy; established commentary resolves
+the Koegel/Naumann 1895 interventions; and Nietzsche Source documents the
+later critical address route while current content requests remain timed out.
+The run then checks 2025 genesis/method work, the 2026 intertextual lead, and
+general web last. It downloads no image, manuscript, copy, print, OCR,
+critical text, or metadata snapshot; creates no access request, source Item,
+semantic object, transfer unit, or human task; and never promotes the
+associated leaf to `AC 63`.
+
 `ecce-homo-authorial-witness-route.2026-07-30.v1.json` follows the 1908
 publication witness into the current archive and critical-edition route. It
 resolves GSA 71/32 = D 25, GSA 71/33 = D 25a, the Peter-Gast-estate

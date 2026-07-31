@@ -298,6 +298,18 @@ or a local Item. No open viewer, IIIF placeholder, or digital-edition route
 admits its source body, collapses responsibility, creates transfer A/B/C, or
 opens a human queue.
 
+The third transfer work, *Der Antichrist*, now also has a metadata-only
+documentary route above the existing 1906 aggregate Item. It keeps exact
+W II regions, D 22 (`GSA 71/29`), the independent Overbeck A 311 copy, the
+Koegel/Naumann 1895 first print, the later archive-edition Item, and critical
+addresses distinct. D 22's leaf order and mixed reverse-side evidence may not
+be silently normalized. GSA 71/32 fol. 47 is recorded separately as a
+contested associated adjunct: its physical D 25 container, proposed
+*Antichrist* association, and later editorial placement are different claims,
+and it is not `AC 63`. Open IIIF and Public Domain Mark evidence creates no
+admitted source body, accepted German, author-final reconstruction,
+publication permission, transfer unit, semantic object, or human queue.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.
