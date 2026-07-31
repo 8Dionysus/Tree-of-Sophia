@@ -109,6 +109,12 @@ contracts intentionally reject simulated human evidence.
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
+- The derived bibliographic graph now exposes those same 31 claims as reified
+  claim nodes with 202 claim-centered edges and exact evidence, maker,
+  provenance-time/method, review, source-line, and digest return. It emits no
+  direct subject-object edge and leaves all 31 claims `unreviewed`. Its green
+  rebuild proves projection fidelity, not truth, acceptance, graph-backend
+  superiority, runtime/site suitability, or human trace cost.
 - All seven *Mysl* members now have distinct exact historical German
   Edition / Item routes in addition to their provisional Russian
   collection-member expressions. *Ecce Homo* closes the former tree gap with

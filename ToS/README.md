@@ -35,6 +35,8 @@ current bounded Zarathustra route:
 - current bounded export: `ToS/derived-exports/kag_export.min.json`
 - current source-gated lexical projection:
   `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
+- current source-returnable bibliographic claim graph:
+  `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
@@ -51,7 +53,8 @@ The corpus soil is specified by
 `ToS/source-witnesses/README.md`. Only item payload bytes are gitignored;
 identity, catalogs, digests, provenance, rights, forensic evidence, anchors,
 and review remain tracked. Search, vector, graph, and KAG surfaces are
-rebuildable projections.
+rebuildable projections. The bibliographic graph keeps claims as explicit
+nodes and does not flatten an unreviewed assertion into a direct fact edge.
 
 ## Operating Card
 

@@ -115,6 +115,15 @@ and visualization databases are readers over stronger tracked records. They
 must be reproducible from versioned inputs and may not become the sole copy of
 an assertion or review decision.
 
+The first corpus-wide bibliographic reader lives under
+`ToS/derived-exports/graph/`. It keeps every claim as a node between its
+subject and object, preserves literal objects as literals, and carries exact
+routes to evidence, maker, provenance time and method, review posture, source
+line, and claim digest on every edge. It is deliberately separate from the
+atlas/view graph projection: one reads the source-witness claim spine, while
+the other reads the philosophy branch and its review lenses. Neither is a
+second owner.
+
 This boundary lets ToS compare graph and retrieval technologies without
 changing what owns philosophical meaning.
 

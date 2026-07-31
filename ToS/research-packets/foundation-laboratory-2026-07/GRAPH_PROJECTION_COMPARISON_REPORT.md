@@ -46,6 +46,65 @@ Three real defects were preserved instead of rewritten:
 
 No graph-backend winner is declared.
 
+## Subsequent catalog-backed bibliographic projection — 2026-07-30
+
+The later source-witness foundation now has a separate tracked JSON graph at
+`ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`.
+This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
+A/B/C experiment. It applies corrected A's claim-first reference semantics to
+the current generated source-witness catalog:
+
+- 31 public-metadata-only bibliographic claims;
+- 97 nodes and 202 edges;
+- 31 claim trace packets;
+- 12 claim-scoped literal objects;
+- five resolved provenance events carrying exact time and method;
+- zero direct subject-to-object edges;
+- 31 explicit `unreviewed` states.
+
+Every structural edge begins at a reified claim node and carries the source
+claim digest, source file/line, evidence nodes, maker, provenance event, and
+review posture. The projection fails closed when a subject, identity-like
+object, evidence reference, provenance event, source line/digest, alternative,
+or superseded claim cannot resolve. It reads the catalog and source packets;
+it does not replace either.
+
+The atlas/view projection remains a different derived surface. It was not
+expanded because its 11 view lenses, clusters, and review packets belong to
+the philosophy-domain graph workbench rather than to source-witness
+bibliographic claim closure.
+
+This subsequent projection supplies a portable current-corpus reader for
+future `abyss-stack`, Neo4j, Oxigraph, MCP, UI, or site work. It supplies no new
+human correctness evidence, no backend winner, and no claim promotion.
+
+### Independent source-return inspection
+
+A separate shell/JQ inspection did not call the builder or validator. Its first
+digest pass retained JQ's final newline and therefore falsely reported 31/31
+claim-line and 59/59 line-backed-node mismatches. The graph digest contract is
+over canonical JSON without that serialization newline. The check was
+corrected rather than the projection being changed.
+
+With the newline removed, the independent pass found:
+
+- 31/31 source claim lines with the expected canonical digest;
+- 59/59 line-backed claim, anchor, and provenance nodes with the expected
+  canonical digest;
+- 26/26 identity nodes matching their canonical source record;
+- 11/11 path-evidence nodes matching the raw referenced file;
+- 202/202 edges beginning at their own claim node, with zero malformed edges;
+- 31 claim nodes and 31 trace packets;
+- zero direct subject-to-object edges;
+- zero provenance nodes missing start time, end time, or method.
+
+Three source-visible model inspections then traversed one aggregate membership
+claim, one `Ecce Homo` editor responsibility claim, and the structured nominal
+`Zweite Auflage` issue-state claim. They resolved identity-versus-literal
+typing, evidence, maker, provenance time/method, and empty human-review routes
+back to the exact source packet. These are advisory nonhuman trace inspections,
+not truth review.
+
 ## Frozen graph soil
 
 Tracked inputs:

@@ -31,9 +31,13 @@ The current generated export surfaces are:
 - `philosophy_atlas_projection.min.json`
 - `philosophy_graph_views.min.json`
 - `philosophy_graph_projection.min.json`
+- `graph/source-witness-bibliographic-claims.min.json`
 - `lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 
-They summarize the current Zarathustra route for downstream consumers while pointing back to ToS-owned authority and compatibility surfaces.
+Most summarize the current Zarathustra route for downstream consumers while
+pointing back to ToS-owned authority and compatibility surfaces. The
+source-witness bibliographic graph instead spans the bounded current Nietzsche
+object/claim catalog without claiming corpus completeness.
 The root entry map is the machine-facing entry capsule for consumers that need
 schema-checked root-route orientation before touching downstream exports.
 The corpus index covers the whole `ToS/` home as a derived resource map so
@@ -45,6 +49,11 @@ The philosophy graph view catalog turns source-owned view cards and
 The philosophy graph projection materializes the atlas projection and graph
 view catalog into source-ref-preserving node, edge, and view packets for
 runtime access planes without moving source authority out of ToS.
+The source-witness bibliographic graph separately projects the public-safe
+object/claim catalog into a claim-reified graph. Every edge returns to the
+claim packet, evidence, maker, provenance event, review posture, exact source
+line, and digest; it contains no unqualified subject-to-object edge and does
+not widen the atlas projection into a bibliographic owner.
 The lexical projection is a source-withholding, non-sequential companion over
 four local DTA TEIs: form hashes, counts, and TEI page/division refs only. Its
 source-bearing SQLite/FTS5 sibling remains gitignored. The hashes are
@@ -55,6 +64,9 @@ Only the subjects explicitly listed in
 `mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json`
 enter the current ABI-only OS Abyss artifact bundle. The lexical projection
 has its own source-gated validator and does not enter that bundle.
+The source-witness bibliographic graph is release-validated in ToS but does not
+enter the artifact bundle until a downstream consumer contract explicitly
+admits it.
 
 ## How to verify
 
@@ -76,4 +88,6 @@ Use:
 - `python scripts/validate_philosophy_graph_views.py`
 - `python scripts/build_philosophy_graph_projection.py --check`
 - `python scripts/validate_philosophy_graph_projection.py`
+- `python scripts/build_source_witness_bibliographic_graph.py --check`
+- `python scripts/validate_source_witness_bibliographic_graph.py`
 - `python mechanics/release-support/parts/artifact-bundles/scripts/validate_abyss_machine_generated_readmodel_bundle.py`

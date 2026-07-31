@@ -69,6 +69,13 @@ companions, catalog parity, and any locally present payload bytes. Neither tool
 can certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
+The source-witness bibliographic graph pair is a downstream generated route,
+not a second source validator. Its builder and validator read the public-safe
+catalog plus exact claim, evidence, anchor, and provenance records, keep every
+assertion reified as a claim node, and reject any edge that loses source return.
+They do not emit direct subject-object truth edges or own graph runtime
+behavior.
+
 The current mechanics-local homes are:
 
 - `mechanics/agon/parts/threshold-registry/`, where the part owns its builder,

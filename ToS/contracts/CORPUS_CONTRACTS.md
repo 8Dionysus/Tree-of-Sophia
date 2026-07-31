@@ -54,6 +54,7 @@ judgment true.
 | `visual-retrieval-plan.schema.json` | output-blind direct page-image retrieval challenger over the same frozen queries, digest-bound visual crosswalk and local renders, immutable completed text controls, exact model revision, triggered-only human review, and zero automatic promotion |
 | `visual-retrieval-result-receipt.schema.json` | text-free return receipt for one exact owner-local direct-page-image run: frozen-input and private-artifact fixity, persisted normalization, source-anchor closure, measured resource cost, preserved audit-incomplete lineage, narrow declared review triggers, and closed relevance, adoption, promotion, publication, and routine-human-work gates |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
+| `source-witness-bibliographic-graph.schema.json` | generated claim-reified bibliographic graph with exact source return, typed literal objects, evidence/maker/provenance/review closure, and no unqualified subject-object edge |
 
 ## Common laws
 

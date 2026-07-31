@@ -17,7 +17,7 @@ ToS authority.
 | output | generated export payloads and compact read models |
 | owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, philosophy-atlas projection builder/validator, philosophy graph-view catalog builder/validator, philosophy graph-projection builder/validator, source validators |
+| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, philosophy-atlas projection builder/validator, philosophy graph-view catalog builder/validator, philosophy graph-projection builder/validator, source-witness bibliographic graph builder/validator, source validators |
 | check | generated parity and export validation |
 
 ## Boundary Routes
@@ -38,12 +38,17 @@ ToS authority.
   downstream switching while keeping runtime behavior in `abyss-stack`.
 - Let the philosophy graph projection materialize those atlas and view surfaces
   into source-ref-preserving node, edge, and view packets for downstream access.
+- Let `graph/source-witness-bibliographic-claims.min.json` read the generated
+  public-safe source-witness catalog without merging it into the atlas graph.
+  Keep the claim as the relation center, retain literal objects as literals,
+  and require every edge to return to claim, evidence, maker, provenance, and
+  review posture.
 
 ## Validation
 
 Use the relevant builder `--check` and validator for the export touched:
 KAG export, root-entry map, corpus index, lexical index, philosophy atlas
 projection, philosophy graph-view catalog, philosophy graph projection, public
-mirror sync, or tiny-entry route.
+mirror sync, source-witness bibliographic graph, or tiny-entry route.
 For release-facing generated readmodels, also run the OS Abyss artifact bundle
 validator under `mechanics/release-support/parts/artifact-bundles/scripts/`.

@@ -262,6 +262,13 @@ A projection may be deleted and rebuilt without deleting knowledge. No graph
 database, vector store, annotation-service database, workbook, or model cache
 may be the sole copy of an assertion or review decision.
 
+The tracked bibliographic graph profile reifies the claim between subject and
+object. Every projected edge begins at that claim and preserves its canonical
+digest, evidence nodes, maker, provenance event with time and method, and
+review posture. Literal dates, edition-state objects, and unresolved statuses
+remain claim-scoped literals rather than false stable identities. This graph
+shape improves navigation; it cannot accept the claim or turn it into canon.
+
 ## Growth rule
 
 The Zarathustra kernel may teach agents how to preserve source return,

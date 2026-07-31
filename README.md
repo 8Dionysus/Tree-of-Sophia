@@ -61,11 +61,16 @@ through a source-owned tiny-entry seam before any downstream export.
 
 - human route: [ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) -> [ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md)
 - machine-facing root-entry companion: `ToS/derived-exports/root_entry_map.min.json`
+- source-returnable bibliographic claim graph:
+  `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
 - bounded export seam: [mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)
 
-The tiny-entry seam is orientation, not a second canon. The export seam may
-serve `aoa-kag`, graph consumers, and future visualization stacks, but it does
-not become ToS authority.
+The tiny-entry seam is orientation, not a second canon. The bibliographic graph
+reifies every source claim and returns each edge to its exact claim, evidence,
+maker, provenance event, and review posture; it emits no unqualified
+subject-to-object truth edge. Export seams may serve `aoa-kag`, graph
+consumers, and future visualization stacks, but they do not become ToS
+authority.
 
 ## Repository Organs
 

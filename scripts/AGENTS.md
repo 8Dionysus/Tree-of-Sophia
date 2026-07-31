@@ -165,6 +165,15 @@ publish the graph-view switching catalog from source-owned view cards and
 graph-view catalog into source-ref-preserving graph packets for downstream UI,
 MCP, and Neo4j access planes. They do not create runtime authority inside ToS.
 
+`build_source_witness_bibliographic_graph.py` and
+`validate_source_witness_bibliographic_graph.py` form a separate derived route
+over the public-safe source-witness object/claim catalog. They reify every
+bibliographic claim, preserve identity-versus-literal typing, and require each
+edge to carry source-line/digest, evidence, maker, provenance time/method, and
+review return. They emit no direct subject-to-object fact edge, do not accept a
+claim, do not merge with the atlas graph, and do not own runtime Neo4j,
+Oxigraph, MCP, UI, or service behavior.
+
 `build_philosophy_post_planting_audit.py` and
 `validate_philosophy_post_planting_audit.py` publish the compact Table I
 post-planting review packet from the planted atlas, branch, workbench, and

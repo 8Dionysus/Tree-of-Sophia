@@ -384,6 +384,14 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
+      },
+      {
         "label": "check philosophy atlas projection",
         "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
       },
@@ -488,6 +496,14 @@
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
       },
       {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
+      },
+      {
         "label": "check philosophy atlas projection",
         "command": ["python", "scripts/build_philosophy_atlas_projection.py", "--check"]
       },
@@ -586,6 +602,14 @@
       {
         "label": "validate ToS corpus index",
         "command": ["python", "scripts/validate_tos_corpus_index.py"]
+      },
+      {
+        "label": "check source-witness bibliographic graph",
+        "command": ["python", "scripts/build_source_witness_bibliographic_graph.py", "--check"]
+      },
+      {
+        "label": "validate source-witness bibliographic graph",
+        "command": ["python", "scripts/validate_source_witness_bibliographic_graph.py"]
       },
       {
         "label": "check philosophy atlas projection",

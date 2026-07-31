@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the first corpus-wide source-returnable bibliographic graph under
+  `ToS/derived-exports/graph/`. It deterministically reifies all 31 current
+  public-metadata-only source-witness claims into 97 nodes, 202 claim-centered
+  edges, and 31 complete trace packets. Every edge carries the canonical claim
+  digest, exact source file/line, evidence nodes, maker, provenance event with
+  time and method, and explicit review status. Twelve publication objects
+  remain claim-scoped literals; no direct subject-to-object truth edge is
+  emitted. The graph is a deletable JSON read model, separate from the
+  atlas/view projection and subordinate to source claim packets; it creates no
+  review, bibliography, generic creator relation, semantics, rights,
+  Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
   `claims.jsonl` indexes all 31 tracked membership, responsibility, and
