@@ -917,6 +917,15 @@ item. The complete evidence and conflict register lives in
    W II 9 composition, successive print manuscripts, proof correction, and
    late-December/early-January additions. The two 2025 studies then sharpen
    paratextual and replacement-section questions.
+4. **Typed responsibility layer.** Four unreviewed bibliographic claims now
+   keep Nietzsche's `authored_by` relation on the Work separate from Raoul
+   Richter's `edited_by` and `afterword_by` relations and Henry van de Velde's
+   `designed_by` relation on the exact 1908 Edition. All three Agents resolve
+   to current GND identities; the claims close over their actual subjects and
+   are digest-bound to the recorded discovery evidence. This makes the
+   responsibility boundary queryable without converting it into generic
+   creator metadata, an author-finality claim, editorial collation, rights
+   clearance, or accepted bibliography.
 
 Two exact identifier conflicts are preserved. Groddeck's fresh article figure
 captions use `GSA 71/31` for D 25, while current ORES, Kalliope, and HAdW agree

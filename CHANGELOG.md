@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the first multi-role responsibility-claim prototype without generic
+  creator flattening. Four model-made, unreviewed `tos_claim_packet_v1`
+  records keep Nietzsche's `authored_by` relation on the *Ecce Homo* Work
+  separate from Raoul Richter's `edited_by` and `afterword_by` relations and
+  Henry van de Velde's `designed_by` relation on the exact 1908 Insel Edition.
+  All three Agents resolve to current GND identities; Work and Edition records
+  close over their own claims; and an annotation event digest-binds the claim
+  file to evidence. Source validation now enforces predicate-specific subject
+  classes, Agent closure, provenance, and orphan/cross-subject rejection for
+  both the new roles and existing translation claims. This establishes
+  responsibility mechanics, not accepted bibliography, creator equivalence,
+  author-finality, editorial extent, rights, graph truth, or canon.
 - Added a contrasting Edition-owned publication claim family for the 1888
   *Der Fall Wagner* Edition. Six unreviewed, evidence-bearing
   `tos_claim_packet_v1` records separate the observed title-page year from

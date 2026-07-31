@@ -4901,11 +4901,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     membership_claim_ids: set[str] = set()
     responsibility_claim_ids: set[str] = set()
+    responsibility_claim_subjects: dict[str, str] = {}
     publication_claim_ids: set[str] = set()
     publication_claim_subjects: dict[str, str] = {}
     claim_routes = (
         ("membership-claims.jsonl", "contains_work", "collection", "work", membership_claim_ids),
-        ("responsibility-claims.jsonl", "translated_by", "expression", "agent", responsibility_claim_ids),
     )
     for filename, predicate, subject_type, object_type, route_ids in claim_routes:
         for claim_path in sorted((repo_root / SOURCE_ROOT).rglob(filename)):
@@ -4932,6 +4932,167 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     elif isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
                         if not (repo_root / evidence_ref).is_file():
                             issues.append((location, f"unresolved repository evidence ref: {evidence_ref}"))
+
+    responsibility_predicate_subject_types = {
+        "authored_by": {"work"},
+        "translated_by": {"expression"},
+        "edited_by": {"edition"},
+        "afterword_by": {"edition"},
+        "designed_by": {"edition"},
+    }
+    validated_responsibility_event_refs: set[str] = set()
+    for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("responsibility-claims.jsonl")):
+        claim_file_ref = _relative(claim_path, repo_root)
+        claim_file_digest = _sha256(claim_path)
+        for index, claim in enumerate(
+            _load_jsonl(claim_path, repo_root, issues),
+            start=1,
+        ):
+            location = f"{claim_file_ref}:{index}"
+            _validate_payload(claim, claim_validator, location, issues)
+            claim_id = claim.get("claim_id")
+            subject_ref = claim.get("subject_ref")
+            if isinstance(claim_id, str):
+                if claim_id in claim_ids:
+                    issues.append((location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+                responsibility_claim_ids.add(claim_id)
+                if isinstance(subject_ref, str):
+                    responsibility_claim_subjects[claim_id] = subject_ref
+            if claim.get("claim_type") != "bibliographic":
+                issues.append(
+                    (
+                        location,
+                        "responsibility claim claim_type must be bibliographic",
+                    )
+                )
+            if claim.get("assertion_layer") not in {
+                "bibliographic_assertion",
+                "scholarly_report",
+            }:
+                issues.append(
+                    (
+                        location,
+                        "responsibility claim assertion_layer must be "
+                        "bibliographic_assertion or scholarly_report",
+                    )
+                )
+            predicate = claim.get("predicate")
+            allowed_subject_types = responsibility_predicate_subject_types.get(
+                str(predicate)
+            )
+            if allowed_subject_types is None:
+                issues.append(
+                    (
+                        location,
+                        f"unsupported responsibility predicate: {predicate}",
+                    )
+                )
+            subject = records_by_id.get(str(subject_ref))
+            if subject is None:
+                issues.append(
+                    (
+                        location,
+                        f"unresolved responsibility subject: {subject_ref}",
+                    )
+                )
+            elif (
+                allowed_subject_types is not None
+                and subject[0].get("record_type") not in allowed_subject_types
+            ):
+                issues.append(
+                    (
+                        location,
+                        f"{predicate} subject resolves to "
+                        f"{subject[0].get('record_type')}, expected one of "
+                        f"{sorted(allowed_subject_types)}",
+                    )
+                )
+            require_record(claim.get("object"), "agent", location)
+            event_ref = claim.get("provenance_event_ref")
+            event = events_by_id.get(str(event_ref))
+            if event is None:
+                issues.append(
+                    (
+                        location,
+                        f"unresolved provenance_event_ref: {event_ref}",
+                    )
+                )
+            else:
+                matching_outputs = [
+                    output
+                    for output in event.get("outputs", [])
+                    if isinstance(output, dict)
+                    and output.get("ref") == claim_file_ref
+                    and output.get("sha256") == claim_file_digest
+                    and output.get("role")
+                    in {
+                        "unreviewed-translation-responsibility-claims",
+                        "unreviewed-evidence-bearing-responsibility-claims",
+                    }
+                ]
+                if not matching_outputs:
+                    issues.append(
+                        (
+                            location,
+                            "responsibility claim provenance event does not "
+                            "digest-bind the claim file",
+                        )
+                    )
+                if str(event_ref) not in validated_responsibility_event_refs:
+                    validated_responsibility_event_refs.add(str(event_ref))
+                    for input_record in event.get("inputs", []):
+                        if not isinstance(input_record, dict):
+                            continue
+                        input_ref = input_record.get("ref")
+                        input_digest = input_record.get("sha256")
+                        if (
+                            isinstance(input_ref, str)
+                            and input_ref.startswith("ToS/")
+                            and isinstance(input_digest, str)
+                        ):
+                            input_path = repo_root / input_ref
+                            if not input_path.is_file():
+                                issues.append(
+                                    (
+                                        location,
+                                        "responsibility claim provenance "
+                                        f"input is missing: {input_ref}",
+                                    )
+                                )
+                            elif _sha256(input_path) != input_digest:
+                                issues.append(
+                                    (
+                                        location,
+                                        "responsibility claim provenance "
+                                        f"input digest drifted: {input_ref}",
+                                    )
+                                )
+            for evidence_ref in claim.get("evidence_refs", []):
+                if (
+                    isinstance(evidence_ref, str)
+                    and evidence_ref.startswith("tos.anchor.")
+                ):
+                    if evidence_ref not in boundary_anchor_ids:
+                        issues.append(
+                            (
+                                location,
+                                "unresolved boundary evidence anchor: "
+                                f"{evidence_ref}",
+                            )
+                        )
+                elif (
+                    isinstance(evidence_ref, str)
+                    and evidence_ref.startswith("ToS/")
+                    and not (repo_root / evidence_ref).is_file()
+                ):
+                    issues.append(
+                        (
+                            location,
+                            "unresolved repository evidence ref: "
+                            f"{evidence_ref}",
+                        )
+                    )
 
     validated_publication_event_refs: set[str] = set()
     for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("publication-claims.jsonl")):
@@ -5068,13 +5229,41 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if missing:
             issues.append((location, f"unresolved membership claims: {missing}"))
 
-    for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "expression"):
+    for payload, path in (
+        value
+        for value in records_by_id.values()
+        if value[0].get("record_type") in {"work", "expression", "edition"}
+    ):
         location = _relative(path, repo_root)
-        missing = sorted(
-            set(payload.get("responsibility_claim_refs", [])) - responsibility_claim_ids
-        )
+        subject_id = payload.get("record_id")
+        actual_refs = set(payload.get("responsibility_claim_refs", []))
+        missing = sorted(actual_refs - responsibility_claim_ids)
         if missing:
             issues.append((location, f"unresolved responsibility claims: {missing}"))
+        misbound = sorted(
+            claim_ref
+            for claim_ref in actual_refs & responsibility_claim_ids
+            if responsibility_claim_subjects.get(claim_ref) != subject_id
+        )
+        if misbound:
+            issues.append(
+                (
+                    location,
+                    f"responsibility claims belong to another subject: {misbound}",
+                )
+            )
+        unreferenced = sorted(
+            claim_id
+            for claim_id, claim_subject_ref in responsibility_claim_subjects.items()
+            if claim_subject_ref == subject_id and claim_id not in actual_refs
+        )
+        if unreferenced:
+            issues.append(
+                (
+                    location,
+                    f"subject responsibility claims are not referenced: {unreferenced}",
+                )
+            )
 
     for payload, path in (
         value

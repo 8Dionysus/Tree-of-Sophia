@@ -209,9 +209,13 @@ contracts intentionally reject simulated human evidence.
   is an exact source-visible witness to the posthumous 1908 Insel edition,
   copy 965. Its 166-page inventory preserves the visible boundary between
   Nietzsche's work through printed page 130 and Richter's separately titled
-  afterword from printed page 133. It is not Nietzsche's lost author-approved
-  state, Montinari's reconstruction, accepted OCR or German, a passage anchor
-  set, or semantic gold.
+  afterword from printed page 133. Four typed claims now distinguish
+  Nietzsche's Work authorship from Richter's Edition editing and afterword and
+  van de Velde's Edition design; all three Agents carry GND identities, while
+  every claim remains model-made and unreviewed. This does not establish
+  creator equivalence, the extent or quality of editorial intervention,
+  Nietzsche's lost author-approved state, Montinari equivalence, accepted OCR
+  or German, a passage anchor set, rights clearance, or semantic gold.
 - The stronger *Ecce Homo* manuscript/author-proof/critical route is now
   resolved at metadata level through current GSA ORES, DFGA, eKGWB, Kalliope,
   HAdW, and 2024-2025 philology. It distinguishes D 25 (`GSA 71/32`), D 25a

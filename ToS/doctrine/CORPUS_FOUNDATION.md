@@ -47,6 +47,13 @@ Authorship, translation responsibility, edition identity, date, place, and
 container membership are claims with evidence status. A filename may seed a
 lead but cannot settle any of them.
 
+Responsibility claims retain their role-specific subject and Agent object:
+Work author, Expression translator, Edition editor, paratext author, designer,
+publisher, copyist, corrector, and rights holder are not interchangeable
+variants of a generic creator field. A role not yet admitted by the governing
+schema and validator remains an explicit research need rather than an
+untyped edge.
+
 ## Identifier law
 
 Corpus identifiers use the local family:

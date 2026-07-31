@@ -30,6 +30,7 @@ source-witnesses/
 │   └── <responsibility-or-tradition>/
 │       └── <work>/
 │           ├── work.json
+│           ├── responsibility-claims.jsonl # evidence-bearing Work/child responsibility bundle
 │           ├── expressions/
 │           │   └── <language-and-responsibility>/
 │           │       ├── expression.json
@@ -37,6 +38,7 @@ source-witnesses/
 │           │           └── <edition>/
 │           │               ├── edition.json
 │           │               ├── publication-claims.jsonl # evidence-bearing, review-gated publication assertions
+│           │               ├── responsibility-claims.jsonl # optional Edition-local responsibility bundle
 │           │               └── items/
 │           │                   └── <item>/
 │           │                       ├── item.manifest.json
@@ -85,16 +87,27 @@ manufactured, for a source-language member without a separate responsibility
 claim. Such a map is bibliographic structure, not accepted text, edition
 equivalence, translation quality, semantics, rights clearance, or canon.
 
+Work, Expression, and Edition records may close over evidence-bearing
+`responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
+The initial typed predicates are `authored_by` on a Work, `translated_by` on
+an Expression, and `edited_by`, `afterword_by`, or `designed_by` on an
+Edition. Every object resolves to an Agent. Every claim is referenced by its
+actual subject, its file is digest-bound by the cited provenance event, and
+unreferenced or cross-subject claims fail validation. A role statement remains
+a versioned claim: it does not collapse author, translator, copyist, editor,
+paratext author, designer, publisher, or rights holder into one generic
+“creator”.
+
 An Edition may route its `publication_claim_refs` to a sibling
 `publication-claims.jsonl`. Every row remains an evidence-bearing
 `tos_claim_packet_v1`: the Edition is the subject, its provenance event and
 evidence resolve, and its review state remains explicit. A title-page year,
-    printing date, authorial receipt, sale release, publication role, print-run
-    extent, and later edition or issue state are separate assertions. An issue
-    claim must preserve unresolved textual identity and difference when no
-    compared witness supports either conclusion. The claims' presence does not
-    turn a reported chronology into an observed fact, equate editions, create a
-    remote Item, accept a text, or promote anything to canon.
+printing date, authorial receipt, sale release, publication role, print-run
+extent, and later edition or issue state are separate assertions. An issue
+claim must preserve unresolved textual identity and difference when no
+compared witness supports either conclusion. The claims' presence does not
+turn a reported chronology into an observed fact, equate editions, create a
+remote Item, accept a text, or promote anything to canon.
 
 ## Payload boundary
 
@@ -264,6 +277,16 @@ afterword beginning at printed page 133. Commons' `PD-US-expired` statement is
 positive but US-scoped evidence; van de Velde's binding and ornaments and the
 other object layers remain unreviewed. The local PDF is not a future-site
 upload source.
+
+The same route now exercises multi-role responsibility claims without
+flattening the book into one creator. The Work points to Nietzsche through
+`authored_by`; the exact 1908 Edition separately points to Raoul Richter
+through `edited_by` and `afterword_by`, and to Henry van de Velde through
+`designed_by`. All three Agent identities resolve to current GND identifiers,
+and the four claims are model-made, unreviewed, subject-closed, and
+digest-bound to evidence. This is bibliographic routing, not an author-final
+text, a measurement of Richter's intervention, a rights conclusion, graph
+truth, or canon.
 
 The metadata-only authorial follow-up gives that publication witness an exact
 upstream and critical comparison route without pretending ToS holds the

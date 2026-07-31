@@ -344,6 +344,32 @@ Every edge requires evidence and claim provenance. A current scholarly
 re-dating should supersede or compete with an earlier claim, not mutate the
 physical witness.
 
+## Machine-readable responsibility prototype
+
+The Work and exact 1908 Edition now reference four sibling
+`tos_claim_packet_v1` rows in the Work-level
+`responsibility-claims.jsonl`:
+
+- the *Ecce Homo* Work is observed in the DNB/GND authority route as
+  `authored_by` Friedrich Nietzsche;
+- the 1908 Insel Edition is observed as `edited_by` Raoul Richter;
+- its separate editor's afterword is observed as `afterword_by` Raoul
+  Richter;
+- the Edition is observed as `designed_by` Henry van de Velde.
+
+Nietzsche, Richter, and van de Velde resolve to separate Agent records and
+current GND identifiers. The claims remain model-made, `unreviewed`, and
+`public_metadata_only`; a digest-bearing annotation event closes their
+provenance. Typing these responsibilities does not merge the author's Work
+with Richter's editorial intervention or afterword, does not make the 1908
+Expression author-final, and does not settle rights in the design, scan, or
+any derivative.
+
+This is a multi-role responsibility prototype, not a general instruction to
+infer contributors from names in catalog records. A future role is admitted
+only with an explicit predicate, a typed subject, a resolved Agent, evidence,
+provenance, and subject-side claim closure.
+
 ## Laboratory route opened, not scheduled
 
 This research makes a future small A/B/C comparison possible without creating

@@ -141,12 +141,22 @@ GOETZEN_AUTHORIAL_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "goetzen-daemmerung-authorial-witness-route.2026-07-30.v1.json"
 )
-ECCE_HOMO_1908_ITEM_ROOT = (
+ECCE_HOMO_WORK_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
-    "ecce-homo/expressions/de-richter-insel-1908/"
-    "editions/leipzig-insel-verlag-1908/items/"
-    "wikimedia-commons-getty-scan-pdf"
+    "ecce-homo"
+)
+ECCE_HOMO_1908_EDITION_ROOT = (
+    ECCE_HOMO_WORK_ROOT
+    / "expressions/de-richter-insel-1908/"
+    "editions/leipzig-insel-verlag-1908"
+)
+ECCE_HOMO_1908_ITEM_ROOT = (
+    ECCE_HOMO_1908_EDITION_ROOT
+    / "items/wikimedia-commons-getty-scan-pdf"
+)
+ECCE_HOMO_RESPONSIBILITY_CLAIMS_PATH = (
+    ECCE_HOMO_WORK_ROOT / "responsibility-claims.jsonl"
 )
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
@@ -1537,7 +1547,6 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "scan-pdf.server-import.json"
             ).read_text(encoding="utf-8")
         )
-
         self.assertEqual("digitized_physical_copy", manifest["item_kind"])
         self.assertEqual("local_only", manifest["visibility"])
         self.assertEqual(
@@ -3150,6 +3159,24 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "server-import.json"
             ).read_text(encoding="utf-8")
         )
+        work = json.loads(
+            (ECCE_HOMO_WORK_ROOT / "work.json").read_text(encoding="utf-8")
+        )
+        edition = json.loads(
+            (ECCE_HOMO_1908_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        responsibility_claims = [
+            json.loads(line)
+            for line in ECCE_HOMO_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        claims_by_predicate = {
+            claim["predicate"]: claim for claim in responsibility_claims
+        }
 
         payload = manifest["payload_files"][0]
         self.assertEqual(9_703_400, payload["byte_size"])
@@ -3238,6 +3265,73 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(discovery["general_web_search_is_last_resort"])
         self.assertFalse(discovery["technical_access_bypass_used"])
 
+        self.assertEqual(4, work["record_version"])
+        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(4, len(responsibility_claims))
+        self.assertEqual(
+            set(work["responsibility_claim_refs"]),
+            {
+                claims_by_predicate["authored_by"]["claim_id"],
+            },
+        )
+        self.assertEqual(
+            set(edition["responsibility_claim_refs"]),
+            {
+                claims_by_predicate["edited_by"]["claim_id"],
+                claims_by_predicate["afterword_by"]["claim_id"],
+                claims_by_predicate["designed_by"]["claim_id"],
+            },
+        )
+        self.assertTrue(
+            all(
+                claim["claim_type"] == "bibliographic"
+                and claim["assertion_layer"] == "bibliographic_assertion"
+                and claim["epistemic_status"] == "observed"
+                and claim["review_status"] == "unreviewed"
+                and claim["reviews"] == []
+                and claim["visibility"] == "public_metadata_only"
+                for claim in responsibility_claims
+            )
+        )
+        self.assertEqual(
+            "tos.agent.friedrich-nietzsche",
+            claims_by_predicate["authored_by"]["object"],
+        )
+        self.assertEqual(
+            "tos.agent.raoul-richter",
+            claims_by_predicate["edited_by"]["object"],
+        )
+        self.assertEqual(
+            "tos.agent.raoul-richter",
+            claims_by_predicate["afterword_by"]["object"],
+        )
+        self.assertEqual(
+            "tos.agent.henry-van-de-velde",
+            claims_by_predicate["designed_by"]["object"],
+        )
+        expected_agent_gnds = {
+            "friedrich-nietzsche": "118587943",
+            "raoul-richter": "116512857",
+            "henry-van-de-velde": "118626442",
+        }
+        for agent_slug, expected_gnd in expected_agent_gnds.items():
+            agent = json.loads(
+                (
+                    REPO_ROOT
+                    / "ToS/source-witnesses/agents"
+                    / agent_slug
+                    / "agent.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                [expected_gnd],
+                [
+                    identifier["value"]
+                    for identifier in agent["external_identifiers"]
+                    if identifier["scheme"] == "GND"
+                ],
+            )
+
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(
             server_plan["operator_transfer_approval"]["approved_by_real_human"]
@@ -3259,9 +3353,61 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 server_plan["allowed_derivatives"][derivative]["state"],
             )
 
+        provenance_events = [
+            json.loads(line)
+            for line in (
+                ECCE_HOMO_1908_ITEM_ROOT / "provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        responsibility_event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.annotation.ecce-homo."
+            "insel-1908-responsibility-claims.2026-07-30",
+            responsibility_event["event_id"],
+        )
+        self.assertEqual(
+            {
+                "ref": (
+                    "ToS/source-witnesses/works/friedrich-nietzsche/"
+                    "ecce-homo/responsibility-claims.jsonl"
+                ),
+                "role": "unreviewed-evidence-bearing-responsibility-claims",
+                "sha256": hashlib.sha256(
+                    ECCE_HOMO_RESPONSIBILITY_CLAIMS_PATH.read_bytes()
+                ).hexdigest(),
+            },
+            responsibility_event["outputs"][0],
+        )
+        self.assertEqual(
+            {
+                "responsibility_claims_materialized": 4,
+                "responsibility_claims_reviewed": 0,
+                "agents_resolved": 3,
+                "remote_items_created": 0,
+                "source_text_admitted": False,
+                "semantic_claims_created": 0,
+                "canon_promotion_performed": False,
+            },
+            responsibility_event["method"]["configuration"],
+        )
+
+        responsibility_route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Machine-readable responsibility prototype", responsibility_route)
+        self.assertIn("`authored_by` Friedrich Nietzsche", responsibility_route)
+        self.assertIn("`edited_by` Raoul Richter", responsibility_route)
+        self.assertIn("`afterword_by` Raoul", responsibility_route)
+        self.assertIn("`designed_by` Henry van de Velde", responsibility_route)
+        self.assertIn("does not make the 1908", responsibility_route)
+
         catalog_ids = {
             record["record_id"]
             for catalog_name in (
+                "agents.jsonl",
                 "works.jsonl",
                 "expressions.jsonl",
                 "editions.jsonl",
@@ -3284,6 +3430,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "leipzig-insel-verlag-1908",
                 "tos.item.friedrich-nietzsche.ecce-homo."
                 "de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+                "tos.agent.friedrich-nietzsche",
+                "tos.agent.raoul-richter",
+                "tos.agent.henry-van-de-velde",
             }.issubset(catalog_ids)
         )
 
