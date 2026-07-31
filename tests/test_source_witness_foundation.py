@@ -110,6 +110,11 @@ FALL_WAGNER_1888_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30.v1.json"
 )
+FALL_WAGNER_AUTHORIAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "fall-wagner-authorial-witness-route.2026-07-30.v1.json"
+)
 GOETZEN_1889_ITEM_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -2292,6 +2297,155 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("contested associated adjunct", route)
         self.assertIn("deliberately named rather than called A/B/C", route)
         self.assertNotIn("Antichrist A/B/C witness route", route)
+
+    def test_fall_wagner_authorial_route_preserves_loss_and_issue_layers(
+        self,
+    ) -> None:
+        discovery = json.loads(
+            FALL_WAGNER_AUTHORIAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        work = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "der-fall-wagner/work.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "channel-gsa-ores-fall-wagner-authorial-route",
+                "channel-basel-fall-wagner-fragment",
+                "channel-mdz-fall-wagner-1888-existing-item",
+                "channel-nietzsche-source-fall-wagner-critical-route",
+                "channel-established-fall-wagner-text-history",
+                "channel-fresh-fall-wagner-research",
+                "channel-general-web-fall-wagner-authorial-route",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(9, len(discovery["selected_result_ids"]))
+        self.assertEqual(
+            [
+                "tos-discovery-result.gsa-71-28-d21-goetzen-not-fall-wagner",
+                "tos-discovery-result."
+                "general-web-fall-wagner-reprints-summaries",
+            ],
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        results = {
+            result["result_id"]: result
+            for channel in discovery["channels"]
+            for result in channel["results"]
+        }
+        notebook_result = results[
+            "tos-discovery-result.gsa-wii6-wii7-fall-wagner-regions"
+        ]
+        notebook_identifiers = {
+            identifier["scheme"]: identifier["value"]
+            for identifier in notebook_result["identifiers"]
+        }
+        self.assertEqual("71/162; 71/163", notebook_identifiers["GSA"])
+        self.assertEqual("75271; 75272", notebook_identifiers["ORES"])
+        self.assertIn("whole-notebook", notebook_result["rationale"])
+
+        wrong_d21 = results[
+            "tos-discovery-result.gsa-71-28-d21-goetzen-not-fall-wagner"
+        ]
+        self.assertEqual("reject", wrong_d21["decision"])
+        self.assertIn("Götzen-Dämmerung", wrong_d21["rationale"])
+        self.assertIn(
+            "explicitly rejected as a Der Fall Wagner manuscript",
+            wrong_d21["rationale"],
+        )
+
+        basel = results[
+            "tos-discovery-result.basel-nl200-ii1-fall-wagner-fragment"
+        ]
+        basel_identifiers = {
+            identifier["scheme"]: identifier["value"]
+            for identifier in basel["identifiers"]
+        }
+        self.assertEqual("NL 200 : II, 1", basel_identifiers["UB Basel shelfmark"])
+        self.assertEqual(
+            "10.7891/e-manuscripta-80734",
+            basel_identifiers["DOI"],
+        )
+        self.assertIn("only surviving manuscript fragment", basel["rationale"])
+        self.assertIn("not joint authorship", basel["rationale"])
+        self.assertEqual(
+            "https://www.e-manuscripta.ch/bau/content/titleinfo/2274751",
+            basel["declared_rights"]["evidence_url"],
+        )
+
+        timeout = results[
+            "tos-discovery-result."
+            "nietzsche-source-fall-wagner-live-addresses-timeout"
+        ]
+        self.assertEqual("unknown", timeout["availability"])
+        self.assertIn("status 000", timeout["rationale"])
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                and result["snapshot"]["state"] == "not-captured"
+                for result in results.values()
+            )
+        )
+
+        self.assertEqual(3, work["record_version"])
+        self.assertIn(
+            "ToS/source-witnesses/discovery/runs/"
+            "fall-wagner-authorial-witness-route.2026-07-30.v1.json",
+            work["source_refs"],
+        )
+        self.assertIn("complete 26 June print manuscript", work["notes"])
+        self.assertIn("NL 200 : II, 1", work["notes"])
+        self.assertIn("nominal Zweite Auflage half", work["notes"])
+        self.assertIn("D 21 / GSA 71/28", work["notes"])
+        self.assertEqual("no_equivalence_claim", work["same_as_posture"])
+
+        provenance_events = [
+            json.loads(line)
+            for line in (
+                FALL_WAGNER_1888_ITEM_ROOT / "provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.discovery.fall-wagner."
+            "authorial-witness-route.2026-07-30",
+            event["event_id"],
+        )
+        self.assertFalse(
+            event["method"]["configuration"]["human_task_created"]
+        )
+        self.assertFalse(
+            event["method"]["configuration"]["new_item_created"]
+        )
+        self.assertEqual(
+            0,
+            event["method"]["configuration"]["source_payloads_acquired"],
+        )
+        self.assertEqual(
+            0,
+            event["method"]["configuration"]["semantic_objects_created"],
+        )
+
+        route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("W II 6 / W II 7 regions only", route)
+        self.assertIn("D 21 is explicitly rejected for this work", route)
+        self.assertIn("two complete manuscript states", route)
+        self.assertIn("sole surviving leaf", route)
+        self.assertIn("nominally labelled \"Zweite Auflage\"", route)
+        self.assertIn("deliberately named rather than called A/B/C", route)
+        self.assertNotIn("Fall Wagner A/B/C witness route", route)
 
     def test_exact_fall_and_goetzen_witnesses_advance_source_not_content(
         self,

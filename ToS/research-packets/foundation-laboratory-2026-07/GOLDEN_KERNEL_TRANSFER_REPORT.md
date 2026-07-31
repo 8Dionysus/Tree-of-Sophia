@@ -215,12 +215,37 @@ any prepared *Antichrist* page eligible for execution. No source body,
 accepted German, target gold, sign, semantic relation, or human task is
 created.
 
-*Der Fall Wagner* now has a distinct exact standalone German route through the
-unlabelled 1888 Naumann/Bamberg item. The route preserves the nominal
-`Zweite Auflage` issue risk, exact MDZ object/page topology, and `NoC-NC 1.0`
-research boundary. It neither changes the provisional Russian collection
-expression nor adds a target work, accepted passage, or eligible transfer unit
-to this frozen experiment.
+### Separate *Der Fall Wagner* documentary route
+
+*Der Fall Wagner* now has a distinct exact standalone German Item and a
+metadata-only route above it:
+
+```text
+exact W II 6 / W II 7 regions
+  -> lost 26 June 1888 print manuscript
+  -> lost 16 July 1888 fair copy
+    -> later additions and proofs
+      -> sole surviving NL 200 : II, 1 correction leaf
+        -> author-published 1888 Naumann run
+          |-> existing unlabelled MDZ/Bamberg Item
+          `-> nominal Zweite Auflage half, no acquired Item
+            -> critical WA address family
+```
+
+The route explicitly rejects `D 21 / GSA 71/28` for this work: the official
+record identifies it as the *Götzen-Dämmerung* print manuscript. W II 6 and
+W II 7 remain mixed notebooks with region- and inscription-layer-only
+membership. The one Basel leaf is not either lost complete manuscript;
+Nietzsche's changes and the later Köselitz/Lauterbach notes are separate
+responsibility layers. The two nominal halves of the 1000-copy run are not
+presumed textually identical or different.
+
+These stages are deliberately named rather than called A/B/C. The route does
+not modify or supersede `transfer-samples.json`, change the provisional
+Russian collection expression, establish translation correspondence, add a
+target work or accepted passage, or make an eligible transfer unit. It creates
+no remote source body, accepted German, target gold, sign, semantic relation,
+human task, or publication permission.
 
 *Götzen-Dämmerung* now has a distinct exact standalone German route through
 the 1889 Naumann/BSB first-publication item, explicitly separated from the

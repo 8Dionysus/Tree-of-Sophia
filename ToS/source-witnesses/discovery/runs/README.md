@@ -117,6 +117,22 @@ critical text, or metadata snapshot; creates no access request, source Item,
 semantic object, transfer unit, or human task; and never promotes the
 associated leaf to `AC 63`.
 
+`fall-wagner-authorial-witness-route.2026-07-30.v1.json` follows the existing
+unlabelled 1888 MDZ/Bamberg Item upstream without manufacturing another Item.
+Current GSA ORES resolves mixed W II 6/W II 7 notebook identities and
+explicitly rejects D 21/GSA 71/28 for this work; University Library
+Basel/e-manuscripta resolves the sole surviving `NL 200 : II, 1` one-leaf
+correction fragment; HAdW resolves two lost complete manuscript states and
+the nominal print-run split; KGW IX and Röllin preserve topological and
+inscription-layer chronology. Nietzsche Source documents the later critical
+route while current requests remain timed out. The run then checks current
+2025 institutional/method/TEI/interpretive leads, a metadata-only 2026
+chapter, and general web last. It downloads no remote image, manuscript,
+critical text, or metadata snapshot; creates no access request, source Item,
+semantic object, transfer unit, or human task; and never infers equivalence
+between notebook, lost manuscript, surviving leaf, print issue, and critical
+text.
+
 `ecce-homo-authorial-witness-route.2026-07-30.v1.json` follows the 1908
 publication witness into the current archive and critical-edition route. It
 resolves GSA 71/32 = D 25, GSA 71/33 = D 25a, the Peter-Gast-estate

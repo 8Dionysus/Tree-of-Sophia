@@ -55,6 +55,18 @@ golden-kernel A/B/C variants. The route admits no source body, accepted
 German, author-final reconstruction, translation relation, semantic object,
 transfer unit, human review task, rights clearance, or publication route.
 
+The new *Der Fall Wagner* route now separates exact W II 6/W II 7 regions,
+two lost complete manuscript states, the sole surviving Basel correction leaf
+`NL 200 : II, 1`, the author-published 1888 run, the existing unlabelled Item,
+the nominal `Zweite Auflage` half, and later critical addresses. It explicitly
+rejects D 21/GSA 71/28, which the official record assigns to
+*Götzen-Dämmerung*. Nietzsche's changes and the later Köselitz/Lauterbach
+notes remain separate responsibility layers. These named documentary stages
+are not golden-kernel A/B/C variants. The route admits no remote source body,
+accepted German, reconstructed manuscript, translation relation, semantic
+object, transfer unit, human review task, rights clearance, or publication
+route.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -152,6 +164,17 @@ contracts intentionally reject simulated human evidence.
   same 1000-copy run. The route therefore does not identify a differently
   labelled copy, accept German, establish critical-text equivalence, create
   passage anchors, or make the prepared transfer pages eligible.
+- The stronger *Der Fall Wagner* authorial/publication/critical route is now
+  resolved at metadata level through current GSA ORES, University Library
+  Basel/e-manuscripta, the existing MDZ/Bamberg Item, Nietzsche Source, HAdW,
+  KGW IX, Röllin's 2024 layer chronology, and 2025-2026 current research. It
+  preserves region-only W II 6/W II 7 attribution, the loss of both complete
+  manuscripts, the one-leaf scope of `NL 200 : II, 1`, responsibility notes,
+  the nominal issue split, and the current Nietzsche Source timeout. No
+  remote payload was acquired, so the route creates no false Item, complete
+  manuscript, admitted German, source-surface collation, translation lane,
+  semantic gold, or transfer unit. One exact question plus reconciled
+  source/rights/competence gates must precede a bounded comparison.
 - The acquired MDZ/BSB *Götzen-Dämmerung* PDF is an exact source-visible
   surrogate for the standalone 1889 Naumann copy `Ph.pr. 881 kc`. Its 165-page
   inventory contains one MDZ cover followed by 164 IIIF canvases. The copy
@@ -388,6 +411,15 @@ now connect exact documentary stages without admitting source content. The
 Basel edition first became freely viewable in December 2025 and is the
 freshest direct philological result; no 2026 publication changing those
 witness identities was found, and the current eKGWB request timed out.
+The *Antichrist* and *Der Fall Wagner* routes were then refreshed the same
+day. `ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md` separates D 22, A 311, the
+editorial 1895 first print, the existing 1906 Item, the critical route, and
+the contested associated leaf. `FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md`
+corrects the false D 21 assignment and separates mixed W II 6/W II 7 regions,
+two lost complete manuscripts, the sole Basel correction leaf, the 1888
+print-run split, and the critical route. The freshest direct control located
+for the latter is Röllin's 2024 layer chronology; a directly titled 2026
+chapter remains metadata-only and changes no witness identity.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:

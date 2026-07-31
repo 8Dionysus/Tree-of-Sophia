@@ -1048,6 +1048,46 @@ text, critical body, accepted German, author-final synthesis, translation
 alignment, semantic claim, transfer unit, publication permission, access
 request, or human backlog was created.
 
+### *Der Fall Wagner* authorial-witness follow-up — 2026-07-30
+
+The exact unlabelled 1888 Naumann/Bamberg Item now has a documentary route
+recorded in `FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive layer.** Current GSA ORES identifies W II 6
+   (`GSA 71/162`, ORES `75271`) and W II 7 (`GSA 71/163`, ORES `75272`)
+   as mixed notebooks naming several projects and other hands. Only exact
+   source-backed *Fall Wagner* regions and inscription layers are admitted.
+   The official `D 21 / GSA 71/28 / ORES 75099` record is
+   *Götzen-Dämmerung* and is explicitly rejected as a *Fall Wagner*
+   manuscript identity.
+2. **Surviving-fragment layer.** University Library Basel/e-manuscripta
+   resolves `NL 200 : II, 1`, DOI `10.7891/e-manuscripta-80734`, as a
+   one-leaf, two-canvas mid-August 1888 object and the only surviving
+   manuscript fragment. Nietzsche's two changes and the later
+   Köselitz/Lauterbach notes are separate responsibility and provenance
+   layers; the leaf is not a complete print manuscript.
+3. **Established production layer.** Sommer's 2012 HAdW commentary records a
+   first full print manuscript sent on 26 June and returned on 6 July, a new
+   fair copy sent on 16 July, later Nachschriften/Epilog/proof additions,
+   completion in September, and publication on 22 September. Both complete
+   manuscript states are lost. The 1000-copy run's latter half was nominally
+   labelled `Zweite Auflage`; the existing Item is from the unlabelled half,
+   and no textual identity or difference is inferred.
+4. **Topological, critical, and fresh layer.** KGW IX 9 preserves W II 6/W II
+   7 topology. Röllin 2024 supplies the freshest direct layer chronology.
+   Current Basel records reconfirm the sole fragment in 2025. Nietzsche Source
+   documentation and established citation support the `WA` address family,
+   but current requests timed out and no body or complete address census was
+   retained. Current 2025 TEI and interpretive leads plus a directly titled
+   2026 chapter remain downstream challengers; none changes witness identity.
+
+The freshness search through 2026-07-30 found no newer direct philological
+result changing W II 6/W II 7, the two lost complete manuscript states,
+`NL 200 : II, 1`, or the 1888 production split. No remote image, manuscript
+text, critical body, new Item, accepted German, reconstructed source,
+translation relation, semantic claim, transfer unit, publication permission,
+access request, or human backlog was created.
+
 ---
 
 ## Foundation model proposed for contract work

@@ -1,0 +1,948 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.fall-wagner-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.der-fall-wagner",
+      "tos.item.friedrich-nietzsche.der-fall-wagner.de-naumann-1888.mdz-bamberg-scan-pdf"
+    ],
+    "description": "An exact, responsibility-aware route from region-only W II 6/W II 7 preparatory material through two lost complete manuscript states, the sole surviving Basel correction/addition leaf, the author-published 1888 Naumann run, the existing unlabelled MDZ/Bamberg Item, and the later critical address family.",
+    "required_properties": [
+      "current archive, library, historical-item, critical-edition, and scholarly routes",
+      "W II 6 and W II 7 admitted only through exact source-backed regions and inscription layers",
+      "D 21 and GSA 71/28 explicitly rejected as Der Fall Wagner identities",
+      "two lost complete manuscript states separated from later additions and proofs",
+      "NL 200 : II, 1 retained as the sole surviving correction/addition leaf rather than a complete manuscript",
+      "Nietzsche, Köselitz, and Lauterbach responsibility layers kept distinct",
+      "unlabelled and nominal Zweite Auflage print-run halves not presumed textually identical or different",
+      "digital-object access and reusable-content rights recorded separately",
+      "official evidence checked before established and fresh scholarship",
+      "no remote source text, image, OCR, semantics, transfer unit, or human task admitted"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "a separately identified nominal Zweite Auflage copy with item-level provenance and rights evidence"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "archival metadata",
+      "library catalog",
+      "IIIF Presentation 2",
+      "working notebook",
+      "manuscript fragment",
+      "historical print",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "research publication"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-fall-wagner-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75271",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records and IIIF Presentation 2 manifests as served 2026-07-30",
+      "exact_query": "Direct ORES record and manifest reconciliation for W II 6 / GSA 71/162 / ORES 75271, W II 7 / GSA 71/163 / ORES 75272, and the proposed D 21 / GSA 71/28 / ORES 75099 mapping; no image-service requests",
+      "queried_at": "2026-07-30T18:10:00-06:00",
+      "elapsed_seconds": 5.536201,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-wii6-wii7-fall-wagner-regions",
+          "rank": 1,
+          "title_as_displayed": "W II 6 and W II 7 plans and aphorisms including Der Fall Wagner material",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75271",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75272",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/162; 71/163"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75271; 75272"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 6; W II 7"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "W-II-6; W-II-7"
+            },
+            {
+              "scheme": "KGW IX",
+              "value": "9"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifests",
+            "157 and 186 JPEG canvases",
+            "differentiated-transcription edition reference"
+          ],
+          "declared_rights": {
+            "statement": "Each exact ORES IIIF manifest labels its digital object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75271/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Current official identities for mixed 1888 notebooks that name several projects and other hands. Only exact HAdW/KGW/Röllin-backed Der Fall Wagner regions and inscription layers may be linked; whole-notebook work membership is prohibited.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live manifest metadata were inspected; no notebook image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-28-d21-goetzen-not-fall-wagner",
+          "rank": 2,
+          "title_as_displayed": "Götzen-Dämmerung print manuscript",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75099",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75099/manifest",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/28"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75099"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 21"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-21"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifest",
+            "124 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES manifest labels the Götzen-Dämmerung digital object Public Domain.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75099/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "reject",
+          "rationale": "The official record states that D 21 / GSA 71/28 is the Götzen-Dämmerung print manuscript for E 42. It is explicitly rejected as a Der Fall Wagner manuscript, alternate label, or work member.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact manifest was inspected only to correct the work assignment; no content was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-basel-fall-wagner-fragment",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Universitätsbibliothek Basel and e-manuscripta",
+      "endpoint_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2274751",
+      "interface_type": "iiif",
+      "interface_version": "e-manuscripta catalog, METS/MODS, transcription, and IIIF Presentation 2 as served 2026-07-30",
+      "exact_query": "Exact e-manuscripta titleinfo 2274751, DOI, METS/MODS, two-canvas IIIF manifest, front/reverse role inspection, and current University of Basel holdings statements; no image or PDF acquisition",
+      "queried_at": "2026-07-30T18:17:00-06:00",
+      "elapsed_seconds": 3.587229,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.basel-nl200-ii1-fall-wagner-fragment",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner",
+          "result_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2274751",
+          "originating_record_url": "https://doi.org/10.7891/e-manuscripta-80734",
+          "identifiers": [
+            {
+              "scheme": "UB Basel shelfmark",
+              "value": "NL 200 : II, 1"
+            },
+            {
+              "scheme": "e-manuscripta",
+              "value": "2274751"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.7891/e-manuscripta-80734"
+            }
+          ],
+          "available_formats": [
+            "catalog metadata",
+            "METS/MODS",
+            "IIIF Presentation 2 manifest",
+            "2 JPEG canvases",
+            "source-linked transcription"
+          ],
+          "declared_rights": {
+            "statement": "The exact e-manuscripta object carries Public Domain Mark 1.0; platform attribution and use terms remain separately applicable.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.e-manuscripta.ch/bau/content/titleinfo/2274751",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact one-leaf, two-canvas object dated mid-August 1888 and identified by the current owner as the only surviving manuscript fragment. Nietzsche's two changes, Köselitz's later identifying note, and Lauterbach's custody note are separate responsibility layers; the catalog's involved names are not joint authorship.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The record, manifest, and transcription route were inspected in place; no manuscript image, PDF, transcription, or metadata body was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-mdz-fall-wagner-1888-existing-item",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "MDZ, B3Kat, and Bamberg Staatsbibliothek",
+      "endpoint_url": "https://www.digitale-sammlungen.de/en/details/bsb11827837",
+      "interface_type": "iiif",
+      "interface_version": "Existing reconciled MDZ/B3Kat object route and ToS acquisition receipt dated 2026-07-30",
+      "exact_query": "Reconcile the already acquired bsb11827837 / Bamberg 30.1972 / B3Kat BV020338451 Item with the authorial and publication route; inspect no additional payload",
+      "queried_at": "2026-07-30T18:20:00-06:00",
+      "elapsed_seconds": 0.173405,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.mdz-bsb11827837-fall-wagner-1888-existing-item",
+          "rank": 1,
+          "title_as_displayed": "Der Fall Wagner. Ein Musikanten-Problem",
+          "result_url": "https://www.digitale-sammlungen.de/en/details/bsb11827837",
+          "originating_record_url": "https://opacplus.bsb-muenchen.de/title/BV020338451",
+          "identifiers": [
+            {
+              "scheme": "MDZ",
+              "value": "bsb11827837"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020338451"
+            },
+            {
+              "scheme": "Bamberg shelfmark",
+              "value": "30.1972"
+            },
+            {
+              "scheme": "ToS Item",
+              "value": "tos.item.friedrich-nietzsche.der-fall-wagner.de-naumann-1888.mdz-bamberg-scan-pdf"
+            }
+          ],
+          "available_formats": [
+            "catalog metadata",
+            "IIIF Presentation 2 manifest",
+            "74 JPEG canvases",
+            "existing local gitignored generated PDF"
+          ],
+          "declared_rights": {
+            "statement": "MDZ declares No Copyright - Non-Commercial Use Only 1.0 for this exact digital object.",
+            "scope": "digital-object",
+            "evidence_url": "https://rightsstatements.org/vocab/NoC-NC/1.0/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact existing unlabelled 1888 Naumann Item with local fixity. It anchors the publication route but does not prove textual equivalence to a nominal Zweite Auflage copy, either lost manuscript state, the Basel leaf, or the critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "This run reuses the tracked identity and prior acquisition event; it acquired no new bytes or snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-fall-wagner-critical-route",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche Source eKGWB documentation and rights",
+      "endpoint_url": "https://doc.nietzschesource.org/en/ekgwb",
+      "interface_type": "web",
+      "interface_version": "Current documentation plus bounded HTTPS transport checks on 2026-07-30",
+      "exact_query": "Read current eKGWB and rights documentation; request eKGWB/WA, eKGWB/WA-Vorwort, eKGWB/WA-Nachschrift, and eKGWB/WA-Epilog with bounded timeouts; retain no response body; do not infer an unverified WA-Zweite-Nachschrift URL",
+      "queried_at": "2026-07-30T18:22:00-06:00",
+      "elapsed_seconds": 100.016527,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-fall-wagner-critical-documentation",
+          "rank": 1,
+          "title_as_displayed": "Digital Critical Edition of Nietzsche's Works and Letters (eKGWB)",
+          "result_url": "https://doc.nietzschesource.org/en/ekgwb",
+          "originating_record_url": "https://doc.nietzschesource.org/en/rights",
+          "identifiers": [
+            {
+              "scheme": "eKGWB work",
+              "value": "WA"
+            },
+            {
+              "scheme": "eKGWB sections",
+              "value": "WA-Vorwort; WA-Nachschrift; WA-Epilog"
+            }
+          ],
+          "available_formats": [
+            "edition documentation",
+            "rights documentation",
+            "intended stable critical addresses"
+          ],
+          "declared_rights": {
+            "statement": "Nietzsche Source historically documents CC BY-NC-ND 4.0 for site content and a separate non-commercial derivative agreement for DFGA.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Authoritative critical-edition documentation and established citation evidence support the WA address family. The second Nachschrift's structure is recorded without inventing a distinct URL that current transport did not verify.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No edition or documentation body was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-fall-wagner-live-addresses-timeout",
+          "rank": 2,
+          "title_as_displayed": "Current live WA address transport",
+          "result_url": "https://www.nietzschesource.org/eKGWB/WA",
+          "originating_record_url": "https://www.nietzschesource.org/eKGWB/WA-Epilog",
+          "identifiers": [
+            {
+              "scheme": "transport observation",
+              "value": "2026-07-30-bounded-https-timeouts"
+            }
+          ],
+          "available_formats": [
+            "intended HTML routes"
+          ],
+          "declared_rights": {
+            "statement": "The Nietzsche Source rights posture is independent of whether a transport request responds.",
+            "scope": "unknown",
+            "evidence_url": "https://doc.nietzschesource.org/en/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "unknown",
+          "decision": "defer",
+          "rationale": "The bounded requests timed out with status 000 and zero bytes. No current critical body, complete section-address census, or response claim can be made from this run.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The server supplied no bytes; no placeholder or failed-response artifact was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-fall-wagner-text-history",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "HAdW historical-critical commentary and KGW IX",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70913",
+      "interface_type": "web",
+      "interface_version": "Heidelberg open commentary and established KGW IX volume metadata as checked 2026-07-30",
+      "exact_query": "Read HAdW overview pages 22-26 and manuscript-fragment page 210; reconcile 1888 letters, production sequence, publication split, exact W II 6/W II 7 regions, and KGW IX 9 topological edition",
+      "queried_at": "2026-07-30T18:25:00-06:00",
+      "elapsed_seconds": 2.441905,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-sommer-fall-wagner-commentary-2012",
+          "rank": 1,
+          "title_as_displayed": "Kommentar zu Nietzsches Der Fall Wagner und Götzen-Dämmerung",
+          "result_url": "https://doi.org/10.11588/diglit.70913",
+          "originating_record_url": "https://digi.ub.uni-heidelberg.de/diglit/heidelberger_akademie_der_wissenschaften_nietzsche_kommentar_bd6_1",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70913"
+            },
+            {
+              "scheme": "HAdW",
+              "value": "NK 6/1"
+            }
+          ],
+          "available_formats": [
+            "historical-critical commentary",
+            "page-addressed web edition",
+            "downloadable scholarly PDF"
+          ],
+          "declared_rights": {
+            "statement": "Open scholarly viewing and download; the commentary remains copyrighted and is used only as research.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.11588/diglit.70913",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Principal established control for the April-September 1888 production chronology, two lost complete manuscript states, later additions/proofs, sole Basel leaf, 1000-copy run, nominal Zweite Auflage split, and exact notebook-region references.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The commentary was consulted in place; no PDF, OCR, or source quotation body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kgwix9-wii6-wii7-topological-edition",
+          "rank": 2,
+          "title_as_displayed": "Arbeitshefte W II 6 und W II 7",
+          "result_url": "https://doi.org/10.1515/9783110228762",
+          "originating_record_url": "https://germanistik.philhist.unibas.ch/de/forschung/forschungsprojekte/ndl/der-spaete-nietzsche/",
+          "identifiers": [
+            {
+              "scheme": "KGW",
+              "value": "IX 9"
+            },
+            {
+              "scheme": "ISBN",
+              "value": "9783110228755"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "differentiated topological transcription",
+            "official project method statement"
+          ],
+          "declared_rights": {
+            "statement": "No reusable-content license was inferred for the edition body.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/9783110228762",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established topological control for page, writing surface, deletion, overwriting, and revision in the mixed W II 6/W II 7 notebooks. It prohibits detached smoothed fragments from becoming hidden source authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only publisher and official-project metadata were retained as references."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-fall-wagner-research",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Current journal, institutional, digital-edition, and publisher records",
+      "endpoint_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+      "interface_type": "web",
+      "interface_version": "Official, journal, institutional, digital-edition, and publisher pages current through 2026-07-30",
+      "exact_query": "Direct W II 6/W II 7 chronology; current Basel fragment identity and access; current Nietzsche Source method; 2025 Bülow, TEI-edition, and 2026 directly titled Fall Wagner research; freshness search through 2026-07-30",
+      "queried_at": "2026-07-30T18:31:00-06:00",
+      "elapsed_seconds": 5.112607,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.roellin-fall-wagner-chronology-2024",
+          "rank": 1,
+          "title_as_displayed": "Chronologie der Manuskripte 1885–89. Nachtrag zu KGW IX",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "originating_record_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0001/html",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0001"
+            },
+            {
+              "scheme": "journal",
+              "value": "Nietzsche-Studien 53 (2024), 246-305"
+            }
+          ],
+          "available_formats": [
+            "open journal HTML",
+            "open PDF",
+            "layer-level manuscript chronology"
+          ],
+          "declared_rights": {
+            "statement": "Open Access under CC BY 4.0.",
+            "scope": "content",
+            "evidence_url": "https://www.degruyterbrill.com/document/doi/10.1515/nietzstu-2024-0001/html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest direct chronological control located. It dates distinguishable W II 6/W II 7 inscription layers across spring, summer, and later 1888 and therefore blocks whole-notebook dating or membership shortcuts.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The open article was consulted in place; no article file or source-text extract was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.basel-nl200-ii1-current-2025",
+          "rank": 2,
+          "title_as_displayed": "UNESCO würdigt Nietzsches Nachlass",
+          "result_url": "https://ub.unibas.ch/de/jahresberichte/bookmark25/nietzsches-nachlass/",
+          "originating_record_url": "https://www.unibas.ch/de/Aktuell/News/Uni-Campus/UNESCO-nimmt-Friedrich-Nietzsches-literarischen-Nachlass-ins-Weltdokumentenerbe-auf.html",
+          "identifiers": [
+            {
+              "scheme": "UB Basel shelfmark",
+              "value": "NL 200 : II, 1"
+            },
+            {
+              "scheme": "publication date",
+              "value": "2025-04-11"
+            }
+          ],
+          "available_formats": [
+            "current owner news",
+            "current holdings statement"
+          ],
+          "declared_rights": {
+            "statement": "No reusable-content license was inferred from the current news pages.",
+            "scope": "metadata",
+            "evidence_url": "https://ub.unibas.ch/de/jahresberichte/bookmark25/nietzsches-nachlass/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current owner confirmation that NL 200 : II, 1 is the only surviving fragment of the Der Fall Wagner manuscript and is part of the Basel Nietzsche holdings. This refreshes identity, not source custody or textual authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The institutional statements were read in place; no page snapshot or image was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.diorio-nietzsche-source-method-2025",
+          "rank": 3,
+          "title_as_displayed": "Nietzsche Source: a scholarly edition on the web",
+          "result_url": "https://doi.org/10.1590/2316-82422024v4503pd",
+          "originating_record_url": "https://www.scielo.br/j/cniet/a/",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1590/2316-82422024v4503pd"
+            }
+          ],
+          "available_formats": [
+            "open journal article",
+            "current edition-method description"
+          ],
+          "declared_rights": {
+            "statement": "Open journal availability; exact article reuse terms remain separately reviewable.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1590/2316-82422024v4503pd",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current method and documentation control for Nietzsche Source, published online in January 2025. It does not identify or supply a Der Fall Wagner manuscript witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the current public article route was classified."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.neymeyr-buelow-fall-wagner-background-2025",
+          "rank": 4,
+          "title_as_displayed": "Nietzsche as Composer and Hans von Bülow's Critique",
+          "result_url": "https://doi.org/10.1111/glal.70004",
+          "originating_record_url": "https://onlinelibrary.wiley.com/doi/10.1111/glal.70004",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1111/glal.70004"
+            }
+          ],
+          "available_formats": [
+            "open journal article",
+            "interpretive background research"
+          ],
+          "declared_rights": {
+            "statement": "Open Access under CC BY.",
+            "scope": "content",
+            "evidence_url": "https://onlinelibrary.wiley.com/doi/10.1111/glal.70004",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Relevant background to Nietzsche's Wagner polemics, but it does not establish the archive-mediated direct Bülow message or alter any physical witness identity. It remains downstream interpretive soil.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article was not retained because it is not needed for the metadata route."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.musil-online-fall-wagner-1899-tei-2025",
+          "rank": 5,
+          "title_as_displayed": "Der Fall Wagner, 1899 sixth/seventh-thousand digital text",
+          "result_url": "https://musilonline.at/",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "release date",
+              "value": "2025-09-01"
+            },
+            {
+              "scheme": "source edition",
+              "value": "1899 sixth/seventh thousand"
+            }
+          ],
+          "available_formats": [
+            "TEI",
+            "web reading text"
+          ],
+          "declared_rights": {
+            "statement": "The digital edition states CC BY-SA 4.0.",
+            "scope": "content",
+            "evidence_url": "https://musilonline.at/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Potential future textual challenger with reusable TEI, but it represents a later 1899 printing and is neither the existing 1888 Item, an authorial manuscript, nor the critical text.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No TEI or reading text was acquired because no question-specific comparison has been approved."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.woelfl-unsichtbares-theater-fall-wagner-2026",
+          "rank": 6,
+          "title_as_displayed": "Zum „unsichtbaren Theater“. Nietzsche und der Fall Wagner",
+          "result_url": "https://doi.org/10.30965/9783846770979-009",
+          "originating_record_url": "https://brill.com/",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.30965/9783846770979-009"
+            },
+            {
+              "scheme": "publisher date",
+              "value": "2026-06-10"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "chapter record without located abstract or full text"
+          ],
+          "declared_rights": {
+            "statement": "Publisher-controlled chapter; no reusable-content license or open file was located.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.30965/9783846770979-009",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Freshest directly titled 2026 research located. Metadata alone supplies no evidence that it changes W II 6/W II 7, the lost manuscripts, NL 200 : II, 1, or the 1888 publication route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only publisher metadata was available and classified; no chapter body was accessed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-fall-wagner-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22Der+Fall+Wagner%22+manuscript+1888+2026",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"Der Fall Wagner\" manuscript 1888 2026; \"D 21\" \"Fall Wagner\"; \"NL 200 II 1\"; all useful leads reopened at archive, library, DOI, publisher, digital-edition, or institutional records",
+      "queried_at": "2026-07-30T18:38:00-06:00",
+      "elapsed_seconds": 1.332184,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-fall-wagner-reprints-summaries",
+          "rank": 1,
+          "title_as_displayed": "Modern reprints, audiobooks, blogs, and generated summaries",
+          "result_url": "https://www.google.com/search?q=%22Der+Fall+Wagner%22+%22original+manuscript%22",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search leads",
+            "commercial reprints",
+            "audiobooks",
+            "blogs",
+            "generated summaries"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No originating archival or item-level identity, frequent conflation of manuscript, first print, modern text, and interpretation, and no usable rights chain. No result was admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No noisy result page, commercial artifact, or unprovenanced text was retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-fall-wagner-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 22,
+      "machine_seconds": 5.536201,
+      "notes": "Authoritative W II 6/W II 7 identities, project mixture, other-hand warnings, canvas counts, and the decisive D 21 correction; exact region membership still depends on scholarly source addresses."
+    },
+    {
+      "channel_id": "channel-basel-fall-wagner-fragment",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 18,
+      "machine_seconds": 3.587229,
+      "notes": "Exact sole-fragment identity, two canvases, DOI, extent, declared mark, transcription route, and differentiated Nietzsche/Köselitz/Lauterbach roles; no payload acquired."
+    },
+    {
+      "channel_id": "channel-mdz-fall-wagner-1888-existing-item",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 4,
+      "machine_seconds": 0.173405,
+      "notes": "Reuses the exact existing Item and acquisition evidence; the nominal Zweite Auflage half remains unrepresented and no textual equivalence is inferred."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-fall-wagner-critical-route",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "poor",
+      "human_minutes": 10,
+      "machine_seconds": 100.016527,
+      "notes": "Critical-edition documentation and stable WA address evidence remain useful, but current HTTPS routes timed out and no body or complete address census was retained."
+    },
+    {
+      "channel_id": "channel-established-fall-wagner-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 36,
+      "machine_seconds": 2.441905,
+      "notes": "Established production chronology, lost-manuscript states, unique fragment, nominal print split, exact regions, and topological method; commentary and edition bodies remain separate copyrighted scholarship."
+    },
+    {
+      "channel_id": "channel-fresh-fall-wagner-research",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 31,
+      "machine_seconds": 5.112607,
+      "notes": "Direct 2024 layer chronology, current 2025 owner identity, current edition method, later TEI and interpretive leads, and a 2026 metadata-only chapter; none changes physical witness identity."
+    },
+    {
+      "channel_id": "channel-general-web-fall-wagner-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 5,
+      "machine_seconds": 1.332184,
+      "notes": "Used last for missing-route and freshness leads; modern reprints, blogs, audiobooks, and generated summaries were rejected as identity or critical authority."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-wii6-wii7-fall-wagner-regions",
+    "tos-discovery-result.basel-nl200-ii1-fall-wagner-fragment",
+    "tos-discovery-result.mdz-bsb11827837-fall-wagner-1888-existing-item",
+    "tos-discovery-result.nietzsche-source-fall-wagner-critical-documentation",
+    "tos-discovery-result.hadw-sommer-fall-wagner-commentary-2012",
+    "tos-discovery-result.kgwix9-wii6-wii7-topological-edition",
+    "tos-discovery-result.roellin-fall-wagner-chronology-2024",
+    "tos-discovery-result.basel-nl200-ii1-current-2025",
+    "tos-discovery-result.diorio-nietzsche-source-method-2025"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.gsa-71-28-d21-goetzen-not-fall-wagner",
+    "tos-discovery-result.general-web-fall-wagner-reprints-summaries"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T18:08:00-06:00",
+  "ended_at": "2026-07-30T18:48:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.fall-wagner.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

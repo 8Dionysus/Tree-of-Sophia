@@ -310,6 +310,19 @@ and it is not `AC 63`. Open IIIF and Public Domain Mark evidence creates no
 admitted source body, accepted German, author-final reconstruction,
 publication permission, transfer unit, semantic object, or human queue.
 
+The exact 1888 *Der Fall Wagner* Item now also has a metadata-only
+documentary route. W II 6 (`GSA 71/162`) and W II 7 (`GSA 71/163`) remain
+mixed notebooks whose work relation requires exact regions and inscription
+layers. `D 21 / GSA 71/28` is explicitly *Götzen-Dämmerung*, not
+*Der Fall Wagner*. The June print manuscript and July fair copy are lost;
+`NL 200 : II, 1` is the sole surviving one-leaf correction/addition fragment,
+not either complete manuscript. Nietzsche's changes and later
+Köselitz/Lauterbach notes remain distinct. The unlabelled existing Item and
+nominal `Zweite Auflage` half of the 1000-copy run have no presumed textual
+identity or difference. Open archive routes create no admitted source body,
+accepted German, author-final reconstruction, publication permission,
+transfer unit, semantic object, or human queue.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

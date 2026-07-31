@@ -9,6 +9,19 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Der Fall Wagner* authorial, publication, and
+  critical route through current GSA ORES, University Library
+  Basel/e-manuscripta, the existing 1888 MDZ/Bamberg Item, Nietzsche Source,
+  HAdW/KGW IX, Röllin's 2024 layer chronology, 2025 current records, and a
+  2026 metadata-only chapter. It preserves exact-region-only W II 6/W II 7
+  attribution, explicitly rejects D 21/GSA 71/28 for this work, distinguishes
+  two lost complete manuscript states from the sole surviving Basel correction
+  leaf, separates Nietzsche's changes from Köselitz/Lauterbach provenance
+  notes, and refuses to infer textual identity or difference between the
+  unlabelled and nominal `Zweite Auflage` print-run halves. No remote source
+  body, new Item, accepted German, reconstructed manuscript, semantic or
+  transfer unit, human backlog, rights clearance, or publication permission
+  is created.
 - Added the metadata-only *Der Antichrist* authorial, editorial, and critical
   route through current GSA ORES/Kalliope, University Library Basel A 311,
   the Koegel/Naumann 1895 publication history, Nietzsche Source, HAdW/KGW IX,
