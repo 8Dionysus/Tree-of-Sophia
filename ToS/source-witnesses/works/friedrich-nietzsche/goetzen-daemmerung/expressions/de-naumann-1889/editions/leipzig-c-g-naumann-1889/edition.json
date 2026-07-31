@@ -36,8 +36,15 @@
     "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889"
   ],
   "edition_statement": null,
-  "publication_claim_refs": [],
-  "notes": "The title page, MDZ IIIF manifest, and B3Kat MARC record agree on Nietzsche, Leipzig, Naumann, 1889, and 144 pages. No edition statement is printed or catalogued. The HAdW commentary identifies the altered Köselitz second edition as 1893, so this 1889 manifestation is retained as the first-publication edition while critical-text equivalence remains unclaimed.",
-  "record_version": 1,
+  "publication_claim_refs": [
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.title-page-year",
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.printing-completed",
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.author-received-copies",
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.public-sale-release",
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.first-publication-role",
+    "tos.claim.edition.goetzen-daemmerung.naumann-1889.distinct-1893-editorial-state"
+  ],
+  "notes": "The title page, MDZ IIIF manifest, and B3Kat MARC record agree on Nietzsche, Leipzig, Naumann, 1889, and 144 pages. No edition statement is printed or catalogued. Six unreviewed publication claims now keep the title-page year, printing completion, authorial receipt, sale release, first-publication role, and the distinct altered Köselitz second edition as separately evidenced assertions. They do not establish critical-text equivalence or create an Item for the 1893 state.",
+  "record_version": 2,
   "supersedes_ref": null
 }

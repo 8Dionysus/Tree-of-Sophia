@@ -36,6 +36,7 @@ source-witnesses/
 │           │       └── editions/
 │           │           └── <edition>/
 │           │               ├── edition.json
+│           │               ├── publication-claims.jsonl # evidence-bearing, review-gated publication assertions
 │           │               └── items/
 │           │                   └── <item>/
 │           │                       ├── item.manifest.json
@@ -83,6 +84,15 @@ responsibility remains explicit where applicable and is `null`, not
 manufactured, for a source-language member without a separate responsibility
 claim. Such a map is bibliographic structure, not accepted text, edition
 equivalence, translation quality, semantics, rights clearance, or canon.
+
+An Edition may route its `publication_claim_refs` to a sibling
+`publication-claims.jsonl`. Every row remains an evidence-bearing
+`tos_claim_packet_v1`: the Edition is the subject, its provenance event and
+evidence resolve, and its review state remains explicit. A title-page year,
+printing date, authorial receipt, sale release, publication role, and later
+editorial state are separate assertions. Their presence does not turn a
+reported chronology into an observed fact, equate editions, create a remote
+Item, accept a text, or promote anything to canon.
 
 ## Payload boundary
 
@@ -337,6 +347,15 @@ and the modern *Magnum in parvo* editorial reconstruction remain separate
 downstream routes. Open archive records create no admitted source body,
 accepted German, synthetic author-final text, publication permission,
 transfer unit, semantic object, or human queue.
+
+The 1889 Edition now also exercises the existing `publication_claim_refs`
+contract through six sibling, unreviewed claim packets. They keep the
+title-page year, printing completion, authorial receipt, public-sale release,
+first-publication role, and the separate changed 1893 editorial state
+queryable without collapsing them into one date or one immutable text. The
+claims are digest-bound to provenance and evidence; they are not human
+acceptance, a remote 1893 Item, critical equivalence, publication authority,
+or a canonical graph.
 
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,

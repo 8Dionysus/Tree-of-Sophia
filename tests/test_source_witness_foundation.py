@@ -115,11 +115,15 @@ FALL_WAGNER_AUTHORIAL_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "fall-wagner-authorial-witness-route.2026-07-30.v1.json"
 )
-GOETZEN_1889_ITEM_ROOT = (
+GOETZEN_1889_EDITION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
     "goetzen-daemmerung/expressions/de-naumann-1889/"
-    "editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf"
+    "editions/leipzig-c-g-naumann-1889"
+)
+GOETZEN_1889_ITEM_ROOT = GOETZEN_1889_EDITION_ROOT / "items/mdz-bsb-scan-pdf"
+GOETZEN_1889_PUBLICATION_CLAIMS_PATH = (
+    GOETZEN_1889_EDITION_ROOT / "publication-claims.jsonl"
 )
 GOETZEN_1889_DISCOVERY_PATH = (
     REPO_ROOT
@@ -2581,6 +2585,70 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("non-author-approved", work["notes"])
         self.assertEqual("no_equivalence_claim", work["same_as_posture"])
 
+        edition = json.loads(
+            (GOETZEN_1889_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        publication_claims = [
+            json.loads(line)
+            for line in GOETZEN_1889_PUBLICATION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        claims_by_predicate = {
+            claim["predicate"]: claim for claim in publication_claims
+        }
+        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(6, len(publication_claims))
+        self.assertEqual(
+            set(edition["publication_claim_refs"]),
+            {claim["claim_id"] for claim in publication_claims},
+        )
+        self.assertTrue(
+            all(
+                claim["subject_ref"] == edition["record_id"]
+                and claim["claim_type"] == "bibliographic"
+                and claim["review_status"] == "unreviewed"
+                and claim["reviews"] == []
+                for claim in publication_claims
+            )
+        )
+        self.assertEqual(
+            "1889",
+            claims_by_predicate["title_page_year"]["object"],
+        )
+        self.assertEqual(
+            "observed",
+            claims_by_predicate["title_page_year"]["epistemic_status"],
+        )
+        self.assertEqual(
+            "1888-11-13",
+            claims_by_predicate["printing_completed_on"]["object"],
+        )
+        self.assertEqual(
+            {
+                "date": "1888-11-24",
+                "copies_reported": 4,
+            },
+            claims_by_predicate[
+                "author_received_finished_copies_on"
+            ]["object"],
+        )
+        self.assertEqual(
+            "1889-01-24",
+            claims_by_predicate["public_sale_released_on"]["object"]["date"],
+        )
+        later_state = claims_by_predicate[
+            "has_distinct_later_editorial_state"
+        ]["object"]
+        self.assertEqual(1893, later_state["publication_year"])
+        self.assertEqual("Heinrich Köselitz", later_state["editor"])
+        self.assertTrue(later_state["textual_change_reported"])
+        self.assertFalse(later_state["author_approval_reported"])
+        self.assertFalse(later_state["tos_item_created"])
+
         provenance_events = [
             json.loads(line)
             for line in (
@@ -2588,7 +2656,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        event = provenance_events[-1]
+        event = provenance_events[-2]
         self.assertEqual(
             "tos.event.discovery.goetzen-daemmerung."
             "authorial-witness-route.2026-07-30",
@@ -2607,6 +2675,38 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             0,
             event["method"]["configuration"]["semantic_objects_created"],
+        )
+        claim_event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.annotation.goetzen-daemmerung."
+            "naumann-1889-publication-claims.2026-07-30",
+            claim_event["event_id"],
+        )
+        self.assertEqual(
+            {
+                "ref": (
+                    "ToS/source-witnesses/works/friedrich-nietzsche/"
+                    "goetzen-daemmerung/expressions/de-naumann-1889/"
+                    "editions/leipzig-c-g-naumann-1889/"
+                    "publication-claims.jsonl"
+                ),
+                "role": "unreviewed-evidence-bearing-publication-claims",
+                "sha256": hashlib.sha256(
+                    GOETZEN_1889_PUBLICATION_CLAIMS_PATH.read_bytes()
+                ).hexdigest(),
+            },
+            claim_event["outputs"][0],
+        )
+        self.assertEqual(
+            {
+                "source_claims_materialized": 6,
+                "publication_claims_reviewed": 0,
+                "remote_items_created": 0,
+                "source_text_admitted": False,
+                "semantic_claims_created": 0,
+                "canon_promotion_performed": False,
+            },
+            claim_event["method"]["configuration"],
         )
 
         route = (

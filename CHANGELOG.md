@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the first Edition-owned publication claim family: six unreviewed,
+  evidence-bearing `tos_claim_packet_v1` records for the 1889
+  *Götzen-Dämmerung* Edition. They separate the observed title-page year from
+  reported printing, authorial receipt, sale release, first-publication role,
+  and the changed non-author-approved 1893 editorial state. The sibling
+  Edition references every claim, the annotation event digest-binds the
+  claim file, and source validation rejects unresolved, cross-edition, or
+  orphaned publication claims. This creates neither a remote 1893 Item nor
+  accepted bibliography, text, semantics, graph truth, or canon.
 - Added the metadata-only *Götzen-Dämmerung* authorial, publication, and
   critical route through current GSA ORES/Kalliope, the existing 1889
   MDZ/BSB Item, Nietzsche Source, HAdW, KSA/KGW, Montinari, Pichler, current

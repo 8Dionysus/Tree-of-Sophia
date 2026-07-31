@@ -61,6 +61,34 @@ transcription, critical-edition body, accepted reading, semantic annotation,
 translation candidate, publication route, transfer unit, or recurring human
 queue is created.
 
+## Machine-readable publication-claim prototype
+
+The sibling
+`expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/publication-claims.jsonl`
+now exercises the `publication_claim_refs` route already present in the
+Edition contract. It materializes six separate claim packets:
+
+1. the observed `1889` title-page year;
+2. the reported 13 November 1888 printing completion;
+3. the reported 24 November authorial receipt of four finished copies;
+4. the commonly reported 24 January 1889 public-sale release;
+5. the reported first-publication role of the current Edition;
+6. the distinct, textually changed, Köselitz-edited and non-author-approved
+   1893 state.
+
+Every row is model-made, `unreviewed`, `public_metadata_only`, and bound to
+the existing evidence route plus a digest-bearing annotation event. The
+title-page year alone is `observed`; the production chronology and later
+editorial state remain `reported`. The 1893 object is structured claim data,
+not a manufactured Edition or Item.
+
+This is deliberately an Edition-owned prototype, not a cross-work
+“documentary stage registry.” Remote notebooks, print manuscripts,
+correction witnesses, and critical addresses still lack ToS custody and do
+not receive false Item identities. Their richer route remains in the ordered
+discovery record until a source-native typed owner is justified by more than
+one concrete consumer.
+
 ## Research order
 
 The route was checked in the required order:

@@ -1121,6 +1121,13 @@ recorded in `GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md`.
    *Nietzscheforschung* cluster remains downstream interpretation. Stable
    `GD` address examples are documented, but the bounded current Nietzsche
    Source request timed out with status `000` and no body.
+5. **Typed publication-claim layer.** The existing Edition contract now owns
+   six sibling `publication-claims.jsonl` packets. They preserve the observed
+   title-page year, four reported publication-history assertions, and the
+   distinct changed 1893 editorial state as separately evidenced, model-made,
+   unreviewed claims. A digest-bearing annotation event closes provenance.
+   This does not type remote notebooks or manuscripts as local objects, and
+   it does not create an accepted bibliography or canonical graph.
 
 The freshness search through 2026-07-30 found no newer direct genetic or
 philological result changing D 21, the region-only notebook law, the
