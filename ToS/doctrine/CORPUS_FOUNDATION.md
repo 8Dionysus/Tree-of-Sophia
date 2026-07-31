@@ -194,6 +194,13 @@ Allowed review states include `unreviewed`, `accepted`, `accepted_with_limits`,
 Confidence is the maker's declared uncertainty, not an objective probability
 that the claim is true.
 
+A generated claim catalog may expose subject, predicate, object, evidence,
+maker, provenance, review posture, exact source line, and canonical source
+digest for query and graph preparation only when the claim's visibility
+permits that tracked projection. It remains a projection of the authored claim
+packet: catalog presence, projection parity, or graph emission cannot accept,
+reject, or reinterpret the claim.
+
 ## Translation law
 
 A translation is an expression or expression proposal, never a language field

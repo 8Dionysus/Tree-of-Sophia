@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Extended the generated source-witness catalog from object-only navigation to
+  an exact source-returnable object-and-claim projection. The new
+  `claims.jsonl` indexes all 31 tracked membership, responsibility, and
+  publication packets with their subject, predicate, object, evidence, maker,
+  provenance event, review posture, exact source file/line, and canonical
+  claim digest. Catalog v2 separates 65 object entries from 31 claim entries,
+  validates both entry classes, and fails parity when an authored packet or
+  projection drifts. It also rejects local, restricted, or
+  permission-pending claims rather than copying them into the tracked
+  projection. All current claims remain bibliographic, model-made,
+  public-metadata-only, and unreviewed; the catalog is navigation rather than
+  relation truth, review, graph authority, semantics, or canon.
 - Added the first multi-role responsibility-claim prototype without generic
   creator flattening. Four model-made, unreviewed `tos_claim_packet_v1`
   records keep Nietzsche's `authored_by` relation on the *Ecce Homo* Work

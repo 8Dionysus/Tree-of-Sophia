@@ -103,6 +103,12 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
+- The source-witness catalog now exposes all 65 current objects and all 31
+  tracked membership, responsibility, and publication claims through an exact
+  source-returnable projection. Its source line and canonical digest prove
+  navigation parity only. Every current claim remains unreviewed; catalog
+  presence does not establish bibliographic truth, relation truth, semantic
+  meaning, graph authority, canon, or corpus completeness.
 - All seven *Mysl* members now have distinct exact historical German
   Edition / Item routes in addition to their provisional Russian
   collection-member expressions. *Ecce Homo* closes the former tree gap with

@@ -36,10 +36,15 @@ authority into Tree of Sophia.
 
 `build_source_witness_catalog.py` and
 `validate_source_witness_foundation.py` protect the corpus evidence spine and
-tracked catalog. The release lane permits gitignored payload bytes to be absent
-from a public clone; an operator may add `--require-local-payloads` for the
-local laboratory. Passing this lane never implies that a human accepted the
-bibliography, text, rights, translation, or semantics.
+tracked object/claim catalog. The generated claim projection covers only
+tracked membership, responsibility, and publication packets, preserves exact
+source-line return and canonical claim digests, and remains subordinate to
+those authored packets and their provenance events. It must fail closed rather
+than copy a nonpublic claim into the tracked catalog. The release lane permits
+gitignored payload bytes to be absent from a public clone; an operator may add
+`--require-local-payloads` for the local laboratory. Passing this lane never
+implies that a human accepted the bibliography, relation, text, rights,
+translation, review, or semantics.
 
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,

@@ -168,6 +168,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import validate_source_witness_foundation as foundation
+import build_source_witness_catalog as catalog_builder
 import build_zarathustra_german_source_triangulation as triangulation_builder
 import build_zarathustra_bounded_translation_input as bounded_input_builder
 
@@ -1070,6 +1071,162 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_source_witness_claim_catalog_is_exact_source_returnable_projection(
+        self,
+    ) -> None:
+        catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
+        manifest = json.loads(
+            (catalog_root / "catalog.manifest.json").read_text(encoding="utf-8")
+        )
+        claim_entries = [
+            json.loads(line)
+            for line in (catalog_root / "claims.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        object_ids = {
+            entry["record_id"]
+            for filename in catalog_builder.RECORD_FILES.values()
+            for line in (catalog_root / filename)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+            for entry in (json.loads(line),)
+        }
+        source_claims: dict[str, tuple[str, int, dict, str]] = {}
+        for basename in catalog_builder.CLAIM_SOURCE_BASENAMES:
+            for path in sorted(
+                (REPO_ROOT / catalog_builder.SOURCE_ROOT).rglob(basename)
+            ):
+                relative = path.relative_to(REPO_ROOT).as_posix()
+                for line_number, raw_line in enumerate(
+                    path.read_text(encoding="utf-8").splitlines(),
+                    start=1,
+                ):
+                    if not raw_line.strip():
+                        continue
+                    claim = json.loads(raw_line)
+                    canonical = catalog_builder.canonical_json(claim).encode(
+                        "utf-8"
+                    )
+                    source_claims[claim["claim_id"]] = (
+                        relative,
+                        line_number,
+                        claim,
+                        hashlib.sha256(canonical).hexdigest(),
+                    )
+
+        self.assertEqual("tos_source_witness_catalog_v2", manifest["schema_version"])
+        self.assertEqual(
+            "ToS/source-witnesses/catalog/claims.jsonl",
+            manifest["claim_file"],
+        )
+        self.assertEqual(65, manifest["counts"]["object_total"])
+        self.assertEqual(31, manifest["counts"]["claim"])
+        self.assertEqual(96, manifest["counts"]["total"])
+        self.assertEqual(31, len(claim_entries))
+        self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
+
+        for entry in claim_entries:
+            relative, line_number, claim, claim_digest = source_claims[
+                entry["claim_id"]
+            ]
+            self.assertEqual(relative, entry["source_claim_file_ref"])
+            self.assertEqual(line_number, entry["source_claim_line"])
+            self.assertEqual(claim_digest, entry["claim_sha256"])
+            for field in (
+                "claim_type",
+                "assertion_layer",
+                "subject_ref",
+                "predicate",
+                "object",
+                "evidence_refs",
+                "maker",
+                "provenance_event_ref",
+                "epistemic_status",
+                "review_status",
+                "claim_version",
+            ):
+                self.assertEqual(claim[field], entry[field])
+            self.assertEqual(
+                [review["review_id"] for review in claim["reviews"]],
+                entry["review_refs"],
+            )
+            self.assertIn(entry["subject_ref"], object_ids)
+            if (
+                isinstance(entry["object"], str)
+                and entry["object"].startswith("tos.")
+            ):
+                self.assertIn(entry["object"], object_ids)
+
+        self.assertEqual(
+            {
+                "bibliographic_assertion": 21,
+                "scholarly_report": 10,
+            },
+            {
+                layer: sum(
+                    entry["assertion_layer"] == layer for entry in claim_entries
+                )
+                for layer in {
+                    entry["assertion_layer"] for entry in claim_entries
+                }
+            },
+        )
+        self.assertTrue(
+            all(
+                entry["claim_type"] == "bibliographic"
+                and entry["review_status"] == "unreviewed"
+                and entry["visibility"] == "public_metadata_only"
+                for entry in claim_entries
+            )
+        )
+        ecce_roles = {
+            entry["predicate"]: entry["object"]
+            for entry in claim_entries
+            if entry["subject_ref"]
+            in {
+                "tos.work.friedrich-nietzsche.ecce-homo",
+                "tos.edition.friedrich-nietzsche.ecce-homo."
+                "leipzig-insel-verlag-1908",
+            }
+        }
+        self.assertEqual(
+            {
+                "authored_by": "tos.agent.friedrich-nietzsche",
+                "edited_by": "tos.agent.raoul-richter",
+                "afterword_by": "tos.agent.raoul-richter",
+                "designed_by": "tos.agent.henry-van-de-velde",
+            },
+            ecce_roles,
+        )
+
+    def test_source_witness_claim_catalog_rejects_nonpublic_claims(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            claim_path = (
+                repo_root
+                / catalog_builder.SOURCE_ROOT
+                / "works/example/responsibility-claims.jsonl"
+            )
+            claim_path.parent.mkdir(parents=True)
+            claim_path.write_text(
+                json.dumps(
+                    {
+                        "claim_id": "tos.claim.example.local-only",
+                        "visibility": "local_only",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                catalog_builder.CatalogBuildError,
+                "is not safe for the tracked claim catalog",
+            ):
+                catalog_builder.collect_claims(repo_root)
+
     def test_ekgwb_rights_separate_private_adaptation_from_sharing(self) -> None:
         validator, _ = foundation._schema_validator(
             foundation.RIGHTS_SCHEMA,

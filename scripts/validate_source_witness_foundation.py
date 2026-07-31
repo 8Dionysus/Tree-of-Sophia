@@ -23,6 +23,7 @@ from jsonschema.validators import validator_for
 
 from build_source_witness_catalog import (
     CATALOG_ROOT,
+    CLAIM_CATALOG_PATH,
     RECORD_FILES,
     SOURCE_BASENAMES,
     SOURCE_ROOT,
@@ -5353,6 +5354,29 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     f"{_relative(catalog_path, repo_root)}:{index}",
                     issues,
                 )
+    claim_entry_schema = catalog_schema.get("$defs", {}).get("claim_entry")
+    if isinstance(claim_entry_schema, dict):
+        claim_entry_schema = dict(claim_entry_schema)
+        claim_entry_schema["$defs"] = {
+            "tosId": catalog_schema["$defs"]["tosId"],
+        }
+        claim_entry_class = validator_for(claim_entry_schema)
+        claim_entry_class.check_schema(claim_entry_schema)
+        claim_entry_validator = claim_entry_class(
+            claim_entry_schema,
+            format_checker=FormatChecker(),
+        )
+        claim_catalog_path = repo_root / CLAIM_CATALOG_PATH
+        for index, entry in enumerate(
+            _load_jsonl(claim_catalog_path, repo_root, issues),
+            start=1,
+        ):
+            _validate_payload(
+                entry,
+                claim_entry_validator,
+                f"{_relative(claim_catalog_path, repo_root)}:{index}",
+                issues,
+            )
 
     return issues
 

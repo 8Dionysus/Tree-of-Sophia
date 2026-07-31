@@ -203,10 +203,14 @@
         "ToS/source-witnesses/**/edition.json",
         "ToS/source-witnesses/**/collection.json",
         "ToS/source-witnesses/**/item.json",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json"
       ],
       "reads": [
-        "tracked source-witness corpus identity records"
+        "tracked source-witness corpus identity and bibliographic claim records"
       ],
       "writes": [
         "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used"

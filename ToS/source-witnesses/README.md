@@ -25,7 +25,8 @@ source-witnesses/
 │   ├── expressions.jsonl
 │   ├── editions.jsonl
 │   ├── collections.jsonl
-│   └── items.jsonl
+│   ├── items.jsonl
+│   └── claims.jsonl                       # generated source-returnable relation index
 ├── works/
 │   └── <responsibility-or-tradition>/
 │       └── <work>/
@@ -69,9 +70,16 @@ speaking routes and explicit responsibility claims in the catalog.
 
 ## Identity and path boundary
 
-The catalog and object records own stable ToS IDs. Filesystem paths are human
-navigation and may improve through reviewed migrations. A path change never
-silently changes object identity.
+Object and claim records own stable ToS IDs. The catalog is their rebuildable
+navigation projection: `claims.jsonl` makes tracked membership, responsibility,
+and publication assertions queryable while preserving exact source file,
+source line, canonical claim digest, evidence, maker, provenance event, and
+review posture. It is not a second claim authority and cannot promote an
+unreviewed relation. The tracked projection admits only `public` or
+`public_metadata_only` packets; less-visible claims require an explicitly
+reviewed public-safe derivative. Filesystem paths are human navigation and may
+improve through reviewed migrations. A path change never silently changes
+object or claim identity.
 
 The corpus follows `work -> expression -> edition -> item -> file`. Aggregate
 volumes route through `collections/` and point to contained works/expressions

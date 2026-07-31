@@ -17,7 +17,7 @@ rights, and forensic evidence.
 | role | primary witness and source-facing evidence surface |
 | input | acquired item, primary-language text, translation, collection membership, source-page metadata, or provenance/rights evidence |
 | output | addressable reviewable witness surface with explicit identity, fixity, source, and rights posture |
-| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, tracked catalog, and nearest object record |
+| owner | `ToS/source-witnesses/AGENTS.md`, `README.md`, nearest object/claim record, and generated tracked catalog |
 | next route | source witness -> `ToS/philosophy/` branch or `ToS/candidate-intake/` pass -> `ToS/canon/` review |
 | tools | manual corpus gate, source route docs, witness manifests |
 | check | route validator when the witness feeds a current public or export surface |
@@ -32,6 +32,10 @@ rights, and forensic evidence.
 - Treat paths as navigation and tracked IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.
+- Treat authored claim packets and provenance events as relation authority.
+  The generated claim catalog is source-returnable navigation only. Project
+  only `public` or `public_metadata_only` claims; fail closed on less-visible
+  packets until a reviewed public-safe derivative exists.
 - Keep only item `payload/` content gitignored. Track manifest, SHA-256,
   provenance, rights, forensic report, and catalog entry.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
@@ -50,8 +54,9 @@ rights, and forensic evidence.
 
 ## Validation
 
-Use the source-foundation validator for catalog, object-record, payload-ignore,
-fixity, rights, and reference mechanics. Use the review checklist for source
-identity, edition, translation, rights, or interpretation judgments. If the
-witness participates in the current bounded route, also use tiny-entry and
+Use the source-foundation validator for object/claim catalog parity,
+source-line/digest return, object/claim closure, payload-ignore, fixity, rights,
+and reference mechanics. Use the review checklist for source identity,
+edition, relation truth, translation, rights, or interpretation judgments. If
+the witness participates in the current bounded route, also use tiny-entry and
 export validators.
