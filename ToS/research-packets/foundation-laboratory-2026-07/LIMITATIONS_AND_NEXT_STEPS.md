@@ -67,6 +67,18 @@ accepted German, reconstructed manuscript, translation relation, semantic
 object, transfer unit, human review task, rights clearance, or publication
 route.
 
+The new *Götzen-Dämmerung* route now separates exact regions in mixed W II
+preparatory soil, D 21/GSA 71/28, additions made after the print manuscript
+was sent, title suggestion and authorial adoption, proof-stage insertions,
+the late migration of *Was ich den Alten verdanke*, the
+1888-produced/1889-dated first publication, the changed non-author-approved
+1893 edition, and later critical addresses. *Magnum in parvo* remains an
+editorial reconstruction challenger, not an author-final Work. These named
+documentary stages are not golden-kernel A/B/C variants. The route admits no
+remote source body, accepted German, synthetic reconstruction, translation
+relation, semantic object, transfer unit, human review task, rights clearance,
+or publication route.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |
@@ -181,6 +193,18 @@ contracts intentionally reject simulated human evidence.
   carries no edition statement and is retained as a first-publication witness;
   it is not the textually altered 1893 second edition, Nietzsche's manuscript,
   a critical text, accepted German, passage gold, or transfer eligibility.
+- The stronger *Götzen-Dämmerung* authorial/publication/critical route is now
+  resolved at metadata level through current GSA ORES/Kalliope, the existing
+  MDZ/BSB Item, Nietzsche Source, HAdW, KSA/KGW, Montinari, Pichler,
+  Röllin's 2024 chronology, D'Iorio's current method, and 2024-2025
+  reconstruction and interpretive research. It preserves region-only mixed
+  W II attribution, the positive but non-exhaustive role of D 21, late
+  additions and migration, responsibility layers, date layers, the separate
+  1893 editorial state, and the current Nietzsche Source timeout. No remote
+  payload was acquired, so the route creates no false Item, complete genetic
+  dossier, admitted German, source-surface collation, translation lane,
+  semantic gold, or transfer unit. One exact question plus reconciled
+  source/rights/competence gates must precede a bounded comparison.
 - The acquired Commons revision of the Getty/Internet Archive *Ecce Homo* PDF
   is an exact source-visible witness to the posthumous 1908 Insel edition,
   copy 965. Its 166-page inventory preserves the visible boundary between
@@ -420,6 +444,13 @@ two lost complete manuscripts, the sole Basel correction leaf, the 1888
 print-run split, and the critical route. The freshest direct control located
 for the latter is Röllin's 2024 layer chronology; a directly titled 2026
 chapter remains metadata-only and changes no witness identity.
+`GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md` then resolves the positive
+D 21 identity, exact-region-only mixed notebook soil, late additions,
+section migration, title responsibility, 1888/1889 chronology, separate
+1893 editorial state, and later critical route. Röllin 2024 remains the
+freshest direct manuscript chronology located; the 2024/2025
+*Magnum in parvo* reconstruction/review and the 2025 interpretive cluster are
+current challengers but change no witness identity.
 Standards and conceptual papers age more slowly than software, model cards,
 licenses, advisories, download sizes, and model/runtime compatibility. Before
 any deferred installation or new run:

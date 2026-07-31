@@ -247,13 +247,35 @@ target work or accepted passage, or make an eligible transfer unit. It creates
 no remote source body, accepted German, target gold, sign, semantic relation,
 human task, or publication permission.
 
-*Götzen-Dämmerung* now has a distinct exact standalone German route through
-the 1889 Naumann/BSB first-publication item, explicitly separated from the
-altered 1893 second edition. The provider's `CC BY-NC-SA 4.0` evidence does not
-accept German, create a translation relation, authorize use of the local PDF
-as a site source, or expand the already frozen target quotas. A future transfer
-experiment may choose a new versioned sampling frame; this v1 report may not
-silently absorb it.
+### Separate *Götzen-Dämmerung* documentary route
+
+*Götzen-Dämmerung* now has a distinct exact standalone German Item and a
+metadata-only route above it:
+
+```text
+exact source-backed regions in mixed W II preparatory soil
+  -> D 21 / GSA 71/28 autograph print manuscript
+    -> late additions, title adoption, proof insertions, section migration
+      -> 1888-produced / 1889-dated Naumann first publication
+        -> existing unlabelled MDZ/BSB Item
+          -> separate Köselitz-edited 1893 second edition
+            -> critical GD address family
+```
+
+W II evidence remains region- and inscription-layer-only. D 21 is positively
+identified, but it is not the print Item or the critical text and cannot erase
+later additions. Köselitz's title suggestion is separate from Nietzsche's
+adoption; the 1893 edition is textually changed and not author-approved.
+*Magnum in parvo* remains an editorial reconstruction challenger, not a
+Nietzsche-authored completed Work or author-final text.
+
+These stages are deliberately named rather than called A/B/C. The provider's
+`CC BY-NC-SA 4.0` evidence does not accept German, create a translation
+relation, authorize use of the local PDF as a site source, or expand the
+already frozen target quotas. The route creates no remote source body, target
+gold, sign, semantic relation, human task, or publication permission. A future
+transfer experiment may choose a new versioned sampling frame; this v1 report
+may not silently absorb it.
 
 *Ecce Homo* now has a distinct exact historical German route through the
 posthumous 1908 Richter/Insel edition, copy 965. The route preserves the

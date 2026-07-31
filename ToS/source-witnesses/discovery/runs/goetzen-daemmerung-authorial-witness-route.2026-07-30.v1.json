@@ -1,0 +1,879 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.goetzen-daemmerung-authorial-witness-route.2026-07-30",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.goetzen-daemmerung",
+      "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf"
+    ],
+    "description": "An exact, responsibility-aware route from region-only mixed W II preparatory material through D 21, late manuscript and proof additions, the 1888-produced and 1889-dated Naumann first publication, the existing unlabelled MDZ/BSB Item, the separate Köselitz-edited 1893 second edition, and the later critical address family.",
+    "required_properties": [
+      "current archive, library, historical-item, critical-edition, and scholarly routes",
+      "mixed W II notebooks admitted only through exact source-backed regions and inscription layers",
+      "D 21 positively identified as the Götzen-Dämmerung print manuscript for E 42",
+      "late additions, title suggestion and authorial adoption, section migration, and proof stages kept distinct",
+      "1888 production, 1889 title-page and sale dates represented without flattening",
+      "1893 Köselitz-edited second edition separated from the existing Item and from author-approved text",
+      "editorial reconstruction and interpretive research classified downstream from witness identity",
+      "digital-object access and reusable-content rights recorded separately",
+      "official evidence checked before established and fresh scholarship",
+      "no remote source text, image, OCR, semantics, transfer unit, or human task admitted"
+    ],
+    "acceptable_substitutions": [
+      "an archive-supplied reproduction of one exact region after operator-approved acquisition and rights review",
+      "a recognized facsimile or critical edition with exact archival lineage and stronger textual authority",
+      "a separately identified 1893 second-edition copy with item-level provenance and rights evidence"
+    ],
+    "languages": [
+      "de",
+      "en",
+      "es"
+    ],
+    "formats": [
+      "archival metadata",
+      "library catalog",
+      "IIIF Presentation 2",
+      "working notebook",
+      "print manuscript",
+      "historical print",
+      "critical-edition HTML",
+      "historical-critical commentary",
+      "research publication",
+      "editorial reconstruction"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-gsa-ores-goetzen-authorial-route",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Goethe- und Schiller-Archiv ORES and Kalliope",
+      "endpoint_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75099",
+      "interface_type": "iiif",
+      "interface_version": "ORES archival records and IIIF Presentation 2 manifests plus current Kalliope finding-aid metadata as served 2026-07-30",
+      "exact_query": "Direct ORES record and manifest reconciliation for D 21 / GSA 71/28 / ORES 75099 and mixed W II 6 / 7 / 8 / 9 objects 75271-75274; Kalliope D 21 extent and E 42 relation; no image-service requests",
+      "queried_at": "2026-07-30T19:02:00-06:00",
+      "elapsed_seconds": 6.284,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gsa-wii6-wii9-goetzen-regions",
+          "rank": 1,
+          "title_as_displayed": "W II 6-W II 9 mixed preparatory notebooks naming Götzen-Dämmerung material",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75271",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75274",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/162; 71/163; 71/164; 71/165"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75271; 75272; 75273; 75274"
+            },
+            {
+              "scheme": "Mette",
+              "value": "W II 6; W II 7; W II 8; W II 9"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "IIIF Presentation 2 manifests",
+            "157, 186, 156, and 138 JPEG canvases",
+            "differentiated-transcription edition references"
+          ],
+          "declared_rights": {
+            "statement": "Each exact ORES IIIF manifest labels its digital object Public Domain; GSA reproduction and publication rules remain a separate layer.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75271/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Current official identities for mixed 1888 notebooks naming several projects and other hands. Only exact HAdW, KGW, or Röllin-backed Götzen-Dämmerung regions and inscription layers may be linked; whole-notebook work membership is prohibited. Earlier W II 1, W II 3, and W II 5 material likewise requires an exact scholarly region address.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Exact live manifest metadata were inspected; no notebook image or metadata body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.gsa-71-28-d21-goetzen-print-manuscript",
+          "rank": 2,
+          "title_as_displayed": "Götzen-Dämmerung print manuscript",
+          "result_url": "https://ores.klassik-stiftung.de/ords/f?p=401:2:::::P2_ID:75099",
+          "originating_record_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75099/manifest",
+          "identifiers": [
+            {
+              "scheme": "GSA",
+              "value": "71/28"
+            },
+            {
+              "scheme": "ORES",
+              "value": "75099"
+            },
+            {
+              "scheme": "Mette",
+              "value": "D 21"
+            },
+            {
+              "scheme": "DFGA",
+              "value": "D-21"
+            }
+          ],
+          "available_formats": [
+            "archival metadata",
+            "Kalliope finding-aid metadata",
+            "IIIF Presentation 2 manifest",
+            "124 JPEG canvases"
+          ],
+          "declared_rights": {
+            "statement": "The exact ORES manifest labels the Götzen-Dämmerung digital object Public Domain.",
+            "scope": "digital-object",
+            "evidence_url": "https://ores.klassik-stiftung.de/ords/rest_api/iiif/digi_gsa/75099/manifest",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "The official record and finding aid identify D 21 / GSA 71/28 as Nietzsche's autograph print manuscript for E 42, Naumann 1889, currently described as 62 leaves. It is a positive Götzen-Dämmerung source identity but does not erase later additions made during typesetting and correction.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact record and manifest were inspected for identity and extent only; no manuscript content was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-mdz-goetzen-1889-existing-item",
+      "sequence": 2,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Bayerische Staatsbibliothek MDZ and B3Kat",
+      "endpoint_url": "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+      "interface_type": "iiif",
+      "interface_version": "Existing reconciled MDZ/B3Kat/IIIF item record captured 2026-07-30",
+      "exact_query": "Reuse the already acquired exact MDZ object bsb00069119, BSB Ph.pr. 881 kc, B3Kat BV020368110, URN urn:nbn:de:bvb:12-bsb00069119-0; verify no edition statement and do not reacquire",
+      "queried_at": "2026-07-30T19:09:00-06:00",
+      "elapsed_seconds": 0.196,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.mdz-bsb-goetzen-1889-existing-item",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung oder Wie man mit dem Hammer philosophirt",
+          "result_url": "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+          "originating_record_url": "https://mdz-nbn-resolving.de/details:bsb00069119",
+          "identifiers": [
+            {
+              "scheme": "MDZ",
+              "value": "bsb00069119"
+            },
+            {
+              "scheme": "BSB shelfmark",
+              "value": "Ph.pr. 881 kc"
+            },
+            {
+              "scheme": "B3Kat",
+              "value": "BV020368110"
+            },
+            {
+              "scheme": "URN",
+              "value": "urn:nbn:de:bvb:12-bsb00069119-0"
+            },
+            {
+              "scheme": "OCLC",
+              "value": "21010699"
+            },
+            {
+              "scheme": "ToS item",
+              "value": "tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf"
+            }
+          ],
+          "available_formats": [
+            "catalog metadata",
+            "IIIF Presentation 2 manifest",
+            "164 source canvases",
+            "existing local gitignored 165-page MDZ PDF"
+          ],
+          "declared_rights": {
+            "statement": "MDZ declares Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International for the exact digital object.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.digitale-sammlungen.de/en/details/bsb00069119",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "iiif",
+          "decision": "select",
+          "rationale": "Exact already acquired unlabelled first-publication Item with visible holding identity and local SHA-256 f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086. It is not D 21, the 1893 second edition, an accepted text, or a critical edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact object is already registered and fixity-verified in ToS; this route added no duplicate acquisition or metadata snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-nietzsche-source-goetzen-critical-route",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Nietzsche Source eKGWB and DFGA",
+      "endpoint_url": "https://www.nietzschesource.org/",
+      "interface_type": "web",
+      "interface_version": "Published eKGWB/DFGA documentation and bounded current HTTPS checks on 2026-07-30",
+      "exact_query": "Verify established eKGWB/GD, GD-Vorwort, GD-Streifzuege-29, GD-Verbesserer-4, and GD-Alten-Hammer address evidence; bounded live request with 20-second timeout; no recursive crawl or body retention",
+      "queried_at": "2026-07-30T19:12:00-06:00",
+      "elapsed_seconds": 20.003,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nietzsche-source-goetzen-live-addresses-timeout",
+          "rank": 1,
+          "title_as_displayed": "eKGWB Götzen-Dämmerung address family",
+          "result_url": "https://www.nietzschesource.org/eKGWB/GD",
+          "originating_record_url": "https://www.nietzschesource.org/documentation/en/eKGWB.html",
+          "identifiers": [
+            {
+              "scheme": "eKGWB",
+              "value": "GD; GD-Vorwort; GD-Streifzuege-29; GD-Verbesserer-4; GD-Alten-Hammer"
+            }
+          ],
+          "available_formats": [
+            "documented critical-edition HTML addresses",
+            "DFGA differentiated-transcription references",
+            "no current response body"
+          ],
+          "declared_rights": {
+            "statement": "Historical Nietzsche Source documentation states CC BY-NC-ND 4.0 for site content; DFGA derivative and non-commercial terms are separate.",
+            "scope": "content",
+            "evidence_url": "https://www.nietzschesource.org/documentation/en/faq.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established citation evidence supports the named critical address examples, but the bounded current request timed out with status 000 and zero response body. No complete section census, critical content, or reusable source was retained.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current transport supplied no body; documentation and citation evidence were recorded without copying critical-edition content."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-goetzen-text-history",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "HAdW, KSA/KGW, Montinari, and Pichler",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70913",
+      "interface_type": "web",
+      "interface_version": "Official HAdW digitization and publisher/DOI records inspected 2026-07-30",
+      "exact_query": "HAdW pages 197-210 plus KSA 14 witness and edition-law preview; Montinari DOI 10.1515/9783110244328.69; Pichler DOI 10.1515/9783110364231; KGW IX W II topology",
+      "queried_at": "2026-07-30T19:18:00-06:00",
+      "elapsed_seconds": 4.817,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-goetzen-production-text-history",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6/1: Götzen-Dämmerung",
+          "result_url": "https://doi.org/10.11588/diglit.70913",
+          "originating_record_url": "https://digi.ub.uni-heidelberg.de/diglit/niw6_1",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.11588/diglit.70913"
+            },
+            {
+              "scheme": "HAdW pages",
+              "value": "197-210"
+            }
+          ],
+          "available_formats": [
+            "open-view scholarly commentary",
+            "page images",
+            "ALTO OCR endpoints",
+            "production chronology and exact source references"
+          ],
+          "declared_rights": {
+            "statement": "Open institutional digitization; no blanket reusable-content conclusion was imported for the scholarly commentary.",
+            "scope": "content",
+            "evidence_url": "https://digi.ub.uni-heidelberg.de/diglit/niw6_1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Established control for the 7 September manuscript, later additions, title change, correction-stage sections, late migration from W II 9c, November completion and copies, delayed January sale, 1893 editorial state, and exact notebook-region examples. It also states that a complete genetic dossier remains incomplete.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Pages and ALTO were inspected in place; no commentary image, OCR, or text body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.montinari-pichler-kgw-goetzen-controls",
+          "rank": 2,
+          "title_as_displayed": "Established Götzen-Dämmerung critical, genetic, and textual-form controls",
+          "result_url": "https://doi.org/10.1515/9783110364231",
+          "originating_record_url": "https://doi.org/10.1515/9783110244328.69",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110244328.69"
+            },
+            {
+              "scheme": "DOI",
+              "value": "10.1515/9783110364231"
+            },
+            {
+              "scheme": "critical editions",
+              "value": "KSA 6, KSA 14, KGW VI 3, KGW IX"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "book preview",
+            "critical-edition witness list",
+            "topological manuscript-edition references"
+          ],
+          "declared_rights": {
+            "statement": "Publisher-controlled scholarship and critical editions; metadata access does not imply reusable content.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/9783110364231",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established controls for reading, textual form, edition law, witness identity, and differentiated notebook topology. They do not supply a complete genetic dossier or authorize a synthetic critical body in ToS.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bounded official preview and publisher/DOI metadata were inspected; no protected work body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-goetzen-chronology-method",
+      "sequence": 5,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Current manuscript chronology and digital-edition method research",
+      "endpoint_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+      "interface_type": "web",
+      "interface_version": "DOI, journal, and article records inspected through 2026-07-30",
+      "exact_query": "2024-01-01 through 2026-07-30 direct Nietzsche manuscript chronology, Götzen-Dämmerung textual genetics, Nietzsche Source method, and edition updates; Crossref and publisher records reconciled",
+      "queried_at": "2026-07-30T19:25:00-06:00",
+      "elapsed_seconds": 4.327,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rollin-manuscript-chronology-2024",
+          "rank": 1,
+          "title_as_displayed": "Chronologie der Manuskripte 1885–89. Nachtrag zu KGW IX",
+          "result_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1515/nietzstu-2024-0001"
+            },
+            {
+              "scheme": "publication year",
+              "value": "2024"
+            }
+          ],
+          "available_formats": [
+            "open article",
+            "inscription-layer chronology"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution 4.0 International.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/nietzstu-2024-0001",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest direct layer-chronology control located. It supports dating inscription layers and exact regions, not assigning a whole mixed notebook to one work.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article was inspected for method and chronology only; no body was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.diorio-nietzsche-source-method-2025",
+          "rank": 2,
+          "title_as_displayed": "Nietzsche Source: Buscar, verificar, citar",
+          "result_url": "https://doi.org/10.1590/2316-82422024v4503pd",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1590/2316-82422024v4503pd"
+            },
+            {
+              "scheme": "online publication",
+              "value": "2025-01"
+            }
+          ],
+          "available_formats": [
+            "open article",
+            "digital-edition method and citation guidance"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution-NonCommercial 4.0 International.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1590/2316-82422024v4503pd",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current method and citation control for Nietzsche Source. It is not a physical witness, critical-text payload, or proof of current transport availability.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article was classified as method documentation; no body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-goetzen-reconstruction-interpretation",
+      "sequence": 6,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Alianza Editorial, Quaderns de filosofia, and Nietzscheforschung",
+      "endpoint_url": "https://www.alianzaeditorial.es/libro/bibliotecas-de-autor/magnum-in-parvo-friedrich-nietzsche-9788411485265/",
+      "interface_type": "web",
+      "interface_version": "Publisher, DOI, Crossref, and journal records checked through 2026-07-30",
+      "exact_query": "Direct 2024-2026 Götzen-Dämmerung reconstruction, review, textual-genetic, and interpretive research; publication dates and licenses checked at publisher, DOI, and journal records",
+      "queried_at": "2026-07-30T19:31:00-06:00",
+      "elapsed_seconds": 5.941,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.riera-magnum-in-parvo-reconstruction-2024",
+          "rank": 1,
+          "title_as_displayed": "Magnum in parvo: Una filosofía en compendio",
+          "result_url": "https://www.alianzaeditorial.es/libro/bibliotecas-de-autor/magnum-in-parvo-friedrich-nietzsche-9788411485265/",
+          "originating_record_url": "https://doi.org/10.7203/qfia.12.1.30769",
+          "identifiers": [
+            {
+              "scheme": "paper ISBN",
+              "value": "978-84-1148-526-5"
+            },
+            {
+              "scheme": "EPUB ISBN",
+              "value": "978-84-1148-536-4"
+            },
+            {
+              "scheme": "publication date",
+              "value": "2024-01-18"
+            },
+            {
+              "scheme": "review DOI",
+              "value": "10.7203/qfia.12.1.30769"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "commercial paper and EPUB editions",
+            "2025 scholarly review"
+          ],
+          "declared_rights": {
+            "statement": "Commercial publisher edition; no reusable-content license located for the reconstruction.",
+            "scope": "content",
+            "evidence_url": "https://www.alianzaeditorial.es/libro/bibliotecas-de-autor/magnum-in-parvo-friedrich-nietzsche-9788411485265/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Significant editorial reconstruction from posthumous fragments and original manuscripts associated with a proposed compact project later distributed across Götzen-Dämmerung and Der Antichrist. It is a challenger, not a Nietzsche-authored published Work, author-final Expression, physical source witness, or replacement for D 21 and the named publications.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Publisher metadata and the review were sufficient for classification; no commercial edition body was accessed or retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.nietzscheforschung-goetzen-cluster-2025",
+          "rank": 2,
+          "title_as_displayed": "Nietzscheforschung 32 Götzen-Dämmerung cluster",
+          "result_url": "https://doi.org/10.1515/nifo-2025-011",
+          "originating_record_url": "https://doi.org/10.1515/nifo-2025-017",
+          "identifiers": [
+            {
+              "scheme": "DOI range",
+              "value": "10.1515/nifo-2025-011 through 10.1515/nifo-2025-017"
+            },
+            {
+              "scheme": "publication dates",
+              "value": "2025-10-07; 2025-10-08"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata",
+            "seven direct interpretive article records"
+          ],
+          "declared_rights": {
+            "statement": "Publisher-controlled journal content; no common reusable-content license was established for the cluster.",
+            "scope": "content",
+            "evidence_url": "https://doi.org/10.1515/nifo-2025-011",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Fresh direct interpretation of relevance, gender vocabulary, stupidity, dream and decadence, free will, reason, and immoralism. These claims belong downstream from source identity and do not change D 21, the production route, or the 1893 edition boundary.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only publisher and DOI metadata were needed to classify the cluster; no article body was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-goetzen-authorial-route",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search",
+      "endpoint_url": "https://www.google.com/search?q=%22G%C3%B6tzen-D%C3%A4mmerung%22+manuscript+1888+2026",
+      "interface_type": "web",
+      "interface_version": "Search results as observed 2026-07-30",
+      "exact_query": "\"Götzen-Dämmerung\" manuscript 1888 2026; \"D 21\" \"Götzen-Dämmerung\"; \"Magnum in parvo\" Nietzsche; all useful leads reopened at archive, library, DOI, publisher, repository, or institutional records",
+      "queried_at": "2026-07-30T19:38:00-06:00",
+      "elapsed_seconds": 1.624,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.gutenberg-goetzen-derived-html",
+          "rank": 1,
+          "title_as_displayed": "Götzen-Dämmerung, Project Gutenberg ebook 7203",
+          "result_url": "https://www.gutenberg.org/ebooks/7203",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "Project Gutenberg",
+              "value": "7203"
+            },
+            {
+              "scheme": "release and update",
+              "value": "2005; 2020"
+            }
+          ],
+          "available_formats": [
+            "derived HTML",
+            "plain text",
+            "ebook"
+          ],
+          "declared_rights": {
+            "statement": "Project Gutenberg public-domain statement is scoped to the United States.",
+            "scope": "content",
+            "evidence_url": "https://www.gutenberg.org/ebooks/7203",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Derived from Gutenberg-DE HTML with no exact historical-copy or critical-edition lineage. Open availability and US-scoped rights do not make it accepted German or source authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No derived text was retained after the lineage and authority failure."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-goetzen-challenger",
+          "rank": 2,
+          "title_as_displayed": "Götzen-Dämmerung TextGrid/Kolimo corpus record",
+          "result_url": "https://textgridrep.org/browse/4k1x3.0",
+          "originating_record_url": "https://textgridrep.org/browse/4k23k.0",
+          "identifiers": [
+            {
+              "scheme": "TextGrid object",
+              "value": "textgrid:4k1x3.0"
+            },
+            {
+              "scheme": "TextGrid work",
+              "value": "textgrid:4k23k.0"
+            }
+          ],
+          "available_formats": [
+            "corpus metadata",
+            "modern digital text"
+          ],
+          "declared_rights": {
+            "statement": "Repository-level access was located, but exact text-layer license and historical lineage were not admitted by this route.",
+            "scope": "content",
+            "evidence_url": "https://textgridrep.org/browse/4k1x3.0",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Potential later corpus challenger, not the 1889 Item, D 21, or a critical text. It requires an independent lineage, rights, and quality admission before any textual use.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No corpus text or metadata body was retained because the current task was documentary routing, not challenger admission."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.general-web-goetzen-reprints-summaries",
+          "rank": 3,
+          "title_as_displayed": "Modern reprints, AI summaries, blogs, and commercial original-manuscript claims",
+          "result_url": "https://www.google.com/search?q=%22G%C3%B6tzen-D%C3%A4mmerung%22+%22original+manuscript%22",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "search leads",
+            "commercial reprints",
+            "blogs",
+            "AI summaries",
+            "unprovenanced digital texts"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No originating archive or item-level identity, frequent conflation of manuscript, first print, later edition, modern text, and interpretation, and no usable rights chain. No result was admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No noisy result page, commercial artifact, generated summary, or unprovenanced text was retained."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-gsa-ores-goetzen-authorial-route",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 31,
+      "machine_seconds": 6.284,
+      "notes": "Authoritative D 21 identity and extent plus named W II 6-W II 9 physical soil, project mixture, other-hand warnings, canvas counts, and digital-object labels; exact region membership still depends on scholarly source addresses."
+    },
+    {
+      "channel_id": "channel-mdz-goetzen-1889-existing-item",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 4,
+      "machine_seconds": 0.196,
+      "notes": "Reuses the exact existing Item, fixity, page mapping, and license evidence; no duplicate acquisition and no 1893 edition identity inferred."
+    },
+    {
+      "channel_id": "channel-nietzsche-source-goetzen-critical-route",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "poor",
+      "human_minutes": 9,
+      "machine_seconds": 20.003,
+      "notes": "Stable GD address examples remain supported by documentation and citations, but the current HTTPS request timed out with status 000 and no body or complete address census."
+    },
+    {
+      "channel_id": "channel-established-goetzen-text-history",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 44,
+      "machine_seconds": 4.817,
+      "notes": "Established production chronology, late additions, title responsibility, section migration, notebook-region examples, 1893 separation, critical edition law, and topological method; no complete genetic dossier or source body admitted."
+    },
+    {
+      "channel_id": "channel-fresh-goetzen-chronology-method",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 18,
+      "machine_seconds": 4.327,
+      "notes": "Direct open 2024 inscription-layer chronology and current 2025 Nietzsche Source method; both strengthen method without replacing physical witnesses."
+    },
+    {
+      "channel_id": "channel-fresh-goetzen-reconstruction-interpretation",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 27,
+      "machine_seconds": 5.941,
+      "notes": "A significant 2024 editorial reconstruction with 2025 review and a seven-article 2025 interpretive cluster; all remain downstream challengers and none changes witness identity."
+    },
+    {
+      "channel_id": "channel-general-web-goetzen-authorial-route",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 6,
+      "machine_seconds": 1.624,
+      "notes": "Used last for missing-route and freshness leads; Gutenberg-derived text and unprovenanced reprints/summaries were rejected, while TextGrid remains a future challenger only."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.gsa-wii6-wii9-goetzen-regions",
+    "tos-discovery-result.gsa-71-28-d21-goetzen-print-manuscript",
+    "tos-discovery-result.mdz-bsb-goetzen-1889-existing-item",
+    "tos-discovery-result.nietzsche-source-goetzen-live-addresses-timeout",
+    "tos-discovery-result.hadw-goetzen-production-text-history",
+    "tos-discovery-result.montinari-pichler-kgw-goetzen-controls",
+    "tos-discovery-result.rollin-manuscript-chronology-2024",
+    "tos-discovery-result.diorio-nietzsche-source-method-2025"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.gutenberg-goetzen-derived-html",
+    "tos-discovery-result.general-web-goetzen-reprints-summaries"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-07-30T19:02:00-06:00",
+  "ended_at": "2026-07-30T19:40:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.goetzen-daemmerung.authorial-witness-route.2026-07-30"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

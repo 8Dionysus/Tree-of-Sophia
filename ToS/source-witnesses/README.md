@@ -323,6 +323,21 @@ identity or difference. Open archive routes create no admitted source body,
 accepted German, author-final reconstruction, publication permission,
 transfer unit, semantic object, or human queue.
 
+The exact 1889-dated *Götzen-Dämmerung* Item now also has a metadata-only
+documentary route. W II preparatory notebooks remain mixed surfaces whose
+work relation requires exact regions and inscription layers. D 21
+(`GSA 71/28`) is the positive autograph print manuscript for E 42, but it
+does not erase the additions sent after 7 September, proof-stage insertions,
+or the late migration of *Was ich den Alten verdanke*. Köselitz's title
+suggestion and Nietzsche's adoption remain distinct responsibility events.
+November 1888 printing and authorial receipt, the 1889 title-page date, and
+late-January 1889 sale remain distinct chronology claims. The
+Köselitz-edited, textually changed, non-author-approved 1893 second edition
+and the modern *Magnum in parvo* editorial reconstruction remain separate
+downstream routes. Open archive records create no admitted source body,
+accepted German, synthetic author-final text, publication permission,
+transfer unit, semantic object, or human queue.
+
 These items are laboratory witnesses, not assumed critical editions. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.

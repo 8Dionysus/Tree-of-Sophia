@@ -1088,6 +1088,49 @@ text, critical body, new Item, accepted German, reconstructed source,
 translation relation, semantic claim, transfer unit, publication permission,
 access request, or human backlog was created.
 
+### *Götzen-Dämmerung* authorial-witness follow-up — 2026-07-30
+
+The exact unlabelled 1889-dated Naumann/BSB Item now has a documentary route
+recorded in `GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md`.
+
+1. **Official archive layer.** Current GSA ORES/Kalliope positively identifies
+   `D 21 / GSA 71/28 / ORES 75099` as Nietzsche's autograph print manuscript
+   for E 42, currently described as 62 leaves and 124 IIIF canvases. W II 6
+   through W II 9 are named physical preparatory soil, but they contain
+   several projects and other hands. Earlier W II 1/W II 3/W II 5 material
+   and all work membership require exact HAdW/KGW/Röllin-backed regions and
+   inscription layers; no whole notebook is promoted.
+2. **Established production layer.** Sommer's 2012 HAdW commentary records
+   the 7 September clean manuscript, the 18 September addition, Köselitz's
+   title suggestion and Nietzsche's adoption, proof-stage addition of
+   *Streifzüge* §§32-44, late migration of *Was ich den Alten verdanke* from
+   W II 9c, printing completed 13 November, authorial copies received
+   24 November, the 1889 title-page date, and delayed late-January 1889 sale.
+   These dates, changes, and responsibility layers remain distinct.
+3. **Edition layer.** The existing MDZ/BSB Item remains the exact unlabelled
+   first-publication witness. The Köselitz-edited 1893 second edition added
+   headings and textual changes without Nietzsche's approval and is a
+   separate, unacquired state. KSA/KGW, Montinari, and Pichler control reading,
+   edition law, manuscript topology, and textual form without supplying a
+   complete genetic dossier.
+4. **Fresh and critical layer.** Röllin 2024 supplies the freshest direct
+   inscription-layer chronology; D'Iorio 2024/2025 supplies current Nietzsche
+   Source method. The *Magnum in parvo* 2024 reconstruction and its 2025
+   review remain an editorial challenger, not a Nietzsche-authored completed
+   Work or author-final text. The seven-article 2025
+   *Nietzscheforschung* cluster remains downstream interpretation. Stable
+   `GD` address examples are documented, but the bounded current Nietzsche
+   Source request timed out with status `000` and no body.
+
+The freshness search through 2026-07-30 found no newer direct genetic or
+philological result changing D 21, the region-only notebook law, the
+production chronology, or the separate 1893 editorial state. General web was
+used last; Gutenberg-derived text and unprovenanced reprints or summaries
+were rejected, while TextGrid remains a future challenger only. No remote
+image, manuscript text, critical body, new Item, accepted German, synthetic
+author-final reconstruction, translation relation, semantic claim, transfer
+unit, publication permission, access request, or human backlog was created.
+
 ---
 
 ## Foundation model proposed for contract work

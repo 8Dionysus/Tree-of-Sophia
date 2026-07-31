@@ -133,6 +133,22 @@ semantic object, transfer unit, or human task; and never infers equivalence
 between notebook, lost manuscript, surviving leaf, print issue, and critical
 text.
 
+`goetzen-daemmerung-authorial-witness-route.2026-07-30.v1.json` follows the
+existing 1889 MDZ/BSB Item upstream without manufacturing another Item.
+Current GSA ORES/Kalliope resolves D 21/GSA 71/28 as the positive autograph
+print-manuscript identity and W II 6-W II 9 as mixed, region-addressed
+preparatory soil; HAdW, KSA/KGW, Montinari, and Pichler resolve the late
+additions, title responsibility, section migration, publication chronology,
+and separate 1893 editorial state. Nietzsche Source documents the later
+critical route while the bounded current request remains timed out. The run
+then checks Röllin's 2024 chronology, D'Iorio's current method, the
+*Magnum in parvo* reconstruction and review, the 2025 interpretive cluster,
+and general web last. It downloads no remote image, manuscript, critical
+text, reconstruction, or metadata snapshot; creates no access request,
+source Item, semantic object, transfer unit, or human task; and never
+promotes a whole notebook, the 1893 edition, or an editorial reconstruction
+to Nietzsche's author-final text.
+
 `ecce-homo-authorial-witness-route.2026-07-30.v1.json` follows the 1908
 publication witness into the current archive and critical-edition route. It
 resolves GSA 71/32 = D 25, GSA 71/33 = D 25a, the Peter-Gast-estate

@@ -9,6 +9,19 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the metadata-only *Götzen-Dämmerung* authorial, publication, and
+  critical route through current GSA ORES/Kalliope, the existing 1889
+  MDZ/BSB Item, Nietzsche Source, HAdW, KSA/KGW, Montinari, Pichler, current
+  chronology/method research, the 2024/2025 *Magnum in parvo*
+  reconstruction/review, and the 2025 direct interpretive cluster. It keeps
+  mixed W II material region-only, positively identifies D 21/GSA 71/28,
+  preserves late additions and section migration, separates Köselitz's title
+  suggestion from Nietzsche's adoption, distinguishes 1888 production from
+  the 1889 title-page and sale dates, and keeps the changed,
+  non-author-approved 1893 second edition separate. No remote source body,
+  new Item, accepted German, reconstructed author-final text, semantic or
+  transfer unit, human backlog, rights clearance, or publication permission
+  is created.
 - Added the metadata-only *Der Fall Wagner* authorial, publication, and
   critical route through current GSA ORES, University Library
   Basel/e-manuscripta, the existing 1888 MDZ/Bamberg Item, Nietzsche Source,

@@ -126,6 +126,11 @@ GOETZEN_1889_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "goetzen-daemmerung-naumann-1889-open-scan-witness.2026-07-30.v1.json"
 )
+GOETZEN_AUTHORIAL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "goetzen-daemmerung-authorial-witness-route.2026-07-30.v1.json"
+)
 ECCE_HOMO_1908_ITEM_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -2446,6 +2451,176 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("nominally labelled \"Zweite Auflage\"", route)
         self.assertIn("deliberately named rather than called A/B/C", route)
         self.assertNotIn("Fall Wagner A/B/C witness route", route)
+
+    def test_goetzen_authorial_route_preserves_late_additions_and_editorial_states(
+        self,
+    ) -> None:
+        discovery = json.loads(
+            GOETZEN_AUTHORIAL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        work = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "goetzen-daemmerung/work.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "channel-gsa-ores-goetzen-authorial-route",
+                "channel-mdz-goetzen-1889-existing-item",
+                "channel-nietzsche-source-goetzen-critical-route",
+                "channel-established-goetzen-text-history",
+                "channel-fresh-goetzen-chronology-method",
+                "channel-fresh-goetzen-reconstruction-interpretation",
+                "channel-general-web-goetzen-authorial-route",
+            ],
+            [channel["channel_id"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(8, len(discovery["selected_result_ids"]))
+        self.assertEqual(
+            [
+                "tos-discovery-result.gutenberg-goetzen-derived-html",
+                "tos-discovery-result."
+                "general-web-goetzen-reprints-summaries",
+            ],
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        results = {
+            result["result_id"]: result
+            for channel in discovery["channels"]
+            for result in channel["results"]
+        }
+        notebook_result = results[
+            "tos-discovery-result.gsa-wii6-wii9-goetzen-regions"
+        ]
+        notebook_identifiers = {
+            identifier["scheme"]: identifier["value"]
+            for identifier in notebook_result["identifiers"]
+        }
+        self.assertEqual(
+            "71/162; 71/163; 71/164; 71/165",
+            notebook_identifiers["GSA"],
+        )
+        self.assertEqual(
+            "75271; 75272; 75273; 75274",
+            notebook_identifiers["ORES"],
+        )
+        self.assertIn("whole-notebook", notebook_result["rationale"])
+        self.assertIn("W II 1", notebook_result["rationale"])
+
+        print_manuscript = results[
+            "tos-discovery-result."
+            "gsa-71-28-d21-goetzen-print-manuscript"
+        ]
+        manuscript_identifiers = {
+            identifier["scheme"]: identifier["value"]
+            for identifier in print_manuscript["identifiers"]
+        }
+        self.assertEqual("71/28", manuscript_identifiers["GSA"])
+        self.assertEqual("75099", manuscript_identifiers["ORES"])
+        self.assertEqual("D 21", manuscript_identifiers["Mette"])
+        self.assertEqual("D-21", manuscript_identifiers["DFGA"])
+        self.assertIn(
+            "124 JPEG canvases",
+            print_manuscript["available_formats"],
+        )
+        self.assertEqual(
+            "Public Domain",
+            print_manuscript["declared_rights"]["statement"].split(
+                "labels the Götzen-Dämmerung digital object "
+            )[-1].rstrip("."),
+        )
+
+        reconstruction = results[
+            "tos-discovery-result."
+            "riera-magnum-in-parvo-reconstruction-2024"
+        ]
+        self.assertEqual("defer", reconstruction["decision"])
+        self.assertIn(
+            "editorial reconstruction",
+            reconstruction["rationale"],
+        )
+        self.assertIn(
+            "not a Nietzsche-authored published Work",
+            reconstruction["rationale"],
+        )
+
+        timeout = results[
+            "tos-discovery-result."
+            "nietzsche-source-goetzen-live-addresses-timeout"
+        ]
+        self.assertEqual("unknown", timeout["availability"])
+        self.assertIn("status 000", timeout["rationale"])
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                and result["snapshot"]["state"]
+                in {
+                    "not-captured",
+                    "not-needed",
+                    "not-permitted",
+                }
+                for result in results.values()
+            )
+        )
+
+        self.assertEqual(3, work["record_version"])
+        self.assertIn(
+            "ToS/source-witnesses/discovery/runs/"
+            "goetzen-daemmerung-authorial-witness-route."
+            "2026-07-30.v1.json",
+            work["source_refs"],
+        )
+        self.assertIn("D 21 / GSA 71/28", work["notes"])
+        self.assertIn("November 1888", work["notes"])
+        self.assertIn("1893 second edition", work["notes"])
+        self.assertIn("non-author-approved", work["notes"])
+        self.assertEqual("no_equivalence_claim", work["same_as_posture"])
+
+        provenance_events = [
+            json.loads(line)
+            for line in (
+                GOETZEN_1889_ITEM_ROOT / "provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.discovery.goetzen-daemmerung."
+            "authorial-witness-route.2026-07-30",
+            event["event_id"],
+        )
+        self.assertFalse(
+            event["method"]["configuration"]["human_task_created"]
+        )
+        self.assertFalse(
+            event["method"]["configuration"]["new_item_created"]
+        )
+        self.assertEqual(
+            0,
+            event["method"]["configuration"]["source_payloads_acquired"],
+        )
+        self.assertEqual(
+            0,
+            event["method"]["configuration"]["semantic_objects_created"],
+        )
+
+        route = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("D 21 / GSA 71/28", route)
+        self.assertIn("Streifzüge eines Unzeitgemässen §§32-44", route)
+        self.assertIn("Was ich den Alten verdanke", route)
+        self.assertIn("Köselitz-edited 1893 second edition", route)
+        self.assertIn("editorial reconstruction", route)
+        self.assertIn("deliberately named rather than called A/B/C", route)
+        self.assertNotIn("Götzen-Dämmerung A/B/C witness route", route)
 
     def test_exact_fall_and_goetzen_witnesses_advance_source_not_content(
         self,
