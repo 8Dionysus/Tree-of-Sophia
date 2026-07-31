@@ -29,8 +29,10 @@ GRAPH_PATH = (
     / "graph"
     / "source-witness-bibliographic-claims.min.json"
 )
+GRAPH_REF = "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
 VALIDATION_REFS = (
     "scripts/build_source_witness_bibliographic_graph.py",
+    "scripts/query_source_witness_bibliographic_graph.py",
     "scripts/validate_source_witness_bibliographic_graph.py",
     "tests/test_source_witness_bibliographic_graph.py",
 )
@@ -936,3 +938,212 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
 def render_payload(payload: dict[str, Any]) -> str:
     return canonical_json(payload) + "\n"
+
+
+def load_verified_projection(
+    repo_root: Path = REPO_ROOT,
+    *,
+    graph_path: Path | None = None,
+) -> dict[str, Any]:
+    """Load the tracked reader only after exact source-parity verification."""
+
+    path = graph_path or repo_root / GRAPH_REF
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        try:
+            location = repo_ref(path, repo_root)
+        except ValueError:
+            location = str(path)
+        raise BibliographicGraphBuildError(
+            f"{location}: cannot load bibliographic graph: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise BibliographicGraphBuildError(
+            f"{GRAPH_REF}: bibliographic graph root must be an object"
+        )
+
+    validate_payload_schema(payload, repo_root)
+    _validate_cross_references(payload)
+    if payload.get("projection_fingerprint") != _projection_fingerprint(payload):
+        raise BibliographicGraphBuildError(
+            f"{GRAPH_REF}: projection fingerprint does not match graph content"
+        )
+
+    expected = build_payload(repo_root)
+    if render_payload(payload) != render_payload(expected):
+        raise BibliographicGraphBuildError(
+            f"{GRAPH_REF}: graph differs from the exact source-backed rebuild"
+        )
+    return payload
+
+
+def _source_claim_for_trace(
+    trace: dict[str, Any],
+    *,
+    repo_root: Path,
+) -> dict[str, Any]:
+    source_ref = trace["source_claim_file_ref"]
+    source_line = trace["source_claim_line"]
+    rows = dict(iter_jsonl(repo_root / source_ref, repo_root))
+    claim = rows.get(source_line)
+    if claim is None:
+        raise BibliographicGraphBuildError(
+            f"{trace['claim_ref']}: {source_ref}:{source_line} no longer exists"
+        )
+    digest = canonical_digest(claim)
+    if claim.get("claim_id") != trace["claim_ref"]:
+        raise BibliographicGraphBuildError(
+            f"{source_ref}:{source_line}: source-return claim identity differs"
+        )
+    if digest != trace["source_claim_sha256"]:
+        raise BibliographicGraphBuildError(
+            f"{source_ref}:{source_line}: source-return claim digest differs"
+        )
+    return claim
+
+
+def query_projection(
+    payload: dict[str, Any],
+    *,
+    repo_root: Path = REPO_ROOT,
+    claim_ref: str | None = None,
+    subject_ref: str | None = None,
+    object_ref: str | None = None,
+    predicate: str | None = None,
+    review_status: str | None = None,
+    visibility: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Return deterministic, source-backed claim bundles using AND semantics."""
+
+    selectors = {
+        key: value
+        for key, value in (
+            ("claim_ref", claim_ref),
+            ("subject_ref", subject_ref),
+            ("object_ref", object_ref),
+            ("predicate", predicate),
+            ("review_status", review_status),
+            ("visibility", visibility),
+        )
+        if value is not None
+    }
+    if not selectors:
+        raise BibliographicGraphBuildError(
+            "at least one exact query selector is required"
+        )
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
+        raise BibliographicGraphBuildError("query limit must be an integer from 1 to 100")
+
+    validate_payload_schema(payload, repo_root)
+    _validate_cross_references(payload)
+    if payload.get("projection_fingerprint") != _projection_fingerprint(payload):
+        raise BibliographicGraphBuildError(
+            "projection fingerprint does not match graph content"
+        )
+
+    nodes = {node["node_id"]: node for node in payload["nodes"]}
+    edges_by_claim: dict[str, list[dict[str, Any]]] = {}
+    for edge in payload["edges"]:
+        edges_by_claim.setdefault(str(edge["claim_ref"]), []).append(edge)
+    for edges in edges_by_claim.values():
+        edges.sort(key=lambda edge: str(edge["edge_id"]))
+
+    selected: list[dict[str, Any]] = []
+    for trace in payload["claim_traces"]:
+        subject_node = nodes[trace["subject_node_id"]]
+        object_node = nodes[trace["object_node_id"]]
+        trace_subject_ref = subject_node["properties"].get("identity_ref")
+        trace_object_ref = (
+            object_node["properties"].get("identity_ref")
+            if object_node["node_kind"] == "identity"
+            else None
+        )
+        values = {
+            "claim_ref": trace["claim_ref"],
+            "subject_ref": trace_subject_ref,
+            "object_ref": trace_object_ref,
+            "predicate": trace["predicate"],
+            "review_status": trace["review_status"],
+            "visibility": trace["visibility"],
+        }
+        if any(values[key] != value for key, value in selectors.items()):
+            continue
+
+        source_claim = _source_claim_for_trace(trace, repo_root=repo_root)
+        selected.append(
+            {
+                "claim_ref": trace["claim_ref"],
+                "predicate": trace["predicate"],
+                "claim_sha256": trace["claim_sha256"],
+                "source_return": {
+                    "file_ref": trace["source_claim_file_ref"],
+                    "line": trace["source_claim_line"],
+                    "canonical_sha256": trace["source_claim_sha256"],
+                    "source_claim": source_claim,
+                },
+                "trace": trace,
+                "claim_node": nodes[trace["claim_node_id"]],
+                "subject_node": subject_node,
+                "object_node": object_node,
+                "evidence_nodes": [
+                    nodes[node_id] for node_id in trace["evidence_node_ids"]
+                ],
+                "counterevidence_nodes": [
+                    nodes[node_id] for node_id in trace["counterevidence_node_ids"]
+                ],
+                "maker_node": nodes[trace["maker_node_id"]],
+                "provenance_event_node": nodes[
+                    trace["provenance_event_node_id"]
+                ],
+                "review_nodes": [
+                    nodes[node_id] for node_id in trace["review_node_ids"]
+                ],
+                "edges": edges_by_claim[trace["claim_ref"]],
+            }
+        )
+
+    selected.sort(key=lambda match: str(match["claim_ref"]))
+    if len(selected) > limit:
+        raise BibliographicGraphBuildError(
+            f"query matched {len(selected)} claims, exceeding explicit limit {limit}"
+        )
+
+    query = {
+        "match_semantics": "all_selectors",
+        "selectors": dict(sorted(selectors.items())),
+        "limit": limit,
+    }
+    query_material = {
+        "source_graph_fingerprint": payload["projection_fingerprint"],
+        "query": query,
+        "claim_refs": [match["claim_ref"] for match in selected],
+    }
+    return {
+        "schema_version": "tos_source_witness_bibliographic_query_result_v1",
+        "status": "ok" if selected else "no_match",
+        "owner_repo": "Tree-of-Sophia",
+        "surface_kind": "ephemeral_source_witness_bibliographic_query_result",
+        "source_graph_ref": GRAPH_REF,
+        "source_graph_sha256": hashlib.sha256(
+            render_payload(payload).encode("utf-8")
+        ).hexdigest(),
+        "source_graph_fingerprint": payload["projection_fingerprint"],
+        "query": query,
+        "query_fingerprint": canonical_digest(query_material),
+        "result_count": len(selected),
+        "matches": selected,
+        "authority_boundary": {
+            "role": (
+                "deterministic read-only source return over the generated "
+                "bibliographic graph"
+            ),
+            "does_not_establish": [
+                "claim truth or acceptance",
+                "textual identity, translation, semantics, sign, concept, or canon",
+                "rights to publish source payload bytes",
+                "runtime, service, MCP, UI, Neo4j, RDF, or KAG authority",
+            ],
+        },
+    }

@@ -37,6 +37,8 @@ current bounded Zarathustra route:
   `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 - current source-returnable bibliographic claim graph:
   `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
+- current exact source-return query route:
+  `scripts/query_source_witness_bibliographic_graph.py`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
@@ -55,6 +57,8 @@ identity, catalogs, digests, provenance, rights, forensic evidence, anchors,
 and review remain tracked. Search, vector, graph, and KAG surfaces are
 rebuildable projections. The bibliographic graph keeps claims as explicit
 nodes and does not flatten an unreviewed assertion into a direct fact edge.
+Its read-only query route proves source parity before returning a claim bundle
+and persists no result or judgment.
 
 ## Operating Card
 

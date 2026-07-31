@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a deterministic read-only query route for the source-witness
+  bibliographic graph. Exact claim, subject, identity-object, predicate,
+  review-status, and visibility selectors use AND semantics and return the
+  exact source JSONL object, file/line/digest, reified claim, typed
+  subject/object, evidence, maker, provenance, review nodes, and all
+  claim-centered edges. Every query first validates and source-rebuilds the
+  complete graph. Selector-free requests and silent over-limit truncation are
+  rejected; results are stdout-only and create no truth, review, runtime,
+  service, rights, or canon authority.
 - Added the first corpus-wide source-returnable bibliographic graph under
   `ToS/derived-exports/graph/`. It deterministically reifies all 31 current
   public-metadata-only source-witness claims into 97 nodes, 202 claim-centered

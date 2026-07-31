@@ -76,6 +76,13 @@ assertion reified as a claim node, and reject any edge that loses source return.
 They do not emit direct subject-object truth edges or own graph runtime
 behavior.
 
+The companion bibliographic graph query script is a deterministic, read-only
+stdout reader. It verifies a complete source-backed rebuild before applying
+explicit AND selectors and returns the exact source claim plus complete trace
+bundle. It rejects selector-free requests and silent truncation; it does not
+write query artifacts or create review, relation, runtime, or service
+authority.
+
 The current mechanics-local homes are:
 
 - `mechanics/agon/parts/threshold-registry/`, where the part owns its builder,

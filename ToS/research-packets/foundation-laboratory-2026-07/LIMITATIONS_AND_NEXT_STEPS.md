@@ -115,6 +115,11 @@ contracts intentionally reject simulated human evidence.
   direct subject-object edge and leaves all 31 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
+- Its read-only query route requires an exact selector, validates a full
+  source-backed rebuild before answering, returns the exact source claim and
+  complete trace bundle, and fails rather than silently truncate. This proves
+  deterministic access mechanics only: stdout output is not a reviewed claim,
+  a persistent API, a site/publication route, or measured human trace value.
 - All seven *Mysl* members now have distinct exact historical German
   Edition / Item routes in addition to their provisional Russian
   collection-member expressions. *Ecce Homo* closes the former tree gap with

@@ -174,6 +174,15 @@ review return. They emit no direct subject-to-object fact edge, do not accept a
 claim, do not merge with the atlas graph, and do not own runtime Neo4j,
 Oxigraph, MCP, UI, or service behavior.
 
+`query_source_witness_bibliographic_graph.py` is the read-only local companion.
+It validates the graph and requires an exact source-backed canonical rebuild
+before answering explicit claim, subject, identity-object, predicate,
+review-status, or visibility selectors. Combined selectors are ANDed. Every
+match includes the exact source JSONL object and complete graph trace; the
+reader writes no files, rejects selector-free requests, and fails rather than
+silently truncate an over-limit result. Its stdout is navigation, not claim
+truth, human review, runtime API, MCP, UI, backend, or canon authority.
+
 `build_philosophy_post_planting_audit.py` and
 `validate_philosophy_post_planting_audit.py` publish the compact Table I
 post-planting review packet from the planted atlas, branch, workbench, and
@@ -256,6 +265,7 @@ Local owner routes:
 | philosophy atlas projection | `python scripts/build_philosophy_atlas_projection.py --check` and `python scripts/validate_philosophy_atlas_projection.py` |
 | philosophy graph views | `python scripts/build_philosophy_graph_views.py --check` and `python scripts/validate_philosophy_graph_views.py` |
 | philosophy graph projection | `python scripts/build_philosophy_graph_projection.py --check` and `python scripts/validate_philosophy_graph_projection.py` |
+| source-witness bibliographic graph query | `python scripts/query_source_witness_bibliographic_graph.py --claim-ref <exact-claim-id>` after graph parity and validation |
 | philosophy post-planting audit | `python scripts/build_philosophy_post_planting_audit.py --check` and `python scripts/validate_philosophy_post_planting_audit.py` |
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |

@@ -124,6 +124,13 @@ atlas/view graph projection: one reads the source-witness claim spine, while
 the other reads the philosophy branch and its review lenses. Neither is a
 second owner.
 
+The repository-local query route verifies the entire tracked graph against a
+fresh source-backed rebuild before returning any selected claim. It exposes
+exact AND selectors and returns the source JSONL object plus its complete graph
+trace as deterministic stdout JSON. It refuses unbounded implicit dumps and
+silent truncation, persists nothing, and does not turn a reader into runtime,
+review, or graph authority.
+
 This boundary lets ToS compare graph and retrieval technologies without
 changing what owns philosophical meaning.
 

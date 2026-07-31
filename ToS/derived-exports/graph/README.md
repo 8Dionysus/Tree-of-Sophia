@@ -27,6 +27,28 @@ dates, edition-state descriptions, or unresolved statuses into false
 identities. All current claims remain `unreviewed`; projection cannot change
 that state.
 
+## Read-only query route
+
+`scripts/query_source_witness_bibliographic_graph.py` is the repository-local
+stdout query route. Before returning a result it validates the tracked graph,
+checks its projection fingerprint, rebuilds it from the exact source-owned
+catalog and claim packets, and requires byte-equivalent canonical parity.
+
+The current exact selectors are `claim-ref`, `subject-ref`, identity-valued
+`object-ref`, `predicate`, `review-status`, and `visibility`. Combined
+selectors use AND semantics. Every match returns:
+
+- the exact source claim object, repository-relative JSONL file, line, and
+  canonical digest;
+- the reified claim, subject, and identity-or-literal object nodes;
+- evidence, counterevidence, maker, provenance event, and actual review nodes;
+- every claim-centered edge and the unchanged trace packet.
+
+At least one selector is mandatory. The route returns an explicit `no_match`
+result for an empty result set and fails instead of silently truncating when
+the result count exceeds the declared limit. It writes no query result,
+database, cache, review, or accepted relation.
+
 ## Boundaries
 
 - Source claim packets remain authoritative.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -22,6 +23,8 @@ from source_witness_bibliographic_graph_common import (  # noqa: E402
     _projection_fingerprint,
     _validate_cross_references,
     build_payload,
+    load_verified_projection,
+    query_projection,
     render_payload,
 )
 
@@ -174,6 +177,127 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 "visibility is not safe",
             ):
                 _load_claim_catalog(temp_root)
+
+    def test_exact_claim_query_returns_complete_source_bundle(self) -> None:
+        payload = load_verified_projection()
+        claim_ref = (
+            "tos.claim.edition.ecce-homo.insel-1908.edited-by-raoul-richter"
+        )
+        result = query_projection(payload, claim_ref=claim_ref)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_count"], 1)
+        match = result["matches"][0]
+        self.assertEqual(match["claim_ref"], claim_ref)
+        self.assertEqual(
+            match["source_return"]["source_claim"]["claim_id"],
+            claim_ref,
+        )
+        self.assertEqual(
+            match["source_return"]["canonical_sha256"],
+            match["claim_sha256"],
+        )
+        self.assertEqual(match["subject_node"]["node_kind"], "identity")
+        self.assertEqual(match["object_node"]["node_kind"], "identity")
+        self.assertTrue(match["evidence_nodes"])
+        self.assertEqual(match["maker_node"]["node_kind"], "maker")
+        self.assertEqual(
+            match["provenance_event_node"]["node_kind"],
+            "provenance_event",
+        )
+        self.assertEqual(match["review_nodes"], [])
+        self.assertTrue(match["edges"])
+
+    def test_query_uses_exact_and_semantics(self) -> None:
+        payload = load_verified_projection()
+        subject_ref = (
+            "tos.collection.friedrich-nietzsche."
+            "works-in-two-volumes-volume-2-mysl-1996"
+        )
+        result = query_projection(
+            payload,
+            subject_ref=subject_ref,
+            predicate="contains_work",
+        )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_count"], 7)
+        self.assertEqual(
+            [match["claim_ref"] for match in result["matches"]],
+            sorted(match["claim_ref"] for match in result["matches"]),
+        )
+        for match in result["matches"]:
+            self.assertEqual(match["predicate"], "contains_work")
+            self.assertEqual(
+                match["subject_node"]["properties"]["identity_ref"],
+                subject_ref,
+            )
+
+    def test_query_no_match_is_explicit_and_deterministic(self) -> None:
+        payload = load_verified_projection()
+        first = query_projection(payload, claim_ref="tos.claim.missing")
+        second = query_projection(payload, claim_ref="tos.claim.missing")
+        self.assertEqual(first, second)
+        self.assertEqual(first["status"], "no_match")
+        self.assertEqual(first["result_count"], 0)
+        self.assertEqual(first["matches"], [])
+
+    def test_query_requires_selector_and_rejects_silent_truncation(self) -> None:
+        payload = load_verified_projection()
+        with self.assertRaisesRegex(
+            BibliographicGraphBuildError,
+            "at least one exact query selector",
+        ):
+            query_projection(payload)
+        with self.assertRaisesRegex(
+            BibliographicGraphBuildError,
+            "exceeding explicit limit 20",
+        ):
+            query_projection(payload, review_status="unreviewed")
+
+    def test_verified_loader_rejects_projection_fingerprint_drift(self) -> None:
+        payload = self.load_projection()
+        payload["claim_traces"][0]["predicate"] = "tampered_predicate"
+        with tempfile.TemporaryDirectory() as temporary:
+            graph_path = Path(temporary) / "graph.json"
+            graph_path.write_text(
+                json.dumps(payload, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                BibliographicGraphBuildError,
+                "projection fingerprint does not match",
+            ):
+                load_verified_projection(graph_path=graph_path)
+
+    def test_query_cli_emits_json_and_rejects_unbounded_dump(self) -> None:
+        script = REPO_ROOT / "scripts" / "query_source_witness_bibliographic_graph.py"
+        claim_ref = (
+            "tos.claim.edition.der-fall-wagner.naumann-1888."
+            "nominal-later-issue-state"
+        )
+        completed = subprocess.run(
+            [sys.executable, str(script), "--claim-ref", claim_ref],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads(completed.stdout)
+        self.assertEqual(result["result_count"], 1)
+        self.assertEqual(result["matches"][0]["claim_ref"], claim_ref)
+        self.assertNotIn("/srv/", completed.stdout)
+        self.assertNotIn("/home/", completed.stdout)
+
+        rejected = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(rejected.returncode, 2)
+        self.assertEqual(rejected.stdout, "")
+        self.assertIn("at least one exact query selector", rejected.stderr)
 
 
 if __name__ == "__main__":

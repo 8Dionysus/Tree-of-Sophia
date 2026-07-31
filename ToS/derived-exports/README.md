@@ -53,7 +53,12 @@ The source-witness bibliographic graph separately projects the public-safe
 object/claim catalog into a claim-reified graph. Every edge returns to the
 claim packet, evidence, maker, provenance event, review posture, exact source
 line, and digest; it contains no unqualified subject-to-object edge and does
-not widen the atlas projection into a bibliographic owner.
+not widen the atlas projection into a bibliographic owner. The local
+`scripts/query_source_witness_bibliographic_graph.py` reader verifies a fresh
+source-backed rebuild before answering exact claim, subject, identity-object,
+predicate, review-status, or visibility selectors. It returns deterministic
+stdout JSON with the exact source claim and full trace, writes no state, and
+fails rather than truncate an over-limit match set.
 The lexical projection is a source-withholding, non-sequential companion over
 four local DTA TEIs: form hashes, counts, and TEI page/division refs only. Its
 source-bearing SQLite/FTS5 sibling remains gitignored. The hashes are

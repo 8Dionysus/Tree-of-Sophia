@@ -203,12 +203,12 @@
       "family": "generated_parity",
       "validation_lane": "graph_exports",
       "owner_surface": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
-      "protects": "claim-reified bibliographic graph parity, identity-versus-literal typing, exact claim/evidence/maker/provenance/review return, nonpublic fail-closed routing, and the absence of direct subject-object truth edges",
+      "protects": "claim-reified bibliographic graph parity, identity-versus-literal typing, exact claim/evidence/maker/provenance/review return, nonpublic fail-closed routing, absence of direct subject-object truth edges, and deterministic selector-bound source-return CLI behavior without silent truncation",
       "coverage_authority": "tests/AGENTS.md root unittest discovery",
       "mode": "blocking",
       "runtime_cost": "fast",
       "focused_target": "tests/test_source_witness_bibliographic_graph.py",
-      "failure_route": "Fix the source claim/catalog owner, graph schema, builder, validator, or generated projection before changing test expectations.",
+      "failure_route": "Fix the source claim/catalog owner, graph schema, builder, validator, query reader, or generated projection before changing test expectations.",
       "disposition": "keep"
     },
     {

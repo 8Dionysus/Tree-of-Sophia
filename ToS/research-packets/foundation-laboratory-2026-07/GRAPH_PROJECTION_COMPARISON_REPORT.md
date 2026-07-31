@@ -105,6 +105,33 @@ typing, evidence, maker, provenance time/method, and empty human-review routes
 back to the exact source packet. These are advisory nonhuman trace inspections,
 not truth review.
 
+### Current-corpus read-only query route
+
+The subsequent projection now has a repository-local stdout query reader. It
+does not add a graph backend or change the frozen A/B/C result. Before
+answering, the reader validates the tracked payload, verifies its projection
+fingerprint, rebuilds the complete graph from the exact catalog and source
+packets, and requires canonical parity.
+
+Manual probes outside the unit-test harness established:
+
+- the exact `Ecce Homo` `edited_by` claim returned the Edition and Raoul
+  Richter identity nodes, source JSONL line 2 and its canonical digest,
+  evidence, `model:codex` maker, timestamped annotation event, and unchanged
+  `unreviewed` status;
+- the exact *Der Fall Wagner* nominal-issue claim returned a literal object
+  rather than an identity, preserving both textual identity and textual
+  difference as `unresolved`;
+- an AND query for the *Mysl* collection subject plus `contains_work`
+  returned exactly the seven sorted membership claims;
+- a selector-free invocation exited 2 instead of dumping the graph;
+- a 31-match `unreviewed` request with the default limit 20 exited 2 instead
+  of returning a silently truncated result.
+
+The output is deterministic navigation and includes the exact source claim
+object. It is not human trace-time evidence, bibliographic acceptance, a
+runtime API, site contract, or publication surface.
+
 ## Frozen graph soil
 
 Tracked inputs:

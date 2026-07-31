@@ -17,7 +17,7 @@ ToS authority.
 | output | generated export payloads and compact read models |
 | owner | `ToS/derived-exports/AGENTS.md` for route law; generator scripts for payload construction |
 | next route | source-owned input or generator -> regenerate -> validate export |
-| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, philosophy-atlas projection builder/validator, philosophy graph-view catalog builder/validator, philosophy graph-projection builder/validator, source-witness bibliographic graph builder/validator, source validators |
+| tools | KAG export generator/validator, corpus-index builder/validator, lexical-index builder/validator, philosophy-atlas projection builder/validator, philosophy graph-view catalog builder/validator, philosophy graph-projection builder/validator, source-witness bibliographic graph builder/validator/query reader, source validators |
 | check | generated parity and export validation |
 
 ## Boundary Routes
@@ -43,6 +43,10 @@ ToS authority.
   Keep the claim as the relation center, retain literal objects as literals,
   and require every edge to return to claim, evidence, maker, provenance, and
   review posture.
+- Let the repository-local bibliographic query reader verify exact
+  source-backed parity before returning deterministic stdout bundles. It must
+  require an explicit selector, fail rather than silently truncate, write no
+  state, and create no review, relation, runtime, or service authority.
 
 ## Validation
 

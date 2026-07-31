@@ -63,14 +63,18 @@ through a source-owned tiny-entry seam before any downstream export.
 - machine-facing root-entry companion: `ToS/derived-exports/root_entry_map.min.json`
 - source-returnable bibliographic claim graph:
   `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
+- exact read-only claim trace route:
+  `scripts/query_source_witness_bibliographic_graph.py`
 - bounded export seam: [mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md)
 
 The tiny-entry seam is orientation, not a second canon. The bibliographic graph
 reifies every source claim and returns each edge to its exact claim, evidence,
 maker, provenance event, and review posture; it emits no unqualified
-subject-to-object truth edge. Export seams may serve `aoa-kag`, graph
-consumers, and future visualization stacks, but they do not become ToS
-authority.
+subject-to-object truth edge. Its local query route verifies full source parity
+before returning the exact source JSONL object and complete trace bundle; it
+writes no state and does not accept the claim. Export seams may serve
+`aoa-kag`, graph consumers, and future visualization stacks, but they do not
+become ToS authority.
 
 ## Repository Organs
 

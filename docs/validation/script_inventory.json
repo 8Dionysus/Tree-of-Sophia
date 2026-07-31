@@ -275,6 +275,33 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/query_source_witness_bibliographic_graph.py",
+      "family": "projection_reader",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/derived-exports/graph/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/catalog/catalog.manifest.json",
+        "ToS/source-witnesses/catalog/*.jsonl",
+        "ToS/source-witnesses/**/membership-claims.jsonl",
+        "ToS/source-witnesses/**/responsibility-claims.jsonl",
+        "ToS/source-witnesses/**/publication-claims.jsonl",
+        "ToS/source-witnesses/**/*provenance*.jsonl",
+        "ToS/source-witnesses/**/*anchor*.jsonl",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+      ],
+      "reads": [
+        "generated bibliographic graph plus the complete public-safe catalog and exact source-owned claim, evidence, anchor, and provenance records required to prove rebuild parity"
+      ],
+      "writes": [],
+      "side_effects": "deterministic stdout JSON only; selector-free and over-limit reads fail closed",
+      "validation_lane": "graph_exports",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_source_resource_inventories.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
