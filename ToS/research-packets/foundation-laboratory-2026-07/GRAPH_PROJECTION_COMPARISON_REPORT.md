@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 92 public-metadata-only bibliographic claims;
-- 283 nodes and 583 edges;
-- 92 claim trace packets;
-- 12 claim-scoped literal objects;
-- 12 resolved provenance events carrying exact time and method;
+- 99 public-metadata-only bibliographic claims;
+- 301 nodes and 627 edges;
+- 99 claim trace packets;
+- 19 claim-scoped literal objects;
+- 13 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 92 explicit `unreviewed` states.
+- 99 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -69,6 +69,10 @@ are bibliographic topology claims, not textual-equivalence assertions.
 The responsibility layer separately closes seven Work `authored_by` Friedrich
 Nietzsche claims—one per current Work—without deriving authorship from folder
 names or collapsing it into a generic creator edge.
+The chronology layer separately carries seven Work
+`first_publication_chronology` literal profiles. Their staged/private/public
+and posthumous distinctions remain claim objects; the graph does not select a
+single Work year or convert ordering into truth.
 
 Every structural edge begins at a reified claim node and carries the source
 claim digest, source file/line, evidence nodes, maker, provenance event, and
@@ -94,12 +98,17 @@ builder or validator. It found:
 
 - exact raw-record/claim closure for 20 `has_expression`, 20 `embodied_by`,
   and 15 `exemplified_by` relations;
-- 92/92 catalog rows returning to the expected source line and canonical
+- exact one-to-one closure between seven current Work records and seven
+  `first_publication_chronology` claims, including one staged and six
+  single-event profiles;
+- byte-level agreement for the chronology claim-file output digest and all 18
+  input digests recorded by its provenance event;
+- 99/99 catalog rows returning to the expected source line and canonical
   claim digest;
-- 92/92 graph traces returning to the same source line and digest;
-- 283 nodes, including 92 claims, 65 identities, 101 evidence nodes, 12
-  literals, one maker, and 12 provenance events;
-- 583/583 edges beginning at their own reified claim node;
+- 99/99 graph traces returning to the same source line and digest;
+- 301 nodes, including 99 claims, 65 identities, 104 evidence nodes, 19
+  literals, one maker, and 13 provenance events;
+- 627/627 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 A temporary negative probe then removed one Work-owned
@@ -113,6 +122,15 @@ A second isolated negative probe removed the *Antichrist* Work's sole
 the orphaned `authored_by` claim, the stale catalog, and the changed
 digest-bound Work input together. The production tree was not altered by that
 probe.
+
+A third clean-copy baseline passed before two chronology mutations were tried
+separately. Changing the staged *Zarathustra* interval end from 1885 to 1884
+was rejected because it no longer matched the last stage, no longer matched
+the provenance digest, and made the generated catalog stale. Restoring that
+claim and removing the Work's sole `chronology_claim_refs` entry was rejected
+as a missing exact chronology closure, a changed topology-provenance input,
+and a stale catalog. The temporary copies were then deleted; the production
+tree was not altered.
 
 ### Current-corpus read-only query route
 
@@ -145,12 +163,19 @@ Manual probes outside the unit-test harness established:
   explicit `no_match`;
 - a bounded `authored_by` query returned exactly seven sorted Work claims, each
   to the Friedrich Nietzsche Agent;
+- a bounded `first_publication_chronology` query returned exactly seven sorted
+  Work claims from the dedicated chronology source file; the *Zarathustra*
+  source return preserved four stages with `public/public/public/private`
+  availability;
+- the same chronology predicate paired with a *Der Fall Wagner* Edition
+  returned explicit `no_match`, and limit 6 rejected all seven matches instead
+  of truncating them;
 - an *Antichrist* Work plus Raoul Richter plus `authored_by` query returned
   explicit `no_match`;
 - a selector-free invocation exited 2 instead of dumping the graph;
 - a 20-match `embodied_by` request with limit 19 exited 2 instead of returning
   a silently truncated result; a seven-match `authored_by` request with limit
-  6 likewise exited 2, and the 92-match `unreviewed` route remains
+  6 likewise exited 2, and the 99-match `unreviewed` route remains
   over-limit by default.
 
 The output is deterministic navigation and includes the exact source claim

@@ -64,6 +64,28 @@ variants of a generic creator field. A role not yet admitted by the governing
 schema and validator remains an explicit research need rather than an
 untyped edge.
 
+## Chronology law
+
+A Work has no single self-evident date. Composition, inscription, dispatch,
+printing, title-page year, private issue, public sale, posthumous editing,
+reception, preservation, and digitization are different temporal claims.
+Ordering a corpus therefore requires a named facet and keeps the claim that
+supplied it source-returnable.
+
+The first bounded source profile is `first_publication_chronology`. Its object
+retains a Gregorian interval, the meaning of its boundaries, one event or an
+ordered sequence of stages, availability posture, precision, and an explicit
+ordering warning. A staged Work may have different earliest-publication and
+sequence-completion boundaries. A private completion does not become public
+availability, and a posthumous first print does not become authorial
+completion or an author-final text.
+
+`chronology_claim_refs` link a Work to these evidence-bearing packets without
+putting a mutable year into identity. Derived timelines may sort by interval
+start or end only when they declare the chosen facet and uncertainty law. The
+current first-publication profile creates no composition chronology, universal
+canonical order, human acceptance, semantic relation, or canon.
+
 ## Identifier law
 
 Corpus identifiers use the local family:

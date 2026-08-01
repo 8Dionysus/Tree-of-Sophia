@@ -11,7 +11,7 @@ home.
 | Path | Use For | Stronger Than |
 | --- | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation ladder, and authored route doctrine | review notes and generated readers |
-| `source-witnesses/` | tracked corpus catalog, work/expression/edition/item tree, explicit identity-ladder claims, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
+| `source-witnesses/` | tracked corpus catalog, work/expression/edition/item tree, explicit identity-ladder and chronology claims, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
 | `zarathustra/` | first golden growth kernel plus public-entry orientation for the bounded Zarathustra path | generic orientation and generated readers |
 | `research-packets/` | non-authoritative research scaffolds and capture metadata | philosophy branch review |
 | `philosophy/` | growing domain tree of philosophy: trunk, eras, regions, traditions, works, figures, concepts, transmissions, local graph workbenches | candidate intake and generated readers |
@@ -63,6 +63,9 @@ declared Work→Expression→Edition→Item steps their own claim IDs, evidence,
 maker, provenance, and review posture while keeping textual equivalence open.
 Each of the seven current Nietzsche Works also closes over its own documentary
 `authored_by` claim; folder naming is navigation, never authorship evidence.
+Each Work separately closes over one first-publication chronology profile,
+preserving staged/private/public/posthumous boundaries without inventing one
+universal Work year or treating a model-made ordering claim as accepted truth.
 
 ## Operating Card
 

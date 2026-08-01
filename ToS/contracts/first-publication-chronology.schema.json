@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/first-publication-chronology.schema.json",
+  "title": "Tree of Sophia first-publication chronology claim object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "chronology_kind",
+    "calendar",
+    "interval",
+    "sequence_posture",
+    "publication_posture",
+    "scope",
+    "stages",
+    "ordering_warning"
+  ],
+  "properties": {
+    "chronology_kind": {"const": "first_publication"},
+    "calendar": {"const": "gregorian"},
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "start_precision", "end_precision", "boundary_meaning"],
+      "properties": {
+        "start": {"$ref": "#/$defs/partialDate"},
+        "end": {"$ref": "#/$defs/partialDate"},
+        "start_precision": {"$ref": "#/$defs/temporalPrecision"},
+        "end_precision": {"$ref": "#/$defs/temporalPrecision"},
+        "boundary_meaning": {"enum": ["single_stage", "earliest_stage_to_sequence_completion"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"start_precision": {"const": "year"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"start_precision": {"const": "month"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"start_precision": {"const": "day"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "year"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "month"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "day"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        }
+      ]
+    },
+    "sequence_posture": {"enum": ["single_event", "staged_sequence"]},
+    "publication_posture": {
+      "enum": [
+        "author_lifetime_public",
+        "author_supervised_public",
+        "author_lifetime_mixed_public_private",
+        "posthumous_editorial_public"
+      ]
+    },
+    "scope": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/publicationStage"}
+    },
+    "ordering_warning": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "partialDate": {
+      "type": "string",
+      "pattern": "^[0-9]{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?)?$"
+    },
+    "temporalPrecision": {
+      "enum": ["year", "month", "day"]
+    },
+    "publicationStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "date", "precision", "availability"],
+      "properties": {
+        "stage": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "date": {"$ref": "#/$defs/partialDate"},
+        "precision": {"$ref": "#/$defs/temporalPrecision"},
+        "availability": {"enum": ["public", "private", "restricted", "unknown"]},
+        "edition_ref": {
+          "type": "string",
+          "pattern": "^tos\\.edition\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "witness_label": {"type": "string", "minLength": 1},
+        "date_posture": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"precision": {"const": "year"}}, "required": ["precision"]},
+          "then": {"properties": {"date": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"precision": {"const": "month"}}, "required": ["precision"]},
+          "then": {"properties": {"date": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"precision": {"const": "day"}}, "required": ["precision"]},
+          "then": {"properties": {"date": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        }
+      ]
+    }
+  }
+}

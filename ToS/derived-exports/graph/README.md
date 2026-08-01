@@ -38,6 +38,11 @@ The same graph currently reifies one `authored_by` claim for each of the seven
 Works. These are seven separately source-returnable claims to the Nietzsche
 Agent, not a generic creator shortcut and not a path-derived assertion.
 
+It also reifies seven `first_publication_chronology` claims. Their structured
+intervals, staged events, availability, precision, and ordering warnings stay
+literal objects under their own claim nodes. The graph does not select one
+timeline facet or turn a date into an identity.
+
 ## Read-only query route
 
 `scripts/query_source_witness_bibliographic_graph.py` is the repository-local

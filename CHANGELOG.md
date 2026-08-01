@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a first-publication chronology branch for all seven current Nietzsche
+  Works. A dedicated object contract and digest-bound provenance event preserve
+  interval precision, sequence stages, public/private availability,
+  author-supervised versus posthumous posture, and explicit ordering warnings.
+  The staged *Zarathustra* profile distinguishes its 1883–1884 public parts
+  from the private 1885 fourth part; *Götzen-Dämmerung* distinguishes 1888
+  production from 1889 release. These are model-made, unreviewed ordering
+  claims—not composition dates, accepted bibliography, or a universal
+  philosophical timeline.
 - Added an authored bibliographic-topology spine under
   `ToS/source-witnesses/relations/`. It gives all 20 Work→Expression, 20
   Expression→Edition, and 15 Edition→Item links stable claim IDs, exact
@@ -36,22 +45,22 @@ Tracking starts with the community-docs baseline for this repository.
   `public_metadata_only`, and `unreviewed`, and creates no generic creator
   shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 92 current
-  public-metadata-only source-witness claims into 283 nodes, 583 claim-centered
-  edges, and 92 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 99 current
+  public-metadata-only source-witness claims into 301 nodes, 627 claim-centered
+  edges, and 99 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
-  time and method, and explicit review status. Twelve publication objects
-  remain claim-scoped literals; no direct subject-to-object truth edge is
+  time and method, and explicit review status. Nineteen publication and
+  chronology objects remain claim-scoped literals; no direct subject-to-object truth edge is
   emitted. The graph is a deletable JSON read model, separate from the
   atlas/view projection and subordinate to source claim packets; it creates no
   review, bibliography, generic creator relation, semantics, rights,
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 92 tracked membership, responsibility,
-  publication, and identity-ladder packets with their subject, predicate, object, evidence, maker,
+  `claims.jsonl` indexes all 99 tracked membership, responsibility,
+  publication, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v2 separates 65 object entries from 92 claim entries,
+  claim digest. Catalog v2 separates 65 object entries from 99 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked

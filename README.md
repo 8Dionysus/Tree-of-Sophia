@@ -63,6 +63,12 @@ claim for each of the seven current Nietzsche Works. These links come from the
 recorded documentary routes and digest-bound provenance; they are not inferred
 from author-named folders and remain model-made and unreviewed.
 
+The same seven Works now carry separate first-publication chronology profiles.
+They preserve staged, private, public, author-supervised, and posthumous
+boundaries instead of collapsing composition, printing, title-page year, and
+release into one supposedly stable date. These profiles are source-returnable
+ordering claims, not accepted chronology or a complete philosophical timeline.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

@@ -234,7 +234,7 @@
         },
         "source_claim_file_ref": {
           "type": "string",
-          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|work-expression|expression-edition|edition-item)-claims\\.jsonl$"
+          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|work-chronology|work-expression|expression-edition|edition-item)-claims\\.jsonl$"
         },
         "source_claim_line": {"type": "integer", "minimum": 1},
         "claim_sha256": {

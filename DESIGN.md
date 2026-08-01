@@ -82,6 +82,13 @@ translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
 content infallible.
 
+Time follows the same law. A Work has no single self-evident year: composition,
+manuscript fixation, printing, title-page dating, private circulation, public
+release, reception, and later preservation are separate claim facets. The
+current first-publication profiles exercise one bounded ordering facet while
+retaining intervals, stage boundaries, availability, precision, provenance,
+and explicit uncertainty.
+
 ### Source-witness topology
 
 `ToS/source-witnesses/` combines a tracked catalog with a speaking physical
@@ -92,6 +99,7 @@ catalog/
 works/<responsibility>/<work>/expressions/<language-and-responsibility>/
   editions/<edition>/items/<item>/
 collections/<responsibility>/<collection>/
+chronology/<responsibility>/first-publication/
 ```
 
 Collections prevent multi-work volumes from being duplicated under every

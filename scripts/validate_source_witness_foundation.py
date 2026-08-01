@@ -43,6 +43,9 @@ RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.js
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
+FIRST_PUBLICATION_CHRONOLOGY_SCHEMA = (
+    CONTRACT_ROOT / "first-publication-chronology.schema.json"
+)
 CATALOG_SCHEMA = CONTRACT_ROOT / "source-witness-catalog.schema.json"
 ANCHOR_SCHEMA = CONTRACT_ROOT / "source-anchor.schema.json"
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
@@ -110,6 +113,14 @@ BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE = (
 )
 BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF = (
     "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31"
+)
+WORK_CHRONOLOGY_ROOT = (
+    SOURCE_ROOT / "chronology/friedrich-nietzsche/first-publication"
+)
+WORK_CHRONOLOGY_CLAIMS = WORK_CHRONOLOGY_ROOT / "work-chronology-claims.jsonl"
+WORK_CHRONOLOGY_PROVENANCE = WORK_CHRONOLOGY_ROOT / "provenance.jsonl"
+WORK_CHRONOLOGY_EVENT_REF = (
+    "tos.event.annotation.friedrich-nietzsche.first-publication-chronology.2026-07-31"
 )
 BIBLIOGRAPHIC_TOPOLOGY_ROUTES = (
     (
@@ -958,6 +969,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
+        first_publication_chronology_validator, _ = _schema_validator(
+            FIRST_PUBLICATION_CHRONOLOGY_SCHEMA,
+            repo_root,
+        )
         anchor_validator, _ = _schema_validator(ANCHOR_SCHEMA, repo_root)
         collection_work_boundary_map_validator, _ = _schema_validator(
             COLLECTION_WORK_BOUNDARY_MAP_SCHEMA,
@@ -5275,6 +5290,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     responsibility_claim_objects: dict[str, str] = {}
     publication_claim_ids: set[str] = set()
     publication_claim_subjects: dict[str, str] = {}
+    chronology_claim_ids: set[str] = set()
+    chronology_claim_subjects: dict[str, str] = {}
     claim_routes = (
         ("membership-claims.jsonl", "contains_work", "collection", "work", membership_claim_ids),
     )
@@ -5600,6 +5617,251 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         )
                     )
 
+    chronology_provenance_events = _load_jsonl(
+        repo_root / WORK_CHRONOLOGY_PROVENANCE,
+        repo_root,
+        issues,
+    )
+    if len(chronology_provenance_events) != 1:
+        issues.append(
+            (
+                WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                "work chronology must have exactly one batch provenance event",
+            )
+        )
+    chronology_event: dict[str, Any] | None = None
+    for index, event in enumerate(chronology_provenance_events, start=1):
+        location = f"{WORK_CHRONOLOGY_PROVENANCE.as_posix()}:{index}"
+        _validate_payload(event, provenance_validator, location, issues)
+        _validate_source_refs(repo_root, event, location, issues)
+        event_id = event.get("event_id")
+        if event_id != WORK_CHRONOLOGY_EVENT_REF:
+            issues.append((location, "work chronology provenance event_id drifted"))
+        if event.get("event_type") != "annotation":
+            issues.append((location, "work chronology provenance must be annotation"))
+        if event.get("agent_refs") != ["model:codex"]:
+            issues.append((location, "work chronology provenance agent must be model:codex"))
+        method = event.get("method", {})
+        if (
+            method.get("maker_type") != "model"
+            or method.get("name")
+            != "faceted-first-publication-chronology-materialization"
+            or method.get("version") != "1"
+        ):
+            issues.append((location, "work chronology provenance method identity drifted"))
+        if event.get("status") != "completed_with_warnings":
+            issues.append(
+                (location, "work chronology provenance must remain completed_with_warnings")
+            )
+        if isinstance(event_id, str):
+            if event_id in event_ids:
+                issues.append((location, f"duplicate event_id: {event_id}"))
+            else:
+                event_ids.add(event_id)
+                events_by_id[event_id] = event
+        if event_id == WORK_CHRONOLOGY_EVENT_REF:
+            chronology_event = event
+
+    actual_chronology_paths = {
+        path.relative_to(repo_root)
+        for path in (repo_root / SOURCE_ROOT).rglob(WORK_CHRONOLOGY_CLAIMS.name)
+    }
+    if actual_chronology_paths != {WORK_CHRONOLOGY_CLAIMS}:
+        issues.append(
+            (
+                WORK_CHRONOLOGY_CLAIMS.as_posix(),
+                "work chronology claim basename must exist only at its owned route",
+            )
+        )
+
+    chronology_claim_path = repo_root / WORK_CHRONOLOGY_CLAIMS
+    chronology_claim_digest = (
+        _sha256(chronology_claim_path) if chronology_claim_path.is_file() else None
+    )
+    expected_chronology_evidence_refs: set[str] = set()
+    for index, claim in enumerate(
+        _load_jsonl(chronology_claim_path, repo_root, issues),
+        start=1,
+    ):
+        location = f"{WORK_CHRONOLOGY_CLAIMS.as_posix()}:{index}"
+        _validate_payload(claim, claim_validator, location, issues)
+        claim_id = claim.get("claim_id")
+        subject_ref = claim.get("subject_ref")
+        if isinstance(claim_id, str):
+            if claim_id in claim_ids:
+                issues.append((location, f"duplicate claim_id: {claim_id}"))
+            claim_ids.add(claim_id)
+            chronology_claim_ids.add(claim_id)
+            if isinstance(subject_ref, str):
+                chronology_claim_subjects[claim_id] = subject_ref
+        if claim.get("claim_type") != "bibliographic":
+            issues.append((location, "work chronology claim_type must be bibliographic"))
+        if claim.get("assertion_layer") != "scholarly_report":
+            issues.append((location, "work chronology must remain a scholarly_report"))
+        if claim.get("predicate") != "first_publication_chronology":
+            issues.append(
+                (location, "work chronology predicate must be first_publication_chronology")
+            )
+        require_record(subject_ref, "work", location)
+        if claim.get("maker") != {
+            "maker_type": "model",
+            "agent_ref": "model:codex",
+        }:
+            issues.append((location, "work chronology maker must be model:codex"))
+        if claim.get("provenance_event_ref") != WORK_CHRONOLOGY_EVENT_REF:
+            issues.append((location, "work chronology claim cites the wrong provenance event"))
+        if claim.get("epistemic_status") != "reported":
+            issues.append((location, "work chronology must remain reported"))
+        if claim.get("review_status") != "unreviewed" or claim.get("reviews") != []:
+            issues.append((location, "work chronology claims must remain unreviewed"))
+        if claim.get("visibility") != "public_metadata_only":
+            issues.append((location, "work chronology must remain public metadata only"))
+
+        evidence_refs = claim.get("evidence_refs", [])
+        for evidence_ref in evidence_refs:
+            if not isinstance(evidence_ref, str) or not evidence_ref.startswith("ToS/"):
+                issues.append(
+                    (location, "work chronology evidence must be a tracked repository path")
+                )
+                continue
+            evidence_path = repo_root / evidence_ref
+            if not evidence_path.is_file():
+                issues.append(
+                    (location, f"unresolved work chronology evidence: {evidence_ref}")
+                )
+            expected_chronology_evidence_refs.add(evidence_ref)
+        if not any("authorial-witness-route" in str(ref) for ref in evidence_refs):
+            issues.append((location, "work chronology lacks its ordered discovery receipt"))
+        if not any("AUTHORIAL_WITNESS_ROUTE.md" in str(ref) for ref in evidence_refs):
+            issues.append((location, "work chronology lacks its documentary synthesis"))
+
+        chronology = claim.get("object")
+        if isinstance(chronology, dict):
+            _validate_payload(
+                chronology,
+                first_publication_chronology_validator,
+                f"{location}['object']",
+                issues,
+            )
+            interval = chronology.get("interval", {})
+            start = interval.get("start") if isinstance(interval, dict) else None
+            end = interval.get("end") if isinstance(interval, dict) else None
+            if isinstance(start, str) and isinstance(end, str) and start > end:
+                issues.append((location, "work chronology interval starts after it ends"))
+            stages = chronology.get("stages", [])
+            stage_dates = [
+                stage.get("date")
+                for stage in stages
+                if isinstance(stage, dict) and isinstance(stage.get("date"), str)
+            ]
+            if stage_dates != sorted(stage_dates):
+                issues.append((location, "work chronology stages are not date ordered"))
+            sequence_posture = chronology.get("sequence_posture")
+            boundary_meaning = (
+                interval.get("boundary_meaning") if isinstance(interval, dict) else None
+            )
+            if sequence_posture == "single_event" and (
+                len(stages) != 1 or boundary_meaning != "single_stage"
+            ):
+                issues.append(
+                    (location, "single-event chronology must contain one single-stage boundary")
+                )
+            if sequence_posture == "staged_sequence" and (
+                len(stages) < 2
+                or boundary_meaning != "earliest_stage_to_sequence_completion"
+            ):
+                issues.append(
+                    (location, "staged chronology must retain multiple sequence stages")
+                )
+            if stage_dates and isinstance(start, str) and not stage_dates[0].startswith(start):
+                issues.append((location, "chronology interval start differs from first stage"))
+            if stage_dates and isinstance(end, str) and not stage_dates[-1].startswith(end):
+                issues.append((location, "chronology interval end differs from last stage"))
+            for stage in stages:
+                if not isinstance(stage, dict):
+                    continue
+                edition_ref = stage.get("edition_ref")
+                if not isinstance(edition_ref, str):
+                    continue
+                require_record(edition_ref, "edition", location)
+                edition = records_by_id.get(edition_ref)
+                if edition is None or not isinstance(subject_ref, str):
+                    continue
+                expression_refs = edition[0].get("embodies_expression_refs", [])
+                if not any(
+                    records_by_id.get(str(expression_ref), ({}, Path()))[0].get("work_ref")
+                    == subject_ref
+                    for expression_ref in expression_refs
+                ):
+                    issues.append(
+                        (location, f"chronology stage edition belongs to another Work: {edition_ref}")
+                    )
+
+    if chronology_event is not None and chronology_claim_digest is not None:
+        expected_output = {
+            "ref": WORK_CHRONOLOGY_CLAIMS.as_posix(),
+            "role": "unreviewed-evidence-bearing-work-chronology-claims",
+            "sha256": chronology_claim_digest,
+        }
+        if chronology_event.get("outputs") != [expected_output]:
+            issues.append(
+                (
+                    WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                    "work chronology provenance does not digest-bind the exact claim file",
+                )
+            )
+        expected_input_refs = expected_chronology_evidence_refs | {
+            CLAIM_SCHEMA.as_posix(),
+            FIRST_PUBLICATION_CHRONOLOGY_SCHEMA.as_posix(),
+        }
+        actual_inputs = {
+            input_record.get("ref"): input_record.get("sha256")
+            for input_record in chronology_event.get("inputs", [])
+            if isinstance(input_record, dict)
+        }
+        if set(actual_inputs) != expected_input_refs:
+            issues.append(
+                (
+                    WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                    "work chronology provenance inputs differ from the exact claim evidence set",
+                )
+            )
+        for input_ref, input_digest in actual_inputs.items():
+            input_path = repo_root / str(input_ref)
+            if not input_path.is_file():
+                issues.append(
+                    (
+                        WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                        f"work chronology provenance input is missing: {input_ref}",
+                    )
+                )
+            elif _sha256(input_path) != input_digest:
+                issues.append(
+                    (
+                        WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                        f"work chronology provenance input digest drifted: {input_ref}",
+                    )
+                )
+        expected_configuration = {
+            "works_materialized": 7,
+            "chronology_claims_materialized": 7,
+            "staged_sequence_claims": 1,
+            "single_event_claims": 6,
+            "chronology_claims_reviewed": 0,
+            "composition_claims_created": 0,
+            "source_text_admitted": False,
+            "human_review_performed": False,
+            "semantic_claims_created": 0,
+            "canon_promotion_performed": False,
+        }
+        if chronology_event.get("method", {}).get("configuration") != expected_configuration:
+            issues.append(
+                (
+                    WORK_CHRONOLOGY_PROVENANCE.as_posix(),
+                    "work chronology provenance configuration differs from the bounded profile",
+                )
+            )
+
     for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "collection"):
         location = _relative(path, repo_root)
         missing = sorted(set(payload.get("membership_claim_refs", [])) - membership_claim_ids)
@@ -5671,6 +5933,40 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "to tos.agent.friedrich-nietzsche",
                     )
                 )
+
+    current_nietzsche_work_ids = {
+        record_id
+        for record_id, (payload, path) in records_by_id.items()
+        if payload.get("record_type") == "work"
+        and _relative(path, repo_root).startswith(
+            "ToS/source-witnesses/works/friedrich-nietzsche/"
+        )
+    }
+    chronology_subject_ids = set(chronology_claim_subjects.values())
+    if chronology_subject_ids != current_nietzsche_work_ids:
+        issues.append(
+            (
+                WORK_CHRONOLOGY_CLAIMS.as_posix(),
+                "work chronology subjects do not close over the current Nietzsche Works",
+            )
+        )
+    for work_id in sorted(current_nietzsche_work_ids):
+        work, work_path = records_by_id[work_id]
+        location = _relative(work_path, repo_root)
+        actual_refs = set(work.get("chronology_claim_refs", []))
+        expected_refs = {
+            claim_id
+            for claim_id, subject_ref in chronology_claim_subjects.items()
+            if subject_ref == work_id
+        }
+        if actual_refs != expected_refs or len(expected_refs) != 1:
+            issues.append(
+                (
+                    location,
+                    "current Nietzsche Work must reference exactly one "
+                    f"first_publication_chronology claim; found {sorted(actual_refs)}",
+                )
+            )
 
     for payload, path in (
         value

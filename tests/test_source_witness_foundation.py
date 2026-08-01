@@ -8,6 +8,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from jsonschema import FormatChecker
+from jsonschema.validators import validator_for
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 GOLD_ROOT = REPO_ROOT / "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
@@ -157,6 +160,15 @@ ECCE_HOMO_1908_ITEM_ROOT = (
 )
 ECCE_HOMO_RESPONSIBILITY_CLAIMS_PATH = (
     ECCE_HOMO_WORK_ROOT / "responsibility-claims.jsonl"
+)
+WORK_CHRONOLOGY_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication"
+)
+WORK_CHRONOLOGY_CLAIMS_PATH = WORK_CHRONOLOGY_ROOT / "work-chronology-claims.jsonl"
+WORK_CHRONOLOGY_PROVENANCE_PATH = WORK_CHRONOLOGY_ROOT / "provenance.jsonl"
+WORK_CHRONOLOGY_SCHEMA_PATH = (
+    REPO_ROOT / "ToS/contracts/first-publication-chronology.schema.json"
 )
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
@@ -1131,9 +1143,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(65, manifest["counts"]["object_total"])
-        self.assertEqual(92, manifest["counts"]["claim"])
-        self.assertEqual(157, manifest["counts"]["total"])
-        self.assertEqual(92, len(claim_entries))
+        self.assertEqual(99, manifest["counts"]["claim"])
+        self.assertEqual(164, manifest["counts"]["total"])
+        self.assertEqual(99, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1171,7 +1183,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             {
                 "bibliographic_assertion": 82,
-                "scholarly_report": 10,
+                "scholarly_report": 17,
             },
             {
                 layer: sum(
@@ -1250,6 +1262,111 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     "responsibility_claim_refs"
                 ],
             )
+        chronology_claims = [
+            entry
+            for entry in claim_entries
+            if entry["predicate"] == "first_publication_chronology"
+        ]
+        self.assertEqual(7, len(chronology_claims))
+        self.assertEqual(
+            set(work_entries),
+            {entry["subject_ref"] for entry in chronology_claims},
+        )
+        for claim in chronology_claims:
+            self.assertEqual("first_publication", claim["object"]["chronology_kind"])
+            self.assertTrue(claim["object"]["ordering_warning"])
+            self.assertEqual(
+                [claim["claim_id"]],
+                work_entries[claim["subject_ref"]]["links"][
+                    "chronology_claim_refs"
+                ],
+            )
+
+    def test_first_publication_chronology_preserves_distinct_ordering_facets(
+        self,
+    ) -> None:
+        claims = {
+            claim["subject_ref"]: claim
+            for line in WORK_CHRONOLOGY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+            for claim in (json.loads(line),)
+        }
+        self.assertEqual(7, len(claims))
+
+        zarathustra = claims[
+            "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        ]["object"]
+        self.assertEqual(
+            {
+                "start": "1883",
+                "end": "1885",
+                "start_precision": "year",
+                "end_precision": "year",
+                "boundary_meaning": "earliest_stage_to_sequence_completion",
+            },
+            zarathustra["interval"],
+        )
+        self.assertEqual("staged_sequence", zarathustra["sequence_posture"])
+        self.assertEqual(4, len(zarathustra["stages"]))
+        self.assertEqual("private", zarathustra["stages"][-1]["availability"])
+        self.assertIn("not the date", zarathustra["ordering_warning"])
+
+        fall_wagner = claims[
+            "tos.work.friedrich-nietzsche.der-fall-wagner"
+        ]["object"]
+        self.assertEqual("1888-09-22", fall_wagner["interval"]["start"])
+        self.assertEqual("author_supervised_public", fall_wagner["publication_posture"])
+
+        goetzen = claims[
+            "tos.work.friedrich-nietzsche.goetzen-daemmerung"
+        ]["object"]
+        self.assertEqual("1889-01", goetzen["interval"]["start"])
+        self.assertEqual("1889-01-24", goetzen["stages"][0]["date"])
+        self.assertIn("commonly reported", goetzen["stages"][0]["date_posture"])
+        self.assertIn("November 1888", goetzen["ordering_warning"])
+
+        chronology_schema = json.loads(
+            WORK_CHRONOLOGY_SCHEMA_PATH.read_text(encoding="utf-8")
+        )
+        validator_class = validator_for(chronology_schema)
+        validator_class.check_schema(chronology_schema)
+        chronology_validator = validator_class(
+            chronology_schema,
+            format_checker=FormatChecker(),
+        )
+        self.assertEqual([], list(chronology_validator.iter_errors(goetzen)))
+
+        mismatched_precision = copy.deepcopy(goetzen)
+        mismatched_precision["stages"][0]["precision"] = "month"
+        self.assertTrue(list(chronology_validator.iter_errors(mismatched_precision)))
+
+        impossible_day = copy.deepcopy(goetzen)
+        impossible_day["stages"][0]["date"] = "1889-02-31"
+        self.assertTrue(list(chronology_validator.iter_errors(impossible_day)))
+
+        for work_ref in (
+            "tos.work.friedrich-nietzsche.der-antichrist",
+            "tos.work.friedrich-nietzsche.ecce-homo",
+        ):
+            self.assertEqual(
+                "posthumous_editorial_public",
+                claims[work_ref]["object"]["publication_posture"],
+            )
+
+        provenance = json.loads(
+            WORK_CHRONOLOGY_PROVENANCE_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            "tos.event.annotation.friedrich-nietzsche."
+            "first-publication-chronology.2026-07-31",
+            provenance["event_id"],
+        )
+        self.assertEqual(
+            hashlib.sha256(WORK_CHRONOLOGY_CLAIMS_PATH.read_bytes()).hexdigest(),
+            provenance["outputs"][0]["sha256"],
+        )
 
     def test_source_witness_claim_catalog_rejects_nonpublic_claims(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1915,7 +2032,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for result in results.values()
             )
         )
-        self.assertEqual(4, work["record_version"])
+        self.assertEqual(5, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "jenseits-authorial-witness-route.2026-07-30.v1.json",
@@ -2158,7 +2275,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(5, work["record_version"])
+        self.assertEqual(6, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "genealogie-authorial-witness-route.2026-07-30.v1.json",
@@ -2489,7 +2606,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(5, work["record_version"])
+        self.assertEqual(6, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -2638,7 +2755,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(5, work["record_version"])
+        self.assertEqual(6, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "fall-wagner-authorial-witness-route.2026-07-30.v1.json",
@@ -2940,7 +3057,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(5, work["record_version"])
+        self.assertEqual(6, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "goetzen-daemmerung-authorial-witness-route."
@@ -3503,7 +3620,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(discovery["general_web_search_is_last_resort"])
         self.assertFalse(discovery["technical_access_bypass_used"])
 
-        self.assertEqual(5, work["record_version"])
+        self.assertEqual(6, work["record_version"])
         self.assertEqual(3, edition["record_version"])
         self.assertEqual(4, len(responsibility_claims))
         self.assertEqual(

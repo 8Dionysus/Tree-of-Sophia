@@ -19,6 +19,11 @@ source-witnesses/
 ├── discovery/                              # ordered query/result evidence
 ├── access-requests/                        # public status + ignored private correspondence
 ├── server-import/                          # future no-upload/import boundary
+├── chronology/                             # Work-owned, facet-specific chronology claims
+│   └── <responsibility-or-tradition>/
+│       └── first-publication/
+│           ├── work-chronology-claims.jsonl
+│           └── provenance.jsonl
 ├── catalog/
 │   ├── agents.jsonl
 │   ├── works.jsonl
@@ -80,7 +85,7 @@ speaking routes and explicit responsibility claims in the catalog.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
-publication, and identity-ladder assertions queryable while preserving exact source file,
+publication, chronology, and identity-ladder assertions queryable while preserving exact source file,
 source line, canonical claim digest, evidence, maker, provenance event, and
 review posture. It is not a second claim authority and cannot promote an
 unreviewed relation. The tracked projection admits only `public` or
@@ -132,6 +137,16 @@ returns to its recorded authorial-witness discovery and research route and is
 digest-bound by an annotation event. All seven remain model-made,
 `public_metadata_only`, and `unreviewed`; neither the author-named directory nor
 catalog presence supplies authorship truth by itself.
+
+Those seven Work records also each close over one
+`first_publication_chronology` claim under `chronology/`. This is a bounded
+ordering facet, not a universal Work date: composition, manuscript, printing,
+title-page dating, private issue, public sale, reception, and digitization
+remain distinct chronologies. The staged *Zarathustra* profile preserves the
+1883–1884 public parts and the private 1885 fourth part; *Götzen-Dämmerung*
+keeps 1888 production separate from its 1889 public release; *Der Antichrist*
+and *Ecce Homo* remain posthumous editorial publications. All seven claims are
+model-made, `public_metadata_only`, and `unreviewed`.
 
 An Edition may route its `publication_claim_refs` to a sibling
 `publication-claims.jsonl`. Every row remains an evidence-bearing

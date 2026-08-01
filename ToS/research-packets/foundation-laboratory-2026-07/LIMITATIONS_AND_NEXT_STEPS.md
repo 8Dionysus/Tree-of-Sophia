@@ -103,22 +103,27 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 65 current objects and all 92
-  tracked membership, responsibility, publication, and identity-ladder claims through an exact
+- The source-witness catalog now exposes all 65 current objects and all 99
+  tracked membership, responsibility, publication, chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 92 claims as reified
-  claim nodes with 583 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 99 claims as reified
+  claim nodes with 627 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 92 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 99 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
+- Seven Work-owned chronology packets add one bounded
+  `first_publication_chronology` profile per current Nietzsche Work. They keep
+  sequence stages, precision, public/private availability, and posthumous
+  posture visible, but do not establish composition chronology, one canonical
+  Work year, historical completeness, or accepted ordering.
 - Seven Work-owned `authored_by` packets now close the complete current Work
   set to the Friedrich Nietzsche Agent. They are evidence-bearing and
   source-returnable, but still model-made and unreviewed: the closure does not

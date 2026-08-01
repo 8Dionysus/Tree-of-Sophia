@@ -41,6 +41,12 @@ rights, and forensic evidence.
   this claim from the responsibility path. A future anonymous, disputed,
   collaborative, or differently authored Work needs its own evidence-bearing
   responsibility design instead of inheriting the bounded Nietzsche rule.
+- Keep those seven Works closed over exactly one source-owned
+  `first_publication_chronology` packet. Preserve interval start and end,
+  stage sequence, precision, availability, and the ordering warning; never
+  replace this profile with an untyped Work year. Composition, printing,
+  title-page, public-sale, posthumous editorial, reception, and digitization
+  time require distinct claims.
 - Keep the declared identity ladder and its outgoing claim refs in exact
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to

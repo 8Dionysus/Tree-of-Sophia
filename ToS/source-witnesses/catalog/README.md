@@ -12,7 +12,7 @@ and `collections/` trees.
 | `editions.jsonl` | published/edited manifestations |
 | `collections.jsonl` | aggregate publications |
 | `items.jsonl` | acquired physical/digital copies or containers |
-| `claims.jsonl` | source-returnable membership, responsibility, publication, and Work/Expression/Edition/Item topology claims |
+| `claims.jsonl` | source-returnable membership, responsibility, chronology, publication, and Work/Expression/Edition/Item topology claims |
 | `catalog.manifest.json` | counts, paths, digest, and generation boundary |
 
 Object records own identity; source claim packets own bibliographic
@@ -31,10 +31,13 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 65 object records and 92 claim records
-(157 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 65 object records and 99 claim records
+(164 entries total). The responsibility slice contains seven Work authorship,
 seven Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
+The chronology slice adds seven Work-level first-publication profiles. It keeps
+their temporal objects as claim-scoped literals and supplies named interval
+boundaries rather than one identity year.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

@@ -84,6 +84,11 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
     },
+    "chronology_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
     "embodiment_claim_refs": {
       "type": "array",
       "uniqueItems": true,

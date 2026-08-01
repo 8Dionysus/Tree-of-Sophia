@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 92)
-        self.assertEqual(counts["claim_traces"], 92)
-        self.assertEqual(counts["nodes"], 283)
-        self.assertEqual(counts["edges"], 583)
+        self.assertEqual(counts["source_claims"], 99)
+        self.assertEqual(counts["claim_traces"], 99)
+        self.assertEqual(counts["nodes"], 301)
+        self.assertEqual(counts["edges"], 627)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 92})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 92})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 99})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 99})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -232,6 +232,32 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 match["subject_node"]["properties"]["identity_ref"],
                 subject_ref,
             )
+
+    def test_first_publication_chronology_remains_claim_scoped_literal(self) -> None:
+        payload = load_verified_projection()
+        result = query_projection(
+            payload,
+            predicate="first_publication_chronology",
+        )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_count"], 7)
+        self.assertTrue(
+            all(match["object_node"]["node_kind"] == "literal" for match in result["matches"])
+        )
+        self.assertTrue(
+            all(
+                match["object_node"]["properties"]["value"]["ordering_warning"]
+                for match in result["matches"]
+            )
+        )
+        self.assertTrue(
+            all(
+                match["source_return"]["file_ref"].endswith(
+                    "/work-chronology-claims.jsonl"
+                )
+                for match in result["matches"]
+            )
+        )
 
     def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
         payload = load_verified_projection()

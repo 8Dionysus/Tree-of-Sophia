@@ -15,3 +15,9 @@ ToS chronology should keep several time layers visible:
 
 These layers are vocabulary for later review. They do not add dated corpus data
 by themselves.
+
+Evidence-bearing corpus dates live under
+`ToS/source-witnesses/chronology/`, not in this branch vocabulary. The current
+bounded first-publication profile deliberately supplies more than one usable
+boundary for a staged Work; every derived order must name whether it uses the
+earliest stage, sequence completion, or another later chronology facet.

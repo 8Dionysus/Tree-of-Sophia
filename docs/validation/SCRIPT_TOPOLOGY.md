@@ -74,6 +74,10 @@ authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
 It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim
 IDs against their record fields and item manifests, and must reject any attempt
 to treat bibliographic embodiment as textual equivalence.
+It also closes each currently declared Work chronology reference against the
+dedicated first-publication object contract and digest-bound batch event. This
+checks ordering mechanics only; it cannot certify a universal Work date,
+historical completeness, or accepted chronology.
 
 The source-witness bibliographic graph pair is a downstream generated route,
 not a second source validator. Its builder and validator read the public-safe
