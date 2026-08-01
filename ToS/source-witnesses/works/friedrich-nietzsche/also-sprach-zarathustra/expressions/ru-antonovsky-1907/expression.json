@@ -9,6 +9,9 @@
     "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.translator-preface-revision-history",
     "ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md",
     "ToS/source-witnesses/discovery/runs/antonovsky-1907-revision-witness.2026-08-01.v1.json",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md",
+    "https://rusneb.ru/catalog/000199_000009_003693382/",
     "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf"
   ],
   "external_identifiers": [],
@@ -17,11 +20,13 @@
   "language": "ru",
   "expression_role": "translation",
   "responsibility_claim_refs": [],
-  "embodiment_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907.embodied-by.saint-petersburg-vaisberg-gershunin-typography-1907-third"
+  ],
   "derivation_claim_refs": [
     "tos.claim.expression-derivation.also-sprach-zarathustra.ru-antonovsky-1907.is-derivative-of.ru-antonovsky-1903"
   ],
-  "notes": "Antonovsky's exact 1911 preface calls the 1907 state the third edition and reports a new reworking of its predecessor. Established scholarship independently cites the 1907 third edition and a copy in Alexander Blok's library. Discovery remains incomplete and an institutional request is draft-not-sent; no exact 1907 Item, source text, collation, access permission, or redistribution permission is materialized.",
-  "record_version": 1,
+  "notes": "Antonovsky's exact 1911 preface calls the 1907 state the third edition and reports a new reworking of its predecessor. The current RuNEB record and established Blok scholarship now identify one exact Saint Petersburg 1907 third Edition and preserve the literal typography string тип. Ф. Вайсберга и П. Гершунина without converting it into a publisher or provision claim. The RuNEB card is removed or replaced, the tested RSL route is a 404, and institutional requests remain draft-not-sent. The Expression and derivation claim remain provisional, uncollated, and unreviewed; no exact 1907 Item, source pages, bytes, responsibility claim, textual equivalence, rights conclusion, or semantic claim is materialized.",
+  "record_version": 2,
   "supersedes_ref": null
 }

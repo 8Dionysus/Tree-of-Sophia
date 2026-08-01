@@ -53,7 +53,7 @@ The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review
 evidence. Search and graph surfaces are rebuilt from those stronger records.
-The current identity ladder is no longer only implicit in record fields: 63
+The current identity ladder is no longer only implicit in record fields: 64
 separate, unreviewed claim packets make every declared Work→Expression,
 Expression→Edition, and Edition→Item link source-returnable without asserting
 textual equivalence.
@@ -99,13 +99,16 @@ rejected. This is an Agent/path correction, not accepted text or Expression
 equivalence.
 
 The Antonovsky revision lineage now also has exact institutional Edition
-endpoints for 1900 and 1903. The Lithuanian National Library identifies the
-1900 first counted Edition; the Russian State Library identifies the 1903
-`2-е изд., испр.` and four holdings. Neither remote holding set is a ToS Item:
-no source bytes were acquired. `[s.n.]` remains unknown in 1900, while the
-1903 string `тип. Альтшулера` remains typography evidence rather than an
-inferred publisher. Both Expressions stay provisional and uncollated; the
-existing 1903→1900 and 1907→1903 derivation claims do not become equivalence.
+endpoints for 1900, 1903, and 1907. The Lithuanian National Library identifies
+the 1900 first counted Edition; the Russian State Library identifies the 1903
+`2-е изд., испр.` and four holdings; and the current RuNEB card identifies
+the 1907 third Edition while reporting that the card was removed or replaced.
+None is a ToS Item: no exact source bytes were acquired. `[s.n.]` remains
+unknown in 1900, while `тип. Альтшулера` and
+`тип. Ф. Вайсберга и П. Гершунина` remain typography evidence rather than
+inferred publishers. All three Expressions stay provisional and uncollated;
+the existing 1903→1900 and 1907→1903 derivation claims do not become
+equivalence.
 
 The same seven Works now carry separate first-publication chronology profiles.
 They preserve staged, private, public, author-supervised, and posthumous

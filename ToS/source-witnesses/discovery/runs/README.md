@@ -281,3 +281,14 @@ scholarship and general web last. It creates only a provisional Edition and
 one bibliographic topology packet. No holding becomes a ToS Item; no source
 page, payload, publisher, provision activity, rights conclusion, collation,
 equivalence, semantic claim, human task, message, order, or payment is created.
+
+`antonovsky-1907-runeb-edition.2026-08-01.v1.json` resolves one exact 1907
+third Edition from the official RuNEB card, Antonovsky's exact 1911
+revision-history preface, and established Blok scholarship, then checks the
+freshest direct translation study, current RuNEB/RSL and Pushkin House routes,
+and general web last. The RuNEB card is currently removed or replaced, the
+tested former RSL route is a 404, and no current shelfmark or source file was
+found. The pass therefore adds only a provisional Edition and one
+`embodied_by` packet; it does not create an Item, provision claim, publisher,
+rights conclusion, changed derivation, equivalence, semantic claim, message,
+form submission, order, or payment.

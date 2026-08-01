@@ -193,6 +193,18 @@ provision-activity claim. No responsibility claim, collation, equivalence,
 new derivation edge, rights conclusion, accepted text, or semantic object is
 created. Its tiered RSL copy request is also public-safe and `draft-not-sent`.
 
+The provisional 1907 Antonovsky Expression now closes over one exact
+institutionally identified third Edition. The current RuNEB record reports
+Saint Petersburg, `тип. Ф. Вайсберга и П. Гершунина`, year 1907, the RSL as
+source institution, and code `000199_000009_003693382`; the live card also
+says that the edition was removed or replaced. The tested former RSL route is
+a 404, and neither current shelfmark nor source bytes were acquired. The
+typography string is not inferred to be a publisher and opens no provision
+claim. No Item, File, responsibility claim, collation, equivalence, changed
+derivation, rights conclusion, accepted text, or semantic object is created.
+Both the new RuNEB/RSL replacement request and the independent Blok-library
+request remain public-safe and `draft-not-sent`.
+
 The exact 1913 Antonovsky Expression separately closes over one
 `translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
 page 7, bound to the exact Item and file SHA-256 after direct source-visible

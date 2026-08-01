@@ -103,20 +103,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 84 current objects and all 128
+- The source-witness catalog now exposes all 85 current objects and all 129
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 128 claims as reified
-  claim nodes with 896 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 129 claims as reified
+  claim nodes with 902 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 128 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 129 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 63 topology packets make the declared Work→Expression→Edition→Item
+- The 64 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -404,9 +404,11 @@ contracts intentionally reject simulated human evidence.
   until that evidence is reviewed at the required layer and jurisdiction.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
-- The Antonovsky 1907 Blok-library request is likewise public-safe and
-  `draft-not-sent`. The exact shelfmark and Item remain unresolved, the current
-  institutional route is time-sensitive, and no message, access permission,
+- The Antonovsky 1907 Blok-library request and the newer RuNEB/RSL replacement
+  request are likewise public-safe and `draft-not-sent`. The exact RuNEB card
+  establishes the third Edition but is removed or replaced; the current
+  replacement identifier, shelfmark, and Item remain unresolved. Both
+  institutional routes are time-sensitive, and no message, access permission,
   payload, or redistribution authority exists.
 - The Antonovsky 1900 Lithuanian National Library request is also public-safe
   and `draft-not-sent`. It asks first for holding/condition/copying terms, then
@@ -760,11 +762,11 @@ not reintroduce a false 90 °C gate.
   provisional 1900/1903/1907 Expressions, two reported uncollated revision
   claims, an incomplete exact-1907 discovery run, and an unsent access-request
   draft. Later exact-institutional passes add only the 1900 LNB Edition and the
-  1903 RSL second corrected Edition, one Expression→Edition packet for each,
-  and separate unsent request drafts; they add no Item, payload, publisher,
-  rights clearance, or derivation edge. The rebuilt catalog now contains 84
-  objects and 128 claims; the portable graph contains 439 nodes, 896
-  claim-centred edges, 128 source-return
+  1903 RSL second corrected Edition, and the removed-or-replaced RuNEB 1907
+  third Edition, one Expression→Edition packet for each, and separate unsent
+  request drafts; they add no Item, payload, publisher, rights clearance, or
+  derivation edge. The rebuilt catalog now contains 85 objects and 129 claims;
+  the portable graph contains 442 nodes, 902 claim-centred edges, 129 source-return
   traces, and no direct subject-object
   edge. The exact PDF remains ignored, local-only, and blocked from site
   transfer; embedded OCR, equivalence, accepted text, rights clearance, human

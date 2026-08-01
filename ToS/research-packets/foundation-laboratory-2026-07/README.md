@@ -17,7 +17,8 @@ plus Cultural Revolution 2007 translation responsibility, the exact
 Antonovsky–Prometey 1911 source witness, the bounded Antonovsky
 Expression-derivation contract/discovery route, the exact Lithuanian National
 Library 1900 Edition/holding route, and the exact Russian State Library 1903
-second-corrected Edition/holding route refreshed 2026-08-01
+second-corrected Edition/holding route plus the removed-or-replaced RuNEB 1907
+third-Edition route refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -54,6 +55,7 @@ and what must be tested manually.
 | `ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md` | How the 1898 Bulgakov journal/supplement state, the uncredited 1899 *Reader* Edition, and Antonovsky's self-counted 1900 first Edition remain distinct; why the 2007 “first published in 1898” statement is compatible with the 1911 edition count; and why no 1898/1899/1900 equivalence or derivation edge is admitted without an exact institutional witness and collation? |
 | `ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md` | How the exact Lithuanian National Library record and holding materialize one provisional Saint Petersburg 1900 Edition without manufacturing a ToS Item; why `[s.n.]`, call number `1.40686`, missing bytes, and absent rights remain explicit; and how a public-safe, unsent research-copy request preserves the Edition/holding/acquisition boundary? |
 | `ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md` | How the exact Russian State Library record materializes one provisional 1903 second corrected Edition and four external holdings without manufacturing a ToS Item; why `тип. Альтшулера` is not silently promoted to publisher identity; and how a public-safe, unsent fragment/research-copy request preserves the Edition/holding/acquisition boundary? |
+| `ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md` | How the exact RuNEB record, Antonovsky's source-visible revision history, and established Blok scholarship materialize one provisional 1907 third Edition without manufacturing a ToS Item; why a removed-or-replaced card and typography string do not prove a digital object, publisher, rights, or access; and how two unsent institutional routes preserve the Edition/Item/acquisition boundary? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |

@@ -47,6 +47,15 @@ source pages, bytes, ToS Item, or collation; its `тип. Альтшулера` 
 promoted to a publisher or textual relation. The two-edge revision chain and
 every deliberately absent edge therefore remain unchanged.
 
+A current RuNEB card subsequently resolves one Saint Petersburg 1907 third
+Edition while also stating that the card was removed or replaced. Antonovsky's
+exact 1911 preface and established Blok scholarship corroborate the edition
+number, but the pass finds no current shelfmark, source pages, bytes, ToS Item,
+or collation. The literal `тип. Ф. Вайсберга и П. Гершунина` remains
+typography evidence rather than a publisher or textual relation. This exact
+Edition endpoint therefore refreshes identity only: the two-edge revision
+chain and every deliberately absent edge remain unchanged.
+
 Classical FRBR distinction between derivation and equivalence, current LRMoo
 `R76 is derivative of`, and current implementation evidence all point in the
 same direction: missing lineage must remain missing rather than be completed
@@ -118,6 +127,8 @@ rights, or promote semantics and canon.
 - `ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json`
 - `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md`
 - `ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json`
+- `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md`
+- `ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json`
 - `ToS/contracts/expression-derivation.schema.json`
 - `ToS/contracts/claim-packet.schema.json`
 - `ToS/source-witnesses/relations/expression-derivation/expression-derivation-claims.jsonl`

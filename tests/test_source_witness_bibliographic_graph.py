@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 128)
-        self.assertEqual(counts["claim_traces"], 128)
-        self.assertEqual(counts["nodes"], 439)
-        self.assertEqual(counts["edges"], 896)
+        self.assertEqual(counts["source_claims"], 129)
+        self.assertEqual(counts["claim_traces"], 129)
+        self.assertEqual(counts["nodes"], 442)
+        self.assertEqual(counts["edges"], 902)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 128})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 128})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 129})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 129})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -890,14 +890,34 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
         payload = load_verified_projection()
-        result = query_projection(payload, predicate="embodied_by", limit=23)
-        self.assertEqual(result["result_count"], 23)
+        result = query_projection(payload, predicate="embodied_by", limit=24)
+        self.assertEqual(result["result_count"], 24)
         for match in result["matches"]:
             source_claim = match["source_return"]["source_claim"]
             self.assertEqual(source_claim["claim_type"], "bibliographic")
             self.assertEqual(source_claim["epistemic_status"], "observed")
             self.assertNotIn("same_as", source_claim["predicate"])
             self.assertNotIn("textual", json.dumps(source_claim, ensure_ascii=False))
+
+        expression_1907 = (
+            "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-antonovsky-1907"
+        )
+        edition_1907 = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "saint-petersburg-vaisberg-gershunin-typography-1907-third"
+        )
+        exact = query_projection(
+            payload,
+            subject_ref=expression_1907,
+            object_ref=edition_1907,
+            predicate="embodied_by",
+        )
+        self.assertEqual(exact["result_count"], 1)
+        source_claim = exact["matches"][0]["source_return"]["source_claim"]
+        self.assertEqual(source_claim["review_status"], "unreviewed")
+        self.assertEqual(source_claim["visibility"], "public_metadata_only")
+        self.assertEqual(source_claim["object"], edition_1907)
 
     def test_expression_derivation_queries_preserve_direction_and_absent_edges(self) -> None:
         payload = load_verified_projection()
