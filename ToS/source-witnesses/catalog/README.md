@@ -33,8 +33,8 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 70 object records and 103 claim records
-(173 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 70 object records and 105 claim records
+(175 entries total). The responsibility slice contains seven Work authorship,
 eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The eighth translation claim is bound to a proposed whole-page title-page
@@ -44,12 +44,13 @@ The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
 The provision surface contains two provisional Places, three provisional
-historical publisher Organizations, and three Edition-owned grouped
-statements. The third claim is a bounded post-experiment extension for only the
-1883 first part of *Also sprach Zarathustra*: it resolves Chemnitz and the
-historical Schmeitzner Corporate Body, not the affiliated Person, and does not
-populate parts II or III. Literal wording, normalized identity, activity role,
-and statement date remain distinct; all identities and claims remain
+historical publisher Organizations, and five Edition-owned grouped statements.
+Three claims belong to the exact 1883/1883/1884 first three parts of *Also
+sprach Zarathustra*: each returns to its own DTA Edition record while resolving
+the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
+affiliated Person. Literal wording, normalized identity, activity role, and
+statement date remain distinct; shared labels and one holding shelfmark do not
+create Edition, Item, or textual equivalence. All identities and claims remain
 model-made, unreviewed, or provisional.
 
 Regeneration, parity checks, and source-foundation validation route through

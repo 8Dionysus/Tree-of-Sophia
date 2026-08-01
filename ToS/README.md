@@ -76,8 +76,11 @@ separate from one normalized Leipzig Place, two historical publisher
 Organizations, and their statement-date facets. A separate post-experiment
 extension admits only the exact 1883 first-part *Zarathustra* authority
 statement, one Chemnitz Place, and the historical Schmeitzner publishing
-Organization. It does not substitute the Person Ernst Schmeitzner or populate
-parts II and III from repeated labels. All identities and claims remain
+Organization. A following exact-record pass independently admits the part-II
+1883 and part-III 1884 statements from their own DTA records and an e-rara
+holding crosscheck; it does not substitute the Person Ernst Schmeitzner or
+infer either claim from part I, repeated labels, or the shared shelfmark. All
+identities and claims remain
 provisional or unreviewed, and the graph reaches them only through reified
 claim nodes.
 

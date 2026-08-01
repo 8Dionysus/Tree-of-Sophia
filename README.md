@@ -80,8 +80,10 @@ imprint statements while resolving one provisional Place and two distinct
 provisional historical publisher Organizations. A subsequent bounded extension
 adds the exact 1883 first part of *Also sprach Zarathustra*, one provisional
 Chemnitz Place, and the historical Schmeitzner publishing Organization. The
-Organization remains distinct from the Person Ernst Schmeitzner, and repeated
-labels do not populate parts II or III. Statement dates, printing, manuscript
+next extension adds parts II and III only after each separate DTA authority
+record and an independent e-rara holding route were checked; neither claim is
+copied from part I or from repeated labels. The Organization remains distinct
+from the Person Ernst Schmeitzner. Statement dates, printing, manuscript
 dispatch, public release, publisher, printer, and modern successor remain
 separate. Every identity and claim is model-made and unreviewed; the generated
 graph reaches normalized participants only through source-returnable claim

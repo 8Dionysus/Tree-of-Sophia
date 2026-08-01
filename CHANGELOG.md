@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added two independently evidenced Edition-owned provision claims for
+  *Also sprach Zarathustra*, parts II and III. Each returns to its own DTA
+  source description, URN, volume, holding-copy route, publisher, place, and
+  statement year; e-rara supplies an independent holding route with separate
+  Band 2 and Band 3 title-page structures. The claims reuse the provisional
+  Chemnitz Place and historical Schmeitzner publishing Organization but are
+  not copied from part I or from repeated labels. Exact subject queries return
+  three distinct part-I/II/III claims; the Person GND remains a negative
+  control. No physical-title-page transcription, printing or release date,
+  Edition/Item/textual equivalence, accepted bibliography, human review,
+  source payload, semantics, publication right, or canon was added.
 - Added an exact source-returnable translation-responsibility claim for the
   1913 Russian Antonovsky *Zarathustra* Expression. Direct inspection of the
   fixity-verified PDF page 7 supplies one proposed whole-page source anchor;
@@ -24,9 +35,10 @@ Tracking starts with the community-docs baseline for this repository.
   (Schmeitzner, Chemnitz, 1883). The official identity route distinguishes the
   historical publishing Organization (GND `1063670306`) from the Person Ernst
   Schmeitzner (GND `118823698`), binds the authority statement to the existing
-  fixity-verified DTA first-part witness, and leaves parts II and III
-  unpopulated. Positive Chemnitz/Organization queries and negative part-II,
-  part-III, and Person-GND queries were inspected directly. The original
+  fixity-verified DTA first-part witness, and at that checkpoint left parts II
+  and III unpopulated. Positive Chemnitz/Organization queries and negative
+  part-II, part-III, and Person-GND queries were inspected directly before the
+  later exact-record extension above. The original
   two-case A/B/C measurements remain frozen; this extension adds no human
   review, source payload, accepted bibliography, semantics, rights, or canon.
 - Added the first bounded Edition-owned `provision_activity` layer after an
@@ -78,11 +90,11 @@ Tracking starts with the community-docs baseline for this repository.
   `public_metadata_only`, and `unreviewed`, and creates no generic creator
   shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 103 current
-  public-metadata-only source-witness claims into 327 nodes, 663 claim-centered
-  edges, and 103 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 105 current
+  public-metadata-only source-witness claims into 336 nodes, 685 claim-centered
+  edges, and 105 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
-  time and method, and explicit review status. Twenty-two publication,
+  time and method, and explicit review status. Twenty-four publication,
   chronology, and provision objects remain claim-scoped literals; no direct
   subject-to-object truth edge is emitted. The graph is a deletable JSON read
   model, separate from the
@@ -91,10 +103,10 @@ Tracking starts with the community-docs baseline for this repository.
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 103 tracked membership, responsibility,
+  `claims.jsonl` indexes all 105 tracked membership, responsibility,
   publication, provision, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v3 separates 70 object entries from 103 claim entries,
+  claim digest. Catalog v3 separates 70 object entries from 105 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked

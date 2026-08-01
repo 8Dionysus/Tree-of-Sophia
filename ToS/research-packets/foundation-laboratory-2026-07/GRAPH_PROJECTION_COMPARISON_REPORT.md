@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 103 public-metadata-only bibliographic claims;
-- 327 nodes and 663 edges;
-- 103 claim trace packets;
-- 22 claim-scoped literal objects;
-- 16 resolved provenance events carrying exact time and method;
+- 105 public-metadata-only bibliographic claims;
+- 336 nodes and 685 edges;
+- 105 claim trace packets;
+- 24 claim-scoped literal objects;
+- 17 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 103 explicit `unreviewed` states.
+- 105 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -79,15 +79,17 @@ The chronology layer separately carries seven Work
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
 
-The 2026-08-01 bounded provision surface contains three Edition-owned literal
+The 2026-08-01 bounded provision surface contains five Edition-owned literal
 objects, two normalized Places, and three distinct historical publisher
 Organizations. The original two-case A/B/C result remains frozen; a separate
 extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
-and the historical Schmeitzner Corporate Body. All six normalized-participant
-edges begin at claim nodes. Exact normalized queries return both original
-claims for Leipzig, exactly the first-part claim for Chemnitz or Schmeitzner,
-and no match for the modern Berlin Insel successor, parts II and III, or the
-Person Ernst Schmeitzner GND. The graph creates no direct
+and the historical Schmeitzner Corporate Body. A later pass adds part II and
+part III from their own exact DTA records, not from the first claim or repeated
+labels. All ten normalized-participant edges begin at claim nodes. Exact
+normalized queries return both original claims for Leipzig and three distinct
+claims for Chemnitz or Schmeitzner; exact subject queries preserve separate
+1883/1883/1884 statements and source files. The modern Berlin Insel successor
+and Person Ernst Schmeitzner GND still return no match. The graph creates no direct
 Edition-to-Place or Edition-to-Organization assertion.
 
 Every structural edge begins at a reified claim node and carries the source
@@ -119,12 +121,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 103/103 catalog rows returning to the expected source line and canonical
+- 105/105 catalog rows returning to the expected source line and canonical
   claim digest;
-- 103/103 graph traces returning to the same source line and digest;
-- 327 nodes, including 103 claims, 70 identities, 115 evidence nodes, 22
-  literals, one maker, and 16 provenance events;
-- 663/663 edges beginning at their own reified claim node;
+- 105/105 graph traces returning to the same source line and digest;
+- 336 nodes, including 105 claims, 70 identities, 119 evidence nodes, 24
+  literals, one maker, and 17 provenance events;
+- 685/685 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata
@@ -133,7 +135,10 @@ identities, and negative query. Their frozen experiment receipt preserves that
 direct check, the rejected flat-field representation, schema mutations, and
 local cost snapshot. The later first-part *Zarathustra* row was independently
 inspected through positive Chemnitz/Organization and negative part-II,
-part-III, and Person-GND queries. Neither episode creates human review evidence.
+part-III, and Person-GND queries at its checkpoint. The subsequent part-II and
+part-III rows were each inspected by exact subject and source return; the
+Chemnitz query now returns three distinct claims, while the Person-GND control
+still returns no match. None of these episodes creates human review evidence.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

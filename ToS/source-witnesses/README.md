@@ -85,8 +85,10 @@ source-witnesses/
 ```
 
 The corpus-wide `provision-activities/` route holds digest-bound provenance
-for bounded Edition-owned provision claims; the claims themselves stay beside
-their subject Edition.
+for bounded Edition-owned provision claims; a named subbranch may own one
+multi-Edition research episode while every claim stays beside its exact
+subject Edition. Shared discovery episodes are recorded under
+`discovery/provenance.jsonl`; neither provenance surface becomes claim truth.
 
 `<responsibility-or-tradition>` is a navigational route, not an authorship
 claim. Anonymous, disputed, collective, and tradition-owned works receive
@@ -195,9 +197,12 @@ It explicitly rejects the C. G. Naumann printing company and modern Berlin
 Insel successor as publisher shortcuts. A later exact-Edition extension adds
 the 1883 first part of *Also sprach Zarathustra*, a provisional Chemnitz Place,
 and the historical `Ernst Schmeitzner, Verlagsbuchhandlung` Organization. It
-keeps that Corporate Body distinct from the Person Ernst Schmeitzner and does
-not copy the claim to parts II or III. All three Edition claims remain
-model-made, `public_metadata_only`, and `unreviewed`.
+keeps that Corporate Body distinct from the Person Ernst Schmeitzner. A
+following pass adds parts II and III only from their own DTA source
+descriptions and separate Edition identities; repeated labels, the part-I
+claim, and the shared holding shelfmark are not evidence for propagation. All
+five Edition claims remain model-made, `public_metadata_only`, and
+`unreviewed`.
 
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;

@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 70 current objects and all 103
+- The source-witness catalog now exposes all 70 current objects and all 105
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 103 claims as reified
-  claim nodes with 663 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 105 claims as reified
+  claim nodes with 685 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 103 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 105 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -137,14 +137,17 @@ contracts intentionally reject simulated human evidence.
   accepted text, and human review remain unresolved.
 - The frozen provision A/B/C pilot adds only one provisional Place, two
   provisional historical Organizations, and two unreviewed Edition claims. A
-  separate post-experiment extension adds one provisional Chemnitz Place, the
+  first post-experiment extension adds one provisional Chemnitz Place, the
   historical Schmeitzner publishing Organization, and one unreviewed claim for
-  the exact 1883 first part of *Also sprach Zarathustra*. It distinguishes the
-  Corporate Body from the Person Ernst Schmeitzner and leaves parts II and III
-  without provision claims. Neither slice establishes `same_as`, corporate
+  the exact 1883 first part of *Also sprach Zarathustra*. A second ordered pass
+  adds separate unreviewed part-II and part-III claims only after reading each
+  exact DTA source description and an independent e-rara holding route. The
+  three claims stay distinct even where publisher, place, year, or shelfmark
+  repeat, and the Corporate Body remains separate from the Person Ernst
+  Schmeitzner. None of these slices establishes `same_as`, corporate
   succession, accepted publisher identity, physical-title-page transcription,
-  printing or release chronology, a general Place hierarchy, or permission to
-  populate other Editions.
+  printing or release chronology, Edition/Item/textual equivalence, a general
+  Place hierarchy, or permission to populate other Editions mechanically.
 - Its read-only query route requires an exact selector, validates a full
   source-backed rebuild before answering, returns the exact source claim and
   complete trace bundle, and fails rather than silently truncate. This proves
@@ -594,6 +597,19 @@ not reintroduce a false 90 °C gate.
   when routed read-only to the clean `/srv/AbyssOS/aoa-stats` owner. This
   proves mechanical integrity only; it does not accept German, clear rights,
   create semantics, or prove retrieval quality.
+- The 2026-08-01 *Zarathustra* part-II/III provision-identity slice adds two
+  exact Edition-owned, model-made, unreviewed claims only after separate DTA
+  source-record checks and independent e-rara holding corroboration. The
+  rebuilt source catalog contains 70 objects and 105 claims; the portable
+  bibliographic graph contains 336 nodes, 685 claim-centred edges, and 105
+  source-return traces with no direct subject-object edge. Manual exact queries
+  return three distinct part-I/II/III claims, one own-source result for each
+  new Edition, and no normalized match for Person GND `118823698`. The complete
+  Tree release lane passes 250 tests with one declared skip. These results do
+  not transcribe either physical title page, establish printing or public
+  release time, equate Editions, Items or texts, accept the bibliography or
+  German, clear rights, perform human review, create semantics, authorize
+  publication, or promote canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

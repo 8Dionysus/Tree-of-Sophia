@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 103)
-        self.assertEqual(counts["claim_traces"], 103)
-        self.assertEqual(counts["nodes"], 327)
-        self.assertEqual(counts["edges"], 663)
+        self.assertEqual(counts["source_claims"], 105)
+        self.assertEqual(counts["claim_traces"], 105)
+        self.assertEqual(counts["nodes"], 336)
+        self.assertEqual(counts["edges"], 685)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 103})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 103})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 105})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 105})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -342,7 +342,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(modern_successor["status"], "no_match")
         self.assertEqual(modern_successor["matches"], [])
 
-    def test_zarathustra_part_1_provision_query_does_not_spread_by_label(
+    def test_zarathustra_parts_1_to_3_provision_queries_remain_distinct(
         self,
     ) -> None:
         payload = load_verified_projection()
@@ -367,24 +367,34 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             predicate="provision_activity",
             normalized_ref="tos.place.chemnitz",
         )
-        self.assertEqual(by_place["result_count"], 1)
-        match = by_place["matches"][0]
-        self.assertEqual(part_1_ref, match["subject_node"]["properties"]["identity_ref"])
-        self.assertEqual("literal", match["object_node"]["node_kind"])
+        self.assertEqual(by_place["result_count"], 3)
         self.assertEqual(
-            "authority_record",
-            match["object_node"]["properties"]["value"]["statement_basis"],
-        )
-        self.assertEqual(
-            {"tos.place.chemnitz", organization_ref},
+            {part_1_ref, part_2_ref, part_3_ref},
             {
-                node["properties"]["identity_ref"]
-                for node in match["normalized_identity_nodes"]
+                match["subject_node"]["properties"]["identity_ref"]
+                for match in by_place["matches"]
             },
         )
-        self.assertTrue(
-            all(edge["from_id"] == match["claim_node"]["node_id"] for edge in match["edges"])
-        )
+        self.assertEqual(3, len({match["claim_ref"] for match in by_place["matches"]}))
+        for match in by_place["matches"]:
+            self.assertEqual("literal", match["object_node"]["node_kind"])
+            self.assertEqual(
+                "authority_record",
+                match["object_node"]["properties"]["value"]["statement_basis"],
+            )
+            self.assertEqual(
+                {"tos.place.chemnitz", organization_ref},
+                {
+                    node["properties"]["identity_ref"]
+                    for node in match["normalized_identity_nodes"]
+                },
+            )
+            self.assertTrue(
+                all(
+                    edge["from_id"] == match["claim_node"]["node_id"]
+                    for edge in match["edges"]
+                )
+            )
 
         by_organization = query_projection(
             payload,
@@ -392,17 +402,31 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref=organization_ref,
         )
         self.assertEqual(
-            [match["claim_ref"] for match in by_place["matches"]],
-            [match["claim_ref"] for match in by_organization["matches"]],
+            {match["claim_ref"] for match in by_place["matches"]},
+            {match["claim_ref"] for match in by_organization["matches"]},
         )
-        for excluded_subject in (part_2_ref, part_3_ref):
-            excluded = query_projection(
+        expected_years = {
+            part_1_ref: "1883",
+            part_2_ref: "1883",
+            part_3_ref: "1884",
+        }
+        exact_claim_refs = set()
+        for subject_ref, year in expected_years.items():
+            exact = query_projection(
                 payload,
-                subject_ref=excluded_subject,
+                subject_ref=subject_ref,
                 predicate="provision_activity",
             )
-            self.assertEqual("no_match", excluded["status"])
-            self.assertEqual([], excluded["matches"])
+            self.assertEqual("ok", exact["status"])
+            self.assertEqual(1, exact["result_count"])
+            exact_claim_refs.add(exact["matches"][0]["claim_ref"])
+            self.assertEqual(
+                year,
+                exact["matches"][0]["object_node"]["properties"]["value"][
+                    "temporal"
+                ]["value"],
+            )
+        self.assertEqual(3, len(exact_claim_refs))
 
         person_gnd = query_projection(
             payload,
