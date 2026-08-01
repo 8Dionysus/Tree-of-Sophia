@@ -178,20 +178,26 @@ its literal wording, role-specific places and agents, bounded temporal
 assertion, evidence, provenance, and review posture. Literal transcription or
 report and normalized identity remain separate: an authority match cannot
 overwrite the statement, and the statement alone cannot manufacture a Place
-or Organization identity. The current bounded slice resolves one provisional
-Leipzig Place and two provisional historical publisher Organizations for the
-1889 *Götzen-Dämmerung* and 1908 *Ecce Homo* Editions. It explicitly rejects
-the C. G. Naumann printing company and modern Berlin Insel successor as
-publisher shortcuts. Both Edition claims remain model-made,
-`public_metadata_only`, and `unreviewed`.
+or Organization identity. The original two-case slice resolves one
+provisional Leipzig Place and two provisional historical publisher
+Organizations for the 1889 *Götzen-Dämmerung* and 1908 *Ecce Homo* Editions.
+It explicitly rejects the C. G. Naumann printing company and modern Berlin
+Insel successor as publisher shortcuts. A later exact-Edition extension adds
+the 1883 first part of *Also sprach Zarathustra*, a provisional Chemnitz Place,
+and the historical `Ernst Schmeitzner, Verlagsbuchhandlung` Organization. It
+keeps that Corporate Body distinct from the Person Ernst Schmeitzner and does
+not copy the claim to parts II or III. All three Edition claims remain
+model-made, `public_metadata_only`, and `unreviewed`.
 
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
 the bracketed 1908 DNB year is not an exact release date. The generated graph
 may connect a reified claim to normalized Place and Organization nodes, but it
-must never emit a direct Edition-to-identity fact edge. The exercised A/B/C
-inspection and negative controls are recorded in
+must never emit a direct Edition-to-identity fact edge. The frozen two-case
+A/B/C inspection and its negative controls are recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/PROVISION_ACTIVITY_ABC_EXPERIMENT.md`.
+The post-experiment first-part identity admission is separately recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

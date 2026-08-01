@@ -158,6 +158,13 @@ review posture. A normalized participant is only a claim-originating graph
 route: it cannot bypass the claim, replace the literal statement, or equate a
 publisher with a printer, successor, or public-release event.
 
+The first *Zarathustra* provision extension is deliberately Edition-exact. The
+1883 DTA authority statement belongs only to the separately modeled first
+part; the same labels on parts II and III are not evidence for copied claims.
+The historical Schmeitzner Corporate Body is modeled as an Organization and
+kept distinct from the affiliated Person, later firms, and rights holders.
+This is an identity-and-provenance boundary, not accepted bibliography.
+
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes
 exact AND selectors and returns the source JSONL object plus its complete graph

@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 101)
-        self.assertEqual(counts["claim_traces"], 101)
-        self.assertEqual(counts["nodes"], 312)
-        self.assertEqual(counts["edges"], 645)
+        self.assertEqual(counts["source_claims"], 102)
+        self.assertEqual(counts["claim_traces"], 102)
+        self.assertEqual(counts["nodes"], 322)
+        self.assertEqual(counts["edges"], 656)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 101})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 101})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 102})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 102})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -341,6 +341,76 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
         self.assertEqual(modern_successor["status"], "no_match")
         self.assertEqual(modern_successor["matches"], [])
+
+    def test_zarathustra_part_1_provision_query_does_not_spread_by_label(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        part_1_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "chemnitz-schmeitzner-1883-part-1"
+        )
+        part_2_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "chemnitz-schmeitzner-1883-part-2"
+        )
+        part_3_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "chemnitz-schmeitzner-1884-part-3"
+        )
+        organization_ref = (
+            "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz"
+        )
+
+        by_place = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref="tos.place.chemnitz",
+        )
+        self.assertEqual(by_place["result_count"], 1)
+        match = by_place["matches"][0]
+        self.assertEqual(part_1_ref, match["subject_node"]["properties"]["identity_ref"])
+        self.assertEqual("literal", match["object_node"]["node_kind"])
+        self.assertEqual(
+            "authority_record",
+            match["object_node"]["properties"]["value"]["statement_basis"],
+        )
+        self.assertEqual(
+            {"tos.place.chemnitz", organization_ref},
+            {
+                node["properties"]["identity_ref"]
+                for node in match["normalized_identity_nodes"]
+            },
+        )
+        self.assertTrue(
+            all(edge["from_id"] == match["claim_node"]["node_id"] for edge in match["edges"])
+        )
+
+        by_organization = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref=organization_ref,
+        )
+        self.assertEqual(
+            [match["claim_ref"] for match in by_place["matches"]],
+            [match["claim_ref"] for match in by_organization["matches"]],
+        )
+        for excluded_subject in (part_2_ref, part_3_ref):
+            excluded = query_projection(
+                payload,
+                subject_ref=excluded_subject,
+                predicate="provision_activity",
+            )
+            self.assertEqual("no_match", excluded["status"])
+            self.assertEqual([], excluded["matches"])
+
+        person_gnd = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref="118823698",
+        )
+        self.assertEqual("no_match", person_gnd["status"])
+        self.assertEqual([], person_gnd["matches"])
 
     def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
         payload = load_verified_projection()

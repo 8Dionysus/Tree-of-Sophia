@@ -179,6 +179,40 @@ GOETZEN_1889_PROVISION_CLAIMS_PATH = (
 ECCE_HOMO_1908_PROVISION_CLAIMS_PATH = (
     ECCE_HOMO_1908_EDITION_ROOT / "provision-activity-claims.jsonl"
 )
+ZARATHUSTRA_PART_1_EDITION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/"
+    "editions/chemnitz-schmeitzner-1883-part-1"
+)
+ZARATHUSTRA_PART_1_PROVISION_CLAIMS_PATH = (
+    ZARATHUSTRA_PART_1_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+ZARATHUSTRA_PART_2_EDITION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/"
+    "editions/chemnitz-schmeitzner-1883-part-2"
+)
+ZARATHUSTRA_PART_3_EDITION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/"
+    "editions/chemnitz-schmeitzner-1884-part-3"
+)
+ZARATHUSTRA_PART_1_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "zarathustra-part-1-provision-identity.2026-08-01.v1.json"
+)
+CHEMNITZ_PLACE_PATH = (
+    REPO_ROOT / "ToS/source-witnesses/places/chemnitz/place.json"
+)
+SCHMEITZNER_ORGANIZATION_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.json"
+)
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1151,10 +1185,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(68, manifest["counts"]["object_total"])
-        self.assertEqual(101, manifest["counts"]["claim"])
-        self.assertEqual(169, manifest["counts"]["total"])
-        self.assertEqual(101, len(claim_entries))
+        self.assertEqual(70, manifest["counts"]["object_total"])
+        self.assertEqual(102, manifest["counts"]["claim"])
+        self.assertEqual(172, manifest["counts"]["total"])
+        self.assertEqual(102, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1191,7 +1225,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 84,
+                "bibliographic_assertion": 85,
                 "scholarly_report": 17,
             },
             {
@@ -1296,9 +1330,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(2, len(provision_claims))
+        self.assertEqual(3, len(provision_claims))
         self.assertEqual(
-            {"tos.place.leipzig"},
+            {"tos.place.leipzig", "tos.place.chemnitz"},
             {
                 place["normalized_place_ref"]
                 for claim in provision_claims
@@ -1309,6 +1343,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             {
                 "tos.organization.c-g-naumann-verlag-leipzig",
                 "tos.organization.insel-verlag-anton-kippenberg-leipzig",
+                "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
             },
             {
                 agent["normalized_agent_ref"]
@@ -1323,6 +1358,95 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 and claim["visibility"] == "public_metadata_only"
                 for claim in provision_claims
             )
+        )
+
+    def test_zarathustra_part_1_provision_identity_is_bounded_and_distinct(
+        self,
+    ) -> None:
+        claim = json.loads(
+            ZARATHUSTRA_PART_1_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        self.assertEqual(
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "chemnitz-schmeitzner-1883-part-1",
+            claim["subject_ref"],
+        )
+        self.assertEqual("authority_record", claim["object"]["statement_basis"])
+        self.assertEqual("Schmeitzner; Chemnitz; 1883", claim["object"]["reported_statement"])
+        self.assertEqual(
+            "tos.place.chemnitz",
+            claim["object"]["places"][0]["normalized_place_ref"],
+        )
+        self.assertEqual(
+            "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            claim["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual(
+            {
+                "kind": "date",
+                "calendar": "gregorian",
+                "value": "1883",
+                "precision": "year",
+                "role": "statement_date",
+                "source_posture": "catalog_supplied",
+            },
+            claim["object"]["temporal"],
+        )
+        self.assertIn("parts II and III", claim["object"]["activity_warning"])
+        self.assertEqual("reported", claim["epistemic_status"])
+        self.assertEqual("unreviewed", claim["review_status"])
+        self.assertEqual("public_metadata_only", claim["visibility"])
+
+        part_1 = json.loads(
+            (ZARATHUSTRA_PART_1_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual([claim["claim_id"]], part_1["provision_activity_claim_refs"])
+        for edition_root in (
+            ZARATHUSTRA_PART_2_EDITION_ROOT,
+            ZARATHUSTRA_PART_3_EDITION_ROOT,
+        ):
+            edition = json.loads(
+                (edition_root / "edition.json").read_text(encoding="utf-8")
+            )
+            self.assertNotIn("provision_activity_claim_refs", edition)
+            self.assertFalse((edition_root / "provision-activity-claims.jsonl").exists())
+
+        chemnitz = json.loads(CHEMNITZ_PLACE_PATH.read_text(encoding="utf-8"))
+        schmeitzner = json.loads(
+            SCHMEITZNER_ORGANIZATION_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("place", chemnitz["record_type"])
+        self.assertEqual(
+            [{"scheme": "GND", "value": "4029702-0", "source_ref": "https://d-nb.info/gnd/4029702-0", "status": "unverified"}],
+            chemnitz["external_identifiers"],
+        )
+        self.assertEqual("organization", schmeitzner["record_type"])
+        self.assertEqual("1063670306", schmeitzner["external_identifiers"][0]["value"])
+        self.assertNotEqual("118823698", schmeitzner["external_identifiers"][0]["value"])
+        self.assertIn("Person Ernst Schmeitzner, GND 118823698", schmeitzner["notes"])
+
+        discovery = json.loads(
+            ZARATHUSTRA_PART_1_PROVISION_DISCOVERY_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("reconciled", discovery["status"])
+        self.assertTrue(discovery["general_web_search_is_last_resort"])
+        self.assertEqual(
+            "channel-general-web-zarathustra-provision-refresh",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-1063670306-schmeitzner-verlagsbuchhandlung",
+            discovery["selected_result_ids"],
+        )
+        self.assertNotIn(
+            "tos-discovery-result.dnb-gnd-118823698-ernst-schmeitzner-person",
+            discovery["selected_result_ids"],
         )
 
     def test_provision_activity_contract_preserves_roles_and_date_boundaries(

@@ -134,7 +134,27 @@ authority boundary.
 
 Retain C as a bounded foundation mechanic and preserve A as a navigation
 fallback. Reject B as the source authority shape. Keep all two provision
-claims and all three normalized identities `unreviewed`/provisional. Do not add
-the optional Chemnitz/Schmeitzner case or bulk-populate other Editions until a
-real next question demonstrates that the two-case contract is insufficient or
-a bibliographic review explicitly promotes these records.
+claims and all three normalized identities `unreviewed`/provisional. At this
+experiment's closure, do not add the optional Chemnitz/Schmeitzner case or
+bulk-populate other Editions until a real next question demonstrates that the
+two-case contract is insufficient or a bibliographic review explicitly
+promotes these records.
+
+## Post-experiment extension — 2026-08-01
+
+The frozen measurements and two-case decision above were not rewritten. The
+next concrete question was whether an exact structured authority statement for
+the already modeled first part of *Also sprach Zarathustra* could exercise the
+retained C mechanics while resisting two label-driven errors: substituting the
+Person Ernst Schmeitzner for the historical publishing Organization, and
+copying the statement to parts II and III.
+
+Ordered research and a separate discovery receipt are recorded in
+[`ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md`](ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md).
+The bounded extension admits one unreviewed first-part claim, one provisional
+Chemnitz Place, and one provisional historical Schmeitzner Organization. Direct
+queries return exactly that first-part claim for either normalized identity;
+the part-II, part-III, and Person-GND controls return no match. This is a
+post-experiment contract extension, not a sixth timing run, a third member of
+the original sample, human review, accepted bibliography, or permission for
+bulk population.

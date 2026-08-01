@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 101 public-metadata-only bibliographic claims;
-- 312 nodes and 645 edges;
-- 101 claim trace packets;
-- 21 claim-scoped literal objects;
-- 14 resolved provenance events carrying exact time and method;
+- 102 public-metadata-only bibliographic claims;
+- 322 nodes and 656 edges;
+- 102 claim trace packets;
+- 22 claim-scoped literal objects;
+- 15 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 101 explicit `unreviewed` states.
+- 102 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -74,11 +74,15 @@ The chronology layer separately carries seven Work
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
 
-The 2026-08-01 bounded provision layer adds two Edition-owned literal objects,
-one normalized Leipzig Place, and two distinct historical publisher
-Organizations. The four normalized-participant edges all begin at their claim
-nodes. Exact normalized queries return both claims for Leipzig and no match for
-the modern Berlin Insel successor; the graph does not create a direct
+The 2026-08-01 bounded provision surface contains three Edition-owned literal
+objects, two normalized Places, and three distinct historical publisher
+Organizations. The original two-case A/B/C result remains frozen; a separate
+extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
+and the historical Schmeitzner Corporate Body. All six normalized-participant
+edges begin at claim nodes. Exact normalized queries return both original
+claims for Leipzig, exactly the first-part claim for Chemnitz or Schmeitzner,
+and no match for the modern Berlin Insel successor, parts II and III, or the
+Person Ernst Schmeitzner GND. The graph creates no direct
 Edition-to-Place or Edition-to-Organization assertion.
 
 Every structural edge begins at a reified claim node and carries the source
@@ -110,19 +114,21 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 101/101 catalog rows returning to the expected source line and canonical
+- 102/102 catalog rows returning to the expected source line and canonical
   claim digest;
-- 101/101 graph traces returning to the same source line and digest;
-- 312 nodes, including 101 claims, 68 identities, 107 evidence nodes, 21
-  literals, one maker, and 14 provenance events;
-- 645/645 edges beginning at their own reified claim node;
+- 102/102 graph traces returning to the same source line and digest;
+- 322 nodes, including 102 claims, 70 identities, 112 evidence nodes, 22
+  literals, one maker, and 15 provenance events;
+- 656/656 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
-The two new provision rows were additionally inspected from metadata snapshot
-to raw source claim, catalog line, graph literal, normalized identities, and
-negative query. The separate experiment receipt preserves that direct check,
-the rejected flat-field representation, schema mutations, and local cost
-snapshot. It creates no human review evidence.
+The original two provision rows were additionally inspected from metadata
+snapshot to raw source claim, catalog line, graph literal, normalized
+identities, and negative query. Their frozen experiment receipt preserves that
+direct check, the rejected flat-field representation, schema mutations, and
+local cost snapshot. The later first-part *Zarathustra* row was independently
+inspected through positive Chemnitz/Organization and negative part-II,
+part-III, and Person-GND queries. Neither episode creates human review evidence.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

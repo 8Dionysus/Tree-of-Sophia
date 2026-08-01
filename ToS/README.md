@@ -66,11 +66,15 @@ Each of the seven current Nietzsche Works also closes over its own documentary
 Each Work separately closes over one first-publication chronology profile,
 preserving staged/private/public/posthumous boundaries without inventing one
 universal Work year or treating a model-made ordering claim as accepted truth.
-The first bounded provision slice keeps two Edition imprint statements
+The original bounded provision experiment keeps two Edition imprint statements
 separate from one normalized Leipzig Place, two historical publisher
-Organizations, and their statement-date facets. Those identities and claims
-remain provisional or unreviewed, and the graph reaches them only through
-their reified claim nodes.
+Organizations, and their statement-date facets. A separate post-experiment
+extension admits only the exact 1883 first-part *Zarathustra* authority
+statement, one Chemnitz Place, and the historical Schmeitzner publishing
+Organization. It does not substitute the Person Ernst Schmeitzner or populate
+parts II and III from repeated labels. All identities and claims remain
+provisional or unreviewed, and the graph reaches them only through reified
+claim nodes.
 
 ## Operating Card
 

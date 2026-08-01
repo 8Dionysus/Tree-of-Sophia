@@ -1,0 +1,304 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.zarathustra-part-1-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+    ],
+    "description": "Exact provision identity for the separately modeled 1883 first part of Also sprach Zarathustra after the two-case provision-activity experiment passed.",
+    "required_properties": [
+      "part-I Edition scope",
+      "reported publisher, place, and year",
+      "historical publisher Organization identity",
+      "Place identity",
+      "publisher Person versus Organization distinction",
+      "no automatic propagation to parts II or III"
+    ],
+    "acceptable_substitutions": [
+      "an official catalog or independent holding-copy record that preserves the same part boundary without asserting Item equivalence"
+    ],
+    "languages": ["de"],
+    "formats": ["metadata", "JSON-LD", "XML/TEI P5", "HTML"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dnb-schmeitzner-chemnitz-authorities",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/1063670306/about/lds.jsonld",
+      "interface_type": "api",
+      "interface_version": "GND linked-data JSON-LD as served 2026-08-01",
+      "exact_query": "GET https://d-nb.info/gnd/4029702-0/about/lds.jsonld; GET https://d-nb.info/gnd/118823698/about/lds.jsonld; follow affiliation to GET https://d-nb.info/gnd/1063670306/about/lds.jsonld",
+      "queried_at": "2026-08-01T00:58:00-06:00",
+      "elapsed_seconds": 4.394821,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1063670306-schmeitzner-verlagsbuchhandlung",
+          "rank": 1,
+          "title_as_displayed": "Ernst Schmeitzner, Verlagsbuchhandlung",
+          "result_url": "https://d-nb.info/gnd/1063670306",
+          "originating_record_url": "https://d-nb.info/gnd/1063670306/about/lds.jsonld",
+          "identifiers": [{"scheme": "GND", "value": "1063670306"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The Corporate Body record names the historical publishing business, gives 1874 as establishment year, Chemnitz as place of business, and preserves a deprecated GND identifier without equating the firm with its namesake person.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The raw live response is not retained in the source repository; its exact response digest is recorded in the ordered research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4029702-0-chemnitz",
+          "rank": 2,
+          "title_as_displayed": "Chemnitz",
+          "result_url": "https://d-nb.info/gnd/4029702-0",
+          "originating_record_url": "https://d-nb.info/gnd/4029702-0/about/lds.jsonld",
+          "identifiers": [{"scheme": "GND", "value": "4029702-0"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The authority record supplies the normalized place identity and historical name context without converting the imprint literal into a reviewed same-as assertion.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The raw live response is not retained in the source repository; its exact response digest is recorded in the ordered research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-118823698-ernst-schmeitzner-person",
+          "rank": 3,
+          "title_as_displayed": "Schmeitzner, Ernst",
+          "result_url": "https://d-nb.info/gnd/118823698",
+          "originating_record_url": "https://d-nb.info/gnd/118823698/about/lds.jsonld",
+          "identifiers": [{"scheme": "GND", "value": "118823698"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "This is the differentiated Person record. It corroborates the affiliation and activity place but is not selected as the normalized publisher Organization for this claim.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The raw live response is not retained in the source repository; its exact response digest is recorded in the ordered research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dta-zarathustra-part-1-provision",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
+      "interface_type": "api",
+      "interface_version": "DTA TEI header and Dublin Core as served 2026-08-01",
+      "exact_query": "GET api/tei_header/nietzsche_zarathustra01_1883; GET api/oai_dc/nietzsche_zarathustra01_1883; compare sourceDesc against the fixity-verified local TEI and captured source-metadata snapshot",
+      "queried_at": "2026-08-01T01:00:00-06:00",
+      "elapsed_seconds": 0.876005,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dta-zarathustra-part-1-provision-statement",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. [Bd. 1]. Chemnitz, 1883.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883",
+          "originating_record_url": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra01_1883",
+          "identifiers": [
+            {"scheme": "DTA ID", "value": "16840"},
+            {"scheme": "URN", "value": "urn:nbn:de:kobv:b4-200905194290"},
+            {"scheme": "holding-copy shelfmark", "value": "SBB-PK, 19 ZZ 10200-1/3"}
+          ],
+          "available_formats": ["XML/TEI P5", "Dublin Core XML", "HTML"],
+          "declared_rights": {"statement": "Current TEI and terms report CC BY-SA 4.0 while the live Dublin Core field remains stale at CC BY-NC 3.0.", "scope": "content", "evidence_url": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact separately modeled part-I record reports Schmeitzner, Chemnitz, and 1883 in its structured publication statement. The claim uses it as an authority record and does not claim a physical title-page transcription.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "7ece7c040dd478d335ae110b826996343f97ac4c8b9d97b2c99f0342a480e55d", "reason": "The existing tracked snapshot preserves the exact Edition, holding-copy, source, quality, endpoint, response-digest, and rights-conflict context."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-zarathustra-production-history",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften historical-critical commentary",
+      "endpoint_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0559",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary as served 2026-08-01",
+      "exact_query": "Inspect pages 559 and 586 for Zarathustra I manuscript dispatch, Schmeitzner publication, reception, and sales chronology",
+      "queried_at": "2026-08-01T01:03:00-06:00",
+      "elapsed_seconds": 2.287667,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-zarathustra-part-1-production-boundary",
+          "rank": 1,
+          "title_as_displayed": "Historischer und kritischer Kommentar zu Friedrich Nietzsches Werken, Band 6,2",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0559",
+          "originating_record_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0559",
+          "identifiers": [],
+          "available_formats": ["HTML", "page image", "OCR text"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established commentary keeps the February 1883 manuscript dispatch to Schmeitzner in Chemnitz separate from later publication and reception, blocking a false one-date event collapse.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The scholarly page was inspected through its stable public address; no page or text payload was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-erara-zarathustra-first-parts",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Zentralbibliothek Zuerich e-rara",
+      "endpoint_url": "https://www.e-rara.ch/zuz/content/structure/22865485",
+      "interface_type": "web",
+      "interface_version": "Visual Library Server 2026 as served through the public e-rara page",
+      "exact_query": "Open persistent structure record 22865485 and inspect the Band 1/title-page boundary before the independently listed Band 2 and Band 3 structures",
+      "queried_at": "2026-08-01T01:07:00-06:00",
+      "elapsed_seconds": 0.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.erara-zarathustra-schmeitzner-1883-1884",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra : ein Buch für Alle und Keinen. Chemnitz : Verlag von Ernst Schmeitzner, 1883-1884",
+          "result_url": "https://www.e-rara.ch/zuz/content/structure/22865485",
+          "originating_record_url": "https://www.e-rara.ch/zuz/content/structure/22865485",
+          "identifiers": [{"scheme": "e-rara structure ID", "value": "22865485"}],
+          "available_formats": ["HTML", "JPEG", "PDF"],
+          "declared_rights": {"statement": "e-rara assigns document-specific Public Domain Mark or CC BY-SA 4.0 conditions; the exact document route was not promoted to a ToS publication decision.", "scope": "digital-object", "evidence_url": "https://www.e-rara.ch/wiki/termsOfUse", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The independent ZB object corroborates the Schmeitzner/Chemnitz publication and visibly separates Band 1, Band 2, and Band 3. It is a different holding/digital object and is not used as Item equivalence or as a transcription of the DTA/SBB copy.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The public structure and title-page route were inspected without acquiring image or PDF bytes."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-zarathustra-provision-refresh",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after official and established sources",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "2026 \"Ernst Schmeitzner\" \"Zarathustra\"; 2025 \"Ernst Schmeitzner\" \"Also sprach Zarathustra\" publication; 2026 \"Also sprach Zarathustra\" first part Chemnitz Schmeitzner bibliography; 2025 2026 Nietzsche Zarathustra publication history Schmeitzner",
+      "queried_at": "2026-08-01T01:10:00-06:00",
+      "elapsed_seconds": 2.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-1264666330-zarathustra-part-1-reprint",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra, Theil 1, Friedrich-Nietzsche-Stiftung reprint",
+          "result_url": "https://d-nb.info/1264666330",
+          "originating_record_url": "https://d-nb.info/1264666330",
+          "identifiers": [{"scheme": "DNB ID", "value": "1264666330"}],
+          "available_formats": ["HTML", "catalog metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current national-catalog note independently states that the reprint is based on the first part published by Ernst Schmeitzner in Chemnitz in 1883.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the public catalog metadata was inspected; no record payload was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.ddb-schmeitzner-verlagsbericht-1879",
+          "rank": 2,
+          "title_as_displayed": "Erster Verlags-Bericht von Ernst Schmeitzner, Verlagsbuchhandlung in Chemnitz",
+          "result_url": "https://www.deutsche-digitale-bibliothek.de/item/RTCPR3YHN55OH42CDQPULTV3HFTEO2PV",
+          "originating_record_url": "https://www.deutsche-digitale-bibliothek.de/item/RTCPR3YHN55OH42CDQPULTV3HFTEO2PV",
+          "identifiers": [{"scheme": "URN", "value": "urn:nbn:de:bvb:12-bsb11390947-3"}],
+          "available_formats": ["HTML", "metadata"],
+          "declared_rights": {"statement": "Kein Urheberrechtsschutz - Nur nicht kommerzielle Nutzung erlaubt", "scope": "digital-object", "evidence_url": "https://www.deutsche-digitale-bibliothek.de/item/RTCPR3YHN55OH42CDQPULTV3HFTEO2PV", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The record, updated 2026-03-17, independently corroborates the historical corporate name and Chemnitz location but is not evidence for the Zarathustra Edition itself.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The public metadata page was inspected without acquiring its digitized report."}
+        },
+        {
+          "result_id": "tos-discovery-result.stanford-zarathustra-translation-2026",
+          "rank": 3,
+          "title_as_displayed": "Thus Spoke Zarathustra, Complete Works of Friedrich Nietzsche volume 7",
+          "result_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "originating_record_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "identifiers": [{"scheme": "ISBN", "value": "9780804728799"}],
+          "available_formats": ["HTML", "publisher metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The August 2026 translation is relevant to the separate translation route, not to the historical provision identity of the 1883 part-I Edition.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No publisher page or translation content was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.chicago-meier-zarathustra-2026",
+          "rank": 4,
+          "title_as_displayed": "What Is Nietzsche's Zarathustra? A Philosophical Confrontation",
+          "result_url": "https://press.uchicago.edu/ucp/books/book/chicago/W/bo28827600.html",
+          "originating_record_url": "https://press.uchicago.edu/ucp/books/book/chicago/W/bo28827600.html",
+          "identifiers": [{"scheme": "ISBN", "value": "9780226849256"}],
+          "available_formats": ["HTML", "publisher metadata"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The May 2026 interpretation is current but does not supply or revise historical Edition, place, or publisher authority evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No publisher page or book content was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-dnb-schmeitzner-chemnitz-authorities", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 4.394821, "notes": "Best identity evidence. It explicitly separates the publisher Person, historical Corporate Body, and Place."},
+    {"channel_id": "channel-dta-zarathustra-part-1-provision", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 0.876005, "notes": "Best exact Edition evidence. The separately modeled part-I source description reports publisher, place, and year and returns to a fixity-verified local TEI."},
+    {"channel_id": "channel-hadw-zarathustra-production-history", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.287667, "notes": "Best established boundary evidence for keeping manuscript dispatch, publication, reception, and sale distinct."},
+    {"channel_id": "channel-erara-zarathustra-first-parts", "completeness": "strong", "metadata_precision": "adequate", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0.8, "notes": "Useful independent holding-object crosscheck with distinct Band structures; not Item equivalence and not selected as local source authority."},
+    {"channel_id": "channel-general-web-zarathustra-provision-refresh", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.4, "notes": "General web was used last. It produced current corroboration and fresh but irrelevant translation/interpretation leads, with no contradiction to the official identity route."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dnb-gnd-1063670306-schmeitzner-verlagsbuchhandlung",
+    "tos-discovery-result.dnb-gnd-4029702-0-chemnitz",
+    "tos-discovery-result.dta-zarathustra-part-1-provision-statement",
+    "tos-discovery-result.hadw-zarathustra-part-1-production-boundary",
+    "tos-discovery-result.dnb-1264666330-zarathustra-part-1-reprint"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.stanford-zarathustra-translation-2026",
+    "tos-discovery-result.chicago-meier-zarathustra-2026"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T00:55:00-06:00",
+  "ended_at": "2026-08-01T01:30:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.zarathustra-part-1-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

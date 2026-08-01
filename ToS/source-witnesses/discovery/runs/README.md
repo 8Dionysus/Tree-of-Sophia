@@ -187,3 +187,13 @@ scholarship precedes the 2024 chronology and 2025 §22 textual-genetic method;
 general web remains last. No source body, manuscript image, duplicate Item,
 accepted German, semantic claim, human backlog, or publication permission is
 created.
+
+`zarathustra-part-1-provision-identity.2026-08-01.v1.json` reopens the exact
+1883 part-I Edition only after the two-case provision-activity experiment
+passed. DTA preserves the separate Part-I publication statement; current GND
+records distinguish Chemnitz, the historical Ernst Schmeitzner publishing
+business, and the namesake Person; HAdW keeps manuscript dispatch separate
+from publication; and e-rara supplies an independent, non-equated holding
+route. Fresh search runs last. The result admits one model-made, unreviewed
+Edition claim and explicitly does not populate parts II or III from repeated
+labels.
