@@ -34,6 +34,10 @@ and review closure. No direct Work→Expression, Expression→Edition, or
 Edition→Item fact edge is emitted, and `embodied_by` remains bibliographic
 routing rather than textual equivalence.
 
+The same graph currently reifies one `authored_by` claim for each of the seven
+Works. These are seven separately source-returnable claims to the Nietzsche
+Agent, not a generic creator shortcut and not a path-derived assertion.
+
 ## Read-only query route
 
 `scripts/query_source_witness_bibliographic_graph.py` is the repository-local

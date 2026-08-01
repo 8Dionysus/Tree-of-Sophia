@@ -36,6 +36,11 @@ rights, and forensic evidence.
   The generated claim catalog is source-returnable navigation only. Project
   only `public` or `public_metadata_only` claims; fail closed on less-visible
   packets until a reviewed public-safe derivative exists.
+- Keep every Work in the current `works/friedrich-nietzsche/` corpus closed
+  over its explicit `authored_by` packet to the Nietzsche Agent. Do not infer
+  this claim from the responsibility path. A future anonymous, disputed,
+  collaborative, or differently authored Work needs its own evidence-bearing
+  responsibility design instead of inheriting the bounded Nietzsche rule.
 - Keep the declared identity ladder and its outgoing claim refs in exact
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to

@@ -58,6 +58,11 @@ separate, unreviewed claim packets make every declared Work→Expression,
 Expression→Edition, and Edition→Item link source-returnable without asserting
 textual equivalence.
 
+The responsibility layer now also closes one evidence-bearing `authored_by`
+claim for each of the seven current Nietzsche Works. These links come from the
+recorded documentary routes and digest-bound provenance; they are not inferred
+from author-named folders and remain model-made and unreviewed.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

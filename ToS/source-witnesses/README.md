@@ -126,6 +126,13 @@ a versioned claim: it does not collapse author, translator, copyist, editor,
 paratext author, designer, publisher, or rights holder into one generic
 “creator”.
 
+In the current bounded corpus, all seven Nietzsche Work records close over one
+`authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim
+returns to its recorded authorial-witness discovery and research route and is
+digest-bound by an annotation event. All seven remain model-made,
+`public_metadata_only`, and `unreviewed`; neither the author-named directory nor
+catalog presence supplies authorship truth by itself.
+
 An Edition may route its `publication_claim_refs` to a sibling
 `publication-claims.jsonl`. Every row remains an evidence-bearing
 `tos_claim_packet_v1`: the Edition is the subject, its provenance event and

@@ -133,6 +133,12 @@ This deliberate overlap is traceability, not competing truth. In particular,
 an embodiment link is bibliographic topology and cannot establish textual or
 critical-edition equivalence.
 
+The bounded Nietzsche corpus additionally gives every current Work exactly one
+Work-owned `authored_by` packet to the Friedrich Nietzsche Agent. That
+corpus-wide closure is documentary and provenance-bound, not a convention
+derived from paths, and it does not select an author-final text or flatten
+editorial, paratext, translation, or transmission responsibility.
+
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes
 exact AND selectors and returns the source JSONL object plus its complete graph

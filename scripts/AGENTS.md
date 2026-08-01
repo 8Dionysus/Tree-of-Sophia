@@ -39,8 +39,11 @@ authority into Tree of Sophia.
 tracked object/claim catalog. The generated claim projection covers only
 tracked membership, responsibility, publication, and identity-ladder packets,
 including separately reified Work→Expression, Expression→Edition, and
-Edition→Item directions. It preserves exact source-line return and canonical
-claim digests, and remains subordinate to
+Edition→Item directions. The current Nietzsche slice must also retain one
+explicit Work-owned `authored_by` packet per Work, resolved to the Nietzsche
+Agent and digest-bound to its documentary provenance; an author-named path is
+not evidence. The tools preserve exact source-line return and canonical claim
+digests, and remain subordinate to
 those authored packets and their provenance events. It must fail closed rather
 than copy a nonpublic claim into the tracked catalog. The release lane permits
 gitignored payload bytes to be absent from a public clone; an operator may add

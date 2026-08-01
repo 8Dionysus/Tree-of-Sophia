@@ -1085,6 +1085,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             .splitlines()
             if line.strip()
         ]
+        work_entries = {
+            entry["record_id"]: entry
+            for line in (catalog_root / "works.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+            for entry in (json.loads(line),)
+        }
         object_ids = {
             entry["record_id"]
             for filename in catalog_builder.RECORD_FILES.values()
@@ -1123,9 +1131,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(65, manifest["counts"]["object_total"])
-        self.assertEqual(86, manifest["counts"]["claim"])
-        self.assertEqual(151, manifest["counts"]["total"])
-        self.assertEqual(86, len(claim_entries))
+        self.assertEqual(92, manifest["counts"]["claim"])
+        self.assertEqual(157, manifest["counts"]["total"])
+        self.assertEqual(92, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1162,7 +1170,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 76,
+                "bibliographic_assertion": 82,
                 "scholarly_report": 10,
             },
             {
@@ -1220,6 +1228,28 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             },
             ecce_roles,
         )
+        authorship_claims = [
+            entry for entry in claim_entries if entry["predicate"] == "authored_by"
+        ]
+        self.assertEqual(7, len(authorship_claims))
+        self.assertEqual(set(work_entries), {entry["subject_ref"] for entry in authorship_claims})
+        self.assertTrue(
+            all(
+                entry["object"] == "tos.agent.friedrich-nietzsche"
+                and entry["maker"]
+                == {"maker_type": "model", "agent_ref": "model:codex"}
+                and entry["review_status"] == "unreviewed"
+                and entry["visibility"] == "public_metadata_only"
+                for entry in authorship_claims
+            )
+        )
+        for claim in authorship_claims:
+            self.assertEqual(
+                [claim["claim_id"]],
+                work_entries[claim["subject_ref"]]["links"][
+                    "responsibility_claim_refs"
+                ],
+            )
 
     def test_source_witness_claim_catalog_rejects_nonpublic_claims(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1885,7 +1915,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for result in results.values()
             )
         )
-        self.assertEqual(3, work["record_version"])
+        self.assertEqual(4, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "jenseits-authorial-witness-route.2026-07-30.v1.json",
@@ -2128,7 +2158,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(4, work["record_version"])
+        self.assertEqual(5, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "genealogie-authorial-witness-route.2026-07-30.v1.json",
@@ -2145,19 +2175,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+        discovery_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.discovery.genealogie."
+            "authorial-witness-route.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.discovery.genealogie."
             "authorial-witness-route.2026-07-30",
-            provenance_events[-1]["event_id"],
+            discovery_event["event_id"],
         )
         self.assertFalse(
-            provenance_events[-1]["method"]["configuration"][
+            discovery_event["method"]["configuration"][
                 "human_task_created"
             ]
         )
         self.assertEqual(
             0,
-            provenance_events[-1]["method"]["configuration"][
+            discovery_event["method"]["configuration"][
                 "semantic_objects_created"
             ],
         )
@@ -2452,7 +2489,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(4, work["record_version"])
+        self.assertEqual(5, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -2469,19 +2506,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+        discovery_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.discovery.antichrist."
+            "authorial-witness-route.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.discovery.antichrist."
             "authorial-witness-route.2026-07-30",
-            provenance_events[-1]["event_id"],
+            discovery_event["event_id"],
         )
         self.assertFalse(
-            provenance_events[-1]["method"]["configuration"][
+            discovery_event["method"]["configuration"][
                 "human_task_created"
             ]
         )
         self.assertEqual(
             0,
-            provenance_events[-1]["method"]["configuration"][
+            discovery_event["method"]["configuration"][
                 "semantic_objects_created"
             ],
         )
@@ -2594,7 +2638,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(4, work["record_version"])
+        self.assertEqual(5, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "fall-wagner-authorial-witness-route.2026-07-30.v1.json",
@@ -2720,7 +2764,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             0,
             event["method"]["configuration"]["semantic_objects_created"],
         )
-        claim_event = provenance_events[-1]
+        claim_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.annotation.der-fall-wagner."
+            "naumann-1888-publication-claims.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.annotation.der-fall-wagner."
             "naumann-1888-publication-claims.2026-07-30",
@@ -2890,7 +2940,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(4, work["record_version"])
+        self.assertEqual(5, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "goetzen-daemmerung-authorial-witness-route."
@@ -2974,7 +3024,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        event = provenance_events[-2]
+        event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.discovery.goetzen-daemmerung."
+            "authorial-witness-route.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.discovery.goetzen-daemmerung."
             "authorial-witness-route.2026-07-30",
@@ -2994,7 +3050,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             0,
             event["method"]["configuration"]["semantic_objects_created"],
         )
-        claim_event = provenance_events[-1]
+        claim_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.annotation.goetzen-daemmerung."
+            "naumann-1889-publication-claims.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.annotation.goetzen-daemmerung."
             "naumann-1889-publication-claims.2026-07-30",

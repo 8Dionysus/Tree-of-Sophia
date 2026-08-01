@@ -61,6 +61,8 @@ Its read-only query route proves source parity before returning a claim bundle
 and persists no result or judgment. The current source spine gives all 55
 declared Work→Expression→Edition→Item steps their own claim IDs, evidence,
 maker, provenance, and review posture while keeping textual equivalence open.
+Each of the seven current Nietzsche Works also closes over its own documentary
+`authored_by` claim; folder naming is navigation, never authorship evidence.
 
 ## Operating Card
 

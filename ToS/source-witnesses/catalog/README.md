@@ -31,6 +31,11 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
+The current bounded projection contains 65 object records and 92 claim records
+(157 entries total). The responsibility slice contains seven Work authorship,
+seven Expression translation, and three Edition role claims; all remain
+source-returnable, model-made, public-metadata-only, and unreviewed.
+
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine
 validator. A green result proves exact projection and source return, not the

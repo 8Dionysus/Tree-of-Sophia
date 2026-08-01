@@ -5271,6 +5271,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     membership_claim_ids: set[str] = set()
     responsibility_claim_ids: set[str] = set()
     responsibility_claim_subjects: dict[str, str] = {}
+    responsibility_claim_predicates: dict[str, str] = {}
+    responsibility_claim_objects: dict[str, str] = {}
     publication_claim_ids: set[str] = set()
     publication_claim_subjects: dict[str, str] = {}
     claim_routes = (
@@ -5328,6 +5330,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 responsibility_claim_ids.add(claim_id)
                 if isinstance(subject_ref, str):
                     responsibility_claim_subjects[claim_id] = subject_ref
+                predicate_value = claim.get("predicate")
+                if isinstance(predicate_value, str):
+                    responsibility_claim_predicates[claim_id] = predicate_value
+                object_value = claim.get("object")
+                if isinstance(object_value, str):
+                    responsibility_claim_objects[claim_id] = object_value
             if claim.get("claim_type") != "bibliographic":
                 issues.append(
                     (
@@ -5633,6 +5641,36 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     f"subject responsibility claims are not referenced: {unreferenced}",
                 )
             )
+        if (
+            payload.get("record_type") == "work"
+            and location.startswith(
+                "ToS/source-witnesses/works/friedrich-nietzsche/"
+            )
+        ):
+            authorship_refs = sorted(
+                claim_ref
+                for claim_ref in actual_refs
+                if responsibility_claim_predicates.get(claim_ref) == "authored_by"
+            )
+            if len(authorship_refs) != 1:
+                issues.append(
+                    (
+                        location,
+                        "current Nietzsche Work must reference exactly one "
+                        f"authored_by claim; found {authorship_refs}",
+                    )
+                )
+            elif (
+                responsibility_claim_objects.get(authorship_refs[0])
+                != "tos.agent.friedrich-nietzsche"
+            ):
+                issues.append(
+                    (
+                        location,
+                        "current Nietzsche Work authored_by claim must resolve "
+                        "to tos.agent.friedrich-nietzsche",
+                    )
+                )
 
     for payload, path in (
         value

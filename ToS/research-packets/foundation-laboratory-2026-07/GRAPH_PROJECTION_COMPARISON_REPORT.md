@@ -54,18 +54,21 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 86 public-metadata-only bibliographic claims;
-- 263 nodes and 547 edges;
-- 86 claim trace packets;
+- 92 public-metadata-only bibliographic claims;
+- 283 nodes and 583 edges;
+- 92 claim trace packets;
 - 12 claim-scoped literal objects;
-- six resolved provenance events carrying exact time and method;
+- 12 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 86 explicit `unreviewed` states.
+- 92 explicit `unreviewed` states.
 
-The 55-claim increase materializes the complete declared corpus ladder as
+The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
 `embodied_by` Edition, and 15 Edition `exemplified_by` Item relations. These
 are bibliographic topology claims, not textual-equivalence assertions.
+The responsibility layer separately closes seven Work `authored_by` Friedrich
+Nietzsche claims—one per current Work—without deriving authorship from folder
+names or collapsing it into a generic creator edge.
 
 Every structural edge begins at a reified claim node and carries the source
 claim digest, source file/line, evidence nodes, maker, provenance event, and
@@ -91,12 +94,12 @@ builder or validator. It found:
 
 - exact raw-record/claim closure for 20 `has_expression`, 20 `embodied_by`,
   and 15 `exemplified_by` relations;
-- 86/86 catalog rows returning to the expected source line and canonical
+- 92/92 catalog rows returning to the expected source line and canonical
   claim digest;
-- 86/86 graph traces returning to the same source line and digest;
-- 263 nodes, including 86 claims, 65 identities, 93 evidence nodes, 12
-  literals, one maker, and six provenance events;
-- 547/547 edges beginning at their own reified claim node;
+- 92/92 graph traces returning to the same source line and digest;
+- 283 nodes, including 92 claims, 65 identities, 101 evidence nodes, 12
+  literals, one maker, and 12 provenance events;
+- 583/583 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 A temporary negative probe then removed one Work-owned
@@ -104,6 +107,12 @@ A temporary negative probe then removed one Work-owned
 failed with the exact missing closure instead of accepting the still-present
 record link or generated graph as a substitute. These are mechanical and
 nonhuman trace checks, not truth review.
+
+A second isolated negative probe removed the *Antichrist* Work's sole
+`responsibility_claim_refs` entry. The actual foundation validator rejected
+the orphaned `authored_by` claim, the stale catalog, and the changed
+digest-bound Work input together. The production tree was not altered by that
+probe.
 
 ### Current-corpus read-only query route
 
@@ -134,9 +143,14 @@ Manual probes outside the unit-test harness established:
   as three evidence nodes;
 - the same Expression paired with an unrelated *Ecce Homo* Edition returned
   explicit `no_match`;
+- a bounded `authored_by` query returned exactly seven sorted Work claims, each
+  to the Friedrich Nietzsche Agent;
+- an *Antichrist* Work plus Raoul Richter plus `authored_by` query returned
+  explicit `no_match`;
 - a selector-free invocation exited 2 instead of dumping the graph;
 - a 20-match `embodied_by` request with limit 19 exited 2 instead of returning
-  a silently truncated result; the 86-match `unreviewed` route remains
+  a silently truncated result; a seven-match `authored_by` request with limit
+  6 likewise exited 2, and the 92-match `unreviewed` route remains
   over-limit by default.
 
 The output is deterministic navigation and includes the exact source claim

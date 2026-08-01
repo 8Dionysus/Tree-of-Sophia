@@ -28,10 +28,17 @@ Tracking starts with the community-docs baseline for this repository.
   complete graph. Selector-free requests and silent over-limit truncation are
   rejected; results are stdout-only and create no truth, review, runtime,
   service, rights, or canon authority.
+- Closed the current Work-authorship surface across all seven Nietzsche Works.
+  Six new Work-local `authored_by` packets join the existing *Ecce Homo* claim;
+  every Work now cites exactly one claim to the GND-backed Friedrich Nietzsche
+  Agent. Each new packet returns to its own documentary authorial-witness route
+  and digest-bound annotation event, remains model-made,
+  `public_metadata_only`, and `unreviewed`, and creates no generic creator
+  shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 86 current
-  public-metadata-only source-witness claims into 263 nodes, 547 claim-centered
-  edges, and 86 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 92 current
+  public-metadata-only source-witness claims into 283 nodes, 583 claim-centered
+  edges, and 92 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
   time and method, and explicit review status. Twelve publication objects
   remain claim-scoped literals; no direct subject-to-object truth edge is
@@ -41,10 +48,10 @@ Tracking starts with the community-docs baseline for this repository.
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 86 tracked membership, responsibility,
+  `claims.jsonl` indexes all 92 tracked membership, responsibility,
   publication, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v2 separates 65 object entries from 86 claim entries,
+  claim digest. Catalog v2 separates 65 object entries from 92 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked
