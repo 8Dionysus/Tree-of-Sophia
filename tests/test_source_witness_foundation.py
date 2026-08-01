@@ -343,6 +343,43 @@ MYSL_RESPONSIBILITY_CLAIMS_PATH = (
     "works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl"
 )
 AGENT_ROOT = REPO_ROOT / "ToS/source-witnesses/agents"
+ANTONOVSKY_1911_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-antonovsky-1911"
+)
+ANTONOVSKY_1911_EDITION_ROOT = (
+    ANTONOVSKY_1911_EXPRESSION_ROOT
+    / "editions/saint-petersburg-prometey-1911-fourth"
+)
+ANTONOVSKY_1911_ITEM_ROOT = (
+    ANTONOVSKY_1911_EDITION_ROOT / "items/rsl-neb-scan-pdf"
+)
+ANTONOVSKY_1911_RESPONSIBILITY_CLAIMS_PATH = (
+    ANTONOVSKY_1911_EXPRESSION_ROOT / "responsibility-claims.jsonl"
+)
+ANTONOVSKY_1911_PROVISION_CLAIMS_PATH = (
+    ANTONOVSKY_1911_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+ANTONOVSKY_1911_SOURCE_ANCHORS_PATH = (
+    ANTONOVSKY_1911_EXPRESSION_ROOT
+    / "structure/source-statements/anchors.jsonl"
+)
+ANTONOVSKY_1911_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-prometey-1911-source-witness.2026-08-01.v1.json"
+)
+ANTONOVSKY_1911_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md"
+)
+ANTONOVSKY_1911_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "antonovsky-prometey-1911-rsl-neb-scan-pdf.server-import.json"
+)
 ANTONOVSKY_IDENTITY_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1413,10 +1450,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(74, manifest["counts"]["object_total"])
-        self.assertEqual(115, manifest["counts"]["claim"])
-        self.assertEqual(189, manifest["counts"]["total"])
-        self.assertEqual(115, len(claim_entries))
+        self.assertEqual(79, manifest["counts"]["object_total"])
+        self.assertEqual(121, manifest["counts"]["claim"])
+        self.assertEqual(200, manifest["counts"]["total"])
+        self.assertEqual(121, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1453,7 +1490,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 98,
+                "bibliographic_assertion": 104,
                 "scholarly_report": 17,
             },
             {
@@ -1475,9 +1512,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 20,
-                "embodied_by": 20,
-                "exemplified_by": 15,
+                "has_expression": 21,
+                "embodied_by": 21,
+                "exemplified_by": 16,
             },
             {
                 predicate: sum(
@@ -1558,7 +1595,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(14, len(provision_claims))
+        self.assertEqual(16, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
@@ -1579,6 +1616,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
                 "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
                 "tos.organization.druckerei-c-g-naumann-leipzig",
+                "tos.organization.prometey-publishing-saint-petersburg",
+                "tos.organization.energiya-typolithography-saint-petersburg",
             },
             {
                 agent["normalized_agent_ref"]
@@ -2286,6 +2325,151 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         ):
             self.assertIn(exact_form, research)
 
+    def test_antonovsky_1911_is_exact_local_revision_lineage_witness(
+        self,
+    ) -> None:
+        expression = json.loads(
+            (ANTONOVSKY_1911_EXPRESSION_ROOT / "expression.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        edition = json.loads(
+            (ANTONOVSKY_1911_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        manifest = json.loads(
+            (ANTONOVSKY_1911_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (ANTONOVSKY_1911_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (ANTONOVSKY_1911_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual("verified", expression["identity_status"])
+        self.assertEqual("no_equivalence_claim", expression["same_as_posture"])
+        self.assertEqual("4-е изд.", edition["edition_statement"])
+        self.assertEqual(
+            "tos.item.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-antonovsky-1911.rsl-neb-scan-pdf",
+            manifest["item_id"],
+        )
+        payload = manifest["payload_files"][0]
+        self.assertEqual(62952283, payload["byte_size"])
+        self.assertEqual(
+            "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+            payload["sha256"],
+        )
+        self.assertEqual(153, inventory["files"][0]["summary"]["page_count"])
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+
+        responsibility = json.loads(
+            ANTONOVSKY_1911_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        self.assertEqual("translated_by", responsibility["predicate"])
+        self.assertEqual("tos.agent.yuri-antonovsky", responsibility["object"])
+        self.assertEqual(
+            [responsibility["claim_id"]],
+            expression["responsibility_claim_refs"],
+        )
+
+        provision_claims = [
+            json.loads(line)
+            for line in ANTONOVSKY_1911_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        by_kind = {
+            claim["object"]["provision_kind"]: claim
+            for claim in provision_claims
+        }
+        self.assertEqual({"publication", "manufacture"}, set(by_kind))
+        self.assertEqual(
+            "tos.organization.prometey-publishing-saint-petersburg",
+            by_kind["publication"]["object"]["agents"][0][
+                "normalized_agent_ref"
+            ],
+        )
+        self.assertEqual(
+            "tos.organization.energiya-typolithography-saint-petersburg",
+            by_kind["manufacture"]["object"]["agents"][0][
+                "normalized_agent_ref"
+            ],
+        )
+        self.assertIn(
+            "printer line is undated",
+            by_kind["manufacture"]["object"]["activity_warning"],
+        )
+
+        anchors = [
+            json.loads(line)
+            for line in ANTONOVSKY_1911_SOURCE_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual([1, 2, 4], [row["selectors"][0]["page"] for row in anchors])
+        self.assertEqual(
+            {payload["sha256"]},
+            {row["file_sha256"] for row in anchors},
+        )
+        self.assertTrue(all(row["status"] == "proposed" for row in anchors))
+
+        discovery = json.loads(
+            ANTONOVSKY_1911_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [1, 2, 3, 4],
+            [channel["sequence"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            "channel-general-web-antonovsky-1911-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertTrue(discovery["channels"][0]["results"][0]["acquisition"]["downloaded"])
+        self.assertIn(
+            "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative",
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        server_plan = json.loads(
+            ANTONOVSKY_1911_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+
+        register = json.loads(
+            (GOLD_ROOT / "translation-reference-register.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        entry = next(
+            row
+            for row in register["entries"]
+            if row["reference_id"] == "tos-ref.ru.antonovsky-prometey-1911"
+        )
+        self.assertEqual("local-item-registered", entry["access"]["acquisition_state"])
+        self.assertFalse(entry["access"]["content_ingested_for_translation_lab"])
+        self.assertFalse(entry["admission"]["accepted_as_truth"])
+        self.assertIn("new reworkings", ANTONOVSKY_1911_RESEARCH_PATH.read_text(encoding="utf-8"))
+
     def test_mysl_translator_identities_resolve_asymmetrically_without_claim_drift(
         self,
     ) -> None:
@@ -2480,19 +2664,28 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).splitlines()
             if line.strip()
         ]
+        antonovsky_1911_claims = [
+            json.loads(line)
+            for line in ANTONOVSKY_1911_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
         antonovsky_claims = [
             claim
             for claim in [
                 *mysl_claims,
+                *antonovsky_1911_claims,
                 *exact_claims,
                 *cultural_revolution_claims,
             ]
             if claim["predicate"] == "translated_by"
             and claim["object"] == "tos.agent.yuri-antonovsky"
         ]
-        self.assertEqual(4, len(antonovsky_claims))
+        self.assertEqual(5, len(antonovsky_claims))
         self.assertEqual(
             {
+                "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1911.translated-by-yuri-antonovsky",
                 "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1913.translated-by-yuri-antonovsky",
                 "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.translated-by-yuri-antonovsky",
                 "tos.claim.expression.mysl-1996-volume-2.also-sprach-zarathustra.translated-by-yuri-antonovsky",

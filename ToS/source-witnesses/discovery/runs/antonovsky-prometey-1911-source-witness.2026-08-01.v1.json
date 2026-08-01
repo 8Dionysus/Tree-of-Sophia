@@ -1,0 +1,280 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-prometey-1911-source-witness.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf"
+    ],
+    "description": "Exact Antonovsky 1911 fourth-edition source witness, translation responsibility, publisher/printer separation, revision lineage, fixity, access, and rights boundary.",
+    "required_properties": [
+      "originating institutional record",
+      "exact downloadable digital object",
+      "translator responsibility",
+      "edition statement",
+      "publication and manufacture statements",
+      "translation-revision lineage evidence",
+      "file fixity",
+      "item-specific rights boundary"
+    ],
+    "acceptable_substitutions": [
+      "an exact institutional scan with stable catalog identity and independently verifiable fixity"
+    ],
+    "languages": ["ru", "de"],
+    "formats": ["PDF", "MARC21", "HTML", "metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-official-rsl-runeb-antonovsky-1911",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "mixed",
+      "source_name": "Russian State Library and National Electronic Library exact records, access terms, and official PDF route",
+      "endpoint_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+      "interface_type": "web",
+      "interface_version": "RuNEB and RSL surfaces as served 2026-08-01; curl 8.18.0",
+      "exact_query": "Resolve RuNEB 000199_000009_003693383 and RSL 01003693383; inspect title, translator, edition, imprint, extent, language, access terms, and exact PDF route",
+      "queried_at": "2026-08-01T08:04:00-06:00",
+      "elapsed_seconds": 495.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.runeb-003693383-antonovsky-1911-pdf",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : Книга для всех и ни для кого",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693383",
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000199_000009_003693383"},
+            {"scheme": "RSL record", "value": "01003693383"},
+            {"scheme": "local SHA-256", "value": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"}
+          ],
+          "available_formats": ["PDF", "HTML", "MARC21"],
+          "declared_rights": {
+            "statement": "RuNEB exposes free view and PDF access; its user agreement permits bounded access and research-oriented use under applicable law but supplies no exact-file redistribution license.",
+            "scope": "digital-object",
+            "evidence_url": "https://rusneb.ru/user-agreement/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact institutional object establishes Item identity and source-returnable title-page, printer-line, and revision-history observations. It was acquired once for local research without bypass and is excluded from Git and publication.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-01T08:22:14-06:00",
+            "byte_size": 62952283,
+            "sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+            "event_ref": "tos.event.acquisition.antonovsky-prometey-1911-rsl-neb-pdf.2026-08-01"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ea39b84316b9ee1014b4f41f433abd121f82d73f00452ca53e3a893ba7b4d083",
+            "reason": "A compact tracked snapshot preserves public metadata, current access/rights boundaries, and exact local file identity without storing raw HTML, MARC, page images, or source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-antonovsky-1911-lineage",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "New Encyclopedic Dictionary, Institute of Philosophy RAS, and established Nietzsche translation scholarship",
+      "endpoint_url": "https://pj.iphras.ru/issue/download/307/144",
+      "interface_type": "web",
+      "interface_version": "historical reference and scholarly surfaces as served 2026-08-01",
+      "exact_query": "Verify Antonovsky identity and 1911 fourth-edition history; test whether scholarship supports edition-specific translation comparison rather than cross-edition equivalence",
+      "queried_at": "2026-08-01T08:12:30-06:00",
+      "elapsed_seconds": 176.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nes-1911-antonovsky-entry",
+          "rank": 1,
+          "title_as_displayed": "НЭС/Антоновский, Юлий Михайлович",
+          "result_url": "https://ru.wikisource.org/wiki/%D0%9D%D0%AD%D0%A1/%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9,_%D0%AE%D0%BB%D0%B8%D0%B9_%D0%9C%D0%B8%D1%85%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D0%B8%D1%87",
+          "originating_record_url": "https://ru.wikisource.org/wiki/%D0%9D%D0%AD%D0%A1/%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9,_%D0%AE%D0%BB%D0%B8%D0%B9_%D0%9C%D0%B8%D1%85%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D0%B8%D1%87",
+          "identifiers": [{"scheme": "historical locator", "value": "НЭС, том 3, столбцы 74-75"}],
+          "available_formats": ["HTML", "scan"],
+          "declared_rights": {"statement": "Historical reference surface; rights are not used to infer rights for the RSL/RuNEB PDF.", "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "A contemporary reference independently identifies Antonovsky and the fourth Saint Petersburg edition of 1911; it corroborates lineage but does not replace the exact Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; its digest is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.iphras-2020-antonovsky-history",
+          "rank": 2,
+          "title_as_displayed": "Institute of Philosophy RAS study of Antonovsky and Nietzsche reception",
+          "result_url": "https://pj.iphras.ru/issue/download/307/144",
+          "originating_record_url": "https://pj.iphras.ru/issue/download/307/144",
+          "identifiers": [],
+          "available_formats": ["PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Peer-reviewed historical scholarship corroborates translator identity and lineage while remaining outside exact Item identity and rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Consulted as established scholarship; no article payload was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.boiko-2007-antonovsky-editing-lineage",
+          "rank": 3,
+          "title_as_displayed": "Заратустра заговорил по-русски",
+          "result_url": "https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html",
+          "originating_record_url": "https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html",
+          "identifiers": [],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The account names the 1911 fourth edition as historical basis for the edited 2007 state and thereby supports lineage separation, not textual identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Consulted as established editorial-history context; no content snapshot was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-translation-comparison-2025-2026",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Current HSE scholarship and current edition metadata negative control",
+      "endpoint_url": "https://publications.hse.ru/en/articles/1061726305",
+      "interface_type": "web",
+      "interface_version": "surfaces as served 2026-08-01",
+      "exact_query": "Find 2025-2026 evidence relevant to Antonovsky comparison, variants, rhythm, archaism, style, and current identity drift",
+      "queried_at": "2026-08-01T08:16:00-06:00",
+      "elapsed_seconds": 126.0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hse-2025-ivanov-antonovsky-comparison",
+          "rank": 1,
+          "title_as_displayed": "The First Russian Translation of Thus Spoke Zarathustra by Vyacheslav Ivanov",
+          "result_url": "https://publications.hse.ru/en/articles/1061726305",
+          "originating_record_url": "https://publications.hse.ru/en/articles/1061726305",
+          "identifiers": [],
+          "available_formats": ["HTML", "PDF metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh scholarship foregrounds translator variants, rhythm, archaism, and style, reinforcing edition-specific comparative evaluation without proving Item identity or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current institutional record was inspected and hashed; no article payload was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative",
+          "rank": 2,
+          "title_as_displayed": "Так говорил Заратустра",
+          "result_url": "https://azbooka.ru/books/tak-govoril-zaratustra",
+          "originating_record_url": "https://azbooka.ru/books/tak-govoril-zaratustra",
+          "identifiers": [],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The current page expands the translator as Юрий Антоновский, conflicting with exact RSL/DNB identity evidence. It is retained as a freshness negative control, not an authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No snapshot was needed for a rejected identity-control surface."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-1911-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-title, translator, edition, and rights search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "general web search as served 2026-08-01",
+      "exact_query": "\"Так говорил Заратустра\" \"Антоновский\" \"1911\" \"4-е издание\" PDF license rights",
+      "queried_at": "2026-08-01T08:18:30-06:00",
+      "elapsed_seconds": 104.0,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-official-rsl-runeb-antonovsky-1911",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 495.0,
+      "notes": "Only the exact institutional record and fixity-verified object establish this Item and its three visible source surfaces; rights remain local-research-only."
+    },
+    {
+      "channel_id": "channel-established-antonovsky-1911-lineage",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 176.0,
+      "notes": "Historical and peer-reviewed evidence supports identity and variant-aware lineage but neither exact Item fixity nor redistribution."
+    },
+    {
+      "channel_id": "channel-fresh-translation-comparison-2025-2026",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 126.0,
+      "notes": "Fresh scholarship strengthens the comparison method; the current commercial page demonstrates that recency does not guarantee identity quality."
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-1911-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 104.0,
+      "notes": "General search ran last and yielded no result stronger than the exact institutional routes; mirrors, retail pages, and distinct transcriptions were not promoted."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.runeb-003693383-antonovsky-1911-pdf",
+    "tos-discovery-result.nes-1911-antonovsky-entry",
+    "tos-discovery-result.iphras-2020-antonovsky-history",
+    "tos-discovery-result.boiko-2007-antonovsky-editing-lineage",
+    "tos-discovery-result.hse-2025-ivanov-antonovsky-comparison"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-01T08:04:00-06:00",
+  "ended_at": "2026-08-01T08:30:38-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-prometey-1911-source-witness.2026-08-01"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

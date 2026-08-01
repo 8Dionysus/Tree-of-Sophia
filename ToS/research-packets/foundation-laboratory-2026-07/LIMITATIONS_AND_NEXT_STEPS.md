@@ -103,20 +103,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 74 current objects and all 115
+- The source-witness catalog now exposes all 79 current objects and all 121
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 115 claims as reified
-  claim nodes with 801 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 121 claims as reified
+  claim nodes with 852 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 115 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 121 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 55 topology packets make the declared Work→Expression→Edition→Item
+- The 58 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -711,6 +711,17 @@ not reintroduce a false 90 °C gate.
   generic relations. The local payload remains unpublished and local-only;
   bibliographic attribution establishes neither textual fidelity, translation
   quality, rights clearance, human review, semantics, publication, nor canon.
+- The subsequent Antonovsky–Prometey 1911 slice adds one distinct Expression,
+  one exact fourth Edition, one 62,952,283-byte RSL/RuNEB Item, two provisional
+  provision Organizations, one translator claim, two provision claims, and
+  three proposed whole-page anchors. Antonovsky's source-visible preface says
+  the earlier editions were reworkings rather than simple reprints, so shared
+  responsibility cannot imply invariant text. The rebuilt catalog now contains
+  79 objects and 121 claims; the portable graph contains 419 nodes, 852
+  claim-centred edges, 121 source-return traces, and no direct subject-object
+  edge. The exact PDF remains ignored, local-only, and blocked from site
+  transfer; embedded OCR, equivalence, accepted text, rights clearance, human
+  review, semantics, publication, and canon remain absent.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

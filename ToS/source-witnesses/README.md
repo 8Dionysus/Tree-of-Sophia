@@ -152,6 +152,17 @@ digest-bound by an annotation event. All seven remain model-made,
 `public_metadata_only`, and `unreviewed`; neither the author-named directory nor
 catalog presence supplies authorship truth by itself.
 
+The exact 1911 fourth-edition Antonovsky Expression closes over its own
+`translated_by` claim and a separate RSL/RuNEB Item. Proposed whole-page
+anchors bind the title-page responsibility, edition and publication statement,
+the distinct Energiya printer line, and Antonovsky's edition-history preface
+to the exact local file digest. The preface says the 1900, 1903, 1907, and
+1911 editions were successive reworkings rather than simple reprints. That
+source-visible statement makes edition separation foundational: no shared
+translator label can establish an invariant Russian text. The 62,952,283-byte
+PDF remains ignored and local-only; the tracked layer admits no embedded OCR,
+equivalence, redistribution permission, or future-site payload.
+
 The exact 1913 Antonovsky Expression separately closes over one
 `translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
 page 7, bound to the exact Item and file SHA-256 after direct source-visible
@@ -350,6 +361,10 @@ collection containing it. The seed deliberately includes:
 - a checksum-verified 402-page scan of Yu. M. Antonovsky's 1913 Russian
   translation from Wikimedia Commons, kept distinct from both the later
   Antonovsky expression and the separately licensed Wikisource transcription;
+- an exact 62,952,283-byte RSL/RuNEB PDF of Antonovsky's 1911 fourth edition,
+  with 153 scanned spreads, separate Prometey publication and Energiya
+  manufacture claims, and source-visible evidence that the earlier translation
+  editions were revisions rather than simple reprints;
 - checksum-verified DTABf/TEI P5 transcriptions of all four public part
   witnesses from Deutsches Textarchiv: Schmeitzner parts 1 and 2 from 1883,
   Schmeitzner part 3 from 1884, and Naumann's first public edition of part 4
@@ -391,6 +406,12 @@ declaration as positive rights evidence rather than flattening it into either
 operator policy. The Wikisource transcription is an independent CC BY-SA
 candidate layer and remains deferred: its index reports incomplete
 proofreading, so open licensing does not make it accepted text or gold.
+
+The 1911 RuNEB witness has a narrower rights posture. Current institutional
+terms support bounded local research but expose no resource-specific
+redistribution license. Its exact payload remains local-only and unpublished;
+only public metadata, fixity, provenance, text-free resource geometry, and
+proposed source-return anchors are tracked.
 
 The four DTA TEIs add an institutionally corrected, source-structured German
 sequence without inventing whole-work textual unity. DTA reports OCR followed

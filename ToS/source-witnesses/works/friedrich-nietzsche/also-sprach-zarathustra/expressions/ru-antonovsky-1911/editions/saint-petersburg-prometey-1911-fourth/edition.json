@@ -1,0 +1,44 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+  "preferred_label": "Так говорил Заратустра, четвёртое издание «Прометей», Санкт-Петербург, 1911",
+  "variant_labels": [],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-prometey-1911-source-witness.2026-08-01.v1.json",
+    "https://rusneb.ru/catalog/000199_000009_003693383/",
+    "https://search.rsl.ru/ru/record/01003693383"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "RSL record",
+      "value": "01003693383",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693383",
+      "status": "verified"
+    },
+    {
+      "scheme": "RuNEB record",
+      "value": "000199_000009_003693383",
+      "source_ref": "https://rusneb.ru/catalog/000199_000009_003693383/",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911"
+  ],
+  "edition_statement": "4-е изд.",
+  "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.also-sprach-zarathustra.antonovsky-1911.provision-publication",
+    "tos.claim.edition.also-sprach-zarathustra.antonovsky-1911.provision-manufacture"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth.exemplified-by.rsl-neb-scan-pdf"
+  ],
+  "notes": "The exact title page and current RSL MARC record both state a fourth edition, Saint Petersburg, Prometey, and 1911. The ordinal identifies this local Edition statement; it is not a universal Work-level sequence. The printer line is modeled separately and does not independently date manufacture completion or release.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

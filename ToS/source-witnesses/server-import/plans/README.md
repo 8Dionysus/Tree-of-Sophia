@@ -69,3 +69,11 @@ US-scoped evidence. Richter's editorial layer, van de Velde's binding and
 ornaments, the Getty scan, the Commons derivative, and every content-bearing
 derivative remain separately reviewable. The operator-held PDF stays local;
 only public-safe metadata may be projected.
+
+The sixteenth plan covers the exact RSL/RuNEB PDF of Antonovsky's 1911 fourth
+edition. RuNEB's current terms support bounded local research but expose no
+resource-specific redistribution license. The 62,952,283-byte operator-held
+PDF, embedded text, page images, transcriptions, translations, embeddings,
+and content-bearing annotations remain prohibited for server transfer. Only
+public-safe bibliographic metadata, fixity, provenance, and source-return
+addresses may be projected.

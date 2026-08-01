@@ -836,28 +836,33 @@
       "dating": {
         "original_or_coverage_date": "published 1911",
         "edition_or_version": "fourth edition, Saint Petersburg, VIII + 292 pages; full-view and PDF links are exposed by NEB",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-08-01"
       },
       "identifiers": [
-        {"scheme": "NEB-record", "value": "000199_000009_003693383"}
+        {"scheme": "NEB-record", "value": "000199_000009_003693383"},
+        {"scheme": "RSL-record", "value": "01003693383"}
       ],
       "primary_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
       "evidence_urls": [
-        "https://rusneb.ru/catalog/000199_000009_003693383/"
+        "https://rusneb.ru/catalog/000199_000009_003693383/",
+        "https://search.rsl.ru/ru/record/01003693383",
+        "https://rusneb.ru/user-agreement/"
       ],
-      "scholarly_posture": "historical Antonovsky translation witness candidate suitable for lineage comparison with the edited 2007 expression",
+      "scholarly_posture": "exact local historical Antonovsky witness whose source-visible revision history requires edition-specific lineage comparison with the 1913, 1996, and edited 2007 expressions",
       "intended_uses": [
         "translation-witness",
-        "bibliographic-identity"
+        "bibliographic-identity",
+        "critical-source-comparison"
       ],
       "limits": [
-        "free viewer or download availability is not by itself a completed rights assessment",
-        "the fourth edition must not be treated as textually identical to the 2007 scientific redaction",
-        "the item has not been acquired or fixity-registered by ToS"
+        "official viewing and download availability do not establish a reusable-content license or redistribution permission",
+        "the fourth edition must not be treated as textually identical to the 1900, 1903, 1907, 1913, 1996, or 2007 states",
+        "the embedded PDF text layer is not reviewed source text and has not been ingested into the translation laboratory",
+        "all source-visible anchors and bibliographic claims remain model-made and unreviewed"
       ],
       "access": {
-        "access_state": "open-download-candidate",
-        "acquisition_state": "not-acquired",
+        "access_state": "local-only",
+        "acquisition_state": "local-item-registered",
         "content_ingested_for_translation_lab": false,
         "access_request_required_before_content_use": false,
         "contact_routes": [
@@ -868,28 +873,43 @@
       "rights": {
         "assessment": "resource-specific-review-required",
         "license_uri": null,
-        "redistribution": "per-item-review-required",
-        "derivative_use": "per-item-review-required",
+        "redistribution": "not-authorized",
+        "derivative_use": "local-research-only",
         "citation_requirements": [
           "cite translator, fourth-edition statement, publisher, year, page, NEB record, and exact acquired-item digest if later admitted"
         ],
         "rights_evidence_urls": [
-          "https://rusneb.ru/catalog/000199_000009_003693383/"
+          "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "https://rusneb.ru/user-agreement/"
         ]
       },
-      "tos_refs": {"record_refs": [], "path_refs": []},
+      "tos_refs": {
+        "record_refs": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+          "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+          "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf"
+        ],
+        "path_refs": [
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+          "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+        ]
+      },
       "admission": {
-        "state": "research-candidate",
+        "state": "local-research-candidate",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "rights statement and file-level terms require review before acquisition",
-          "translation-lineage relation to other Antonovsky editions is unreviewed",
-          "no fixity or source-item record exists in ToS"
+          "no human has accepted the bibliographic anchors or source reading",
+          "translation-lineage relations to the 1913, 1996, and 2007 expressions remain unreviewed",
+          "the embedded text layer has not been admitted or compared passage by passage",
+          "no human rights and jurisdiction review authorizes redistribution or future-site upload"
         ]
       },
-      "notes": "High-value historical comparator because it can expose editorial change hidden by a shared translator label."
+      "notes": "High-value local comparator: Antonovsky's own 1911 preface says the prior editions were new reworkings rather than simple reprints. The exact file is fixity-registered and local-only; no text, equivalence, translation quality, semantic layer, human acceptance, or publication permission is created."
     },
     {
       "reference_id": "tos-ref.ru.mysl-1996-volume-2",
