@@ -1,0 +1,44 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+  "preferred_label": "Так говорил Заратустра, Санкт-Петербург, второе исправленное издание, 1903",
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md",
+    "https://search.rsl.ru/ru/record/01003693381",
+    "https://www.litfund.ru/auction/445/52/"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "RSL public record",
+      "value": "01003693381",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "verified"
+    },
+    {
+      "scheme": "RSL MARC 001",
+      "value": "003693381",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "verified"
+    },
+    {
+      "scheme": "NLR source identifier reported by RSL",
+      "value": "(NLR)rc\\1717108",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693381",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903"
+  ],
+  "edition_statement": "2-е изд., испр.",
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [],
+  "notes": "The current Russian State Library record identifies the exact Russian Antonovsky second corrected Edition at Saint Petersburg in 1903 with extent [2], III, [3], 432, [2], V pages and records four holdings: FB L 31/57, FB Рб 33/442, FB T 97/44, and OMF 801-85/11097-8. No source pages or bytes were acquired. The literal catalog string тип. Альтшулера is preserved as typography evidence and is not converted into a publisher or provision-activity claim. The holdings are not ToS Items, the NLR source identifier has no independently resolved current record, and no responsibility, textual equivalence, new derivation, rights, or semantic claim is created.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

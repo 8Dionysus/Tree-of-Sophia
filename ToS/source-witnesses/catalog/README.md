@@ -27,15 +27,15 @@ does not accept or promote any claim. Only claims already marked `public` or
 or permission-pending material requires a separately reviewed public-safe
 derivative rather than silent copying.
 
-The current topology contribution is 55 separately addressable packets: 20
-`has_expression`, 20 `embodied_by`, and 15 `exemplified_by`. Their presence in
+The current topology contribution is 63 separately addressable packets: 24
+`has_expression`, 23 `embodied_by`, and 16 `exemplified_by`. Their presence in
 this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 74 object records and 115 claim records
-(189 entries total). The responsibility slice contains seven Work authorship,
-nine Expression translation, and three Edition role claims; all remain
+The current bounded projection contains 84 object records and 128 claim records
+(212 entries total). The responsibility slice contains seven Work authorship,
+ten Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The 1913 Antonovsky responsibility claim is bound to a proposed whole-page
 title-page anchor in its exact Item. The distinct 2007 Cultural Revolution
@@ -46,8 +46,8 @@ later witnesses.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
-The provision surface contains three provisional Places, six provisional
-historical Organizations, and fourteen Edition-owned grouped statements.
+The provision surface contains three provisional Places, eight provisional
+historical Organizations, and sixteen Edition-owned grouped statements.
 Three claims belong to the exact 1883/1883/1884 first three parts of *Also
 sprach Zarathustra*: each returns to its own DTA Edition record while resolving
 the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
@@ -59,6 +59,15 @@ statement. Literal wording, normalized identity, activity role, and statement
 date remain distinct; shared labels and one holding shelfmark do not create
 Edition, Item, or textual equivalence. All identities and claims remain
 model-made, unreviewed, or provisional.
+
+The Antonovsky revision route adds two catalog-identified but unacquired
+Editions. The Lithuanian National Library identifies the Saint Petersburg 1900
+Edition and one remote holding while retaining `[s.n.]`; the Russian State
+Library identifies the 1903 `2-е изд., испр.` and four remote holdings while
+retaining `тип. Альтшулера` only as typography evidence. Each Expression owns
+one `embodied_by` packet, but neither Edition owns an Item or provision claim.
+No publisher, source text, rights, collation, equivalence, new derivation,
+review, or semantic authority follows from catalog projection.
 
 The Antonovsky 1913 Edition adds the contrasting source-visible case: its
 publication claim joins a cover imprint to title-page place/year, while a

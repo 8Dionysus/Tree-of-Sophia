@@ -103,20 +103,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 83 current objects and all 127
+- The source-witness catalog now exposes all 84 current objects and all 128
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 127 claims as reified
-  claim nodes with 890 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 128 claims as reified
+  claim nodes with 896 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 127 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 128 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 62 topology packets make the declared Work→Expression→Edition→Item
+- The 63 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -136,6 +136,13 @@ contracts intentionally reject simulated human evidence.
   acquired. The catalog reports `[s.n.]`, so no publisher is inferred. Rights,
   source text, responsibility beyond the catalog statement, collation,
   equivalence, and any 1900→1898/1899 derivation remain unresolved.
+- A following RSL pass resolves one exact 1903 second corrected Edition and
+  four physical holdings. It creates one provisional Edition and one
+  `embodied_by` packet but no ToS Item because no copy or source bytes were
+  acquired. The literal `тип. Альтшулера` stays catalog evidence for a
+  typography and is not converted into a publisher or provision-activity
+  claim. Responsibility beyond the catalog statement, source text, rights,
+  collation, equivalence, and every additional derivation edge remain absent.
 - Seven Work-owned chronology packets add one bounded
   `first_publication_chronology` profile per current Nietzsche Work. They keep
   sequence stages, precision, public/private availability, and posthumous
@@ -408,6 +415,11 @@ contracts intentionally reject simulated human evidence.
   known, but no ToS Item, payload, permission, or redistribution authority
   exists; sending remains a separate human-approved action, not routine review
   debt.
+- The Antonovsky 1903 Russian State Library request follows the same boundary.
+  It is `draft-not-sent`, identifies the exact record and four shelfmarks, and
+  first asks for copying eligibility, condition, price, and terms before page
+  evidence or a complete research reproduction. No message, order, payment,
+  payload, permission, redistribution authority, or standing human task exists.
 - The eKGWB fallback response came from the official public SPA's HTTP include
   route twice with identical bytes, but HTTP is unencrypted and does not
   establish authenticity. A later protocol-native pass found an exact
@@ -747,11 +759,12 @@ not reintroduce a false 90 °C gate.
   establish a 1911→1907 edge. The following bounded derivation slice adds three
   provisional 1900/1903/1907 Expressions, two reported uncollated revision
   claims, an incomplete exact-1907 discovery run, and an unsent access-request
-  draft. A later exact-institutional pass adds only the 1900 LNB Edition and its
-  Expression→Edition packet plus a separate unsent request draft; it adds no
-  Item, payload, publisher, rights clearance, or derivation edge. The rebuilt
-  catalog now contains 83 objects and 127 claims; the portable graph contains
-  436 nodes, 890 claim-centred edges, 127 source-return
+  draft. Later exact-institutional passes add only the 1900 LNB Edition and the
+  1903 RSL second corrected Edition, one Expression→Edition packet for each,
+  and separate unsent request drafts; they add no Item, payload, publisher,
+  rights clearance, or derivation edge. The rebuilt catalog now contains 84
+  objects and 128 claims; the portable graph contains 439 nodes, 896
+  claim-centred edges, 128 source-return
   traces, and no direct subject-object
   edge. The exact PDF remains ignored, local-only, and blocked from site
   transfer; embedded OCR, equivalence, accepted text, rights clearance, human

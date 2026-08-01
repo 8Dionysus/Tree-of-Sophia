@@ -40,6 +40,13 @@ still adds no derivation edge: no source pages or bytes were acquired, the
 holding is not a ToS Item, and neither the catalog record nor edition sequence
 establishes collation, equivalence, or a 1900-to-1898/1899 textual dependency.
 
+A following Russian State Library record resolves one Saint Petersburg 1903
+second corrected Edition and four physical holdings. It likewise changes no
+derivation edge. The record supplies an exact manifestation endpoint, but no
+source pages, bytes, ToS Item, or collation; its `тип. Альтшулера` string is not
+promoted to a publisher or textual relation. The two-edge revision chain and
+every deliberately absent edge therefore remain unchanged.
+
 Classical FRBR distinction between derivation and equivalence, current LRMoo
 `R76 is derivative of`, and current implementation evidence all point in the
 same direction: missing lineage must remain missing rather than be completed
@@ -109,6 +116,8 @@ rights, or promote semantics and canon.
 - `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md`
 - `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md`
 - `ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json`
+- `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md`
+- `ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json`
 - `ToS/contracts/expression-derivation.schema.json`
 - `ToS/contracts/claim-packet.schema.json`
 - `ToS/source-witnesses/relations/expression-derivation/expression-derivation-claims.jsonl`

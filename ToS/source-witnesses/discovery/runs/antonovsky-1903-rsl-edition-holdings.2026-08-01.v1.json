@@ -1,0 +1,298 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1903-rsl-edition-holdings.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903"
+    ],
+    "description": "An exact institution-controlled physical or digital witness of the Saint Petersburg 1903 second corrected Antonovsky Zarathustra Edition, sufficient to resolve Edition identity, source-visible provision statements, lawful local research access, file fixity, and redistribution posture without turning catalog holdings into ToS Items.",
+    "required_properties": [
+      "originating institutional record and stable identifier",
+      "exact Antonovsky translator responsibility",
+      "second corrected edition statement",
+      "physical holdings and call numbers",
+      "complete page-level source return",
+      "source-visible title and provision statements",
+      "file fixity for any acquired reproduction",
+      "source-specific local-use and redistribution conditions"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated catalog and holding record plus a lawful complete research reproduction sufficient for bounded collation",
+      "a tiered institutional reproduction beginning with title, provision, preliminary, contents, and terminal pages"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["printed book", "PDF", "TIFF", "JPEG", "MARC21", "catalog metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-rsl-antonovsky-1903-exact-record-holdings",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian State Library public catalog and MARC display",
+      "endpoint_url": "https://search.rsl.ru/ru/record/01003693381",
+      "interface_type": "web",
+      "interface_version": "RSL public catalog observed 2026-08-01",
+      "exact_query": "POST /site/ajax-search?language=ru with SearchFilterForm[search]=Так говорил Заратустра Антоновского, publication year from 1903 to 1903, page 1; inspect exact record 01003693381, its MARC fields, translator expansion, edition statement, extent, and every displayed holding",
+      "queried_at": "2026-08-01T13:24:00-06:00",
+      "elapsed_seconds": 14,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-exact-record-holdings",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : Книга для всех и ни для кого / Фридрих Ницше ; пер. с нем. Ю. М. Антоновского",
+          "result_url": "https://search.rsl.ru/ru/record/01003693381",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693381",
+          "identifiers": [
+            {"scheme": "RSL public record", "value": "01003693381"},
+            {"scheme": "RSL MARC 001", "value": "003693381"},
+            {"scheme": "NLR source identifier reported by RSL", "value": "(NLR)rc\\1717108"},
+            {"scheme": "RSL call number", "value": "FB L 31/57"},
+            {"scheme": "RSL call number", "value": "FB Рб 33/442"},
+            {"scheme": "RSL call number", "value": "FB T 97/44"},
+            {"scheme": "RSL call number", "value": "OMF 801-85/11097-8"}
+          ],
+          "available_formats": ["HTML", "MARC21", "printed book"],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating national-library record exactly joins Antonovsky responsibility, the literal second corrected edition statement, Saint Petersburg, typography string, 1903, Russian translated from German, extent [2], III, [3], 432, [2], V pages, and four RSL holdings. It resolves a provisional Edition identity but supplies no record-specific source pages or payload rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Bounded public MARC and holding fields were transcribed into tracked research; session cookies and the mutable provider response were not committed."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rsl-current-copy-route",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Russian State Library fragment-order, copying, and use-rules routes",
+      "endpoint_url": "https://search.rsl.ru/ru/fragment-eorder/rsl01003693381",
+      "interface_type": "web",
+      "interface_version": "current public RSL service pages checked 2026-08-01",
+      "exact_query": "Inspect the exact record fragment-order route, RSL FAQ 36, document-copying page, current use rules, and copying-rules PDF for page-range ordering, electronic delivery, fee, preservation, and legal review boundaries before drafting any request",
+      "queried_at": "2026-08-01T13:31:00-06:00",
+      "elapsed_seconds": 11,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-bounded-copy-route",
+          "rank": 1,
+          "title_as_displayed": "Заказать копию фрагмента — РГБ 01003693381",
+          "result_url": "https://search.rsl.ru/ru/fragment-eorder/rsl01003693381",
+          "originating_record_url": "https://search.rsl.ru/ru/faq/36",
+          "identifiers": [{"scheme": "RSL public record", "value": "01003693381"}],
+          "available_formats": ["HTML", "PDF rules", "institutional order"],
+          "declared_rights": {
+            "statement": "Copy fulfillment depends on law, preservation condition, service review, scope, and payment.",
+            "scope": "content",
+            "evidence_url": "https://www.rsl.ru/international-services/document-copying",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "permission-required",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact record exposes a lawful fragment-order route, but the institution decides copying eligibility and terms. This supports an unsent tiered request, not access, permission, payment authorization, or a record-specific open digital object.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Current institutional URLs and bounded conditions are recorded; no form submission, correspondence, order, or permission document exists."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-antonovsky-1903-negative",
+      "sequence": 3,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive and Open Library exact-edition searches",
+      "endpoint_url": "https://archive.org/advancedsearch.php?q=title%3A%22Tak%20govoril%20Zaratustra%22%20AND%20year%3A1903&fl%5B%5D=identifier&output=json",
+      "interface_type": "api",
+      "interface_version": "public APIs observed 2026-08-01",
+      "exact_query": "Search exact Russian title, Antonovsky responsibility, year 1903, second corrected edition, Saint Petersburg, and Altshuler variants in Internet Archive advanced search and Open Library search/editions routes",
+      "queried_at": "2026-08-01T13:38:00-06:00",
+      "elapsed_seconds": 5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-internet-archive-no-exact-item",
+          "rank": 1,
+          "title_as_displayed": "Internet Archive exact 1903 Antonovsky query — zero matching items",
+          "result_url": "https://archive.org/advancedsearch.php?q=title%3A%22Tak%20govoril%20Zaratustra%22%20AND%20year%3A1903&fl%5B%5D=identifier&output=json",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["JSON search response"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "No exact Russian Antonovsky 1903 digital item was returned; absence is a time-sensitive availability result, not proof that no copy exists.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The negative live query is reproducible from the recorded URL and will be refreshed before acquisition work."}
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-open-library-no-exact-edition",
+          "rank": 2,
+          "title_as_displayed": "Open Library exact Russian-title and 1903 edition query — no exact Antonovsky record",
+          "result_url": "https://openlibrary.org/search.json?title=%D0%A2%D0%B0%D0%BA%20%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB%20%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0&publish_year=1903",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["JSON search response"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Open Library did not expose an exact 1903 Russian Antonovsky Edition or digital source; nearby Work records cannot substitute for the target manifestation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the exact negative query and its bounded conclusion are retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-antonovsky-translation-scholarship",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established peer-reviewed Russian Zarathustra translation research",
+      "endpoint_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Check established scholarship for whether shared translator, title, and edition sequence can substitute for exact witness comparison of philosophical meaning, style, rhythm, and strategy",
+      "queried_at": "2026-08-01T13:43:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-pertsev-2015-witness-control",
+          "rank": 1,
+          "title_as_displayed": "Русские переводы Так говорил Заратустра Ф. Ницше: проблемы адекватности",
+          "result_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "originating_record_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "identifiers": [{"scheme": "DOI", "value": "10.17072/2078-7898/2015-3-24-31"}],
+          "available_formats": ["HTML", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established translation scholarship supplies the methodological control that exact witnesses, style, rhythm, and semantic choices must be compared; it does not identify the physical 1903 Edition.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The DOI and bounded methodological conclusion are sufficient for this research layer."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-antonovsky-translation-scholarship",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Current 2025 direct comparison of Russian Zarathustra translations",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "publication metadata checked 2026-08-01",
+      "exact_query": "Check the freshest inspectable direct comparison of Ivanov, Antonovsky, Borzakovsky, and Golosovker for variant, rhetoric, rhythm, style, and translation-strategy evidence relevant to exact witness separation",
+      "queried_at": "2026-08-01T13:46:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-ermakova-2025-variant-control",
+          "rank": 1,
+          "title_as_displayed": "Стилистические особенности русских переводов книги Ф. Ницше Так говорил Заратустра",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://publications.hse.ru/articles/984166485",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["HTML", "article metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The freshest direct variant-aware study strengthens the need to preserve exact translation witnesses and editions; it does not alter the official RSL bibliographic identity or create a textual equivalence claim.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The DOI, institutional metadata route, and bounded methodological conclusion are retained without ingesting article content."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-1903-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search for exact physical-copy corroboration",
+      "endpoint_url": "https://www.litfund.ru/auction/445/52/",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Exact phrase searches for Так говорил Заратустра, Антоновского, 2-е изд. испр., тип. Альтшулера, 1903, and [2] III [3] 432 [2] V after official and scholarly channels",
+      "queried_at": "2026-08-01T13:50:00-06:00",
+      "elapsed_seconds": 8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.litfund-antonovsky-1903-physical-copy-corroboration",
+          "rank": 1,
+          "title_as_displayed": "Ницше Ф. Так говорил Заратустра. 2-е изд., испр. СПб., тип. Альтшулера, 1903",
+          "result_url": "https://www.litfund.ru/auction/445/52/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["search-indexed auction description"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unknown",
+          "machine_interface": "none",
+          "decision": "defer",
+          "rationale": "The indexed physical-copy description corroborates edition statement, imprint string, extent, size, binding, and copy-specific condition, but the page was not stably retrievable at final refresh. It remains secondary corroboration and cannot establish publisher identity, rights, or source custody.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No stable current page body was available; only the bounded indexed lead is preserved in research."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-rsl-antonovsky-1903-exact-record-holdings", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 12, "machine_seconds": 14, "notes": "Best exact Edition and holdings identity; no record-specific source pages, digital payload, or rights grant."},
+    {"channel_id": "channel-rsl-current-copy-route", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 10, "machine_seconds": 11, "notes": "Exact lawful request route and general copying limits; eligibility, price, and terms remain institution-decided."},
+    {"channel_id": "channel-open-library-antonovsky-1903-negative", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 4, "machine_seconds": 5, "notes": "Useful current negative control only; absence is time-sensitive and does not prove the witness does not exist."},
+    {"channel_id": "channel-established-antonovsky-translation-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 3, "machine_seconds": 0, "notes": "Established methodological control for exact-witness comparison, not Edition identity."},
+    {"channel_id": "channel-current-antonovsky-translation-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 3, "machine_seconds": 0, "notes": "Fresh direct variant-aware control; no new bibliographic or textual claim follows."},
+    {"channel_id": "channel-general-web-antonovsky-1903-last", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "poor", "machine_interface_quality": "poor", "human_minutes": 5, "machine_seconds": 8, "notes": "Secondary physical-copy corroboration only; unstable retrieval and marketplace context keep it outside authority."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1903-rsl-exact-record-holdings",
+    "tos-discovery-result.antonovsky-1903-rsl-bounded-copy-route",
+    "tos-discovery-result.antonovsky-1903-pertsev-2015-witness-control",
+    "tos-discovery-result.antonovsky-1903-ermakova-2025-variant-control"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.antonovsky-1903-internet-archive-no-exact-item",
+    "tos-discovery-result.antonovsky-1903-open-library-no-exact-edition"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T13:20:00-06:00",
+  "ended_at": "2026-08-01T14:16:00-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1903-rsl-edition-holdings.2026-08-01"
+  ],
+  "record_version": 1
+}

@@ -7,7 +7,10 @@
   "identity_status": "provisional",
   "source_refs": [
     "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.translator-preface-revision-history",
-    "ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md"
+    "ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md",
+    "https://search.rsl.ru/ru/record/01003693381"
   ],
   "external_identifiers": [],
   "same_as_posture": "no_equivalence_claim",
@@ -15,11 +18,13 @@
   "language": "ru",
   "expression_role": "translation",
   "responsibility_claim_refs": [],
-  "embodiment_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903.embodied-by.saint-petersburg-altshuler-typography-1903-second-corrected"
+  ],
   "derivation_claim_refs": [
     "tos.claim.expression-derivation.also-sprach-zarathustra.ru-antonovsky-1903.is-derivative-of.ru-antonovsky-1900"
   ],
-  "notes": "Antonovsky's exact 1911 preface identifies a 1903 edition state and reports that each of the three previous editions was a new reworking of its predecessor. The derivation claim remains uncollated and unreviewed; no exact 1903 Edition, Item, or source text is materialized.",
-  "record_version": 1,
+  "notes": "Antonovsky's exact 1911 preface identifies a 1903 edition state and reports that each of the three previous editions was a new reworking of its predecessor. The current Russian State Library record now identifies one exact Saint Petersburg 1903 second corrected Edition, records the typography string тип. Альтшулера, gives extent [2], III, [3], 432, [2], V pages, and reports four physical holdings. The Expression and derivation claim remain provisional, uncollated, and unreviewed because no source pages or bytes were acquired; no ToS Item, separate responsibility or provision-activity claim, publisher identity, textual equivalence, rights, or semantic claim is materialized.",
+  "record_version": 2,
   "supersedes_ref": null
 }

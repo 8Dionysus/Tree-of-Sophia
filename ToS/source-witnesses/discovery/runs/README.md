@@ -273,3 +273,11 @@ scientific, and commentary-editorial roles remain deferred rather than
 flattened into false predicates; no source payload, accepted translation,
 quality verdict, rights clearance, semantics, human review, publication, or
 canon is created.
+
+`antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json` resolves the exact
+RSL `01003693381` record, `2-е изд., испр.` statement, four shelfmarks, and
+current lawful fragment-copy route before established and fresh translation
+scholarship and general web last. It creates only a provisional Edition and
+one bibliographic topology packet. No holding becomes a ToS Item; no source
+page, payload, publisher, provision activity, rights conclusion, collation,
+equivalence, semantic claim, human task, message, order, or payment is created.

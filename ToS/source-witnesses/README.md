@@ -183,6 +183,16 @@ empty, and no File, anchor, publisher identity, source text, rights clearance,
 collation, equivalence, or new derivation edge is admitted. A separate tiered
 research-copy request remains public-safe, optional, and `draft-not-sent`.
 
+The provisional 1903 Antonovsky Expression now likewise closes over one exact
+institutionally identified Edition. The Russian State Library record reports
+`2-е изд., испр.`, Saint Petersburg, `тип. Альтшулера`, year 1903, extent
+`[2], III, [3], 432, [2], V`, and four physical holdings. Those shelfmarks are
+external coordinates, not ToS Items: no bytes or source pages were acquired.
+The typography string is not inferred to be a publisher and opens no
+provision-activity claim. No responsibility claim, collation, equivalence,
+new derivation edge, rights conclusion, accepted text, or semantic object is
+created. Its tiered RSL copy request is also public-safe and `draft-not-sent`.
+
 The exact 1913 Antonovsky Expression separately closes over one
 `translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
 page 7, bound to the exact Item and file SHA-256 after direct source-visible
