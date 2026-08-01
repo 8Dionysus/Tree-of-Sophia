@@ -197,3 +197,22 @@ from publication; and e-rara supplies an independent, non-equated holding
 route. Fresh search runs last. The result admits one model-made, unreviewed
 Edition claim and explicitly does not populate parts II or III from repeated
 labels.
+
+`zarathustra-parts-2-3-provision-identity.2026-08-01.v1.json` checks parts II
+and III independently rather than propagating the part-I label. Each selected
+DTA source description supplies its own volume, publisher, place, year, URN,
+and holding-copy route; GND keeps the Schmeitzner publishing Organization
+distinct from the Person, e-rara supplies an independent holding structure,
+and general web remains last. The two claims remain model-made and unreviewed
+and create no title-page transcription, release date, equivalence, text,
+rights, semantics, or canon.
+
+`zarathustra-part-4-provision-identity.2026-08-01.v1.json` checks the exact
+Naumann part-IV Edition separately. DTA supplies only the reported
+`Naumann; Leipzig; 1891` statement; GND separates the publisher Organization,
+Leipzig Place, printing company, and founder Person; DLA, HAAB, and HAdW keep
+the 1885 private print, November-1890 printing, planned spring-1891 delivery,
+and March-1892 actual delivery distinct. The DLA forty-copy report remains in
+conflict with the forty-five-copy route. HAAB's HTTP 403 was not bypassed, no
+payload was acquired, and neither a release date nor accepted bibliography is
+created.

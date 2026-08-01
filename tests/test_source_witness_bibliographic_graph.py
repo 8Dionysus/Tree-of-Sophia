@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 105)
-        self.assertEqual(counts["claim_traces"], 105)
-        self.assertEqual(counts["nodes"], 336)
-        self.assertEqual(counts["edges"], 685)
+        self.assertEqual(counts["source_claims"], 106)
+        self.assertEqual(counts["claim_traces"], 106)
+        self.assertEqual(counts["nodes"], 342)
+        self.assertEqual(counts["edges"], 696)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 105})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 105})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 106})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 106})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -305,7 +305,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref=leipzig_ref,
         )
         self.assertEqual(result["status"], "ok")
-        self.assertEqual(result["result_count"], 2)
+        self.assertEqual(result["result_count"], 3)
         self.assertEqual(
             {
                 "tos.organization.c-g-naumann-verlag-leipzig",
@@ -342,7 +342,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(modern_successor["status"], "no_match")
         self.assertEqual(modern_successor["matches"], [])
 
-    def test_zarathustra_parts_1_to_3_provision_queries_remain_distinct(
+    def test_zarathustra_parts_1_to_4_provision_queries_remain_distinct(
         self,
     ) -> None:
         payload = load_verified_projection()
@@ -357,6 +357,10 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         part_3_ref = (
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "chemnitz-schmeitzner-1884-part-3"
+        )
+        part_4_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "leipzig-naumann-1891-part-4"
         )
         organization_ref = (
             "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz"
@@ -427,6 +431,28 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 ]["value"],
             )
         self.assertEqual(3, len(exact_claim_refs))
+
+        part_4 = query_projection(
+            payload,
+            subject_ref=part_4_ref,
+            predicate="provision_activity",
+        )
+        self.assertEqual("ok", part_4["status"])
+        self.assertEqual(1, part_4["result_count"])
+        part_4_match = part_4["matches"][0]
+        self.assertNotIn(part_4_match["claim_ref"], exact_claim_refs)
+        self.assertEqual(
+            "1891",
+            part_4_match["object_node"]["properties"]["value"]["temporal"]["value"],
+        )
+        self.assertEqual(
+            {"tos.place.leipzig", "tos.organization.c-g-naumann-verlag-leipzig"},
+            {
+                node["properties"]["identity_ref"]
+                for node in part_4_match["normalized_identity_nodes"]
+            },
+        )
+        self.assertEqual(4, len(exact_claim_refs | {part_4_match["claim_ref"]}))
 
         person_gnd = query_projection(
             payload,

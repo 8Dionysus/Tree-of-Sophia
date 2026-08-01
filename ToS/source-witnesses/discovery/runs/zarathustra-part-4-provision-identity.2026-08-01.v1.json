@@ -1,0 +1,314 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.zarathustra-part-4-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-naumann-1891-part-4",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+    ],
+    "description": "Exact provision identity for the modeled Naumann 1891 part-IV Edition without collapsing its private-print, printing, statement-year, and delivery chronology.",
+    "required_properties": [
+      "exact part-IV Edition scope",
+      "reported publisher, place, and statement year",
+      "historical publisher Organization identity",
+      "Place identity",
+      "publisher versus printer and Person distinction",
+      "1885, 1890, 1891, and 1892 event separation"
+    ],
+    "acceptable_substitutions": [
+      "an official catalog or independent holding-copy record that preserves the part-IV and event-stage boundaries without asserting Item equivalence"
+    ],
+    "languages": ["de"],
+    "formats": ["metadata", "JSON-LD", "XML/TEI P5", "HTML"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dta-zarathustra-part-4-provision",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Deutsches Textarchiv",
+      "endpoint_url": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
+      "interface_type": "api",
+      "interface_version": "DTA TEI header, Dublin Core, and HTML record as served 2026-08-01",
+      "exact_query": "GET the TEI header, Dublin Core, and HTML record for nietzsche_zarathustra04_1891; compare sourceDesc with the exact tracked source-metadata snapshot",
+      "queried_at": "2026-08-01T04:02:00-06:00",
+      "elapsed_seconds": 5.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dta-zarathustra-part-4-provision-statement",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche, Friedrich: Also sprach Zarathustra. Bd. 4. Leipzig, 1891.",
+          "result_url": "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra04_1891",
+          "originating_record_url": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
+          "identifiers": [
+            {"scheme": "DTA ID", "value": "16843"},
+            {"scheme": "URN", "value": "urn:nbn:de:kobv:b4-200905197250"},
+            {"scheme": "holding-copy shelfmark", "value": "SUB Göttingen, 8 PHIL I, 7352:4 RARA"}
+          ],
+          "available_formats": ["XML/TEI P5", "Dublin Core XML", "HTML"],
+          "declared_rights": {
+            "statement": "Current TEI and terms report CC BY-SA 4.0 while the live Dublin Core field remains stale at CC BY-NC 3.0.",
+            "scope": "content",
+            "evidence_url": "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact part-IV source description reports volume 4, Naumann, Leipzig, and 1891; the year is retained only as the authority-record statement year.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "c3699e9c9eddc2e0cb6be847710446ae42b8ac0a93ccec8671a73b00d7ba1dc2",
+            "reason": "The existing tracked snapshot preserves exact Edition, holding-copy, source, quality, response-digest, and rights-conflict context."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-naumann-leipzig-authorities",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/1072998033/about/lds",
+      "interface_type": "api",
+      "interface_version": "GND linked data as served 2026-08-01",
+      "exact_query": "Resolve GND 1072998033 and 4035206-7; inspect related printer 16034133-4 and founder Person 103754711X as negative controls",
+      "queried_at": "2026-08-01T04:03:00-06:00",
+      "elapsed_seconds": 6.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1072998033-naumann-verlag",
+          "rank": 1,
+          "title_as_displayed": "C. G. Naumann Verlag (Leipzig)",
+          "result_url": "https://d-nb.info/gnd/1072998033",
+          "originating_record_url": "https://d-nb.info/gnd/1072998033/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "1072998033"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The Company authority contains Naumann publisher variants, its 1871 establishment, and Leipzig place-of-business relation; the existing provisional Organization is reused without same-as upgrade.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 e7794e2d949d3561ba654aa5c51e010bd211a3a8239f232a83e289ea3d3e885f is recorded in the ordered research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4035206-7-leipzig",
+          "rank": 2,
+          "title_as_displayed": "Leipzig",
+          "result_url": "https://d-nb.info/gnd/4035206-7",
+          "originating_record_url": "https://d-nb.info/gnd/4035206-7/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4035206-7"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The authority record preserves Leipzig as a Place; the existing provisional identity is reused without historical-spelling or jurisdictional overreach.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 90ec7dafa7154eccc68306b23e46162cb74b9535259e3bda0c3b793f5e88bd46 is recorded in the ordered research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-negative",
+          "rank": 3,
+          "title_as_displayed": "Druckerei C. G. Naumann",
+          "result_url": "https://d-nb.info/gnd/16034133-4",
+          "originating_record_url": "https://d-nb.info/gnd/16034133-4/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "16034133-4"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The related printing company must not replace the publisher Organization named by the exact Edition statement.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the negative-control authority metadata was inspected and hashed; no response payload was retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-103754711x-naumann-founder-person-negative",
+          "rank": 4,
+          "title_as_displayed": "Naumann founder Person authority",
+          "result_url": "https://d-nb.info/gnd/103754711X",
+          "originating_record_url": "https://d-nb.info/gnd/103754711X/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "103754711X"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The founder Person authority must not replace the historical publisher Organization.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Only the negative-control authority metadata was inspected and hashed; no response payload was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dla-marbach-zarathustra-work-history",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Deutsches Literaturarchiv Marbach",
+      "endpoint_url": "https://www.dla-marbach.de/find/opac/id/AK00003291/",
+      "interface_type": "web",
+      "interface_version": "DLA work record as served 2026-08-01",
+      "exact_query": "Inspect AK00003291 for the part-I–IV publication sequence, 1885 private-print note, and first publisher-edition statement",
+      "queried_at": "2026-08-01T04:04:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dla-ak00003291-zarathustra-part-4-history",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra : ein Buch für Alle und Keinen",
+          "result_url": "https://www.dla-marbach.de/find/opac/id/AK00003291/",
+          "originating_record_url": "https://www.dla-marbach.de/find/opac/id/AK00003291/",
+          "identifiers": [{"scheme": "DLA OPAC", "value": "AK00003291"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official archive record independently separates the 1885 private print from the Naumann Leipzig 1891 first publisher edition; its forty-copy report remains in conflict with the forty-five-copy route.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The HTML was inspected and hashed but not retained; SHA-256 bede361b80d70ebac11f8487d622851f9536ca3efcf5acc2a0c699a376fd29b7 is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-haab-zarathustra-part-4-holdings",
+      "sequence": 4,
+      "channel_type": "university-catalog",
+      "role": "digital-object-record",
+      "source_name": "Herzogin Anna Amalia Bibliothek",
+      "endpoint_url": "https://portal.haab.klassik-stiftung.de/Record/741630192",
+      "interface_type": "web",
+      "interface_version": "HAAB catalog result as exposed 2026-08-01",
+      "exact_query": "Inspect record 741630192 for part-IV title, Naumann/Leipzig/1891 statement, extent, and distinct copy records",
+      "queried_at": "2026-08-01T04:05:00-06:00",
+      "elapsed_seconds": 1.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.haab-741630192-zarathustra-part-4",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra. Vierter und letzter Theil",
+          "result_url": "https://portal.haab.klassik-stiftung.de/Record/741630192",
+          "originating_record_url": "https://portal.haab.klassik-stiftung.de/Record/741630192",
+          "identifiers": [{"scheme": "HAAB record", "value": "741630192"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The institutional record independently exposes Leipzig, Naumann, 1891 and distinct copies, but automated retrieval returned HTTP 403; it is corroboration, not a captured source or equivalence claim.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The open-view result was inspected without bypassing the HTTP 403 response; no response digest or payload is claimed."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-hadw-zarathustra-part-4-production-history",
+      "sequence": 5,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Heidelberger Akademie der Wissenschaften Nietzsche-Kommentar",
+      "endpoint_url": "https://doi.org/10.11588/diglit.70914",
+      "interface_type": "web",
+      "interface_version": "HAdW digital commentary pages as served 2026-08-01",
+      "exact_query": "Inspect commentary pages 666-667 for private-print, printing, planned-delivery, suspension, and actual-delivery chronology",
+      "queried_at": "2026-08-01T04:06:00-06:00",
+      "elapsed_seconds": 3.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hadw-nietzsche-kommentar-6-2-part-4-chronology",
+          "rank": 1,
+          "title_as_displayed": "Nietzsche-Kommentar 6/2, commentary on the Part-IV production history",
+          "result_url": "https://digi.hadw-bw.de/view/nietzsche_kom6_2/0666/text_ocr",
+          "originating_record_url": "https://doi.org/10.11588/diglit.70914",
+          "identifiers": [{"scheme": "DOI", "value": "10.11588/diglit.70914"}],
+          "available_formats": ["HTML", "OCR text", "page image"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The established commentary prevents the DTA 1891 statement year from being promoted to printing or release time by separating 1885, November 1890, planned spring 1891, and March 1892 stages.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The two public commentary pages were inspected and hashed but not retained; both response digests are recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-zarathustra-part-4-provision-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after official and established sources",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "2025 2026 Also sprach Zarathustra vierter letzter Theil Naumann Leipzig 1891 printed 1890 released March 1892 corrections",
+      "queried_at": "2026-08-01T04:08:00-06:00",
+      "elapsed_seconds": 2.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.zvab-zarathustra-part-4-current-rare-book",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra. Vierter und letzter Theil",
+          "result_url": "https://www.zvab.com/erstausgabe/sprach-Zarathustra-Vierter-letzter-Theil-NIETZSCHE/32470223821/bd",
+          "originating_record_url": "https://www.zvab.com/erstausgabe/sprach-Zarathustra-Vierter-letzter-Theil-NIETZSCHE/32470223821/bd",
+          "identifiers": [],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The commercial listing corroborates the imprint and 1890/1892 distinction but is weaker than the selected exact and scholarly records.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No commercial listing or image payload was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-dta-zarathustra-part-4-provision", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 5.8, "notes": "Best exact Edition evidence with identifiers, holding-copy source, and tracked snapshot; statement year does not establish release."},
+    {"channel_id": "channel-dnb-naumann-leipzig-authorities", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": 6.4, "notes": "Separates publisher Company, Place, printer, and founder Person; local identities remain provisional."},
+    {"channel_id": "channel-dla-marbach-zarathustra-work-history", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.1, "notes": "Independent official archive chronology; preserves a forty-versus-forty-five private-copy conflict."},
+    {"channel_id": "channel-haab-zarathustra-part-4-holdings", "completeness": "adequate", "metadata_precision": "adequate", "rights_clarity": "limited", "machine_interface_quality": "limited", "human_minutes": 0, "machine_seconds": 1.8, "notes": "Independent holding catalog; HTTP 403 was preserved without bypass and no payload or equivalence was claimed."},
+    {"channel_id": "channel-hadw-zarathustra-part-4-production-history", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 3.2, "notes": "Established production-history control that prevents temporal collapse; not substituted for the exact DTA statement."},
+    {"channel_id": "channel-general-web-zarathustra-part-4-provision-last", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.4, "notes": "General web ran last and supplied only weaker corroboration, no stronger authority or contradiction."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dta-zarathustra-part-4-provision-statement",
+    "tos-discovery-result.dnb-gnd-1072998033-naumann-verlag",
+    "tos-discovery-result.dnb-gnd-4035206-7-leipzig",
+    "tos-discovery-result.dla-ak00003291-zarathustra-part-4-history",
+    "tos-discovery-result.hadw-nietzsche-kommentar-6-2-part-4-chronology"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-negative",
+    "tos-discovery-result.dnb-gnd-103754711x-naumann-founder-person-negative"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T04:02:00-06:00",
+  "ended_at": "2026-08-01T04:10:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.zarathustra-part-4-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

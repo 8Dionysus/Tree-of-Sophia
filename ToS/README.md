@@ -92,10 +92,14 @@ statement, one Chemnitz Place, and the historical Schmeitzner publishing
 Organization. A following exact-record pass independently admits the part-II
 1883 and part-III 1884 statements from their own DTA records and an e-rara
 holding crosscheck; it does not substitute the Person Ernst Schmeitzner or
-infer either claim from part I, repeated labels, or the shared shelfmark. All
-identities and claims remain
-provisional or unreviewed, and the graph reaches them only through reified
-claim nodes.
+infer either claim from part I, repeated labels, or the shared shelfmark. A
+separate part-IV pass admits only the reported Naumann/Leipzig/1891 statement
+from its own DTA record. DLA, HAAB, and HAdW control evidence keeps the 1885
+private print, 1890 printing, 1891 statement and planned delivery, and March
+1892 actual delivery distinct; the Naumann publisher Organization is not
+replaced by its related printer or founder Person. All identities and claims
+remain provisional or unreviewed, and the graph reaches them only through
+reified claim nodes.
 
 ## Operating Card
 

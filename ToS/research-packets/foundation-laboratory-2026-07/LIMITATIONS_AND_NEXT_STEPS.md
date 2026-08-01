@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 70 current objects and all 105
+- The source-witness catalog now exposes all 70 current objects and all 106
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 105 claims as reified
-  claim nodes with 685 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 106 claims as reified
+  claim nodes with 696 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 105 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 106 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -619,6 +619,20 @@ not reintroduce a false 90 °C gate.
   not transcribe either physical title page, establish printing or public
   release time, equate Editions, Items or texts, accept the bibliography or
   German, clear rights, perform human review, create semantics, authorize
+  publication, or promote canon.
+- The subsequent part-IV provision-identity slice adds one exact
+  Edition-owned, model-made, unreviewed claim for the DTA-reported
+  `Naumann; Leipzig; 1891` statement. The rebuilt source catalog contains 70
+  objects and 106 claims; the portable bibliographic graph contains 342
+  nodes, 696 claim-centred edges, and 106 source-return traces with no direct
+  subject-object edge. An exact query returns the part-IV statement, provisional
+  Leipzig Place, and historical Naumann publisher Organization through its
+  reified claim. DLA, HAAB, and HAdW evidence keeps the 1885 private print,
+  November-1890 printing, planned spring-1891 delivery, and March-1892 actual
+  delivery distinct; the forty-versus-forty-five private-copy conflict remains
+  unresolved. This does not transcribe a physical title page, establish a
+  release date, substitute the printer or founder Person, accept bibliography
+  or German, clear rights, perform human review, create semantics, authorize
   publication, or promote canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit

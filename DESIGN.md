@@ -182,13 +182,18 @@ route: it cannot bypass the claim, replace the literal statement, or equate a
 publisher with a printer, successor, or public-release event.
 
 The *Zarathustra* provision extensions are deliberately Edition-exact. The
-part-I, part-II, and part-III claims each return to a separate DTA authority
-record; shared labels and one shared holding shelfmark are never the evidence
-for copying a claim. The historical Schmeitzner Corporate Body is modeled as
-an Organization and kept distinct from the affiliated Person, later firms,
-and rights holders. The three statement years are not printing, receipt, or
-public-release dates. This is an identity-and-provenance boundary, not
-accepted bibliography or Edition, Item, or textual equivalence.
+part-I, part-II, part-III, and part-IV claims each return to a separate DTA
+authority record; shared labels and one shared holding shelfmark are never the
+evidence for copying a claim. The historical Schmeitzner Corporate Body is
+modeled as an Organization and kept distinct from the affiliated Person,
+later firms, and rights holders. Part IV separately reuses the historical
+C. G. Naumann Verlag Organization while rejecting the related printer and
+founder Person as substitutions. Its reported 1891 statement year is not the
+1885 private print, November-1890 printing completion, planned spring-1891
+delivery, or March-1892 actual delivery. These statement years are not
+printing, receipt, delivery, or public-release dates. This is an
+identity-and-provenance boundary, not accepted bibliography or Edition, Item,
+or textual equivalence.
 
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes

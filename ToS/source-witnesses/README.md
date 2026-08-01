@@ -222,19 +222,27 @@ and the historical `Ernst Schmeitzner, Verlagsbuchhandlung` Organization. It
 keeps that Corporate Body distinct from the Person Ernst Schmeitzner. A
 following pass adds parts II and III only from their own DTA source
 descriptions and separate Edition identities; repeated labels, the part-I
-claim, and the shared holding shelfmark are not evidence for propagation. All
-five Edition claims remain model-made, `public_metadata_only`, and
-`unreviewed`.
+claim, and the shared holding shelfmark are not evidence for propagation. A
+fourth-part pass adds only the exact DTA-reported `Naumann; Leipzig; 1891`
+statement. It reuses the provisional Leipzig Place and C. G. Naumann Verlag
+Organization while rejecting the printer and founder Person as substitutions;
+the 1885 private print, 1890 printing, planned 1891 delivery, and actual March
+1892 delivery remain distinct historical stages. All six Edition claims
+remain model-made, `public_metadata_only`, and `unreviewed`.
 
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
-the bracketed 1908 DNB year is not an exact release date. The generated graph
+the bracketed 1908 DNB year is not an exact release date; and the part-IV 1891
+DTA year is not its private-print, printing, planned-delivery, or
+actual-delivery date. The generated graph
 may connect a reified claim to normalized Place and Organization nodes, but it
 must never emit a direct Edition-to-identity fact edge. The frozen two-case
 A/B/C inspection and its negative controls are recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/PROVISION_ACTIVITY_ABC_EXPERIMENT.md`.
 The post-experiment first-part identity admission is separately recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md`.
+The independently researched part-IV boundary is recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

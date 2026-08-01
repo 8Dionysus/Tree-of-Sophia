@@ -206,6 +206,15 @@ ZARATHUSTRA_PART_3_EDITION_ROOT = (
 ZARATHUSTRA_PART_3_PROVISION_CLAIMS_PATH = (
     ZARATHUSTRA_PART_3_EDITION_ROOT / "provision-activity-claims.jsonl"
 )
+ZARATHUSTRA_PART_4_EDITION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/de-naumann-1891-part-4/"
+    "editions/leipzig-naumann-1891-part-4"
+)
+ZARATHUSTRA_PART_4_PROVISION_CLAIMS_PATH = (
+    ZARATHUSTRA_PART_4_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
 ZARATHUSTRA_PART_1_PROVISION_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -220,6 +229,16 @@ ZARATHUSTRA_PARTS_2_3_PROVISION_RESEARCH_PATH = (
     REPO_ROOT
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md"
+)
+ZARATHUSTRA_PART_4_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "zarathustra-part-4-provision-identity.2026-08-01.v1.json"
+)
+ZARATHUSTRA_PART_4_PROVISION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md"
 )
 MYSL_TRANSLATOR_IDENTITY_DISCOVERY_PATH = (
     REPO_ROOT
@@ -1250,9 +1269,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(70, manifest["counts"]["object_total"])
-        self.assertEqual(105, manifest["counts"]["claim"])
-        self.assertEqual(175, manifest["counts"]["total"])
-        self.assertEqual(105, len(claim_entries))
+        self.assertEqual(106, manifest["counts"]["claim"])
+        self.assertEqual(176, manifest["counts"]["total"])
+        self.assertEqual(106, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1289,7 +1308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 88,
+                "bibliographic_assertion": 89,
                 "scholarly_report": 17,
             },
             {
@@ -1394,7 +1413,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(5, len(provision_claims))
+        self.assertEqual(6, len(provision_claims))
         self.assertEqual(
             {"tos.place.leipzig", "tos.place.chemnitz"},
             {
@@ -1424,7 +1443,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-    def test_zarathustra_parts_1_to_3_provision_identity_is_exact_and_distinct(
+    def test_zarathustra_parts_1_to_4_provision_identity_is_exact_and_distinct(
         self,
     ) -> None:
         claim = json.loads(
@@ -1577,6 +1596,75 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn("not from label propagation", research)
         self.assertIn("No physical-title-page transcription", research)
+
+        part_4_edition = json.loads(
+            (ZARATHUSTRA_PART_4_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        part_4_claim = json.loads(
+            ZARATHUSTRA_PART_4_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        self.assertEqual(
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "leipzig-naumann-1891-part-4",
+            part_4_claim["subject_ref"],
+        )
+        self.assertEqual(
+            [part_4_claim["claim_id"]],
+            part_4_edition["provision_activity_claim_refs"],
+        )
+        self.assertEqual(
+            "Naumann; Leipzig; 1891",
+            part_4_claim["object"]["reported_statement"],
+        )
+        self.assertEqual(
+            "tos.place.leipzig",
+            part_4_claim["object"]["places"][0]["normalized_place_ref"],
+        )
+        self.assertEqual(
+            "tos.organization.c-g-naumann-verlag-leipzig",
+            part_4_claim["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual("1891", part_4_claim["object"]["temporal"]["value"])
+        self.assertEqual("statement_date", part_4_claim["object"]["temporal"]["role"])
+        self.assertIn("March-1892 actual delivery", part_4_claim["object"]["activity_warning"])
+        self.assertNotIn(part_4_claim["claim_id"], extension_claim_ids)
+        self.assertEqual("unreviewed", part_4_claim["review_status"])
+        self.assertEqual("public_metadata_only", part_4_claim["visibility"])
+
+        part_4_discovery = json.loads(
+            ZARATHUSTRA_PART_4_PROVISION_DISCOVERY_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("reconciled", part_4_discovery["status"])
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6],
+            [channel["sequence"] for channel in part_4_discovery["channels"]],
+        )
+        self.assertEqual(
+            "channel-general-web-zarathustra-part-4-provision-last",
+            part_4_discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dta-zarathustra-part-4-provision-statement",
+            part_4_discovery["selected_result_ids"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-negative",
+            part_4_discovery["rejected_result_ids"],
+        )
+        self.assertFalse(part_4_discovery["technical_access_bypass_used"])
+        part_4_research = ZARATHUSTRA_PART_4_PROVISION_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        for boundary in ("1885", "1890", "1891", "1892"):
+            self.assertIn(boundary, part_4_research)
+        self.assertIn("forty-five", part_4_research)
+        self.assertIn("not inferred from parts I–III", part_4_research)
 
     def test_mysl_translator_identities_resolve_asymmetrically_without_claim_drift(
         self,

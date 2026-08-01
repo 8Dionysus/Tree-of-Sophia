@@ -33,8 +33,8 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 70 object records and 105 claim records
-(175 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 70 object records and 106 claim records
+(176 entries total). The responsibility slice contains seven Work authorship,
 eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The eighth translation claim is bound to a proposed whole-page title-page
@@ -44,13 +44,17 @@ The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
 The provision surface contains two provisional Places, three provisional
-historical publisher Organizations, and five Edition-owned grouped statements.
+historical publisher Organizations, and six Edition-owned grouped statements.
 Three claims belong to the exact 1883/1883/1884 first three parts of *Also
 sprach Zarathustra*: each returns to its own DTA Edition record while resolving
 the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
-affiliated Person. Literal wording, normalized identity, activity role, and
-statement date remain distinct; shared labels and one holding shelfmark do not
-create Edition, Item, or textual equivalence. All identities and claims remain
+affiliated Person. A fourth claim belongs only to the exact part-IV Edition and
+reports `Naumann; Leipzig; 1891`; it reuses the Leipzig Place and historical
+Naumann publisher Organization while keeping the printer, founder Person,
+1885 private print, 1890 printing, and March-1892 delivery outside the
+statement. Literal wording, normalized identity, activity role, and statement
+date remain distinct; shared labels and one holding shelfmark do not create
+Edition, Item, or textual equivalence. All identities and claims remain
 model-made, unreviewed, or provisional.
 
 Regeneration, parity checks, and source-foundation validation route through

@@ -103,11 +103,16 @@ Chemnitz Place, and the historical Schmeitzner publishing Organization. The
 next extension adds parts II and III only after each separate DTA authority
 record and an independent e-rara holding route were checked; neither claim is
 copied from part I or from repeated labels. The Organization remains distinct
-from the Person Ernst Schmeitzner. Statement dates, printing, manuscript
-dispatch, public release, publisher, printer, and modern successor remain
-separate. Every identity and claim is model-made and unreviewed; the generated
-graph reaches normalized participants only through source-returnable claim
-nodes.
+from the Person Ernst Schmeitzner. A fourth exact-Edition pass admits only the
+DTA-reported `Naumann; Leipzig; 1891` statement for part IV while retaining
+the 1885 private print, November-1890 printing, planned spring-1891 delivery,
+and March-1892 actual delivery as distinct chronology evidence. It reuses the
+provisional Leipzig Place and historical C. G. Naumann Verlag Organization,
+not the related printer or founder Person. Statement dates, printing,
+manuscript dispatch, delivery, public release, publisher, printer, and modern
+successor remain separate. Every identity and claim is model-made and
+unreviewed; the generated graph reaches normalized participants only through
+source-returnable claim nodes.
 
 ## Current Public Route
 

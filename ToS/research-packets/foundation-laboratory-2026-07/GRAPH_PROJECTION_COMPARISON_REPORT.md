@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 105 public-metadata-only bibliographic claims;
-- 336 nodes and 685 edges;
-- 105 claim trace packets;
-- 24 claim-scoped literal objects;
-- 17 resolved provenance events carrying exact time and method;
+- 106 public-metadata-only bibliographic claims;
+- 342 nodes and 696 edges;
+- 106 claim trace packets;
+- 25 claim-scoped literal objects;
+- 18 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 105 explicit `unreviewed` states.
+- 106 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -79,17 +79,20 @@ The chronology layer separately carries seven Work
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
 
-The 2026-08-01 bounded provision surface contains five Edition-owned literal
+The 2026-08-01 bounded provision surface contains six Edition-owned literal
 objects, two normalized Places, and three distinct historical publisher
 Organizations. The original two-case A/B/C result remains frozen; a separate
 extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
 and the historical Schmeitzner Corporate Body. A later pass adds part II and
 part III from their own exact DTA records, not from the first claim or repeated
-labels. All ten normalized-participant edges begin at claim nodes. Exact
-normalized queries return both original claims for Leipzig and three distinct
-claims for Chemnitz or Schmeitzner; exact subject queries preserve separate
-1883/1883/1884 statements and source files. The modern Berlin Insel successor
-and Person Ernst Schmeitzner GND still return no match. The graph creates no direct
+labels. A further exact part-IV pass reports only `Naumann; Leipzig; 1891`
+while retaining the 1885 private print, 1890 printing, planned 1891 delivery,
+and March-1892 actual delivery as separate chronology evidence. All twelve
+normalized-participant edges begin at claim nodes. Exact normalized queries
+return three claims for Leipzig, three distinct claims for Chemnitz or
+Schmeitzner, and one exact part-IV subject result. The modern Berlin Insel
+successor, Person Ernst Schmeitzner GND, Naumann printer, and founder Person
+remain outside the normalized claim routes. The graph creates no direct
 Edition-to-Place or Edition-to-Organization assertion.
 
 Every structural edge begins at a reified claim node and carries the source
@@ -121,12 +124,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 105/105 catalog rows returning to the expected source line and canonical
+- 106/106 catalog rows returning to the expected source line and canonical
   claim digest;
-- 105/105 graph traces returning to the same source line and digest;
-- 336 nodes, including 105 claims, 70 identities, 119 evidence nodes, 24
-  literals, one maker, and 17 provenance events;
-- 685/685 edges beginning at their own reified claim node;
+- 106/106 graph traces returning to the same source line and digest;
+- 342 nodes, including 106 claims, 70 identities, 122 evidence nodes, 25
+  literals, one maker, and 18 provenance events;
+- 696/696 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata

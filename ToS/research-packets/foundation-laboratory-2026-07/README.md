@@ -9,8 +9,8 @@ transport plus *Ecce Homo*, *Zarathustra*, and *Jenseits von Gut und Böse*
 plus *Zur Genealogie der Moral*, *Der Antichrist*, and *Der Fall Wagner*
 plus *Götzen-Dämmerung* authorial-witness routes refreshed 2026-07-30;
 bibliographic time/place/provision responsibility refreshed 2026-07-31;
-Mysl and Antonovsky translator-Agent identity reconciliation refreshed
-2026-08-01
+Mysl and Antonovsky translator-Agent identity reconciliation plus exact
+Zarathustra part-IV provision chronology refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -32,8 +32,11 @@ and what must be tested manually.
 | --- | --- |
 | `RESEARCH.md` | What foundation is defensible, and what does current evidence change? |
 | `BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md` | How should Edition-level place, publisher and other provision roles, transcribed statements, normalized identities, and date facets remain source-returnable without flattening publication, production, distribution, manufacture, or release? |
+| `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` | Why the first-part Schmeitzner/Chemnitz/1883 provision statement is admitted only from its exact Edition authority record and why the publisher Organization, Person, printing, and release remain distinct? |
+| `ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md` | Why parts II and III require two independently evidenced DTA statements rather than label propagation from part I or one shared shelfmark? |
 | `MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md` | Which Mysl translator initials can be resolved through official authorities and established Nietzsche editorial evidence, which identity must remain provisional, and why Agent enrichment changes neither responsibility claims nor translation truth? |
 | `ANTONOVSKY_AGENT_IDENTITY_RECONCILIATION_RESEARCH.md` | How the exact `Ю. М.` credit resolves to Юлий Михайлович Антоновский and GND `123235553`, why `Yuri` is rejected, and how a corrected speaking path preserves the legacy stable ref and unchanged claims? |
+| `ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md` | Why the exact DTA `Naumann; Leipzig; 1891` statement is admissible only as a reported Edition provision facet; how official and established evidence separates the 1885 private print, 1890 printing, 1891 statement/planned delivery, and March-1892 delivery; and why publisher, printer, founder Person, copy-count conflict, and release remain distinct? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
