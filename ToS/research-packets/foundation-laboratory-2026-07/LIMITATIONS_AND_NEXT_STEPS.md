@@ -124,6 +124,13 @@ contracts intentionally reject simulated human evidence.
   1903→1900 and 1907→1903 Antonovsky revision lineage. They are uncollated,
   unreviewed, non-transitive, asymmetric, irreflexive, and explicitly do not
   create equivalence. The absent 1911→1907 and 2007→1911 edges remain absent.
+- A later exact-identity pass distinguishes the 1898 Bulgakov-journal and
+  separately paginated state, the institutionally recorded uncredited 1899
+  *Reader* Edition, and Antonovsky's self-counted 1900 first Edition. The
+  journal bindings expose contents entries but omit the actual supplement
+  leaves; the 1898 title page is currently visible only through a commercial
+  holding; and no exact 1900 Item was acquired. These are research boundaries,
+  not new corpus objects, accepted text, equivalence, or graph edges.
 - Seven Work-owned chronology packets add one bounded
   `first_publication_chronology` profile per current Nietzsche Work. They keep
   sequence stages, precision, public/private availability, and posthumous
