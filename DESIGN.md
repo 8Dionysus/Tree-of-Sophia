@@ -157,6 +157,14 @@ file digest while keeping the Agent identity provisional. A page credit is
 bibliographic evidence; it is not accepted text, translation quality,
 editorial equivalence across reprints, or a biography of the translator.
 
+Agent identity reconciliation is a separate evidence layer. For the Mysl 1996
+translator set, GND plus national-library and established Nietzsche-editorial
+records verify Карен Араевич Свасьян and Николай Николаевич Полилов while the
+source claims continue to target the same stable Agent IDs. The corresponding
+Флёрова Agent remains provisional because the authority chain stops at
+initials. A stronger label may enrich an Agent node; it never rewrites the
+source-visible credit, changes a responsibility claim, or equates Expressions.
+
 Edition-level provision is likewise claim-owned rather than flattened into
 publisher/place/date fields. A bounded provision claim groups the exact
 transcribed or reported statement with typed activity, role-specific Place and

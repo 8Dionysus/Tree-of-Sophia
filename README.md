@@ -69,6 +69,16 @@ evidence returns to a digest-bound whole-page anchor on PDF page 7. This does
 not expand the translator's initials into an accepted person identity, equate
 later Expressions, accept the Russian text, or assess translation quality.
 
+The 1996 Mysl translator layer now distinguishes identity resolution from the
+responsibility claims it supports. `К. А. Свасьян` and `Н. Полилов` resolve
+through independent national-library, established-editorial, and GND routes
+to Карен Араевич Свасьян (`120452367`) and Николай Николаевич Полилов
+(`1012315509`). `В. А. Флёрова` deliberately remains provisional and
+initials-only: official records corroborate the translator label but do not
+disclose a defensible full identity, and a chronologically impossible namesake
+is retained as a negative control. No responsibility claim, Expression
+identity, text, or translation judgment changes with these Agent records.
+
 The same seven Works now carry separate first-publication chronology profiles.
 They preserve staged, private, public, author-supervised, and posthumous
 boundaries instead of collapsing composition, printing, title-page year, and

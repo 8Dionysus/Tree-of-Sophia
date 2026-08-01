@@ -68,6 +68,13 @@ The exact 1913 Antonovsky Expression separately closes over one
 page-7 title-page anchor. The displayed initials do not become an accepted
 expanded person identity, and the 1913, 1996, and 2007 Expressions remain
 distinct.
+The separate Mysl translator-identity pass now verifies the existing Свасьян
+and Полилов Agents through GND `120452367` and `1012315509`, with exact
+Cyrillic full-name bridges and Nietzsche-specific editorial evidence. The
+Флёрова Agent remains provisional and initials-only after the same ordered
+search, including a rejected chronologically impossible namesake. Stable
+Agent refs and all seven Mysl responsibility claims are unchanged; no text,
+translation, or Expression equivalence is admitted.
 Each Work separately closes over one first-publication chronology profile,
 preserving staged/private/public/posthumous boundaries without inventing one
 universal Work year or treating a model-made ordering claim as accepted truth.

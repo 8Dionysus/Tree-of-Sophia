@@ -3,14 +3,22 @@
   "record_type": "agent",
   "record_id": "tos.agent.v-a-flerova",
   "preferred_label": "В. А. Флёрова",
-  "variant_labels": [],
+  "variant_labels": [
+    {
+      "value": "Флерова, В. А.",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/discovery/runs/mysl-translator-identity-reconciliation.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
   "identity_status": "provisional",
   "source_refs": [
-    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json"
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "ToS/source-witnesses/discovery/runs/mysl-translator-identity-reconciliation.2026-08-01.v1.json"
   ],
   "external_identifiers": [],
   "same_as_posture": "no_equivalence_claim",
-  "notes": "The exact local volume credits В. А. Флёрова as translator of «Антихрист». Full-name and external-authority reconciliation remain open.",
-  "record_version": 1,
+  "notes": "The exact local volume credits В. А. Флёрова as translator of «Антихрист», and the RSL 1907 Nietzsche record independently preserves the same initials. Official authority and national-library searches did not disclose a defensible full name or stable person identifier. The geologist Вера Александровна Флёрова, born in 1913, is a chronologically impossible collision and must not be normalized to this translator. Full-name reconciliation remains open.",
+  "record_version": 2,
   "supersedes_ref": null
 }

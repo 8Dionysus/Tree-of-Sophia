@@ -135,6 +135,14 @@ contracts intentionally reject simulated human evidence.
   visible credit only: the full person identity, authority identifier,
   translation extent and quality, textual equivalence to later Expressions,
   accepted text, and human review remain unresolved.
+- The existing Mysl responsibility claims now resolve two of their translator
+  Agents more precisely without changing any claim: Карен Араевич Свасьян is
+  verified through GND `120452367`, and Николай Николаевич Полилов through GND
+  `1012315509`. The Флёрова Agent remains provisional and initials-only because
+  official records do not disclose a defensible full identity; the geologist
+  Вера Александровна Флёрова, born after the 1907 translation appeared, is a
+  preserved negative collision. Authority reconciliation is not translation
+  acceptance, responsibility truth, Expression equivalence, or human review.
 - The frozen provision A/B/C pilot adds only one provisional Place, two
   provisional historical Organizations, and two unreviewed Edition claims. A
   first post-experiment extension adds one provisional Chemnitz Place, the

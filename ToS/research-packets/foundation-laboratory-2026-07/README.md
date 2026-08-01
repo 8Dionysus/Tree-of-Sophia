@@ -8,7 +8,8 @@ morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
 transport plus *Ecce Homo*, *Zarathustra*, and *Jenseits von Gut und Böse*
 plus *Zur Genealogie der Moral*, *Der Antichrist*, and *Der Fall Wagner*
 plus *Götzen-Dämmerung* authorial-witness routes refreshed 2026-07-30;
-bibliographic time/place/provision responsibility refreshed 2026-07-31
+bibliographic time/place/provision responsibility refreshed 2026-07-31;
+Mysl translator-Agent identity reconciliation refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -30,6 +31,7 @@ and what must be tested manually.
 | --- | --- |
 | `RESEARCH.md` | What foundation is defensible, and what does current evidence change? |
 | `BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md` | How should Edition-level place, publisher and other provision roles, transcribed statements, normalized identities, and date facets remain source-returnable without flattening publication, production, distribution, manufacture, or release? |
+| `MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md` | Which Mysl translator initials can be resolved through official authorities and established Nietzsche editorial evidence, which identity must remain provisional, and why Agent enrichment changes neither responsibility claims nor translation truth? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |

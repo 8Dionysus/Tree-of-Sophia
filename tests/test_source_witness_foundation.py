@@ -221,6 +221,22 @@ ZARATHUSTRA_PARTS_2_3_PROVISION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md"
 )
+MYSL_TRANSLATOR_IDENTITY_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "mysl-translator-identity-reconciliation.2026-08-01.v1.json"
+)
+MYSL_TRANSLATOR_IDENTITY_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md"
+)
+MYSL_RESPONSIBILITY_CLAIMS_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/collections/friedrich-nietzsche/"
+    "works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl"
+)
+AGENT_ROOT = REPO_ROOT / "ToS/source-witnesses/agents"
 CHEMNITZ_PLACE_PATH = (
     REPO_ROOT / "ToS/source-witnesses/places/chemnitz/place.json"
 )
@@ -1545,6 +1561,124 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn("not from label propagation", research)
         self.assertIn("No physical-title-page transcription", research)
+
+    def test_mysl_translator_identities_resolve_asymmetrically_without_claim_drift(
+        self,
+    ) -> None:
+        svasyan = json.loads(
+            (AGENT_ROOT / "k-a-svasyan/agent.json").read_text(encoding="utf-8")
+        )
+        polilov = json.loads(
+            (AGENT_ROOT / "n-polilov/agent.json").read_text(encoding="utf-8")
+        )
+        flerova = json.loads(
+            (AGENT_ROOT / "v-a-flerova/agent.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("Карен Араевич Свасьян", svasyan["preferred_label"])
+        self.assertEqual("verified", svasyan["identity_status"])
+        self.assertEqual(2, svasyan["record_version"])
+        self.assertEqual(
+            ["120452367"],
+            [
+                identifier["value"]
+                for identifier in svasyan["external_identifiers"]
+                if identifier["scheme"] == "GND"
+            ],
+        )
+        self.assertEqual(
+            ["К. А. Свасьян"],
+            [variant["value"] for variant in svasyan["variant_labels"]],
+        )
+
+        self.assertEqual("Николай Николаевич Полилов", polilov["preferred_label"])
+        self.assertEqual("verified", polilov["identity_status"])
+        self.assertEqual(2, polilov["record_version"])
+        self.assertEqual(
+            ["1012315509"],
+            [
+                identifier["value"]
+                for identifier in polilov["external_identifiers"]
+                if identifier["scheme"] == "GND"
+            ],
+        )
+        self.assertEqual(
+            {"Н. Полилов", "Н. Н. Полилов"},
+            {variant["value"] for variant in polilov["variant_labels"]},
+        )
+
+        self.assertEqual("В. А. Флёрова", flerova["preferred_label"])
+        self.assertEqual("provisional", flerova["identity_status"])
+        self.assertEqual([], flerova["external_identifiers"])
+        self.assertIn("born in 1913", flerova["notes"])
+        self.assertIn("must not be normalized", flerova["notes"])
+
+        discovery = json.loads(
+            MYSL_TRANSLATOR_IDENTITY_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("reconciled", discovery["status"])
+        self.assertTrue(discovery["general_web_search_is_last_resort"])
+        self.assertEqual(
+            "channel-general-web-mysl-translator-identities-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertEqual(
+            {
+                "tos-discovery-result.dnb-gnd-120452367-karen-swassjan",
+                "tos-discovery-result.dnb-gnd-1012315509-n-polilov",
+            },
+            {
+                result_id
+                for result_id in discovery["selected_result_ids"]
+                if result_id.startswith("tos-discovery-result.dnb-gnd-")
+            },
+        )
+        self.assertIn(
+            "tos-discovery-result.general-web-vera-aleksandrovna-flerova-collision",
+            discovery["rejected_result_ids"],
+        )
+
+        claims = [
+            json.loads(line)
+            for line in MYSL_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        translated_by = [claim for claim in claims if claim["predicate"] == "translated_by"]
+        self.assertEqual(7, len(translated_by))
+        reconciled_translator_claims = [
+            claim
+            for claim in translated_by
+            if claim["object"]
+            in {
+                "tos.agent.k-a-svasyan",
+                "tos.agent.n-polilov",
+                "tos.agent.v-a-flerova",
+            }
+        ]
+        self.assertEqual(5, len(reconciled_translator_claims))
+        self.assertEqual(
+            {
+                "tos.agent.k-a-svasyan",
+                "tos.agent.n-polilov",
+                "tos.agent.v-a-flerova",
+            },
+            {claim["object"] for claim in reconciled_translator_claims},
+        )
+        self.assertTrue(
+            all(
+                claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in reconciled_translator_claims
+            )
+        )
+
+        research = MYSL_TRANSLATOR_IDENTITY_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("The object and claim counts must remain unchanged", research)
+        self.assertIn("chronologically impossible", research)
 
     def test_antonovsky_1913_translation_responsibility_returns_to_page_7(
         self,

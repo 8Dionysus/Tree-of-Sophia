@@ -162,6 +162,17 @@ do not establish an expanded person identity or textual equivalence among the
 model-made and unreviewed; neither admits OCR, source text, or translation
 quality.
 
+The three other translator Agents named by the 1996 Mysl boundary map follow
+the same separation between a source credit and a person identity. An ordered
+authority pass verifies Карен Араевич Свасьян as GND `120452367` and Николай
+Николаевич Полилов as GND `1012315509`; their original initials remain
+source-bound variants and their existing stable Agent refs do not change.
+`В. А. Флёрова` remains provisional with no external identifier because the
+official record chain stops at initials. `Вера Александровна Флёрова`, born in
+1913, is explicitly rejected as a chronologically impossible match to a 1907
+translator credit. Identity enrichment creates no new responsibility claim,
+Expression equivalence, accepted translation, or human review.
+
 Those seven Work records also each close over one
 `first_publication_chronology` claim under `chronology/`. This is a bounded
 ordering facet, not a universal Work date: composition, manuscript, printing,
