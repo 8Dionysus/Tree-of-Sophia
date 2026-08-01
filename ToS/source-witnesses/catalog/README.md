@@ -33,8 +33,8 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 70 object records and 106 claim records
-(176 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 73 object records and 108 claim records
+(181 entries total). The responsibility slice contains seven Work authorship,
 eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The eighth translation claim is bound to a proposed whole-page title-page
@@ -43,8 +43,8 @@ initials into accepted person identity nor equates later Expressions.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
-The provision surface contains two provisional Places, three provisional
-historical publisher Organizations, and six Edition-owned grouped statements.
+The provision surface contains three provisional Places, five provisional
+historical Organizations, and eight Edition-owned grouped statements.
 Three claims belong to the exact 1883/1883/1884 first three parts of *Also
 sprach Zarathustra*: each returns to its own DTA Edition record while resolving
 the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
@@ -56,6 +56,14 @@ statement. Literal wording, normalized identity, activity role, and statement
 date remain distinct; shared labels and one holding shelfmark do not create
 Edition, Item, or textual equivalence. All identities and claims remain
 model-made, unreviewed, or provisional.
+
+The Antonovsky 1913 Edition adds the contrasting source-visible case: its
+publication claim joins a cover imprint to title-page place/year, while a
+separate manufacture claim preserves the following-page printer line. Both
+return through exact page anchors to the same fixity-verified Item. The
+provisional `Жизнь для всех` publishing imprint and brothers-Linnik printer
+remain different Organizations; neither a Person substitution nor legal-entity
+equivalence is asserted.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

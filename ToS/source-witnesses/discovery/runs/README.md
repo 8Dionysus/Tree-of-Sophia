@@ -216,3 +216,15 @@ and March-1892 actual delivery distinct. The DLA forty-copy report remains in
 conflict with the forty-five-copy route. HAAB's HTTP 403 was not bypassed, no
 payload was acquired, and neither a release date nor accepted bibliography is
 created.
+
+`antonovsky-1913-provision-identity.2026-08-01.v1.json` returns first to the
+exact fixity-verified Commons Item and its distinct cover, title-page, and
+printer-line surfaces. DNB supplies the provisional Saint Petersburg Place;
+RSL and NEL contemporaries corroborate the `Жизнь для всех` imprint and the
+brothers-Linnik printer without replacing the exact source. Established
+translation history and Presidential Library context prevent translator-lineage
+or Vladimir Posse substitution, a fresh exact-record search preserves the
+absence of a stronger national-library manifestation record, and general web
+runs last. No payload is copied, no access control is bypassed, and no edition
+number, release, accepted text, rights decision, semantics, human review, or
+canon is created.

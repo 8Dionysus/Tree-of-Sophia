@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "place",
+  "record_id": "tos.place.saint-petersburg",
+  "preferred_label": "Санкт-Петербург",
+  "variant_labels": [
+    {
+      "value": "С. ПЕТЕРБУРГЪ",
+      "language": "ru",
+      "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1913-provision-identity.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/4267026-3"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4267026-3",
+      "source_ref": "https://d-nb.info/gnd/4267026-3",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The exact 1913 title page displays the historical literal С. ПЕТЕРБУРГЪ. The current GND record supports the normalized Saint Petersburg identity and the pre-Petrograd date boundary. This model-resolved Place remains provisional and does not normalize every historical spelling, administrative boundary, jurisdiction, or place role.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

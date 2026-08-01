@@ -101,6 +101,14 @@ replaced by its related printer or founder Person. All identities and claims
 remain provisional or unreviewed, and the graph reaches them only through
 reified claim nodes.
 
+The exact Antonovsky 1913 Item adds a different provision shape. Its cover
+names the publishing imprint, its title page separately names Saint Petersburg
+and 1913 without a publisher, and the following page names the printer. Three
+proposed page anchors support one publication claim and one distinct
+manufacture claim. `Жизнь для всех`, the brothers-Linnik printer, and the Place
+remain separate provisional identities; no edition number, Person-level
+publisher, text acceptance, or publication permission is inferred.
+
 ## Operating Card
 
 | Field | Route |

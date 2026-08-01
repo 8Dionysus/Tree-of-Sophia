@@ -69,6 +69,15 @@ evidence returns to a digest-bound whole-page anchor on PDF page 7. This does
 not expand the translator's initials into an accepted person identity, equate
 later Expressions, accept the Russian text, or assess translation quality.
 
+The same exact 1913 Edition now also demonstrates why provision identity must
+return to source surfaces rather than a convenient catalog label. Its cover
+imprint, title-page place/year, and printer line live on PDF pages 5, 7, and 8.
+Two Edition-owned claims therefore keep publication and manufacture separate,
+with one provisional Saint Petersburg Place and distinct publishing-imprint
+and printer Organizations. The title page alone does not prove the publisher,
+the printer is not promoted to publisher, and Vladimir Posse is not substituted
+for what the book displays.
+
 The 1996 Mysl translator layer now distinguishes identity resolution from the
 responsibility claims it supports. `К. А. Свасьян` and `Н. Полилов` resolve
 through independent national-library, established-editorial, and GND routes
@@ -113,6 +122,12 @@ manuscript dispatch, delivery, public release, publisher, printer, and modern
 successor remain separate. Every identity and claim is model-made and
 unreviewed; the generated graph reaches normalized participants only through
 source-returnable claim nodes.
+
+A fifth provision pass uses the exact Antonovsky 1913 Item rather than an
+authority-record shortcut. It joins the cover imprint to the title-page
+place/year for publication and keeps the page-8 brothers-Linnik line in a
+separate manufacture claim. The three source addresses are proposed anchors;
+the claims and normalized identities remain model-made and unreviewed.
 
 ## Current Public Route
 

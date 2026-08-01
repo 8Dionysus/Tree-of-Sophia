@@ -296,6 +296,40 @@ ANTONOVSKY_1913_TRANSLATION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
 )
+ANTONOVSKY_1913_EDITION_ROOT = (
+    ANTONOVSKY_1913_EXPRESSION_ROOT
+    / "editions/saint-petersburg-zhizn-dlya-vsekh-1913"
+)
+ANTONOVSKY_1913_PROVISION_CLAIMS_PATH = (
+    ANTONOVSKY_1913_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+ANTONOVSKY_1913_PROVISION_ANCHORS_PATH = (
+    ANTONOVSKY_1913_EXPRESSION_ROOT
+    / "structure/provision-statements/anchors.jsonl"
+)
+ANTONOVSKY_1913_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-1913-provision-identity.2026-08-01.v1.json"
+)
+ANTONOVSKY_1913_PROVISION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md"
+)
+SAINT_PETERSBURG_PLACE_PATH = (
+    REPO_ROOT / "ToS/source-witnesses/places/saint-petersburg/place.json"
+)
+ZHIZN_DLYA_VSEKH_ORGANIZATION_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "zhizn-dlya-vsekh-saint-petersburg/organization.json"
+)
+LINNIK_PRINTING_ORGANIZATION_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "bratya-v-i-i-linnik-printing-saint-petersburg/organization.json"
+)
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1268,10 +1302,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(70, manifest["counts"]["object_total"])
-        self.assertEqual(106, manifest["counts"]["claim"])
-        self.assertEqual(176, manifest["counts"]["total"])
-        self.assertEqual(106, len(claim_entries))
+        self.assertEqual(73, manifest["counts"]["object_total"])
+        self.assertEqual(108, manifest["counts"]["claim"])
+        self.assertEqual(181, manifest["counts"]["total"])
+        self.assertEqual(108, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1308,7 +1342,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 89,
+                "bibliographic_assertion": 91,
                 "scholarly_report": 17,
             },
             {
@@ -1413,9 +1447,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(6, len(provision_claims))
+        self.assertEqual(8, len(provision_claims))
         self.assertEqual(
-            {"tos.place.leipzig", "tos.place.chemnitz"},
+            {
+                "tos.place.leipzig",
+                "tos.place.chemnitz",
+                "tos.place.saint-petersburg",
+            },
             {
                 place["normalized_place_ref"]
                 for claim in provision_claims
@@ -1427,6 +1465,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.organization.c-g-naumann-verlag-leipzig",
                 "tos.organization.insel-verlag-anton-kippenberg-leipzig",
                 "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+                "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+                "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
             },
             {
                 agent["normalized_agent_ref"]
@@ -1665,6 +1705,132 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertIn(boundary, part_4_research)
         self.assertIn("forty-five", part_4_research)
         self.assertIn("not inferred from parts I–III", part_4_research)
+
+    def test_antonovsky_1913_provision_separates_publisher_and_printer(
+        self,
+    ) -> None:
+        edition = json.loads(
+            (ANTONOVSKY_1913_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        claims = [
+            json.loads(line)
+            for line in ANTONOVSKY_1913_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual(2, len(claims))
+        self.assertEqual(
+            {claim["claim_id"] for claim in claims},
+            set(edition["provision_activity_claim_refs"]),
+        )
+        self.assertEqual(
+            "Так говорил Заратустра, издание «Жизнь для всех», "
+            "Санкт-Петербург, 1913",
+            edition["preferred_label"],
+        )
+
+        by_kind = {claim["object"]["provision_kind"]: claim for claim in claims}
+        self.assertEqual({"publication", "manufacture"}, set(by_kind))
+        publication = by_kind["publication"]
+        manufacture = by_kind["manufacture"]
+        self.assertEqual("manifestation_transcription", publication["object"]["statement_basis"])
+        self.assertEqual("item_observation", manufacture["object"]["statement_basis"])
+        self.assertEqual(
+            "ИЗДАНІЕ «ЖИЗНЬ ДЛЯ ВСѢХЪ». С. ПЕТЕРБУРГЪ. 1913.",
+            publication["object"]["transcribed_statement"],
+        )
+        self.assertEqual(
+            "Типографія Бр. В. и И. Линникъ, Гончарная, 7. / "
+            "С. ПЕТЕРБУРГЪ. 1913.",
+            manufacture["object"]["transcribed_statement"],
+        )
+        self.assertEqual(
+            {
+                "role": "publisher",
+                "literal_form": "«ЖИЗНЬ ДЛЯ ВСѢХЪ»",
+                "normalized_agent_ref":
+                    "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+            },
+            publication["object"]["agents"][0],
+        )
+        self.assertEqual(
+            {
+                "role": "printer",
+                "literal_form": "Типографія Бр. В. и И. Линникъ",
+                "normalized_agent_ref":
+                    "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
+            },
+            manufacture["object"]["agents"][0],
+        )
+        self.assertEqual(
+            "tos.place.saint-petersburg",
+            publication["object"]["places"][0]["normalized_place_ref"],
+        )
+        self.assertEqual(
+            "tos.place.saint-petersburg",
+            manufacture["object"]["places"][0]["normalized_place_ref"],
+        )
+        self.assertEqual("publication_place", publication["object"]["places"][0]["role"])
+        self.assertEqual("manufacture_place", manufacture["object"]["places"][0]["role"])
+        self.assertIn("title page alone does not name a publisher", publication["object"]["activity_warning"])
+        self.assertIn("does not repeat the city or year", manufacture["object"]["activity_warning"])
+        self.assertTrue(
+            all(
+                claim["epistemic_status"] == "observed"
+                and claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in claims
+            )
+        )
+
+        anchors = [
+            json.loads(line)
+            for line in ANTONOVSKY_1913_PROVISION_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual([5, 7, 8], [anchor["selectors"][0]["page"] for anchor in anchors])
+        self.assertEqual(
+            {"687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b"},
+            {anchor["file_sha256"] for anchor in anchors},
+        )
+        self.assertTrue(all(anchor["status"] == "proposed" for anchor in anchors))
+
+        place = json.loads(SAINT_PETERSBURG_PLACE_PATH.read_text(encoding="utf-8"))
+        publisher = json.loads(
+            ZHIZN_DLYA_VSEKH_ORGANIZATION_PATH.read_text(encoding="utf-8")
+        )
+        printer = json.loads(
+            LINNIK_PRINTING_ORGANIZATION_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("4267026-3", place["external_identifiers"][0]["value"])
+        self.assertNotEqual(publisher["record_id"], printer["record_id"])
+        self.assertEqual([], publisher["external_identifiers"])
+        self.assertEqual([], printer["external_identifiers"])
+        self.assertNotIn("Vladimir Posse", json.dumps(claims, ensure_ascii=False))
+
+        discovery = json.loads(
+            ANTONOVSKY_1913_PROVISION_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([1, 2, 3, 4, 5, 6], [channel["sequence"] for channel in discovery["channels"]])
+        self.assertEqual(
+            "channel-general-web-antonovsky-provision-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.prlib-964713-posse-person-negative",
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+        research = ANTONOVSKY_1913_PROVISION_RESEARCH_PATH.read_text(encoding="utf-8")
+        for exact_form in (
+            "ИЗДАНІЕ «ЖИЗНЬ ДЛЯ ВСѢХЪ».",
+            "С. ПЕТЕРБУРГЪ.",
+            "Типографія Бр. В. и И. Линникъ",
+        ):
+            self.assertIn(exact_form, research)
 
     def test_mysl_translator_identities_resolve_asymmetrically_without_claim_drift(
         self,

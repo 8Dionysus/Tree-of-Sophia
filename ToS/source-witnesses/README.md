@@ -227,8 +227,12 @@ fourth-part pass adds only the exact DTA-reported `Naumann; Leipzig; 1891`
 statement. It reuses the provisional Leipzig Place and C. G. Naumann Verlag
 Organization while rejecting the printer and founder Person as substitutions;
 the 1885 private print, 1890 printing, planned 1891 delivery, and actual March
-1892 delivery remain distinct historical stages. All six Edition claims
-remain model-made, `public_metadata_only`, and `unreviewed`.
+1892 delivery remain distinct historical stages. The Antonovsky 1913 pass then
+adds two source-visible claims with a different shape: publication joins the
+page-5 cover imprint to the page-7 place/year, while manufacture keeps the
+page-8 brothers-Linnik printer line separate. Both reuse one provisional Saint
+Petersburg Place but resolve to distinct provisional Organizations. All eight
+Edition claims remain model-made, `public_metadata_only`, and `unreviewed`.
 
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
@@ -243,6 +247,8 @@ The post-experiment first-part identity admission is separately recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md`.
 The independently researched part-IV boundary is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md`.
+The source-visible Antonovsky publication/manufacture split is recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

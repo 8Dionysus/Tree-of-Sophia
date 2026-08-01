@@ -2,12 +2,14 @@
   "schema_version": "tos_corpus_record_v1",
   "record_type": "edition",
   "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
-  "preferred_label": "Так говорил Заратустра, Санкт-Петербург, издательство «Жизни для всех», 1913",
+  "preferred_label": "Так говорил Заратустра, издание «Жизнь для всех», Санкт-Петербург, 1913",
   "variant_labels": [],
   "identity_status": "verified",
   "source_refs": [
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/forensic-report.md",
     "ToS/source-witnesses/discovery/runs/antonovsky-1913-wikimedia-open-witness.2026-07-28.v1.json",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1913-provision-identity.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md",
     "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf"
   ],
   "external_identifiers": [],
@@ -17,10 +19,14 @@
   ],
   "edition_statement": null,
   "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.also-sprach-zarathustra.antonovsky-1913.provision-publication",
+    "tos.claim.edition.also-sprach-zarathustra.antonovsky-1913.provision-manufacture"
+  ],
   "exemplar_claim_refs": [
     "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913.exemplified-by.wikimedia-commons-penza-scan-pdf"
   ],
-  "notes": "The title page verifies translator, place, and year. Wikisource calls this a fourth edition, while the visible translator preface lists four prior edition years ending in 1911; no edition-number claim is promoted until that history is reconciled.",
-  "record_version": 2,
+  "notes": "The exact cover names ИЗДАНІЕ «ЖИЗНЬ ДЛЯ ВСѢХЪ»; the title page separately verifies С. ПЕТЕРБУРГЪ and 1913 without naming a publisher; page 8 separately names the brothers-Linnik printer. Publishing and manufacture are therefore modeled as distinct provision activities. Wikisource calls this a fourth edition, while the visible translator preface lists four prior edition years ending in 1911; no edition-number claim is promoted until that history is reconciled.",
+  "record_version": 3,
   "supersedes_ref": null
 }

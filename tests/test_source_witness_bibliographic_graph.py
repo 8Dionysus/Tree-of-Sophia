@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 106)
-        self.assertEqual(counts["claim_traces"], 106)
-        self.assertEqual(counts["nodes"], 342)
-        self.assertEqual(counts["edges"], 696)
+        self.assertEqual(counts["source_claims"], 108)
+        self.assertEqual(counts["claim_traces"], 108)
+        self.assertEqual(counts["nodes"], 357)
+        self.assertEqual(counts["edges"], 720)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 106})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 106})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 108})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 108})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -461,6 +461,74 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
         self.assertEqual("no_match", person_gnd["status"])
         self.assertEqual([], person_gnd["matches"])
+
+    def test_antonovsky_1913_provision_query_separates_publisher_and_printer(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        edition_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "saint-petersburg-zhizn-dlya-vsekh-1913"
+        )
+        result = query_projection(
+            payload,
+            subject_ref=edition_ref,
+            predicate="provision_activity",
+        )
+        self.assertEqual("ok", result["status"])
+        self.assertEqual(2, result["result_count"])
+        self.assertEqual(
+            {"publication", "manufacture"},
+            {
+                match["object_node"]["properties"]["value"]["provision_kind"]
+                for match in result["matches"]
+            },
+        )
+        self.assertEqual(
+            {
+                "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+                "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
+            },
+            {
+                node["properties"]["identity_ref"]
+                for match in result["matches"]
+                for node in match["normalized_identity_nodes"]
+                if node["properties"]["identity_kind"] == "organization"
+            },
+        )
+        self.assertEqual(
+            {"tos.place.saint-petersburg"},
+            {
+                node["properties"]["identity_ref"]
+                for match in result["matches"]
+                for node in match["normalized_identity_nodes"]
+                if node["properties"]["identity_kind"] == "place"
+            },
+        )
+        for match in result["matches"]:
+            self.assertEqual("literal", match["object_node"]["node_kind"])
+            self.assertTrue(
+                all(
+                    edge["from_id"] == match["claim_node"]["node_id"]
+                    for edge in match["edges"]
+                )
+            )
+            self.assertIn(
+                "has_normalized_place",
+                {edge["edge_kind"] for edge in match["edges"]},
+            )
+            self.assertIn(
+                "has_normalized_agent",
+                {edge["edge_kind"] for edge in match["edges"]},
+            )
+
+        posse = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref="tos.agent.vladimir-posse",
+        )
+        self.assertEqual("no_match", posse["status"])
+        self.assertEqual([], posse["matches"])
 
     def test_antonovsky_translation_queries_preserve_expression_identity(
         self,

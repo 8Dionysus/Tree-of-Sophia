@@ -115,6 +115,13 @@ tracked. Working OCR, model caches, benchmarks, and large derivatives route to
 the `abyss-stack` laboratory or host-managed storage. Reviewed source-near
 text may return to the witness tree when rights permit.
 
+Provision statements may themselves be physically distributed across one
+manifestation. The Antonovsky 1913 witness makes this explicit: cover imprint,
+title-page place/year, and printer line are separately anchored before being
+joined by bounded Edition claims. Publication and manufacture remain distinct
+activities, and normalized Place/Organization identities never overwrite the
+literal historical statements that support them.
+
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
 `ToS/source-witnesses/README.md` for physical routing.

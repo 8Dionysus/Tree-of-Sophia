@@ -1,0 +1,291 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1913-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf"
+    ],
+    "description": "Exact publication and manufacture identity for the fixity-verified Antonovsky 1913 Edition without deriving the imprint from its directory name or collapsing publisher, printer, place, year, and edition-number claims.",
+    "required_properties": [
+      "source-visible publication imprint",
+      "source-visible place and statement year",
+      "source-visible printer line",
+      "publisher and printer Organization separation",
+      "historical Place identity",
+      "source-return anchors for every joined page"
+    ],
+    "acceptable_substitutions": [
+      "an exact institutional catalog record for this manifestation that preserves publisher and printer roles without asserting Item equivalence"
+    ],
+    "languages": ["ru"],
+    "formats": ["PDF", "metadata", "JSON-LD", "HTML"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-commons-antonovsky-1913-exact-item",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "originating-record",
+      "source_name": "Wikimedia Commons exact digital object and local fixity-verified research copy",
+      "endpoint_url": "https://commons.wikimedia.org/w/api.php",
+      "interface_type": "api",
+      "interface_version": "MediaWiki API as served 2026-08-01 plus direct visual inspection of the exact local payload",
+      "exact_query": "Resolve Commons page ID 69390926 and visually inspect exact SHA-256 687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b on PDF pages 5, 7, and 8",
+      "queried_at": "2026-08-01T04:20:00-06:00",
+      "elapsed_seconds": 8.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.commons-69390926-antonovsky-1913-provision",
+          "rank": 1,
+          "title_as_displayed": "File:Ницше Так говорил Заратустра 1913.pdf",
+          "result_url": "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf",
+          "originating_record_url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo&titles=File%3A%D0%9D%D0%B8%D1%86%D1%88%D0%B5%20%D0%A2%D0%B0%D0%BA%20%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB%20%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%201913.pdf",
+          "identifiers": [
+            {"scheme": "Wikimedia Commons page ID", "value": "69390926"},
+            {"scheme": "local SHA-256", "value": "687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b"}
+          ],
+          "available_formats": ["PDF", "JSON metadata"],
+          "declared_rights": {
+            "statement": "Commons declares Public Domain under its PD-RusEmpire rationale and separately supplies a United States public-domain statement.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact fixity-verified Item is the only authority for the separated cover imprint, title-page place/year, and printer-line observations; no payload or page image is added to Git.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "7701f98dd4afd1de0b9751db0ee9c527211c00a16d7e237dfb626af18b04fbc4", "reason": "The existing tracked source-metadata snapshot preserves originating-object identity and declared-rights evidence; the 2026-08-01 API response digest is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-saint-petersburg-authority",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Gemeinsame Normdatei",
+      "endpoint_url": "https://d-nb.info/gnd/4267026-3/about/lds",
+      "interface_type": "api",
+      "interface_version": "GND linked data as served 2026-08-01",
+      "exact_query": "Resolve GND 4267026-3 and inspect preferred and historical names plus the 1914 Petrograd boundary",
+      "queried_at": "2026-08-01T04:24:00-06:00",
+      "elapsed_seconds": 2.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4267026-3-saint-petersburg",
+          "rank": 1,
+          "title_as_displayed": "Sankt Petersburg",
+          "result_url": "https://d-nb.info/gnd/4267026-3",
+          "originating_record_url": "https://d-nb.info/gnd/4267026-3/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4267026-3"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The national authority supports the provisional normalized Place and preserves the 1913 historical-name context without claiming exhaustive historical equivalence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current response was inspected and hashed but not retained; SHA-256 c659c8ca5ea0650e4305ef29d46aaa1c75f5fe32b6931911834a4d1d6ff050c9 is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rsl-nel-imprint-printer-corroboration",
+      "sequence": 3,
+      "channel_type": "national-catalog",
+      "role": "scholarly-index",
+      "source_name": "Russian State Library and National Electronic Library catalogs",
+      "endpoint_url": "https://search.rsl.ru/",
+      "interface_type": "web",
+      "interface_version": "RSL and RuNEB catalog records as served 2026-08-01",
+      "exact_query": "Inspect contemporary 1913-1914 catalog records for Жизнь для всех as Saint Petersburg imprint and тип. бр. В. и И. Линник as printer",
+      "queried_at": "2026-08-01T04:27:00-06:00",
+      "elapsed_seconds": 7.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rsl-01003805754-zhizn-dlya-vsekh-imprint",
+          "rank": 1,
+          "title_as_displayed": "RSL record 01003805754",
+          "result_url": "https://search.rsl.ru/ru/record/01003805754",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003805754",
+          "identifiers": [{"scheme": "RSL record", "value": "01003805754"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "A contemporary 1913 record independently catalogs Жизнь для всех as a Saint Petersburg publishing imprint; it corroborates but does not replace the exact cover.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 6bb09812b8fa4423ee1dc74bcdfc72a6e2cd36b311feef63aa40480a5b273bd0 is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.runeb-004016550-linnik-printer",
+          "rank": 2,
+          "title_as_displayed": "RuNEB record 004016550",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_004016550/",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_004016550/",
+          "identifiers": [{"scheme": "RuNEB record", "value": "000199_000009_004016550"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "An independent 1913 catalog record corroborates the brothers-Linnik printer form while preserving its printer role.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 60cce0bacf20ab71ef88259cf82165c1d47cefdb042991e709d25a810d9562ba is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.runeb-004016557-linnik-printer",
+          "rank": 3,
+          "title_as_displayed": "RuNEB record 004016557",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_004016557/",
+          "originating_record_url": "https://rusneb.ru/catalog/000199_000009_004016557/",
+          "identifiers": [{"scheme": "RuNEB record", "value": "000199_000009_004016557"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "A second independent 1913 catalog record corroborates the printer identity without turning the printer into the publisher.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 20cce0721075cab572b7676055c0be42cde50e80886bbcb57afc3bf6af5c3b8e is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-antonovsky-history-context",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Institute of Philosophy RAS scholarship and Presidential Library historical context",
+      "endpoint_url": "https://pj.iphras.ru/issue/download/307/144",
+      "interface_type": "web",
+      "interface_version": "peer-reviewed article and institutional catalog as served 2026-08-01",
+      "exact_query": "Check Antonovsky translation lineage and the 1913 Жизнь для всех periodical context only as boundaries on provision identity",
+      "queried_at": "2026-08-01T04:31:00-06:00",
+      "elapsed_seconds": 5.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.iphras-antonovsky-translation-history-boundary",
+          "rank": 1,
+          "title_as_displayed": "Institute of Philosophy RAS study of Antonovsky and Nietzsche reception",
+          "result_url": "https://pj.iphras.ru/issue/download/307/144",
+          "originating_record_url": "https://pj.iphras.ru/issue/download/307/144",
+          "identifiers": [],
+          "available_formats": ["PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established scholarship controls translation lineage but is explicitly not used to infer publisher, printer, edition number, or textual equivalence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 340a0f02e483e6b2158273529bca58bc5198fbfcabf735a7e4c63de4d135b6dc is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.prlib-964713-posse-person-negative",
+          "rank": 2,
+          "title_as_displayed": "Жизнь для всех. 1913. № 1",
+          "result_url": "https://www.prlib.ru/item/964713",
+          "originating_record_url": "https://www.prlib.ru/item/964713",
+          "identifiers": [{"scheme": "Presidential Library item", "value": "964713"}],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The periodical record gives Vladimir Posse context, but the exact book cover names the imprint rather than Posse personally; no Person-level publisher substitution is admitted.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The response was hashed but not retained; SHA-256 c59f7af32ec6d3240b266c881cae6c999f07cafb4ae7f6f9f28368732ba4500f is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-official-exact-record-reconciliation",
+      "sequence": 5,
+      "channel_type": "national-catalog",
+      "role": "mixed",
+      "source_name": "Current Russian national-library exact-record reconciliation",
+      "endpoint_url": "https://search.rsl.ru/",
+      "interface_type": "web",
+      "interface_version": "RSL and RuNEB services checked through 2026-08-01T04:40:31-06:00",
+      "exact_query": "Search exact Antonovsky 1913 title, translator, imprint, printer, and manifestation combinations; retain absence when no stronger exact national-library record is found",
+      "queried_at": "2026-08-01T04:36:00-06:00",
+      "elapsed_seconds": 12.3,
+      "result_order_preserved": true,
+      "results": []
+    },
+    {
+      "channel_id": "channel-general-web-antonovsky-provision-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after exact, official, and established routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "1913 Антоновский Так говорил Заратустра Жизнь для всех Линник точное издание",
+      "queried_at": "2026-08-01T04:39:00-06:00",
+      "elapsed_seconds": 3.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikisource-antonovsky-1913-lead-only",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра (Ницше; Антоновский)",
+          "result_url": "https://ru.wikisource.org/wiki/%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_(%D0%9D%D0%B8%D1%86%D1%88%D0%B5;%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9)",
+          "originating_record_url": "https://ru.wikisource.org/wiki/%D0%98%D0%BD%D0%B4%D0%B5%D0%BA%D1%81:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf",
+          "identifiers": [],
+          "available_formats": ["HTML"],
+          "declared_rights": {"statement": "Wikisource displays CC BY-SA 4.0 with possible additional terms.", "scope": "content", "evidence_url": "https://ru.wikisource.org/wiki/%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_(%D0%9D%D0%B8%D1%86%D1%88%D0%B5;%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9)", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The transcription is a weaker comparison candidate and does not override the exact source surfaces, unresolved edition number, or source-visible role separation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The exact Commons Item and existing source snapshot are stronger; no transcription payload was retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id":"channel-commons-antonovsky-1913-exact-item","completeness":"strong","metadata_precision":"strong","rights_clarity":"adequate","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":8.2,"notes":"Only the exact fixity-verified manifestation proves the three physically separated statements; source payload remains local and untracked."},
+    {"channel_id":"channel-dnb-saint-petersburg-authority","completeness":"adequate","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":2.1,"notes":"Best current authority for normalized Place identity and historical-name boundary; no exhaustive historical equivalence."},
+    {"channel_id":"channel-rsl-nel-imprint-printer-corroboration","completeness":"adequate","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":7.4,"notes":"Independent contemporary catalog evidence corroborates publisher-imprint and printer roles but does not replace the exact Item."},
+    {"channel_id":"channel-established-antonovsky-history-context","completeness":"adequate","metadata_precision":"adequate","rights_clarity":"limited","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":5.6,"notes":"Established history prevents translation lineage and Posse context from becoming provision-identity substitutions."},
+    {"channel_id":"channel-fresh-official-exact-record-reconciliation","completeness":"limited","metadata_precision":"strong","rights_clarity":"unknown","machine_interface_quality":"limited","human_minutes":0,"machine_seconds":12.3,"notes":"No stronger exact national-library record was found; the absence is preserved instead of filled by marketplace or copied bibliography."},
+    {"channel_id":"channel-general-web-antonovsky-provision-last","completeness":"limited","metadata_precision":"limited","rights_clarity":"adequate","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":3.2,"notes":"General web ran last and supplied no stronger authority, external Organization identifier, or contradiction."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.commons-69390926-antonovsky-1913-provision",
+    "tos-discovery-result.dnb-gnd-4267026-3-saint-petersburg",
+    "tos-discovery-result.rsl-01003805754-zhizn-dlya-vsekh-imprint",
+    "tos-discovery-result.runeb-004016550-linnik-printer",
+    "tos-discovery-result.runeb-004016557-linnik-printer",
+    "tos-discovery-result.iphras-antonovsky-translation-history-boundary"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.prlib-964713-posse-person-negative"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T04:20:00-06:00",
+  "ended_at": "2026-08-01T04:40:31-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.antonovsky-1913-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

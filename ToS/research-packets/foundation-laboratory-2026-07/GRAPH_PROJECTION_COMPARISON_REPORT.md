@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 106 public-metadata-only bibliographic claims;
-- 342 nodes and 696 edges;
-- 106 claim trace packets;
-- 25 claim-scoped literal objects;
-- 18 resolved provenance events carrying exact time and method;
+- 108 public-metadata-only bibliographic claims;
+- 357 nodes and 720 edges;
+- 108 claim trace packets;
+- 27 claim-scoped literal objects;
+- 19 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 106 explicit `unreviewed` states.
+- 108 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -79,20 +79,24 @@ The chronology layer separately carries seven Work
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
 
-The 2026-08-01 bounded provision surface contains six Edition-owned literal
-objects, two normalized Places, and three distinct historical publisher
-Organizations. The original two-case A/B/C result remains frozen; a separate
+The 2026-08-01 bounded provision surface contains eight Edition-owned literal
+objects, three normalized Places, and five distinct historical Organizations.
+The original two-case A/B/C result remains frozen; a separate
 extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
 and the historical Schmeitzner Corporate Body. A later pass adds part II and
 part III from their own exact DTA records, not from the first claim or repeated
 labels. A further exact part-IV pass reports only `Naumann; Leipzig; 1891`
 while retaining the 1885 private print, 1890 printing, planned 1891 delivery,
-and March-1892 actual delivery as separate chronology evidence. All twelve
-normalized-participant edges begin at claim nodes. Exact normalized queries
+and March-1892 actual delivery as separate chronology evidence. The exact 1913
+Antonovsky Item then contributes one publication claim across its cover and
+title page plus a separate manufacture claim for the following-page printer
+line. All sixteen normalized-participant edges begin at claim nodes. Exact normalized queries
 return three claims for Leipzig, three distinct claims for Chemnitz or
-Schmeitzner, and one exact part-IV subject result. The modern Berlin Insel
+Schmeitzner, two claims for Saint Petersburg, and one exact part-IV subject
+result. The modern Berlin Insel
 successor, Person Ernst Schmeitzner GND, Naumann printer, and founder Person
-remain outside the normalized claim routes. The graph creates no direct
+remain outside the normalized claim routes; Vladimir Posse and the
+brothers-Linnik printer-as-publisher shortcut are likewise absent. The graph creates no direct
 Edition-to-Place or Edition-to-Organization assertion.
 
 Every structural edge begins at a reified claim node and carries the source
@@ -124,12 +128,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 106/106 catalog rows returning to the expected source line and canonical
+- 108/108 catalog rows returning to the expected source line and canonical
   claim digest;
-- 106/106 graph traces returning to the same source line and digest;
-- 342 nodes, including 106 claims, 70 identities, 122 evidence nodes, 25
-  literals, one maker, and 18 provenance events;
-- 696/696 edges beginning at their own reified claim node;
+- 108/108 graph traces returning to the same source line and digest;
+- 357 nodes, including 108 claims, 73 identities, 129 evidence nodes, 27
+  literals, one maker, and 19 provenance events;
+- 720/720 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata
@@ -141,7 +145,11 @@ inspected through positive Chemnitz/Organization and negative part-II,
 part-III, and Person-GND queries at its checkpoint. The subsequent part-II and
 part-III rows were each inspected by exact subject and source return; the
 Chemnitz query now returns three distinct claims, while the Person-GND control
-still returns no match. None of these episodes creates human review evidence.
+still returns no match. The Antonovsky pair was inspected by exact Edition and
+Saint Petersburg queries: publication reaches only the `Жизнь для всех`
+Organization, manufacture reaches only the brothers-Linnik Organization, and
+both retain their own source-return paths. None of these episodes creates human
+review evidence.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 70 current objects and all 106
+- The source-witness catalog now exposes all 73 current objects and all 108
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 106 claims as reified
-  claim nodes with 696 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 108 claims as reified
+  claim nodes with 720 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 106 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 108 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -158,6 +158,15 @@ contracts intentionally reject simulated human evidence.
   succession, accepted publisher identity, physical-title-page transcription,
   printing or release chronology, Edition/Item/textual equivalence, a general
   Place hierarchy, or permission to populate other Editions mechanically.
+- The exact Antonovsky 1913 Edition now adds one publication and one
+  manufacture claim, but only after three separately anchored source surfaces
+  were inspected. The cover imprint, title-page place/year, and printer line
+  do not collapse into one title-page assertion. Saint Petersburg, `Жизнь для
+  всех`, and the brothers-Linnik printer remain provisional identities; the
+  publisher is not the printer, Vladimir Posse is not substituted for the
+  displayed imprint, and no edition number, release, accepted bibliography,
+  text, translation quality, rights decision, human review, semantics, or
+  canon follows from the two claims.
 - Its read-only query route requires an exact selector, validates a full
   source-backed rebuild before answering, returns the exact source claim and
   complete trace bundle, and fails rather than silently truncate. This proves
@@ -634,6 +643,17 @@ not reintroduce a false 90 °C gate.
   release date, substitute the printer or founder Person, accept bibliography
   or German, clear rights, perform human review, create semantics, authorize
   publication, or promote canon.
+- The subsequent Antonovsky 1913 provision-identity slice adds three proposed
+  whole-page source-return anchors, one provisional Place, two distinct
+  provisional Organizations, and two exact Edition-owned unreviewed claims.
+  The rebuilt source catalog contains 73 objects and 108 claims; the portable
+  bibliographic graph contains 357 nodes, 720 claim-centred edges, and 108
+  source-return traces with no direct subject-object edge. Exact Edition and
+  normalized-identity queries return publication and manufacture separately,
+  while a Posse substitution returns no match. This proves role separation and
+  source return, not accepted bibliography, edition numbering, release,
+  Russian text, translation quality, rights, human review, semantics,
+  publication, or canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

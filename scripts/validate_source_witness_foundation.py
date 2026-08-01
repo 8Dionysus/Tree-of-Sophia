@@ -4972,6 +4972,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues.append((location, f"unresolved boundary crosscheck anchor: {anchor_ref}"))
 
     evidence_anchor_ids = set(boundary_anchor_ids)
+    source_anchor_event_locations: list[tuple[str, str]] = []
     for anchor_path in sorted((repo_root / SOURCE_ROOT).rglob("anchors.jsonl")):
         if anchor_path.with_name("work-boundary-map.json").is_file():
             continue
@@ -4990,10 +4991,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 evidence_anchor_ids.add(anchor_id)
             require_record(anchor.get("item_id"), "item", anchor_location)
             event_ref = anchor.get("provenance_event_ref")
-            if isinstance(event_ref, str) and event_ref not in event_ids:
-                issues.append(
-                    (anchor_location, f"unresolved source-anchor provenance event: {event_ref}")
-                )
+            if isinstance(event_ref, str):
+                source_anchor_event_locations.append((anchor_location, event_ref))
 
     topology_provenance_events = _load_jsonl(
         repo_root / BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE,
@@ -5368,6 +5367,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         issues.append(
                             (location, f"provision-activity {field} digest drifted: {ref}")
                         )
+
+    for anchor_location, event_ref in source_anchor_event_locations:
+        if event_ref not in event_ids:
+            issues.append(
+                (anchor_location, f"unresolved source-anchor provenance event: {event_ref}")
+            )
 
     membership_claim_ids: set[str] = set()
     responsibility_claim_ids: set[str] = set()
