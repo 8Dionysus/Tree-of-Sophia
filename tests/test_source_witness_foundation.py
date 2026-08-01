@@ -13,6 +13,12 @@ from jsonschema.validators import validator_for
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DISCOVERY_PROVENANCE_PATH = (
+    REPO_ROOT / "ToS/source-witnesses/discovery/provenance.jsonl"
+)
+DISCOVERY_RUNS_README_PATH = (
+    REPO_ROOT / "ToS/source-witnesses/discovery/runs/README.md"
+)
 GOLD_ROOT = REPO_ROOT / "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
 PRIVATE_HANDOFF_PATH = (
     REPO_ROOT
@@ -376,6 +382,30 @@ ANTONOVSKY_1913_TRANSLATION_RESEARCH_PATH = (
     REPO_ROOT
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
+)
+ANTONOVSKY_2007_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/"
+    "ru-antonovsky-cultural-revolution"
+)
+ANTONOVSKY_2007_RESPONSIBILITY_CLAIMS_PATH = (
+    ANTONOVSKY_2007_EXPRESSION_ROOT / "responsibility-claims.jsonl"
+)
+ANTONOVSKY_2007_RESPONSIBILITY_ANCHORS_PATH = (
+    ANTONOVSKY_2007_EXPRESSION_ROOT
+    / "structure/edition-responsibility/anchors.jsonl"
+)
+ANTONOVSKY_2007_TRANSLATION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-cultural-revolution-2007-translation-responsibility."
+    "2026-08-01.v1.json"
+)
+ANTONOVSKY_2007_TRANSLATION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
 )
 ANTONOVSKY_1913_EDITION_ROOT = (
     ANTONOVSKY_1913_EXPRESSION_ROOT
@@ -1384,9 +1414,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(74, manifest["counts"]["object_total"])
-        self.assertEqual(114, manifest["counts"]["claim"])
-        self.assertEqual(188, manifest["counts"]["total"])
-        self.assertEqual(114, len(claim_entries))
+        self.assertEqual(115, manifest["counts"]["claim"])
+        self.assertEqual(189, manifest["counts"]["total"])
+        self.assertEqual(115, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1423,7 +1453,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 97,
+                "bibliographic_assertion": 98,
                 "scholarly_report": 17,
             },
             {
@@ -2443,16 +2473,28 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).splitlines()
             if line.strip()
         ]
+        cultural_revolution_claims = [
+            json.loads(line)
+            for line in ANTONOVSKY_2007_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
         antonovsky_claims = [
             claim
-            for claim in [*mysl_claims, *exact_claims]
+            for claim in [
+                *mysl_claims,
+                *exact_claims,
+                *cultural_revolution_claims,
+            ]
             if claim["predicate"] == "translated_by"
             and claim["object"] == "tos.agent.yuri-antonovsky"
         ]
-        self.assertEqual(3, len(antonovsky_claims))
+        self.assertEqual(4, len(antonovsky_claims))
         self.assertEqual(
             {
                 "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1913.translated-by-yuri-antonovsky",
+                "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.translated-by-yuri-antonovsky",
                 "tos.claim.expression.mysl-1996-volume-2.also-sprach-zarathustra.translated-by-yuri-antonovsky",
                 "tos.claim.expression.mysl-1996-volume-2.ecce-homo.translated-by-yuri-antonovsky",
             },
@@ -2518,6 +2560,93 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         serialized = json.dumps(claim, ensure_ascii=False)
         self.assertNotIn("Юрий Михайлович", serialized)
         self.assertNotIn("same_as", serialized)
+
+    def test_antonovsky_2007_translation_responsibility_preserves_edition_state(
+        self,
+    ) -> None:
+        anchors = [
+            json.loads(line)
+            for line in ANTONOVSKY_2007_RESPONSIBILITY_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        claim = json.loads(
+            ANTONOVSKY_2007_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        expression = json.loads(
+            (ANTONOVSKY_2007_EXPRESSION_ROOT / "expression.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        discovery = json.loads(
+            ANTONOVSKY_2007_TRANSLATION_DISCOVERY_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(
+            [3, 4],
+            [anchor["selectors"][0]["page"] for anchor in anchors],
+        )
+        self.assertTrue(all(anchor["status"] == "proposed" for anchor in anchors))
+        self.assertTrue(
+            all(
+                anchor["file_sha256"]
+                == "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2"
+                for anchor in anchors
+            )
+        )
+        self.assertEqual("translated_by", claim["predicate"])
+        self.assertEqual(expression["record_id"], claim["subject_ref"])
+        self.assertEqual("tos.agent.yuri-antonovsky", claim["object"])
+        self.assertEqual(
+            {anchor["anchor_id"] for anchor in anchors},
+            {
+                evidence_ref
+                for evidence_ref in claim["evidence_refs"]
+                if evidence_ref.startswith("tos.anchor.")
+            },
+        )
+        self.assertEqual("no_equivalence_claim", expression["same_as_posture"])
+        self.assertIn("newly edited", expression["notes"])
+        self.assertEqual([claim["claim_id"]], expression["responsibility_claim_refs"])
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6],
+            [channel["sequence"] for channel in discovery["channels"]],
+        )
+        self.assertIn(
+            "tos-discovery-result.azbuka-2026-yuri-antonovsky-negative-control",
+            discovery["rejected_result_ids"],
+        )
+        discovery_events = [
+            json.loads(line)
+            for line in DISCOVERY_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(
+            1,
+            sum(
+                event["event_id"]
+                == "tos.event.discovery.also-sprach-zarathustra."
+                "ru-antonovsky-cultural-revolution-2007."
+                "translation-responsibility.2026-08-01"
+                for event in discovery_events
+            ),
+        )
+        self.assertIn(
+            ANTONOVSKY_2007_TRANSLATION_DISCOVERY_PATH.name,
+            DISCOVERY_RUNS_README_PATH.read_text(encoding="utf-8"),
+        )
+        research = ANTONOVSKY_2007_TRANSLATION_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("local_only", research)
+        self.assertIn("not asserted equivalent", research)
 
     def test_provision_activity_contract_preserves_roles_and_date_boundaries(
         self,

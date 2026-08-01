@@ -260,3 +260,16 @@ freshest 2025-2026 philological and publisher records, and general web last.
 Failed GND retries are preserved without bypass; the 2026 English translation
 edition and marketplace listings are rejected for this exact German provision
 target.
+
+`antonovsky-cultural-revolution-2007-translation-responsibility.2026-08-01.v1.json`
+returns to pages 3 and 4 of the exact fixity-verified local 2007 Item before
+consulting current RuNEB/RSL records, classical Work/Expression and agent-role
+models, established translation research, fresh 2025-2026 scholarship and
+publisher reuse, and general web last. It admits one unreviewed
+Expression-level `translated_by` claim while preserving the checked and newly
+edited 2007 text as a distinct Expression with no equivalence claim to the
+1898, 1911, 1913, 1996, or later Antonovsky witnesses. The richer general,
+scientific, and commentary-editorial roles remain deferred rather than
+flattened into false predicates; no source payload, accepted translation,
+quality verdict, rights clearance, semantics, human review, publication, or
+canon is created.

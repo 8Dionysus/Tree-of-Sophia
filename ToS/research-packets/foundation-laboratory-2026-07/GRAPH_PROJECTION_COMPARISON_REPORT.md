@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 114 public-metadata-only bibliographic claims;
-- 386 nodes and 792 edges;
-- 114 claim trace packets;
+- 115 public-metadata-only bibliographic claims;
+- 393 nodes and 801 edges;
+- 115 claim trace packets;
 - 33 claim-scoped literal objects;
-- 22 resolved provenance events carrying exact time and method;
+- 23 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 114 explicit `unreviewed` states.
+- 115 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -69,11 +69,13 @@ are bibliographic topology claims, not textual-equivalence assertions.
 The responsibility layer separately closes seven Work `authored_by` Friedrich
 Nietzsche claims—one per current Work—without deriving authorship from folder
 names or collapsing it into a generic creator edge.
-It also carries eight Expression `translated_by` claims. The newest route is
-the exact 1913 Antonovsky Expression: its evidence node resolves a proposed
-page-7 title-page anchor to the Item and file digest, while the separate 1996
-claim remains attached to its own Expression. Sharing an Agent object creates
-no textual-equivalence edge between those Expressions.
+It also carries nine Expression `translated_by` claims. The exact 1913
+Antonovsky Expression resolves a proposed page-7 title-page anchor to its Item
+and file digest. The separately researched 2007 Cultural Revolution
+Expression resolves two proposed page anchors and retains the checked/newly
+edited lineage warning, while the 1996 claim stays attached to its own
+Expression. Sharing an Agent object creates no textual-equivalence edge among
+those Expressions.
 The chronology layer separately carries seven Work
 `first_publication_chronology` literal profiles. Their staged/private/public
 and posthumous distinctions remain claim objects; the graph does not select a
@@ -138,12 +140,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 114/114 catalog rows returning to the expected source line and canonical
+- 115/115 catalog rows returning to the expected source line and canonical
   claim digest;
-- 114/114 graph traces returning to the same source line and digest;
-- 386 nodes, including 114 claims, 74 identities, 142 evidence nodes, 33
-  literals, one maker, and 22 provenance events;
-- 792/792 edges beginning at their own reified claim node;
+- 115/115 graph traces returning to the same source line and digest;
+- 393 nodes, including 115 claims, 74 identities, 147 evidence nodes, 33
+  literals, one maker, and 23 provenance events;
+- 801/801 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata
@@ -176,6 +178,12 @@ contains three manufacture claims across three Editions, the publisher query
 contains five publication claims, and every returned edge still begins at its
 own claim node. The undated printer line is not converted into a dated printing
 event.
+
+The later 2007 Antonovsky responsibility route was inspected by exact
+Expression and Agent queries. The exact Expression returns one unreviewed
+`translated_by` claim; the Agent query returns four responsibility claims
+across three distinct *Zarathustra* Expressions plus the separate Mysl
+*Ecce Homo* Expression. No graph edge connects those Expressions as equivalent.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

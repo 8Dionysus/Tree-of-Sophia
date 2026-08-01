@@ -80,3 +80,19 @@ This item is the hard OCR case:
 - plausible LLM transcription is not acceptable without visual comparison.
 
 No OCR experiment or semantic extraction is claimed by this report.
+
+## Translation-responsibility materialization — 2026-08-01
+
+Ordered research rechecked the exact source pages, current national-library
+records, classical Work/Expression modelling, established translation
+scholarship, fresh 2025–2026 material, and general-web results in that order.
+The resulting model-made annotation admits one unreviewed Expression-level
+`translated_by` claim to the stable Antonovsky Agent. Proposed whole-page
+anchors return to PDF pages 3 and 4.
+
+The page-4 statements for general editing, scientific editing/checking of the
+translation, commentary translation, and design remain exact research
+evidence but are not flattened into the current responsibility predicates.
+The annotation does not admit source text, OCR, Expression equivalence,
+translation quality, semantics, rights clearance, or human review. The local
+payload and its rights posture remain unchanged.

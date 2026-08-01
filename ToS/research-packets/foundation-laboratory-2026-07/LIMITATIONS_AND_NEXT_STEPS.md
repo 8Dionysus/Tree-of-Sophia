@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 74 current objects and all 114
+- The source-witness catalog now exposes all 74 current objects and all 115
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 114 claims as reified
-  claim nodes with 792 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 115 claims as reified
+  claim nodes with 801 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 114 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 115 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -698,6 +698,19 @@ not reintroduce a false 90 °C gate.
   locations. This proves source return and role separation, not printing
   completion, release, accepted German, rights clearance, human review,
   semantics, publication, or canon.
+- The subsequent 2007 *Cultural Revolution* translation-responsibility slice
+  adds two proposed whole-page anchors over the exact local Item and one
+  Expression-owned `translated_by` claim to the reconciled Antonovsky Agent.
+  The Edition's statement that the historical translation was checked and
+  newly edited is retained as evidence and as an explicit no-equivalence
+  boundary, not collapsed into a timeless Antonovsky text. The rebuilt catalog
+  contains 74 objects and 115 claims; the portable graph contains 393 nodes,
+  801 claim-centred edges, 115 source-return traces, and no direct
+  subject-object edge. General editing, scientific translation editing, and
+  commentary translation remain deferred contract pressure rather than false
+  generic relations. The local payload remains unpublished and local-only;
+  bibliographic attribution establishes neither textual fidelity, translation
+  quality, rights clearance, human review, semantics, publication, nor canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

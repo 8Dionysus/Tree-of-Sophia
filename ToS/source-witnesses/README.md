@@ -165,6 +165,16 @@ and dates `1857-1913`. This does not establish textual equivalence among the
 model-made and unreviewed; neither admits OCR, source text, or translation
 quality.
 
+The 2007 Cultural Revolution Expression now closes over a separate
+`translated_by` claim to the same stable Agent. Proposed whole-page anchors on
+PDF pages 3 and 4 preserve both the direct translator credit and the fuller
+statement that the historical translation was checked and newly edited. The
+source-visible general editor, scientific editor/checker, commentary
+translator, and designer remain exact deferred-role evidence because the
+current predicates cannot express them without loss. No equivalence with the
+1898, 1911, 1913, 1996, or later witnesses, accepted source text, translation
+quality, semantics, rights clearance, or human review is inferred.
+
 The three other translator Agents named by the 1996 Mysl boundary map follow
 the same separation between a source credit and a person identity. An ordered
 authority pass verifies Карен Араевич Свасьян as GND `120452367` and Николай
@@ -177,12 +187,13 @@ translator credit. Identity enrichment creates no new responsibility claim,
 Expression equivalence, accepted translation, or human review.
 
 Antonovsky also exercises the explicit identity/path boundary. The already
-referenced `tos.agent.yuri-antonovsky` remains the stable object of its three
-unchanged claims, but the Agent file moves from the misleading human route
+referenced `tos.agent.yuri-antonovsky` remains the stable object of four
+responsibility claims, but the Agent file moves from the misleading human route
 `agents/yuri-antonovsky/` to `agents/yuliy-antonovsky/`. `Yuri M. Antonovsky`
 is rejected as a name expansion, and the surviving `yuri` token is documented
-only as a legacy stable locator. The path migration creates no new Agent,
-claim, text, or equivalence.
+only as a legacy stable locator. The later 2007 claim reuses that verified
+Agent without rehabilitating the rejected name expansion. The path migration
+and claim reuse create no new Agent, text, or equivalence.
 
 Those seven Work records also each close over one
 `first_publication_chronology` claim under `chronology/`. This is a bounded

@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 114)
-        self.assertEqual(counts["claim_traces"], 114)
-        self.assertEqual(counts["nodes"], 386)
-        self.assertEqual(counts["edges"], 792)
+        self.assertEqual(counts["source_claims"], 115)
+        self.assertEqual(counts["claim_traces"], 115)
+        self.assertEqual(counts["nodes"], 393)
+        self.assertEqual(counts["edges"], 801)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 114})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 114})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 115})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 115})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -747,6 +747,10 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
             "ru-antonovsky-mysl-1996"
         )
+        expression_2007 = (
+            "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-antonovsky-cultural-revolution"
+        )
 
         result_1913 = query_projection(
             payload,
@@ -760,11 +764,30 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             object_ref=agent_ref,
             predicate="translated_by",
         )
+        result_2007 = query_projection(
+            payload,
+            subject_ref=expression_2007,
+            object_ref=agent_ref,
+            predicate="translated_by",
+        )
         self.assertEqual(1, result_1913["result_count"])
         self.assertEqual(1, result_1996["result_count"])
+        self.assertEqual(1, result_2007["result_count"])
         self.assertNotEqual(
             result_1913["matches"][0]["claim_ref"],
             result_1996["matches"][0]["claim_ref"],
+        )
+        self.assertEqual(
+            {
+                result_1913["matches"][0]["claim_ref"],
+                result_1996["matches"][0]["claim_ref"],
+                result_2007["matches"][0]["claim_ref"],
+            },
+            {
+                "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1913.translated-by-yuri-antonovsky",
+                "tos.claim.expression.mysl-1996-volume-2.also-sprach-zarathustra.translated-by-yuri-antonovsky",
+                "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.translated-by-yuri-antonovsky",
+            },
         )
         self.assertEqual(
             "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1913."
@@ -779,10 +802,17 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             all(
                 match["source_return"]["source_claim"]["review_status"]
                 == "unreviewed"
-                for result in (result_1913, result_1996)
+                for result in (result_1913, result_1996, result_2007)
                 for match in result["matches"]
             )
         )
+
+        agent_result = query_projection(
+            payload,
+            object_ref=agent_ref,
+            predicate="translated_by",
+        )
+        self.assertEqual(4, agent_result["result_count"])
 
     def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
         payload = load_verified_projection()

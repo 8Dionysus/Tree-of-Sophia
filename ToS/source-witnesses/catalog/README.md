@@ -33,13 +33,16 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 74 object records and 114 claim records
-(188 entries total). The responsibility slice contains seven Work authorship,
-eight Expression translation, and three Edition role claims; all remain
+The current bounded projection contains 74 object records and 115 claim records
+(189 entries total). The responsibility slice contains seven Work authorship,
+nine Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
-The eighth translation claim is bound to a proposed whole-page title-page
-anchor in the exact 1913 Antonovsky Item; it neither expands the displayed
-initials into accepted person identity nor equates later Expressions.
+The 1913 Antonovsky responsibility claim is bound to a proposed whole-page
+title-page anchor in its exact Item. The distinct 2007 Cultural Revolution
+Expression adds its own translator claim and two proposed page anchors while
+recording that the historical translation was checked and newly edited. The
+shared Agent does not equate either Expression with the 1898, 1911, 1996, or
+later witnesses.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.

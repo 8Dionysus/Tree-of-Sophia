@@ -6,18 +6,22 @@
   "variant_labels": [],
   "identity_status": "provisional",
   "source_refs": [
-    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-cultural-revolution-2007-translation-responsibility.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
   ],
   "external_identifiers": [],
-  "same_as_posture": "candidate_equivalence",
+  "same_as_posture": "no_equivalence_claim",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "language": "ru",
   "expression_role": "translation",
-  "responsibility_claim_refs": [],
+  "responsibility_claim_refs": [
+    "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.translated-by-yuri-antonovsky"
+  ],
   "embodiment_claim_refs": [
     "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution.embodied-by.moscow-cultural-revolution-2007-volume-4"
   ],
-  "notes": "The edition states that Antonovsky's 1898 translation was newly edited and checked; equivalence with other Antonovsky editions is not assumed.",
-  "record_version": 2,
+  "notes": "The exact 2007 edition credits Yu. M. Antonovsky as translator and states that the historical translation was checked and newly edited. The 2007 Expression remains distinct from the 1898, 1911, 1913, 1996, and later Antonovsky witnesses; textual equivalence and translation quality are not claimed.",
+  "record_version": 3,
   "supersedes_ref": null
 }
