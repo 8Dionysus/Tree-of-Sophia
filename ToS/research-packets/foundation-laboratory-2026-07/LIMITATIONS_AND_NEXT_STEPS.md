@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 70 current objects and all 102
+- The source-witness catalog now exposes all 70 current objects and all 103
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 102 claims as reified
-  claim nodes with 656 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 103 claims as reified
+  claim nodes with 663 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 102 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 103 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -130,6 +130,11 @@ contracts intentionally reject simulated human evidence.
   source-returnable, but still model-made and unreviewed: the closure does not
   prove creator equivalence, choose an author-final witness, or authorize
   mechanical authorship population beyond this bounded corpus.
+- The exact 1913 Antonovsky Expression now has one source-page-anchored
+  `translated_by` claim to the existing provisional Agent. It records the
+  visible credit only: the full person identity, authority identifier,
+  translation extent and quality, textual equivalence to later Expressions,
+  accepted text, and human review remain unresolved.
 - The frozen provision A/B/C pilot adds only one provisional Place, two
   provisional historical Organizations, and two unreviewed Edition claims. A
   separate post-experiment extension adds one provisional Chemnitz Place, the

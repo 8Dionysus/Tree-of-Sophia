@@ -213,6 +213,22 @@ SCHMEITZNER_ORGANIZATION_PATH = (
     / "ToS/source-witnesses/organizations/"
     "ernst-schmeitzner-verlagsbuchhandlung-chemnitz/organization.json"
 )
+ANTONOVSKY_1913_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-antonovsky-1913"
+)
+ANTONOVSKY_1913_RESPONSIBILITY_CLAIMS_PATH = (
+    ANTONOVSKY_1913_EXPRESSION_ROOT / "responsibility-claims.jsonl"
+)
+ANTONOVSKY_1913_TITLE_ANCHORS_PATH = (
+    ANTONOVSKY_1913_EXPRESSION_ROOT / "structure/title-page/anchors.jsonl"
+)
+ANTONOVSKY_1913_TRANSLATION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md"
+)
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1186,9 +1202,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(70, manifest["counts"]["object_total"])
-        self.assertEqual(102, manifest["counts"]["claim"])
-        self.assertEqual(172, manifest["counts"]["total"])
-        self.assertEqual(102, len(claim_entries))
+        self.assertEqual(103, manifest["counts"]["claim"])
+        self.assertEqual(173, manifest["counts"]["total"])
+        self.assertEqual(103, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1225,7 +1241,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 85,
+                "bibliographic_assertion": 86,
                 "scholarly_report": 17,
             },
             {
@@ -1448,6 +1464,54 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "tos-discovery-result.dnb-gnd-118823698-ernst-schmeitzner-person",
             discovery["selected_result_ids"],
         )
+
+    def test_antonovsky_1913_translation_responsibility_returns_to_page_7(
+        self,
+    ) -> None:
+        anchor = json.loads(
+            ANTONOVSKY_1913_TITLE_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        claim = json.loads(
+            ANTONOVSKY_1913_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )
+        expression = json.loads(
+            (ANTONOVSKY_1913_EXPRESSION_ROOT / "expression.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(
+            "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1913."
+            "title-page-translator-credit",
+            anchor["anchor_id"],
+        )
+        self.assertEqual("proposed", anchor["status"])
+        self.assertEqual(7, anchor["selectors"][0]["page"])
+        self.assertEqual(
+            "687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b",
+            anchor["file_sha256"],
+        )
+        self.assertEqual("translated_by", claim["predicate"])
+        self.assertEqual(expression["record_id"], claim["subject_ref"])
+        self.assertEqual("tos.agent.yuri-antonovsky", claim["object"])
+        self.assertIn(anchor["anchor_id"], claim["evidence_refs"])
+        self.assertIn(
+            ANTONOVSKY_1913_TRANSLATION_RESEARCH_PATH.relative_to(
+                REPO_ROOT
+            ).as_posix(),
+            claim["evidence_refs"],
+        )
+        self.assertEqual("observed", claim["epistemic_status"])
+        self.assertEqual("unreviewed", claim["review_status"])
+        self.assertEqual("public_metadata_only", claim["visibility"])
+        self.assertEqual([claim["claim_id"]], expression["responsibility_claim_refs"])
+        serialized = json.dumps(claim, ensure_ascii=False)
+        self.assertNotIn("Юрий Михайлович", serialized)
+        self.assertNotIn("same_as", serialized)
 
     def test_provision_activity_contract_preserves_roles_and_date_boundaries(
         self,

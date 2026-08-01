@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 102 public-metadata-only bibliographic claims;
-- 322 nodes and 656 edges;
-- 102 claim trace packets;
+- 103 public-metadata-only bibliographic claims;
+- 327 nodes and 663 edges;
+- 103 claim trace packets;
 - 22 claim-scoped literal objects;
-- 15 resolved provenance events carrying exact time and method;
+- 16 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 102 explicit `unreviewed` states.
+- 103 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -69,6 +69,11 @@ are bibliographic topology claims, not textual-equivalence assertions.
 The responsibility layer separately closes seven Work `authored_by` Friedrich
 Nietzsche claims—one per current Work—without deriving authorship from folder
 names or collapsing it into a generic creator edge.
+It also carries eight Expression `translated_by` claims. The newest route is
+the exact 1913 Antonovsky Expression: its evidence node resolves a proposed
+page-7 title-page anchor to the Item and file digest, while the separate 1996
+claim remains attached to its own Expression. Sharing an Agent object creates
+no textual-equivalence edge between those Expressions.
 The chronology layer separately carries seven Work
 `first_publication_chronology` literal profiles. Their staged/private/public
 and posthumous distinctions remain claim objects; the graph does not select a
@@ -114,12 +119,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 102/102 catalog rows returning to the expected source line and canonical
+- 103/103 catalog rows returning to the expected source line and canonical
   claim digest;
-- 102/102 graph traces returning to the same source line and digest;
-- 322 nodes, including 102 claims, 70 identities, 112 evidence nodes, 22
-  literals, one maker, and 15 provenance events;
-- 656/656 edges beginning at their own reified claim node;
+- 103/103 graph traces returning to the same source line and digest;
+- 327 nodes, including 103 claims, 70 identities, 115 evidence nodes, 22
+  literals, one maker, and 16 provenance events;
+- 663/663 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata

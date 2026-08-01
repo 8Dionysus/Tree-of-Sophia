@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added an exact source-returnable translation-responsibility claim for the
+  1913 Russian Antonovsky *Zarathustra* Expression. Direct inspection of the
+  fixity-verified PDF page 7 supplies one proposed whole-page source anchor;
+  the claim reaches the existing provisional Antonovsky Agent without trusting
+  the ABBYY OCR layer, expanding the displayed initials into an accepted
+  person identity, or equating the 1913, 1996, and 2007 Expressions. Standalone
+  source anchors beside an Expression are now schema- and provenance-validated
+  as responsibility evidence. No source text, page image, accepted translation,
+  quality judgment, human review, rights clearance, semantics, or canon was
+  added.
 - Extended the retained provision-activity mechanics with one independently
   researched, exact-Edition case for *Also sprach Zarathustra*, part I
   (Schmeitzner, Chemnitz, 1883). The official identity route distinguishes the
@@ -68,9 +78,9 @@ Tracking starts with the community-docs baseline for this repository.
   `public_metadata_only`, and `unreviewed`, and creates no generic creator
   shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 102 current
-  public-metadata-only source-witness claims into 322 nodes, 656 claim-centered
-  edges, and 102 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 103 current
+  public-metadata-only source-witness claims into 327 nodes, 663 claim-centered
+  edges, and 103 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
   time and method, and explicit review status. Twenty-two publication,
   chronology, and provision objects remain claim-scoped literals; no direct
@@ -81,10 +91,10 @@ Tracking starts with the community-docs baseline for this repository.
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 102 tracked membership, responsibility,
+  `claims.jsonl` indexes all 103 tracked membership, responsibility,
   publication, provision, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v3 separates 70 object entries from 102 claim entries,
+  claim digest. Catalog v3 separates 70 object entries from 103 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked

@@ -33,10 +33,13 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 70 object records and 102 claim records
-(172 entries total). The responsibility slice contains seven Work authorship,
-seven Expression translation, and three Edition role claims; all remain
+The current bounded projection contains 70 object records and 103 claim records
+(173 entries total). The responsibility slice contains seven Work authorship,
+eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
+The eighth translation claim is bound to a proposed whole-page title-page
+anchor in the exact 1913 Antonovsky Item; it neither expands the displayed
+initials into accepted person identity nor equates later Expressions.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.

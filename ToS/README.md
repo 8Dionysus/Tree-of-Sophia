@@ -63,6 +63,11 @@ declared Work→Expression→Edition→Item steps their own claim IDs, evidence,
 maker, provenance, and review posture while keeping textual equivalence open.
 Each of the seven current Nietzsche Works also closes over its own documentary
 `authored_by` claim; folder naming is navigation, never authorship evidence.
+The exact 1913 Antonovsky Expression separately closes over one
+`translated_by` claim whose evidence returns to a proposed, fixity-bound PDF
+page-7 title-page anchor. The displayed initials do not become an accepted
+expanded person identity, and the 1913, 1996, and 2007 Expressions remain
+distinct.
 Each Work separately closes over one first-publication chronology profile,
 preserving staged/private/public/posthumous boundaries without inventing one
 universal Work year or treating a model-made ordering claim as accepted truth.

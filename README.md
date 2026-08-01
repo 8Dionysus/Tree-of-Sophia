@@ -63,6 +63,12 @@ claim for each of the seven current Nietzsche Works. These links come from the
 recorded documentary routes and digest-bound provenance; they are not inferred
 from author-named folders and remain model-made and unreviewed.
 
+The exact 1913 Antonovsky Expression now separately closes over one
+`translated_by` claim to the existing provisional Antonovsky Agent. Its
+evidence returns to a digest-bound whole-page anchor on PDF page 7. This does
+not expand the translator's initials into an accepted person identity, equate
+later Expressions, accept the Russian text, or assess translation quality.
+
 The same seven Works now carry separate first-publication chronology profiles.
 They preserve staged, private, public, author-supervised, and posthumous
 boundaries instead of collapsing composition, printing, title-page year, and

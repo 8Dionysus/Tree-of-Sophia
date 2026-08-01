@@ -150,6 +150,16 @@ digest-bound by an annotation event. All seven remain model-made,
 `public_metadata_only`, and `unreviewed`; neither the author-named directory nor
 catalog presence supplies authorship truth by itself.
 
+The exact 1913 Antonovsky Expression separately closes over one
+`translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
+page 7, bound to the exact Item and file SHA-256 after direct source-visible
+inspection. The Agent retains the unresolved preferred label
+`Ю. М. Антоновский`: later library records corroborate the displayed credit but
+do not establish an expanded person identity or textual equivalence among the
+1911, 1913, 1981, 1996, 2007, and later Expressions. The anchor and claim are
+model-made and unreviewed; neither admits OCR, source text, or translation
+quality.
+
 Those seven Work records also each close over one
 `first_publication_chronology` claim under `chronology/`. This is a bounded
 ordering facet, not a universal Work date: composition, manuscript, printing,

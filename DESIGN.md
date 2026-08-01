@@ -150,6 +150,13 @@ corpus-wide closure is documentary and provenance-bound, not a convention
 derived from paths, and it does not select an author-final text or flatten
 editorial, paratext, translation, or transmission responsibility.
 
+Responsibility evidence may resolve through an Expression-local source anchor,
+not only a collection boundary map. The 1913 Antonovsky case binds a
+`translated_by` claim to one proposed whole-page title-page anchor and exact
+file digest while keeping the Agent identity provisional. A page credit is
+bibliographic evidence; it is not accepted text, translation quality,
+editorial equivalence across reprints, or a biography of the translator.
+
 Edition-level provision is likewise claim-owned rather than flattened into
 publisher/place/date fields. A bounded provision claim groups the exact
 transcribed or reported statement with typed activity, role-specific Place and

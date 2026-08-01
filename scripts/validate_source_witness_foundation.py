@@ -4971,6 +4971,30 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if anchor_ref not in local_anchor_ids:
                 issues.append((location, f"unresolved boundary crosscheck anchor: {anchor_ref}"))
 
+    evidence_anchor_ids = set(boundary_anchor_ids)
+    for anchor_path in sorted((repo_root / SOURCE_ROOT).rglob("anchors.jsonl")):
+        if anchor_path.with_name("work-boundary-map.json").is_file():
+            continue
+        for index, anchor in enumerate(
+            _load_jsonl(anchor_path, repo_root, issues),
+            start=1,
+        ):
+            anchor_location = f"{_relative(anchor_path, repo_root)}:{index}"
+            _validate_payload(anchor, anchor_validator, anchor_location, issues)
+            anchor_id = anchor.get("anchor_id")
+            if isinstance(anchor_id, str):
+                if anchor_id in evidence_anchor_ids:
+                    issues.append(
+                        (anchor_location, f"duplicate source evidence anchor_id: {anchor_id}")
+                    )
+                evidence_anchor_ids.add(anchor_id)
+            require_record(anchor.get("item_id"), "item", anchor_location)
+            event_ref = anchor.get("provenance_event_ref")
+            if isinstance(event_ref, str) and event_ref not in event_ids:
+                issues.append(
+                    (anchor_location, f"unresolved source-anchor provenance event: {event_ref}")
+                )
+
     topology_provenance_events = _load_jsonl(
         repo_root / BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE,
         repo_root,
@@ -5379,8 +5403,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append((location, f"unresolved provenance_event_ref: {event_ref}"))
                 for evidence_ref in claim.get("evidence_refs", []):
                     if isinstance(evidence_ref, str) and evidence_ref.startswith("tos.anchor."):
-                        if evidence_ref not in boundary_anchor_ids:
-                            issues.append((location, f"unresolved boundary evidence anchor: {evidence_ref}"))
+                        if evidence_ref not in evidence_anchor_ids:
+                            issues.append((location, f"unresolved source evidence anchor: {evidence_ref}"))
                     elif isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
                         if not (repo_root / evidence_ref).is_file():
                             issues.append((location, f"unresolved repository evidence ref: {evidence_ref}"))
@@ -5531,11 +5555,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     isinstance(evidence_ref, str)
                     and evidence_ref.startswith("tos.anchor.")
                 ):
-                    if evidence_ref not in boundary_anchor_ids:
+                    if evidence_ref not in evidence_anchor_ids:
                         issues.append(
                             (
                                 location,
-                                "unresolved boundary evidence anchor: "
+                                "unresolved source evidence anchor: "
                                 f"{evidence_ref}",
                             )
                         )
