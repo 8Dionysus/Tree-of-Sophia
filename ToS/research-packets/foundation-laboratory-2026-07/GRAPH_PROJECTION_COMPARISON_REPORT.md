@@ -46,7 +46,7 @@ Three real defects were preserved instead of rewritten:
 
 No graph-backend winner is declared.
 
-## Subsequent catalog-backed bibliographic projection — 2026-07-30
+## Subsequent catalog-backed bibliographic projection — refreshed 2026-07-31
 
 The later source-witness foundation now has a separate tracked JSON graph at
 `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`.
@@ -54,13 +54,18 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 31 public-metadata-only bibliographic claims;
-- 97 nodes and 202 edges;
-- 31 claim trace packets;
+- 86 public-metadata-only bibliographic claims;
+- 263 nodes and 547 edges;
+- 86 claim trace packets;
 - 12 claim-scoped literal objects;
-- five resolved provenance events carrying exact time and method;
+- six resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 31 explicit `unreviewed` states.
+- 86 explicit `unreviewed` states.
+
+The 55-claim increase materializes the complete declared corpus ladder as
+separate source packets: 20 Work `has_expression` Expression, 20 Expression
+`embodied_by` Edition, and 15 Edition `exemplified_by` Item relations. These
+are bibliographic topology claims, not textual-equivalence assertions.
 
 Every structural edge begins at a reified claim node and carries the source
 claim digest, source file/line, evidence nodes, maker, provenance event, and
@@ -80,30 +85,25 @@ human correctness evidence, no backend winner, and no claim promotion.
 
 ### Independent source-return inspection
 
-A separate shell/JQ inspection did not call the builder or validator. Its first
-digest pass retained JQ's final newline and therefore falsely reported 31/31
-claim-line and 59/59 line-backed-node mismatches. The graph digest contract is
-over canonical JSON without that serialization newline. The check was
-corrected rather than the projection being changed.
+A separate one-off inspection read raw records, item manifests, source claim
+files, the generated catalog, and the generated graph without importing the
+builder or validator. It found:
 
-With the newline removed, the independent pass found:
+- exact raw-record/claim closure for 20 `has_expression`, 20 `embodied_by`,
+  and 15 `exemplified_by` relations;
+- 86/86 catalog rows returning to the expected source line and canonical
+  claim digest;
+- 86/86 graph traces returning to the same source line and digest;
+- 263 nodes, including 86 claims, 65 identities, 93 evidence nodes, 12
+  literals, one maker, and six provenance events;
+- 547/547 edges beginning at their own reified claim node;
+- zero direct subject-to-object edges.
 
-- 31/31 source claim lines with the expected canonical digest;
-- 59/59 line-backed claim, anchor, and provenance nodes with the expected
-  canonical digest;
-- 26/26 identity nodes matching their canonical source record;
-- 11/11 path-evidence nodes matching the raw referenced file;
-- 202/202 edges beginning at their own claim node, with zero malformed edges;
-- 31 claim nodes and 31 trace packets;
-- zero direct subject-to-object edges;
-- zero provenance nodes missing start time, end time, or method.
-
-Three source-visible model inspections then traversed one aggregate membership
-claim, one `Ecce Homo` editor responsibility claim, and the structured nominal
-`Zweite Auflage` issue-state claim. They resolved identity-versus-literal
-typing, evidence, maker, provenance time/method, and empty human-review routes
-back to the exact source packet. These are advisory nonhuman trace inspections,
-not truth review.
+A temporary negative probe then removed one Work-owned
+`expression_claim_refs` entry and ran the actual foundation validator. It
+failed with the exact missing closure instead of accepting the still-present
+record link or generated graph as a substitute. These are mechanical and
+nonhuman trace checks, not truth review.
 
 ### Current-corpus read-only query route
 
@@ -124,9 +124,20 @@ Manual probes outside the unit-test harness established:
   difference as `unresolved`;
 - an AND query for the *Mysl* collection subject plus `contains_work`
   returned exactly the seven sorted membership claims;
+- a Work plus `has_expression` query returned all eight separately sourced
+  *Zarathustra* Expressions;
+- a cross-tree `embodied_by` query returned the Russian *Zarathustra*
+  Expression and the aggregate *Mysl* Edition as one exact claim, without a
+  textual-equivalence assertion;
+- an Edition plus `exemplified_by` query returned the two distinct 1893
+  Naumann Items, each with the Edition record, Item record, and item manifest
+  as three evidence nodes;
+- the same Expression paired with an unrelated *Ecce Homo* Edition returned
+  explicit `no_match`;
 - a selector-free invocation exited 2 instead of dumping the graph;
-- a 31-match `unreviewed` request with the default limit 20 exited 2 instead
-  of returning a silently truncated result.
+- a 20-match `embodied_by` request with limit 19 exited 2 instead of returning
+  a silently truncated result; the 86-match `unreviewed` route remains
+  over-limit by default.
 
 The output is deterministic navigation and includes the exact source claim
 object. It is not human trace-time evidence, bibliographic acceptance, a

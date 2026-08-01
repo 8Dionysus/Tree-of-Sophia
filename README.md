@@ -53,6 +53,10 @@ The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review
 evidence. Search and graph surfaces are rebuilt from those stronger records.
+The current identity ladder is no longer only implicit in record fields: 55
+separate, unreviewed claim packets make every declared Work→Expression,
+Expression→Edition, and Edition→Item link source-returnable without asserting
+textual equivalence.
 
 ## Current Public Route
 

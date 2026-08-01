@@ -37,8 +37,10 @@ authority into Tree of Sophia.
 `build_source_witness_catalog.py` and
 `validate_source_witness_foundation.py` protect the corpus evidence spine and
 tracked object/claim catalog. The generated claim projection covers only
-tracked membership, responsibility, and publication packets, preserves exact
-source-line return and canonical claim digests, and remains subordinate to
+tracked membership, responsibility, publication, and identity-ladder packets,
+including separately reified Work→Expression, Expression→Edition, and
+Edition→Item directions. It preserves exact source-line return and canonical
+claim digests, and remains subordinate to
 those authored packets and their provenance events. It must fail closed rather
 than copy a nonpublic claim into the tracked catalog. The release lane permits
 gitignored payload bytes to be absent from a public clone; an operator may add

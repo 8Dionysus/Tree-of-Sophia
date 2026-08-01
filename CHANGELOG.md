@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added an authored bibliographic-topology spine under
+  `ToS/source-witnesses/relations/`. It gives all 20 Work→Expression, 20
+  Expression→Edition, and 15 Edition→Item links stable claim IDs, exact
+  record/manifest evidence, a digest-bound model provenance event, public
+  metadata visibility, and explicit `unreviewed` posture. Work, Expression,
+  and Edition records now close over the exact outgoing claims; validation
+  rejects missing, extra, duplicated, cross-typed, or misbound links. These 55
+  packets materialize declared topology only: `embodied_by` does not establish
+  textual identity, critical equivalence, accepted text, semantics, rights, or
+  canon.
 - Added a deterministic read-only query route for the source-witness
   bibliographic graph. Exact claim, subject, identity-object, predicate,
   review-status, and visibility selectors use AND semantics and return the
@@ -19,9 +29,9 @@ Tracking starts with the community-docs baseline for this repository.
   rejected; results are stdout-only and create no truth, review, runtime,
   service, rights, or canon authority.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 31 current
-  public-metadata-only source-witness claims into 97 nodes, 202 claim-centered
-  edges, and 31 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 86 current
+  public-metadata-only source-witness claims into 263 nodes, 547 claim-centered
+  edges, and 86 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
   time and method, and explicit review status. Twelve publication objects
   remain claim-scoped literals; no direct subject-to-object truth edge is
@@ -31,10 +41,10 @@ Tracking starts with the community-docs baseline for this repository.
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 31 tracked membership, responsibility, and
-  publication packets with their subject, predicate, object, evidence, maker,
+  `claims.jsonl` indexes all 86 tracked membership, responsibility,
+  publication, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v2 separates 65 object entries from 31 claim entries,
+  claim digest. Catalog v2 separates 65 object entries from 86 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked

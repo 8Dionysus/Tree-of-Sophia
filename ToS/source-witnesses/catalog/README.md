@@ -12,7 +12,7 @@ and `collections/` trees.
 | `editions.jsonl` | published/edited manifestations |
 | `collections.jsonl` | aggregate publications |
 | `items.jsonl` | acquired physical/digital copies or containers |
-| `claims.jsonl` | source-returnable membership, responsibility, and publication claims |
+| `claims.jsonl` | source-returnable membership, responsibility, publication, and Work/Expression/Edition/Item topology claims |
 | `catalog.manifest.json` | counts, paths, digest, and generation boundary |
 
 Object records own identity; source claim packets own bibliographic
@@ -24,6 +24,12 @@ does not accept or promote any claim. Only claims already marked `public` or
 `public_metadata_only` may enter this tracked projection; local, restricted,
 or permission-pending material requires a separately reviewed public-safe
 derivative rather than silent copying.
+
+The current topology contribution is 55 separately addressable packets: 20
+`has_expression`, 20 `embodied_by`, and 15 `exemplified_by`. Their presence in
+this generated catalog proves exact projection only. It does not make the
+declared identity ladder true, accept any text, or turn embodiment into
+textual equivalence.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

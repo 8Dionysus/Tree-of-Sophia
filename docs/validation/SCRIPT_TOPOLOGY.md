@@ -69,6 +69,12 @@ companions, catalog parity, and any locally present payload bytes. Neither tool
 can certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
+The catalog/validator pair also owns exact mechanical closure for the three
+authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
+It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim
+IDs against their record fields and item manifests, and must reject any attempt
+to treat bibliographic embodiment as textual equivalence.
+
 The source-witness bibliographic graph pair is a downstream generated route,
 not a second source validator. Its builder and validator read the public-safe
 catalog plus exact claim, evidence, anchor, and provenance records, keep every

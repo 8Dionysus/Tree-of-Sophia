@@ -42,7 +42,9 @@ ToS authority.
   public-safe source-witness catalog without merging it into the atlas graph.
   Keep the claim as the relation center, retain literal objects as literals,
   and require every edge to return to claim, evidence, maker, provenance, and
-  review posture.
+  review posture. Work→Expression, Expression→Edition, and Edition→Item must
+  remain reified claim routes rather than direct fact edges, and embodiment
+  must not be widened into textual equivalence.
 - Let the repository-local bibliographic query reader verify exact
   source-backed parity before returning deterministic stdout bundles. It must
   require an explicit selector, fail rather than silently truncate, write no

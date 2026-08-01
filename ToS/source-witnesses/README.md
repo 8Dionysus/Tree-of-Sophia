@@ -27,6 +27,14 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   └── claims.jsonl                       # generated source-returnable relation index
+├── relations/                             # corpus-wide identity-ladder assertions
+│   ├── work-expression/
+│   │   └── work-expression-claims.jsonl   # Work --has_expression--> Expression
+│   ├── expression-edition/
+│   │   └── expression-edition-claims.jsonl # Expression --embodied_by--> Edition
+│   ├── edition-item/
+│   │   └── edition-item-claims.jsonl       # Edition --exemplified_by--> Item
+│   └── provenance.jsonl                   # digest-bound batch materialization event
 ├── works/
 │   └── <responsibility-or-tradition>/
 │       └── <work>/
@@ -72,7 +80,7 @@ speaking routes and explicit responsibility claims in the catalog.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
-and publication assertions queryable while preserving exact source file,
+publication, and identity-ladder assertions queryable while preserving exact source file,
 source line, canonical claim digest, evidence, maker, provenance event, and
 review posture. It is not a second claim authority and cannot promote an
 unreviewed relation. The tracked projection admits only `public` or
@@ -94,6 +102,18 @@ responsibility remains explicit where applicable and is `null`, not
 manufactured, for a source-language member without a separate responsibility
 claim. Such a map is bibliographic structure, not accepted text, edition
 equivalence, translation quality, semantics, rights clearance, or canon.
+
+The first four identity levels also close over three explicit corpus-wide
+claim families under `relations/`. Work records cite their exact
+`has_expression` packets through `expression_claim_refs`; Expression records
+cite `embodied_by` packets through `embodiment_claim_refs`; Edition records
+cite `exemplified_by` packets through `exemplar_claim_refs`. The direct record
+fields retain speaking structural topology, while the claim packets add stable
+claim IDs, exact record/manifest evidence, maker, provenance, visibility, and
+review posture. The validator requires bidirectional exact closure, not merely
+that both surfaces happen to exist. These relations remain bibliographic:
+`embodied_by` never implies textual identity, critical equivalence, accepted
+source text, translation quality, or semantics.
 
 Work, Expression, and Edition records may close over evidence-bearing
 `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.

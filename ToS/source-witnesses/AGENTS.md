@@ -36,6 +36,12 @@ rights, and forensic evidence.
   The generated claim catalog is source-returnable navigation only. Project
   only `public` or `public_metadata_only` claims; fail closed on less-visible
   packets until a reviewed public-safe derivative exists.
+- Keep the declared identity ladder and its outgoing claim refs in exact
+  closure: Work `expression_claim_refs`, Expression
+  `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to
+  the three owned files under `relations/` and agree with `work_ref`,
+  `embodies_expression_refs`, and item-manifest `embodiment_ref`. Never infer
+  textual equivalence from this bibliographic topology.
 - Keep only item `payload/` content gitignored. Track manifest, SHA-256,
   provenance, rights, forensic report, and catalog entry.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and

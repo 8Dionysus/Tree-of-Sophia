@@ -30,12 +30,18 @@ CLAIM_SOURCE_BASENAMES = (
     "membership-claims.jsonl",
     "responsibility-claims.jsonl",
     "publication-claims.jsonl",
+    "work-expression-claims.jsonl",
+    "expression-edition-claims.jsonl",
+    "edition-item-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
 LINK_FIELDS = (
     "work_ref",
+    "expression_claim_refs",
     "responsibility_claim_refs",
+    "embodiment_claim_refs",
     "embodies_expression_refs",
+    "exemplar_claim_refs",
     "collection_ref",
     "membership_claim_refs",
     "item_manifest_ref",

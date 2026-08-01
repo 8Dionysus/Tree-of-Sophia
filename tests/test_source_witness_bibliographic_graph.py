@@ -42,13 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 31)
-        self.assertEqual(counts["claim_traces"], 31)
+        self.assertEqual(counts["source_claims"], 86)
+        self.assertEqual(counts["claim_traces"], 86)
+        self.assertEqual(counts["nodes"], 263)
+        self.assertEqual(counts["edges"], 547)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 31})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 31})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 86})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 86})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -230,6 +232,78 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 match["subject_node"]["properties"]["identity_ref"],
                 subject_ref,
             )
+
+    def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
+        payload = load_verified_projection()
+        work_ref = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        work_result = query_projection(
+            payload,
+            subject_ref=work_ref,
+            predicate="has_expression",
+        )
+        self.assertEqual(work_result["result_count"], 8)
+        self.assertTrue(
+            all(
+                match["source_return"]["file_ref"].endswith(
+                    "/work-expression-claims.jsonl"
+                )
+                for match in work_result["matches"]
+            )
+        )
+
+        expression_ref = (
+            "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-antonovsky-mysl-1996"
+        )
+        edition_ref = (
+            "tos.edition.friedrich-nietzsche.works-in-two-volumes."
+            "moscow-mysl-1996-volume-2"
+        )
+        embodiment_result = query_projection(
+            payload,
+            subject_ref=expression_ref,
+            object_ref=edition_ref,
+            predicate="embodied_by",
+        )
+        self.assertEqual(embodiment_result["result_count"], 1)
+        embodiment = embodiment_result["matches"][0]
+        self.assertEqual(
+            embodiment["claim_node"]["properties"]["assertion_layer"],
+            "bibliographic_assertion",
+        )
+        self.assertEqual(
+            embodiment["claim_node"]["properties"]["review_status"],
+            "unreviewed",
+        )
+        self.assertEqual(
+            embodiment["source_return"]["source_claim"]["predicate"],
+            "embodied_by",
+        )
+
+        edition_with_two_items = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "leipzig-c-g-naumann-1893"
+        )
+        exemplar_result = query_projection(
+            payload,
+            subject_ref=edition_with_two_items,
+            predicate="exemplified_by",
+        )
+        self.assertEqual(exemplar_result["result_count"], 2)
+        self.assertTrue(
+            all(len(match["evidence_nodes"]) == 3 for match in exemplar_result["matches"])
+        )
+
+    def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
+        payload = load_verified_projection()
+        result = query_projection(payload, predicate="embodied_by", limit=20)
+        self.assertEqual(result["result_count"], 20)
+        for match in result["matches"]:
+            source_claim = match["source_return"]["source_claim"]
+            self.assertEqual(source_claim["claim_type"], "bibliographic")
+            self.assertEqual(source_claim["epistemic_status"], "observed")
+            self.assertNotIn("same_as", source_claim["predicate"])
+            self.assertNotIn("textual", json.dumps(source_claim, ensure_ascii=False))
 
     def test_query_no_match_is_explicit_and_deterministic(self) -> None:
         payload = load_verified_projection()

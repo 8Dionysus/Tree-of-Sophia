@@ -47,6 +47,16 @@ Authorship, translation responsibility, edition identity, date, place, and
 container membership are claims with evidence status. A filename may seed a
 lead but cannot settle any of them.
 
+The identity ladder is both structurally declared and claim-addressable. A
+Work's Expressions, an Expression's Editions, and an Edition's Items remain
+visible in their owner records, while `has_expression`, `embodied_by`, and
+`exemplified_by` claim packets carry the relation's own ID, exact evidence,
+maker, provenance, visibility, and review state. The two representations must
+close exactly; neither is allowed to drift into a second truth. These are
+bibliographic topology predicates. `embodied_by` does not entail that two
+texts are identical, author-final, critical, accepted, or semantically
+equivalent.
+
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,
 publisher, copyist, corrector, and rights holder are not interchangeable

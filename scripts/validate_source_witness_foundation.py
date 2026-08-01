@@ -104,6 +104,45 @@ PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
 )
+BIBLIOGRAPHIC_TOPOLOGY_ROOT = SOURCE_ROOT / "relations"
+BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE = (
+    BIBLIOGRAPHIC_TOPOLOGY_ROOT / "provenance.jsonl"
+)
+BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF = (
+    "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31"
+)
+BIBLIOGRAPHIC_TOPOLOGY_ROUTES = (
+    (
+        BIBLIOGRAPHIC_TOPOLOGY_ROOT
+        / "work-expression"
+        / "work-expression-claims.jsonl",
+        "has_expression",
+        "work",
+        "expression",
+        "expression_claim_refs",
+        "unreviewed-work-expression-topology-claims",
+    ),
+    (
+        BIBLIOGRAPHIC_TOPOLOGY_ROOT
+        / "expression-edition"
+        / "expression-edition-claims.jsonl",
+        "embodied_by",
+        "expression",
+        "edition",
+        "embodiment_claim_refs",
+        "unreviewed-expression-edition-topology-claims",
+    ),
+    (
+        BIBLIOGRAPHIC_TOPOLOGY_ROOT
+        / "edition-item"
+        / "edition-item-claims.jsonl",
+        "exemplified_by",
+        "edition",
+        "item",
+        "exemplar_claim_refs",
+        "unreviewed-edition-item-topology-claims",
+    ),
+)
 
 Issue = tuple[str, str]
 
@@ -4899,6 +4938,335 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         for anchor_ref in boundary_map.get("crosscheck_anchor_refs", []):
             if anchor_ref not in local_anchor_ids:
                 issues.append((location, f"unresolved boundary crosscheck anchor: {anchor_ref}"))
+
+    topology_provenance_events = _load_jsonl(
+        repo_root / BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE,
+        repo_root,
+        issues,
+    )
+    if len(topology_provenance_events) != 1:
+        issues.append(
+            (
+                BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
+                "bibliographic topology must have exactly one batch provenance event",
+            )
+        )
+    topology_event: dict[str, Any] | None = None
+    for index, event in enumerate(topology_provenance_events, start=1):
+        location = f"{BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix()}:{index}"
+        _validate_payload(event, provenance_validator, location, issues)
+        _validate_source_refs(repo_root, event, location, issues)
+        event_id = event.get("event_id")
+        if event_id != BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF:
+            issues.append(
+                (
+                    location,
+                    "bibliographic topology provenance event_id differs from the owned route",
+                )
+            )
+        if event.get("event_type") != "annotation":
+            issues.append((location, "bibliographic topology provenance must be annotation"))
+        if event.get("agent_refs") != ["model:codex"]:
+            issues.append(
+                (location, "bibliographic topology provenance agent must be model:codex")
+            )
+        method = event.get("method", {})
+        if (
+            method.get("maker_type") != "model"
+            or method.get("name")
+            != "declared-bibliographic-topology-materialization"
+            or method.get("version") != "1"
+        ):
+            issues.append(
+                (
+                    location,
+                    "bibliographic topology provenance method identity drifted",
+                )
+            )
+        if event.get("status") != "completed_with_warnings":
+            issues.append(
+                (
+                    location,
+                    "bibliographic topology provenance must retain completed-with-warnings posture",
+                )
+            )
+        if isinstance(event_id, str):
+            if event_id in event_ids:
+                issues.append((location, f"duplicate event_id: {event_id}"))
+            else:
+                event_ids.add(event_id)
+                events_by_id[event_id] = event
+        if event_id == BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF:
+            topology_event = event
+
+    expected_topology_objects: dict[str, dict[str, set[str]]] = {
+        "has_expression": {
+            record_id: set()
+            for record_id, (payload, _) in records_by_id.items()
+            if payload.get("record_type") == "work"
+        },
+        "embodied_by": {
+            record_id: set()
+            for record_id, (payload, _) in records_by_id.items()
+            if payload.get("record_type") == "expression"
+        },
+        "exemplified_by": {
+            record_id: set()
+            for record_id, (payload, _) in records_by_id.items()
+            if payload.get("record_type") == "edition"
+        },
+    }
+    for expression_id, (expression, _) in records_by_id.items():
+        if expression.get("record_type") != "expression":
+            continue
+        work_ref = expression.get("work_ref")
+        if isinstance(work_ref, str):
+            expected_topology_objects["has_expression"].setdefault(
+                work_ref,
+                set(),
+            ).add(expression_id)
+    for edition_id, (edition, _) in records_by_id.items():
+        if edition.get("record_type") != "edition":
+            continue
+        for expression_ref in edition.get("embodies_expression_refs", []):
+            if isinstance(expression_ref, str):
+                expected_topology_objects["embodied_by"].setdefault(
+                    expression_ref,
+                    set(),
+                ).add(edition_id)
+    for item_id, edition_ref in item_edition_by_id.items():
+        expected_topology_objects["exemplified_by"].setdefault(
+            edition_ref,
+            set(),
+        ).add(item_id)
+
+    topology_claims_by_predicate_subject: dict[
+        str,
+        dict[str, dict[str, str]],
+    ] = {
+        predicate: {}
+        for _, predicate, _, _, _, _ in BIBLIOGRAPHIC_TOPOLOGY_ROUTES
+    }
+    seen_topology_pairs: set[tuple[str, str, str]] = set()
+
+    for (
+        claim_relative,
+        predicate,
+        subject_type,
+        object_type,
+        _claim_ref_field,
+        output_role,
+    ) in BIBLIOGRAPHIC_TOPOLOGY_ROUTES:
+        claim_path = repo_root / claim_relative
+        actual_paths = {
+            path.relative_to(repo_root)
+            for path in (repo_root / SOURCE_ROOT).rglob(claim_relative.name)
+        }
+        if actual_paths != {claim_relative}:
+            issues.append(
+                (
+                    claim_relative.as_posix(),
+                    "bibliographic topology claim basename must exist only at its owned relation route",
+                )
+            )
+        claim_file_ref = claim_relative.as_posix()
+        claim_file_digest = _sha256(claim_path) if claim_path.is_file() else None
+        if topology_event is not None and claim_file_digest is not None:
+            expected_output = {
+                "ref": claim_file_ref,
+                "role": output_role,
+                "sha256": claim_file_digest,
+            }
+            if expected_output not in topology_event.get("outputs", []):
+                issues.append(
+                    (
+                        claim_file_ref,
+                        "bibliographic topology provenance event does not digest-bind the claim file",
+                    )
+                )
+
+        for index, claim in enumerate(
+            _load_jsonl(claim_path, repo_root, issues),
+            start=1,
+        ):
+            location = f"{claim_file_ref}:{index}"
+            _validate_payload(claim, claim_validator, location, issues)
+            claim_id = claim.get("claim_id")
+            subject_ref = claim.get("subject_ref")
+            object_ref = claim.get("object")
+            if isinstance(claim_id, str):
+                if claim_id in claim_ids:
+                    issues.append((location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+            if claim.get("claim_type") != "bibliographic":
+                issues.append(
+                    (location, "bibliographic topology claim_type must be bibliographic")
+                )
+            if claim.get("assertion_layer") != "bibliographic_assertion":
+                issues.append(
+                    (
+                        location,
+                        "bibliographic topology assertion_layer must be bibliographic_assertion",
+                    )
+                )
+            if claim.get("predicate") != predicate:
+                issues.append(
+                    (location, f"{claim_relative.name} predicate must be {predicate}")
+                )
+            require_record(subject_ref, subject_type, location)
+            require_record(object_ref, object_type, location)
+            if claim.get("maker") != {
+                "maker_type": "model",
+                "agent_ref": "model:codex",
+            }:
+                issues.append((location, "bibliographic topology maker must be model:codex"))
+            if claim.get("provenance_event_ref") != BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF:
+                issues.append(
+                    (location, "bibliographic topology claim cites the wrong provenance event")
+                )
+            if claim.get("epistemic_status") != "observed":
+                issues.append(
+                    (location, "declared topology materialization must remain observed")
+                )
+            if claim.get("review_status") != "unreviewed" or claim.get("reviews") != []:
+                issues.append(
+                    (location, "bibliographic topology claims must remain unreviewed")
+                )
+            if claim.get("visibility") != "public_metadata_only":
+                issues.append(
+                    (
+                        location,
+                        "bibliographic topology claims must remain public metadata only",
+                    )
+                )
+
+            if isinstance(subject_ref, str) and isinstance(object_ref, str):
+                pair = (predicate, subject_ref, object_ref)
+                if pair in seen_topology_pairs:
+                    issues.append((location, f"duplicate bibliographic topology pair: {pair}"))
+                seen_topology_pairs.add(pair)
+                if isinstance(claim_id, str):
+                    topology_claims_by_predicate_subject[predicate].setdefault(
+                        subject_ref,
+                        {},
+                    )[claim_id] = object_ref
+                if object_ref not in expected_topology_objects[predicate].get(
+                    subject_ref,
+                    set(),
+                ):
+                    issues.append(
+                        (
+                            location,
+                            "claim is not backed by the declared corpus-record topology",
+                        )
+                    )
+
+            expected_evidence: set[str] = set()
+            for ref in (subject_ref, object_ref):
+                record = records_by_id.get(str(ref))
+                if record is not None:
+                    expected_evidence.add(_relative(record[1], repo_root))
+            if object_type == "item":
+                item_record = records_by_id.get(str(object_ref))
+                if item_record is not None:
+                    manifest_ref = item_record[0].get("item_manifest_ref")
+                    if isinstance(manifest_ref, str):
+                        expected_evidence.add(manifest_ref)
+            actual_evidence = set(claim.get("evidence_refs", []))
+            if actual_evidence != expected_evidence:
+                issues.append(
+                    (
+                        location,
+                        "bibliographic topology evidence must be the exact linked records and item manifest",
+                    )
+                )
+            if topology_event is not None:
+                event_inputs = {
+                    (entry.get("ref"), entry.get("sha256"))
+                    for entry in topology_event.get("inputs", [])
+                    if isinstance(entry, dict)
+                }
+                for evidence_ref in expected_evidence:
+                    evidence_path = repo_root / evidence_ref
+                    if evidence_path.is_file() and (
+                        evidence_ref,
+                        _sha256(evidence_path),
+                    ) not in event_inputs:
+                        issues.append(
+                            (
+                                location,
+                                "bibliographic topology provenance does not digest-bind "
+                                f"evidence input: {evidence_ref}",
+                            )
+                        )
+
+    for (
+        _claim_relative,
+        predicate,
+        subject_type,
+        _object_type,
+        claim_ref_field,
+        _output_role,
+    ) in BIBLIOGRAPHIC_TOPOLOGY_ROUTES:
+        for subject_ref, (subject, subject_path) in records_by_id.items():
+            if subject.get("record_type") != subject_type:
+                continue
+            location = _relative(subject_path, repo_root)
+            claims_for_subject = topology_claims_by_predicate_subject[predicate].get(
+                subject_ref,
+                {},
+            )
+            actual_claim_refs = set(subject.get(claim_ref_field, []))
+            expected_claim_refs = set(claims_for_subject)
+            if actual_claim_refs != expected_claim_refs:
+                issues.append(
+                    (
+                        location,
+                        f"{claim_ref_field} does not close over exact {predicate} claims",
+                    )
+                )
+            actual_objects = set(claims_for_subject.values())
+            expected_objects = expected_topology_objects[predicate].get(
+                subject_ref,
+                set(),
+            )
+            if actual_objects != expected_objects:
+                issues.append(
+                    (
+                        location,
+                        f"{predicate} claims do not close over declared corpus-record links",
+                    )
+                )
+
+    if topology_event is not None:
+        configuration = topology_event.get("method", {}).get("configuration", {})
+        expected_counts = {
+            "work_expression_claims_materialized": sum(
+                len(values)
+                for values in expected_topology_objects["has_expression"].values()
+            ),
+            "expression_edition_claims_materialized": sum(
+                len(values)
+                for values in expected_topology_objects["embodied_by"].values()
+            ),
+            "edition_item_claims_materialized": sum(
+                len(values)
+                for values in expected_topology_objects["exemplified_by"].values()
+            ),
+            "topology_claims_reviewed": 0,
+            "source_text_admitted": False,
+            "human_review_performed": False,
+            "textual_equivalence_claims_created": 0,
+            "semantic_claims_created": 0,
+            "canon_promotion_performed": False,
+        }
+        if configuration != expected_counts:
+            issues.append(
+                (
+                    BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
+                    "bibliographic topology provenance configuration differs from exact closure counts and authority limits",
+                )
+            )
 
     membership_claim_ids: set[str] = set()
     responsibility_claim_ids: set[str] = set()

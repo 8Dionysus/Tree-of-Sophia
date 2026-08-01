@@ -8,7 +8,7 @@ judgment true.
 
 | Contract | Owns |
 | --- | --- |
-| `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item catalog identity |
+| `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item identity plus exact outgoing Work→Expression, Expression→Edition, and Edition→Item claim closure refs |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
 | `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |

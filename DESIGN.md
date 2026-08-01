@@ -124,6 +124,15 @@ atlas/view graph projection: one reads the source-witness claim spine, while
 the other reads the philosophy branch and its review lenses. Neither is a
 second owner.
 
+The source spine now materializes the full declared identity ladder through
+three claim families: Work `has_expression` Expression, Expression
+`embodied_by` Edition, and Edition `exemplified_by` Item. Owner records keep
+the speaking structural links and cite the exact outgoing claim IDs; validation
+requires exact two-way closure against the claim packets and item manifests.
+This deliberate overlap is traceability, not competing truth. In particular,
+an embodiment link is bibliographic topology and cannot establish textual or
+critical-edition equivalence.
+
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes
 exact AND selectors and returns the source JSONL object plus its complete graph

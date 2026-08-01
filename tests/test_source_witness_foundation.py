@@ -1123,9 +1123,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(65, manifest["counts"]["object_total"])
-        self.assertEqual(31, manifest["counts"]["claim"])
-        self.assertEqual(96, manifest["counts"]["total"])
-        self.assertEqual(31, len(claim_entries))
+        self.assertEqual(86, manifest["counts"]["claim"])
+        self.assertEqual(151, manifest["counts"]["total"])
+        self.assertEqual(86, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1162,7 +1162,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 21,
+                "bibliographic_assertion": 76,
                 "scholarly_report": 10,
             },
             {
@@ -1182,6 +1182,23 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for entry in claim_entries
             )
         )
+        self.assertEqual(
+            {
+                "has_expression": 20,
+                "embodied_by": 20,
+                "exemplified_by": 15,
+            },
+            {
+                predicate: sum(
+                    entry["predicate"] == predicate for entry in claim_entries
+                )
+                for predicate in {
+                    "has_expression",
+                    "embodied_by",
+                    "exemplified_by",
+                }
+            },
+        )
         ecce_roles = {
             entry["predicate"]: entry["object"]
             for entry in claim_entries
@@ -1191,6 +1208,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.edition.friedrich-nietzsche.ecce-homo."
                 "leipzig-insel-verlag-1908",
             }
+            and entry["predicate"]
+            in {"authored_by", "edited_by", "afterword_by", "designed_by"}
         }
         self.assertEqual(
             {
@@ -1866,7 +1885,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for result in results.values()
             )
         )
-        self.assertEqual(2, work["record_version"])
+        self.assertEqual(3, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "jenseits-authorial-witness-route.2026-07-30.v1.json",
@@ -2109,7 +2128,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(3, work["record_version"])
+        self.assertEqual(4, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "genealogie-authorial-witness-route.2026-07-30.v1.json",
@@ -2433,7 +2452,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(3, work["record_version"])
+        self.assertEqual(4, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -2575,7 +2594,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(3, work["record_version"])
+        self.assertEqual(4, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "fall-wagner-authorial-witness-route.2026-07-30.v1.json",
@@ -2602,7 +2621,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         claims_by_predicate = {
             claim["predicate"]: claim for claim in publication_claims
         }
-        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(3, edition["record_version"])
         self.assertEqual(6, len(publication_claims))
         self.assertEqual(
             set(edition["publication_claim_refs"]),
@@ -2871,7 +2890,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(3, work["record_version"])
+        self.assertEqual(4, work["record_version"])
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "goetzen-daemmerung-authorial-witness-route."
@@ -2899,7 +2918,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         claims_by_predicate = {
             claim["predicate"]: claim for claim in publication_claims
         }
-        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(3, edition["record_version"])
         self.assertEqual(6, len(publication_claims))
         self.assertEqual(
             set(edition["publication_claim_refs"]),
@@ -3422,8 +3441,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(discovery["general_web_search_is_last_resort"])
         self.assertFalse(discovery["technical_access_bypass_used"])
 
-        self.assertEqual(4, work["record_version"])
-        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(5, work["record_version"])
+        self.assertEqual(3, edition["record_version"])
         self.assertEqual(4, len(responsibility_claims))
         self.assertEqual(
             set(work["responsibility_claim_refs"]),

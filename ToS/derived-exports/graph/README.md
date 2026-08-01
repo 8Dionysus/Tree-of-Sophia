@@ -27,6 +27,13 @@ dates, edition-state descriptions, or unresolved statuses into false
 identities. All current claims remain `unreviewed`; projection cannot change
 that state.
 
+The current reader includes the full declared identity ladder as reified
+claims: 20 `has_expression`, 20 `embodied_by`, and 15 `exemplified_by`
+packets. They enter only after exact record/manifest, claim-file, provenance,
+and review closure. No direct Work→Expression, Expression→Edition, or
+Edition→Item fact edge is emitted, and `embodied_by` remains bibliographic
+routing rather than textual equivalence.
+
 ## Read-only query route
 
 `scripts/query_source_witness_bibliographic_graph.py` is the repository-local
