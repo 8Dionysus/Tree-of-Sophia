@@ -174,6 +174,15 @@ translator label can establish an invariant Russian text. The 62,952,283-byte
 PDF remains ignored and local-only; the tracked layer admits no embedded OCR,
 equivalence, redistribution permission, or future-site payload.
 
+The provisional 1900 Antonovsky Expression now closes over one exact
+institutionally identified Edition. The Lithuanian National Library record
+reports Saint Petersburg, year 1900, `[s.n.]`, extent `[3], XI, 624 p.`, and
+one physical holding under call number `1.40686`. That remote holding is not a
+ToS Item: no source copy or bytes were acquired, `exemplar_claim_refs` remains
+empty, and no File, anchor, publisher identity, source text, rights clearance,
+collation, equivalence, or new derivation edge is admitted. A separate tiered
+research-copy request remains public-safe, optional, and `draft-not-sent`.
+
 The exact 1913 Antonovsky Expression separately closes over one
 `translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
 page 7, bound to the exact Item and file SHA-256 after direct source-visible

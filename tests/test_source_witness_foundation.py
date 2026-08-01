@@ -343,6 +343,25 @@ MYSL_RESPONSIBILITY_CLAIMS_PATH = (
     "works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl"
 )
 AGENT_ROOT = REPO_ROOT / "ToS/source-witnesses/agents"
+ANTONOVSKY_1900_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-antonovsky-1900"
+)
+ANTONOVSKY_1900_EDITION_ROOT = (
+    ANTONOVSKY_1900_EXPRESSION_ROOT
+    / "editions/saint-petersburg-unknown-publisher-1900"
+)
+ANTONOVSKY_1900_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json"
+)
+ANTONOVSKY_1900_REQUEST_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/access-requests/public-ledger/"
+    "antonovsky-1900-lnb-research-copy.access-request.json"
+)
 ANTONOVSKY_1911_EXPRESSION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -1450,10 +1469,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(82, manifest["counts"]["object_total"])
-        self.assertEqual(126, manifest["counts"]["claim"])
-        self.assertEqual(208, manifest["counts"]["total"])
-        self.assertEqual(126, len(claim_entries))
+        self.assertEqual(83, manifest["counts"]["object_total"])
+        self.assertEqual(127, manifest["counts"]["claim"])
+        self.assertEqual(210, manifest["counts"]["total"])
+        self.assertEqual(127, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1491,7 +1510,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 109,
+                "bibliographic_assertion": 110,
                 "scholarly_report": 17,
             },
             {
@@ -1522,7 +1541,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             {
                 "has_expression": 24,
-                "embodied_by": 21,
+                "embodied_by": 22,
                 "exemplified_by": 16,
                 "is_derivative_of": 2,
             },
@@ -2492,6 +2511,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "also-sprach-zarathustra/expressions"
         )
         expression_ids = {}
+        expected_embodiment_claims = {
+            "1900": [
+                "tos.claim.topology.expression-edition.friedrich-nietzsche."
+                "also-sprach-zarathustra.ru-antonovsky-1900.embodied-by."
+                "saint-petersburg-unknown-publisher-1900"
+            ],
+            "1903": [],
+            "1907": [],
+        }
         for year in ("1900", "1903", "1907"):
             payload = json.loads(
                 (expression_root / f"ru-antonovsky-{year}/expression.json").read_text(
@@ -2499,8 +2527,51 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 )
             )
             self.assertEqual("provisional", payload["identity_status"])
-            self.assertEqual([], payload["embodiment_claim_refs"])
+            self.assertEqual(
+                expected_embodiment_claims[year],
+                payload["embodiment_claim_refs"],
+            )
             expression_ids[year] = payload["record_id"]
+
+        edition = json.loads(
+            (ANTONOVSKY_1900_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("provisional", edition["identity_status"])
+        self.assertEqual(
+            [expression_ids["1900"]], edition["embodies_expression_refs"]
+        )
+        self.assertEqual([], edition["exemplar_claim_refs"])
+        self.assertEqual([], edition["publication_claim_refs"])
+        self.assertIsNone(edition["edition_statement"])
+        self.assertFalse((ANTONOVSKY_1900_EDITION_ROOT / "items").exists())
+        self.assertIn("[s.n.]", edition["notes"])
+
+        exact_discovery = json.loads(
+            ANTONOVSKY_1900_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("incomplete", exact_discovery["status"])
+        self.assertEqual(
+            "general-web-search", exact_discovery["channels"][-1]["channel_type"]
+        )
+        self.assertFalse(exact_discovery["technical_access_bypass_used"])
+
+        exact_request = json.loads(
+            ANTONOVSKY_1900_REQUEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("draft-not-sent", exact_request["request_status"])
+        self.assertFalse(exact_request["human_send_approval"])
+        self.assertIsNone(exact_request["sent_at"])
+        self.assertEqual("none", exact_request["response"]["state"])
+        self.assertEqual(
+            "not-requested",
+            exact_request["requested_permissions"]["source_redistribution"],
+        )
+        self.assertEqual(
+            "not-requested",
+            exact_request["requested_permissions"]["derivative_publication"],
+        )
 
         claim_path = (
             REPO_ROOT

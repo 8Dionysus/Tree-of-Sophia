@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 126)
-        self.assertEqual(counts["claim_traces"], 126)
-        self.assertEqual(counts["nodes"], 433)
-        self.assertEqual(counts["edges"], 884)
+        self.assertEqual(counts["source_claims"], 127)
+        self.assertEqual(counts["claim_traces"], 127)
+        self.assertEqual(counts["nodes"], 436)
+        self.assertEqual(counts["edges"], 890)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 126})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 126})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 127})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 127})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -890,8 +890,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
         payload = load_verified_projection()
-        result = query_projection(payload, predicate="embodied_by", limit=21)
-        self.assertEqual(result["result_count"], 21)
+        result = query_projection(payload, predicate="embodied_by", limit=22)
+        self.assertEqual(result["result_count"], 22)
         for match in result["matches"]:
             source_claim = match["source_return"]["source_claim"]
             self.assertEqual(source_claim["claim_type"], "bibliographic")

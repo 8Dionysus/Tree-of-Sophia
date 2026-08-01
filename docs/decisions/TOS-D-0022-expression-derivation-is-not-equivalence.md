@@ -34,6 +34,12 @@ textual equivalence, a distinct collated Expression for the 1899 Edition, or a
 direct 1900-to-1898 derivation. The already admitted two-edge revision chain
 therefore remains unchanged.
 
+A subsequent Lithuanian National Library record resolves the bibliographic
+identity of one Saint Petersburg 1900 Edition and one physical holding. It
+still adds no derivation edge: no source pages or bytes were acquired, the
+holding is not a ToS Item, and neither the catalog record nor edition sequence
+establishes collation, equivalence, or a 1900-to-1898/1899 textual dependency.
+
 Classical FRBR distinction between derivation and equivalence, current LRMoo
 `R76 is derivative of`, and current implementation evidence all point in the
 same direction: missing lineage must remain missing rather than be completed
@@ -101,6 +107,8 @@ rights, or promote semantics and canon.
 - `docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`
 - `ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md`
 - `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md`
+- `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md`
+- `ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json`
 - `ToS/contracts/expression-derivation.schema.json`
 - `ToS/contracts/claim-packet.schema.json`
 - `ToS/source-witnesses/relations/expression-derivation/expression-derivation-claims.jsonl`

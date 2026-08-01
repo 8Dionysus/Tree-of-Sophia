@@ -7,7 +7,11 @@
   "identity_status": "provisional",
   "source_refs": [
     "tos.anchor.also-sprach-zarathustra.ru-antonovsky-1911.translator-preface-revision-history",
-    "ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md"
+    "ToS/research-packets/foundation-laboratory-2026-07/EXPRESSION_DERIVATION_RELATION_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md",
+    "https://ibiblioteka.lt/metis/publication/C10000469160",
+    "https://ibiblioteka.lt/metis-api/bibliographic-records/public/4970734?language=en"
   ],
   "external_identifiers": [],
   "same_as_posture": "no_equivalence_claim",
@@ -15,9 +19,11 @@
   "language": "ru",
   "expression_role": "translation",
   "responsibility_claim_refs": [],
-  "embodiment_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1900.embodied-by.saint-petersburg-unknown-publisher-1900"
+  ],
   "derivation_claim_refs": [],
-  "notes": "Antonovsky's exact 1911 preface identifies a 1900 edition state in his translation lineage. No exact 1900 Edition, Item, source text, responsibility claim, collation, or equivalence is materialized here.",
-  "record_version": 1,
+  "notes": "Antonovsky's exact 1911 preface identifies a 1900 edition state in his translation lineage. The current Lithuanian National Library record now identifies one exact Saint Petersburg 1900 Edition, states translation responsibility for Yu. M. Antonovsky, records the publisher as unknown, gives extent [3], XI, 624 pages, and reports one physical holding under call number 1.40686. The Expression remains provisional because no source pages or bytes were acquired; no ToS Item, source text, separate responsibility claim, collation, equivalence, or 1900-to-1898/1899 derivation is materialized.",
+  "record_version": 2,
   "supersedes_ref": null
 }

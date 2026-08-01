@@ -14,8 +14,9 @@ Zarathustra part-IV provision chronology, and Antonovsky 1913 source-visible
 publisher/printer separation plus Naumann 1893 title-page provision identity
 and Jenseits 1886 plus Genealogie 1892 exact-Edition provision identity
 plus Cultural Revolution 2007 translation responsibility, the exact
-Antonovsky–Prometey 1911 source witness, and the bounded Antonovsky
-Expression-derivation contract/discovery route refreshed 2026-08-01
+Antonovsky–Prometey 1911 source witness, the bounded Antonovsky
+Expression-derivation contract/discovery route, and the exact Lithuanian
+National Library 1900 Edition/holding route refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -50,6 +51,7 @@ and what must be tested manually.
 | `ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md` | Why Antonovsky's own revision history requires a distinct 1911 Expression; how the exact fourth Edition, RSL/RuNEB Item, translator, Prometey publisher, Energiya printer, fixity, and local-only rights boundary remain source-returnable without accepting OCR, equivalence, or redistribution? |
 | `EXPRESSION_DERIVATION_RELATION_RESEARCH.md` | Which directed Expression-to-Expression revision relations the exact Antonovsky preface actually supports; how LRMoo R76, established version scholarship, current graph failures, and material discovery shape a non-transitive no-equivalence contract; and why 1911-to-1907 plus 2007-to-1911 remain deliberately absent? |
 | `ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md` | How the 1898 Bulgakov journal/supplement state, the uncredited 1899 *Reader* Edition, and Antonovsky's self-counted 1900 first Edition remain distinct; why the 2007 “first published in 1898” statement is compatible with the 1911 edition count; and why no 1898/1899/1900 equivalence or derivation edge is admitted without an exact institutional witness and collation? |
+| `ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md` | How the exact Lithuanian National Library record and holding materialize one provisional Saint Petersburg 1900 Edition without manufacturing a ToS Item; why `[s.n.]`, call number `1.40686`, missing bytes, and absent rights remain explicit; and how a public-safe, unsent research-copy request preserves the Edition/holding/acquisition boundary? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |

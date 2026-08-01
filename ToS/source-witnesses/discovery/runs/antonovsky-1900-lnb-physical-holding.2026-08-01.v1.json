@@ -1,0 +1,646 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1900-lnb-physical-holding.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1900"
+    ],
+    "description": "An exact institution-controlled physical or digital witness of the Saint Petersburg 1900 Antonovsky Zarathustra Edition, sufficient to resolve Edition identity, holding, source-visible provision statements, lawful local research access, file fixity, and redistribution posture without confusing same-year Russian translations.",
+    "required_properties": [
+      "originating institutional record and stable identifier",
+      "exact Antonovsky translator responsibility",
+      "physical holding and call number",
+      "complete page-level source return",
+      "source-visible title and provision statements",
+      "file fixity for any acquired reproduction",
+      "source-specific local-use and redistribution conditions"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated catalog and holding record plus a lawful complete research reproduction sufficient for bounded collation",
+      "a tiered institutional reproduction beginning with title, provision, preliminary, contents, and terminal pages"
+    ],
+    "languages": [
+      "ru",
+      "de",
+      "lt",
+      "en"
+    ],
+    "formats": [
+      "printed book",
+      "PDF",
+      "TIFF",
+      "JPEG",
+      "IIIF",
+      "UNIMARC",
+      "MARC21 XML",
+      "catalog metadata"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-lnb-ibiblioteka-exact-record-holding",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Martynas Mažvydas National Library of Lithuania / iBiblioteka public catalog and exemplar API",
+      "endpoint_url": "https://ibiblioteka.lt/metis/publication/C10000469160",
+      "interface_type": "api",
+      "interface_version": "METIS public API observed 2026-08-01",
+      "exact_query": "Public detailed search for title Так говорил Заратустра, person Nietzsche, publication year 1900, Russian language, followed by GET /metis-api/bibliographic-records/public/4970734?language=en and POST /metis-api/bibliographic-records/exemplars/search with recordId 4970734, empty library filters, groupResults true, page 0, pageSize 20, available false",
+      "queried_at": "2026-08-01T11:04:00-06:00",
+      "elapsed_seconds": 18,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1900-lnb-exact-bibliographic-record",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : книга для всех и ни для кого / Фридрих Ницше ; перевод с немецкого Ю.М. Антоновского",
+          "result_url": "https://ibiblioteka.lt/metis/publication/C10000469160",
+          "originating_record_url": "https://ibiblioteka.lt/metis-api/bibliographic-records/public/4970734?language=en",
+          "identifiers": [
+            {
+              "scheme": "iBiblioteka code",
+              "value": "C10000469160"
+            },
+            {
+              "scheme": "iBiblioteka record",
+              "value": "4970734"
+            },
+            {
+              "scheme": "UNIMARC 005",
+              "value": "20250416091534.4"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "JSON",
+            "UNIMARC",
+            "ISBD"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The originating national-library record exactly joins Antonovsky responsibility, Saint Petersburg, 1900, unknown publisher, Russian translated from German, printed-book format, and extent [3], XI, 624 pages. It resolves a provisional Edition identity but supplies no source pages or payload rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only bounded public metadata fields were transcribed into tracked research; the changing API response was not promoted as an immutable source snapshot."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1900-lnb-call-number-1-40686",
+          "rank": 2,
+          "title_as_displayed": "Lietuvos nacionalinė Martyno Mažvydo biblioteka — Bendrieji fondai (senasis) — 1.40686",
+          "result_url": "https://ibiblioteka.lt/metis-api/bibliographic-records/exemplars/search",
+          "originating_record_url": "https://ibiblioteka.lt/metis/publication/C10000469160",
+          "identifiers": [
+            {
+              "scheme": "LNB call number",
+              "value": "1.40686"
+            },
+            {
+              "scheme": "iBiblioteka library ID",
+              "value": "8938"
+            },
+            {
+              "scheme": "iBiblioteka department ID",
+              "value": "492158404"
+            }
+          ],
+          "available_formats": [
+            "JSON holdings metadata",
+            "printed book"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The exact exemplar response reports one in-place and currently available physical copy under call number 1.40686. It identifies the request target but is not an acquired ToS Item and provides no page-level access.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live holding response was queried directly and summarized without committing a mutable provider payload."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1900-lnb-nietzsche-bibliography",
+          "rank": 3,
+          "title_as_displayed": "F. Nyčė. Literatūros sąrašas",
+          "result_url": "https://lnb.lt/media/public/naujienos/F._Ny%C4%8D%C4%97._Literat%C5%ABros_s%C4%85ra%C5%A1as_2024_10.pdf",
+          "originating_record_url": "https://lnb.lt/media/public/naujienos/F._Ny%C4%8D%C4%97._Literat%C5%ABros_s%C4%85ra%C5%A1as_2024_10.pdf",
+          "identifiers": [],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The National Library's curated bibliography independently prints the exact title, Antonovsky responsibility, Saint Petersburg, [s.n.], 1900, and [3], XI, 624-page extent.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The bibliography was inspected as corroborating institutional metadata and not acquired as a target source witness."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-lnb-current-copy-rules-request-form",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Martynas Mažvydas National Library of Lithuania current use rules and reproduction request form",
+      "endpoint_url": "https://www.lnb.lt/media/public/english/pdf/rules_for_the_use_of_national_library_of_lithuania_2026.pdf",
+      "interface_type": "web",
+      "interface_version": "2026 rules and current public request form",
+      "exact_query": "Check the current official route for ordering copies of historic printed documents, required form fields, physical-condition and rights limits, fee posture, and institutional contact path before drafting any request",
+      "queried_at": "2026-08-01T11:09:00-06:00",
+      "elapsed_seconds": 9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.lnb-2026-rules-bounded-reproduction-route",
+          "rank": 1,
+          "title_as_displayed": "Rules for the Use of Martynas Mažvydas National Library of Lithuania (2026)",
+          "result_url": "https://www.lnb.lt/media/public/english/pdf/rules_for_the_use_of_national_library_of_lithuania_2026.pdf",
+          "originating_record_url": "https://www.lnb.lt/media/public/english/pdf/rules_for_the_use_of_national_library_of_lithuania_2026.pdf",
+          "identifiers": [],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current rules provide a lawful request-and-fee route for good-quality copies subject to condition, collection, intellectual-property, and agreement limits. They do not promise that this exact book can be copied.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current institutional rules remain external live evidence and must be refreshed before any send."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.lnb-annex-4-copy-request-form",
+          "rank": 2,
+          "title_as_displayed": "Annex No. 4 — request for document copies",
+          "result_url": "https://www.lnb.lt/media/public/english/pdf/Annex_4_2024.pdf",
+          "originating_record_url": "https://www.lnb.lt/media/public/english/pdf/Annex_4_2024.pdf",
+          "identifiers": [],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official form confirms that call number, title, page range, and desired digital parameters are the correct request coordinates. The tracked ToS card remains a draft and does not submit the form.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live official request form must be refreshed before a human-approved send."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-antonovsky-1900-negative-control",
+      "sequence": 3,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "German National Library SRU",
+      "endpoint_url": "https://services.dnb.de/sru/dnb",
+      "interface_type": "api",
+      "interface_version": "SRU 1.1 / MARC21 XML",
+      "exact_query": "per=\"Antonovskij\" and tit=\"Tak govoril Zaratustra\"; recordSchema=MARC21-xml; maximumRecords=100; extract record 001, 245, 250, 260, 264, and 300 from all nine returned records and test for a publication date of 1900",
+      "queried_at": "2026-08-01T11:14:00-06:00",
+      "elapsed_seconds": 2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-antonovsky-query-no-1900-record",
+          "rank": 1,
+          "title_as_displayed": "Nine Antonovsky Tak govoril Zaratustra records, publication years 1996–2019; no 1900 record",
+          "result_url": "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=per%3D%22Antonovskij%22%20and%20tit%3D%22Tak%20govoril%20Zaratustra%22&recordSchema=MARC21-xml&maximumRecords=100",
+          "originating_record_url": "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=per%3D%22Antonovskij%22%20and%20tit%3D%22Tak%20govoril%20Zaratustra%22&recordSchema=MARC21-xml&maximumRecords=100",
+          "identifiers": [],
+          "available_formats": [
+            "MARC21 XML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The query is a useful authority and coverage control, but direct field extraction shows only later publications. The 1900 in Nietzsche's lifespan must not be mistaken for a publication year.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live SRU response was parsed completely for bounded fields and retained as a negative result rather than a target snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rusneb-perelygina-1900-negative-control",
+      "sequence": 4,
+      "channel_type": "national-catalog",
+      "role": "digital-object-record",
+      "source_name": "Russian National Electronic Library",
+      "endpoint_url": "https://rusneb.ru/catalog/000201_000010_REDKOSTJ34077/",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Inspect the same-author, same-title, same-year 1900 RuNEB result and compare translator, place, publisher, extent, and series against the exact Antonovsky target",
+      "queried_at": "2026-08-01T11:17:00-06:00",
+      "elapsed_seconds": 3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.rusneb-1900-perelygina-not-antonovsky",
+          "rank": 1,
+          "title_as_displayed": "Собрание сочинений. 1900–1903. Т. 1. Так говорил Заратустра",
+          "result_url": "https://rusneb.ru/catalog/000201_000010_REDKOSTJ34077/",
+          "originating_record_url": "https://rusneb.ru/catalog/000201_000010_REDKOSTJ34077/",
+          "identifiers": [
+            {
+              "scheme": "RuNEB record",
+              "value": "000201_000010_REDKOSTJ34077"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "open-view digital object"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The record is Moscow, D. P. Efimov, 339 pages, translated by A. V. Perelygina. It is an exact identity negative control and not evidence for the Antonovsky Edition despite matching author, title, and year.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The originating national record is sufficient to reject the candidate without downloading an unrelated source payload."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-translation-scholarship",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established peer-reviewed Russian Zarathustra translation research",
+      "endpoint_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Check established scholarship for whether a matching translator, title, and edition sequence can substitute for exact witness comparison of philosophical meaning, style, rhythm, and strategy",
+      "queried_at": "2026-08-01T11:20:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1900-pertsev-2015-witness-control",
+          "rank": 1,
+          "title_as_displayed": "Для чего переводить Ницше заново?",
+          "result_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "originating_record_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.17072/2078-7898/2015-3-24-31"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established scholarship constrains the later comparison method: philosophical sense, voice, rhythm, and strategy require exact textual witnesses. It supplies no source-page or identity evidence for the 1900 copy.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article was reused as an established methodological control, not acquired as the target witness."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-translation-scholarship",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Higher School of Economics 2025 translation-comparison record",
+      "endpoint_url": "https://publications.hse.ru/en/articles/1061726305",
+      "interface_type": "web",
+      "interface_version": "current publication metadata checked 2026-08-01",
+      "exact_query": "Recheck the freshest inspectable scholarship comparing Antonovsky and other Russian Zarathustra states through variants, rhetoric, rhythm, archaism, and translation strategy",
+      "queried_at": "2026-08-01T11:22:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1900-ermakova-2025-variant-control",
+          "rank": 1,
+          "title_as_displayed": "Перевод Вяч. Иванова из книги Ф. Ницше «Так говорил Заратустра»",
+          "result_url": "https://publications.hse.ru/en/articles/1061726305",
+          "originating_record_url": "https://publications.hse.ru/en/articles/1061726305",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.17588/2076-9210.2025.2.170-177"
+            }
+          ],
+          "available_formats": [
+            "HTML",
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh scholarship confirms that variants and translation strategy must be compared at exact witness level. It does not authenticate or collate the 1900 Edition.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current supporting scholarship was checked as method evidence, not as the target historical witness."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-publisher-claim-last",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search for the unresolved 1900 publisher or printer",
+      "endpoint_url": "https://forum.mystic-school.ru/uploads/short-url/wqC31VwjWupUumGhoXc3xS4pAKP.pdf",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Exact phrase searches for Так говорил Заратустра, Ю. М. Антоновского, 1900, 624 pages, and Типография Б. М. Вольфа after all official and scholarly channels",
+      "queried_at": "2026-08-01T11:27:00-06:00",
+      "elapsed_seconds": 8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.general-web-b-m-wolf-1900-unresolved-role",
+          "rank": 1,
+          "title_as_displayed": "Bibliography-like table entry: Nietzsche, Antonovsky, Так говорил Заратустра, Типография Б. М. Вольфа, 1900, 624+ pages",
+          "result_url": "https://forum.mystic-school.ru/uploads/short-url/wqC31VwjWupUumGhoXc3xS4pAKP.pdf",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": [
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The metadata matches the LNB extent and names B. M. Wolf, but the source chain, catalog authority, and exact publisher-versus-printer role are not exposed. The current originating record retains [s.n.], so no provision claim is admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "A weak general-web lead was retained only as an unresolved source-page question and was not copied into corpus authority."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-lnb-ibiblioteka-exact-record-holding",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 18,
+      "notes": "Best identity and holding route: exact Edition metadata plus one call-numbered physical copy, but no digital content or payload rights."
+    },
+    {
+      "channel_id": "channel-lnb-current-copy-rules-request-form",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 9,
+      "notes": "Current official rules and form establish a lawful tiered request route without promising eligibility, price, or permission for this exact copy."
+    },
+    {
+      "channel_id": "channel-dnb-antonovsky-1900-negative-control",
+      "completeness": "limited",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2,
+      "notes": "Complete parsing of the nine exact-query results found only 1996–2019 publications; useful coverage control, not a target record."
+    },
+    {
+      "channel_id": "channel-rusneb-perelygina-1900-negative-control",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 3,
+      "notes": "Strong same-year identity control: Perelygina, Moscow, Efimov, and 339 pages distinguish it from Antonovsky, Saint Petersburg, and 624 pages."
+    },
+    {
+      "channel_id": "channel-established-translation-scholarship",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Established scholarship constrains witness-level comparison but provides no exact 1900 source, holding, or rights evidence."
+    },
+    {
+      "channel_id": "channel-current-translation-scholarship",
+      "completeness": "limited",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Fresh scholarship confirms variant-aware comparison and supplies no historical Item or collation."
+    },
+    {
+      "channel_id": "channel-general-web-publisher-claim-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 8,
+      "notes": "B. M. Wolf remains only a lead because the exact role and source chain are absent; general web cannot overwrite the originating record's unknown-publisher posture."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1900-lnb-exact-bibliographic-record",
+    "tos-discovery-result.antonovsky-1900-lnb-call-number-1-40686",
+    "tos-discovery-result.antonovsky-1900-lnb-nietzsche-bibliography",
+    "tos-discovery-result.lnb-2026-rules-bounded-reproduction-route",
+    "tos-discovery-result.lnb-annex-4-copy-request-form",
+    "tos-discovery-result.antonovsky-1900-pertsev-2015-witness-control",
+    "tos-discovery-result.antonovsky-1900-ermakova-2025-variant-control"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.dnb-antonovsky-query-no-1900-record",
+    "tos-discovery-result.rusneb-1900-perelygina-not-antonovsky"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-01T11:00:00-06:00",
+  "ended_at": "2026-08-01T11:34:40-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.antonovsky-1900-lnb-physical-holding.2026-08-01"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
