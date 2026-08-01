@@ -112,10 +112,11 @@ Item. ToS should adapt this distinction internally because a philosophical
 work, a German text state, a 2007 Russian edition, and one acquired PDF are
 not the same object.
 
-[LRMoo 1.0](https://repository.ifla.org/items/94aedb49-2d6e-4a6d-9974-f33abb7e3c0e)
-connects the bibliographic model to event-centric cultural-heritage modeling.
-It is useful where creation, translation, publication, digitization, and
-acquisition need explicit events.
+[LRMoo 1.1.1](https://cidoc-crm.org/lrmoo/fm_releases), the current Official
+(IFLA) release from November 2025, connects the bibliographic model to
+event-centric cultural-heritage modeling. It is useful where creation,
+translation, publication, item production, digitization, and acquisition need
+explicit and non-equivalent events.
 
 [BIBFRAME 2.0](https://www.loc.gov/bibframe/docs/bibframe2-model.html) is a
 necessary library-data crosswalk, especially for external catalog exchange.
@@ -124,9 +125,10 @@ Work/Instance/Item shape is less expressive than the edition, translation,
 and textual-witness distinctions required here.
 
 [CIDOC CRM version history](https://cidoc-crm.org/versions-of-the-cidoc-crm)
-shows 7.3.1 as the current official release in this snapshot. CRM/LRMoo should
-guide event and cultural-object interoperability, not force the first local
-storage representation.
+shows 7.3.2 as the newest draft and 7.1.3 as the current Official (ISO
+Correspondence) implementation line in the 2026-07-31 refresh. CRM/LRMoo
+should guide event and cultural-object interoperability, not force the first
+local storage representation or turn a draft number into claimed conformance.
 
 **Decision:** internal identities follow a local LRM-shaped profile; external
 BIBFRAME and LRMoo/CRM mappings are explicit projections.
