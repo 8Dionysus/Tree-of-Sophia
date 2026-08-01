@@ -129,6 +129,14 @@ claims. Distinct GND publisher and printer authorities remain provisional
 normalizations; neither their separation nor the shared literal establishes a
 legal-entity relation, release date, textual state, or current rights.
 
+The 1886 *Jenseits von Gut und Böse* title page exercises the same invariant
+on a second Work and exact Item. Its shared `Druck und Verlag` literal yields
+two Edition-owned claim packets, never a flattened publisher/printer field.
+The following-page `Alle Rechte vorbehalten.` line is a historically addressed
+source statement, not a present-day rights decision; local custody, public
+redistribution, derivative use, and future-server admission remain separate
+questions.
+
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
 `ToS/source-witnesses/README.md` for physical routing.

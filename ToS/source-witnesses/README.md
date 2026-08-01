@@ -240,6 +240,16 @@ printer Organizations remain distinct normalization targets without a legal-
 identity or `same_as` assertion. All ten Edition claims remain model-made,
 `public_metadata_only`, and `unreviewed`.
 
+The exact 1886 *Jenseits von Gut und Böse* Item adds a second shared-literal
+case without copying either 1893 claim. Its page-3 `Druck und Verlag` wording
+supports separate publication and manufacture claims through the same
+role-specific provisional publisher and printer Organizations. A separate
+page-4 anchor preserves `Alle Rechte vorbehalten.` only as historical rights
+evidence. All twelve Edition provision claims remain model-made,
+`public_metadata_only`, and `unreviewed`; no Edition statement, exact release,
+textual equivalence, current rights decision, or publication authority is
+created.
+
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
 the bracketed 1908 DNB year is not an exact release date; and the part-IV 1891
@@ -259,6 +269,9 @@ The exact consolidated-Edition statement, shared title-page provision literal,
 role-specific Naumann authorities, and historical translation-right boundary
 are recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md`.
+The independent 1886 *Jenseits* title-page and historical-rights pass is
+recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

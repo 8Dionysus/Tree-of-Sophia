@@ -1,0 +1,324 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.jenseits-1886-provision-identity.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+      "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf"
+    ],
+    "description": "Exact role-separated publication and manufacture identity for the fixity-verified Jenseits 1886 Item without deriving provision facts from labels or collapsing publisher, printer, place, statement year, printing completion, release, textual state, and current rights.",
+    "required_properties": [
+      "source-visible publication and manufacture statement",
+      "publisher and printer Organization separation",
+      "source-visible place and statement year",
+      "source-return anchors for the provision and historical-rights statements"
+    ],
+    "acceptable_substitutions": [
+      "an exact independent institutional record for the same 1886 manifestation that preserves the full imprint without asserting Item equivalence"
+    ],
+    "languages": ["de"],
+    "formats": ["PDF", "metadata", "JSON-LD", "HTML", "scholarly article", "historical-critical commentary"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-ia-jenseits-1886-exact-item",
+      "sequence": 1,
+      "channel_type": "collection-aggregator",
+      "role": "originating-record",
+      "source_name": "Internet Archive exact digital object and local fixity-verified Google/Harvard research copy",
+      "endpoint_url": "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+      "interface_type": "api",
+      "interface_version": "Internet Archive metadata API as served 2026-08-01 plus direct visual inspection of the exact local payload",
+      "exact_query": "Refresh item bub_gb_YIURAAAAYAAJ, verify the recorded PDF and OCR-companion identities, and visually inspect exact local PDF SHA-256 6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a on pages 3 and 4",
+      "queried_at": "2026-08-01T05:46:00-06:00",
+      "elapsed_seconds": 7.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ia-jenseits-1886-exact-item-provision",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse Vorspiel einer Philosophie der Zukunft",
+          "result_url": "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
+          "originating_record_url": "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+          "identifiers": [
+            {"scheme": "Internet Archive identifier", "value": "bub_gb_YIURAAAAYAAJ"},
+            {"scheme": "Google Books identifier", "value": "YIURAAAAYAAJ"},
+            {"scheme": "local SHA-256", "value": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"}
+          ],
+          "available_formats": ["Text PDF", "DjVu XML", "ABBYY GZ", "JSON metadata"],
+          "declared_rights": {
+            "statement": "Internet Archive exposes Public Domain Mark 1.0 for the digital object; the source itself also prints Alle Rechte vorbehalten on PDF page 4.",
+            "scope": "digital-object",
+            "evidence_url": "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Only the exact fixity-verified Item establishes the visible title-page imprint and historical rights statement; no payload, OCR, transcription, or rendered page is added to Git.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": "f15515bfd8741a7d99613592c800a44f61cfc6f25512b8eacf62f4ebbf8451c0", "reason": "The tracked source-metadata snapshot preserves originating-object identity; the current response digest aef60fcb3320d48bbf88b7e6f30fd4ed416a14b2a2056814b6bfa0f0f7bd4adb is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dnb-jenseits-naumann-authorities",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Deutsche Nationalbibliothek Work and GND authority records",
+      "endpoint_url": "https://d-nb.info/gnd/4211811-6",
+      "interface_type": "api",
+      "interface_version": "DNB catalog page as served 2026-08-01 and same-day GND linked-data observations already captured by the immediately preceding Naumann identity pass",
+      "exact_query": "Resolve Work GND 4211811-6, publisher GND 1072998033, printer GND 16034133-4, and Leipzig GND 4035206-7; retain role separation and reject same_as, legal unity, and succession inference",
+      "queried_at": "2026-08-01T05:51:00-06:00",
+      "elapsed_seconds": 8.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4211811-6-jenseits-work",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse",
+          "result_url": "https://d-nb.info/gnd/4211811-6",
+          "originating_record_url": "https://d-nb.info/gnd/4211811-6/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4211811-6"}],
+          "available_formats": ["HTML", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current Work authority identifies Nietzsche, the Work title, German language, and appearance in 1886 but is not Item identity, title-page transcription, or a release date.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current DNB page was inspected through the public catalog; no remote body is retained."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher-jenseits",
+          "rank": 2,
+          "title_as_displayed": "C. G. Naumann Verlag (Leipzig)",
+          "result_url": "https://d-nb.info/gnd/1072998033",
+          "originating_record_url": "https://d-nb.info/gnd/1072998033/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "1072998033"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The same-day authority evidence supports the existing role-specific publisher Organization and remains distinct from the printer authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest bd80376b3617c2ba761976097b844bdb0877c06e288982c6d89110bac6fcb972 is preserved in the preceding Naumann research; a later retry met HTTP 429 and was not bypassed."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-jenseits",
+          "rank": 3,
+          "title_as_displayed": "Druckerei C. G. Naumann",
+          "result_url": "https://d-nb.info/gnd/16034133-4",
+          "originating_record_url": "https://d-nb.info/gnd/16034133-4/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "16034133-4"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The distinct printer authority supports a role-specific provisional Organization without licensing a claim of legal separation from or identity with the publisher record.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest 212820db62cf1db8a4517328c8a48cb2377ed008ef901c7dbd232572eb3c255c is preserved in the preceding Naumann research; the later linked-data route failed and was not bypassed."}
+        },
+        {
+          "result_id": "tos-discovery-result.dnb-gnd-4035206-7-leipzig-jenseits",
+          "rank": 4,
+          "title_as_displayed": "Leipzig",
+          "result_url": "https://d-nb.info/gnd/4035206-7",
+          "originating_record_url": "https://d-nb.info/gnd/4035206-7/about/lds",
+          "identifiers": [{"scheme": "GND", "value": "4035206-7"}],
+          "available_formats": ["JSON-LD", "RDF"],
+          "declared_rights": {"statement": "GND metadata is supplied under CC0 1.0.", "scope": "metadata", "evidence_url": "https://www.dnb.de/EN/Professionell/Metadatendienste/Datenbezug/LDS/lds_node.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "The authority supports the existing provisional Place normalization and does not replace the exact title-page literal Leipzig.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The same-day response digest e4007667fe7377b9e87b7c64af8d51636c1fb80269fd80b875f747169a4042d6 is preserved in the preceding Naumann research; the later route failed and was not bypassed."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-erara-jenseits-1886-independent-record",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "originating-record",
+      "source_name": "Zentralbibliothek Zürich e-rara exact first-print record",
+      "endpoint_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+      "interface_type": "web",
+      "interface_version": "e-rara title record as served 2026-08-01",
+      "exact_query": "Inspect title record 20295083 for title, author, exact imprint, extent, shelfmark, DOI, IIIF route, and declared rights",
+      "queried_at": "2026-08-01T05:53:00-06:00",
+      "elapsed_seconds": 2.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.erara-20295083-jenseits-1886",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse : Vorspiel einer Philosophie der Zukunft",
+          "result_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "originating_record_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "identifiers": [{"scheme": "e-rara DOI", "value": "10.3931/e-rara-73194"}, {"scheme": "shelfmark", "value": "43.273"}],
+          "available_formats": ["HTML metadata", "IIIF", "PDF", "OCR", "ALTO XML", "RIS"],
+          "declared_rights": {"statement": "Public Domain Mark with institutional citation guidance.", "scope": "digital-object", "evidence_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The independent institutional record repeats the exact Druck und Verlag imprint and VI + 266-page extent; it corroborates the manifestation but is not downloaded or equated to the local Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The title record was inspected live; direct IIIF and raw-page curl routes returned HTTP 403 and were not bypassed."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-jenseits-genesis",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Beat Röllin genetic study and Andreas Urs Sommer historical-critical commentary",
+      "endpoint_url": "https://doi.org/10.1515/9783110298901.47",
+      "interface_type": "web",
+      "interface_version": "established 2013 and 2016 scholarship with current institutional records checked 2026-08-01",
+      "exact_query": "Constrain interpretation of the 1886 title-page year through the established print-manuscript, typesetting, correction, and later-copy sequence",
+      "queried_at": "2026-08-01T05:55:00-06:00",
+      "elapsed_seconds": 3.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.roellin-2013-jenseits-genesis",
+          "rank": 1,
+          "title_as_displayed": "Ein Fädchen um's Druckmanuskript und fertig? Zur Werkgenese von Jenseits von Gut und Böse",
+          "result_url": "https://doi.org/10.1515/9783110298901.47",
+          "originating_record_url": "https://edoc.unibas.ch/entities/publication/7eb961d3-05f5-4d51-966a-1f5f635acdc6",
+          "identifiers": [{"scheme": "DOI", "value": "10.1515/9783110298901.47"}],
+          "available_formats": ["institutional metadata", "publisher chapter"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The established genetic study prevents the title-page year from being flattened into exact printing completion, release, or one author-final textual stage.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current University of Basel response was inspected and hashed but not retained; SHA-256 a07dc6d73180c0aa9ddda9194386de8a7aced0ed11c0180b6bc795d24e5882d3 is recorded in the research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.sommer-2016-jenseits-commentary",
+          "rank": 2,
+          "title_as_displayed": "Kommentar zu Nietzsches Jenseits von Gut und Böse",
+          "result_url": "https://doi.org/10.11588/diglit.69929",
+          "originating_record_url": "https://doi.org/10.11588/diglit.69929",
+          "identifiers": [{"scheme": "DOI", "value": "10.11588/diglit.69929"}],
+          "available_formats": ["digital commentary", "metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The commentary preserves typesetting, correction, later-copy, and numbering stages that must remain distinct from the provision statement.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The established result is already bounded in the current Jenseits authorial-witness route; no content body is retained by this provision pass."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-jenseits-2025-2026",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Axel Pichler 2025 contrastive textual-genetic method and 2025-2026 freshness search",
+      "endpoint_url": "https://doi.org/10.24894/978-3-7965-5300-4",
+      "interface_type": "web",
+      "interface_version": "University of Vienna and Schwabe records as served 2026-08-01",
+      "exact_query": "Find the freshest directly relevant 2025-2026 work or official correction affecting Jenseits 1886 identity, provision, or stage separation",
+      "queried_at": "2026-08-01T05:57:00-06:00",
+      "elapsed_seconds": 3.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.pichler-2025-genese-kontext-these",
+          "rank": 1,
+          "title_as_displayed": "Genese – Kontext – These: Nietzsches Nachlass und das Potential textgenetischer Lektüren für die philosophiehistorische Forschung",
+          "result_url": "https://doi.org/10.24894/978-3-7965-5300-4",
+          "originating_record_url": "https://ucrisportal.univie.ac.at/de/publications/genese-kontext-these-nietzsches-nachlass-und-das-potential-textge/",
+          "identifiers": [{"scheme": "DOI", "value": "10.24894/978-3-7965-5300-4"}],
+          "available_formats": ["institutional metadata", "publisher chapter"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The 2025 JGB 22 case is the freshest direct methodological constraint found; it reinforces textual-stage separation but supplies no stronger imprint evidence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current University of Vienna response was inspected and hashed but not retained; SHA-256 02a3b8da143833594e3819548d09d76ffdd5b931721c8e2bbb45271c4f024eb8 is recorded in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-jenseits-1886-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after exact, official, established, and fresh routes",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results observed 2026-08-01",
+      "exact_query": "Jenseits von Gut und Böse Druck und Verlag von C. G. Naumann 1886",
+      "queried_at": "2026-08-01T05:59:00-06:00",
+      "elapsed_seconds": 1.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.abebooks-naumann-publisher-list-rejected",
+          "rank": 1,
+          "title_as_displayed": "Leipzig Verlag Von C G Naumann",
+          "result_url": "https://www.abebooks.co.uk/book-search/publisher/leipzig-verlag-von-c-g-naumann/",
+          "originating_record_url": "https://www.abebooks.co.uk/book-search/publisher/leipzig-verlag-von-c-g-naumann/",
+          "identifiers": [],
+          "available_formats": ["HTML marketplace listing"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Marketplace listings add no exact evidence stronger than the local title page, e-rara, or GND and are not admitted as bibliographic authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Rejected lead only."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id":"channel-ia-jenseits-1886-exact-item","completeness":"strong","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":7.8,"notes":"Only the exact fixity-verified Item proves the source-visible provision and historical-rights statements; the payload and renders remain local and untracked."},
+    {"channel_id":"channel-dnb-jenseits-naumann-authorities","completeness":"strong","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"limited","human_minutes":0,"machine_seconds":8.2,"notes":"Best current Work, Organization, and Place identity layer; later GND refresh attempts met rate limits and connection failures without bypass."},
+    {"channel_id":"channel-erara-jenseits-1886-independent-record","completeness":"strong","metadata_precision":"strong","rights_clarity":"strong","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":2.4,"notes":"Independent exact first-print record repeats the full imprint and extent; its IIIF route returned HTTP 403 and was not bypassed."},
+    {"channel_id":"channel-established-jenseits-genesis","completeness":"strong","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":3.1,"notes":"Established genetics constrains chronology and textual-stage interpretation but does not replace the exact title page."},
+    {"channel_id":"channel-fresh-jenseits-2025-2026","completeness":"adequate","metadata_precision":"strong","rights_clarity":"limited","machine_interface_quality":"strong","human_minutes":0,"machine_seconds":3.9,"notes":"The 2025 contrastive method is directly relevant to stage separation; no 2026 provision correction was found."},
+    {"channel_id":"channel-general-web-jenseits-1886-last","completeness":"limited","metadata_precision":"limited","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":1.2,"notes":"General web ran last; marketplace evidence was explicitly rejected."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.ia-jenseits-1886-exact-item-provision",
+    "tos-discovery-result.dnb-gnd-4211811-6-jenseits-work",
+    "tos-discovery-result.dnb-gnd-1072998033-naumann-publisher-jenseits",
+    "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-jenseits",
+    "tos-discovery-result.dnb-gnd-4035206-7-leipzig-jenseits",
+    "tos-discovery-result.erara-20295083-jenseits-1886",
+    "tos-discovery-result.roellin-2013-jenseits-genesis",
+    "tos-discovery-result.sommer-2016-jenseits-commentary",
+    "tos-discovery-result.pichler-2025-genese-kontext-these"
+  ],
+  "rejected_result_ids": ["tos-discovery-result.abebooks-naumann-publisher-list-rejected"],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T05:42:00-06:00",
+  "ended_at": "2026-08-01T06:00:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": ["tos.event.discovery.jenseits-1886-provision-identity.2026-08-01"],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

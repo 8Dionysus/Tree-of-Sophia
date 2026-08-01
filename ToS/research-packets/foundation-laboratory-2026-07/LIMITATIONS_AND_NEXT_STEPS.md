@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 74 current objects and all 110
+- The source-witness catalog now exposes all 74 current objects and all 112
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 110 claims as reified
-  claim nodes with 744 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 112 claims as reified
+  claim nodes with 768 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 110 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 112 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -674,6 +674,18 @@ not reintroduce a false 90 °C gate.
   and the printer query returns manufacture alone. This proves source return
   and role separation, not legal-entity relations, a universal Edition ordinal,
   release, accepted German, current rights, human review, semantics,
+  publication, or canon.
+- The subsequent *Jenseits von Gut und Böse* 1886 provision-identity slice
+  adds two proposed page-region anchors and two exact Edition-owned unreviewed
+  claims over its own page-3 `Druck und Verlag` literal. It reuses the distinct
+  provisional publisher and printer Organizations without importing the 1893
+  claims. Page 4's `Alle Rechte vorbehalten.` remains historical evidence;
+  current rights stay undetermined and local-only, with redistribution and
+  derivative use unknown. The rebuilt catalog contains 74 objects and 112
+  claims; the portable graph contains 377 nodes, 768 claim-centred edges, 112
+  source-return traces, and no direct subject-object edge. This proves exact
+  projection and role separation, not an Edition statement, legal identity,
+  release, accepted German, rights clearance, human review, semantics,
   publication, or canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit

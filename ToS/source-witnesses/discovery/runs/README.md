@@ -239,3 +239,14 @@ publication history before fresh and general-web-last checks. No legal-entity
 relation, universal Work-level edition ordinal, exact release, accepted text,
 current rights conclusion, human review, semantics, publication, or canon is
 created.
+
+`jenseits-1886-provision-identity.2026-08-01.v1.json` independently returns to
+the exact fixity-verified Naumann 1886 PDF and its page-3 `Druck und Verlag`
+imprint before normalization. Current DNB/GND Work, publisher, printer, and
+Place authorities are followed by an independent Zentralbibliothek Zürich
+e-rara record, established textual-genetic work, a fresh 2025 method study,
+and general web last. Page 4's `Alle Rechte vorbehalten.` is retained only as
+historical evidence. Rate-limited GND retries and an e-rara HTTP 403 route were
+not bypassed; no source body was acquired, no marketplace result was promoted,
+and no Edition statement, release, textual equivalence, rights clearance,
+human review, semantics, publication, or canon is created.

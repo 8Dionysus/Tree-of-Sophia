@@ -104,6 +104,16 @@ PDF pages 1 through 16 were rendered and inspected by the model:
 The contact sheet remains machine-local laboratory evidence. No human has
 independently repeated this review.
 
+The exact payload was re-hashed and pages 3-4 were rendered again on
+2026-08-01 for the bounded provision-identity pass. PDF page 3 visibly prints
+`Leipzig / Druck und Verlag von C. G. Naumann. / 1886.`; PDF page 4 visibly
+prints `Alle Rechte vorbehalten.` Two proposed page-region anchors preserve
+those different evidence roles. The first statement supports separate
+unreviewed publication and manufacture claims over one literal; the second is
+historical rights evidence only. Neither creates an exact printing-completion
+or release date, a legal relation between publisher and printer authorities,
+current rights clearance, or accepted German text.
+
 A later bounded model review used the exact visible scan to resolve OCR numeral
 gaps while recovering numbered-unit start pages. It directly inspected the
 ambiguous starts for units 15, 18, 23, 24, 30, 32, 108, 110, 131, 151, 160,

@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 110 public-metadata-only bibliographic claims;
-- 368 nodes and 744 edges;
-- 110 claim trace packets;
-- 29 claim-scoped literal objects;
-- 20 resolved provenance events carrying exact time and method;
+- 112 public-metadata-only bibliographic claims;
+- 377 nodes and 768 edges;
+- 112 claim trace packets;
+- 31 claim-scoped literal objects;
+- 21 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 110 explicit `unreviewed` states.
+- 112 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -79,7 +79,7 @@ The chronology layer separately carries seven Work
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
 
-The 2026-08-01 bounded provision surface contains ten Edition-owned literal
+The 2026-08-01 bounded provision surface contains twelve Edition-owned literal
 objects, three normalized Places, and six distinct historical Organizations.
 The original two-case A/B/C result remains frozen; a separate
 extension adds only the exact 1883 first-part *Zarathustra* statement, Chemnitz,
@@ -92,14 +92,17 @@ Antonovsky Item then contributes one publication claim across its cover and
 title page plus a separate manufacture claim for the following-page printer
 line. The consolidated 1893 Naumann title page then contributes one publication
 and one manufacture claim over the same exact `Druck und Verlag` literal while
-keeping the publisher and printer Organization routes distinct. All twenty
-normalized-participant edges begin at claim nodes. Exact normalized queries
-return five claims for Leipzig, three distinct claims for Chemnitz or
+keeping the publisher and printer Organization routes distinct. The exact 1886
+*Jenseits von Gut und Böse* Item then contributes its own publication and
+manufacture pair over a separately addressed title-page `Druck und Verlag`
+literal, with the following-page historical rights statement outside the
+provision object. All twenty-four normalized-participant edges begin at claim
+nodes. Exact normalized queries return seven claims for Leipzig, three distinct claims for Chemnitz or
 Schmeitzner, two claims for Saint Petersburg, one exact part-IV subject result,
 and two exact consolidated-1893 subject results. The modern Berlin Insel
 successor, Person Ernst Schmeitzner GND, and Naumann founder Person remain
 outside the normalized claim routes; the Naumann printer is reachable only
-through the 1893 manufacture claim. Vladimir Posse and the
+through the two exact 1893 and 1886 manufacture claims. Vladimir Posse and the
 brothers-Linnik printer-as-publisher shortcut are likewise absent. The graph creates no direct
 Edition-to-Place or Edition-to-Organization assertion.
 
@@ -132,12 +135,12 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 110/110 catalog rows returning to the expected source line and canonical
+- 112/112 catalog rows returning to the expected source line and canonical
   claim digest;
-- 110/110 graph traces returning to the same source line and digest;
-- 368 nodes, including 110 claims, 74 identities, 134 evidence nodes, 29
-  literals, one maker, and 20 provenance events;
-- 744/744 edges beginning at their own reified claim node;
+- 112/112 graph traces returning to the same source line and digest;
+- 377 nodes, including 112 claims, 74 identities, 138 evidence nodes, 31
+  literals, one maker, and 21 provenance events;
+- 768/768 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
 
 The original two provision rows were additionally inspected from metadata
@@ -155,8 +158,13 @@ Organization, manufacture reaches only the brothers-Linnik Organization, and
 both retain their own source-return paths. The consolidated Naumann 1893 pair
 was inspected by exact Edition, publisher, printer, and Leipzig queries:
 publication and manufacture return two distinct claims over the same literal,
-the printer query returns manufacture alone, and every edge remains claim-
-originating. None of these episodes creates human review evidence.
+the printer query returned manufacture alone at that checkpoint, and every
+edge remained claim-originating. The later Jenseits 1886 pair was independently
+inspected by exact Edition and normalized publisher/printer queries: both
+claims return to their exact source rows, the printer route now contains only
+the two manufacture claims, and the publisher route contains the exact
+Jenseits Edition without collapsing the two Organizations. None of these
+episodes creates human review evidence.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

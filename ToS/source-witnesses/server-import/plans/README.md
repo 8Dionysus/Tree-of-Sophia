@@ -21,7 +21,10 @@ already been reviewed.
 The tenth plan covers the exact 1886 Naumann *Jenseits von Gut und Böse*
 Harvard/Google scan selected through Internet Archive. Its Public Domain Mark,
 historical age, open route, and source-visible title page are retained as
-positive publication-candidate evidence. The plan still transfers no local
+positive publication-candidate evidence. The separately addressed `Alle
+Rechte vorbehalten.` line is historical evidence rather than a current legal
+conclusion, so the record remains rights-unknown and local-only, with
+redistribution and derivative publication unknown. The plan still transfers no local
 payload: a future site may only select or reacquire an independently reviewed
 authorized object, and neither the embedded OCR nor any German–Russian
 derivative inherits publication approval from the scan record.

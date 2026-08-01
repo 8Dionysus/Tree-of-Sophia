@@ -12,7 +12,7 @@ bibliographic time/place/provision responsibility refreshed 2026-07-31;
 Mysl and Antonovsky translator-Agent identity reconciliation, exact
 Zarathustra part-IV provision chronology, and Antonovsky 1913 source-visible
 publisher/printer separation plus Naumann 1893 title-page provision identity
-refreshed 2026-08-01
+and Jenseits 1886 exact-Edition provision identity refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -41,6 +41,7 @@ and what must be tested manually.
 | `ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md` | Why the exact DTA `Naumann; Leipzig; 1891` statement is admissible only as a reported Edition provision facet; how official and established evidence separates the 1885 private print, 1890 printing, 1891 statement/planned delivery, and March-1892 delivery; and why publisher, printer, founder Person, copy-count conflict, and release remain distinct? |
 | `ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md` | Why the exact 1913 cover imprint, title-page place/year, and printer line require three source-return anchors and two distinct Edition provision claims; why the title page alone does not name the publisher; and why `Жизнь для всех`, the brothers-Linnik printer, Vladimir Posse, edition number, release, text, and rights cannot be collapsed? |
 | `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` | Why the exact `Zweite Auflage` wording, combined `Druck und Verlag` imprint, publisher/printer authority split, Leipzig statement year, release chronology, textual state, and historical translation-right reservation must remain distinct? |
+| `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` | Why the exact 1886 *Jenseits* `Druck und Verlag` literal supports separate publication and manufacture claims; why the page-4 rights reservation is historical evidence only; and why Edition statement, release, textual state, current rights, publisher/printer legal identity, and marketplace metadata remain outside the claim? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |

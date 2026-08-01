@@ -48,17 +48,38 @@ MYSL_WORK_BOUNDARY_ROOT = (
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
     "works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries"
 )
-JENSEITS_1886_ITEM_ROOT = (
+JENSEITS_1886_EXPRESSION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
-    "jenseits-von-gut-und-boese/expressions/de-naumann-1886/"
-    "editions/leipzig-c-g-naumann-1886/items/"
-    "internet-archive-google-harvard-scan-pdf"
+    "jenseits-von-gut-und-boese/expressions/de-naumann-1886"
+)
+JENSEITS_1886_EDITION_ROOT = (
+    JENSEITS_1886_EXPRESSION_ROOT / "editions/leipzig-c-g-naumann-1886"
+)
+JENSEITS_1886_ITEM_ROOT = (
+    JENSEITS_1886_EDITION_ROOT
+    / "items/internet-archive-google-harvard-scan-pdf"
+)
+JENSEITS_1886_PROVISION_CLAIMS_PATH = (
+    JENSEITS_1886_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+JENSEITS_1886_PROVISION_ANCHORS_PATH = (
+    JENSEITS_1886_EXPRESSION_ROOT / "structure/provision-statements/anchors.jsonl"
 )
 JENSEITS_1886_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
     "jenseits-naumann-1886-open-scan-witness.2026-07-28.v1.json"
+)
+JENSEITS_1886_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "jenseits-1886-provision-identity.2026-08-01.v1.json"
+)
+JENSEITS_1886_PROVISION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md"
 )
 JENSEITS_AUTHORIAL_DISCOVERY_PATH = (
     REPO_ROOT
@@ -1337,9 +1358,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(74, manifest["counts"]["object_total"])
-        self.assertEqual(110, manifest["counts"]["claim"])
-        self.assertEqual(184, manifest["counts"]["total"])
-        self.assertEqual(110, len(claim_entries))
+        self.assertEqual(112, manifest["counts"]["claim"])
+        self.assertEqual(186, manifest["counts"]["total"])
+        self.assertEqual(112, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1376,7 +1397,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 93,
+                "bibliographic_assertion": 95,
                 "scholarly_report": 17,
             },
             {
@@ -1481,7 +1502,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(10, len(provision_claims))
+        self.assertEqual(12, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
@@ -1856,6 +1877,129 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         research = NAUMANN_1893_PROVISION_RESEARCH_PATH.read_text(encoding="utf-8")
         self.assertIn("one universal", research)
         self.assertIn("historical rights statement", research)
+
+    def test_jenseits_1886_provision_separates_publisher_and_printer(
+        self,
+    ) -> None:
+        edition = json.loads(
+            (JENSEITS_1886_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        claims = [
+            json.loads(line)
+            for line in JENSEITS_1886_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual(2, len(claims))
+        self.assertEqual(
+            {claim["claim_id"] for claim in claims},
+            set(edition["provision_activity_claim_refs"]),
+        )
+        self.assertIsNone(edition["edition_statement"])
+
+        by_kind = {claim["object"]["provision_kind"]: claim for claim in claims}
+        self.assertEqual({"publication", "manufacture"}, set(by_kind))
+        publication = by_kind["publication"]
+        manufacture = by_kind["manufacture"]
+        exact_statement = "Leipzig / Druck und Verlag von C. G. Naumann. / 1886."
+        self.assertEqual(
+            exact_statement, publication["object"]["transcribed_statement"]
+        )
+        self.assertEqual(
+            exact_statement, manufacture["object"]["transcribed_statement"]
+        )
+        self.assertEqual(
+            {
+                "role": "publisher",
+                "literal_form": "C. G. Naumann",
+                "normalized_agent_ref": (
+                    "tos.organization.c-g-naumann-verlag-leipzig"
+                ),
+            },
+            publication["object"]["agents"][0],
+        )
+        self.assertEqual(
+            {
+                "role": "printer",
+                "literal_form": "C. G. Naumann",
+                "normalized_agent_ref": (
+                    "tos.organization.druckerei-c-g-naumann-leipzig"
+                ),
+            },
+            manufacture["object"]["agents"][0],
+        )
+        self.assertEqual(
+            "publication_place", publication["object"]["places"][0]["role"]
+        )
+        self.assertEqual(
+            "manufacture_place", manufacture["object"]["places"][0]["role"]
+        )
+        self.assertTrue(
+            all(
+                claim["object"]["places"][0]["normalized_place_ref"]
+                == "tos.place.leipzig"
+                and claim["object"]["temporal"]["value"] == "1886"
+                and claim["object"]["temporal"]["role"] == "statement_date"
+                and claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in claims
+            )
+        )
+
+        anchors = [
+            json.loads(line)
+            for line in JENSEITS_1886_PROVISION_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual([3, 4], [row["selectors"][0]["page"] for row in anchors])
+        self.assertEqual(
+            {"6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"},
+            {row["file_sha256"] for row in anchors},
+        )
+        self.assertTrue(all(row["status"] == "proposed" for row in anchors))
+
+        discovery = json.loads(
+            JENSEITS_1886_PROVISION_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6],
+            [row["sequence"] for row in discovery["channels"]],
+        )
+        self.assertEqual(
+            "university-catalog", discovery["channels"][2]["channel_type"]
+        )
+        self.assertEqual(
+            "channel-general-web-jenseits-1886-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-jenseits",
+            discovery["selected_result_ids"],
+        )
+        self.assertEqual(
+            ["tos-discovery-result.abebooks-naumann-publisher-list-rejected"],
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        rights = json.loads(
+            (JENSEITS_1886_ITEM_ROOT / "rights.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("unknown", rights["derivative_posture"])
+        self.assertTrue(
+            any("Alle Rechte vorbehalten" in row for row in rights["restrictions"])
+        )
+        research = JENSEITS_1886_PROVISION_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("historical rights evidence only", research)
+        self.assertIn("General web search ran last", research)
 
     def test_antonovsky_1913_provision_separates_publisher_and_printer(
         self,
@@ -2986,7 +3130,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertEqual(3, len(server_plan["payload_files"]))
-        self.assertEqual(2, server_plan["contract_version"])
+        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.jenseits-naumann-1886."
+                "historical-rights-refresh.2026-08-01"
+            ],
+            server_plan["provenance_event_refs"],
+        )
         self.assertEqual(
             "prohibited",
             server_plan["allowed_derivatives"]["transcription"]["state"],

@@ -118,6 +118,14 @@ page's historical translation-right reservation changes neither current
 rights nor publication posture; it remains anchored evidence and the local
 payload remains unpublishable by default.
 
+The exact Naumann 1886 *Jenseits von Gut und Böse* Edition then repeats the
+shared-literal test without inheriting the 1893 claim. Its title-page `Druck
+und Verlag` wording opens one publication and one manufacture claim through
+the same two role-specific provisional Organizations; separate page anchors
+address the imprint and `Alle Rechte vorbehalten.` line. The latter remains
+historical evidence only, while current rights stay undetermined and the
+operator-held payload stays local.
+
 ## Operating Card
 
 | Field | Route |

@@ -14,8 +14,11 @@
   "identity_status": "verified",
   "source_refs": [
     "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/structure/provision-statements/anchors.jsonl",
+    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md",
     "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
-    "https://d-nb.info/gnd/4211811-6"
+    "https://d-nb.info/gnd/4211811-6",
+    "https://www.e-rara.ch/zuz/content/titleinfo/20295083"
   ],
   "external_identifiers": [],
   "same_as_posture": "no_equivalence_claim",
@@ -24,10 +27,14 @@
   ],
   "edition_statement": null,
   "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.jenseits-von-gut-und-boese.naumann-1886.provision-publication",
+    "tos.claim.edition.jenseits-von-gut-und-boese.naumann-1886.provision-manufacture"
+  ],
   "exemplar_claim_refs": [
     "tos.claim.topology.edition-item.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886.exemplified-by.internet-archive-google-harvard-scan-pdf"
   ],
-  "notes": "The source-visible title page and Internet Archive metadata agree on Nietzsche, Leipzig, C. G. Naumann, and 1886. This identifies the scanned edition; bibliographic identity does not accept the embedded OCR text or establish critical-text equivalence.",
-  "record_version": 2,
+  "notes": "The exact fixity-verified title page prints Leipzig, Druck und Verlag von C. G. Naumann, and 1886. Publication and manufacture are preserved as separate unreviewed claims over the same literal with role-specific provisional Organization identities. This identifies the scanned edition but does not supply an Edition statement, exact printing or release chronology, accepted German, first-print or author-final textual equivalence, or rights clearance.",
+  "record_version": 3,
   "supersedes_ref": null
 }

@@ -138,6 +138,16 @@ provisional printer Organization. The following-page historical translation-
 right reservation remains evidence, not current permission or prohibition;
 the Item stays local-only and redistribution remains unauthorized.
 
+A seventh pass returns independently to the fixity-verified 1886 *Jenseits
+von Gut und Böse* Item. PDF page 3 carries one `Druck und Verlag` literal, so
+the exact Edition owns separate publication and manufacture claims resolving
+to the existing provisional GND-backed publisher and printer Organizations.
+PDF page 4's `Alle Rechte vorbehalten.` is preserved only as historical
+evidence: it supplies neither current permission nor prohibition. The Item
+remains local-only, redistribution and derivatives remain unknown, and no
+Edition statement, exact release, accepted German, human review, semantics,
+publication, or canon follows.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

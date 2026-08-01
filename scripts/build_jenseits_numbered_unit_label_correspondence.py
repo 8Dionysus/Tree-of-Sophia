@@ -60,6 +60,10 @@ MAP_ID = (
 )
 EVENT_ID = (
     "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
+    "jenseits-von-gut-und-boese.rights-refresh.2026-08-01"
+)
+SUPERSEDED_EVENT_ID = (
+    "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
     "jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996."
     "2026-07-29"
 )
@@ -279,7 +283,7 @@ def build_outputs(
         },
         "provenance_ref": PROVENANCE_PATH.as_posix(),
         "provenance_event_ref": EVENT_ID,
-        "map_version": 1,
+        "map_version": 2,
         "supersedes_map_ref": None,
         "authority_boundary": AUTHORITY_BOUNDARY,
         "does_not_establish": DOES_NOT_ESTABLISH,
@@ -362,7 +366,7 @@ def build_outputs(
         "receipt_refs": [MAP_PATH.as_posix()],
         "rights_basis_ref": None,
         "event_version": 1,
-        "supersedes_event_ref": None,
+        "supersedes_event_ref": SUPERSEDED_EVENT_ID,
     }
     return rendered_map, _render_jsonl([provenance])
 
@@ -377,7 +381,7 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument(
         "--event-at",
-        default="2026-07-29T02:24:00-06:00",
+        default="2026-08-01T06:22:00-06:00",
     )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
