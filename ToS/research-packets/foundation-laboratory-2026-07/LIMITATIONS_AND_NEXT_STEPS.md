@@ -103,17 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 73 current objects and all 108
+- The source-witness catalog now exposes all 74 current objects and all 110
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 108 claims as reified
-  claim nodes with 720 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 110 claims as reified
+  claim nodes with 744 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 108 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 110 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -167,6 +167,16 @@ contracts intentionally reject simulated human evidence.
   displayed imprint, and no edition number, release, accepted bibliography,
   text, translation quality, rights decision, human review, semantics, or
   canon follows from the two claims.
+- The consolidated Naumann 1893 Edition now adds one exact Edition statement,
+  one publication claim, and one manufacture claim only after exact pages 46
+  and 47 of the fixity-verified PDF were inspected. The same combined `Druck
+  und Verlag` literal supports both provision roles, while GND publisher and
+  printer records remain separate provisional Organizations with no asserted
+  legal identity, separation, or succession. `Zweite Auflage` is manifestation
+  wording rather than a universal Work ordinal, and the historical
+  `Uebersetzungsrecht vorbehalten.` line is neither current permission nor
+  prohibition. Release, accepted bibliography or German, current rights,
+  human review, semantics, publication, and canon remain unresolved.
 - Its read-only query route requires an exact selector, validates a full
   source-backed rebuild before answering, returns the exact source claim and
   complete trace bundle, and fails rather than silently truncate. This proves
@@ -653,6 +663,17 @@ not reintroduce a false 90 °C gate.
   while a Posse substitution returns no match. This proves role separation and
   source return, not accepted bibliography, edition numbering, release,
   Russian text, translation quality, rights, human review, semantics,
+  publication, or canon.
+- The subsequent Naumann 1893 provision-identity slice adds three proposed
+  page-region anchors, one new provisional printer Organization, one refreshed
+  provisional publisher Organization, and two exact Edition-owned unreviewed
+  claims. The rebuilt source catalog contains 74 objects and 110 claims; the
+  portable bibliographic graph contains 368 nodes, 744 claim-centred edges,
+  and 110 source-return traces with no direct subject-object edge. Exact
+  Edition, publisher, printer, and Leipzig queries keep the two roles separate,
+  and the printer query returns manufacture alone. This proves source return
+  and role separation, not legal-entity relations, a universal Edition ordinal,
+  release, accepted German, current rights, human review, semantics,
   publication, or canon.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit

@@ -228,3 +228,14 @@ absence of a stronger national-library manifestation record, and general web
 runs last. No payload is copied, no access control is bypassed, and no edition
 number, release, accepted text, rights decision, semantics, human review, or
 canon is created.
+
+`naumann-1893-provision-identity.2026-08-01.v1.json` returns to the exact
+fixity-verified Internet Archive PDF before authority normalization. It
+separately anchors the title-page Edition statement and combined `Druck und
+Verlag` imprint, then the following-page historical translation-right
+reservation. Current GND records keep the Leipzig publisher, printer, and
+Place as distinct normalization targets; Hoffmann and DLA preserve the staged
+publication history before fresh and general-web-last checks. No legal-entity
+relation, universal Work-level edition ordinal, exact release, accepted text,
+current rights conclusion, human review, semantics, publication, or canon is
+created.

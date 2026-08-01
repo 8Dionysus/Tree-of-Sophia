@@ -129,6 +129,15 @@ place/year for publication and keeps the page-8 brothers-Linnik line in a
 separate manufacture claim. The three source addresses are proposed anchors;
 the claims and normalized identities remain model-made and unreviewed.
 
+A sixth pass returns to the fixity-verified 1893 Naumann title page. Its exact
+`Zweite Auflage` statement stays manifestation wording rather than a universal
+Work-level ordinal, while the single `Druck und Verlag` imprint opens two
+role-specific Edition claims over the same literal: publication reaches the
+provisional publisher Organization and manufacture reaches a separate
+provisional printer Organization. The following-page historical translation-
+right reservation remains evidence, not current permission or prohibition;
+the Item stays local-only and redistribution remains unauthorized.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

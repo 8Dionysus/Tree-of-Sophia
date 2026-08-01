@@ -122,6 +122,13 @@ joined by bounded Edition claims. Publication and manufacture remain distinct
 activities, and normalized Place/Organization identities never overwrite the
 literal historical statements that support them.
 
+One physical statement may also carry several provision roles. The 1893
+Naumann title page's combined `Druck und Verlag` wording is preserved once as
+literal evidence and materialized as separate publication and manufacture
+claims. Distinct GND publisher and printer authorities remain provisional
+normalizations; neither their separation nor the shared literal establishes a
+legal-entity relation, release date, textual state, or current rights.
+
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
 `ToS/source-witnesses/README.md` for physical routing.

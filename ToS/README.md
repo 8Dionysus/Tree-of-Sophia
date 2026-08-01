@@ -109,6 +109,15 @@ manufacture claim. `Жизнь для всех`, the brothers-Linnik printer, an
 remain separate provisional identities; no edition number, Person-level
 publisher, text acceptance, or publication permission is inferred.
 
+The consolidated 1893 Naumann Edition adds the complementary one-surface
+case. Its title page supplies an exact `Zweite Auflage` statement and one
+combined `Druck und Verlag von C. G. Naumann` imprint. The literal remains
+shared evidence, while publication and manufacture resolve through separate
+claim nodes to provisional publisher and printer Organizations. The next
+page's historical translation-right reservation changes neither current
+rights nor publication posture; it remains anchored evidence and the local
+payload remains unpublishable by default.
+
 ## Operating Card
 
 | Field | Route |

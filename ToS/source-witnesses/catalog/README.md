@@ -33,8 +33,8 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 73 object records and 108 claim records
-(181 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 74 object records and 110 claim records
+(184 entries total). The responsibility slice contains seven Work authorship,
 eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The eighth translation claim is bound to a proposed whole-page title-page
@@ -43,8 +43,8 @@ initials into accepted person identity nor equates later Expressions.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
-The provision surface contains three provisional Places, five provisional
-historical Organizations, and eight Edition-owned grouped statements.
+The provision surface contains three provisional Places, six provisional
+historical Organizations, and ten Edition-owned grouped statements.
 Three claims belong to the exact 1883/1883/1884 first three parts of *Also
 sprach Zarathustra*: each returns to its own DTA Edition record while resolving
 the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
@@ -64,6 +64,14 @@ return through exact page anchors to the same fixity-verified Item. The
 provisional `Жизнь для всех` publishing imprint and brothers-Linnik printer
 remain different Organizations; neither a Person substitution nor legal-entity
 equivalence is asserted.
+
+The consolidated Naumann 1893 Edition adds a second contrast: one exact title-
+page literal names both `Druck` and `Verlag`. Two claims preserve those roles:
+publication reaches the provisional GND-backed publisher Organization, while
+manufacture reaches a separate provisional GND-backed printer Organization.
+The exact `Zweite Auflage` wording remains an Edition statement, not a
+universal Work ordinal, and the following-page historical translation-right
+reservation creates no present rights conclusion.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

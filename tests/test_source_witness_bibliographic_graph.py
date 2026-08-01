@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 108)
-        self.assertEqual(counts["claim_traces"], 108)
-        self.assertEqual(counts["nodes"], 357)
-        self.assertEqual(counts["edges"], 720)
+        self.assertEqual(counts["source_claims"], 110)
+        self.assertEqual(counts["claim_traces"], 110)
+        self.assertEqual(counts["nodes"], 368)
+        self.assertEqual(counts["edges"], 744)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 108})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 108})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 110})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 110})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -305,10 +305,11 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref=leipzig_ref,
         )
         self.assertEqual(result["status"], "ok")
-        self.assertEqual(result["result_count"], 3)
+        self.assertEqual(result["result_count"], 5)
         self.assertEqual(
             {
                 "tos.organization.c-g-naumann-verlag-leipzig",
+                "tos.organization.druckerei-c-g-naumann-leipzig",
                 "tos.organization.insel-verlag-anton-kippenberg-leipzig",
             },
             {
@@ -529,6 +530,63 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
         self.assertEqual("no_match", posse["status"])
         self.assertEqual([], posse["matches"])
+
+    def test_naumann_1893_provision_query_separates_publisher_and_printer(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        edition_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "leipzig-c-g-naumann-1893"
+        )
+        result = query_projection(
+            payload,
+            subject_ref=edition_ref,
+            predicate="provision_activity",
+        )
+        self.assertEqual("ok", result["status"])
+        self.assertEqual(2, result["result_count"])
+        self.assertEqual(
+            {"publication", "manufacture"},
+            {
+                match["object_node"]["properties"]["value"]["provision_kind"]
+                for match in result["matches"]
+            },
+        )
+        self.assertEqual(
+            {
+                "tos.organization.c-g-naumann-verlag-leipzig",
+                "tos.organization.druckerei-c-g-naumann-leipzig",
+            },
+            {
+                node["properties"]["identity_ref"]
+                for match in result["matches"]
+                for node in match["normalized_identity_nodes"]
+                if node["properties"]["identity_kind"] == "organization"
+            },
+        )
+        for match in result["matches"]:
+            self.assertEqual("literal", match["object_node"]["node_kind"])
+            self.assertTrue(
+                all(
+                    edge["from_id"] == match["claim_node"]["node_id"]
+                    for edge in match["edges"]
+                )
+            )
+
+        printer = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref="tos.organization.druckerei-c-g-naumann-leipzig",
+        )
+        self.assertEqual("ok", printer["status"])
+        self.assertEqual(1, printer["result_count"])
+        self.assertEqual(
+            "manufacture",
+            printer["matches"][0]["object_node"]["properties"]["value"][
+                "provision_kind"
+            ],
+        )
 
     def test_antonovsky_translation_queries_preserve_expression_identity(
         self,

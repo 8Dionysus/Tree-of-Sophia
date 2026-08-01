@@ -232,7 +232,13 @@ adds two source-visible claims with a different shape: publication joins the
 page-5 cover imprint to the page-7 place/year, while manufacture keeps the
 page-8 brothers-Linnik printer line separate. Both reuse one provisional Saint
 Petersburg Place but resolve to distinct provisional Organizations. All eight
-Edition claims remain model-made, `public_metadata_only`, and `unreviewed`.
+claims remain model-made, `public_metadata_only`, and `unreviewed`. A final
+consolidated-Edition pass adds two more claims from the exact 1893 Naumann title
+page: its one combined `Druck und Verlag` literal is shared by separate
+publication and manufacture roles. The provisional GND-backed publisher and
+printer Organizations remain distinct normalization targets without a legal-
+identity or `same_as` assertion. All ten Edition claims remain model-made,
+`public_metadata_only`, and `unreviewed`.
 
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
@@ -249,6 +255,10 @@ The independently researched part-IV boundary is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md`.
 The source-visible Antonovsky publication/manufacture split is recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md`.
+The exact consolidated-Edition statement, shared title-page provision literal,
+role-specific Naumann authorities, and historical translation-right boundary
+are recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

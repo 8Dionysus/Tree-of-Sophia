@@ -240,6 +240,40 @@ ZARATHUSTRA_PART_4_PROVISION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md"
 )
+NAUMANN_1893_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/de-naumann-1893"
+)
+NAUMANN_1893_EDITION_ROOT = (
+    NAUMANN_1893_EXPRESSION_ROOT / "editions/leipzig-c-g-naumann-1893"
+)
+NAUMANN_1893_PROVISION_CLAIMS_PATH = (
+    NAUMANN_1893_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+NAUMANN_1893_PROVISION_ANCHORS_PATH = (
+    NAUMANN_1893_EXPRESSION_ROOT / "structure/provision-statements/anchors.jsonl"
+)
+NAUMANN_1893_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "naumann-1893-provision-identity.2026-08-01.v1.json"
+)
+NAUMANN_1893_PROVISION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md"
+)
+NAUMANN_1893_PUBLISHER_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "c-g-naumann-verlag-leipzig/organization.json"
+)
+NAUMANN_1893_PRINTER_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "druckerei-c-g-naumann-leipzig/organization.json"
+)
 MYSL_TRANSLATOR_IDENTITY_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1302,10 +1336,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(73, manifest["counts"]["object_total"])
-        self.assertEqual(108, manifest["counts"]["claim"])
-        self.assertEqual(181, manifest["counts"]["total"])
-        self.assertEqual(108, len(claim_entries))
+        self.assertEqual(74, manifest["counts"]["object_total"])
+        self.assertEqual(110, manifest["counts"]["claim"])
+        self.assertEqual(184, manifest["counts"]["total"])
+        self.assertEqual(110, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1342,7 +1376,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 91,
+                "bibliographic_assertion": 93,
                 "scholarly_report": 17,
             },
             {
@@ -1447,7 +1481,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(8, len(provision_claims))
+        self.assertEqual(10, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
@@ -1467,6 +1501,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
                 "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
                 "tos.organization.bratya-v-i-i-linnik-printing-saint-petersburg",
+                "tos.organization.druckerei-c-g-naumann-leipzig",
             },
             {
                 agent["normalized_agent_ref"]
@@ -1705,6 +1740,122 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertIn(boundary, part_4_research)
         self.assertIn("forty-five", part_4_research)
         self.assertIn("not inferred from parts I–III", part_4_research)
+
+    def test_naumann_1893_provision_separates_publisher_and_printer(
+        self,
+    ) -> None:
+        edition = json.loads(
+            (NAUMANN_1893_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        claims = [
+            json.loads(line)
+            for line in NAUMANN_1893_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual(2, len(claims))
+        self.assertEqual(
+            {claim["claim_id"] for claim in claims},
+            set(edition["provision_activity_claim_refs"]),
+        )
+        self.assertEqual(
+            "Zweite Auflage, mit Portrait und Brieffacsimile des Autors.",
+            edition["edition_statement"],
+        )
+
+        by_kind = {claim["object"]["provision_kind"]: claim for claim in claims}
+        self.assertEqual({"publication", "manufacture"}, set(by_kind))
+        publication = by_kind["publication"]
+        manufacture = by_kind["manufacture"]
+        exact_statement = "LEIPZIG / Druck und Verlag von C. G. Naumann. / 1893."
+        self.assertEqual(
+            exact_statement, publication["object"]["transcribed_statement"]
+        )
+        self.assertEqual(
+            exact_statement, manufacture["object"]["transcribed_statement"]
+        )
+        self.assertEqual(
+            "tos.organization.c-g-naumann-verlag-leipzig",
+            publication["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual(
+            "tos.organization.druckerei-c-g-naumann-leipzig",
+            manufacture["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual("publisher", publication["object"]["agents"][0]["role"])
+        self.assertEqual("printer", manufacture["object"]["agents"][0]["role"])
+        self.assertEqual(
+            "publication_place", publication["object"]["places"][0]["role"]
+        )
+        self.assertEqual(
+            "manufacture_place", manufacture["object"]["places"][0]["role"]
+        )
+        self.assertTrue(
+            all(
+                claim["object"]["places"][0]["normalized_place_ref"]
+                == "tos.place.leipzig"
+                and claim["object"]["temporal"]["value"] == "1893"
+                and claim["object"]["temporal"]["role"] == "statement_date"
+                and claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in claims
+            )
+        )
+
+        anchors = [
+            json.loads(line)
+            for line in NAUMANN_1893_PROVISION_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual([46, 46, 47], [row["selectors"][0]["page"] for row in anchors])
+        self.assertEqual(
+            {"61c947e5aff76a64d82600cc52dcb25ff1b5862530d3a99c96824da885c1e6cf"},
+            {row["file_sha256"] for row in anchors},
+        )
+        self.assertTrue(all(row["status"] == "proposed" for row in anchors))
+
+        publisher = json.loads(NAUMANN_1893_PUBLISHER_PATH.read_text(encoding="utf-8"))
+        printer = json.loads(NAUMANN_1893_PRINTER_PATH.read_text(encoding="utf-8"))
+        self.assertNotEqual(publisher["record_id"], printer["record_id"])
+        self.assertEqual("1072998033", publisher["external_identifiers"][0]["value"])
+        self.assertEqual("16034133-4", printer["external_identifiers"][0]["value"])
+        self.assertEqual("provisional", publisher["identity_status"])
+        self.assertEqual("provisional", printer["identity_status"])
+        self.assertEqual("no_equivalence_claim", publisher["same_as_posture"])
+        self.assertEqual("no_equivalence_claim", printer["same_as_posture"])
+
+        discovery = json.loads(
+            NAUMANN_1893_PROVISION_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([1, 2, 3, 4, 5], [row["sequence"] for row in discovery["channels"]])
+        self.assertEqual(
+            "channel-general-web-naumann-1893-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer",
+            discovery["selected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        rights = json.loads(
+            (
+                NAUMANN_1893_EDITION_ROOT
+                / "items/internet-archive-image-container-pdf/rights.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertTrue(
+            any("Uebersetzungsrecht vorbehalten" in row for row in rights["restrictions"])
+        )
+        research = NAUMANN_1893_PROVISION_RESEARCH_PATH.read_text(encoding="utf-8")
+        self.assertIn("one universal", research)
+        self.assertIn("historical rights statement", research)
 
     def test_antonovsky_1913_provision_separates_publisher_and_printer(
         self,

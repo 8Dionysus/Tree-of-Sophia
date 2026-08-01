@@ -73,11 +73,18 @@ They expose, among other things:
 - the stylized work title;
 - Cornell shelf marks and rights furniture;
 - the title page with edition statement, publisher, place, and year;
+- the exact title-page formula `Druck und Verlag von C. G. Naumann`, which
+  assigns publishing and printing functions in one literal statement;
+- the following-page historical statement `Uebersetzungsrecht vorbehalten.`;
 - Cornell end-capture surfaces.
 
 This review was performed by the model and has not yet received an independent
 human repeat. The rendered contact sheet remains machine-local laboratory
 evidence, not a source witness replacement.
+
+The historical translation-right reservation is source evidence about the
+1893 manifestation. It is not treated as a current rights conclusion, and it
+does not override the separate unreviewed Item rights record.
 
 ## Rights posture
 
