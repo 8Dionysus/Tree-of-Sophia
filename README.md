@@ -79,6 +79,16 @@ disclose a defensible full identity, and a chronologically impossible namesake
 is retained as a negative control. No responsibility claim, Expression
 identity, text, or translation judgment changes with these Agent records.
 
+The older `Ю. М. Антоновский` route now closes over a separate official
+identity chain: GND `123235553` joins the Cyrillic initials to `Julij
+Michajlovič`, translator occupation, and *Tak govoril Zaratustra*; RSL expands
+the same initials to `Юлий Михайлович Антоновский (1857-1913)`. The stable
+legacy ref `tos.agent.yuri-antonovsky` and its three existing claim objects are
+retained for lineage, while the speaking path is corrected to
+`agents/yuliy-antonovsky/` and the former `Yuri M. Antonovsky` expansion is
+rejected. This is an Agent/path correction, not accepted text or Expression
+equivalence.
+
 The same seven Works now carry separate first-publication chronology profiles.
 They preserve staged, private, public, author-supervised, and posthumous
 boundaries instead of collapsing composition, printing, title-page year, and

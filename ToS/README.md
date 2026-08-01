@@ -75,6 +75,12 @@ Cyrillic full-name bridges and Nietzsche-specific editorial evidence. The
 search, including a rejected chronologically impossible namesake. Stable
 Agent refs and all seven Mysl responsibility claims are unchanged; no text,
 translation, or Expression equivalence is admitted.
+The Antonovsky identity pass separately resolves `Ю. М. Антоновский` to Юлий
+Михайлович Антоновский through GND `123235553` and an RSL full-name bridge.
+Its stable legacy ref remains unchanged, but the speaking Agent path is
+corrected from `yuri-antonovsky` to `yuliy-antonovsky`; the former English
+expansion is rejected. All three existing responsibility claims remain byte-for-
+byte unchanged, and no source text or translation judgment is admitted.
 Each Work separately closes over one first-publication chronology profile,
 preserving staged/private/public/posthumous boundaries without inventing one
 universal Work year or treating a model-made ordering claim as accepted truth.

@@ -155,9 +155,12 @@ catalog presence supplies authorship truth by itself.
 The exact 1913 Antonovsky Expression separately closes over one
 `translated_by` claim. Its evidence is a proposed whole-page anchor on PDF
 page 7, bound to the exact Item and file SHA-256 after direct source-visible
-inspection. The Agent retains the unresolved preferred label
-`Ю. М. Антоновский`: later library records corroborate the displayed credit but
-do not establish an expanded person identity or textual equivalence among the
+inspection. The source retains the displayed label `Ю. М. Антоновский` in
+that historical claim evidence, but a later independent
+identity pass resolves the Agent to `Юлий Михайлович Антоновский`: DNB GND
+`123235553` joins the initials to `Julij Michajlovič`, translator occupation,
+and *Tak govoril Zaratustra*, while RSL supplies the Cyrillic full-name bridge
+and dates `1857-1913`. This does not establish textual equivalence among the
 1911, 1913, 1981, 1996, 2007, and later Expressions. The anchor and claim are
 model-made and unreviewed; neither admits OCR, source text, or translation
 quality.
@@ -172,6 +175,14 @@ official record chain stops at initials. `Вера Александровна Ф
 1913, is explicitly rejected as a chronologically impossible match to a 1907
 translator credit. Identity enrichment creates no new responsibility claim,
 Expression equivalence, accepted translation, or human review.
+
+Antonovsky also exercises the explicit identity/path boundary. The already
+referenced `tos.agent.yuri-antonovsky` remains the stable object of its three
+unchanged claims, but the Agent file moves from the misleading human route
+`agents/yuri-antonovsky/` to `agents/yuliy-antonovsky/`. `Yuri M. Antonovsky`
+is rejected as a name expansion, and the surviving `yuri` token is documented
+only as a legacy stable locator. The path migration creates no new Agent,
+claim, text, or equivalence.
 
 Those seven Work records also each close over one
 `first_publication_chronology` claim under `chronology/`. This is a bounded

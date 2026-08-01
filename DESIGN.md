@@ -165,6 +165,14 @@ source claims continue to target the same stable Agent IDs. The corresponding
 initials. A stronger label may enrich an Agent node; it never rewrites the
 source-visible credit, changes a responsibility claim, or equates Expressions.
 
+Stable IDs and speaking paths may diverge during an honest correction. The
+Antonovsky Agent retains the already referenced `tos.agent.yuri-antonovsky`
+identity so three source-owned claims and their digests do not silently change,
+but its physical route migrates to `agents/yuliy-antonovsky/` after GND and RSL
+resolve `Ю. М.` to `Юлий Михайлович`. The retained `yuri` token is explicitly a
+legacy locator, not a forename assertion. This is the intended use of the
+identity/path boundary: preserve lineage while making human navigation truer.
+
 Edition-level provision is likewise claim-owned rather than flattened into
 publisher/place/date fields. A bounded provision claim groups the exact
 transcribed or reported statement with typed activity, role-specific Place and

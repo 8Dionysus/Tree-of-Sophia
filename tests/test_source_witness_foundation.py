@@ -237,6 +237,22 @@ MYSL_RESPONSIBILITY_CLAIMS_PATH = (
     "works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl"
 )
 AGENT_ROOT = REPO_ROOT / "ToS/source-witnesses/agents"
+ANTONOVSKY_IDENTITY_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-agent-identity-reconciliation.2026-08-01.v1.json"
+)
+ANTONOVSKY_IDENTITY_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_AGENT_IDENTITY_RECONCILIATION_RESEARCH.md"
+)
+ANTONOVSKY_1913_RESPONSIBILITY_CLAIMS_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-antonovsky-1913/"
+    "responsibility-claims.jsonl"
+)
 CHEMNITZ_PLACE_PATH = (
     REPO_ROOT / "ToS/source-witnesses/places/chemnitz/place.json"
 )
@@ -1679,6 +1695,103 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn("The object and claim counts must remain unchanged", research)
         self.assertIn("chronologically impossible", research)
+
+    def test_antonovsky_identity_corrects_the_speaking_path_without_claim_drift(
+        self,
+    ) -> None:
+        corrected_path = AGENT_ROOT / "yuliy-antonovsky/agent.json"
+        legacy_path = AGENT_ROOT / "yuri-antonovsky/agent.json"
+        self.assertTrue(corrected_path.is_file())
+        self.assertFalse(legacy_path.exists())
+
+        antonovsky = json.loads(corrected_path.read_text(encoding="utf-8"))
+        self.assertEqual("tos.agent.yuri-antonovsky", antonovsky["record_id"])
+        self.assertEqual(
+            "Юлий Михайлович Антоновский", antonovsky["preferred_label"]
+        )
+        self.assertEqual("verified", antonovsky["identity_status"])
+        self.assertEqual(3, antonovsky["record_version"])
+        self.assertEqual(
+            ["123235553"],
+            [
+                identifier["value"]
+                for identifier in antonovsky["external_identifiers"]
+                if identifier["scheme"] == "GND"
+            ],
+        )
+        variants = {
+            variant["value"]: variant["status"]
+            for variant in antonovsky["variant_labels"]
+        }
+        self.assertEqual("verified", variants["Ю. М. Антоновский"])
+        self.assertEqual("verified", variants["Antonovskij, Julij Michajlovič"])
+        self.assertEqual("rejected", variants["Yuri M. Antonovsky"])
+        self.assertIn("legacy ToS record ID", antonovsky["notes"])
+        self.assertIn("not a forename assertion", antonovsky["notes"])
+
+        discovery = json.loads(
+            ANTONOVSKY_IDENTITY_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("reconciled", discovery["status"])
+        self.assertTrue(discovery["general_web_search_is_last_resort"])
+        self.assertEqual(
+            [1, 2, 3, 4],
+            [channel["sequence"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            "channel-general-web-antonovsky-identity-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-123235553-julij-antonovskij",
+            discovery["selected_result_ids"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-1089232756-michail-jakovlevich-antonovskij-negative",
+            discovery["rejected_result_ids"],
+        )
+
+        mysl_claims = [
+            json.loads(line)
+            for line in MYSL_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        exact_claims = [
+            json.loads(line)
+            for line in ANTONOVSKY_1913_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        antonovsky_claims = [
+            claim
+            for claim in [*mysl_claims, *exact_claims]
+            if claim["predicate"] == "translated_by"
+            and claim["object"] == "tos.agent.yuri-antonovsky"
+        ]
+        self.assertEqual(3, len(antonovsky_claims))
+        self.assertEqual(
+            {
+                "tos.claim.expression.also-sprach-zarathustra.ru-antonovsky-1913.translated-by-yuri-antonovsky",
+                "tos.claim.expression.mysl-1996-volume-2.also-sprach-zarathustra.translated-by-yuri-antonovsky",
+                "tos.claim.expression.mysl-1996-volume-2.ecce-homo.translated-by-yuri-antonovsky",
+            },
+            {claim["claim_id"] for claim in antonovsky_claims},
+        )
+        self.assertTrue(
+            all(
+                claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in antonovsky_claims
+            )
+        )
+
+        research = ANTONOVSKY_IDENTITY_RESEARCH_PATH.read_text(encoding="utf-8")
+        self.assertIn("retain `tos.agent.yuri-antonovsky`", research)
+        self.assertIn("agents/yuliy-antonovsky/", research)
+        self.assertIn("general web search last", research)
 
     def test_antonovsky_1913_translation_responsibility_returns_to_page_7(
         self,

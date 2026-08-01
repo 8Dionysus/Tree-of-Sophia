@@ -131,10 +131,12 @@ contracts intentionally reject simulated human evidence.
   prove creator equivalence, choose an author-final witness, or authorize
   mechanical authorship population beyond this bounded corpus.
 - The exact 1913 Antonovsky Expression now has one source-page-anchored
-  `translated_by` claim to the existing provisional Agent. It records the
-  visible credit only: the full person identity, authority identifier,
-  translation extent and quality, textual equivalence to later Expressions,
-  accepted text, and human review remain unresolved.
+  `translated_by` claim to the stable Antonovsky Agent. A later independent
+  identity pass resolves that Agent to Юлий Михайлович Антоновский through GND
+  `123235553` and RSL while rejecting the former `Yuri` expansion and correcting
+  the speaking path. The legacy ToS ref and all three responsibility claims
+  remain unchanged. Translation extent and quality, textual equivalence to
+  later Expressions, accepted text, and human review remain unresolved.
 - The existing Mysl responsibility claims now resolve two of their translator
   Agents more precisely without changing any claim: Карен Араевич Свасьян is
   verified through GND `120452367`, and Николай Николаевич Полилов through GND
