@@ -148,6 +148,14 @@ remains local-only, redistribution and derivatives remain unknown, and no
 Edition statement, exact release, accepted German, human review, semantics,
 publication, or canon follows.
 
+An eighth pass tests a harder two-surface case on the fixity-verified 1892
+second edition of *Zur Genealogie der Moral*. PDF page 5 supplies `Verlag von
+C. G. Naumann` and the Edition year; PDF page 204 separately supplies `Druck
+von C. G. Naumann` without a date. Publication and manufacture therefore
+remain separate, page-returnable claims. The 1892 title-page year is not
+promoted to printing completion or public release, and the publisher and
+printer authorities remain distinct provisional normalization targets.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

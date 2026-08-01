@@ -250,3 +250,13 @@ historical evidence. Rate-limited GND retries and an e-rara HTTP 403 route were
 not bypassed; no source body was acquired, no marketplace result was promoted,
 and no Edition statement, release, textual equivalence, rights clearance,
 human review, semantics, publication, or canon is created.
+
+`genealogie-1892-provision-identity.2026-08-01.v1.json` returns to the exact
+Commons/UNC Item and separately inspects its page-5 publisher/year imprint and
+undated page-204 printer line. Current provider metadata and same-day GND
+identity evidence are followed by a current independent Nietzsche
+Documentation Center copy, established commentary and genetic work, the
+freshest 2025-2026 philological and publisher records, and general web last.
+Failed GND retries are preserved without bypass; the 2026 English translation
+edition and marketplace listings are rejected for this exact German provision
+target.

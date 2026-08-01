@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 112)
-        self.assertEqual(counts["claim_traces"], 112)
-        self.assertEqual(counts["nodes"], 377)
-        self.assertEqual(counts["edges"], 768)
+        self.assertEqual(counts["source_claims"], 114)
+        self.assertEqual(counts["claim_traces"], 114)
+        self.assertEqual(counts["nodes"], 386)
+        self.assertEqual(counts["edges"], 792)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 112})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 112})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 114})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 114})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -305,7 +305,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref=leipzig_ref,
         )
         self.assertEqual(result["status"], "ok")
-        self.assertEqual(result["result_count"], 7)
+        self.assertEqual(result["result_count"], 9)
         self.assertEqual(
             {
                 "tos.organization.c-g-naumann-verlag-leipzig",
@@ -580,7 +580,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref="tos.organization.druckerei-c-g-naumann-leipzig",
         )
         self.assertEqual("ok", printer["status"])
-        self.assertEqual(2, printer["result_count"])
+        self.assertEqual(3, printer["result_count"])
         self.assertTrue(
             all(
                 match["object_node"]["properties"]["value"]["provision_kind"]
@@ -651,12 +651,86 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             normalized_ref="tos.organization.c-g-naumann-verlag-leipzig",
         )
         self.assertEqual("ok", publisher["status"])
-        self.assertEqual(4, publisher["result_count"])
+        self.assertEqual(5, publisher["result_count"])
         self.assertIn(
             edition_ref,
             {
                 match["subject_node"]["properties"]["identity_ref"]
                 for match in publisher["matches"]
+            },
+        )
+
+    def test_genealogie_1892_provision_query_preserves_page_split_and_roles(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        edition_ref = (
+            "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral."
+            "leipzig-c-g-naumann-1892-second"
+        )
+        result = query_projection(
+            payload,
+            subject_ref=edition_ref,
+            predicate="provision_activity",
+        )
+        self.assertEqual("ok", result["status"])
+        self.assertEqual(2, result["result_count"])
+        self.assertEqual(
+            {"publication", "manufacture"},
+            {
+                match["object_node"]["properties"]["value"]["provision_kind"]
+                for match in result["matches"]
+            },
+        )
+        self.assertEqual(
+            {
+                "LEIPZIG / Verlag von C. G. Naumann. / 1892.",
+                "LEIPZIG / Druck von C. G. Naumann.",
+            },
+            {
+                match["object_node"]["properties"]["value"][
+                    "transcribed_statement"
+                ]
+                for match in result["matches"]
+            },
+        )
+        self.assertEqual(
+            {
+                "tos.organization.c-g-naumann-verlag-leipzig",
+                "tos.organization.druckerei-c-g-naumann-leipzig",
+            },
+            {
+                node["properties"]["identity_ref"]
+                for match in result["matches"]
+                for node in match["normalized_identity_nodes"]
+                if node["properties"]["identity_kind"] == "organization"
+            },
+        )
+        self.assertTrue(
+            all(
+                match["source_return"]["file_ref"].endswith(
+                    "/provision-activity-claims.jsonl"
+                )
+                and all(
+                    edge["from_id"] == match["claim_node"]["node_id"]
+                    for edge in match["edges"]
+                )
+                for match in result["matches"]
+            )
+        )
+
+        printer = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref="tos.organization.druckerei-c-g-naumann-leipzig",
+        )
+        self.assertEqual("ok", printer["status"])
+        self.assertEqual(3, printer["result_count"])
+        self.assertIn(
+            edition_ref,
+            {
+                match["subject_node"]["properties"]["identity_ref"]
+                for match in printer["matches"]
             },
         )
 

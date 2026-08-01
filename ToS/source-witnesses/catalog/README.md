@@ -33,8 +33,8 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 74 object records and 112 claim records
-(186 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 74 object records and 114 claim records
+(188 entries total). The responsibility slice contains seven Work authorship,
 eight Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The eighth translation claim is bound to a proposed whole-page title-page
@@ -44,7 +44,7 @@ The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
 The provision surface contains three provisional Places, six provisional
-historical Organizations, and twelve Edition-owned grouped statements.
+historical Organizations, and fourteen Edition-owned grouped statements.
 Three claims belong to the exact 1883/1883/1884 first three parts of *Also
 sprach Zarathustra*: each returns to its own DTA Edition record while resolving
 the same Chemnitz Place and historical Schmeitzner Corporate Body, not the
@@ -79,6 +79,12 @@ of that role-separation invariant. Two new claims return to one exact page-3
 Organization routes; page 4's `Alle Rechte vorbehalten.` is separately
 addressed as historical rights evidence. No Edition statement, release date,
 textual equivalence, current rights decision, or human acceptance is inferred.
+
+The 1892 second *Zur Genealogie der Moral* Edition adds a two-surface repeat:
+publication returns to the page-5 publisher/year imprint, while manufacture
+returns to the undated page-204 printer line. The same provisional publisher,
+printer, and Leipzig identities are reused only through claim-originating
+edges; the Edition year is not an exact printing-completion or release date.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

@@ -126,6 +126,13 @@ address the imprint and `Alle Rechte vorbehalten.` line. The latter remains
 historical evidence only, while current rights stay undetermined and the
 operator-held payload stays local.
 
+The exact 1892 second *Zur Genealogie der Moral* Edition adds the distributed-
+surface case. Its title page supplies publisher, place, and Edition year, but
+the terminal printer line occurs on PDF page 204 and has no date. Two proposed
+page-region anchors and two separate claim nodes preserve that asymmetry. The
+printer-line claim may cite the source-visible Edition year while explicitly
+refusing to call it printing completion or public release.
+
 ## Operating Card
 
 | Field | Route |

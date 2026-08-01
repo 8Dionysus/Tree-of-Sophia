@@ -43,12 +43,18 @@ A model opened the actual page images, not only embedded OCR.
   `B3313 .27 1892`, and a barcode.
 - PDF page 5 is the historical title page. It visibly states *Zur Genealogie
   der Moral*, *Eine Streitschrift*, Friedrich Nietzsche, *Zweite Auflage*,
-  Leipzig, C. G. Naumann, and 1892.
+  `LEIPZIG`, `Verlag von C. G. Naumann.`, and `1892.`
 - PDF page 6 states the printed relationship to *Jenseits von Gut und Böse*.
 - PDF page 7 begins *Vorrede*; page 8 continues it.
 - PDF pages 195–202 visibly carry printed pages 175–182.
-- PDF page 203 carries the printed contents; page 204 carries the Leipzig
-  printer line; pages 205–208 are end leaves and covers.
+- PDF page 203 carries the printed contents; page 204 separately states
+  `LEIPZIG` and `Druck von C. G. Naumann.`; pages 205–208 are end leaves and
+  covers.
+
+The two pages support separate publication and manufacture statements. The
+printer line is undated: the title-page year may identify the Edition's
+source-visible year but is not promoted to exact printing completion or
+public release.
 
 This checks edition identity and visible beginning/end continuity. It is not a
 German-language acceptance, collation against 1887, or proof that every leaf is

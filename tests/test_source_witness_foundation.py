@@ -93,6 +93,32 @@ GENEALOGIE_1892_ITEM_ROOT = (
     "editions/leipzig-c-g-naumann-1892-second-edition/items/"
     "wikimedia-commons-unc-scan-pdf"
 )
+GENEALOGIE_1892_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "zur-genealogie-der-moral/expressions/de-naumann-1892-second"
+)
+GENEALOGIE_1892_EDITION_ROOT = (
+    GENEALOGIE_1892_EXPRESSION_ROOT
+    / "editions/leipzig-c-g-naumann-1892-second-edition"
+)
+GENEALOGIE_1892_PROVISION_CLAIMS_PATH = (
+    GENEALOGIE_1892_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+GENEALOGIE_1892_PROVISION_ANCHORS_PATH = (
+    GENEALOGIE_1892_EXPRESSION_ROOT
+    / "structure/provision-statements/anchors.jsonl"
+)
+GENEALOGIE_1892_PROVISION_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "genealogie-1892-provision-identity.2026-08-01.v1.json"
+)
+GENEALOGIE_1892_PROVISION_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md"
+)
 GENEALOGIE_1892_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1358,9 +1384,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             manifest["claim_file"],
         )
         self.assertEqual(74, manifest["counts"]["object_total"])
-        self.assertEqual(112, manifest["counts"]["claim"])
-        self.assertEqual(186, manifest["counts"]["total"])
-        self.assertEqual(112, len(claim_entries))
+        self.assertEqual(114, manifest["counts"]["claim"])
+        self.assertEqual(188, manifest["counts"]["total"])
+        self.assertEqual(114, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1397,7 +1423,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 95,
+                "bibliographic_assertion": 97,
                 "scholarly_report": 17,
             },
             {
@@ -1502,7 +1528,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(12, len(provision_claims))
+        self.assertEqual(14, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
@@ -1999,6 +2025,109 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("historical rights evidence only", research)
+        self.assertIn("General web search ran last", research)
+
+    def test_genealogie_1892_provision_separates_distant_source_surfaces(
+        self,
+    ) -> None:
+        edition = json.loads(
+            (GENEALOGIE_1892_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        claims = [
+            json.loads(line)
+            for line in GENEALOGIE_1892_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual(2, len(claims))
+        self.assertEqual(
+            {claim["claim_id"] for claim in claims},
+            set(edition["provision_activity_claim_refs"]),
+        )
+        self.assertEqual("Zweite Auflage", edition["edition_statement"])
+
+        by_kind = {claim["object"]["provision_kind"]: claim for claim in claims}
+        self.assertEqual({"publication", "manufacture"}, set(by_kind))
+        publication = by_kind["publication"]
+        manufacture = by_kind["manufacture"]
+        self.assertEqual(
+            "LEIPZIG / Verlag von C. G. Naumann. / 1892.",
+            publication["object"]["transcribed_statement"],
+        )
+        self.assertEqual(
+            "LEIPZIG / Druck von C. G. Naumann.",
+            manufacture["object"]["transcribed_statement"],
+        )
+        self.assertEqual(
+            "tos.organization.c-g-naumann-verlag-leipzig",
+            publication["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual("publisher", publication["object"]["agents"][0]["role"])
+        self.assertEqual(
+            "tos.organization.druckerei-c-g-naumann-leipzig",
+            manufacture["object"]["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertEqual("printer", manufacture["object"]["agents"][0]["role"])
+        self.assertIn("printer line is undated", manufacture["object"]["activity_warning"])
+        self.assertTrue(
+            all(
+                claim["object"]["places"][0]["normalized_place_ref"]
+                == "tos.place.leipzig"
+                and claim["object"]["temporal"]["value"] == "1892"
+                and claim["object"]["temporal"]["role"] == "statement_date"
+                and claim["review_status"] == "unreviewed"
+                for claim in claims
+            )
+        )
+
+        anchors = [
+            json.loads(line)
+            for line in GENEALOGIE_1892_PROVISION_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        self.assertEqual([5, 204], [row["selectors"][0]["page"] for row in anchors])
+        self.assertEqual(
+            {"5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"},
+            {row["file_sha256"] for row in anchors},
+        )
+        self.assertTrue(all(row["status"] == "proposed" for row in anchors))
+
+        discovery = json.loads(
+            GENEALOGIE_1892_PROVISION_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6],
+            [row["sequence"] for row in discovery["channels"]],
+        )
+        self.assertEqual(
+            "channel-general-web-genealogie-1892-last",
+            discovery["channels"][-1]["channel_id"],
+        )
+        self.assertIn(
+            "tos-discovery-result.dnb-gnd-16034133-4-naumann-printer-genealogie",
+            discovery["selected_result_ids"],
+        )
+        self.assertIn(
+            "tos-discovery-result.hackett-2026-genealogy-translation-edition-rejected",
+            discovery["rejected_result_ids"],
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        rights = json.loads(
+            (GENEALOGIE_1892_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("unknown", rights["redistribution_posture"])
+        research = GENEALOGIE_1892_PROVISION_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("printer line itself is undated", research)
         self.assertIn("General web search ran last", research)
 
     def test_antonovsky_1913_provision_separates_publisher_and_printer(

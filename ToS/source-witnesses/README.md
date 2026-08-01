@@ -250,6 +250,13 @@ evidence. All twelve Edition provision claims remain model-made,
 textual equivalence, current rights decision, or publication authority is
 created.
 
+The 1892 second *Zur Genealogie der Moral* Item adds two more claims without
+copying either shared-literal case. Page 5 anchors the publisher and Edition
+year; page 204 anchors a separate, undated printer line. The title-page year is
+retained as an explicitly bounded Edition statement year rather than an exact
+manufacture or release date. All fourteen Edition provision claims remain
+model-made, `public_metadata_only`, and `unreviewed`.
+
 Provision chronology is also facet-specific. The 1889 title-page statement is
 not the reported printing completion, authorial receipt, or public-sale date;
 the bracketed 1908 DNB year is not an exact release date; and the part-IV 1891
@@ -272,6 +279,8 @@ are recorded in
 The independent 1886 *Jenseits* title-page and historical-rights pass is
 recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md`.
+The distributed 1892 *Genealogie* publisher/printer pass is recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md`.
 
 ## Payload boundary
 

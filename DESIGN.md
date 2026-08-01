@@ -137,6 +137,13 @@ source statement, not a present-day rights decision; local custody, public
 redistribution, derivative use, and future-server admission remain separate
 questions.
 
+The 1892 second *Zur Genealogie der Moral* Edition exercises the distributed-
+statement variant. Its title page identifies `Verlag`, Leipzig, and 1892,
+while a terminal page independently identifies `Druck` and Leipzig without a
+date. A claim may bind both source surfaces without pretending that the
+Edition year is a printer-line date. Source return therefore belongs to the
+individual activity claim, not to a flattened imprint field.
+
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
 `ToS/source-witnesses/README.md` for physical routing.

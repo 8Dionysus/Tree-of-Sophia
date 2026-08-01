@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added exact Edition-owned provision identity for the fixity-verified 1892
+  second edition of *Zur Genealogie der Moral*. PDF page 5 anchors `LEIPZIG /
+  Verlag von C. G. Naumann. / 1892.`, while PDF page 204 independently anchors
+  the undated `LEIPZIG / Druck von C. G. Naumann.` line. Separate publication
+  and manufacture claims reuse the provisional GND-backed publisher, printer,
+  and Leipzig identities without asserting legal unity or separation. Ordered
+  exact-item -> official-authority -> independent institutional copy ->
+  established scholarship -> freshest 2025-2026 -> general-web-last research
+  found no later correction to the two source-visible statements. No exact
+  printing-completion or release date, source text, accepted German, human
+  review, rights clearance, semantics, publication, or canon was added.
 - Added exact Edition-owned provision identity for the fixity-verified 1886
   *Jenseits von Gut und Böse* Item. Direct inspection of PDF pages 3 and 4
   preserves `Leipzig / Druck und Verlag von C. G. Naumann. / 1886.` as one
@@ -140,11 +151,11 @@ Tracking starts with the community-docs baseline for this repository.
   `public_metadata_only`, and `unreviewed`, and creates no generic creator
   shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It now deterministically reifies all 112 current
-  public-metadata-only source-witness claims into 377 nodes, 768 claim-centered
-  edges, and 112 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It now deterministically reifies all 114 current
+  public-metadata-only source-witness claims into 386 nodes, 792 claim-centered
+  edges, and 114 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
-  time and method, and explicit review status. Thirty-one publication,
+  time and method, and explicit review status. Thirty-three publication,
   chronology, and provision objects remain claim-scoped literals; no direct
   subject-to-object truth edge is emitted. The graph is a deletable JSON read
   model, separate from the
@@ -153,10 +164,10 @@ Tracking starts with the community-docs baseline for this repository.
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 112 tracked membership, responsibility,
+  `claims.jsonl` indexes all 114 tracked membership, responsibility,
   publication, provision, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v3 separates 74 object entries from 112 claim entries,
+  claim digest. Catalog v3 separates 74 object entries from 114 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked
