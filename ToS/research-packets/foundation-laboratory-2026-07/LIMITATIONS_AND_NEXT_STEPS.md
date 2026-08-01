@@ -103,16 +103,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 65 current objects and all 99
-  tracked membership, responsibility, publication, chronology, and identity-ladder claims through an exact
+- The source-witness catalog now exposes all 68 current objects and all 101
+  tracked membership, responsibility, publication, provision-activity,
+  chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 99 claims as reified
-  claim nodes with 627 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 101 claims as reified
+  claim nodes with 645 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 99 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 101 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
 - The 55 topology packets make the declared Work→Expression→Edition→Item
@@ -129,6 +130,11 @@ contracts intentionally reject simulated human evidence.
   source-returnable, but still model-made and unreviewed: the closure does not
   prove creator equivalence, choose an author-final witness, or authorize
   mechanical authorship population beyond this bounded corpus.
+- The provision pilot adds only one provisional Place, two provisional
+  historical Organizations, and two unreviewed Edition claims. It does not
+  establish `same_as`, corporate succession, accepted publisher identity,
+  printing or release chronology, a general Place hierarchy, or permission to
+  populate other Editions. The optional Chemnitz case remains unopened.
 - Its read-only query route requires an exact selector, validates a full
   source-backed rebuild before answering, returns the exact source claim and
   complete trace bundle, and fails rather than silently truncate. This proves

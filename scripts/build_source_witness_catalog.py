@@ -19,6 +19,8 @@ CLAIM_CATALOG_PATH = CATALOG_ROOT / "claims.jsonl"
 
 RECORD_FILES = {
     "agent": "agents.jsonl",
+    "place": "places.jsonl",
+    "organization": "organizations.jsonl",
     "work": "works.jsonl",
     "expression": "expressions.jsonl",
     "edition": "editions.jsonl",
@@ -30,6 +32,7 @@ CLAIM_SOURCE_BASENAMES = (
     "membership-claims.jsonl",
     "responsibility-claims.jsonl",
     "publication-claims.jsonl",
+    "provision-activity-claims.jsonl",
     "work-chronology-claims.jsonl",
     "work-expression-claims.jsonl",
     "expression-edition-claims.jsonl",
@@ -43,6 +46,8 @@ LINK_FIELDS = (
     "chronology_claim_refs",
     "embodiment_claim_refs",
     "embodies_expression_refs",
+    "publication_claim_refs",
+    "provision_activity_claim_refs",
     "exemplar_claim_refs",
     "collection_ref",
     "membership_claim_refs",
@@ -212,7 +217,7 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
     counts["claim"] = len(claims)
     counts["total"] = counts["object_total"] + counts["claim"]
     manifest = {
-        "schema_version": "tos_source_witness_catalog_v2",
+        "schema_version": "tos_source_witness_catalog_v3",
         "owner_repo": "Tree-of-Sophia",
         "source_root": SOURCE_ROOT.as_posix(),
         "generated_by": "scripts/build_source_witness_catalog.py",

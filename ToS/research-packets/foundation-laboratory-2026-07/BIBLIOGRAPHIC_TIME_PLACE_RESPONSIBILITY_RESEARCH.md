@@ -1,8 +1,8 @@
 # Bibliographic Time, Place, and Provision Responsibility Research
 
-Status: ordered non-authoritative research and bounded contract recommendation;
-not accepted bibliography, a new source record family, graph truth, or
-authorization to bulk-populate the corpus
+Status: ordered non-authoritative research, bounded contract recommendation,
+and one exercised two-Edition model-run experiment; not accepted bibliography,
+human review, graph truth, or authorization to bulk-populate the corpus
 
 Research snapshot: 2026-07-31
 
@@ -28,6 +28,13 @@ particular provision activity involved:
 The claim must preserve both a literal form and a normalized identity when
 both are known. It must not make normalization a prerequisite for retaining
 what the source actually says.
+
+The recommendation was exercised on 2026-08-01 through the two positive cases
+and explicit negative controls below. The source-return, role, identity, date,
+graph-edge, size, and timing evidence is preserved in
+[`PROVISION_ACTIVITY_ABC_EXPERIMENT.md`](PROVISION_ACTIVITY_ABC_EXPERIMENT.md).
+That result retains the bounded claim shape as foundation mechanics while all
+new claims and identities remain model-made, provisional or `unreviewed`.
 
 ```text
 Edition

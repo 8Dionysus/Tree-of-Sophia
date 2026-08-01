@@ -47,6 +47,13 @@ rights, and forensic evidence.
   replace this profile with an untyped Work year. Composition, printing,
   title-page, public-sale, posthumous editorial, reception, and digitization
   time require distinct claims.
+- Keep Edition `provision_activity_claim_refs` in exact sibling-file closure.
+  A provision activity groups its literal statement, typed activity, role-
+  specific places and agents, temporal assertion, evidence, provenance, and
+  review posture. Preserve transcription separately from normalized Place or
+  Organization identity; never infer a publisher from an Edition label,
+  substitute a printer or modern successor, turn a statement year into a
+  public-release date, or emit a direct Edition-to-identity graph fact.
 - Keep the declared identity ladder and its outgoing claim refs in exact
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to

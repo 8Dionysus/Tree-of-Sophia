@@ -96,10 +96,13 @@ tree:
 
 ```text
 catalog/
+places/<place>/
+organizations/<historical-organization>/
 works/<responsibility>/<work>/expressions/<language-and-responsibility>/
   editions/<edition>/items/<item>/
 collections/<responsibility>/<collection>/
 chronology/<responsibility>/first-publication/
+provision-activities/
 ```
 
 Collections prevent multi-work volumes from being duplicated under every
@@ -146,6 +149,14 @@ Work-owned `authored_by` packet to the Friedrich Nietzsche Agent. That
 corpus-wide closure is documentary and provenance-bound, not a convention
 derived from paths, and it does not select an author-final text or flatten
 editorial, paratext, translation, or transmission responsibility.
+
+Edition-level provision is likewise claim-owned rather than flattened into
+publisher/place/date fields. A bounded provision claim groups the exact
+transcribed or reported statement with typed activity, role-specific Place and
+Organization references, a declared temporal facet, evidence, provenance, and
+review posture. A normalized participant is only a claim-originating graph
+route: it cannot bypass the claim, replace the literal statement, or equate a
+publisher with a printer, successor, or public-release event.
 
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes

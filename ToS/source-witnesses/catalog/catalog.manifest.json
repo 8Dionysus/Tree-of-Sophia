@@ -1,5 +1,5 @@
 {
-  "schema_version": "tos_source_witness_catalog_v2",
+  "schema_version": "tos_source_witness_catalog_v3",
   "owner_repo": "Tree-of-Sophia",
   "source_root": "ToS/source-witnesses",
   "generated_by": "scripts/build_source_witness_catalog.py",
@@ -7,6 +7,8 @@
   "claim_schema_ref": "ToS/contracts/claim-packet.schema.json",
   "record_files": {
     "agent": "ToS/source-witnesses/catalog/agents.jsonl",
+    "place": "ToS/source-witnesses/catalog/places.jsonl",
+    "organization": "ToS/source-witnesses/catalog/organizations.jsonl",
     "work": "ToS/source-witnesses/catalog/works.jsonl",
     "expression": "ToS/source-witnesses/catalog/expressions.jsonl",
     "edition": "ToS/source-witnesses/catalog/editions.jsonl",
@@ -16,15 +18,17 @@
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
     "agent": 7,
+    "place": 1,
+    "organization": 2,
     "work": 7,
     "expression": 20,
     "edition": 14,
     "collection": 2,
     "item": 15,
-    "object_total": 65,
-    "claim": 99,
-    "total": 164
+    "object_total": 68,
+    "claim": 101,
+    "total": 169
   },
-  "catalog_sha256": "7b479136dea8ece4e80810c232d1d6a92a7e559e13165d9d6ea15e68eacdb31b",
+  "catalog_sha256": "8140ab9013db8ed2e9f9f3e096cc8f7c65c254554eaae8d24c719961dfc7f9e8",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

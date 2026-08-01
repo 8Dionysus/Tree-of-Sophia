@@ -19,7 +19,16 @@ CLAIM_CATALOG_REF = (CATALOG_ROOT / "claims.jsonl").as_posix()
 CATALOG_MANIFEST_REF = (CATALOG_ROOT / "catalog.manifest.json").as_posix()
 OBJECT_CATALOG_REFS = {
     record_type: (CATALOG_ROOT / f"{record_type}s.jsonl").as_posix()
-    for record_type in ("agent", "work", "expression", "edition", "collection", "item")
+    for record_type in (
+        "agent",
+        "place",
+        "organization",
+        "work",
+        "expression",
+        "edition",
+        "collection",
+        "item",
+    )
 }
 SCHEMA_REF = "ToS/contracts/source-witness-bibliographic-graph.schema.json"
 GRAPH_PATH = (
@@ -329,6 +338,51 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _provision_identity_edges(
+    claim: dict[str, Any],
+    *,
+    objects: dict[str, dict[str, Any]],
+) -> list[tuple[str, str]]:
+    """Resolve normalized provision participants without bypassing the claim."""
+
+    if claim.get("predicate") != "provision_activity":
+        return []
+    value = claim.get("object")
+    if not isinstance(value, dict):
+        raise BibliographicGraphBuildError(
+            f"{claim.get('claim_id')}: provision_activity object must be an object"
+        )
+    resolved: list[tuple[str, str]] = []
+    for place in value.get("places", []):
+        if not isinstance(place, dict):
+            continue
+        ref = place.get("normalized_place_ref")
+        if ref is None:
+            continue
+        identity = objects.get(str(ref))
+        if identity is None or identity.get("record_type") != "place":
+            raise BibliographicGraphBuildError(
+                f"{claim.get('claim_id')}: normalized place {ref!r} is unresolved"
+            )
+        resolved.append(("has_normalized_place", str(ref)))
+    for agent in value.get("agents", []):
+        if not isinstance(agent, dict):
+            continue
+        ref = agent.get("normalized_agent_ref")
+        if ref is None:
+            continue
+        identity = objects.get(str(ref))
+        if identity is None or identity.get("record_type") not in {
+            "agent",
+            "organization",
+        }:
+            raise BibliographicGraphBuildError(
+                f"{claim.get('claim_id')}: normalized agent {ref!r} is unresolved"
+            )
+        resolved.append(("has_normalized_agent", str(ref)))
+    return sorted(set(resolved))
+
+
 def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
     return {
         "node_id": _node_id("claim", str(entry["claim_id"])),
@@ -598,6 +652,27 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
             raise BibliographicGraphBuildError(
                 f"{edge['edge_id']}: claim digest differs from its claim node"
             )
+        if edge["edge_kind"] in {
+            "has_normalized_place",
+            "has_normalized_agent",
+        }:
+            target = nodes[edge["to_id"]]
+            if target["node_kind"] != "identity":
+                raise BibliographicGraphBuildError(
+                    f"{edge['edge_id']}: normalized provision route must end at an identity node"
+                )
+            identity_kind = target["properties"].get("identity_kind")
+            if edge["edge_kind"] == "has_normalized_place" and identity_kind != "place":
+                raise BibliographicGraphBuildError(
+                    f"{edge['edge_id']}: normalized place route must end at a Place identity"
+                )
+            if edge["edge_kind"] == "has_normalized_agent" and identity_kind not in {
+                "agent",
+                "organization",
+            }:
+                raise BibliographicGraphBuildError(
+                    f"{edge['edge_id']}: normalized agent route must end at an Agent or Organization identity"
+                )
     trace_claims: set[str] = set()
     for trace in payload["claim_traces"]:
         claim_ref = trace["claim_ref"]
@@ -639,6 +714,21 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
                 raise BibliographicGraphBuildError(
                     f"{claim_ref}: review_node_ids do not resolve to review nodes"
                 )
+        for node_id in trace["normalized_identity_node_ids"]:
+            if node_id not in nodes or nodes[node_id]["node_kind"] != "identity":
+                raise BibliographicGraphBuildError(
+                    f"{claim_ref}: normalized_identity_node_ids do not resolve to identity nodes"
+                )
+        normalized_edge_targets = {
+            edges[edge_id]["to_id"]
+            for edge_id in trace["edge_ids"]
+            if edges[edge_id]["edge_kind"]
+            in {"has_normalized_place", "has_normalized_agent"}
+        }
+        if normalized_edge_targets != set(trace["normalized_identity_node_ids"]):
+            raise BibliographicGraphBuildError(
+                f"{claim_ref}: normalized identity trace differs from normalized edges"
+            )
     if trace_claims != set(claim_nodes):
         raise BibliographicGraphBuildError(
             "claim traces must cover every projected claim node exactly once"
@@ -653,9 +743,9 @@ def _projection_fingerprint(payload: dict[str, Any]) -> str:
 
 def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     manifest = load_json(repo_root / CATALOG_MANIFEST_REF)
-    if manifest.get("schema_version") != "tos_source_witness_catalog_v2":
+    if manifest.get("schema_version") != "tos_source_witness_catalog_v3":
         raise BibliographicGraphBuildError(
-            f"{CATALOG_MANIFEST_REF}: source-witness catalog v2 is required"
+            f"{CATALOG_MANIFEST_REF}: source-witness catalog v3 is required"
         )
     if manifest.get("claim_file") != CLAIM_CATALOG_REF:
         raise BibliographicGraphBuildError(
@@ -798,6 +888,17 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         )
         edge_specs.extend(("reviewed_by", node_id) for node_id in sorted(review_node_ids))
 
+        normalized_identity_node_ids: list[str] = []
+        for edge_kind, normalized_ref in _provision_identity_edges(
+            claim,
+            objects=objects,
+        ):
+            normalized_node = _identity_node(objects[normalized_ref])
+            _add_node(nodes, normalized_node)
+            normalized_node_id = str(normalized_node["node_id"])
+            normalized_identity_node_ids.append(normalized_node_id)
+            edge_specs.append((edge_kind, normalized_node_id))
+
         alternative_claim_refs = claim.get("alternative_claim_refs", [])
         if not isinstance(alternative_claim_refs, list):
             raise BibliographicGraphBuildError(
@@ -851,6 +952,9 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 "evidence_node_ids": evidence_node_ids,
                 "counterevidence_node_ids": counterevidence_node_ids,
                 "review_node_ids": sorted(review_node_ids),
+                "normalized_identity_node_ids": sorted(
+                    normalized_identity_node_ids
+                ),
                 "review_status": claim["review_status"],
                 "visibility": claim["visibility"],
                 "alternative_claim_refs": sorted(
@@ -1010,6 +1114,7 @@ def query_projection(
     claim_ref: str | None = None,
     subject_ref: str | None = None,
     object_ref: str | None = None,
+    normalized_ref: str | None = None,
     predicate: str | None = None,
     review_status: str | None = None,
     visibility: str | None = None,
@@ -1023,6 +1128,7 @@ def query_projection(
             ("claim_ref", claim_ref),
             ("subject_ref", subject_ref),
             ("object_ref", object_ref),
+            ("normalized_ref", normalized_ref),
             ("predicate", predicate),
             ("review_status", review_status),
             ("visibility", visibility),
@@ -1060,10 +1166,17 @@ def query_projection(
             if object_node["node_kind"] == "identity"
             else None
         )
+        trace_normalized_refs = {
+            str(nodes[node_id]["properties"].get("identity_ref"))
+            for node_id in trace.get("normalized_identity_node_ids", [])
+        }
         values = {
             "claim_ref": trace["claim_ref"],
             "subject_ref": trace_subject_ref,
             "object_ref": trace_object_ref,
+            "normalized_ref": normalized_ref
+            if normalized_ref in trace_normalized_refs
+            else None,
             "predicate": trace["predicate"],
             "review_status": trace["review_status"],
             "visibility": trace["visibility"],
@@ -1099,6 +1212,10 @@ def query_projection(
                 ],
                 "review_nodes": [
                     nodes[node_id] for node_id in trace["review_node_ids"]
+                ],
+                "normalized_identity_nodes": [
+                    nodes[node_id]
+                    for node_id in trace.get("normalized_identity_node_ids", [])
                 ],
                 "edges": edges_by_claim[trace["claim_ref"]],
             }

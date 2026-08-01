@@ -170,6 +170,15 @@ WORK_CHRONOLOGY_PROVENANCE_PATH = WORK_CHRONOLOGY_ROOT / "provenance.jsonl"
 WORK_CHRONOLOGY_SCHEMA_PATH = (
     REPO_ROOT / "ToS/contracts/first-publication-chronology.schema.json"
 )
+PROVISION_ACTIVITY_SCHEMA_PATH = (
+    REPO_ROOT / "ToS/contracts/provision-activity.schema.json"
+)
+GOETZEN_1889_PROVISION_CLAIMS_PATH = (
+    GOETZEN_1889_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+ECCE_HOMO_1908_PROVISION_CLAIMS_PATH = (
+    ECCE_HOMO_1908_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
 ECCE_HOMO_1908_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1137,15 +1146,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                         hashlib.sha256(canonical).hexdigest(),
                     )
 
-        self.assertEqual("tos_source_witness_catalog_v2", manifest["schema_version"])
+        self.assertEqual("tos_source_witness_catalog_v3", manifest["schema_version"])
         self.assertEqual(
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(65, manifest["counts"]["object_total"])
-        self.assertEqual(99, manifest["counts"]["claim"])
-        self.assertEqual(164, manifest["counts"]["total"])
-        self.assertEqual(99, len(claim_entries))
+        self.assertEqual(68, manifest["counts"]["object_total"])
+        self.assertEqual(101, manifest["counts"]["claim"])
+        self.assertEqual(169, manifest["counts"]["total"])
+        self.assertEqual(101, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1182,7 +1191,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 82,
+                "bibliographic_assertion": 84,
                 "scholarly_report": 17,
             },
             {
@@ -1281,6 +1290,101 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     "chronology_claim_refs"
                 ],
             )
+
+        provision_claims = [
+            entry
+            for entry in claim_entries
+            if entry["predicate"] == "provision_activity"
+        ]
+        self.assertEqual(2, len(provision_claims))
+        self.assertEqual(
+            {"tos.place.leipzig"},
+            {
+                place["normalized_place_ref"]
+                for claim in provision_claims
+                for place in claim["object"]["places"]
+            },
+        )
+        self.assertEqual(
+            {
+                "tos.organization.c-g-naumann-verlag-leipzig",
+                "tos.organization.insel-verlag-anton-kippenberg-leipzig",
+            },
+            {
+                agent["normalized_agent_ref"]
+                for claim in provision_claims
+                for agent in claim["object"]["agents"]
+            },
+        )
+        self.assertTrue(
+            all(
+                claim["object"]["temporal"]["role"] == "statement_date"
+                and claim["review_status"] == "unreviewed"
+                and claim["visibility"] == "public_metadata_only"
+                for claim in provision_claims
+            )
+        )
+
+    def test_provision_activity_contract_preserves_roles_and_date_boundaries(
+        self,
+    ) -> None:
+        schema = json.loads(
+            PROVISION_ACTIVITY_SCHEMA_PATH.read_text(encoding="utf-8")
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        goetzen = json.loads(
+            GOETZEN_1889_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )["object"]
+        ecce = json.loads(
+            ECCE_HOMO_1908_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()[0]
+        )["object"]
+        self.assertEqual([], list(validator.iter_errors(goetzen)))
+        self.assertEqual([], list(validator.iter_errors(ecce)))
+        self.assertIn("transcribed_statement", goetzen)
+        self.assertNotIn("reported_statement", goetzen)
+        self.assertIn("reported_statement", ecce)
+        self.assertNotIn("transcribed_statement", ecce)
+
+        invalid_day = copy.deepcopy(goetzen)
+        invalid_day["temporal"].update(
+            {"value": "1889-02-30", "precision": "day"}
+        )
+        self.assertTrue(list(validator.iter_errors(invalid_day)))
+
+        flat_publisher = copy.deepcopy(goetzen)
+        flat_publisher["publisher"] = "C. G. Naumann"
+        self.assertTrue(list(validator.iter_errors(flat_publisher)))
+
+        collapsed_release = copy.deepcopy(goetzen)
+        collapsed_release["temporal"]["role"] = "public_release_date"
+        self.assertTrue(list(validator.iter_errors(collapsed_release)))
+
+        wrong_role = copy.deepcopy(goetzen)
+        wrong_role["agents"][0]["role"] = "printer"
+        self.assertTrue(list(validator.iter_errors(wrong_role)))
+
+        reversed_interval = copy.deepcopy(goetzen)
+        reversed_interval["temporal"] = {
+            "kind": "interval",
+            "calendar": "gregorian",
+            "start": "1909",
+            "end": "1908",
+            "start_precision": "year",
+            "end_precision": "year",
+            "role": "statement_date",
+            "source_posture": "reported",
+        }
+        self.assertEqual([], list(validator.iter_errors(reversed_interval)))
+        self.assertEqual(
+            ["provision-activity interval starts after it ends"],
+            foundation._provision_temporal_issues(reversed_interval),
+        )
 
     def test_first_publication_chronology_preserves_distinct_ordering_facets(
         self,
@@ -3085,7 +3189,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         claims_by_predicate = {
             claim["predicate"]: claim for claim in publication_claims
         }
-        self.assertEqual(3, edition["record_version"])
+        self.assertEqual(4, edition["record_version"])
         self.assertEqual(6, len(publication_claims))
         self.assertEqual(
             set(edition["publication_claim_refs"]),
@@ -3621,7 +3725,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(discovery["technical_access_bypass_used"])
 
         self.assertEqual(6, work["record_version"])
-        self.assertEqual(3, edition["record_version"])
+        self.assertEqual(4, edition["record_version"])
         self.assertEqual(4, len(responsibility_claims))
         self.assertEqual(
             set(work["responsibility_claim_refs"]),

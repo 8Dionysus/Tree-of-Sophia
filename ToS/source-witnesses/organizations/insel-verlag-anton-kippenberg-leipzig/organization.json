@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "organization",
+  "record_id": "tos.organization.insel-verlag-anton-kippenberg-leipzig",
+  "preferred_label": "Insel Verlag Anton Kippenberg, Leipzig",
+  "variant_labels": [
+    {
+      "value": "Insel Verlag (Leipzig)",
+      "language": "de",
+      "source_ref": "https://d-nb.info/gnd/43217-9",
+      "status": "unverified"
+    },
+    {
+      "value": "Insel-Verlag",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md",
+    "https://d-nb.info/gnd/43217-9"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "43217-9",
+      "source_ref": "https://d-nb.info/gnd/43217-9",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record identifies the Leipzig company active from 1901 to 1989. It is kept distinct from the Frankfurt branch, the 1990-2009 combined company, and the modern Berlin successor. The local identity remains model-resolved and unreviewed.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

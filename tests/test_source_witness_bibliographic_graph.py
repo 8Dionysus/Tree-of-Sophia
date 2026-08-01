@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 99)
-        self.assertEqual(counts["claim_traces"], 99)
-        self.assertEqual(counts["nodes"], 301)
-        self.assertEqual(counts["edges"], 627)
+        self.assertEqual(counts["source_claims"], 101)
+        self.assertEqual(counts["claim_traces"], 101)
+        self.assertEqual(counts["nodes"], 312)
+        self.assertEqual(counts["edges"], 645)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 99})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 99})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 101})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 101})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -161,6 +161,41 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         ):
             _validate_cross_references(mutated)
 
+    def test_cross_reference_guard_closes_normalized_provision_routes(self) -> None:
+        payload = build_payload()
+        provision_trace = next(
+            trace
+            for trace in payload["claim_traces"]
+            if trace["predicate"] == "provision_activity"
+        )
+
+        wrong_kind = copy.deepcopy(payload)
+        place_edge = next(
+            edge
+            for edge in wrong_kind["edges"]
+            if edge["claim_ref"] == provision_trace["claim_ref"]
+            and edge["edge_kind"] == "has_normalized_place"
+        )
+        place_edge["to_id"] = provision_trace["subject_node_id"]
+        with self.assertRaisesRegex(
+            BibliographicGraphBuildError,
+            "normalized place route must end at a Place identity",
+        ):
+            _validate_cross_references(wrong_kind)
+
+        missing_trace_ref = copy.deepcopy(payload)
+        mutated_trace = next(
+            trace
+            for trace in missing_trace_ref["claim_traces"]
+            if trace["claim_ref"] == provision_trace["claim_ref"]
+        )
+        mutated_trace["normalized_identity_node_ids"] = []
+        with self.assertRaisesRegex(
+            BibliographicGraphBuildError,
+            "normalized identity trace differs from normalized edges",
+        ):
+            _validate_cross_references(missing_trace_ref)
+
     def test_catalog_loader_rejects_nonpublic_claim(self) -> None:
         source_entry = json.loads(
             (REPO_ROOT / CLAIM_CATALOG_REF).read_text(encoding="utf-8").splitlines()[0]
@@ -258,6 +293,54 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 for match in result["matches"]
             )
         )
+
+    def test_provision_activity_query_preserves_literal_and_normalized_routes(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        leipzig_ref = "tos.place.leipzig"
+        result = query_projection(
+            payload,
+            predicate="provision_activity",
+            normalized_ref=leipzig_ref,
+        )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_count"], 2)
+        self.assertEqual(
+            {
+                "tos.organization.c-g-naumann-verlag-leipzig",
+                "tos.organization.insel-verlag-anton-kippenberg-leipzig",
+            },
+            {
+                node["properties"]["identity_ref"]
+                for match in result["matches"]
+                for node in match["normalized_identity_nodes"]
+                if node["properties"]["identity_kind"] == "organization"
+            },
+        )
+        for match in result["matches"]:
+            self.assertEqual(match["object_node"]["node_kind"], "literal")
+            self.assertEqual(
+                match["object_node"]["properties"]["value"]["temporal"]["role"],
+                "statement_date",
+            )
+            self.assertIn(
+                "has_normalized_place",
+                {edge["edge_kind"] for edge in match["edges"]},
+            )
+            self.assertTrue(
+                all(
+                    edge["from_id"] == match["claim_node"]["node_id"]
+                    for edge in match["edges"]
+                )
+            )
+
+        modern_successor = query_projection(
+            payload,
+            normalized_ref="tos.organization.insel-verlag-berlin",
+        )
+        self.assertEqual(modern_successor["status"], "no_match")
+        self.assertEqual(modern_successor["matches"], [])
 
     def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
         payload = load_verified_projection()

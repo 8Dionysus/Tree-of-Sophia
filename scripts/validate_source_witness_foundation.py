@@ -43,6 +43,7 @@ RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.js
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
+PROVISION_ACTIVITY_SCHEMA = CONTRACT_ROOT / "provision-activity.schema.json"
 FIRST_PUBLICATION_CHRONOLOGY_SCHEMA = (
     CONTRACT_ROOT / "first-publication-chronology.schema.json"
 )
@@ -122,6 +123,7 @@ WORK_CHRONOLOGY_PROVENANCE = WORK_CHRONOLOGY_ROOT / "provenance.jsonl"
 WORK_CHRONOLOGY_EVENT_REF = (
     "tos.event.annotation.friedrich-nietzsche.first-publication-chronology.2026-07-31"
 )
+PROVISION_ACTIVITY_PROVENANCE_BASENAME = "provision-activity-provenance.jsonl"
 BIBLIOGRAPHIC_TOPOLOGY_ROUTES = (
     (
         BIBLIOGRAPHIC_TOPOLOGY_ROOT
@@ -244,6 +246,17 @@ def _validate_payload(
     for error in sorted(validator.iter_errors(payload), key=lambda item: list(item.absolute_path)):
         suffix = "".join(f"[{part!r}]" for part in error.absolute_path)
         issues.append((f"{location}{suffix}", error.message))
+
+
+def _provision_temporal_issues(activity: dict[str, Any]) -> list[str]:
+    temporal = activity.get("temporal")
+    if not isinstance(temporal, dict) or temporal.get("kind") != "interval":
+        return []
+    start = temporal.get("start")
+    end = temporal.get("end")
+    if isinstance(start, str) and isinstance(end, str) and start > end:
+        return ["provision-activity interval starts after it ends"]
+    return []
 
 
 def _repo_ref_exists(repo_root: Path, ref: object) -> bool:
@@ -969,6 +982,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
+        provision_activity_validator, _ = _schema_validator(
+            PROVISION_ACTIVITY_SCHEMA,
+            repo_root,
+        )
         first_publication_chronology_validator, _ = _schema_validator(
             FIRST_PUBLICATION_CHRONOLOGY_SCHEMA,
             repo_root,
@@ -5283,6 +5300,51 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
             )
 
+    provision_activity_events: dict[str, dict[str, Any]] = {}
+    for provenance_path in sorted(
+        (repo_root / SOURCE_ROOT).rglob(PROVISION_ACTIVITY_PROVENANCE_BASENAME)
+    ):
+        provenance_ref = _relative(provenance_path, repo_root)
+        for index, event in enumerate(
+            _load_jsonl(provenance_path, repo_root, issues),
+            start=1,
+        ):
+            location = f"{provenance_ref}:{index}"
+            _validate_payload(event, provenance_validator, location, issues)
+            event_id = event.get("event_id")
+            if not isinstance(event_id, str):
+                continue
+            if event_id in event_ids:
+                issues.append((location, f"duplicate event_id: {event_id}"))
+            event_ids.add(event_id)
+            events_by_id[event_id] = event
+            provision_activity_events[event_id] = event
+            if event.get("event_type") != "annotation":
+                issues.append(
+                    (location, "provision-activity provenance must be annotation")
+                )
+            for field in ("inputs", "outputs"):
+                for entity in event.get(field, []):
+                    if not isinstance(entity, dict):
+                        continue
+                    ref = entity.get("ref")
+                    expected_digest = entity.get("sha256")
+                    if not (
+                        isinstance(ref, str)
+                        and ref.startswith("ToS/")
+                        and isinstance(expected_digest, str)
+                    ):
+                        continue
+                    path = repo_root / ref
+                    if not path.is_file():
+                        issues.append(
+                            (location, f"provision-activity {field} is missing: {ref}")
+                        )
+                    elif _sha256(path) != expected_digest:
+                        issues.append(
+                            (location, f"provision-activity {field} digest drifted: {ref}")
+                        )
+
     membership_claim_ids: set[str] = set()
     responsibility_claim_ids: set[str] = set()
     responsibility_claim_subjects: dict[str, str] = {}
@@ -5290,6 +5352,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     responsibility_claim_objects: dict[str, str] = {}
     publication_claim_ids: set[str] = set()
     publication_claim_subjects: dict[str, str] = {}
+    provision_activity_claim_ids: set[str] = set()
+    provision_activity_claim_subjects: dict[str, str] = {}
     chronology_claim_ids: set[str] = set()
     chronology_claim_subjects: dict[str, str] = {}
     claim_routes = (
@@ -5616,6 +5680,187 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             f"{evidence_ref}",
                         )
                     )
+
+    provision_role_profile = {
+        "publication": ({"publication_place"}, {"publisher"}),
+        "production": ({"production_place"}, {"producer"}),
+        "distribution": ({"distribution_place"}, {"distributor"}),
+        "manufacture": ({"manufacture_place"}, {"manufacturer", "printer"}),
+    }
+    validated_provision_event_refs: set[str] = set()
+    for claim_path in sorted(
+        (repo_root / SOURCE_ROOT).rglob("provision-activity-claims.jsonl")
+    ):
+        owner_path = claim_path.parent / "edition.json"
+        owner = _load_json(owner_path, repo_root, issues)
+        owner_id = owner.get("record_id") if owner is not None else None
+        claim_file_ref = _relative(claim_path, repo_root)
+        claim_file_digest = _sha256(claim_path)
+        for index, claim in enumerate(
+            _load_jsonl(claim_path, repo_root, issues),
+            start=1,
+        ):
+            location = f"{claim_file_ref}:{index}"
+            _validate_payload(claim, claim_validator, location, issues)
+            claim_id = claim.get("claim_id")
+            subject_ref = claim.get("subject_ref")
+            if isinstance(claim_id, str):
+                if claim_id in claim_ids:
+                    issues.append((location, f"duplicate claim_id: {claim_id}"))
+                claim_ids.add(claim_id)
+                provision_activity_claim_ids.add(claim_id)
+                if isinstance(subject_ref, str):
+                    provision_activity_claim_subjects[claim_id] = subject_ref
+            if claim.get("claim_type") != "bibliographic":
+                issues.append(
+                    (location, "provision-activity claim_type must be bibliographic")
+                )
+            if claim.get("assertion_layer") != "bibliographic_assertion":
+                issues.append(
+                    (
+                        location,
+                        "provision-activity assertion_layer must be bibliographic_assertion",
+                    )
+                )
+            if claim.get("predicate") != "provision_activity":
+                issues.append(
+                    (location, "provision-activity predicate must be provision_activity")
+                )
+            require_record(subject_ref, "edition", location)
+            if owner_id != subject_ref:
+                issues.append(
+                    (
+                        location,
+                        "provision-activity subject_ref differs from sibling edition.json",
+                    )
+                )
+
+            activity = claim.get("object")
+            if isinstance(activity, dict):
+                _validate_payload(
+                    activity,
+                    provision_activity_validator,
+                    f"{location}#object",
+                    issues,
+                )
+                issues.extend(
+                    (location, issue)
+                    for issue in _provision_temporal_issues(activity)
+                )
+                provision_kind = activity.get("provision_kind")
+                allowed_roles = provision_role_profile.get(str(provision_kind))
+                if allowed_roles is not None:
+                    allowed_place_roles, allowed_agent_roles = allowed_roles
+                    for place in activity.get("places", []):
+                        if not isinstance(place, dict):
+                            continue
+                        if place.get("role") not in allowed_place_roles:
+                            issues.append(
+                                (
+                                    location,
+                                    f"{provision_kind} provision has incompatible place role: {place.get('role')}",
+                                )
+                            )
+                        normalized_ref = place.get("normalized_place_ref")
+                        if normalized_ref is not None:
+                            require_record(normalized_ref, "place", location)
+                    for agent in activity.get("agents", []):
+                        if not isinstance(agent, dict):
+                            continue
+                        if agent.get("role") not in allowed_agent_roles:
+                            issues.append(
+                                (
+                                    location,
+                                    f"{provision_kind} provision has incompatible agent role: {agent.get('role')}",
+                                )
+                            )
+                        normalized_ref = agent.get("normalized_agent_ref")
+                        if normalized_ref is not None:
+                            target = records_by_id.get(str(normalized_ref))
+                            if target is None:
+                                issues.append(
+                                    (
+                                        location,
+                                        f"unresolved provision agent reference: {normalized_ref}",
+                                    )
+                                )
+                            elif target[0].get("record_type") not in {
+                                "agent",
+                                "organization",
+                            }:
+                                issues.append(
+                                    (
+                                        location,
+                                        f"{normalized_ref} resolves to {target[0].get('record_type')}, expected agent or organization",
+                                    )
+                                )
+                if activity.get("event_posture") == "source_statement_only" and (
+                    isinstance(activity.get("temporal"), dict)
+                    and activity["temporal"].get("role") != "statement_date"
+                ):
+                    issues.append(
+                        (
+                            location,
+                            "source_statement_only provision must keep its temporal role at statement_date",
+                        )
+                    )
+            else:
+                issues.append((location, "provision-activity object must be an object"))
+
+            event_ref = claim.get("provenance_event_ref")
+            event = provision_activity_events.get(str(event_ref))
+            if event is None:
+                issues.append(
+                    (
+                        location,
+                        f"unresolved provision-activity provenance_event_ref: {event_ref}",
+                    )
+                )
+            else:
+                expected_output = {
+                    "ref": claim_file_ref,
+                    "role": "unreviewed-evidence-bearing-provision-activity-claims",
+                    "sha256": claim_file_digest,
+                }
+                if expected_output not in event.get("outputs", []):
+                    issues.append(
+                        (
+                            location,
+                            "provision-activity provenance event does not digest-bind the claim file",
+                        )
+                    )
+                validated_provision_event_refs.add(str(event_ref))
+            for evidence_ref in claim.get("evidence_refs", []):
+                if (
+                    isinstance(evidence_ref, str)
+                    and evidence_ref.startswith("ToS/")
+                    and not (repo_root / evidence_ref).is_file()
+                ):
+                    issues.append(
+                        (
+                            location,
+                            f"unresolved repository evidence ref: {evidence_ref}",
+                        )
+                    )
+                elif (
+                    isinstance(evidence_ref, str)
+                    and evidence_ref.startswith("tos.")
+                    and evidence_ref not in records_by_id
+                ):
+                    issues.append(
+                        (location, f"unresolved identity evidence ref: {evidence_ref}")
+                    )
+
+    unused_provision_events = sorted(
+        set(provision_activity_events) - validated_provision_event_refs
+    )
+    if unused_provision_events:
+        issues.append(
+            (
+                SOURCE_ROOT.as_posix(),
+                f"provision-activity provenance events are not referenced by claims: {unused_provision_events}",
+            )
+        )
 
     chronology_provenance_events = _load_jsonl(
         repo_root / WORK_CHRONOLOGY_PROVENANCE,
@@ -6001,6 +6246,47 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 (
                     location,
                     f"sibling publication claims are not referenced: {unreferenced}",
+                )
+            )
+
+        actual_provision_refs = set(
+            payload.get("provision_activity_claim_refs", [])
+        )
+        missing_provision_refs = sorted(
+            actual_provision_refs - provision_activity_claim_ids
+        )
+        if missing_provision_refs:
+            issues.append(
+                (
+                    location,
+                    f"unresolved provision-activity claims: {missing_provision_refs}",
+                )
+            )
+        misbound_provision_refs = sorted(
+            claim_ref
+            for claim_ref in actual_provision_refs & provision_activity_claim_ids
+            if provision_activity_claim_subjects.get(claim_ref) != edition_id
+        )
+        if misbound_provision_refs:
+            issues.append(
+                (
+                    location,
+                    "provision-activity claims belong to another edition: "
+                    f"{misbound_provision_refs}",
+                )
+            )
+        unreferenced_provision_refs = sorted(
+            claim_id
+            for claim_id, subject_ref in provision_activity_claim_subjects.items()
+            if subject_ref == edition_id
+            and claim_id not in actual_provision_refs
+        )
+        if unreferenced_provision_refs:
+            issues.append(
+                (
+                    location,
+                    "sibling provision-activity claims are not referenced: "
+                    f"{unreferenced_provision_refs}",
                 )
             )
 

@@ -46,7 +46,7 @@ Three real defects were preserved instead of rewritten:
 
 No graph-backend winner is declared.
 
-## Subsequent catalog-backed bibliographic projection — refreshed 2026-07-31
+## Subsequent catalog-backed bibliographic projection — refreshed 2026-08-01
 
 The later source-witness foundation now has a separate tracked JSON graph at
 `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`.
@@ -54,13 +54,13 @@ This is not a fourth backend and does not rerun or rewrite the frozen 13-claim
 A/B/C experiment. It applies corrected A's claim-first reference semantics to
 the current generated source-witness catalog:
 
-- 99 public-metadata-only bibliographic claims;
-- 301 nodes and 627 edges;
-- 99 claim trace packets;
-- 19 claim-scoped literal objects;
-- 13 resolved provenance events carrying exact time and method;
+- 101 public-metadata-only bibliographic claims;
+- 312 nodes and 645 edges;
+- 101 claim trace packets;
+- 21 claim-scoped literal objects;
+- 14 resolved provenance events carrying exact time and method;
 - zero direct subject-to-object edges;
-- 99 explicit `unreviewed` states.
+- 101 explicit `unreviewed` states.
 
 The 55 topology claims materialize the complete declared corpus ladder as
 separate source packets: 20 Work `has_expression` Expression, 20 Expression
@@ -73,6 +73,13 @@ The chronology layer separately carries seven Work
 `first_publication_chronology` literal profiles. Their staged/private/public
 and posthumous distinctions remain claim objects; the graph does not select a
 single Work year or convert ordering into truth.
+
+The 2026-08-01 bounded provision layer adds two Edition-owned literal objects,
+one normalized Leipzig Place, and two distinct historical publisher
+Organizations. The four normalized-participant edges all begin at their claim
+nodes. Exact normalized queries return both claims for Leipzig and no match for
+the modern Berlin Insel successor; the graph does not create a direct
+Edition-to-Place or Edition-to-Organization assertion.
 
 Every structural edge begins at a reified claim node and carries the source
 claim digest, source file/line, evidence nodes, maker, provenance event, and
@@ -103,13 +110,19 @@ builder or validator. It found:
   single-event profiles;
 - byte-level agreement for the chronology claim-file output digest and all 18
   input digests recorded by its provenance event;
-- 99/99 catalog rows returning to the expected source line and canonical
+- 101/101 catalog rows returning to the expected source line and canonical
   claim digest;
-- 99/99 graph traces returning to the same source line and digest;
-- 301 nodes, including 99 claims, 65 identities, 104 evidence nodes, 19
-  literals, one maker, and 13 provenance events;
-- 627/627 edges beginning at their own reified claim node;
+- 101/101 graph traces returning to the same source line and digest;
+- 312 nodes, including 101 claims, 68 identities, 107 evidence nodes, 21
+  literals, one maker, and 14 provenance events;
+- 645/645 edges beginning at their own reified claim node;
 - zero direct subject-to-object edges.
+
+The two new provision rows were additionally inspected from metadata snapshot
+to raw source claim, catalog line, graph literal, normalized identities, and
+negative query. The separate experiment receipt preserves that direct check,
+the rejected flat-field representation, schema mutations, and local cost
+snapshot. It creates no human review evidence.
 
 A temporary negative probe then removed one Work-owned
 `expression_claim_refs` entry and ran the actual foundation validator. It

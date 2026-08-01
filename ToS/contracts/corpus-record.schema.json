@@ -20,7 +20,7 @@
       "const": "tos_corpus_record_v1"
     },
     "record_type": {
-      "enum": ["agent", "work", "expression", "edition", "collection", "item"]
+      "enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"]
     },
     "record_id": {
       "$ref": "#/$defs/tosId"
@@ -107,6 +107,11 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
     },
+    "provision_activity_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
     "exemplar_claim_refs": {
       "type": "array",
       "uniqueItems": true,
@@ -156,7 +161,7 @@
   "$defs": {
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|place|organization|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
     "repoRelativePath": {
       "type": "string",

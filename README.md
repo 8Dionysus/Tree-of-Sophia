@@ -69,6 +69,13 @@ boundaries instead of collapsing composition, printing, title-page year, and
 release into one supposedly stable date. These profiles are source-returnable
 ordering claims, not accepted chronology or a complete philosophical timeline.
 
+The first Edition-level provision slice preserves two literal Leipzig imprint
+statements while resolving one provisional Place and two distinct provisional
+historical publisher Organizations. Statement dates, printing, public release,
+publisher, printer, and modern successor remain separate. The identities and
+claims are model-made and unreviewed; the generated graph reaches normalized
+participants only through their source-returnable claim nodes.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

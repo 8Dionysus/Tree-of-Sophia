@@ -79,12 +79,24 @@ dedicated first-publication object contract and digest-bound batch event. This
 checks ordering mechanics only; it cannot certify a universal Work date,
 historical completeness, or accepted chronology.
 
+Catalog v3 additionally projects the bounded Place and Organization families
+used by Edition-owned `provision_activity` claims. The validator keeps the
+literal statement, activity kind, role-specific participants, temporal facet,
+normalized identity, Edition reference, evidence, and provenance in exact
+closure. This mechanics cannot promote an authority match, equate a publisher
+with a printer or successor, or turn a statement date into public release.
+
 The source-witness bibliographic graph pair is a downstream generated route,
 not a second source validator. Its builder and validator read the public-safe
 catalog plus exact claim, evidence, anchor, and provenance records, keep every
 assertion reified as a claim node, and reject any edge that loses source return.
 They do not emit direct subject-object truth edges or own graph runtime
 behavior.
+
+Normalized provision participants are emitted only as claim-originating
+`has_normalized_place` or `has_normalized_agent` edges. Querying one of those
+identities remains source-return navigation through the reified claim, not an
+Edition-to-identity fact assertion.
 
 The companion bibliographic graph query script is a deterministic, read-only
 stdout reader. It verifies a complete source-backed rebuild before applying

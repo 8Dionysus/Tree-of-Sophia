@@ -60,6 +60,8 @@
           "additionalProperties": false,
           "required": [
             "agent",
+            "place",
+            "organization",
             "work",
             "expression",
             "edition",
@@ -69,6 +71,12 @@
           "properties": {
             "agent": {
               "const": "ToS/source-witnesses/catalog/agents.jsonl"
+            },
+            "place": {
+              "const": "ToS/source-witnesses/catalog/places.jsonl"
+            },
+            "organization": {
+              "const": "ToS/source-witnesses/catalog/organizations.jsonl"
             },
             "work": {
               "const": "ToS/source-witnesses/catalog/works.jsonl"
@@ -91,7 +99,7 @@
     },
     "input_digests": {
       "type": "object",
-      "minProperties": 8,
+      "minProperties": 10,
       "additionalProperties": {
         "$ref": "#/$defs/sha256"
       },
@@ -329,6 +337,8 @@
             "supported_by",
             "counterevidenced_by",
             "reviewed_by",
+            "has_normalized_place",
+            "has_normalized_agent",
             "alternative_to",
             "supersedes"
           ]
@@ -402,6 +412,7 @@
         "evidence_node_ids",
         "counterevidence_node_ids",
         "review_node_ids",
+        "normalized_identity_node_ids",
         "review_status",
         "visibility",
         "alternative_claim_refs",
@@ -487,6 +498,14 @@
           }
         },
         "review_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "normalized_identity_node_ids": {
           "type": "array",
           "uniqueItems": true,
           "items": {

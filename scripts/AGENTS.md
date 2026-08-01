@@ -37,7 +37,8 @@ authority into Tree of Sophia.
 `build_source_witness_catalog.py` and
 `validate_source_witness_foundation.py` protect the corpus evidence spine and
 tracked object/claim catalog. The generated claim projection covers only
-tracked membership, responsibility, publication, and identity-ladder packets,
+tracked membership, responsibility, publication, provision-activity, and
+identity-ladder packets,
 including separately reified Work→Expression, Expression→Edition, and
 Edition→Item directions. The current Nietzsche slice must also retain one
 explicit Work-owned `authored_by` packet per Work, resolved to the Nietzsche
@@ -54,6 +55,15 @@ gitignored payload bytes to be absent from a public clone; an operator may add
 `--require-local-payloads` for the local laboratory. Passing this lane never
 implies that a human accepted the bibliography, relation, text, rights,
 translation, review, or semantics.
+
+The catalog and foundation validator also admit the bounded Edition-owned
+`provision_activity` family. Catalog v3 adds Place and Organization record
+projections; the validator checks exact Edition claim-ref closure, activity
+and role coherence, Gregorian precision, literal-versus-normalized identity,
+normalized record type, evidence, and digest-bound annotation provenance. A
+statement year is not a public-release date, a publisher is not a printer or
+modern successor, and neither a green contract nor a normalized authority ID
+accepts the bibliography.
 
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
@@ -183,12 +193,18 @@ review return. They emit no direct subject-to-object fact edge, do not accept a
 claim, do not merge with the atlas graph, and do not own runtime Neo4j,
 Oxigraph, MCP, UI, or service behavior.
 
+For `provision_activity`, the graph may add claim-originating
+`has_normalized_place` and `has_normalized_agent` edges to the exact cataloged
+Place, Agent, or Organization identity. These convenience edges remain part of
+the claim trace and may never bypass the claim node.
+
 `query_source_witness_bibliographic_graph.py` is the read-only local companion.
 It validates the graph and requires an exact source-backed canonical rebuild
 before answering explicit claim, subject, identity-object, predicate,
 review-status, or visibility selectors. Combined selectors are ANDed. Every
 match includes the exact source JSONL object and complete graph trace; the
-reader writes no files, rejects selector-free requests, and fails rather than
+reader also accepts an exact normalized identity selector, writes no files,
+rejects selector-free requests, and fails rather than
 silently truncate an over-limit result. Its stdout is navigation, not claim
 truth, human review, runtime API, MCP, UI, backend, or canon authority.
 

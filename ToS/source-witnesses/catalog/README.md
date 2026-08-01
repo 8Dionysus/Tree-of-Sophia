@@ -1,18 +1,20 @@
 # Source-Witness Catalog
 
 This directory is the tracked, generated navigation index over authoritative
-object and bibliographic claim records in the speaking `agents/`, `works/`,
-and `collections/` trees.
+object and bibliographic claim records in the speaking `agents/`, `places/`,
+`organizations/`, `works/`, and `collections/` trees.
 
 | File | Record class |
 | --- | --- |
-| `agents.jsonl` | people and organizations |
+| `agents.jsonl` | people |
+| `places.jsonl` | provisional normalized places |
+| `organizations.jsonl` | provisional historical organizations |
 | `works.jsonl` | intellectual works |
 | `expressions.jsonl` | language/textual responsibility states |
 | `editions.jsonl` | published/edited manifestations |
 | `collections.jsonl` | aggregate publications |
 | `items.jsonl` | acquired physical/digital copies or containers |
-| `claims.jsonl` | source-returnable membership, responsibility, chronology, publication, and Work/Expression/Edition/Item topology claims |
+| `claims.jsonl` | source-returnable membership, responsibility, chronology, publication, provision-activity, and Work/Expression/Edition/Item topology claims |
 | `catalog.manifest.json` | counts, paths, digest, and generation boundary |
 
 Object records own identity; source claim packets own bibliographic
@@ -31,13 +33,18 @@ this generated catalog proves exact projection only. It does not make the
 declared identity ladder true, accept any text, or turn embodiment into
 textual equivalence.
 
-The current bounded projection contains 65 object records and 99 claim records
-(164 entries total). The responsibility slice contains seven Work authorship,
+The current bounded projection contains 68 object records and 101 claim records
+(169 entries total). The responsibility slice contains seven Work authorship,
 seven Expression translation, and three Edition role claims; all remain
 source-returnable, model-made, public-metadata-only, and unreviewed.
 The chronology slice adds seven Work-level first-publication profiles. It keeps
 their temporal objects as claim-scoped literals and supplies named interval
 boundaries rather than one identity year.
+The provision slice adds one provisional Leipzig Place, two provisional
+historical publisher Organizations, and two Edition-owned grouped statements.
+Their literal wording, normalized identity, activity role, and statement date
+remain distinct; all three identities and both claims remain model-made and
+unreviewed or provisional.
 
 Regeneration, parity checks, and source-foundation validation route through
 `scripts/AGENTS.md`, which owns the catalog builder and evidence-spine

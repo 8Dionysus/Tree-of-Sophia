@@ -18,6 +18,10 @@ def main() -> int:
     parser.add_argument("--claim-ref", help="match one exact claim ID")
     parser.add_argument("--subject-ref", help="match one exact subject identity ID")
     parser.add_argument("--object-ref", help="match one exact identity-valued object ID")
+    parser.add_argument(
+        "--normalized-ref",
+        help="match one exact normalized Place, Agent, or Organization inside a provision claim",
+    )
     parser.add_argument("--predicate", help="match one exact bibliographic predicate")
     parser.add_argument("--review-status", help="match one exact review status")
     parser.add_argument("--visibility", help="match one exact visibility posture")
@@ -41,6 +45,7 @@ def main() -> int:
             claim_ref=args.claim_ref,
             subject_ref=args.subject_ref,
             object_ref=args.object_ref,
+            normalized_ref=args.normalized_ref,
             predicate=args.predicate,
             review_status=args.review_status,
             visibility=args.visibility,

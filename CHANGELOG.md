@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added the first bounded Edition-owned `provision_activity` layer after an
+  ordered standards, established-work, and 2025-2026 freshness review. The
+  1889 *Götzen-Dämmerung* and 1908 *Ecce Homo* claims preserve their exact
+  transcribed or reported Leipzig statements, typed publisher roles, and
+  statement-date postures while resolving one provisional Place and two
+  distinct provisional historical publisher Organizations. Catalog v3,
+  validation, graph projection, and exact normalized-identity queries keep
+  every path claim-originating and source-returnable. A direct A/B/C inspection
+  rejects flat fields, invalid dates, printer/successor substitution,
+  statement/public-release collapse, and direct fact edges. All records remain
+  model-made, provisional or `unreviewed`; no source payload, bibliography,
+  semantics, graph truth, or canon was promoted.
 - Added a first-publication chronology branch for all seven current Nietzsche
   Works. A dedicated object contract and digest-bound provenance event preserve
   interval precision, sequence stages, public/private availability,
@@ -29,8 +41,9 @@ Tracking starts with the community-docs baseline for this repository.
   textual identity, critical equivalence, accepted text, semantics, rights, or
   canon.
 - Added a deterministic read-only query route for the source-witness
-  bibliographic graph. Exact claim, subject, identity-object, predicate,
-  review-status, and visibility selectors use AND semantics and return the
+  bibliographic graph. Exact claim, subject, identity-object, normalized
+  identity, predicate, review-status, and visibility selectors use AND
+  semantics and return the
   exact source JSONL object, file/line/digest, reified claim, typed
   subject/object, evidence, maker, provenance, review nodes, and all
   claim-centered edges. Every query first validates and source-rebuilds the
@@ -45,22 +58,23 @@ Tracking starts with the community-docs baseline for this repository.
   `public_metadata_only`, and `unreviewed`, and creates no generic creator
   shortcut, author-final text, semantic relation, graph truth, or canon.
 - Added the first corpus-wide source-returnable bibliographic graph under
-  `ToS/derived-exports/graph/`. It deterministically reifies all 99 current
-  public-metadata-only source-witness claims into 301 nodes, 627 claim-centered
-  edges, and 99 complete trace packets. Every edge carries the canonical claim
+  `ToS/derived-exports/graph/`. It deterministically reifies all 101 current
+  public-metadata-only source-witness claims into 312 nodes, 645 claim-centered
+  edges, and 101 complete trace packets. Every edge carries the canonical claim
   digest, exact source file/line, evidence nodes, maker, provenance event with
-  time and method, and explicit review status. Nineteen publication and
-  chronology objects remain claim-scoped literals; no direct subject-to-object truth edge is
-  emitted. The graph is a deletable JSON read model, separate from the
+  time and method, and explicit review status. Twenty-one publication,
+  chronology, and provision objects remain claim-scoped literals; no direct
+  subject-to-object truth edge is emitted. The graph is a deletable JSON read
+  model, separate from the
   atlas/view projection and subordinate to source claim packets; it creates no
   review, bibliography, generic creator relation, semantics, rights,
   Neo4j/Oxigraph, runtime, or canon authority.
 - Extended the generated source-witness catalog from object-only navigation to
   an exact source-returnable object-and-claim projection. The new
-  `claims.jsonl` indexes all 99 tracked membership, responsibility,
-  publication, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
+  `claims.jsonl` indexes all 101 tracked membership, responsibility,
+  publication, provision, chronology, and identity-ladder packets with their subject, predicate, object, evidence, maker,
   provenance event, review posture, exact source file/line, and canonical
-  claim digest. Catalog v2 separates 65 object entries from 99 claim entries,
+  claim digest. Catalog v3 separates 68 object entries from 101 claim entries,
   validates both entry classes, and fails parity when an authored packet or
   projection drifts. It also rejects local, restricted, or
   permission-pending claims rather than copying them into the tracked

@@ -16,6 +16,10 @@ stores.
 source-witnesses/
 ├── agents/
 │   └── <person-or-organization>/agent.json
+├── places/
+│   └── <place>/place.json
+├── organizations/
+│   └── <historical-organization>/organization.json
 ├── discovery/                              # ordered query/result evidence
 ├── access-requests/                        # public status + ignored private correspondence
 ├── server-import/                          # future no-upload/import boundary
@@ -26,6 +30,8 @@ source-witnesses/
 │           └── provenance.jsonl
 ├── catalog/
 │   ├── agents.jsonl
+│   ├── places.jsonl
+│   ├── organizations.jsonl
 │   ├── works.jsonl
 │   ├── expressions.jsonl
 │   ├── editions.jsonl
@@ -52,6 +58,7 @@ source-witnesses/
 │           │           └── <edition>/
 │           │               ├── edition.json
 │           │               ├── publication-claims.jsonl # evidence-bearing, review-gated publication assertions
+│           │               ├── provision-activity-claims.jsonl # grouped place/agent/date statements
 │           │               ├── responsibility-claims.jsonl # optional Edition-local responsibility bundle
 │           │               └── items/
 │           │                   └── <item>/
@@ -77,6 +84,10 @@ source-witnesses/
                 └── work-boundaries/       # text-free member ranges + page anchors
 ```
 
+The corpus-wide `provision-activities/` route holds digest-bound provenance
+for bounded Edition-owned provision claims; the claims themselves stay beside
+their subject Edition.
+
 `<responsibility-or-tradition>` is a navigational route, not an authorship
 claim. Anonymous, disputed, collective, and tradition-owned works receive
 speaking routes and explicit responsibility claims in the catalog.
@@ -85,10 +96,11 @@ speaking routes and explicit responsibility claims in the catalog.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
-publication, chronology, and identity-ladder assertions queryable while preserving exact source file,
-source line, canonical claim digest, evidence, maker, provenance event, and
-review posture. It is not a second claim authority and cannot promote an
-unreviewed relation. The tracked projection admits only `public` or
+publication, provision activity, chronology, and identity-ladder assertions
+queryable while preserving exact source file, source line, canonical claim
+digest, evidence, maker, provenance event, and review posture. It is not a
+second claim authority and cannot promote an unreviewed relation. The tracked
+projection admits only `public` or
 `public_metadata_only` packets; less-visible claims require an explicitly
 reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
@@ -158,6 +170,28 @@ claim must preserve unresolved textual identity and difference when no
 compared witness supports either conclusion. The claims' presence does not
 turn a reported chronology into an observed fact, equate editions, create a
 remote Item, accept a text, or promote anything to canon.
+
+An Edition may separately close over sibling `provision-activity-claims.jsonl`
+rows through `provision_activity_claim_refs`. A provision claim groups one
+typed publication, production, distribution, or manufacture statement with
+its literal wording, role-specific places and agents, bounded temporal
+assertion, evidence, provenance, and review posture. Literal transcription or
+report and normalized identity remain separate: an authority match cannot
+overwrite the statement, and the statement alone cannot manufacture a Place
+or Organization identity. The current bounded slice resolves one provisional
+Leipzig Place and two provisional historical publisher Organizations for the
+1889 *Götzen-Dämmerung* and 1908 *Ecce Homo* Editions. It explicitly rejects
+the C. G. Naumann printing company and modern Berlin Insel successor as
+publisher shortcuts. Both Edition claims remain model-made,
+`public_metadata_only`, and `unreviewed`.
+
+Provision chronology is also facet-specific. The 1889 title-page statement is
+not the reported printing completion, authorial receipt, or public-sale date;
+the bracketed 1908 DNB year is not an exact release date. The generated graph
+may connect a reified claim to normalized Place and Organization nodes, but it
+must never emit a direct Edition-to-identity fact edge. The exercised A/B/C
+inspection and negative controls are recorded in
+`ToS/research-packets/foundation-laboratory-2026-07/PROVISION_ACTIVITY_ABC_EXPERIMENT.md`.
 
 ## Payload boundary
 

@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/provision-activity.schema.json",
+  "title": "Tree of Sophia bounded Edition provision-activity claim object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provision_kind",
+    "statement_basis",
+    "places",
+    "agents",
+    "temporal",
+    "event_posture"
+  ],
+  "properties": {
+    "provision_kind": {
+      "enum": ["publication", "production", "distribution", "manufacture"]
+    },
+    "statement_basis": {
+      "enum": [
+        "manifestation_transcription",
+        "item_observation",
+        "authority_record",
+        "scholarly_report"
+      ]
+    },
+    "transcribed_statement": {"type": "string", "minLength": 1},
+    "reported_statement": {"type": "string", "minLength": 1},
+    "places": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/placeAssertion"}
+    },
+    "agents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/agentAssertion"}
+    },
+    "temporal": {
+      "oneOf": [
+        {"$ref": "#/$defs/dateAssertion"},
+        {"$ref": "#/$defs/intervalAssertion"}
+      ]
+    },
+    "event_posture": {
+      "enum": [
+        "source_statement_only",
+        "reported_historical_activity",
+        "source_statement_and_reported_activity_not_equated"
+      ]
+    },
+    "activity_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "statement_basis": {
+            "enum": ["manifestation_transcription", "item_observation"]
+          }
+        },
+        "required": ["statement_basis"]
+      },
+      "then": {
+        "required": ["transcribed_statement"],
+        "not": {"required": ["reported_statement"]}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "statement_basis": {
+            "enum": ["authority_record", "scholarly_report"]
+          }
+        },
+        "required": ["statement_basis"]
+      },
+      "then": {
+        "required": ["reported_statement"],
+        "not": {"required": ["transcribed_statement"]}
+      }
+    },
+    {
+      "if": {
+        "properties": {"provision_kind": {"const": "publication"}},
+        "required": ["provision_kind"]
+      },
+      "then": {
+        "properties": {
+          "places": {
+            "items": {"properties": {"role": {"const": "publication_place"}}}
+          },
+          "agents": {
+            "items": {"properties": {"role": {"const": "publisher"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"provision_kind": {"const": "production"}},
+        "required": ["provision_kind"]
+      },
+      "then": {
+        "properties": {
+          "places": {
+            "items": {"properties": {"role": {"const": "production_place"}}}
+          },
+          "agents": {
+            "items": {"properties": {"role": {"const": "producer"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"provision_kind": {"const": "distribution"}},
+        "required": ["provision_kind"]
+      },
+      "then": {
+        "properties": {
+          "places": {
+            "items": {"properties": {"role": {"const": "distribution_place"}}}
+          },
+          "agents": {
+            "items": {"properties": {"role": {"const": "distributor"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"provision_kind": {"const": "manufacture"}},
+        "required": ["provision_kind"]
+      },
+      "then": {
+        "properties": {
+          "places": {
+            "items": {"properties": {"role": {"const": "manufacture_place"}}}
+          },
+          "agents": {
+            "items": {
+              "properties": {
+                "role": {"enum": ["manufacturer", "printer"]}
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "partialDate": {
+      "type": "string",
+      "pattern": "^[0-9]{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?)?$"
+    },
+    "temporalPrecision": {"enum": ["year", "month", "day"]},
+    "placeAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "literal_form"],
+      "properties": {
+        "role": {
+          "enum": [
+            "publication_place",
+            "production_place",
+            "distribution_place",
+            "manufacture_place"
+          ]
+        },
+        "literal_form": {"type": "string", "minLength": 1},
+        "normalized_place_ref": {
+          "type": "string",
+          "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        }
+      }
+    },
+    "agentAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "literal_form"],
+      "properties": {
+        "role": {
+          "enum": ["publisher", "producer", "distributor", "manufacturer", "printer"]
+        },
+        "literal_form": {"type": "string", "minLength": 1},
+        "normalized_agent_ref": {
+          "type": "string",
+          "pattern": "^tos\\.(?:agent|organization)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        }
+      }
+    },
+    "dateAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "calendar", "value", "precision", "role", "source_posture"],
+      "properties": {
+        "kind": {"const": "date"},
+        "calendar": {"const": "gregorian"},
+        "value": {"$ref": "#/$defs/partialDate"},
+        "precision": {"$ref": "#/$defs/temporalPrecision"},
+        "role": {
+          "enum": ["statement_date", "activity_date"]
+        },
+        "source_posture": {
+          "enum": ["transcribed", "catalog_supplied", "reported"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"precision": {"const": "year"}}, "required": ["precision"]},
+          "then": {"properties": {"value": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"precision": {"const": "month"}}, "required": ["precision"]},
+          "then": {"properties": {"value": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"precision": {"const": "day"}}, "required": ["precision"]},
+          "then": {"properties": {"value": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        }
+      ]
+    },
+    "intervalAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "calendar",
+        "start",
+        "end",
+        "start_precision",
+        "end_precision",
+        "role",
+        "source_posture"
+      ],
+      "properties": {
+        "kind": {"const": "interval"},
+        "calendar": {"const": "gregorian"},
+        "start": {"$ref": "#/$defs/partialDate"},
+        "end": {"$ref": "#/$defs/partialDate"},
+        "start_precision": {"$ref": "#/$defs/temporalPrecision"},
+        "end_precision": {"$ref": "#/$defs/temporalPrecision"},
+        "role": {
+          "enum": ["statement_date", "activity_date"]
+        },
+        "source_posture": {
+          "enum": ["transcribed", "catalog_supplied", "reported"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"start_precision": {"const": "year"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"start_precision": {"const": "month"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"start_precision": {"const": "day"}}, "required": ["start_precision"]},
+          "then": {"properties": {"start": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "year"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}$"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "month"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$"}}}
+        },
+        {
+          "if": {"properties": {"end_precision": {"const": "day"}}, "required": ["end_precision"]},
+          "then": {"properties": {"end": {"pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$", "format": "date"}}}
+        }
+      ]
+    }
+  }
+}
