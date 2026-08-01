@@ -13,8 +13,9 @@ Mysl and Antonovsky translator-Agent identity reconciliation, exact
 Zarathustra part-IV provision chronology, and Antonovsky 1913 source-visible
 publisher/printer separation plus Naumann 1893 title-page provision identity
 and Jenseits 1886 plus Genealogie 1892 exact-Edition provision identity
-plus Cultural Revolution 2007 translation responsibility and the exact
-Antonovsky–Prometey 1911 source-witness lineage refreshed 2026-08-01
+plus Cultural Revolution 2007 translation responsibility, the exact
+Antonovsky–Prometey 1911 source witness, and the bounded Antonovsky
+Expression-derivation contract/discovery route refreshed 2026-08-01
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -47,6 +48,7 @@ and what must be tested manually.
 | `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` | Why the 1892 second-edition title page and undated terminal printer line require two independently anchored provision claims; why the Edition year is not printing completion or release; and why the 1887 first print, critical text, current English translation, marketplace records, and publisher/printer legal identity remain outside the claims? |
 | `ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md` | Why the exact 2007 Edition supports an Expression-level Antonovsky translator claim while its checked/newly edited state remains distinct from the 1898, 1911, 1913, 1996, and later witnesses; why richer editorial roles are preserved as deferred contract pressure; and why current copies create no redistribution permission? |
 | `ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md` | Why Antonovsky's own revision history requires a distinct 1911 Expression; how the exact fourth Edition, RSL/RuNEB Item, translator, Prometey publisher, Energiya printer, fixity, and local-only rights boundary remain source-returnable without accepting OCR, equivalence, or redistribution? |
+| `EXPRESSION_DERIVATION_RELATION_RESEARCH.md` | Which directed Expression-to-Expression revision relations the exact Antonovsky preface actually supports; how LRMoo R76, established version scholarship, current graph failures, and material discovery shape a non-transitive no-equivalence contract; and why 1911-to-1907 plus 2007-to-1911 remain deliberately absent? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |

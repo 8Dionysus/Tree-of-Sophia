@@ -43,6 +43,7 @@ RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.js
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
+EXPRESSION_DERIVATION_SCHEMA = CONTRACT_ROOT / "expression-derivation.schema.json"
 PROVISION_ACTIVITY_SCHEMA = CONTRACT_ROOT / "provision-activity.schema.json"
 FIRST_PUBLICATION_CHRONOLOGY_SCHEMA = (
     CONTRACT_ROOT / "first-publication-chronology.schema.json"
@@ -155,6 +156,19 @@ BIBLIOGRAPHIC_TOPOLOGY_ROUTES = (
         "exemplar_claim_refs",
         "unreviewed-edition-item-topology-claims",
     ),
+)
+EXPRESSION_DERIVATION_ROOT = (
+    BIBLIOGRAPHIC_TOPOLOGY_ROOT / "expression-derivation"
+)
+EXPRESSION_DERIVATION_CLAIMS = (
+    EXPRESSION_DERIVATION_ROOT / "expression-derivation-claims.jsonl"
+)
+EXPRESSION_DERIVATION_PROVENANCE = (
+    EXPRESSION_DERIVATION_ROOT / "provenance.jsonl"
+)
+EXPRESSION_DERIVATION_EVENT_REF = (
+    "tos.event.annotation.expression-derivation."
+    "antonovsky-revision-lineage.2026-08-01"
 )
 
 Issue = tuple[str, str]
@@ -982,6 +996,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
+        expression_derivation_validator, _ = _schema_validator(
+            EXPRESSION_DERIVATION_SCHEMA,
+            repo_root,
+        )
         provision_activity_validator, _ = _schema_validator(
             PROVISION_ACTIVITY_SCHEMA,
             repo_root,
@@ -5320,6 +5338,262 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 (
                     BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
                     "bibliographic topology provenance configuration differs from exact closure counts and authority limits",
+                )
+            )
+
+    derivation_provenance_events = _load_jsonl(
+        repo_root / EXPRESSION_DERIVATION_PROVENANCE,
+        repo_root,
+        issues,
+    )
+    if len(derivation_provenance_events) != 1:
+        issues.append(
+            (
+                EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
+                "Expression derivation must have exactly one batch provenance event",
+            )
+        )
+    derivation_event: dict[str, Any] | None = None
+    for index, event in enumerate(derivation_provenance_events, start=1):
+        location = f"{EXPRESSION_DERIVATION_PROVENANCE.as_posix()}:{index}"
+        _validate_payload(event, provenance_validator, location, issues)
+        _validate_source_refs(repo_root, event, location, issues)
+        event_id = event.get("event_id")
+        if event_id != EXPRESSION_DERIVATION_EVENT_REF:
+            issues.append((location, "Expression-derivation provenance event_id drifted"))
+        if event.get("event_type") != "annotation":
+            issues.append((location, "Expression-derivation provenance must be annotation"))
+        if event.get("agent_refs") != ["model:codex"]:
+            issues.append((location, "Expression-derivation provenance agent must be model:codex"))
+        method = event.get("method", {})
+        if (
+            method.get("maker_type") != "model"
+            or method.get("name")
+            != "source-reported-expression-derivation-materialization"
+            or method.get("version") != "1"
+        ):
+            issues.append((location, "Expression-derivation provenance method identity drifted"))
+        if event.get("status") != "completed_with_warnings":
+            issues.append((location, "Expression derivation must retain warning posture"))
+        if isinstance(event_id, str):
+            if event_id in event_ids:
+                issues.append((location, f"duplicate event_id: {event_id}"))
+            else:
+                event_ids.add(event_id)
+                events_by_id[event_id] = event
+        if event_id == EXPRESSION_DERIVATION_EVENT_REF:
+            derivation_event = event
+
+    actual_derivation_paths = {
+        path.relative_to(repo_root)
+        for path in (repo_root / SOURCE_ROOT).rglob(
+            EXPRESSION_DERIVATION_CLAIMS.name
+        )
+    }
+    if actual_derivation_paths != {EXPRESSION_DERIVATION_CLAIMS}:
+        issues.append(
+            (
+                EXPRESSION_DERIVATION_CLAIMS.as_posix(),
+                "Expression-derivation claim basename must exist only at its owned route",
+            )
+        )
+
+    derivation_claim_ids: set[str] = set()
+    derivation_claim_subjects: dict[str, str] = {}
+    derivation_edges: dict[str, set[str]] = {}
+    derivation_pairs: set[tuple[str, str]] = set()
+    revision_claim_count = 0
+    collated_claim_count = 0
+    reviewed_claim_count = 0
+    derivation_evidence_paths: set[str] = set()
+    derivation_claim_path = repo_root / EXPRESSION_DERIVATION_CLAIMS
+    for index, claim in enumerate(
+        _load_jsonl(derivation_claim_path, repo_root, issues),
+        start=1,
+    ):
+        location = f"{EXPRESSION_DERIVATION_CLAIMS.as_posix()}:{index}"
+        _validate_payload(claim, claim_validator, location, issues)
+        _validate_payload(
+            claim.get("qualifiers"),
+            expression_derivation_validator,
+            f"{location}['qualifiers']",
+            issues,
+        )
+        claim_id = claim.get("claim_id")
+        subject_ref = claim.get("subject_ref")
+        object_ref = claim.get("object")
+        if isinstance(claim_id, str):
+            if claim_id in claim_ids:
+                issues.append((location, f"duplicate claim_id: {claim_id}"))
+            claim_ids.add(claim_id)
+            derivation_claim_ids.add(claim_id)
+            if isinstance(subject_ref, str):
+                derivation_claim_subjects[claim_id] = subject_ref
+        if claim.get("claim_type") != "relation":
+            issues.append((location, "Expression derivation claim_type must be relation"))
+        if claim.get("assertion_layer") != "bibliographic_assertion":
+            issues.append((location, "Expression derivation must remain bibliographic"))
+        if claim.get("predicate") != "is_derivative_of":
+            issues.append((location, "Expression derivation predicate drifted"))
+        require_record(subject_ref, "expression", location)
+        require_record(object_ref, "expression", location)
+        if subject_ref == object_ref:
+            issues.append((location, "Expression derivation is irreflexive"))
+        subject_record = records_by_id.get(str(subject_ref))
+        object_record = records_by_id.get(str(object_ref))
+        if subject_record is not None and object_record is not None:
+            if subject_record[0].get("work_ref") != object_record[0].get("work_ref"):
+                issues.append((location, "v1 Expression derivation endpoints must realize the same Work"))
+        if isinstance(subject_ref, str) and isinstance(object_ref, str):
+            pair = (subject_ref, object_ref)
+            if pair in derivation_pairs:
+                issues.append((location, "duplicate Expression-derivation endpoint pair"))
+            derivation_pairs.add(pair)
+            derivation_edges.setdefault(subject_ref, set()).add(object_ref)
+        if claim.get("maker") != {
+            "maker_type": "model",
+            "agent_ref": "model:codex",
+        }:
+            issues.append((location, "Expression derivation maker must be model:codex"))
+        if claim.get("provenance_event_ref") != EXPRESSION_DERIVATION_EVENT_REF:
+            issues.append((location, "Expression derivation cites the wrong provenance event"))
+        if claim.get("epistemic_status") != "reported":
+            issues.append((location, "current Expression derivation claims must remain reported"))
+        if claim.get("review_status") != "unreviewed" or claim.get("reviews") != []:
+            issues.append((location, "Expression derivation claims must remain unreviewed"))
+        if claim.get("visibility") != "public_metadata_only":
+            issues.append((location, "Expression derivation must remain public metadata only"))
+        qualifiers = claim.get("qualifiers", {})
+        if qualifiers.get("derivation_kind") == "revision":
+            revision_claim_count += 1
+        if qualifiers.get("collation_status") != "not_collated":
+            collated_claim_count += 1
+        if claim.get("review_status") != "unreviewed":
+            reviewed_claim_count += 1
+        evidence_refs = claim.get("evidence_refs", [])
+        if not any(
+            isinstance(ref, str) and ref.startswith("tos.anchor.")
+            for ref in evidence_refs
+        ):
+            issues.append((location, "Expression derivation lacks exact source-anchor return"))
+        for evidence_ref in evidence_refs:
+            if isinstance(evidence_ref, str) and evidence_ref.startswith("tos.anchor."):
+                if evidence_ref not in evidence_anchor_ids:
+                    issues.append((location, f"unresolved derivation anchor: {evidence_ref}"))
+            elif isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
+                evidence_path = repo_root / evidence_ref
+                if not evidence_path.is_file():
+                    issues.append((location, f"unresolved derivation evidence: {evidence_ref}"))
+                derivation_evidence_paths.add(evidence_ref)
+
+    visit_state: dict[str, int] = {}
+    cycle_reported = False
+
+    def visit_derivation_node(expression_ref: str) -> None:
+        nonlocal cycle_reported
+        visit_state[expression_ref] = 1
+        for source_ref in sorted(derivation_edges.get(expression_ref, set())):
+            if visit_state.get(source_ref) == 1:
+                if not cycle_reported:
+                    issues.append(
+                        (
+                            EXPRESSION_DERIVATION_CLAIMS.as_posix(),
+                            "Expression derivation cycle detected",
+                        )
+                    )
+                    cycle_reported = True
+            elif visit_state.get(source_ref, 0) == 0:
+                visit_derivation_node(source_ref)
+        visit_state[expression_ref] = 2
+
+    for start_ref in sorted(derivation_edges):
+        if visit_state.get(start_ref, 0) == 0:
+            visit_derivation_node(start_ref)
+
+    for expression_ref, (expression, expression_path) in records_by_id.items():
+        if expression.get("record_type") != "expression":
+            continue
+        location = _relative(expression_path, repo_root)
+        expected_refs = {
+            claim_id
+            for claim_id, subject_ref in derivation_claim_subjects.items()
+            if subject_ref == expression_ref
+        }
+        actual_refs = set(expression.get("derivation_claim_refs", []))
+        if actual_refs != expected_refs:
+            issues.append(
+                (
+                    location,
+                    "derivation_claim_refs do not close over exact outgoing derivation claims",
+                )
+            )
+
+    if derivation_event is not None:
+        claim_digest = _sha256(derivation_claim_path)
+        expected_output = {
+            "ref": EXPRESSION_DERIVATION_CLAIMS.as_posix(),
+            "role": "unreviewed-source-reported-expression-derivation-claims",
+            "sha256": claim_digest,
+        }
+        if derivation_event.get("outputs") != [expected_output]:
+            issues.append(
+                (
+                    EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
+                    "Expression-derivation provenance output digest drifted",
+                )
+            )
+        endpoint_refs = set(derivation_edges)
+        for source_refs in derivation_edges.values():
+            endpoint_refs.update(source_refs)
+        endpoint_paths = {
+            _relative(records_by_id[ref][1], repo_root)
+            for ref in endpoint_refs
+            if ref in records_by_id
+        }
+        expected_input_refs = derivation_evidence_paths | endpoint_paths | {
+            CLAIM_SCHEMA.as_posix(),
+            EXPRESSION_DERIVATION_SCHEMA.as_posix(),
+        }
+        actual_inputs = {
+            entry.get("ref"): entry.get("sha256")
+            for entry in derivation_event.get("inputs", [])
+            if isinstance(entry, dict)
+        }
+        if set(actual_inputs) != expected_input_refs:
+            issues.append(
+                (
+                    EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
+                    "Expression-derivation provenance inputs differ from exact evidence and endpoints",
+                )
+            )
+        for input_ref, input_digest in actual_inputs.items():
+            input_path = repo_root / str(input_ref)
+            if not input_path.is_file() or _sha256(input_path) != input_digest:
+                issues.append(
+                    (
+                        EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
+                        f"Expression-derivation provenance input digest drifted: {input_ref}",
+                    )
+                )
+        expected_configuration = {
+            "expression_identities_materialized": len(endpoint_refs),
+            "derivation_claims_materialized": len(derivation_claim_ids),
+            "revision_claims_materialized": revision_claim_count,
+            "claims_collated": collated_claim_count,
+            "claims_reviewed": reviewed_claim_count,
+            "unsupported_1911_to_1907_edge_created": False,
+            "unsupported_2007_to_1911_edge_created": False,
+            "source_text_admitted": False,
+            "human_review_performed": False,
+            "equivalence_claims_created": 0,
+            "semantic_claims_created": 0,
+            "canon_promotion_performed": False,
+        }
+        if derivation_event.get("method", {}).get("configuration") != expected_configuration:
+            issues.append(
+                (
+                    EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
+                    "Expression-derivation provenance configuration drifted",
                 )
             )
 

@@ -64,10 +64,12 @@ Direct visual inspection separates three source surfaces:
 - PDF page 4: Antonovsky's own edition-history statement.
 
 The preface is decisive for the corpus model. Antonovsky distinguishes the
-1900, 1903, 1907, and current 1911 editions and says the earlier editions were
-new reworkings rather than simple reprints. A translator label therefore does
-not identify one invariant Russian text. The 1911 state requires a distinct
-Expression even before line-level collation exists.
+1900, 1903, 1907, and current 1911 editions. His categorical no-reprint/new-
+reworking statement applies to the three previous editions, not explicitly to
+the current 1911 state. A translator label therefore does not identify one
+invariant Russian text, while the exact direct derivation of 1911 remains
+unresolved. The 1911 state still requires a distinct Expression even before
+line-level collation exists.
 
 ### Official access and rights boundary
 
@@ -106,9 +108,10 @@ A peer-reviewed 2020 Institute of Philosophy RAS
 shows why translation strategy, rhythm, and meaning must be compared at the
 edition/witness level rather than inferred from a translator name. Boiko's
 2007 [account](https://www.ng.ru/koncep/2007-09-13/10_zaratustra.html) says
-the scientific-edition text used the historical Antonovsky translation, names
-the 1911 fourth edition as its basis, and describes later editorial
-intervention. That is lineage evidence, not textual equivalence.
+the scientific-edition text used the historical Antonovsky translation, first
+published in 1898, and describes later editorial intervention. It does not
+identify the exact 1911 Expression as the source. That is broad lineage
+evidence, not an exact derivation claim or textual equivalence.
 
 ## 3. Fresh relevant evidence
 

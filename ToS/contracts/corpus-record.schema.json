@@ -94,6 +94,11 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
     },
+    "derivation_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/tosId"}
+    },
     "embodies_expression_refs": {
       "type": "array",
       "uniqueItems": true,

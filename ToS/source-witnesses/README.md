@@ -45,6 +45,8 @@ source-witnesses/
 │   │   └── expression-edition-claims.jsonl # Expression --embodied_by--> Edition
 │   ├── edition-item/
 │   │   └── edition-item-claims.jsonl       # Edition --exemplified_by--> Item
+│   ├── expression-derivation/
+│   │   └── expression-derivation-claims.jsonl # Expression --is_derivative_of--> Expression
 │   └── provenance.jsonl                   # digest-bound batch materialization event
 ├── works/
 │   └── <responsibility-or-tradition>/
@@ -134,6 +136,13 @@ that both surfaces happen to exist. These relations remain bibliographic:
 `embodied_by` never implies textual identity, critical equivalence, accepted
 source text, translation quality, or semantics.
 
+Expression derivation is a separate evidence-bearing claim family rather than
+a fourth structural rung. Its directed `is_derivative_of` packets identify a
+reported source Expression, derivation kind, directness, statement basis, and
+collation state. They are explicitly non-transitive, asymmetric, irreflexive,
+and no-equivalence: chronology, edition numbering, a shared translator label,
+or a generated graph cannot fill a missing historical edge.
+
 Work, Expression, and Edition records may close over evidence-bearing
 `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
 The initial typed predicates are `authored_by` on a Work, `translated_by` on
@@ -156,9 +165,11 @@ The exact 1911 fourth-edition Antonovsky Expression closes over its own
 `translated_by` claim and a separate RSL/RuNEB Item. Proposed whole-page
 anchors bind the title-page responsibility, edition and publication statement,
 the distinct Energiya printer line, and Antonovsky's edition-history preface
-to the exact local file digest. The preface says the 1900, 1903, 1907, and
-1911 editions were successive reworkings rather than simple reprints. That
-source-visible statement makes edition separation foundational: no shared
+to the exact local file digest. The preface names the 1900, 1903, 1907, and
+current 1911 editions and says the three previous editions were not simple
+reprints of their predecessors but new reworkings. It does not explicitly
+establish a 1911-to-1907 derivation. That source-visible statement makes
+edition separation foundational: no shared
 translator label can establish an invariant Russian text. The 62,952,283-byte
 PDF remains ignored and local-only; the tracked layer admits no embedded OCR,
 equivalence, redistribution permission, or future-site payload.

@@ -103,23 +103,27 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 79 current objects and all 121
+- The source-witness catalog now exposes all 82 current objects and all 126
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 121 claims as reified
-  claim nodes with 852 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 126 claims as reified
+  claim nodes with 884 claim-centered edges and exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 121 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 126 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 58 topology packets make the declared Work→Expression→Edition→Item
+- The 61 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
+- Two additional `is_derivative_of` packets report only the source-visible
+  1903→1900 and 1907→1903 Antonovsky revision lineage. They are uncollated,
+  unreviewed, non-transitive, asymmetric, irreflexive, and explicitly do not
+  create equivalence. The absent 1911→1907 and 2007→1911 edges remain absent.
 - Seven Work-owned chronology packets add one bounded
   `first_publication_chronology` profile per current Nietzsche Work. They keep
   sequence stages, precision, public/private availability, and posthumous
@@ -381,6 +385,10 @@ contracts intentionally reject simulated human evidence.
   until that evidence is reviewed at the required layer and jurisdiction.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
+- The Antonovsky 1907 Blok-library request is likewise public-safe and
+  `draft-not-sent`. The exact shelfmark and Item remain unresolved, the current
+  institutional route is time-sensitive, and no message, access permission,
+  payload, or redistribution authority exists.
 - The eKGWB fallback response came from the official public SPA's HTTP include
   route twice with identical bytes, but HTTP is unencrypted and does not
   establish authenticity. A later protocol-native pass found an exact
@@ -715,10 +723,14 @@ not reintroduce a false 90 °C gate.
   one exact fourth Edition, one 62,952,283-byte RSL/RuNEB Item, two provisional
   provision Organizations, one translator claim, two provision claims, and
   three proposed whole-page anchors. Antonovsky's source-visible preface says
-  the earlier editions were reworkings rather than simple reprints, so shared
-  responsibility cannot imply invariant text. The rebuilt catalog now contains
-  79 objects and 121 claims; the portable graph contains 419 nodes, 852
-  claim-centred edges, 121 source-return traces, and no direct subject-object
+  the three previous editions were reworkings rather than simple reprints, so
+  shared responsibility cannot imply invariant text; it does not explicitly
+  establish a 1911→1907 edge. The following bounded derivation slice adds three
+  provisional 1900/1903/1907 Expressions, two reported uncollated revision
+  claims, an incomplete exact-1907 discovery run, and an unsent access-request
+  draft. The rebuilt catalog now contains 82 objects and 126 claims; the
+  portable graph contains 433 nodes, 884 claim-centred edges, 126 source-return
+  traces, and no direct subject-object
   edge. The exact PDF remains ignored, local-only, and blocked from site
   transfer; embedded OCR, equivalence, accepted text, rights clearance, human
   review, semantics, publication, and canon remain absent.

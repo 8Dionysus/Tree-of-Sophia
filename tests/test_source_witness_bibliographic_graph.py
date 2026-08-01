@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 121)
-        self.assertEqual(counts["claim_traces"], 121)
-        self.assertEqual(counts["nodes"], 419)
-        self.assertEqual(counts["edges"], 852)
+        self.assertEqual(counts["source_claims"], 126)
+        self.assertEqual(counts["claim_traces"], 126)
+        self.assertEqual(counts["nodes"], 433)
+        self.assertEqual(counts["edges"], 884)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 121})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 121})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 126})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 126})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -835,7 +835,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             subject_ref=work_ref,
             predicate="has_expression",
         )
-        self.assertEqual(work_result["result_count"], 9)
+        self.assertEqual(work_result["result_count"], 12)
         self.assertTrue(
             all(
                 match["source_return"]["file_ref"].endswith(
@@ -898,6 +898,54 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertEqual(source_claim["epistemic_status"], "observed")
             self.assertNotIn("same_as", source_claim["predicate"])
             self.assertNotIn("textual", json.dumps(source_claim, ensure_ascii=False))
+
+    def test_expression_derivation_queries_preserve_direction_and_absent_edges(self) -> None:
+        payload = load_verified_projection()
+        result = query_projection(payload, predicate="is_derivative_of")
+        self.assertEqual(result["result_count"], 2)
+        pairs = {
+            (
+                match["source_return"]["source_claim"]["subject_ref"],
+                match["source_return"]["source_claim"]["object"],
+            )
+            for match in result["matches"]
+        }
+        self.assertEqual(
+            pairs,
+            {
+                (
+                    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+                    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1900",
+                ),
+                (
+                    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+                    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+                ),
+            },
+        )
+        for match in result["matches"]:
+            source_claim = match["source_return"]["source_claim"]
+            self.assertEqual(source_claim["claim_type"], "relation")
+            self.assertEqual(source_claim["review_status"], "unreviewed")
+            self.assertEqual(source_claim["qualifiers"]["derivation_kind"], "revision")
+            self.assertFalse(source_claim["qualifiers"]["transitive"])
+            self.assertFalse(source_claim["qualifiers"]["equivalence_inferred"])
+            self.assertEqual(
+                match["claim_node"]["properties"]["qualifiers"],
+                source_claim["qualifiers"],
+            )
+
+        unsupported_pairs = {
+            (
+                "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+            ),
+            (
+                "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+                "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+            ),
+        }
+        self.assertTrue(pairs.isdisjoint(unsupported_pairs))
 
     def test_query_no_match_is_explicit_and_deterministic(self) -> None:
         payload = load_verified_projection()

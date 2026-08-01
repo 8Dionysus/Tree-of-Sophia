@@ -37,6 +37,7 @@ CLAIM_SOURCE_BASENAMES = (
     "work-expression-claims.jsonl",
     "expression-edition-claims.jsonl",
     "edition-item-claims.jsonl",
+    "expression-derivation-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
 LINK_FIELDS = (
@@ -45,6 +46,7 @@ LINK_FIELDS = (
     "responsibility_claim_refs",
     "chronology_claim_refs",
     "embodiment_claim_refs",
+    "derivation_claim_refs",
     "embodies_expression_refs",
     "publication_claim_refs",
     "provision_activity_claim_refs",
@@ -188,6 +190,8 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                     entry["supersedes_claim_ref"] = payload[
                         "supersedes_claim_ref"
                     ]
+                if "qualifiers" in payload:
+                    entry["qualifiers"] = payload["qualifiers"]
                 claims.append(entry)
 
     claims.sort(key=lambda entry: entry["claim_id"])

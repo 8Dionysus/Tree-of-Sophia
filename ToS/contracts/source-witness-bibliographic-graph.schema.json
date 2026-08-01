@@ -407,6 +407,7 @@
         "assertion_layer",
         "epistemic_status",
         "confidence",
+        "qualifiers",
         "maker_node_id",
         "provenance_event_node_id",
         "evidence_node_ids",
@@ -470,6 +471,12 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "qualifiers": {
+          "oneOf": [
+            {"type": "object"},
+            {"type": "null"}
           ]
         },
         "maker_node_id": {

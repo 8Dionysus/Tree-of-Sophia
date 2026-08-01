@@ -172,6 +172,10 @@
             {"type": "array", "minItems": 1}
           ]
         },
+        "qualifiers": {
+          "type": "object",
+          "minProperties": 1
+        },
         "evidence_refs": {
           "type": "array",
           "minItems": 1,
@@ -240,7 +244,7 @@
         },
         "source_claim_file_ref": {
           "type": "string",
-          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item)-claims\\.jsonl$"
+          "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation)-claims\\.jsonl$"
         },
         "source_claim_line": {"type": "integer", "minimum": 1},
         "claim_sha256": {

@@ -174,9 +174,14 @@ def _load_claim_catalog(repo_root: Path) -> list[dict[str, Any]]:
         if claim_id in seen:
             raise BibliographicGraphBuildError(f"{location}: duplicate claim_id {claim_id!r}")
         seen.add(claim_id)
-        if entry.get("claim_type") != "bibliographic":
+        claim_type = entry.get("claim_type")
+        if claim_type not in {"bibliographic", "relation"}:
             raise BibliographicGraphBuildError(
-                f"{location}: bibliographic projection cannot admit {entry.get('claim_type')!r}"
+                f"{location}: bibliographic projection cannot admit {claim_type!r}"
+            )
+        if claim_type == "relation" and entry.get("predicate") != "is_derivative_of":
+            raise BibliographicGraphBuildError(
+                f"{location}: relation claim is outside the bounded Expression-derivation profile"
             )
         if entry.get("assertion_layer") not in {
             "bibliographic_assertion",
@@ -233,6 +238,7 @@ def _load_source_claim(
         "review_status",
         "visibility",
         "claim_version",
+        "qualifiers",
     )
     for field in projected_fields:
         if claim.get(field) != entry.get(field):
@@ -400,6 +406,7 @@ def _claim_node(entry: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
             "visibility": entry["visibility"],
             "claim_version": entry["claim_version"],
             "confidence": claim.get("confidence"),
+            "qualifiers": claim.get("qualifiers"),
         },
     }
 
@@ -947,6 +954,7 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 "assertion_layer": claim["assertion_layer"],
                 "epistemic_status": claim["epistemic_status"],
                 "confidence": claim.get("confidence"),
+                "qualifiers": claim.get("qualifiers"),
                 "maker_node_id": maker_node["node_id"],
                 "provenance_event_node_id": event_node["node_id"],
                 "evidence_node_ids": evidence_node_ids,

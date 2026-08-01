@@ -102,6 +102,10 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "qualifiers": {
+      "type": "object",
+      "minProperties": 1
+    },
     "review_status": {
       "enum": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"]
     },
@@ -142,6 +146,26 @@
       },
       "then": {
         "properties": {"reviews": {"minItems": 1}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"predicate": {"const": "is_derivative_of"}},
+        "required": ["predicate"]
+      },
+      "then": {
+        "required": ["qualifiers"],
+        "properties": {
+          "claim_type": {"const": "relation"},
+          "subject_ref": {
+            "type": "string",
+            "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        }
       }
     }
   ],

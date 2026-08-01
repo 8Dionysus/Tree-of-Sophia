@@ -1450,10 +1450,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(79, manifest["counts"]["object_total"])
-        self.assertEqual(121, manifest["counts"]["claim"])
-        self.assertEqual(200, manifest["counts"]["total"])
-        self.assertEqual(121, len(claim_entries))
+        self.assertEqual(82, manifest["counts"]["object_total"])
+        self.assertEqual(126, manifest["counts"]["claim"])
+        self.assertEqual(208, manifest["counts"]["total"])
+        self.assertEqual(126, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1481,6 +1481,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 [review["review_id"] for review in claim["reviews"]],
                 entry["review_refs"],
             )
+            self.assertEqual(claim.get("qualifiers"), entry.get("qualifiers"))
             self.assertIn(entry["subject_ref"], object_ids)
             if (
                 isinstance(entry["object"], str)
@@ -1490,7 +1491,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 104,
+                "bibliographic_assertion": 109,
                 "scholarly_report": 17,
             },
             {
@@ -1504,17 +1505,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                entry["claim_type"] == "bibliographic"
+                entry["claim_type"] in {"bibliographic", "relation"}
                 and entry["review_status"] == "unreviewed"
                 and entry["visibility"] == "public_metadata_only"
                 for entry in claim_entries
             )
         )
         self.assertEqual(
+            2,
+            sum(
+                entry["claim_type"] == "relation"
+                and entry["predicate"] == "is_derivative_of"
+                for entry in claim_entries
+            ),
+        )
+        self.assertEqual(
             {
-                "has_expression": 21,
+                "has_expression": 24,
                 "embodied_by": 21,
                 "exemplified_by": 16,
+                "is_derivative_of": 2,
             },
             {
                 predicate: sum(
@@ -1524,6 +1534,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     "has_expression",
                     "embodied_by",
                     "exemplified_by",
+                    "is_derivative_of",
                 }
             },
         )
@@ -2468,7 +2479,80 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("local-item-registered", entry["access"]["acquisition_state"])
         self.assertFalse(entry["access"]["content_ingested_for_translation_lab"])
         self.assertFalse(entry["admission"]["accepted_as_truth"])
-        self.assertIn("new reworkings", ANTONOVSKY_1911_RESEARCH_PATH.read_text(encoding="utf-8"))
+        research_text = ANTONOVSKY_1911_RESEARCH_PATH.read_text(encoding="utf-8")
+        self.assertIn("three previous editions", research_text)
+        self.assertIn("exact direct derivation of 1911 remains", research_text)
+
+    def test_antonovsky_revision_lineage_is_bounded_and_access_gap_stays_unsent(
+        self,
+    ) -> None:
+        expression_root = (
+            REPO_ROOT
+            / "ToS/source-witnesses/works/friedrich-nietzsche/"
+            "also-sprach-zarathustra/expressions"
+        )
+        expression_ids = {}
+        for year in ("1900", "1903", "1907"):
+            payload = json.loads(
+                (expression_root / f"ru-antonovsky-{year}/expression.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual("provisional", payload["identity_status"])
+            self.assertEqual([], payload["embodiment_claim_refs"])
+            expression_ids[year] = payload["record_id"]
+
+        claim_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/relations/expression-derivation/"
+            "expression-derivation-claims.jsonl"
+        )
+        claims = [
+            json.loads(line)
+            for line in claim_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        pairs = {(claim["subject_ref"], claim["object"]) for claim in claims}
+        self.assertEqual(
+            {
+                (expression_ids["1903"], expression_ids["1900"]),
+                (expression_ids["1907"], expression_ids["1903"]),
+            },
+            pairs,
+        )
+        for claim in claims:
+            self.assertEqual("relation", claim["claim_type"])
+            self.assertEqual("reported", claim["epistemic_status"])
+            self.assertEqual("unreviewed", claim["review_status"])
+            self.assertEqual("not_collated", claim["qualifiers"]["collation_status"])
+            self.assertFalse(claim["qualifiers"]["transitive"])
+            self.assertTrue(claim["qualifiers"]["asymmetric"])
+            self.assertTrue(claim["qualifiers"]["irreflexive"])
+            self.assertFalse(claim["qualifiers"]["equivalence_inferred"])
+
+        discovery = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/discovery/runs/"
+                "antonovsky-1907-revision-witness.2026-08-01.v1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual("incomplete", discovery["status"])
+        self.assertEqual("general-web-search", discovery["channels"][-1]["channel_type"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        request = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/access-requests/public-ledger/"
+                "antonovsky-1907-blok-library.access-request.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual("draft-not-sent", request["request_status"])
+        self.assertFalse(request["human_send_approval"])
+        self.assertIsNone(request["sent_at"])
+        self.assertEqual("not-requested", request["requested_permissions"]["source_redistribution"])
+        self.assertFalse(request["personal_or_confidential_data_committed"])
 
     def test_mysl_translator_identities_resolve_asymmetrically_without_claim_drift(
         self,

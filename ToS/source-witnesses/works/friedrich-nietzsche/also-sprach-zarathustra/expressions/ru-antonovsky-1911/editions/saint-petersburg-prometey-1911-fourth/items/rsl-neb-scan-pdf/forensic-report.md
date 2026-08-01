@@ -67,8 +67,9 @@ PDF pages 1–6 were rendered. Pages 1, 2, 4, and 6 were inspected directly.
   `Типо-литография "ЭНЕРГИЯ", Спб., Загородный пр., д. 17.`
 - PDF page 4 contains Antonovsky's preface. It says excerpts first appeared in
   1898, identifies edition years 1900, 1903, 1907, and the current 1911, and
-  explicitly says the prior editions were not simple reprints but new
-  reworkings of the translation.
+  explicitly says the three previous editions were not simple reprints of
+  their predecessors but new reworkings of the translation. The statement
+  does not explicitly classify the current 1911 state as a reworking of 1907.
 - PDF page 6 begins Zarathustra's preface.
 
 Three proposed whole-page anchors retain source-return addresses for these
