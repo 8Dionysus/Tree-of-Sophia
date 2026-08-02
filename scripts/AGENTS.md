@@ -93,6 +93,20 @@ focused tests independently recalculate the arithmetic. It deliberately
 creates no rank, composite importance score, exact string, morphology, lemma,
 lexeme, sign candidate, semantic packet, public route, or human task.
 
+`build_zarathustra_usage_context_bundle.py` materializes one complete,
+preselected exact-form usage census from the ignored lexical database. Every
+private row keeps a fixed 24-token page-bounded window, exact source state,
+structural and position selectors, and deterministic occurrence/context IDs;
+the mode-0600 JSONL remains under ignored `local-content/`. Its tracked
+companion contains only plan and artifact fixity, counts, selector closure,
+rights posture, and an explicit semantic ceiling. The control is a known Work
+identity check rather than a recurrence winner or sign-like sample. It accepts
+no German or sentence boundary, schedules no challenger or human task, and
+creates no morphology, lemma, lexeme, translation, sign, concept, claim,
+relation, graph, canon, or public route. The release-safe lexical validator
+checks the tracked plan/receipt/provenance without requiring the private
+bundle; the builder's `--check` owns exact local parity.
+
 `build_zarathustra_morphology_input.py` projects every exact form from that
 private lexical database into a deterministic ignored JSONL packet for the
 admitted DWDSmor A census. Its tracked receipt contains only digests and
@@ -307,6 +321,7 @@ Local owner routes:
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
 | tracked Zarathustra exact-form recurrence observations | `python scripts/build_zarathustra_recurrence_projection.py --check`; omit `--check` only to intentionally rebuild the tracked hash-only frequency/range/DP tuple and provenance from the frozen plan and tracked lexical projection |
+| private question-scoped Zarathustra usage context | `python scripts/build_zarathustra_usage_context_bundle.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py`; omit `--check` only to intentionally rebuild the ignored mode-0600 exact-context JSONL plus its tracked string-free receipt and provenance from the frozen question |
 | local Zarathustra morphology census input | `python scripts/build_zarathustra_morphology_input.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`; omit `--check` only to intentionally rebuild the ignored exact-form JSONL and its tracked text-free receipt before any morphology output |
 | private Zarathustra morphology A result | `python scripts/record_zarathustra_morphology_census_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A --check`; omit `--check` only to intentionally record an exact owner-local run as the tracked text-free aggregate receipt |
 | private Zarathustra direct-visual retrieval C result | `python scripts/record_zarathustra_visual_retrieval_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<run-id>/variant-C --prior-run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<prior-run-id>/variant-C --local-query-content /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/retrieval/queries.v1.json --check`; omit `--check` only to intentionally record the exact owner-local run as a tracked text-free mechanical and trigger receipt |

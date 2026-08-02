@@ -15,6 +15,9 @@ judgment true.
 | `lexical-index-projection.schema.json` | rebuild receipt and non-sequential form-hash/count/page/division read model over exact local witnesses, with working local query probes but no accepted source, lemma, sign, context, or publication claim |
 | `lexical-recurrence-plan.schema.json` | frozen exact-form recurrence question over the tracked lexical projection, preserving A frequency, B structural range, and C tupleized part-size-aware dispersion without a composite score or semantic effect |
 | `lexical-recurrence-projection.schema.json` | deterministic hash-only frequency/range/DP observation tuples with exact source totals, integer rounding law, residue accounting, and explicit zero authority for source acceptance, linguistic analysis, signs, semantics, or human work |
+| `lexical-usage-context-plan.schema.json` | one frozen question, preselected exact-form control, complete occurrence census, page-bounded context law, composite source selectors, ignored local-output route, tracked exposure ceiling, rights gate, and explicit non-semantic effect |
+| `lexical-usage-context-row.schema.json` | private source-bearing exact usage row with deterministic context/occurrence identity, source state, structural and position selectors, exact page-bounded token window, clipping, and no semantic field |
+| `lexical-usage-context-receipt.schema.json` | tracked source-withholding fixity/count/selector-closure receipt for the private context bundle, binding the frozen question, lexical/recurrence inputs, local database, generator, rights posture, and zero linguistic, semantic, graph, public, or human-work authority |
 | `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, sequentially blocked contextual A/B/C follow-up, explicit layer/competence/rights boundaries, and zero automatic linguistic or semantic promotion |
 | `morphology-input-receipt.schema.json` | text-free fixity and count receipt for the ignored exact-form morphology input packet, binding it to the exact lexical database, tracked projection, plan, and generator without tracking source strings |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
@@ -79,6 +82,12 @@ judgment true.
   Those dimensions remain separate observations: they are not a rank,
   philosophical-importance score, motif, sign candidate, sign, or semantic
   promotion.
+- A usage-context plan must name and freeze the exact question and selection
+  law before source-bearing output. Exact context and occurrence positions
+  remain ignored local evidence; a tracked receipt may expose only fixity,
+  counts, source-state and selector closure, rights posture, and explicit
+  non-authority. A concordance window is not a sentence, sense, lexeme, sign,
+  semantic relation, publication object, or human-work schedule.
 - A morphology input receipt may prove that every exact-form row was
   deterministically materialized into a private packet. It does not prove
   provider coverage, correctness, German competence, a lemma, or a lexeme.
@@ -227,6 +236,11 @@ A schema validator can establish that:
 - a recurrence plan and projection can bind every hash-only exact-form row to
   the same source totals, preserve A/B/C observation fields, and reproduce
   integer-rounded `DP` and maximum-part-share values without source payloads;
+- a question-scoped usage-context plan can freeze one exact-form control and
+  a complete-census law before output; its private rows can preserve exact
+  source context and composite selectors while its tracked receipt proves
+  plan/input/generator fixity, aggregate closure, local-only visibility, and
+  zero sentence, linguistic, semantic, graph, public, or human-work effect;
 - a morphology plan can freeze an exhaustive type/token coverage question
   before provider output, keep the exact surface unchanged, and block the
   contextual A/B/C stage until one shared occurrence set is frozen;

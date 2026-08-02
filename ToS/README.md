@@ -35,6 +35,8 @@ current bounded Zarathustra route:
 - current bounded export: `ToS/derived-exports/kag_export.min.json`
 - current source-gated lexical projection:
   `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
+- current source-owned question-scoped context receipt:
+  `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json`
 - current source-returnable bibliographic claim graph:
   `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
 - current exact source-return query route:

@@ -387,6 +387,34 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_usage_context_bundle.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/contracts/lexical-usage-context-plan.schema.json",
+        "ToS/contracts/lexical-usage-context-row.schema.json",
+        "ToS/contracts/lexical-usage-context-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/QUESTION_SCOPED_USAGE_CONTEXT_FOUNDATION_RESEARCH.md"
+      ],
+      "reads": [
+        "one frozen question-scoped plan, the exact ignored lexical SQLite database, and the tracked lexical and recurrence projections"
+      ],
+      "writes": [
+        "one ignored mode-0600 source-bearing JSONL context bundle plus a tracked string-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "private complete page-bounded KWIC method control plus tracked fixity/count/selector closure only; no accepted source, sentence, morphology, lemma, lexeme, sign, semantics, public route, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_zarathustra_morphology_input.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -732,12 +760,18 @@
       "source_truth": [
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl",
         "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
         "ToS/contracts/lexical-index-plan.schema.json",
-        "ToS/contracts/lexical-index-projection.schema.json"
+        "ToS/contracts/lexical-index-projection.schema.json",
+        "ToS/contracts/lexical-usage-context-plan.schema.json",
+        "ToS/contracts/lexical-usage-context-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json"
       ],
       "reads": [
-        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, and resource inventories; optional explicit local SQLite root"
+        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, resource inventories, and the question-scoped usage-context plan/receipt/provenance; optional explicit local SQLite root"
       ],
       "writes": [],
       "side_effects": "validation output only",

@@ -39,6 +39,11 @@ RECURRENCE_PROJECTION_PATH = (
     "zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json"
 )
 RECURRENCE_PROVENANCE_PATH = PLAN_PATH.with_name("recurrence-provenance.jsonl")
+USAGE_CONTEXT_PLAN_PATH = PLAN_PATH.with_name("usage-context-plan.v1.json")
+USAGE_CONTEXT_RECEIPT_PATH = PLAN_PATH.with_name("usage-context-receipt.v1.json")
+USAGE_CONTEXT_PROVENANCE_PATH = PLAN_PATH.with_name(
+    "usage-context-provenance.jsonl"
+)
 
 
 def _load_module(name: str, relative_path: str):
@@ -69,6 +74,10 @@ RECURRENCE_BUILDER = _load_module(
     "tos_zarathustra_recurrence_projection_builder",
     "scripts/build_zarathustra_recurrence_projection.py",
 )
+USAGE_CONTEXT_BUILDER = _load_module(
+    "tos_zarathustra_usage_context_builder",
+    "scripts/build_zarathustra_usage_context_bundle.py",
+)
 
 
 class ZarathustraLexicalIndexTests(unittest.TestCase):
@@ -93,6 +102,15 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.recurrence_provenance = json.loads(
             RECURRENCE_PROVENANCE_PATH.read_text(encoding="utf-8")
+        )
+        cls.usage_context_plan = json.loads(
+            USAGE_CONTEXT_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        cls.usage_context_receipt = json.loads(
+            USAGE_CONTEXT_RECEIPT_PATH.read_text(encoding="utf-8")
+        )
+        cls.usage_context_provenance = json.loads(
+            USAGE_CONTEXT_PROVENANCE_PATH.read_text(encoding="utf-8")
         )
         cls.validation = VALIDATOR.validate()
 
@@ -453,6 +471,186 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
                 Fraction(99, 100), 1_000_000
             ),
         )
+
+    def test_usage_context_release_receipt_closes_without_local_source(self) -> None:
+        plan_schema = json.loads(
+            (
+                ROOT / "ToS/contracts/lexical-usage-context-plan.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        receipt_schema = json.loads(
+            (
+                ROOT / "ToS/contracts/lexical-usage-context-receipt.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        provenance_schema = json.loads(
+            (ROOT / "ToS/contracts/provenance-event.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for label, schema, payload in (
+            ("plan", plan_schema, self.usage_context_plan),
+            ("receipt", receipt_schema, self.usage_context_receipt),
+            ("provenance", provenance_schema, self.usage_context_provenance),
+        ):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    [],
+                    list(Draft202012Validator(schema).iter_errors(payload)),
+                )
+        receipt = self.usage_context_receipt
+        self.assertEqual(
+            hashlib.sha256(USAGE_CONTEXT_PLAN_PATH.read_bytes()).hexdigest(),
+            receipt["plan"]["sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / receipt["generator"]["ref"]).read_bytes()
+            ).hexdigest(),
+            receipt["generator"]["sha256"],
+        )
+        self.assertEqual(
+            receipt["summary"],
+            self.validation["usage_context"]["summary"],
+        )
+        self.assertFalse(
+            self.validation["usage_context"]["local_bundle_verified"]
+        )
+        tracked_bytes = (
+            USAGE_CONTEXT_RECEIPT_PATH.read_bytes()
+            + USAGE_CONTEXT_PROVENANCE_PATH.read_bytes()
+        )
+        for source_row_key in (
+            b'"target_exact_form":',
+            b'"left_exact_tokens":',
+            b'"right_exact_tokens":',
+            b'"occurrence_id":',
+            b'"token_ordinal":',
+            b'"text_node_path":',
+            b'"start_offset":',
+            b'"end_offset":',
+        ):
+            with self.subTest(source_row_key=source_row_key):
+                self.assertNotIn(source_row_key, tracked_bytes)
+
+    def test_usage_context_is_complete_question_scoped_nonsemantic_control(
+        self,
+    ) -> None:
+        plan = self.usage_context_plan
+        receipt = self.usage_context_receipt
+        summary = receipt["summary"]
+        identity = receipt["identity_closure"]
+        self.assertTrue(plan["frozen_before_output"])
+        self.assertTrue(
+            plan["recurrence_control"][
+                "selection_frozen_before_context_output"
+            ]
+        )
+        self.assertEqual(
+            "preexisting-work-identity-control-not-recurrence-rank-or-sign-likeness",
+            plan["recurrence_control"]["selection_basis"],
+        )
+        self.assertEqual(527, summary["row_count"])
+        self.assertEqual(527, summary["target_occurrence_count"])
+        self.assertEqual(4, summary["source_item_count"])
+        self.assertEqual(256, summary["page_count"])
+        self.assertEqual(110, summary["section_count"])
+        self.assertEqual(3, summary["unsectioned_occurrence_count"])
+        self.assertEqual(0, summary["source_editorial_occurrence_count"])
+        self.assertEqual(0, summary["semantic_fields_populated"])
+        self.assertTrue(identity["complete_occurrence_census"])
+        self.assertEqual(527, identity["unique_context_id_count"])
+        self.assertEqual(527, identity["unique_occurrence_id_count"])
+        self.assertEqual(524, identity["section_selector_resolution_count"])
+        self.assertTrue(
+            all(value is False for value in receipt["semantic_boundary"].values())
+        )
+        exposure = receipt["content_exposure"]
+        self.assertFalse(exposure["tracked_exact_strings"])
+        self.assertFalse(exposure["tracked_sequence"])
+        self.assertFalse(exposure["tracked_context"])
+        self.assertFalse(exposure["tracked_occurrence_positions"])
+        self.assertFalse(exposure["confidentiality_claimed"])
+        self.assertEqual(
+            "blocked",
+            receipt["rights_and_visibility"]["future_site_route"],
+        )
+        self.assertTrue(
+            receipt["rights_and_visibility"][
+                "fresh_public_acquisition_and_rights_gate_required"
+            ]
+        )
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", plan["local_bundle"]["relative_path"]],
+            cwd=ROOT,
+            check=False,
+        )
+        self.assertEqual(0, ignored.returncode)
+
+    def test_usage_context_private_row_contract_resists_semantic_fields(self) -> None:
+        schema = json.loads(
+            (
+                ROOT / "ToS/contracts/lexical-usage-context-row.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        target_surface = "synthetic-control-token"
+        occurrence_id = "tos.occurrence.synthetic-control-000001"
+        row = {
+            "schema_version": "tos_lexical_usage_context_row_v1",
+            "context_id": USAGE_CONTEXT_BUILDER._context_id(
+                self.usage_context_plan["plan_id"], "a" * 64, occurrence_id
+            ),
+            "question_id": "zarathustra-work-identity-control-context-v1",
+            "form_key": self.usage_context_plan["recurrence_control"]["form_key"],
+            "exact_form_sha256": self.usage_context_plan["recurrence_control"][
+                "exact_form_sha256"
+            ],
+            "occurrence_id": occurrence_id,
+            "item_ref": "tos.item.synthetic-control",
+            "part_order": 1,
+            "source_file_sha256": "b" * 64,
+            "token_ordinal": 1,
+            "page_resource_id": "tei-page:synthetic-1",
+            "section_resource_id": None,
+            "text_node_path": "/TEI/text/body/p[1]/text()[1]",
+            "start_offset": 0,
+            "end_offset": len(target_surface),
+            "editorial_status": "witness-text",
+            "target_exact_form": target_surface,
+            "left_exact_tokens": [],
+            "right_exact_tokens": ["neighbor"],
+            "left_token_count": 0,
+            "right_token_count": 1,
+            "requested_window_each_side": 24,
+            "page_start_clipped": True,
+            "page_end_clipped": True,
+            "source_database_sha256": "a" * 64,
+            "authority": "unreviewed-source-visible-method-control",
+        }
+        validator = Draft202012Validator(schema)
+        self.assertEqual([], list(validator.iter_errors(row)))
+        expected_context_id = (
+            "usage-context:sha256:"
+            + hashlib.sha256(
+                (
+                    self.usage_context_plan["plan_id"]
+                    + "\n"
+                    + "a" * 64
+                    + "\n"
+                    + occurrence_id
+                ).encode("utf-8")
+            ).hexdigest()
+        )
+        self.assertEqual(expected_context_id, row["context_id"])
+        for field, value in (
+            ("lemma", "synthetic"),
+            ("sign_score", 1.0),
+            ("concept_ref", "tos.concept.synthetic"),
+        ):
+            contaminated = dict(row)
+            contaminated[field] = value
+            with self.subTest(field=field):
+                self.assertTrue(list(validator.iter_errors(contaminated)))
 
     def test_morphology_plan_and_receipt_close_over_exact_lexical_floor(self) -> None:
         plan_schema = json.loads(

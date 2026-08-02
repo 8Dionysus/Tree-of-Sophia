@@ -390,6 +390,14 @@ navigational fingerprints, not secrecy. The route remains `local_only` and
 blocked from the future site until rights review, and it does not accept
 German or create a lexeme, lemma, phrase assertion, sign, or semantic claim.
 
+Question-scoped exact context remains a second private source-bearing layer,
+not a tracked export. Its first control preserves a complete page-bounded KWIC
+census under ignored mode-0600 `local-content/usage-context/`; only a
+string-free plan, fixity/count/selector receipt, and provenance remain tracked
+beside the lexical plan. The tracked records authorize neither source reuse nor
+publication, and a context row is not a sentence, sense, lexeme, sign, or
+semantic assertion.
+
 ## Current seed
 
 The first physical seed is *Thus Spoke Zarathustra* and one Nietzsche

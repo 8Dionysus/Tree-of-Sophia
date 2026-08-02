@@ -109,6 +109,16 @@ Zarathustra golden kernel. It is not a completed gold set.
   no source string, and has zero morphology, lemma, lexeme, sign-candidate,
   semantic, publication, or human-backlog effect. This is queryable soil below
   the semantic ladder, not a partial opening of `initial-sign-packet.v3.json`.
+- the question-scoped usage-context control materializes all 527 occurrences
+  of one preselected Work-identity exact-form hash as a deterministic
+  24-token-per-side, same-page KWIC bundle. The 875,930 source-bearing bytes
+  remain ignored and mode `0600`; the tracked receipt exposes only fixity,
+  counts, source-state and selector closure. All 527 occurrence, target-hash,
+  page, and source-file selectors close; 524 section selectors close and the
+  remaining three are explicitly unsectioned. This is a transparent context
+  baseline, not a sentence, sense, lexeme, sign proposal, recurrence rank,
+  public object, challenger schedule, or human-review trigger. It changes no
+  accepted source, morphology, translation, semantic, graph, or canon state.
 - `morphology-evaluation-plan.v1.json` turns that exact-form floor into one
   bounded question without pretending that all morphology is ready. Its
   ignored 11,352-row input packet covers every exact form and represents

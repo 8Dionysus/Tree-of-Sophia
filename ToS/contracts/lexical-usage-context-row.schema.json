@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-usage-context-row.schema.json",
+  "title": "Tree of Sophia private lexical usage-context row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "context_id",
+    "question_id",
+    "form_key",
+    "exact_form_sha256",
+    "occurrence_id",
+    "item_ref",
+    "part_order",
+    "source_file_sha256",
+    "token_ordinal",
+    "page_resource_id",
+    "section_resource_id",
+    "text_node_path",
+    "start_offset",
+    "end_offset",
+    "editorial_status",
+    "target_exact_form",
+    "left_exact_tokens",
+    "right_exact_tokens",
+    "left_token_count",
+    "right_token_count",
+    "requested_window_each_side",
+    "page_start_clipped",
+    "page_end_clipped",
+    "source_database_sha256",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_lexical_usage_context_row_v1"},
+    "context_id": {
+      "type": "string",
+      "pattern": "^usage-context:sha256:[a-f0-9]{64}$"
+    },
+    "question_id": {"const": "zarathustra-work-identity-control-context-v1"},
+    "form_key": {
+      "const": "lexical-form:sha256:9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55"
+    },
+    "exact_form_sha256": {
+      "const": "9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55"
+    },
+    "occurrence_id": {
+      "type": "string",
+      "pattern": "^tos\\.occurrence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "item_ref": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "part_order": {"type": "integer", "minimum": 1, "maximum": 4},
+    "source_file_sha256": {"$ref": "#/$defs/sha256"},
+    "token_ordinal": {"type": "integer", "minimum": 1},
+    "page_resource_id": {"type": "string", "minLength": 1},
+    "section_resource_id": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ]
+    },
+    "text_node_path": {"type": "string", "minLength": 1},
+    "start_offset": {"type": "integer", "minimum": 0},
+    "end_offset": {"type": "integer", "minimum": 1},
+    "editorial_status": {"type": "string", "minLength": 1},
+    "target_exact_form": {"type": "string", "minLength": 1},
+    "left_exact_tokens": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "right_exact_tokens": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "left_token_count": {"type": "integer", "minimum": 0, "maximum": 24},
+    "right_token_count": {"type": "integer", "minimum": 0, "maximum": 24},
+    "requested_window_each_side": {"const": 24},
+    "page_start_clipped": {"type": "boolean"},
+    "page_end_clipped": {"type": "boolean"},
+    "source_database_sha256": {"$ref": "#/$defs/sha256"},
+    "authority": {"const": "unreviewed-source-visible-method-control"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

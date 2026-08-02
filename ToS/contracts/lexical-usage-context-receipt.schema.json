@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-usage-context-receipt.schema.json",
+  "title": "Tree of Sophia lexical usage-context materialization receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "plan",
+    "generator",
+    "source_database",
+    "source_projections",
+    "recurrence_control",
+    "local_bundle",
+    "context_policy",
+    "summary",
+    "parts",
+    "identity_closure",
+    "content_exposure",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/lexical-usage-context-receipt.schema.json"
+    },
+    "schema_version": {"const": "tos_lexical_usage_context_receipt_v1"},
+    "generated_or_authored": {"const": "generated_from_local_lexical_projection"},
+    "receipt_id": {
+      "const": "lexical-usage-context-receipt:zarathustra-work-identity-control-v1"
+    },
+    "plan": {"$ref": "#/$defs/refDigest"},
+    "generator": {"$ref": "#/$defs/refDigest"},
+    "source_database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256", "bytes", "quick_check"],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"const": 119533568},
+        "quick_check": {"const": "ok"}
+      }
+    },
+    "source_projections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index_plan", "lexical_projection", "recurrence_plan", "recurrence_projection"],
+      "properties": {
+        "index_plan": {"$ref": "#/$defs/refDigest"},
+        "lexical_projection": {"$ref": "#/$defs/refDigest"},
+        "recurrence_plan": {"$ref": "#/$defs/refDigest"},
+        "recurrence_projection": {"$ref": "#/$defs/refDigest"}
+      }
+    },
+    "recurrence_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["form_key", "exact_form_sha256", "selection_basis", "observed_tuple"],
+      "properties": {
+        "form_key": {
+          "const": "lexical-form:sha256:9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55"
+        },
+        "exact_form_sha256": {
+          "const": "9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55"
+        },
+        "selection_basis": {
+          "const": "preexisting-work-identity-control-not-recurrence-rank-or-sign-likeness"
+        },
+        "observed_tuple": {"$ref": "#/$defs/expectedTuple"}
+      }
+    },
+    "local_bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "format",
+        "schema_ref",
+        "schema_version",
+        "sha256",
+        "bytes",
+        "mode",
+        "row_count",
+        "required_fields"
+      ],
+      "properties": {
+        "relative_path": {"$ref": "#/$defs/repoPath"},
+        "format": {"const": "jsonl"},
+        "schema_ref": {"const": "ToS/contracts/lexical-usage-context-row.schema.json"},
+        "schema_version": {"const": "tos_lexical_usage_context_row_v1"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "mode": {"const": "0600"},
+        "row_count": {"const": 527},
+        "required_fields": {"$ref": "#/$defs/rowFields"}
+      }
+    },
+    "context_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "window_tokens_each_side",
+        "boundary",
+        "sampling",
+        "row_order",
+        "sentence_boundary_claimed"
+      ],
+      "properties": {
+        "policy_id": {"const": "page-bounded-exact-kwic-24-v1"},
+        "window_tokens_each_side": {"const": 24},
+        "boundary": {"const": "same-item-and-page-only"},
+        "sampling": {"const": "none-complete-occurrence-census"},
+        "row_order": {"const": "part-order-then-token-ordinal"},
+        "sentence_boundary_claimed": {"const": false}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_count",
+        "target_occurrence_count",
+        "source_item_count",
+        "page_count",
+        "section_count",
+        "unsectioned_occurrence_count",
+        "source_editorial_occurrence_count",
+        "minimum_left_token_count",
+        "maximum_left_token_count",
+        "minimum_right_token_count",
+        "maximum_right_token_count",
+        "page_start_clipped_count",
+        "page_end_clipped_count",
+        "total_local_context_token_count",
+        "semantic_fields_populated"
+      ],
+      "properties": {
+        "row_count": {"const": 527},
+        "target_occurrence_count": {"const": 527},
+        "source_item_count": {"const": 4},
+        "page_count": {"const": 256},
+        "section_count": {"const": 110},
+        "unsectioned_occurrence_count": {"const": 3},
+        "source_editorial_occurrence_count": {"const": 0},
+        "minimum_left_token_count": {"type": "integer", "minimum": 0, "maximum": 24},
+        "maximum_left_token_count": {"const": 24},
+        "minimum_right_token_count": {"type": "integer", "minimum": 0, "maximum": 24},
+        "maximum_right_token_count": {"const": 24},
+        "page_start_clipped_count": {"type": "integer", "minimum": 1, "maximum": 527},
+        "page_end_clipped_count": {"type": "integer", "minimum": 1, "maximum": 527},
+        "total_local_context_token_count": {"type": "integer", "minimum": 527},
+        "semantic_fields_populated": {"const": 0}
+      }
+    },
+    "parts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/partSummary"}
+    },
+    "identity_closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unique_context_id_count",
+        "unique_occurrence_id_count",
+        "target_digest_match_count",
+        "page_selector_resolution_count",
+        "section_selector_resolution_count",
+        "source_file_digest_resolution_count",
+        "complete_occurrence_census"
+      ],
+      "properties": {
+        "unique_context_id_count": {"const": 527},
+        "unique_occurrence_id_count": {"const": 527},
+        "target_digest_match_count": {"const": 527},
+        "page_selector_resolution_count": {"const": 527},
+        "section_selector_resolution_count": {"const": 524},
+        "source_file_digest_resolution_count": {"const": 527},
+        "complete_occurrence_census": {"const": true}
+      }
+    },
+    "content_exposure": {"$ref": "#/$defs/contentExposure"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "provenance_event_ref": {"$ref": "#/$defs/eventId"},
+    "authority_boundary": {"type": "string", "minLength": 80}
+  },
+  "$defs": {
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "expectedTuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurrence_count",
+        "part_range",
+        "section_range",
+        "page_range",
+        "part_dp_millionths",
+        "maximum_part_share_millionths",
+        "source_editorial_occurrence_count",
+        "unsectioned_occurrence_count"
+      ],
+      "properties": {
+        "occurrence_count": {"const": 527},
+        "part_range": {"const": 4},
+        "section_range": {"const": 110},
+        "page_range": {"const": 256},
+        "part_dp_millionths": {"const": 144983},
+        "maximum_part_share_millionths": {"const": 445920},
+        "source_editorial_occurrence_count": {"const": 0},
+        "unsectioned_occurrence_count": {"const": 3}
+      }
+    },
+    "partSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["part_order", "item_ref", "occurrence_count", "page_count", "section_count", "unsectioned_occurrence_count"],
+      "properties": {
+        "part_order": {"type": "integer", "minimum": 1, "maximum": 4},
+        "item_ref": {"type": "string", "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "occurrence_count": {"type": "integer", "minimum": 1},
+        "page_count": {"type": "integer", "minimum": 1},
+        "section_count": {"type": "integer", "minimum": 1},
+        "unsectioned_occurrence_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "rowFields": {
+      "const": [
+        "schema_version",
+        "context_id",
+        "question_id",
+        "form_key",
+        "exact_form_sha256",
+        "occurrence_id",
+        "item_ref",
+        "part_order",
+        "source_file_sha256",
+        "token_ordinal",
+        "page_resource_id",
+        "section_resource_id",
+        "text_node_path",
+        "start_offset",
+        "end_offset",
+        "editorial_status",
+        "target_exact_form",
+        "left_exact_tokens",
+        "right_exact_tokens",
+        "left_token_count",
+        "right_token_count",
+        "requested_window_each_side",
+        "page_start_clipped",
+        "page_end_clipped",
+        "source_database_sha256",
+        "authority"
+      ]
+    },
+    "contentExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_exact_strings",
+        "local_sequence",
+        "local_context",
+        "local_occurrence_positions",
+        "tracked_exact_strings",
+        "tracked_sequence",
+        "tracked_context",
+        "tracked_occurrence_positions",
+        "tracked_form_hashes",
+        "confidentiality_claimed"
+      ],
+      "properties": {
+        "local_exact_strings": {"const": true},
+        "local_sequence": {"const": true},
+        "local_context": {"const": true},
+        "local_occurrence_positions": {"const": true},
+        "tracked_exact_strings": {"const": false},
+        "tracked_sequence": {"const": false},
+        "tracked_context": {"const": false},
+        "tracked_occurrence_positions": {"const": false},
+        "tracked_form_hashes": {"const": true},
+        "confidentiality_claimed": {"const": false}
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_payload_visibility",
+        "local_bundle_visibility",
+        "tracked_receipt_visibility",
+        "future_site_route",
+        "fresh_public_acquisition_and_rights_gate_required"
+      ],
+      "properties": {
+        "source_payload_visibility": {"const": "local-only"},
+        "local_bundle_visibility": {"const": "local-only"},
+        "tracked_receipt_visibility": {"const": "local-repository-only-not-publication-cleared"},
+        "future_site_route": {"const": "blocked"},
+        "fresh_public_acquisition_and_rights_gate_required": {"const": true}
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepts_source_text",
+        "creates_occurrence_authority",
+        "creates_sentence_boundary",
+        "creates_morphology",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_translation_correspondence",
+        "creates_sign_candidate",
+        "creates_sign",
+        "creates_concept",
+        "creates_claim",
+        "creates_relation",
+        "creates_graph_effect",
+        "opens_initial_sign_packet",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "accepts_source_text": {"const": false},
+        "creates_occurrence_authority": {"const": false},
+        "creates_sentence_boundary": {"const": false},
+        "creates_morphology": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_translation_correspondence": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_concept": {"const": false},
+        "creates_claim": {"const": false},
+        "creates_relation": {"const": false},
+        "creates_graph_effect": {"const": false},
+        "opens_initial_sign_packet": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "pattern": "^(ToS|scripts)/[A-Za-z0-9._/-]+$"},
+    "eventId": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+  }
+}

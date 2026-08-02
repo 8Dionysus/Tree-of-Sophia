@@ -24,3 +24,9 @@ payload or private database and introduces no score, ranking, accepted German,
 linguistic identity, sign proposal, semantic claim, public route, or human
 task. Its frozen plan and provenance remain source-owned beside the lexical
 index.
+
+Question-scoped exact context does not become a third tracked lexical export.
+Its plan, text-free receipt, and provenance stay with the source-owned lexical
+index, while exact KWIC rows remain ignored local evidence. This preserves a
+direct return route without turning source sequence into a reusable public
+read model or confusing usage evidence with a lexeme, sign, or sense.

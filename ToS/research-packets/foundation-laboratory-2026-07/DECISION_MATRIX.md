@@ -186,6 +186,7 @@ packet exists. A metric-only translation route is excluded.
 | --- | --- | --- | --- | --- |
 | exact ID/anchor lookup | identity | baseline | direct tracked corpus | perfect source return |
 | source-gated DTA whole-work SQLite/FTS5 plus tracked hash/resource companion | lexical observation floor | executed baseline | exact sequential source remains ignored; tracked rows are non-sequential, string-free, local-only, and public-blocked | exact/normalized/prefix/phrase and page/division return mechanics; no source, lemma, sign, or relevance-quality acceptance |
+| complete page-bounded exact KWIC over one frozen Work-identity control | usage-context method control | executed baseline | all 527 exact contexts remain ignored mode-0600 local evidence; tracked plan/receipt/provenance contain only hashes, counts, selectors, rights posture, and explicit non-authority | deterministic context identity, full occurrence and selector closure, clipping behavior, source return, and byte/cost baseline; no sentence, sense, sign, public route, or human task |
 | SQLite FTS5/BM25 or equivalent local lexical index | lexical A | baseline | rebuildable | names, compounds, citations, rare terms |
 | Qwen3 dense index | semantic B | baseline | rebuildable | implicit parallels and cross-language queries |
 | Granite R2 dense index | independent multilingual C | selected, method frozen before output | rebuildable isolated local projection | independent-family cross-language behavior on the identical query set |

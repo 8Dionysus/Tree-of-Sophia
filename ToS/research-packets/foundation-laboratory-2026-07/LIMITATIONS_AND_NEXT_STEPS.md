@@ -569,6 +569,16 @@ contracts intentionally reject simulated human evidence.
   strings, composite rank, importance score, accepted German, morphology,
   lemma, lexeme, sign candidate, semantic effect, publication route, or human
   backlog. It does not alter the content-free initial sign packet.
+- One frozen source-returnable question now has an exact usage-context floor.
+  A pre-existing Work-identity control—not a recurrence winner—selects all 527
+  occurrences across four parts, 256 pages, and 110 sections. The fixed
+  24-token same-page KWIC rows occupy 875,930 ignored mode-0600 bytes; the
+  tracked receipt preserves only hashes, counts, source state, selector
+  closure, rights posture, and non-authority. This proves deterministic
+  context materialization, including three explicitly unsectioned occurrences
+  and page-boundary clipping. It does not accept German, infer sentences or
+  senses, materialize morphology/lemma/lexeme/sign work, schedule A/B/C or
+  human review, authorize publication, or change the initial sign packet.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -929,6 +939,12 @@ quality.
    sampling leaderboard. Any use of frequency, range, or `DP` must first name
    the exact question and freeze its selection law; no threshold creates a
    sign candidate or schedules human review.
+8. Preserve the materialized exact KWIC bundle as the A method control for its
+   one frozen question. Do not generalize it into universal context, sentence,
+   sense, or sign authority. A source-aware sentence/TEI challenger or an
+   embedding/LLM challenger may be frozen only when a later concrete question
+   needs that comparison, with its own rights, competence, cost, and manual
+   quality gates; neither challenger is currently scheduled.
 
 ### 2a. Freeze, but do not yet execute, the resident LLM packet
 

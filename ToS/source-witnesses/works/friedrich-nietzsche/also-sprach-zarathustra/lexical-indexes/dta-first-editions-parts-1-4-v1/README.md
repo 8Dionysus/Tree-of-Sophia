@@ -41,6 +41,18 @@ sign candidate, or semantic effect. Its provenance is
 `ToS/research-packets/foundation-laboratory-2026-07/EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md`.
 The content-free initial sign packet stays unchanged.
 
+The first question-scoped usage layer is separately frozen in
+`usage-context-plan.v1.json`. It does not sample a recurrence winner. It uses
+one pre-existing Work-identity control and materializes all 527 of its exact
+occurrences as fixed 24-token, same-page KWIC rows. The source-bearing JSONL
+stays mode `0600` under the pilot's ignored `local-content/usage-context/`
+route. `usage-context-receipt.v1.json` and
+`usage-context-provenance.jsonl` retain only digests, counts, source-state and
+selector closure, rights posture, and authority limits; they carry no exact
+string, sequence, context, or occurrence position. The baseline claims no
+sentence or sense boundary, creates no linguistic or semantic entity, opens
+no human backlog, and leaves `initial-sign-packet.v3.json` unchanged.
+
 The plan is `index-plan.v1.json`. The generated source-withholding companion
 (not cleared for publication) is:
 

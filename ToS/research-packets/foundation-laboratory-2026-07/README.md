@@ -26,7 +26,8 @@ the Genealogie 1892 Commons/UNC and Antichrist 1906 Commons/Stanford
 eleven-layer boundaries, and the contrasting five-layer MDZ permission versus
 license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889, plus the
 exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary
-and the exact-form recurrence foundation refreshed 2026-08-02
+and the exact-form recurrence plus question-scoped usage-context foundations
+refreshed 2026-08-02
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -77,6 +78,7 @@ and what must be tested manually.
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
 | `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` | Which exact surface, normalization, lemma, POS, morphology, and review layers must remain distinct; what the executed exhaustive DWDSmor A census actually measured; and why its reproducible coverage and residue still create no accepted morphology, lexeme, B/C task, or human backlog? |
 | `EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md` | Why exact recurrence should be materialized as separate frequency, structural-range, part-size-aware `DP`, and concentration observations; what classical, established, and freshest evidence supports that route; and why no fused score, motif, sign candidate, semantic promotion, or human task follows? |
+| `QUESTION_SCOPED_USAGE_CONTEXT_FOUNDATION_RESEARCH.md` | Why context should be materialized only for a frozen question; why the first control is a complete page-bounded exact KWIC census rather than recurrence-ranked sampling; how source-state plus structural and position selectors preserve return; and why sentence, sense, embedding, LLM, sign, public, and human-work routes stay closed? |
 | `OCR_ADMISSION.md` | What the sequential OCR A/B/C executions produced, which failures remain preserved, and what still blocks quality claims? |
 | `HUMAN_GOLD_REVIEW_PACKET.md` | Is the 15-page source-visible double-review interface real, blind, hash-closed, and still honestly 0/15? |
 | `HUMAN_ASSURANCE_RESEARCH.md` | How should solo+AI review, delayed self-recheck, AI exposure, language competence, and balanced A/B/C assignment be stated without false gold? |
