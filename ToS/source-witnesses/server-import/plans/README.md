@@ -47,12 +47,18 @@ through Institutional Books is a separate route, not the same Item.
 
 The eleventh plan covers the exact Wikimedia Commons revision of the
 UNC/Internet Archive scan of the 1892 second Naumann *Zur Genealogie der
-Moral*. Commons declares that file public domain and not copyrighted, while
-the historical edition and source-visible title page provide strong positive
-route evidence. ToS nevertheless keeps its jurisdictional assessment
-unreviewed, the operator-held PDF local, all content-bearing derivatives
-prohibited, and the future route limited to public-safe metadata until a
-separately reviewed object is selected or reacquired.
+Moral*. The historical Work and Edition presentation, faithful historical page
+scan, and automatic historical OCR text are `public_domain_reviewed` for
+DE/US. Commons structured metadata is separately CC0 1.0 and unstructured
+description prose CC BY-SA 4.0. The exact mixed PDF remains aggregate
+`conflicting_evidence`: its physical binding, UNC holding furniture, OCR
+layout, wrapper, and Internet Archive metadata are unresolved, and Commons'
+exact description currently supplies only a United States template rather
+than a complete source-country expression. The plan therefore remains
+rights-unknown, metadata-only, blocked, and operator-unapproved. It transfers
+no local payload and authorizes no content-bearing derivative. A future object
+must be independently reacquired from its then-current exact route and may not
+substitute the current byte-different Internet Archive PDF.
 
 The twelfth plan covers the exact Commons/Stanford DjVu of the 1906 Naumann
 *Nietzsche's Werke*, Band VIII aggregate that contains *Der Antichrist*.

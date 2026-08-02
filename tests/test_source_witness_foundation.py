@@ -136,6 +136,11 @@ GENEALOGIE_1892_PROVISION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md"
 )
+GENEALOGIE_1892_LAYERED_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 GENEALOGIE_1892_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -2461,9 +2466,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
         self.assertEqual("local_only", rights["visibility"])
-        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
         research = GENEALOGIE_1892_PROVISION_RESEARCH_PATH.read_text(
             encoding="utf-8"
         )
@@ -5025,11 +5030,48 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
             rights["rights_statement_uri"],
         )
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
         self.assertEqual("unreviewed", rights["review_status"])
-        self.assertEqual([], rights["jurisdictions_reviewed"])
-        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual(2, rights["record_version"])
+
+        layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(11, len(layers))
+        for layer_id in (
+            "original-work",
+            "edition-presentation",
+            "faithful-historical-page-scan",
+            "automatic-historical-ocr-text",
+        ):
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers[layer_id]["assessment_status"],
+            )
+        for layer_id in (
+            "physical-binding-and-marbled-cover",
+            "unc-holding-furniture",
+            "ocr-coordinate-and-layout",
+            "pdf-derivative-package",
+            "internet-archive-lineage-metadata",
+        ):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers[layer_id]["assessment_status"],
+            )
+        self.assertEqual(
+            "https://creativecommons.org/publicdomain/zero/1.0/",
+            layers["commons-structured-file-metadata"]["license_uri"],
+        )
+        self.assertEqual(
+            "https://creativecommons.org/licenses/by-sa/4.0/",
+            layers["commons-unstructured-description"]["license_uri"],
+        )
 
         self.assertFalse(inventory["source_text_included"])
         self.assertEqual(1, len(inventory["files"]))
@@ -5071,6 +5113,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual("metadata-only", server_plan["access_class"])
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual(["DE", "US"], server_plan["rights_policy"]["jurisdictions_reviewed"])
+        self.assertEqual(2, server_plan["contract_version"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
         self.assertEqual(
@@ -5081,6 +5125,19 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "conditional",
             server_plan["allowed_derivatives"]["graph_projection"]["state"],
         )
+
+        rights_research = GENEALOGIE_1892_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        for heading in (
+            "## Classical and official documentation",
+            "## Established scholarship, cases, and institutional practice",
+            "## Fresh and currently relevant checks",
+            "## General web search, last",
+        ):
+            self.assertIn(heading, rights_research)
+        self.assertIn("conflicting_evidence", rights_research)
+        self.assertIn("current Internet Archive PDF", rights_research)
 
         catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
         catalog_ids = {

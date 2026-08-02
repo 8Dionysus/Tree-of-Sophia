@@ -382,13 +382,19 @@ contracts intentionally reject simulated human evidence.
   volume found through Institutional Books is a possible separately governed
   acquisition route, not the same physical Item or a rights bridge.
 - Wikimedia Commons declares the exact acquired 2020 *Genealogie* file
-  revision public domain, `Copyrighted=False`, and covered by its
-  `PD-US-expired` template. This is strong exact-file evidence, not a
-  jurisdiction-complete ToS verdict over the 1892 text, UNC physical copy and
-  scan, Internet Archive lineage, Commons revision, embedded OCR, or later
-  derivatives. The local copy remains off the future site; its server plan is
-  metadata-only and requires independent current-route selection or
-  reacquisition before any different publication decision.
+  revision public domain and `Copyrighted=False`, but its current description
+  invokes only `PD-US-expired` and does not encode the required German
+  source-country result. Independent current DE/US research positively assesses
+  the historical Work and 1892 presentation, faithful historical page scan,
+  and automatic historical OCR text. Commons structured metadata is separately
+  CC0 1.0 and its unstructured prose CC BY-SA 4.0. The binding and marbled
+  covers, UNC holding furniture, OCR layout, PDF package, and Internet Archive
+  metadata remain unresolved, so the exact aggregate is
+  `conflicting_evidence`, not a cleared payload. The current Internet Archive
+  PDF is a different byte revision. The local copy stays off the future site;
+  its server plan remains metadata-only and requires exact independent
+  reacquisition, fresh fixity, layer review, human review, and operator approval
+  before any different publication decision.
 - Wikimedia Commons likewise declares the exact 1906-volume DjVu public
   domain, `Copyrighted=False`, and attribution-free. This is strong evidence
   for that exact Commons object, not a jurisdiction-complete verdict over the
@@ -1088,6 +1094,11 @@ from the calibration-only route in section 2b.
     operator-approved request and current access-contract review. Shared author,
     title, publisher, and year do not establish physical identity, rights
     equivalence, text equivalence, or server admission.
+11. Reacquire any future public *Genealogie* 1892 object independently from
+    the then-current exact Commons route, verify that revision's fixity and
+    source-country expression, and inspect binding, UNC furniture, OCR layout,
+    wrapper, and provider metadata by layer. Do not upload the operator-held
+    PDF or substitute the current byte-different Internet Archive derivative.
 
 ## Definition-of-done reconciliation
 

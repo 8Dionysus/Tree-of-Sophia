@@ -5,40 +5,538 @@
     "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
     "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
   ],
-  "assessment_status": "copyright_undetermined",
+  "assessment_status": "conflicting_evidence",
   "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
   "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
     "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
     "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
     "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
-    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+    "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+    "https://creativecommons.org/publicdomain/zero/1.0/",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+    "https://archive.org/metadata/zurgenealogieder00niet",
+    "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+    "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/lizenzen-und-rechtehinweise-der-lizenzkorb-der-deutschen-digitalen-bibliothek",
+    "https://copyright.gov/what-is-copyright/",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/circs/circ38b.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/comp3/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.zur-genealogie-der-moral"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the historical Work may be treated as public domain in the reviewed DE and US routes subject to source-specific and server-admission controls"
+      ],
+      "restrictions": [
+        "the Work-level result does not clear a particular transcription, translation, edition, scan, package, provider contribution, or accepted text"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900 and the ordinary German life-plus-seventy term ended at 1970-12-31; the Work was already public domain through expiration in its source country on the 1996 URAA restoration date and fails a cumulative 17 U.S.C. 104A restoration condition",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to the historical Work in the reviewed DE and US routes and includes no later textual or digital contribution."
+      },
+      "uncertainty": "Work-level public domain does not prove source correctness, author-final status, edition authority, or permission for later layers.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The reviewed German and United States terms are expired for Nietzsche's published Work."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible historical typography and presentation may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the result excludes physical binding, holding furniture, scanning, OCR, wrapper, provider metadata, and any later editorial contribution"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published in Germany in 1892 and even the conservative German anonymous-publication route ended at 1962-12-31; the historical presentation was already public domain through expiration in its source country on the 1996 URAA restoration date and fails a cumulative 17 U.S.C. 104A restoration condition",
+        "starts_on": null,
+        "ends_on": "1962-12-31",
+        "uncertainty": "No anonymous authorship or scientific-edition status is asserted; the conservative boundary only shows that no reviewed historical-presentation term remains active."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact 1892 presentation is outside the reviewed terms while later physical and digital layers remain separate."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.faithful-historical-page-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+        "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+        "https://www.copyright.gov/comp3/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "faithful page images of the historical public-domain book may be treated as public domain in the reviewed DE and US routes subject to exact-layer and source controls"
+      ],
+      "restrictions": [
+        "the layer excludes binding and marbled covers, UNC holding furniture, OCR coordinates, PDF wrapper, provider metadata, marks, and contracts",
+        "the operator-held PDF remains local and is not authorized for future-site upload"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the exact Commons revision is marked public domain and not copyrighted; current German institutional book-scan guidance and the United States Copyright Office Compendium treat a faithful simple scan or mere digitization as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to faithful historical page images in DE and US and does not clear creative enhancement, binding, holding furniture, database rights, contracts, marks, or other jurisdictions."
+      },
+      "uncertainty": "The exact Commons page currently supplies only a United States template; ToS's German conclusion is independent, and the mixed PDF still contains unresolved layers.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Current exact-object evidence, German book-scan guidance, and the United States mere-copy rule converge for faithful historical page scans only."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.physical-binding-and-marbled-cover",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded source inspection"
+      ],
+      "restrictions": [
+        "the binding or rebinding date, maker, originality, and exact relation to the 1892 Edition are unresolved",
+        "the public-domain historical page result is not silently extended to the marbled cover design"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the source-visible binding and marbled covers have unresolved origin and date and no layer-specific license was found",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The binding may be historical, standard, non-original, or later, but ToS has not established which."
+      },
+      "uncertainty": "No inference of either active copyright or public domain is made for the binding layer.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The physical binding is materially separate from the printed 1892 pages and lacks a resolved creation history."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.unc-holding-furniture",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+        "https://archive.org/metadata/zurgenealogieder00niet"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded source inspection",
+        "public-safe provenance may identify UNC as contributor, sponsor, and scanner"
+      ],
+      "restrictions": [
+        "the card, library plate or logo, call number, barcode, due slip, stamps, and marks have mixed functions and dates and remain separately unresolved",
+        "copyright, trademark, attribution, privacy, and institutional policy are not collapsed into one public-domain inference"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the holding furniture includes factual and possibly designed elements with unresolved contributors and dates, including material visible through 2010",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Some elements may be old, factual, or unprotectable, but no exact layer-specific grant or complete non-copyright review was found."
+      },
+      "uncertainty": "The layer is not presumed protected; it stays undetermined because the exact rights and non-copyright route is incomplete.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source-visible UNC furniture is distinct from Nietzsche's Work, the historical Edition, and faithful capture of its pages."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.automatic-historical-ocr-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+        "https://archive.org/metadata/zurgenealogieder00niet",
+        "https://www.copyright.gov/comp3/",
+        "https://www.gesetze-im-internet.de/urhg/__2.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the mechanically recognized historical Nietzsche text may be treated as public-domain material in the reviewed DE and US routes subject to independent quality and source-admission controls"
+      ],
+      "restrictions": [
+        "the result excludes OCR coordinates, PDF layout, provider prose, binding, holding furniture, human correction, and package structure",
+        "no OCR text is accepted as correct German or authorized for future-site publication"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "automatic recognition mechanically renders public-domain historical text and creates no new human-authored literary expression by itself",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to recognized historical content and does not reach coordinates, selection, arrangement, correction, or contracts."
+      },
+      "uncertainty": "Rights-positive automatic text may still be wrong, incomplete, reordered, or contaminated by non-historical furniture.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical text is public domain and the embedded recognition is machine-produced rather than a new accepted human edition."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.ocr-coordinate-and-layout",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+        "https://archive.org/metadata/zurgenealogieder00niet",
+        "https://www.gesetze-im-internet.de/urhg/__87a.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local parsing, comparison, and bounded laboratory use"
+      ],
+      "restrictions": [
+        "no exact license was found for OCR positions, page relationships, layout structures, or their arrangement",
+        "possible database and contract interests remain separate from public-domain text tokens"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "individual coordinates are likely factual or mechanical, but the exact arrangement, database investment, and provider-contract posture are unresolved",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Weak copyright originality does not by itself eliminate database, contract, attribution, or other jurisdictional questions."
+      },
+      "uncertainty": "The structured layer is not declared protected; it remains fail-closed pending an exact reusable route.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Public-domain text and the machine position or layout structure are distinct rights objects."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.pdf-derivative-package",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+        "https://archive.org/metadata/zurgenealogieder00niet",
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation, format inspection, and bounded laboratory derivation"
+      ],
+      "restrictions": [
+        "no exact package license was found for the PDF wrapper, mixed-page composition, embedded structures, or Internet Archive derivative choices",
+        "the Commons public-domain statement is not converted into a license for every separable package contribution"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the wrapper and derivative pipeline mix public-domain, mechanical, unresolved physical, holding, and structured contributions without a layer-specific package license",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Many wrapper elements may be functional or unprotectable, but ToS has no complete exact-package permission or contract route."
+      },
+      "uncertainty": "The package is not presumed protected; the unresolved result prevents a false blanket authorization.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "An object-level public-domain label and public-domain historical content do not eliminate separable package and furniture questions."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.commons-structured-file-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+        "https://creativecommons.org/publicdomain/zero/1.0/",
+        "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Commons structured file-namespace data may be reused under CC0 1.0 subject to exact scope and provenance"
+      ],
+      "restrictions": [
+        "CC0 applies to the identified structured metadata surface and is not a license for the PDF, book pages, holding furniture, or Internet Archive database"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Commons states CC0 1.0 for structured data in the file namespace",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Field boundaries and non-copyright rights still require exact-scope use."
+      },
+      "uncertainty": "The provider may expose both factual and generated fields; ToS records source attribution even where CC0 does not require it.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current exact file page expressly identifies CC0 for its structured data surface."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.commons-unstructured-description",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/wiki/File:Zur_Genealogie_der_Moral_-_eine_Streitschrift_(IA_zurgenealogieder00niet).pdf",
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+        "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Commons unstructured description prose may be reused under CC BY-SA 4.0 with required attribution and share-alike handling"
+      ],
+      "restrictions": [
+        "the license applies to the identified unstructured Commons text surface and does not license the PDF or third-party source layers",
+        "any reused prose must preserve attribution and license obligations"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Commons states CC BY-SA 4.0 for unstructured text in the current page surface",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Template output, third-party quotations, and independently licensed content retain their own exact scopes."
+      },
+      "uncertainty": "ToS does not need to copy provider prose to preserve factual identity and rights observations.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current Commons page expressly supplies CC BY-SA 4.0 for its unstructured text surface."
+    },
+    {
+      "layer_id": "tos.rights.zur-genealogie-der-moral.naumann-1892-second.wikimedia-commons-unc-scan-pdf.layer.internet-archive-lineage-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://archive.org/metadata/zurgenealogieder00niet"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/source-metadata-snapshot.json",
+        "https://archive.org/metadata/zurgenealogieder00niet"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "public-safe source-attributed bibliographic, fixity, and lineage facts may be recorded in ToS"
+      ],
+      "restrictions": [
+        "the current source Item exposes no rights or licenseurl value",
+        "no blanket provider-database extraction, description reuse, or current derivative-package authorization is inferred"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "many individual fields are factual, but provider collections, descriptions, database extraction, and access terms remain separate and no exact metadata license was found",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The Commons licenses, Internet Archive metadata posture, and exact file rights statement are not interchangeable."
+      },
+      "uncertainty": "The record permits bounded attributed facts and transformed research conclusions, not unrestricted reuse of the provider database.",
+      "assessed_at": "2026-08-02T05:17:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Internet Archive lineage metadata remains a separate fail-closed layer even where particular bibliographic facts are public-safe."
+    }
   ],
   "permissions": [
     "local preservation and bounded research use",
     "public bibliographic metadata and provenance may remain tracked",
-    "Wikimedia Commons declares the exact acquired file public domain and not copyrighted",
-    "the Commons file page exposes an open HTTPS download route for the exact file revision"
+    "the historical Work, 1892 Edition presentation, faithful historical page scan, and automatic historical OCR text have a positive public-domain basis in the reviewed DE and US routes",
+    "Commons structured metadata has a scoped CC0 1.0 route and unstructured Commons description prose has a scoped CC BY-SA 4.0 route"
   ],
   "restrictions": [
-    "the operator-held payload remains local and is not a future-site upload",
-    "the Commons public-domain statement is source evidence rather than a jurisdiction-complete ToS legal conclusion",
-    "the underlying 1892 text, physical copy, UNC scan, Internet Archive derivative lineage, Commons file revision, embedded OCR, and later derivatives remain separately reviewable",
-    "any future public-site payload must be independently selected or reacquired through an exact currently authorized route after human rights review"
+    "the operator-held PDF remains local and is not a future-site upload",
+    "the exact Commons page currently invokes only PD-US-expired and does not encode a complete source-country rights expression",
+    "the physical binding and marbled covers, UNC holding furniture, OCR-coordinate and layout layer, PDF derivative package, and Internet Archive metadata layer remain unresolved",
+    "the current Internet Archive PDF is a different byte revision and is not silently substituted for the exact acquired Commons revision",
+    "any future public payload must be independently reacquired through an exact then-current upstream route and pass fresh fixity, layer, human-rights-review, and explicit operator-approval gates",
+    "no source text, OCR correctness, accepted German, translation, semantic claim, identity relation, or graph truth is accepted by this rights record"
   ],
   "visibility": "local_only",
-  "redistribution_posture": "unknown",
-  "derivative_posture": "unknown",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
   "assessed_by": {
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-30T07:59:07-06:00",
-  "rationale": "The exact Commons file carries strong positive evidence: a public-domain declaration, Copyrighted=False, an open exact-file route, visible institutional holding marks, and a historical 1892 edition. Those facts make the public route a serious future publication candidate but do not replace jurisdiction-specific human review or the operator rule that locally held files are never uploaded to the site.",
+  "assessed_at": "2026-08-02T05:17:00-06:00",
+  "rationale": "Current exact Commons, Internet Archive, German, United States, Wikimedia, Creative Commons, and institutional evidence supports the historical and faithful mechanical layers and separately licenses two Commons metadata surfaces, but it does not clear the mixed PDF's binding, UNC furniture, OCR-layout, package, or Internet Archive metadata layers. The exact provider page also lacks an explicit German source-country tag. The aggregate is therefore conflicting evidence and remains local-only and fail-closed for transfer. Local custody and future server admission remain stricter operator decisions even for rights-positive layers.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

@@ -511,11 +511,21 @@ The second transfer-work source tree advances *Zur Genealogie der Moral*
 beyond a provisional Russian collection-member expression. Its acquired file
 is the exact 2020 Commons revision descended from the UNC/Internet Archive
 scan of the 1892 second Naumann edition; the current Internet Archive PDF is
-recorded as a different byte revision rather than silently equated. Commons'
-public-domain declaration is strong publication-route evidence, but the
-operator-held PDF remains local, the embedded OCR remains unaccepted, and no
-German text, translation relation, semantic claim, or server payload is
-admitted.
+recorded as a different byte revision rather than silently equated. Current
+DE/US research classifies the historical Work and Edition presentation, the
+faithful historical page scan, and automatic historical OCR text as
+`public_domain_reviewed`. Commons' structured file metadata is separately
+`licensed` under CC0 1.0 and its unstructured page prose under CC BY-SA 4.0.
+Those positive results do not flatten the mixed PDF: the physical binding and
+marbled covers, UNC holding furniture, OCR layout, PDF package, and Internet
+Archive metadata remain unresolved. The exact aggregate is therefore
+`conflicting_evidence`, redistribution `not_authorized`, derivatives
+`local_research_only`, and blocked from transfer. The provider page's current
+`PD-US-expired` expression lacks an explicit German source-country tag; ToS
+preserves that incompleteness alongside its independent bounded German term
+analysis. The operator-held PDF stays local, its embedded OCR remains
+unaccepted, and no German text, translation relation, semantic claim, identity
+bridge, or server payload is admitted.
 
 The third transfer-work route advances *Der Antichrist* beyond its
 provisional Russian collection expression without flattening the newly found
