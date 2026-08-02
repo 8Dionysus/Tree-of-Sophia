@@ -5,41 +5,547 @@
     "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
     "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
   ],
-  "assessment_status": "copyright_undetermined",
-  "rights_statement_uri": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
   "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/forensic-report.md",
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
     "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
-    "https://commons.wikimedia.org/wiki/Template:PD-old-100-expired",
-    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+    "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+    "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+    "https://creativecommons.org/publicdomain/mark/1.0/",
+    "https://creativecommons.org/publicdomain/zero/1.0/",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+    "https://archive.org/metadata/nietzscheswerke00nietgoog",
+    "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+    "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/circs/circ38b.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/comp3/",
+    "https://library.stanford.edu/copyright-notice",
+    "https://library.stanford.edu/stanford-university-libraries-open-metadata-policy"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.der-antichrist"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the historical Der Antichrist Work may be treated as public domain in the reviewed DE and US routes subject to source-specific and server-admission controls"
+      ],
+      "restrictions": [
+        "the Work-level result does not clear a particular transcription, translation, edition, scan, package, provider contribution, or accepted text",
+        "the result does not identify or clear every other member of the aggregate volume"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900 and the ordinary German life-plus-seventy term ended at 1970-12-31; the Work was already public domain through expiration in Germany on the 1996 URAA restoration date and the published Work is also inside the current United States pre-1931 public-domain boundary",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to Nietzsche's historical Work in the reviewed DE and US routes and includes no later textual or digital contribution."
+      },
+      "uncertainty": "Work-level public domain does not prove source correctness, author-final status, edition authority, or permission for later layers.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The reviewed German and United States terms are expired for Nietzsche's published Work."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/forensic-report.md",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.gesetze-im-internet.de/urhg/__71.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible historical typography and presentation may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the result excludes unresolved archive editorial content, physical binding, Stanford holding furniture, scanning, OCR, wrapper, provider metadata, and later contributions"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published in Germany in 1906 and even the conservative German anonymous-publication route ended at 1976-12-31; qualifying scientific-edition or first-posthumous-publication related-right routes would have ended by 1931, and the exact presentation is inside the current United States pre-1931 public-domain boundary",
+        "starts_on": null,
+        "ends_on": "1976-12-31",
+        "uncertainty": "No anonymous authorship, scientific-edition status, or posthumous-publication status is asserted; the calculation is limited to source-visible historical presentation rather than every editorial contribution."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record, and editorial content is assessed separately.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact 1906 typography and presentation are outside the reviewed terms while editorial content and later physical and digital layers remain separate."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.archive-editorial-and-added-matter",
+      "layer_role": "editing",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu"
+      ],
+      "assessment_status": "conflicting_evidence",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/structure/work-boundaries/work-boundary-map.json",
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.gesetze-im-internet.de/urhg/__71.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the 1906 United States publication route is expired and source-attributed public-safe facts about the historical editorial state may be recorded"
+      ],
+      "restrictions": [
+        "the exact editor and contributor identities, contribution boundaries, death dates, and German life-based terms are not completely resolved",
+        "the partial Der Antichrist member map does not inventory or clear every preface, arrangement, posthumous text, heading, or added section in the aggregate"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the United States term for a 1906 publication is expired and several German publication-based routes are expired, but the exact German contributor identities and any life-based terms are incomplete",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "A positive United States result and likely expired historical routes do not justify inventing missing German contributor evidence."
+      },
+      "uncertainty": "The layer is not presumed in copyright; it remains conflicting because exact editorial responsibility and source-country coverage are incomplete.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Current provider and United States evidence are positive, while the aggregate's exact archive editorial contributions lack a complete German contributor-term analysis."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.faithful-historical-page-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+        "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "faithful page images of public-domain historical printed pages may be treated as public domain in the reviewed DE and US routes subject to exact-layer and source controls"
+      ],
+      "restrictions": [
+        "the layer excludes Stanford binding and holding furniture, archive editorial matter not otherwise cleared, OCR coordinates, DjVu wrapper, provider metadata, marks, and contracts",
+        "the operator-held DjVu remains local and is not authorized for future-site upload"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the exact Commons revision is marked public domain and not copyrighted; German institutional guidance and the United States Copyright Office Compendium treat faithful simple scanning or digitization as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to faithful historical printed page images in DE and US and does not clear creative enhancement, physical furniture, database rights, contracts, marks, or other jurisdictions."
+      },
+      "uncertainty": "The exact mixed DjVu still contains unresolved layers even though faithful page capture has a positive route.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Current exact-object evidence, German institutional guidance, and the United States mere-copy rule converge for faithful historical printed page scans only."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.stanford-binding-and-holding-furniture",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/forensic-report.md",
+        "https://library.stanford.edu/copyright-notice",
+        "https://library.stanford.edu/stanford-university-libraries-open-metadata-policy"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded source inspection",
+        "public-safe provenance may identify Stanford as the holding library and record the source-visible barcode as an attributed fact"
+      ],
+      "restrictions": [
+        "the binding, bookplate, barcode, circulation furniture, stamps, marks, and possible logos have mixed functions, dates, and non-copyright controls",
+        "Stanford's CC0 metadata policy is not projected onto physical furniture embedded in page images"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the holding furniture includes factual and possibly designed elements with unresolved contributors, dates, copyright, trademark, privacy, and institutional-policy scope",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Some elements may be old, factual, standard, or unprotectable, but no exact complete layer-specific route was found."
+      },
+      "uncertainty": "The layer is not presumed protected; it stays undetermined because the exact rights and non-copyright route is incomplete.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source-visible Stanford furniture is distinct from Nietzsche's Work, the historical presentation, and faithful capture of printed pages."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.automatic-historical-ocr-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog",
+        "https://www.gesetze-im-internet.de/urhg/__2.html",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "mechanically recognized public-domain historical Nietzsche text may be treated as public-domain material in the reviewed DE and US routes subject to independent quality and source-admission controls"
+      ],
+      "restrictions": [
+        "the result excludes archive editorial matter not otherwise cleared, OCR coordinates, DjVu layout, provider prose, binding, holding furniture, human correction, and package structure",
+        "the exact file's 490 TXTz chunks were counted but not decoded, and no OCR text is accepted as correct German or authorized for future-site publication"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "automatic recognition mechanically renders public-domain historical text and creates no new human-authored literary expression by itself",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to recognized public-domain historical content and does not reach coordinates, selection, arrangement, correction, editorial additions, or contracts."
+      },
+      "uncertainty": "Rights-positive automatic text may still be wrong, incomplete, reordered, or contaminated by editorial and holding-copy material.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical text is public domain and the compressed recognition layer is machine-produced rather than a new accepted human edition."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.ocr-coordinate-and-layout",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/resource-inventory.json",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog",
+        "https://www.gesetze-im-internet.de/urhg/__87a.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local parsing, comparison, and bounded laboratory use"
+      ],
+      "restrictions": [
+        "no exact license was found for OCR positions, page relationships, layout structures, or their arrangement",
+        "possible database and contract interests remain separate from public-domain text tokens"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "individual coordinates are likely factual or mechanical, but the exact arrangement, database investment, and provider-contract posture are unresolved",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Weak copyright originality does not itself eliminate database, contract, attribution, or other jurisdictional questions."
+      },
+      "uncertainty": "The structured layer is not declared protected; it remains fail-closed pending an exact reusable route.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Public-domain text and the machine position or layout structure are distinct rights objects."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.djvu-derivative-package",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/forensic-report.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog",
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation, format inspection, and bounded laboratory derivation"
+      ],
+      "restrictions": [
+        "no exact package license was found for the DjVu wrapper, mixed-page composition, compressed OCR structures, or derivative choices",
+        "the Commons public-domain statement is not converted into a license for every separable package contribution"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the wrapper and derivative pipeline mix public-domain, mechanical, unresolved physical, editorial, holding, and structured contributions without a layer-specific package license",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Many wrapper elements may be functional or unprotectable, but ToS has no complete exact-package permission or contract route."
+      },
+      "uncertainty": "The package is not presumed protected; the unresolved result prevents a false blanket authorization.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "An object-level public-domain mark and public-domain historical content do not eliminate separable package and furniture questions."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.commons-structured-file-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+        "https://creativecommons.org/publicdomain/zero/1.0/",
+        "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Commons structured file-namespace data may be reused under CC0 1.0 subject to exact scope and provenance"
+      ],
+      "restrictions": [
+        "CC0 applies to the identified structured Commons metadata surface and is not a license for the DjVu, book pages, holding furniture, or Internet Archive database"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Commons states CC0 1.0 for structured data in the file namespace",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Field boundaries and non-copyright rights still require exact-scope use."
+      },
+      "uncertainty": "The provider may expose factual and generated fields; ToS retains source attribution even where CC0 does not require it.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current exact file page expressly identifies CC0 for its structured data surface."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.commons-unstructured-description",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+        "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Commons unstructured description prose may be reused under CC BY-SA 4.0 with required attribution and share-alike handling"
+      ],
+      "restrictions": [
+        "the license applies to the identified unstructured Commons text surface and does not license the DjVu or third-party source layers",
+        "any reused prose must preserve attribution and license obligations"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Commons states CC BY-SA 4.0 for unstructured text in the current page surface",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Template output, third-party quotations, and independently licensed content retain their own exact scopes."
+      },
+      "uncertainty": "ToS does not need to copy provider prose to preserve factual identity and rights observations.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current Commons page expressly supplies CC BY-SA 4.0 for its unstructured text surface."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu.layer.internet-archive-lineage-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://archive.org/metadata/nietzscheswerke00nietgoog"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "public-safe source-attributed bibliographic, fixity, contamination, and lineage facts may be recorded in ToS"
+      ],
+      "restrictions": [
+        "the current source Item exposes no rights or licenseurl value and its bibliographic description is source-visibly contaminated",
+        "no blanket provider-database extraction, description reuse, or derivative-package authorization is inferred"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "many individual fields are factual, but provider descriptions, database extraction, access terms, and contaminated identity remain separate and no exact metadata license was found",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The Commons licenses, Stanford metadata posture, Internet Archive metadata posture, and exact file rights statement are not interchangeable."
+      },
+      "uncertainty": "The record permits bounded attributed facts and transformed research conclusions, not unrestricted reuse of the provider database.",
+      "assessed_at": "2026-08-02T05:54:37-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Internet Archive lineage metadata remains a separate fail-closed layer, and its current description cannot identify the visible 1906 object."
+    }
   ],
   "permissions": [
     "local preservation and bounded research use",
     "public bibliographic metadata and provenance may remain tracked",
-    "Wikimedia Commons declares the exact acquired file public domain, not copyrighted, and attribution not required",
-    "the Commons file page exposes an open HTTPS route for the exact acquired file"
+    "the historical Der Antichrist Work, 1906 Edition presentation, faithful historical printed-page scan, and automatic historical OCR text have a positive public-domain basis in the reviewed DE and US routes",
+    "Commons structured metadata has a scoped CC0 1.0 route and unstructured Commons description prose has a scoped CC BY-SA 4.0 route"
   ],
   "restrictions": [
-    "the operator-held payload remains local and is not a future-site upload",
-    "the Commons public-domain statement is source evidence rather than a jurisdiction-complete ToS legal conclusion",
-    "the 1906 text, physical Stanford copy, Google scan, Internet Archive lineage, Commons DjVu revision, embedded OCR, and later derivatives remain separately reviewable",
-    "the current Internet Archive metadata is contaminated and cannot serve as bibliographic or rights authority for this exact scan",
-    "any future public-site payload must be independently selected or reacquired through an exact currently authorized route after human rights review"
+    "the operator-held DjVu remains local and is not a future-site upload",
+    "archive editorial and added matter remains conflicting because exact contributor and German term coverage is incomplete",
+    "Stanford binding and holding furniture, OCR-coordinate and layout structure, DjVu derivative package, and Internet Archive metadata remain unresolved",
+    "the current Internet Archive description is contaminated and none of its current file entries matches the exact Commons DjVu by SHA-1 or byte size",
+    "any future public payload must be independently reacquired through an exact then-current upstream route and pass fresh fixity, layer, human-rights-review, and explicit operator-approval gates",
+    "no source text, OCR correctness, accepted German, translation, semantic claim, identity relation, membership acceptance, or graph truth is accepted by this rights record"
   ],
   "visibility": "local_only",
-  "redistribution_posture": "unknown",
-  "derivative_posture": "unknown",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
   "assessed_by": {
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-30T08:55:00-06:00",
-  "rationale": "The exact Commons object carries strong positive evidence: a public-domain declaration, Copyrighted=False, AttributionRequired=false, an open exact-file route, visible Stanford holding marks, and a historical 1906 publication. Those facts make Commons a serious future reacquisition route but do not replace jurisdiction-specific human review or the operator rule that locally held files are never uploaded to the site.",
+  "assessed_at": "2026-08-02T05:54:37-06:00",
+  "rationale": "Current exact Commons, Internet Archive, German, United States, Wikimedia, Creative Commons, Stanford, and institutional evidence supports the represented historical Work, historical presentation, faithful mechanical page images, automatic historical text, and two separately licensed Commons metadata surfaces. It does not completely resolve archive editorial contributions, Stanford furniture, OCR layout, the DjVu package, or Internet Archive metadata. The aggregate is therefore conflicting evidence and remains local-only and fail-closed for transfer. Local custody and future server admission remain stricter operator decisions even for rights-positive layers.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

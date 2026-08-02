@@ -19,15 +19,32 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/rights.json",
-    "rights_record_sha256": "5438ef083d42cddb994b6f80f759352875b82409c61798bffc448934c70187dd",
+    "rights_record_sha256": "f867c2af11f86389fa5f9eacc05977800162f935ce45f68414a24372f0fc42af",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
     "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/source-metadata-snapshot.json",
       "https://commons.wikimedia.org/wiki/File:Nietzsche%27s_Werke,_VIII.djvu",
-      "https://commons.wikimedia.org/wiki/Template:PD-old-100-expired",
-      "https://creativecommons.org/publicdomain/mark/1.0/"
+      "https://commons.wikimedia.org/wiki/Template:PD-old-auto-1923",
+      "https://commons.wikimedia.org/wiki/Commons:When_to_use_the_PD-scan_tag",
+      "https://creativecommons.org/publicdomain/mark/1.0/",
+      "https://creativecommons.org/publicdomain/zero/1.0/",
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+      "https://archive.org/metadata/nietzscheswerke00nietgoog",
+      "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+      "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/comp3/",
+      "https://library.stanford.edu/copyright-notice",
+      "https://library.stanford.edu/stanford-university-libraries-open-metadata-policy"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -37,19 +54,19 @@
     "ocr": {
       "state": "prohibited",
       "conditions": [
-        "This future-server plan authorizes no server-side source processing; local laboratory OCR remains a separate non-public lane."
+        "The represented historical and faithful mechanical layers have positive DE/US evidence, but the exact mixed DjVu, archive editorial layer, human rights review, and operator approval gates remain unresolved; local laboratory OCR is a separate non-public lane."
       ]
     },
     "transcription": {
       "state": "prohibited",
       "conditions": [
-        "Neither provider OCR nor any derived transcription has been textually accepted or authorized for server publication."
+        "Automatic historical OCR is rights-positive only as a mechanical rendering; the 490 TXTz chunks have not been decoded, checked, textually accepted, or authorized for server publication."
       ]
     },
     "page_images": {
       "state": "prohibited",
       "conditions": [
-        "The operator-held DjVu remains local and is never uploaded to the future site."
+        "The operator-held DjVu remains local and is never uploaded to the future site; any public candidate must be independently reacquired and reviewed by layer."
       ]
     },
     "snippets": {
@@ -61,13 +78,13 @@
     "lexical_index": {
       "state": "conditional",
       "conditions": [
-        "Public-safe bibliographic and provenance metadata only; no payload-derived text or dictionary-recoverable source forms."
+        "Public-safe, source-attributed ToS bibliographic and provenance metadata plus scoped licensed Commons metadata only; no payload-derived text, provider database row, or dictionary-recoverable source forms."
       ]
     },
     "embeddings": {
       "state": "prohibited",
       "conditions": [
-        "No server-side source processing is authorized by this plan."
+        "No server-side source processing is authorized while archive editorial matter, Stanford furniture, OCR layout, DjVu package, and Internet Archive metadata remain unresolved."
       ]
     },
     "alignments": {
@@ -91,13 +108,13 @@
     "search_projection": {
       "state": "conditional",
       "conditions": [
-        "Metadata-only records with no payload-derived text."
+        "Metadata-only records with no payload-derived text, OCR coordinates, provider database rows, or restricted furniture."
       ]
     },
     "graph_projection": {
       "state": "conditional",
       "conditions": [
-        "Public-safe work, expression, edition, collection, membership, item, provenance, source-route, and rights-status metadata only; proposed boundaries remain visibly unreviewed."
+        "Public-safe work, expression, edition, collection, membership, item, provenance, source-route, and layer-status metadata only; proposed pages 228-329 remain visibly unreviewed and contaminated Internet Archive metadata is not identity authority."
       ]
     }
   },
@@ -116,13 +133,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-30T09:10:00-06:00"
+    "last_reviewed_at": "2026-08-02T05:54:37-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.der-antichrist-naumann-1906-wikimedia-commons-stanford-scan-djvu.2026-07-30"
+    "tos.event.server-import-plan.der-antichrist-naumann-1906.layered-rights.2026-08-02"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

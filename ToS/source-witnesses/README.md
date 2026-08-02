@@ -535,8 +535,18 @@ boundary; pages 1-227 and 330-523 remain explicitly unrepresented rather than
 being mislabeled as non-work material. Internet Archive's contaminated
 description is preserved as a conflict, while the 1906 archive-edition text
 is kept distinct from Nietzsche's 1888 manuscript, the 1895 first printing,
-a critical edition, accepted German, and provider OCR. The local DjVu is not a
-future-site upload source.
+a critical edition, accepted German, and provider OCR. Current DE/US research
+classifies the represented historical Work, 1906 presentation, faithful
+historical page scan, and automatic historical OCR text as
+`public_domain_reviewed`; Commons structured metadata is separately CC0 1.0
+and its unstructured prose CC BY-SA 4.0. The archive editorial layer remains
+`conflicting_evidence`, while Stanford binding and holding furniture, OCR
+layout, the DjVu package, and contaminated Internet Archive metadata remain
+unresolved. The exact eleven-layer aggregate is therefore
+`conflicting_evidence`, redistribution `not_authorized`, derivatives
+`local_research_only`, and blocked from transfer. The 490 `TXTz` chunks were
+counted but not decoded or accepted. The local DjVu is not a future-site
+upload source, and the rights result does not accept the proposed member map.
 
 The fourth route advances *Der Fall Wagner* beyond its provisional Russian
 collection expression through an exact standalone 1888 Naumann item. DNB fixes

@@ -396,11 +396,20 @@ contracts intentionally reject simulated human evidence.
   reacquisition, fresh fixity, layer review, human review, and operator approval
   before any different publication decision.
 - Wikimedia Commons likewise declares the exact 1906-volume DjVu public
-  domain, `Copyrighted=False`, and attribution-free. This is strong evidence
-  for that exact Commons object, not a jurisdiction-complete verdict over the
-  historical text, Stanford copy, Google scan, contaminated Internet Archive
-  lineage, Commons revision, OCR, or derivatives. The local DjVu remains off
-  the future site and the server plan remains metadata-only.
+  domain, `Copyrighted=False`, and attribution-free through a current
+  source-country-plus-US expression. Independent DE/US research positively
+  assesses the represented historical Work, 1906 presentation, faithful
+  historical printed-page scan, and automatic historical OCR text; Commons
+  structured metadata is separately CC0 1.0 and its unstructured prose CC
+  BY-SA 4.0. The archive editorial layer remains `conflicting_evidence`
+  because exact contributor and German term coverage is incomplete. Stanford
+  binding and holding furniture, OCR layout, the DjVu package, and contaminated
+  Internet Archive metadata remain unresolved. The exact eleven-layer
+  aggregate is therefore `conflicting_evidence`, not a cleared payload. The
+  490 `TXTz` chunks were counted but not decoded or accepted, and the proposed
+  pages 228-329 member boundary remains unreviewed. The local DjVu remains off
+  the future site and the server plan remains metadata-only, blocked, and
+  operator-unapproved.
 - MDZ marks the exact *Der Fall Wagner* object `NoC-NC 1.0`. That is concrete
   permission evidence for bounded local non-commercial research, not a
   free-culture license or a ToS authorization to redistribute the generated
@@ -1099,6 +1108,13 @@ from the calibration-only route in section 2b.
     source-country expression, and inspect binding, UNC furniture, OCR layout,
     wrapper, and provider metadata by layer. Do not upload the operator-held
     PDF or substitute the current byte-different Internet Archive derivative.
+12. Reacquire any future public *Antichrist* 1906 aggregate object
+    independently from the then-current exact Commons route. Verify its new
+    fixity and inspect archive editorial matter, Stanford furniture, OCR
+    coverage and layout, DjVu packaging, and provider metadata by layer. Do
+    not upload the operator-held DjVu, treat contaminated Internet Archive
+    metadata as identity authority, or convert the proposed pages 228-329 map
+    into accepted membership or text.
 
 ## Definition-of-done reconciliation
 

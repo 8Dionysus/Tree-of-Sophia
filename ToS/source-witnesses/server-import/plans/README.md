@@ -62,11 +62,18 @@ substitute the current byte-different Internet Archive PDF.
 
 The twelfth plan covers the exact Commons/Stanford DjVu of the 1906 Naumann
 *Nietzsche's Werke*, Band VIII aggregate that contains *Der Antichrist*.
-Commons' public-domain declaration, exact checksum, and open route are
-retained as strong positive evidence. The plan still keeps the operator-held
-DjVu local, all source-bearing derivatives prohibited, the model-only partial
-boundary visibly unreviewed, and server consumption limited to public-safe
-metadata until a current authorized object and applicable rights are reviewed.
+The represented historical Work, 1906 presentation, faithful printed-page
+scan, and automatic historical OCR text are `public_domain_reviewed` for
+DE/US. Commons structured metadata is separately CC0 1.0 and its unstructured
+description CC BY-SA 4.0. Archive editorial matter remains conflicting, while
+Stanford binding and holding furniture, OCR layout, the DjVu package, and
+contaminated Internet Archive metadata remain unresolved. The exact aggregate
+therefore stays rights-unknown, metadata-only, blocked, and operator-unapproved.
+The plan keeps the operator-held DjVu local, all source-bearing derivatives
+prohibited, the model-only pages 228-329 boundary visibly unreviewed, and
+server consumption limited to public-safe metadata until a separately
+reacquired current object passes exact fixity, layer, human-rights, quality,
+text-admission, and operator-approval gates.
 
 The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
 `30.1972` copy of the standalone 1888 Naumann *Der Fall Wagner*. MDZ's
