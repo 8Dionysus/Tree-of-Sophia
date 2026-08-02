@@ -218,6 +218,11 @@ GOETZEN_AUTHORIAL_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "goetzen-daemmerung-authorial-witness-route.2026-07-30.v1.json"
 )
+MDZ_PAIR_LAYERED_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 ECCE_HOMO_WORK_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -6309,6 +6314,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 ),
                 "license_uri": None,
                 "redistribution_posture": "not_authorized",
+                "assessment_status": "permission_granted",
+                "exact_object_layer": "exact-mdz-google-digital-object",
+                "server_rights_status": "permission-granted",
+                "rights_event_id": (
+                    "tos.event.rights-assessment.der-fall-wagner-naumann-"
+                    "1888.mdz-bamberg-scan-pdf.layered.2026-08-02"
+                ),
                 "channels": [
                     "channel-dnb-der-fall-wagner-work-authority",
                     "channel-dta-der-fall-wagner-author-corpus",
@@ -6352,7 +6364,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "license_uri": (
                     "https://creativecommons.org/licenses/by-nc-sa/4.0/"
                 ),
-                "redistribution_posture": "unknown",
+                "redistribution_posture": "not_authorized",
+                "assessment_status": "licensed",
+                "exact_object_layer": "exact-mdz-digital-object",
+                "server_rights_status": "open-licensed",
+                "rights_event_id": (
+                    "tos.event.rights-assessment.goetzen-daemmerung-naumann-"
+                    "1889.mdz-bsb-scan-pdf.layered.2026-08-02"
+                ),
                 "channels": [
                     "channel-dnb-goetzen-daemmerung-work-authority",
                     "channel-dta-goetzen-daemmerung-author-corpus",
@@ -6450,16 +6469,46 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 )
                 self.assertEqual(case["license_uri"], rights["license_uri"])
                 self.assertEqual(
-                    "copyright_undetermined",
+                    case["assessment_status"],
                     rights["assessment_status"],
                 )
                 self.assertEqual("unreviewed", rights["review_status"])
-                self.assertEqual([], rights["jurisdictions_reviewed"])
+                self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
                 self.assertEqual(
                     case["redistribution_posture"],
                     rights["redistribution_posture"],
                 )
+                self.assertEqual(
+                    "local_research_only",
+                    rights["derivative_posture"],
+                )
                 self.assertEqual("local_only", rights["visibility"])
+                self.assertEqual(2, rights["record_version"])
+
+                layers = {
+                    layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+                    for layer in rights["layer_assessments"]
+                }
+                self.assertEqual(5, len(layers))
+                for layer_id in (
+                    "original-work",
+                    "edition-presentation",
+                    "faithful-historical-page-scan",
+                ):
+                    self.assertEqual(
+                        "public_domain_reviewed",
+                        layers[layer_id]["assessment_status"],
+                    )
+                self.assertEqual(
+                    case["assessment_status"],
+                    layers[case["exact_object_layer"]]["assessment_status"],
+                )
+                metadata_layer = layers["bsb-bdr-bibliographic-metadata"]
+                self.assertEqual("licensed", metadata_layer["assessment_status"])
+                self.assertEqual(
+                    "https://creativecommons.org/publicdomain/zero/1.0/",
+                    metadata_layer["license_uri"],
+                )
 
                 self.assertFalse(inventory["source_text_included"])
                 self.assertEqual(1, len(inventory["files"]))
@@ -6529,6 +6578,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     "blocked-rights",
                     server_plan["server_import_status"],
                 )
+                self.assertEqual(
+                    case["server_rights_status"],
+                    server_plan["rights_policy"]["assessment_status"],
+                )
+                self.assertEqual(
+                    ["DE", "US"],
+                    server_plan["rights_policy"]["jurisdictions_reviewed"],
+                )
+                self.assertEqual(2, server_plan["contract_version"])
                 self.assertFalse(server_plan["payload_transfer_authorized"])
                 self.assertFalse(
                     server_plan["operator_transfer_approval"]["approved"]
@@ -6544,6 +6602,49 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     ],
                 )
                 self.assertTrue(case["catalog_ids"].issubset(catalog_ids))
+
+                provenance_events = [
+                    json.loads(line)
+                    for line in (item_root / "provenance.jsonl")
+                    .read_text(encoding="utf-8")
+                    .splitlines()
+                    if line.strip()
+                ]
+                rights_event = next(
+                    event
+                    for event in provenance_events
+                    if event["event_id"] == case["rights_event_id"]
+                )
+                self.assertEqual(
+                    5,
+                    rights_event["method"]["configuration"]["layers_assessed"],
+                )
+                self.assertEqual(
+                    0,
+                    rights_event["method"]["configuration"][
+                        "embedded_book_ocr_layers"
+                    ],
+                )
+                self.assertFalse(
+                    rights_event["method"]["configuration"][
+                        "operator_local_payload_site_upload"
+                    ]
+                )
+
+        rights_research = MDZ_PAIR_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        for heading in (
+            "## Classical and official documentation",
+            "## Established scholarship, cases, and institutional practice",
+            "## Fresh and currently relevant checks",
+            "## General web search, last",
+        ):
+            self.assertIn(heading, rights_research)
+        self.assertIn("permission_granted", rights_research)
+        self.assertIn("CC BY-NC-SA 4.0", rights_research)
+        self.assertIn("five layers", rights_research.lower())
+        self.assertIn("No OCR layer is invented", rights_research)
 
     def test_ecce_homo_1908_witness_preserves_editorial_and_rights_boundaries(
         self,

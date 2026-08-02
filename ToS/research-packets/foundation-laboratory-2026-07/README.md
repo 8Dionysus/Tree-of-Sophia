@@ -22,7 +22,10 @@ third-Edition route, Reader and Nani 1899 layered rights, and the exact
 Antonovsky 1913 RU/US positive-rights versus operator-local-payload boundary
 and all four exact DTA annotated-TEI CC BY-SA versus local-custody boundaries
 plus the Naumann 1893 PDF/EPUB fork, the Jenseits 1886 mixed-package boundary,
-and the Genealogie 1892 Commons/UNC eleven-layer boundary refreshed 2026-08-02
+the Genealogie 1892 Commons/UNC and Antichrist 1906 Commons/Stanford
+eleven-layer boundaries, and the contrasting five-layer MDZ permission versus
+license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889 refreshed
+2026-08-02
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -56,6 +59,7 @@ and what must be tested manually.
 | `JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md` | Why the exact Google/Harvard/Internet Archive PDF, DjVu XML, and ABBYY XML package has public-domain-reviewed historical, faithful-scan, and automatic-text layers but remains aggregate `conflicting_evidence` because its generated cover, holding furniture, coordinate structure, package, and metadata are not cleared; and why the distinct Harvard/Hathi volume is a route rather than an identity bridge? |
 | `GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md` | Why the exact 2020 Commons revision has public-domain-reviewed historical, faithful-scan, and automatic-text layers plus separately licensed Commons metadata surfaces, yet remains aggregate `conflicting_evidence` because its binding, UNC holding furniture, OCR layout, PDF package, and Internet Archive metadata are unresolved; why the Commons source-country expression is incomplete; and why the current Internet Archive PDF is a different revision rather than a substitute? |
 | `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` | Why the exact Commons/Stanford DjVu has public-domain-reviewed represented Work, historical-presentation, faithful-scan, and automatic-text layers plus separately licensed Commons metadata surfaces, yet remains aggregate `conflicting_evidence` because archive editorial responsibility, Stanford furniture, OCR layout, the DjVu package, and contaminated Internet Archive metadata are not completely resolved; and why its model-made pages 228-329 member boundary stays outside rights and text acceptance? |
+| `MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md` | Why two exact MDZ objects with the same public-domain historical soil require different exact-object outcomes: `permission_granted` under the non-license `NoC-NC 1.0` statement for *Der Fall Wagner*, `licensed` under CC BY-NC-SA 4.0 for *Götzen-Dämmerung*, separate CC0 bibliographic metadata, no invented OCR layer, and unchanged operator-local/non-transfer server gates? |
 | `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` | Why the exact `Zweite Auflage` wording, combined `Druck und Verlag` imprint, publisher/printer authority split, Leipzig statement year, release chronology, textual state, and historical translation-right reservation must remain distinct? |
 | `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` | Why the exact 1886 *Jenseits* `Druck und Verlag` literal supports separate publication and manufacture claims; why the page-4 rights reservation is historical evidence only; and why Edition statement, release, textual state, current rights, publisher/printer legal identity, and marketplace metadata remain outside the claim? |
 | `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` | Why the 1892 second-edition title page and undated terminal printer line require two independently anchored provision claims; why the Edition year is not printing completion or release; and why the 1887 first print, critical text, current English translation, marketplace records, and publisher/printer legal identity remain outside the claims? |

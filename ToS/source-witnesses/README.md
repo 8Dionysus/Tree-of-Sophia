@@ -659,6 +659,16 @@ identity or difference. Open archive routes create no admitted source body,
 accepted German, author-final reconstruction, publication permission,
 transfer unit, semantic object, or human queue.
 
+Its current layered-rights pass now separates Nietzsche's public-domain Work,
+the public-domain 1888 presentation, faithful historical printed-page capture,
+the exact MDZ/Google digital object, and BSB/BDR bibliographic metadata. The
+digital object is `permission_granted` under `NoC-NC 1.0`, which permits
+non-commercial Item reuse but is a Rights Statement rather than a standard
+license; the metadata is separately CC0. The PDF contains no embedded book
+OCR. These positive results do not change local custody: the operator-held
+file is never a future-site upload source, and the server plan remains
+metadata-only, blocked, and operator-unapproved.
+
 The 1888 Edition now exercises `publication_claim_refs` through six sibling,
 unreviewed claim packets. The title-page year is observed; author-supervised
 publication role, September printing completion, 22 September publication,
@@ -684,6 +694,17 @@ and the modern *Magnum in parvo* editorial reconstruction remain separate
 downstream routes. Open archive records create no admitted source body,
 accepted German, synthetic author-final text, publication permission,
 transfer unit, semantic object, or human queue.
+
+Its current layered-rights pass uses the same five-layer topology without
+copying the *Fall Wagner* result. The historical Work, 1889 presentation, and
+faithful printed-page capture are public-domain-reviewed for DE/US; the exact
+MDZ digital object is `licensed` under CC BY-NC-SA 4.0; and BSB/BDR
+bibliographic metadata is separately CC0. The PDF contains no embedded book
+OCR. Attribution, non-commercial use, source/license and modification notices,
+and ShareAlike for shared adapted material remain exact-object duties. The
+operator-held file still stays off the future site, and its metadata-only plan
+remains blocked and operator-unapproved until a separately reacquired current
+object passes the full publication gates.
 
 The 1889 *Götzen-Dämmerung* Edition also exercises the existing
 `publication_claim_refs`

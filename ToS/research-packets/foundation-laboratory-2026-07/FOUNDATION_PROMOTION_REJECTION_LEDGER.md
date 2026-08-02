@@ -2,7 +2,7 @@
 
 Status: current decisions for the July 2026 foundation slice; human content
 and philosophical promotion remains open
-Decision date: 2026-08-01
+Decision date: 2026-08-02
 
 ## Authority boundary
 
@@ -24,6 +24,18 @@ The promotion authorities remain separate:
   itself.
 
 ## Decision register
+
+The current MDZ pair pass extends the existing *Der Fall Wagner*,
+*Götzen-Dämmerung*, rights-record, and server-import rows without changing
+their source-witness promotion decisions. Both Items now have five-layer
+DE/US records: historical Work, Edition presentation, faithful scan, exact
+digital object, and BSB/BDR metadata. The first exact object is
+`permission_granted` under the non-license `NoC-NC 1.0` statement; the second
+is `licensed` under CC BY-NC-SA 4.0; both metadata layers are CC0 and both PDFs
+have no embedded book OCR. Retain this distinction as durable rights mechanics
+and retain the positive upstream routes. Explicitly do not admit the local
+PDFs for transfer, create OCR/text by implication, project one license across
+layers, or satisfy human, quality, text, semantic, and operator gates.
 
 | Surface | Evidence reached | Decision | Admitted durable use | Explicitly not admitted |
 | --- | --- | --- | --- | --- |

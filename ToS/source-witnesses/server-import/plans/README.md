@@ -77,19 +77,30 @@ text-admission, and operator-approval gates.
 
 The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
 `30.1972` copy of the standalone 1888 Naumann *Der Fall Wagner*. MDZ's
-`NoC-NC 1.0` statement is retained as a positive local non-commercial research
-route, not a free-culture license or server-transfer authorization. The
-operator-held PDF and all source-bearing derivatives remain prohibited; only
-public-safe identity, holding, provenance, issue-risk, and rights-status
-metadata may be projected.
+`NoC-NC 1.0` statement now resolves the exact digital-object layer as
+`permission_granted`: the statement permits non-commercial Item reuse but is
+a descriptive contractual Rights Statement, not a free-culture license.
+Nietzsche's Work, the 1888 presentation, and the faithful printed-page scan
+are separately public-domain-reviewed for DE/US; BSB/BDR bibliographic
+metadata is separately CC0. The exact PDF contains no embedded book OCR.
+These positive layers do not authorize transfer under this plan: the
+operator-held PDF and all source-bearing derivatives remain prohibited, and
+only public-safe identity, holding, provenance, attribution-duty, issue-risk,
+and layer-specific rights metadata may be projected.
 
 The fourteenth plan covers the exact MDZ PDF generated for the BSB
 `Ph.pr. 881 kc` copy of the standalone 1889 Naumann
 *Götzen-Dämmerung*. Its `CC BY-NC-SA 4.0` declaration is retained as concrete
-positive evidence, while attribution details, current provider conditions,
-jurisdiction, and public-route selection remain unreviewed. The current plan
-therefore transfers no local file and authorizes no OCR, transcription,
-translation, snippet, embedding, or content-bearing graph/search projection.
+exact-object license evidence. Nietzsche's Work, the 1889 presentation, and
+the faithful printed-page scan are separately public-domain-reviewed for
+DE/US; BSB/BDR bibliographic metadata is separately CC0, and the exact PDF
+contains no embedded book OCR. Attribution, non-commercial use, license/source
+notice, modification notice, and ShareAlike for shared adapted material remain
+exact-scope duties. The current plan nevertheless transfers no local file and
+authorizes no OCR, transcription, translation, critical edition, snippet,
+embedding, or content-bearing graph/search projection. A later public object
+must be independently reacquired and pass fresh fixity, rights, quality,
+human-review, and operator gates.
 
 The fifteenth plan covers permanent Commons revision `1074063624` of the
 Getty/Internet Archive scan of the posthumous 1908 Insel *Ecce homo*, copy

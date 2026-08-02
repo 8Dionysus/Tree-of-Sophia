@@ -104,6 +104,25 @@ evidence, not human legal review, German or OCR acceptance, translation
 quality, semantic truth, publication authority, or operator transfer
 approval.
 
+The current exact MDZ pair continuation applies the same ordered research law
+without forcing the same legal label onto both objects. For *Der Fall Wagner*,
+the historical Work, 1888 presentation, and faithful scan are
+`public_domain_reviewed` for DE/US, the exact MDZ/Google object is
+`permission_granted` under the non-license `NoC-NC 1.0` statement, and
+BSB/BDR metadata is separately CC0. For *Götzen-Dämmerung*, the corresponding
+historical layers are likewise public-domain-reviewed, the exact MDZ object is
+`licensed` under CC BY-NC-SA 4.0, and the metadata is separately CC0. Both
+PDFs contain no embedded book OCR. Five-layer records, superseding item and
+server provenance, current exact-manifest checks, and blocked metadata-only
+plans pass the source-witness validator and the focused suite's 59 tests with
+one declared skip. The complete release lane passes 272 tests with the same
+skip. The portable KAG family reconciles 566 shards, 19,820,006 tracked bytes,
+1,700 sources, 17,112 anchors, 404 events including 255 Git commit
+observations, 3,099 assertions, 6,689 relations, and all seven compatibility
+projections. This is rights-route and contract evidence only: both
+operator-held files remain local, non-transferable, and outside text, quality,
+translation, semantic, human-review, and publication authority.
+
 For the subsequent staged *Antichrist* source-witness slice, the complete Tree
 release lane passed 216 tests with one declared skip on 2026-07-30 using the
 pinned `aoa-stats` revision declared by CI. Focused coverage checks the exact
@@ -431,6 +450,17 @@ undecoded `TXTz` chunks, and the proposed pages 228-329 member boundary
 separate. Neither creates a new source Item, accepted text, human task,
 transfer unit, or publication decision.
 
+`MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md` now extends
+required artifact 1 and the two existing artifact-30 plans through the same
+official -> established -> fresh/current -> general-web-last order. It keeps
+the five layer roles aligned while preserving different exact-object results:
+`permission_granted` under the non-license `NoC-NC 1.0` statement for
+*Der Fall Wagner*, and `licensed` under CC BY-NC-SA 4.0 for
+*Götzen-Dämmerung*. Both carry separate CC0 metadata layers, no invented OCR
+layer, and unchanged local-payload, human-review, operator, and publication
+gates. This creates neither a nineteenth Item plan nor a content-bearing
+derivative.
+
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
 | 1 | ordered research packet | `ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md` returns first to the exact fixity-verified page-7 witness and current official Commons/National Electronic Library/Russian State Library records, then established editorial reuse, then fresh/general-web-last checks; it admits only the displayed responsibility and leaves expanded person identity and cross-Expression equivalence unresolved; `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` applies the required official DNB/GND and exact DTA record -> established HAdW/e-rara -> fresh/current corroboration -> general-web-last order to the first-part provision identity, separating the historical Schmeitzner Corporate Body from the Person; `ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md` repeats that order independently for parts II and III through their own exact DTA records, the e-rara holding route and current control searches, admitting two distinct Edition-owned claims while rejecting title-label propagation, Person substitution, physical-title-page transcription, release chronology, equivalence, text, rights, human review, semantics and canon; `ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md` separately preserves the exact 1891 authority statement from private-print, printing, delivery, and release chronology; `ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md` returns to the exact pages 5, 7, and 8 before current GND/RSL/NEL records, established translation and journal context, fresh exact-record reconciliation, and general web last, admitting separate publisher-imprint and printer roles while rejecting title-page-only inference and Vladimir Posse substitution; `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` returns to exact pages 46 and 47 before current GND authorities, established publication history, fresh reconciliation, and general web last, separating Edition statement, publication, manufacture, publisher, printer, statement year, release, textual state, and historical rights; `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` returns to the exact 1886 Item before official DNB/GND authorities, independent e-rara corroboration, established genetics, fresh 2025 research, and general web last, separating the shared imprint, two provision roles, historical rights, release, textual state, and current law; `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` returns to the exact fixity-verified Item and its two distant statement surfaces before official DNB/GND authorities, the Nietzsche Documentation Center collection record, established commentary and genetics, fresh 2025-2026 documentary work, and general web last, separating Edition year, publication, manufacture, printing completion, release, and current rights; `ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md` returns first to the exact fixity-verified official RSL/NEL scan and its title, printer, translator-note, and opening-text surfaces, then current RSL/NEL records, established translation history, fresh 2025–2026 comparison and publishing evidence, and general web last; it admits a distinct revision-lineage Expression/Edition/Item route, translator responsibility, split publisher/printer roles, and local-only rights posture while rejecting cross-edition equivalence, accepted text, redistribution, semantics, human review, and canon; `READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` returns to the exact official RNL/RuNEB fragment before contemporary attribution evidence, current provider terms, established and fresh witness-comparison method, and general web last; it admits a separate uncredited Expression, exact Edition, fragmentary Item, and local-only source evidence while rejecting translator identity, completeness, derivation, equivalence, redistribution, semantics, review, and canon; `NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` repeats the exact RSL/RuNEB -> established scholarship -> current specialist/copy evidence -> general-web-last order for the parallel 1899 Nani witness, admitting only the local Item and printed responsibility/manufacture statements while withholding full Agent identity, completeness, German Expression identity, text, equivalence, translation quality, redistribution, semantics, review, and canon; `READER_1899_LAYERED_RIGHTS_ASSESSMENT.md`, `NANI_1899_LAYERED_RIGHTS_ASSESSMENT.md`, and `ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md` apply the same order to three deliberately contrasting rights routes: positive historical layers inside unresolved exact Items, then an exact Commons object with positive RU/US layer results that still cannot cross the operator-local-payload, human-review, or server-transfer gates; `DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md` applies current DTA terms and exact TEI headers -> German and U.S. law -> established TEI/corpus scholarship -> fresh 2025-2026 guidance -> general web last, separating Work, historical Edition, annotated TEI, metadata, plain text, facsimiles, German quality, local custody, and server transfer; `RESEARCH.md` preserves the broad foundation order and records the 2026-07-30 exact-source refresh as DNB/MDZ/B3Kat identity -> HAdW historical-critical production history -> current DTA/TextGrid/Google/MDZ service evidence; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice; `BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` repeats the order for the provider-transcription-to-local-calibration boundary; `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` repeats it through exact 2026-07-29 release/artifact evidence for the next linguistic layer; `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` applies official documentation/law -> established scholarship -> fresh transport evidence, followed by a protocol-native owner -> author-deposit -> institutional archive -> repository/identifier -> general-web pass; `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` repeats official GSA/DFGA/eKGWB/Kalliope -> established HAdW -> 2024-2025 philology -> general web last and corrects a false 2026-freshness label; `ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/DFGA/eKGWB/official correction evidence -> KSA/HAdW and published fragment baseline -> 2025-2026 scholarship and forthcoming translation -> general web last; `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> DFGA/eKGWB -> e-rara -> established genesis/commentary -> 2024-2025 textual genetics -> general web last and preserves the current Nietzsche Source timeout; `GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> Basel D 20/K 11/E 40 edition -> DFGA/eKGWB -> established HAdW/genetic study -> 2024-2026 correspondence, chronology, edition, and method work -> general web last while preserving the current timeout; `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` returns to the exact Commons/Stanford DjVu and current provider expression before current DE/US law, established cases and institutional practice, fresh Commons/Internet Archive/Stanford reconciliation, and general web last, separating represented Work, historical presentation, archive editorial matter, faithful scan, Stanford furniture, 490 undecoded `TXTz` chunks, OCR layout, DjVu package, provider metadata, local custody, and the unreviewed pages 228-329 member map | proven and refreshed through the exact 2026-08-02 Antonovsky 1913, four-part DTA, Genealogie 1892, and Antichrist 1906 layered-rights checks | repeat the same ordered check before any later acquisition |
@@ -750,9 +780,14 @@ later 1906 aggregate. DNB/GND, B3Kat/MARC, the holding copy, visible title
 page, 74-canvas IIIF object, official generated PDF, 75-page text-free
 inventory, and HAdW production history are linked without flattening the
 nominally labelled second half of the 1000-copy run. MDZ's `NoC-NC 1.0`
-statement keeps this a local non-commercial research route: it creates no
-accepted German, critical text, translation relation, transfer unit, or
-publication authority.
+statement now resolves the exact digital-object layer as
+`permission_granted` for non-commercial Item reuse, while remaining a
+contractual Rights Statement rather than a license. The Work, 1888
+presentation, and faithful historical printed-page scan are independently
+`public_domain_reviewed` for DE/US, and BSB/BDR metadata is separately CC0.
+The PDF contains no embedded book OCR. The five positive layers do not alter
+the aggregate local-only, non-transfer posture or create accepted German,
+critical text, translation relation, transfer unit, or publication authority.
 
 The metadata-only authorial follow-up now separates the stronger route without
 claiming new custody. GSA ORES resolves mixed W II 6/W II 7 notebook
@@ -774,8 +809,14 @@ source-visible first-publication witness. Its title and catalog carry no
 edition statement; HAdW separately places Köselitz's altered second edition
 in 1893. The 164-canvas object, one-page generated-cover offset, 165-page
 text-free inventory, exact local fixity, and `CC BY-NC-SA 4.0` evidence are
-preserved without treating the license as human publication approval or the
-historical item as manuscript/critical-text equivalence.
+preserved. The Work, 1889 presentation, and faithful historical printed-page
+scan are independently `public_domain_reviewed` for DE/US; the exact digital
+object is `licensed`; and BSB/BDR metadata is separately CC0. The PDF contains
+no embedded book OCR. Attribution, non-commercial use, source/license and
+modification notices, and ShareAlike for shared adapted material remain
+exact-scope duties. None is treated as human publication approval,
+operator-held-file transfer authority, or manuscript/critical-text
+equivalence.
 
 The exact permanent Commons revision of the Getty/Internet Archive scan of
 the 1908 Insel *Ecce homo*, copy 965, closes the last missing historical German

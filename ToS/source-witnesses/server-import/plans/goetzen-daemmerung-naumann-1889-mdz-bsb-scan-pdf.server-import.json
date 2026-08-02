@@ -19,15 +19,25 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/rights.json",
-    "rights_record_sha256": "48225e11ec9ce1cb0a0af53c71a565eb18d31d5445dd431df8096d0e95fa7750",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "b68065c1af317ea8717f6cffc383b074669b57720d9bb2a191bcd398f1c59c03",
+    "assessment_status": "open-licensed",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
     "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/source-metadata-snapshot.json",
+      "https://www.digitale-sammlungen.de/en/details/bsb00069119",
       "https://api.digitale-sammlungen.de/iiif/presentation/v2/bsb00069119/manifest",
+      "https://download.digitale-sammlungen.de/BOOKS/download.pl?id=bsb00069119&nr=1&ersteseite=1&letzteseite=164",
       "https://www.digitale-sammlungen.de/en/download-options",
-      "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode",
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -37,7 +47,8 @@
     "ocr": {
       "state": "prohibited",
       "conditions": [
-        "This future-server plan authorizes no server-side source processing; local laboratory OCR remains a separate non-public lane."
+        "This future-server plan authorizes no server-side source processing; the exact PDF contains no embedded book OCR and local laboratory OCR remains a separate non-public lane.",
+        "A separately reacquired current upstream object would require a new plan and cannot inherit authorization from the local file."
       ]
     },
     "transcription": {
@@ -49,7 +60,8 @@
     "page_images": {
       "state": "prohibited",
       "conditions": [
-        "The operator-held MDZ PDF remains local and is never uploaded to the future site."
+        "The operator-held MDZ PDF remains local and is never uploaded to the future site.",
+        "The positive CC BY-NC-SA 4.0 upstream license does not authorize transfer under this operator-local plan."
       ]
     },
     "snippets": {
@@ -67,7 +79,7 @@
     "embeddings": {
       "state": "prohibited",
       "conditions": [
-        "No server-side source processing is authorized by this plan."
+        "No server-side source processing is authorized by this plan; the rights-positive historical and exact-object layers remain only future route evidence."
       ]
     },
     "alignments": {
@@ -97,7 +109,8 @@
     "graph_projection": {
       "state": "conditional",
       "conditions": [
-        "Public-safe work, expression, edition, item, provenance, institutional source-route, rights-status, and edition-conflict metadata only."
+        "Public-safe work, expression, edition, item, provenance, institutional source-route, layer-specific rights-status, attribution-duty, ShareAlike-duty, and edition-conflict metadata only.",
+        "BSB and BDR CC0 metadata may be projected only within its exact bibliographic scope; CC BY-NC-SA is not projected onto metadata and CC0 is not projected onto the digital object."
       ]
     }
   },
@@ -116,13 +129,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-30T10:30:00-06:00"
+    "last_reviewed_at": "2026-08-02T06:34:13-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.goetzen-daemmerung-naumann-1889-mdz-bsb-scan-pdf.2026-07-30"
+    "tos.event.server-import-plan.goetzen-daemmerung-naumann-1889-mdz.layered-rights.2026-08-02"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
-  "supersedes_server_import_ref": null
+  "contract_version": 2,
+  "supersedes_server_import_ref": "tos.server-import.goetzen-daemmerung-naumann-1889-mdz-bsb-scan-pdf"
 }

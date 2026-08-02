@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-07-30
+Snapshot: 2026-08-02
 
 ## Honest boundary
 
@@ -410,20 +410,36 @@ contracts intentionally reject simulated human evidence.
   pages 228-329 member boundary remains unreviewed. The local DjVu remains off
   the future site and the server plan remains metadata-only, blocked, and
   operator-unapproved.
-- MDZ marks the exact *Der Fall Wagner* object `NoC-NC 1.0`. That is concrete
-  permission evidence for bounded local non-commercial research, not a
-  free-culture license or a ToS authorization to redistribute the generated
-  PDF, page images, source text, OCR, or derivatives. The local PDF stays off
-  the future site; its plan is metadata-only and requires a then-current
-  route/conditions check, attribution review, jurisdiction review, and
-  explicit operator approval before any stronger decision.
-- MDZ marks the exact *Götzen-Dämmerung* digital object
-  `CC BY-NC-SA 4.0`. ToS preserves that stronger open-license evidence without
-  pretending a model has settled attribution, ShareAlike scope, the
-  relationship among historical text/holding copy/digitization/derivatives,
-  or future-site publication. The operator-held PDF remains local and its
-  server plan stays metadata-only until a current route and human rights review
-  authorize a separate public material path.
+- The exact MDZ *Der Fall Wagner* object now has a five-layer DE/US assessment.
+  Nietzsche's Work, the 1888 presentation, and faithful printed-page capture
+  are `public_domain_reviewed`; the exact MDZ/Google digital object is
+  `permission_granted` under `NoC-NC 1.0`; BSB/BDR bibliographic metadata is
+  separately CC0. `NoC-NC` permits non-commercial Item reuse but is a
+  descriptive contractual Rights Statement, not a standard or free-culture
+  license. Commercial reuse, provider attribution including the holding
+  library/call number/page/URN and required Google credit, other rights, and
+  provider authority remain separate. The PDF has no embedded book OCR. The
+  operator-held file stays off the future site; only a separately reacquired
+  current object can enter a later fixity, conditions, quality, human-review,
+  and operator-approval route.
+- The exact MDZ *Götzen-Dämmerung* object uses the same five-layer topology but
+  has a different exact-object result. The Work, 1889 presentation, and
+  faithful printed-page capture are `public_domain_reviewed`; the digital
+  object is `licensed` under CC BY-NC-SA 4.0; BSB/BDR bibliographic metadata is
+  separately CC0. Attribution, non-commercial use, source/license and
+  modification notices, and ShareAlike for shared adapted material remain
+  exact-scope duties. The license covers only rights the licensor can grant
+  and is not projected onto metadata, the changed 1893 edition, a critical
+  reconstruction, or future ToS/AI+human work. The PDF has no embedded book
+  OCR. The operator-held file remains local and its server plan remains
+  metadata-only, blocked, and operator-unapproved until an independently
+  reacquired current object passes the full publication gates.
+- The 2026 CJEU critical-edition boundary applies to future work on both
+  objects: a precisely identifiable creative critical or AI+human edition may
+  have its own rights, but that cannot remove Nietzsche's pre-existing Work
+  from the public domain or confer rights over it. ToS must keep Work,
+  historical Edition, scan, mechanical text, creative reconstruction,
+  translation, and metadata as separately governed layers.
 - Commons marks the exact acquired *Ecce Homo* revision `PD-US-expired`.
   That is positive United States evidence, not a global conclusion. Raoul
   Richter's editorial layer, Henry van de Velde's binding and ornaments, the
