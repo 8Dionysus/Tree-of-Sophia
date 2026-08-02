@@ -597,6 +597,20 @@ ANTONOVSKY_1913_EDITION_ROOT = (
     ANTONOVSKY_1913_EXPRESSION_ROOT
     / "editions/saint-petersburg-zhizn-dlya-vsekh-1913"
 )
+ANTONOVSKY_1913_ITEM_ROOT = (
+    ANTONOVSKY_1913_EDITION_ROOT
+    / "items/wikimedia-commons-penza-scan-pdf"
+)
+ANTONOVSKY_1913_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md"
+)
+ANTONOVSKY_1913_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "antonovsky-1913-wikimedia-commons-penza-scan-pdf.server-import.json"
+)
 ANTONOVSKY_1913_PROVISION_CLAIMS_PATH = (
     ANTONOVSKY_1913_EDITION_ROOT / "provision-activity-claims.jsonl"
 )
@@ -2488,6 +2502,119 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "Типографія Бр. В. и И. Линникъ",
         ):
             self.assertIn(exact_form, research)
+
+    def test_antonovsky_1913_positive_rights_do_not_open_local_payload(
+        self,
+    ) -> None:
+        manifest = json.loads(
+            (ANTONOVSKY_1913_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (ANTONOVSKY_1913_ITEM_ROOT / "rights.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("local_gitignored_payload", manifest["storage_posture"])
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertEqual(
+            "687716bc25ebf2281b967ebb0c6cf16b043c2d40bd16833d57d6dcf260d3476b",
+            manifest["payload_files"][0]["sha256"],
+        )
+
+        self.assertEqual("public_domain_reviewed", rights["assessment_status"])
+        self.assertEqual(["RU", "US"], rights["jurisdictions_reviewed"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual(2, rights["record_version"])
+
+        layers_by_role = {
+            layer["layer_role"]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original_work",
+                "translation",
+                "preface",
+                "edition_presentation",
+                "digital_scan",
+                "embedded_text",
+            },
+            set(layers_by_role),
+        )
+        for layer in layers_by_role.values():
+            self.assertEqual(
+                "public_domain_reviewed",
+                layer["assessment_status"],
+            )
+            self.assertEqual(["RU", "US"], layer["jurisdictions_reviewed"])
+            self.assertEqual("unreviewed", layer["review_status"])
+        for role in ("original_work", "translation", "preface"):
+            self.assertEqual(
+                "expired",
+                layers_by_role[role]["term"]["calculation_status"],
+            )
+        self.assertEqual(
+            "1983-12-31",
+            layers_by_role["edition_presentation"]["term"]["ends_on"],
+        )
+        for role in ("digital_scan", "embedded_text"):
+            self.assertEqual(
+                "not_applicable",
+                layers_by_role[role]["term"]["calculation_status"],
+            )
+            self.assertEqual(
+                "local_research_only",
+                layers_by_role[role]["server_processing_posture"],
+            )
+        self.assertIn(
+            "not evidence of OCR correctness",
+            layers_by_role["embedded_text"]["restrictions"][0],
+        )
+
+        server_plan = json.loads(
+            ANTONOVSKY_1913_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            "public-domain-reviewed",
+            server_plan["rights_policy"]["assessment_status"],
+        )
+        self.assertEqual(
+            "unreviewed",
+            server_plan["rights_policy"]["review_status"],
+        )
+        self.assertEqual(
+            ["RU", "US"],
+            server_plan["rights_policy"]["jurisdictions_reviewed"],
+        )
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual("metadata-only", server_plan["publication_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        self.assertEqual(2, server_plan["contract_version"])
+        self.assertTrue(
+            all(
+                row["state"] == "prohibited"
+                for key, row in server_plan["allowed_derivatives"].items()
+                if key not in {"lexical_index", "search_projection", "graph_projection"}
+            )
+        )
+
+        research = ANTONOVSKY_1913_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Classical and official documentation", research)
+        self.assertIn("Established scholarship and practice", research)
+        self.assertIn("Fresh and currently relevant checks", research)
+        self.assertIn("General web search, last", research)
+        self.assertIn("Rights status, source-text quality", research)
+        self.assertIn("separate Wikisource transcription", research)
+        self.assertIn("no operator transfer approval", research)
 
     def test_antonovsky_1911_is_exact_local_revision_lineage_witness(
         self,
