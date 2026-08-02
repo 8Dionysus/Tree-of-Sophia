@@ -465,6 +465,11 @@ READER_1899_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
 )
+READER_1899_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "READER_1899_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 READER_1899_REQUEST_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/access-requests/public-ledger/"
@@ -2707,6 +2712,52 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("local_only", rights["visibility"])
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual(["RU"], rights["jurisdictions_reviewed"])
+        self.assertEqual(2, rights["record_version"])
+        layers_by_role = {
+            layer["layer_role"]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original_work",
+                "translation",
+                "edition_presentation",
+                "digital_scan",
+                "other",
+            },
+            set(layers_by_role),
+        )
+        for role in ("original_work", "translation"):
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "authorized_with_conditions",
+                layers_by_role[role]["redistribution_posture"],
+            )
+            self.assertEqual(
+                ["RU"],
+                layers_by_role[role]["jurisdictions_reviewed"],
+            )
+        self.assertEqual(
+            "operator_statement",
+            layers_by_role["translation"]["assessment_basis"],
+        )
+        for role in ("edition_presentation", "digital_scan", "other"):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "not_authorized",
+                layers_by_role[role]["redistribution_posture"],
+            )
+            self.assertEqual(
+                "local_research_only",
+                layers_by_role[role]["server_processing_posture"],
+            )
 
         provision_claims = [
             json.loads(line)
@@ -2778,6 +2829,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("metadata-only", server_plan["access_class"])
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertEqual(
+            ["RU"],
+            server_plan["rights_policy"]["jurisdictions_reviewed"],
+        )
+        self.assertEqual(2, server_plan["contract_version"])
         self.assertTrue(
             all(
                 row["state"] == "prohibited"
@@ -2790,6 +2846,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("The digital object is not a complete book.", research)
         self.assertIn("does not name a translator", research)
         self.assertIn("cataloged 236-page object is complete online", research)
+        rights_research = READER_1899_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("cannot be inherited from Nani", rights_research)
+        self.assertIn("General web search, last", rights_research)
+        self.assertIn("public_domain_reviewed", rights_research)
+        self.assertIn("digital fragment selection", rights_research)
 
     def test_nani_1899_is_exact_parallel_local_soil_without_text_promotion(
         self,

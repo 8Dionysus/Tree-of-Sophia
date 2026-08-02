@@ -8,37 +8,271 @@
     "tos.file.sha256.d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d"
   ],
   "assessment_status": "copyright_undetermined",
-  "rights_statement_uri": "https://rusneb.ru/user-agreement/",
+  "rights_statement_uri": "https://rusneb.ru/faq/",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": ["RU"],
   "source_refs": [
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/source-metadata-snapshot.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md",
     "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
-    "https://rusneb.ru/user-agreement/"
+    "https://rusneb.ru/faq/",
+    "https://rusneb.ru/user-agreement/",
+    "https://www.wipo.int/wipolex/en/legislation/details/23256",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/9ab75500370084e37fe1f32eb8a05db489ebca99/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/01cf40c9e42efacdb8dff7cdd410e2542bbbfdf4/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+    "https://www.vsrf.ru/files/27771/",
+    "https://www.wipo.int/wipolex/en/text/283698"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zarathustra-reader-1899.rnl-rusneb-fragment-pdf-parts.layer.original-german-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://rusneb.ru/faq/",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["RU"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+        "https://rusneb.ru/faq/",
+        "https://www.wipo.int/wipolex/en/legislation/details/23256",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the underlying Nietzsche work may be used in Russia without consent or remuneration under the public-domain rule"
+      ],
+      "restrictions": [
+        "authorship, the author's name, and integrity remain protected",
+        "this assessment does not select or clear a particular German critical, editorial, or digital text",
+        "non-Russian jurisdictions and the future public-site route remain unreviewed"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_calculated",
+        "basis": "current RuNEB public-domain classification corroborated by Nietzsche's recorded 1900 death and current Russian Articles 1281 and 1282",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No independent cross-border or historical-transition term calculation was needed for this bounded operator-corroborated Russian assessment."
+      },
+      "uncertainty": "The public-domain conclusion is Russian-jurisdiction and work-layer specific; no particular German textual state is admitted.",
+      "assessed_at": "2026-08-01T23:51:08-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact downloadable RuNEB publication is currently classified by the national-library operator as public domain in Russia, and the underlying Nietzsche work is independently ancient relative to the ordinary Russian term. The assessment remains layer-specific and does not clear a modern edition or digital text."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-reader-1899.rnl-rusneb-fragment-pdf-parts.layer.uncredited-russian-translation",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "operator_statement",
+      "rights_statement_uri": "https://rusneb.ru/faq/",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["RU"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md",
+        "ToS/source-witnesses/discovery/runs/antonovsky-1898-1900-bibliographic-identity.2026-08-01.v1.json",
+        "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+        "https://rusneb.ru/faq/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the uncredited Russian translation embodied in the exact downloadable publication is treated by the current RuNEB operator as public domain and freely usable in Russia subject to Article 1282"
+      ],
+      "restrictions": [
+        "authorship, the translator's name if resolved, and integrity remain protected",
+        "no Antonovsky responsibility, 1898 derivation, textual equivalence, or lawful-1899-publication claim is made",
+        "the contemporary report of an unauthorized reprint cannot be used to erase the translator's independent rights under Article 1260",
+        "the anonymous-work term is not independently calculated because translator identity and lawful-disclosure history remain unresolved",
+        "a public transcription, normalized text, alignment, translation derivative, or content-bearing index requires its own rights and integrity decision",
+        "non-Russian jurisdictions and the future public-site route remain unreviewed"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_calculated",
+        "basis": "the exact publication is currently downloadable and RuNEB states that only public-domain works may be downloaded",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The title page names no translator; the contemporary Antonovsky lineage report is not a collation, and the lawfulness and identity conditions needed for an independent anonymous-work or life-based calculation remain unresolved."
+      },
+      "uncertainty": "This is a current operator-based Russian public-domain assessment of the published translation layer, not a translator attribution, independently calculated worldwide term, textual acceptance, or reusable-file license.",
+      "assessed_at": "2026-08-01T23:51:08-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact RuNEB record exposes the uncredited Russian translation for unrestricted download, while the current FAQ says downloading is limited to public-domain works. That positive operator classification is preserved for the translation layer. The 1901 report of an unauthorized Antonovsky reprint remains attribution and lawful-disclosure uncertainty rather than evidence that translation rights never existed."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-reader-1899.rnl-rusneb-fragment-pdf-parts.layer.periodical-offprint-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-reader-editorial-office-1899"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["RU"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "text-free bibliographic facts, source-visible publication statements, and technical observations may be tracked"
+      ],
+      "restrictions": [
+        "no independent creator, editorial contribution, arrangement, presentation, succession, or term assessment has been completed",
+        "the historical Reader editorial office and D. P. Efimov distribution statement are not present-day rights-holder identifications",
+        "the translation-layer operator classification does not settle the periodical or offprint as a whole"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "Article 1260 separates a periodical publisher's right from the rights in contained works, while the exact creative scope, responsible parties, succession, and term are not evidenced",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The current operator classifies the downloadable publication as public domain but does not decompose historical periodical, offprint, and presentation contributions."
+      },
+      "uncertainty": "The offprint relationship is cataloged, but its creative arrangement and present rights cannot be resolved from the fragment or publisher label.",
+      "assessed_at": "2026-08-01T23:51:08-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The title page and catalog establish the historical issuing route and offprint relation. Current law keeps periodical-publication rights distinct from rights in the translated work, and no evidence identifies the creative contribution, successor, or term for this layer."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-reader-1899.rnl-rusneb-fragment-pdf-parts.layer.rnl-rusneb-digital-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "tos.file.sha256.f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+        "tos.file.sha256.3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+        "tos.file.sha256.d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://rusneb.ru/user-agreement/",
+      "license_uri": null,
+      "jurisdictions_reviewed": ["RU"],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+        "https://rusneb.ru/user-agreement/",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.wipo.int/en/web/wipo-magazine/articles/copyright-and-museums-in-the-digital-age-39611"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "single-object acquisition, local preservation, and bounded local research under the current service terms and applicable law"
+      ],
+      "restrictions": [
+        "no exact-file reusable-content license or redistribution permission was found",
+        "the capture process, human contribution, post-processing, and any creative digitization choices are not evidenced",
+        "the three exact PDF files remain local and must not be uploaded to the future ToS site",
+        "mass automated download, access-control bypass, and source-service circumvention are prohibited"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the Supreme Court creative-threshold rule is relevant, but the exact scan production and human contribution are not documented",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "A faithful mechanical copy may lack copyright originality, but these photographs cannot be classified from appearance alone and RuNEB supplies no reusable-file license."
+      },
+      "uncertainty": "Exact scan originality, contractual reuse beyond access, and any separate digital-object rights remain unresolved.",
+      "assessed_at": "2026-08-01T23:51:08-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Russian doctrine distinguishes creative digital reproductions from noncreative technical copies, but the exact RNL workflow is not evidenced and RuNEB supplies no reusable-file license. The scan stays local regardless of the positive historical-text result."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-reader-1899.rnl-rusneb-fragment-pdf-parts.layer.digital-fragment-selection",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "tos.file.sha256.f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+        "tos.file.sha256.3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+        "tos.file.sha256.d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "not_assessed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["RU"],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "text-free local description of the selected page ranges, file partition, and fragment boundary"
+      ],
+      "restrictions": [
+        "selection responsibility, purpose, originality, and relation to the missing 214 surfaces are unknown",
+        "the three-part return must not be represented as the complete 236-page Edition",
+        "no selected page image, recoverable content, or fragment-derived publication is authorized"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the record supplies no author, date, policy, or production history for choosing and assembling the 22 non-sequential surfaces",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The fragment may be a noncreative technical return or a selected digital compilation; current evidence cannot distinguish those possibilities."
+      },
+      "uncertainty": "The digital selection and assembly cannot inherit the 1899 publication's historical-content assessment.",
+      "assessed_at": "2026-08-01T23:51:08-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The official return contains 22 non-sequential surfaces in three files rather than the complete cataloged Edition. Because the responsible selector and selection process are unknown, ToS records this as a separate unresolved layer instead of hiding it inside scan rights or bibliographic completeness."
+    }
   ],
   "permissions": [
     "local preservation and bounded personal, informational, scientific, educational, and cultural research use under the current RuNEB user agreement and applicable law",
-    "public bibliographic metadata, provenance, fixity identifiers, fragment boundaries, and non-content-bearing source-return addresses may remain tracked"
+    "the narrower original-work and published uncredited-translation layers carry a positive public-domain assessment for Russia under the current RuNEB operator classification",
+    "public bibliographic metadata, provenance, fixity identifiers, source-return addresses, fragment boundaries, and non-content-bearing technical observations may remain tracked"
   ],
   "restrictions": [
-    "the three acquired PDF payloads remain local and must not be uploaded to the future ToS site",
-    "open viewing and official ZIP download do not establish a reusable-content license or redistribution permission",
-    "redistribution of the exact files or provider photographs is not authorized by this assessment",
-    "derivative or transformed content remains restricted to bounded local research until a separate rights and jurisdiction review",
+    "the three acquired PDFs remain local and must not be uploaded to the future ToS site",
+    "the exact Item/File mixes layers with different evidence and the positive historical-text assessment does not clear the complete digital return",
+    "free access and official download do not establish a reusable-file license or redistribution permission for the exact RNL/RuNEB photographs",
+    "redistribution of the exact files, page images, or recoverable content is not authorized by this assessment",
+    "OCR, transcription, normalization, alignment, translation, embeddings, and other content-bearing derivatives remain restricted to bounded local research until each derived artifact receives its own rights, integrity, jurisdiction, and intended-use decision",
+    "the title page does not name a translator, and no Antonovsky responsibility, derivation, or equivalence may be inferred from this rights assessment",
+    "only the Russian jurisdiction was reviewed; future-site serving jurisdiction and worldwide access remain unresolved",
     "mass automated download, access-control bypass, and source-service circumvention are prohibited"
   ],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
   "derivative_posture": "local_research_only",
-  "assessed_by": {
-    "maker_type": "model",
-    "agent_ref": "model:codex"
-  },
-  "assessed_at": "2026-08-01T18:15:16-06:00",
-  "rationale": "The exact RuNEB record exposes free viewing and an official unauthenticated ZIP route. The current user agreement permits bounded research-oriented use under law and prohibits mass automated download or bypass. Neither surface supplies an object-specific reusable-content license. The PDFs are therefore admitted only as local research witnesses; public metadata and provenance may be tracked, but file redistribution and future-site upload remain unauthorized.",
+  "assessed_by": {"maker_type":"model","agent_ref":"model:codex"},
+  "assessed_at": "2026-08-01T23:51:08-06:00",
+  "rationale": "The exact Reader record is freely readable and downloadable, and the current RuNEB FAQ says that only public-domain works may be downloaded. This is positive operator evidence for the underlying Nietzsche work and the published uncredited Russian translation in Russia. The historical report of an unauthorized Antonovsky reprint does not erase translator rights and does not close attribution or lawful-disclosure history. The exact digital Item also carries unresolved periodical/offprint presentation, scan production, and non-sequential fragment-selection layers, and neither RuNEB nor RNL supplies a reusable-file license. The aggregate Item/File therefore remains local-only and copyright-undetermined; public metadata and provenance may be tracked, but exact-file redistribution and future-site upload remain unauthorized.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

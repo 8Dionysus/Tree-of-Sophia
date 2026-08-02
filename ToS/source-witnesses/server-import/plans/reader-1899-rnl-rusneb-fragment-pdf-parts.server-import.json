@@ -33,12 +33,15 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/rights.json",
-    "rights_record_sha256": "75d49d6563f4a112d9ae426735d1bd2362c5825b92e3531007f7087684c604bf",
+    "rights_record_sha256": "0f6d5ae6f56a05534820128b7cc17714319f7dccf1196b9a67e66c36130089cc",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": ["RU"],
     "permission_or_license_refs": [
       "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+      "https://rusneb.ru/faq/",
       "https://rusneb.ru/user-agreement/"
     ],
     "expires_at": null,
@@ -128,13 +131,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-01T18:30:00-06:00"
+    "last_reviewed_at": "2026-08-01T23:51:08-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.reader-1899-rnl-rusneb-fragment-pdf-parts.2026-08-01"
+    "tos.event.server-import-plan.reader-1899-rnl-rusneb-fragment-pdf-parts.layered-rights.2026-08-01"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }
