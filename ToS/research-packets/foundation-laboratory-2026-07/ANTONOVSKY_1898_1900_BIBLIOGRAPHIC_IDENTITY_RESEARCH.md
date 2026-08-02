@@ -29,14 +29,19 @@ They refer to different bibliographic boundaries:
    and 1911. The 1900 state therefore remains the first edition in his own
    edition sequence, not the first appearance of any part of his translation.
 
-This pass does **not** create an Expression, Edition, Item, responsibility
-claim, or derivation edge for 1898 or 1899. The 1898 title-page evidence is
-currently exposed by a commercial holding rather than an institutionally
-controlled digital object, the journal scans inspected so far omit the actual
-*Zarathustra* supplement leaves, and no exact 1900 Item has been acquired.
-The 1899 Edition identity is institutionally recorded, but its precise
-Expression relationship to the 1898 state remains uncollated. Preserving these
-limits is more valuable than prematurely completing the historical chain.
+This identity pass itself created no Expression, Edition, Item,
+responsibility claim, or derivation edge for 1898 or 1899. A later exact
+source-witness pass, recorded in
+`READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md`, lawfully acquired the
+official RuNEB return and therefore now materializes a separate provisional
+uncredited Russian Expression, a verified 1899 Edition, and a verified but
+fragmentary three-part PDF Item. It still creates no translator claim,
+1898/1900 derivation, textual equivalence, accepted text, or completeness
+claim. The 1898 title-page evidence remains exposed by a commercial holding
+rather than an institutionally controlled complete object, the inspected
+journal bindings omit the actual *Zarathustra* supplement leaves, and no exact
+1900 Item has been acquired. Preserving these limits is more valuable than
+prematurely completing the historical chain.
 
 ## 1. Classical and official documentation
 
@@ -127,9 +132,12 @@ record](https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/) identifies:
 - offprint from *Reader* 1899, books 16, 18–20, 26–28, and 30–35;
 - no translator responsibility in the title statement.
 
-The record exposes RNL shelfmarks and a fragmentary digital copy. Open viewing
-and download availability are access evidence, not a reusable-content license
-for every digital layer.
+The record exposes a fragmentary digital copy. A later exact-object pass used
+the official unauthenticated ZIP route once and received three fixity-bound
+PDF members totaling 22 photographed surfaces, not the complete cataloged 236
+pages. The current RNL shelfmark remains unresolved. Open viewing and download
+availability are access evidence, not a reusable-content license for every
+digital layer.
 
 ### 1.5 Contemporary 1901 reception as lineage evidence
 
@@ -215,7 +223,7 @@ authority for completeness, quality, or a canonical first text.
 | Boundary | Current evidence | Admitted result | Withheld result |
 | --- | --- | --- | --- |
 | 1898 journal/supplement state | RNL periodical identity, issue contents, Antonovsky 1911 testimony, source-visible title page | distinct historical publication boundary | exact complete serial range, accepted text, corpus Item |
-| 1899 *Reader* Edition | exact RNL/RuNEB record plus 1901 contemporary report | distinct uncredited Edition identity in research | same Expression as 1898, new Expression, direct graph edge |
+| 1899 *Reader* Edition | exact RNL/RuNEB record, exact title page, three fixity-bound PDF fragments, and 1901 contemporary report | separate provisional uncredited Expression, verified Edition, verified fragmentary Item, two source-visible provision claims, and exact identity-ladder topology | translator responsibility, complete 236-page return, same Expression as 1898, 1898/1900 derivation, equivalence, accepted text |
 | 1900 Edition | Antonovsky 1911 self-count | existing provisional 1900 Expression remains justified | exact Edition/Item, publisher, 1900→1898 edge, completeness, collation |
 | 2007 checked/newly edited state | exact local source | historical origin in 1898 and separate 2007 Expression | 2007→1898 or 2007→1911 exact-source edge |
 
@@ -243,9 +251,9 @@ it must not remain closed merely by habit.
 
 ## Next source-grounded move
 
-The next useful acquisition target is not another modern reprint. It is an
-institution-controlled 1898 journal supplement/offprint or an exact 1900 Item
-with:
+The next useful acquisition target is not another modern reprint. It is the
+missing portion of the exact 1899 RNL copy, an institution-controlled 1898
+journal supplement/offprint, or an exact 1900 Item with:
 
 1. originating catalog identity and shelfmark;
 2. complete page-level return;
@@ -254,8 +262,10 @@ with:
 5. enough text to compare the 1898, 1899, and 1900 states without trusting
    labels or pagination.
 
-If no open object is found, prepare a human-approved written request to RNL,
-RSL, or another identified holding institution for shelfmark confirmation and
-a bounded research reproduction. Until then, ToS preserves the discovered
-boundaries and the missing edges. No validator may turn this deliberately
+The 1899 route now has a public-safe RNL/RuNEB complete-copy request, but it is
+`draft-not-sent`, has no human send approval, and requests no redistribution,
+derivative publication, or server processing. If no open object is found for
+the other gaps, prepare the same human-approved, rights-aware route to RNL,
+RSL, or another identified holding institution. Until then, ToS preserves the
+discovered boundaries and the missing edges. No validator may turn this deliberately
 incomplete history green by inventing the absent text.

@@ -1,0 +1,204 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-reader-editorial-office-1899",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts"
+    ],
+    "description": "Exact institution-controlled digital witness of the Moscow 1899 Reader edition, sufficient to establish actual page return, source-visible provision statements, file fixity, and local-use boundary without assuming completeness or Antonovsky responsibility.",
+    "required_properties": [
+      "originating institutional catalog identity",
+      "exact downloadable digital object",
+      "source-visible title and provision statements",
+      "actual page-level return versus catalog extent",
+      "file fixity",
+      "source-specific local-use and redistribution boundary"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated complete reproduction of the exact RNL copy",
+      "a fragmentary institutional object retained with explicit missing-page boundaries"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["printed book", "ZIP", "PDF", "HTML", "catalog metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-runeb-reader-1899-exact-object",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "mixed",
+      "source_name": "National Electronic Library exact RNL-derived catalog card, user agreement, and official ZIP route",
+      "endpoint_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+      "interface_type": "web",
+      "interface_version": "RuNEB public surfaces as served 2026-08-01; curl 8.18.0",
+      "exact_query": "Resolve exact RuNEB record 000200_000018_v19_rc_1709542; inspect title, place, issuing statement, year, extent, language, holding, offprint note, access terms, reader route, and official ZIP; acquire once and compare actual return with catalog extent",
+      "queried_at": "2026-08-01T17:43:00-06:00",
+      "elapsed_seconds": 875,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.reader-1899-runeb-rnl-fragment-pdf-parts",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра: cимволическая поэма перевод с немецкого",
+          "result_url": "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/",
+          "originating_record_url": null,
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000200_000018_v19_rc_1709542"},
+            {"scheme": "provider object basename", "value": "ob000000411"},
+            {"scheme": "transport ZIP SHA-256", "value": "d1da6726dac40fa1fe2c7c9ed14d07d22e46ade0975113f868bf0594c5cba516"}
+          ],
+          "available_formats": ["HTML catalog metadata", "ZIP", "three PDF members"],
+          "declared_rights": {
+            "statement": "RuNEB exposes free viewing and an official ZIP route; its user agreement permits bounded personal and research-oriented use under applicable law but supplies no exact-file redistribution license.",
+            "scope": "digital-object",
+            "evidence_url": "https://rusneb.ru/user-agreement/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact institutional route returned three intact PDF parts whose title page and photographed spreads establish a source-visible fragmentary Item. The 22 returned surfaces do not equal the cataloged 236-page extent, so completeness, translator responsibility, and text relations remain withheld.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-01T17:57:36-06:00",
+            "byte_size": 530051690,
+            "sha256": "d1da6726dac40fa1fe2c7c9ed14d07d22e46ade0975113f868bf0594c5cba516",
+            "event_ref": "tos.event.acquisition.reader-1899-rnl-rusneb-fragment-pdf-parts.2026-08-01"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "bc0cf3ad9712232513c02723f2ce581d115d467d56d1d18fa9199fed843303f3",
+            "reason": "A compact tracked source-metadata snapshot retains bounded public fields, volatile response digests, transport fixity, member fixity, and actual fragment coverage without raw HTML, page images, or source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-reader-1899-lineage",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Contemporary 1901 Nevedomsky report, exact 1911 Antonovsky preface, and established translation scholarship",
+      "endpoint_url": "https://kazneb.kz/",
+      "interface_type": "web",
+      "interface_version": "official KazNEB source object and admitted 1911 source anchor inspected 2026-08-01",
+      "exact_query": "Reconcile the uncredited Reader book with Nevedomsky's contemporary report and Antonovsky's own 1898/1900-1911 edition history; test whether either source proves exact textual identity or translation responsibility",
+      "queried_at": "2026-08-01T18:02:00-06:00",
+      "elapsed_seconds": 18,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.reader-1899-contemporary-uncredited-lineage-report",
+          "rank": 1,
+          "title_as_displayed": "Философия Ницше — русский вводный очерк М. Неведомского, 1901",
+          "result_url": "https://kazneb.kz/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["official digital source images", "historical citation"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The contemporary report joins the uncredited Reader book to material reprinted from the New Journal and reports lack of Antonovsky's permission and name. It supports lineage pressure but is not collation or source-page translator credit.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The bounded source-image observations are already retained in the ordered 1898-1900 research packet; no additional source payload was acquired."}
+        },
+        {
+          "result_id": "tos-discovery-result.reader-1899-antonovsky-1911-edition-boundary",
+          "rank": 2,
+          "title_as_displayed": "Предисловие переводчика к четвёртому изданию, 1911",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693383/",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693383",
+          "identifiers": [],
+          "available_formats": ["exact local source anchor", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Antonovsky distinguishes 1898 excerpts from his 1900, 1903, 1907, and 1911 edition sequence. This prevents the 1899 Item from being silently folded into the first Antonovsky-counted Edition.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The exact fixity-bound 1911 source and anchor already exist in ToS."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-reader-1899-variant-control",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Fresh 2025 direct comparison of Russian Zarathustra translations",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "publication and institutional metadata checked 2026-08-01",
+      "exact_query": "Check the freshest inspectable direct comparison for variant, rhythm, archaism, and strategy evidence requiring exact-witness separation",
+      "queried_at": "2026-08-01T18:04:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.reader-1899-ermakova-2025-exact-witness-control",
+          "rank": 1,
+          "title_as_displayed": "Стилистические особенности русских переводов книги Ф. Ницше Так говорил Заратустра",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://publications.hse.ru/articles/984166485",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["HTML", "article metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh variant-aware scholarship reinforces exact-witness comparison; it does not fill the 1899 fragment, establish translator responsibility, or authorize the source bytes.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The DOI, institutional route, and bounded methodological conclusion are retained without ingesting article content."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-reader-1899-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-edition and mirror search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "general web results considered last on 2026-08-01",
+      "exact_query": "Exact title plus 1899 Reader editorial office, 236 pages, ob000000411, PDF, scan, license; reject the distinct 1898 marketplace state and modern reprints",
+      "queried_at": "2026-08-01T18:05:00-06:00",
+      "elapsed_seconds": 4,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-runeb-reader-1899-exact-object", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 875, "notes": "Only the exact institutional object establishes the fragmentary Item and actual source return; the 236-page catalog extent remains incompletely digitized in the delivered object."},
+    {"channel_id": "channel-established-reader-1899-lineage", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 18, "notes": "Contemporary and source-visible edition-history evidence explains the lineage but does not replace collation or source-page responsibility."},
+    {"channel_id": "channel-fresh-reader-1899-variant-control", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 0, "notes": "Fresh comparison research strengthens exact-witness method without adding bibliographic or rights authority."},
+    {"channel_id": "channel-general-web-reader-1899-last", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 4, "notes": "No mirror or marketplace lead was allowed to replace the exact institutional fragment or fill missing evidence."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.reader-1899-runeb-rnl-fragment-pdf-parts",
+    "tos-discovery-result.reader-1899-contemporary-uncredited-lineage-report",
+    "tos-discovery-result.reader-1899-antonovsky-1911-edition-boundary",
+    "tos-discovery-result.reader-1899-ermakova-2025-exact-witness-control"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-01T17:43:00-06:00",
+  "ended_at": "2026-08-01T18:15:16-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": [
+    "tos.event.discovery.reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01"
+  ],
+  "record_version": 1
+}

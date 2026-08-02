@@ -437,6 +437,44 @@ ANTONOVSKY_1911_SERVER_PLAN_PATH = (
     / "ToS/source-witnesses/server-import/plans/"
     "antonovsky-prometey-1911-rsl-neb-scan-pdf.server-import.json"
 )
+READER_1899_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-reader-1899-uncredited"
+)
+READER_1899_EDITION_ROOT = (
+    READER_1899_EXPRESSION_ROOT
+    / "editions/moscow-reader-editorial-office-1899"
+)
+READER_1899_ITEM_ROOT = (
+    READER_1899_EDITION_ROOT / "items/rnl-rusneb-fragment-pdf-parts"
+)
+READER_1899_PROVISION_CLAIMS_PATH = (
+    READER_1899_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+READER_1899_SOURCE_ANCHORS_PATH = (
+    READER_1899_EXPRESSION_ROOT / "structure/source-statements/anchors.jsonl"
+)
+READER_1899_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01.v1.json"
+)
+READER_1899_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+)
+READER_1899_REQUEST_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/access-requests/public-ledger/"
+    "reader-1899-rnl-runeb-complete-copy.access-request.json"
+)
+READER_1899_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "reader-1899-rnl-rusneb-fragment-pdf-parts.server-import.json"
+)
 ANTONOVSKY_IDENTITY_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1507,10 +1545,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(85, manifest["counts"]["object_total"])
-        self.assertEqual(129, manifest["counts"]["claim"])
-        self.assertEqual(214, manifest["counts"]["total"])
-        self.assertEqual(129, len(claim_entries))
+        self.assertEqual(90, manifest["counts"]["object_total"])
+        self.assertEqual(134, manifest["counts"]["claim"])
+        self.assertEqual(224, manifest["counts"]["total"])
+        self.assertEqual(134, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1548,7 +1586,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 112,
+                "bibliographic_assertion": 117,
                 "scholarly_report": 17,
             },
             {
@@ -1578,9 +1616,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 24,
-                "embodied_by": 24,
-                "exemplified_by": 16,
+                "has_expression": 25,
+                "embodied_by": 25,
+                "exemplified_by": 17,
                 "is_derivative_of": 2,
             },
             {
@@ -1663,12 +1701,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(16, len(provision_claims))
+        self.assertEqual(18, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
                 "tos.place.chemnitz",
                 "tos.place.saint-petersburg",
+                "tos.place.moscow",
             },
             {
                 place["normalized_place_ref"]
@@ -1686,11 +1725,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.organization.druckerei-c-g-naumann-leipzig",
                 "tos.organization.prometey-publishing-saint-petersburg",
                 "tos.organization.energiya-typolithography-saint-petersburg",
+                "tos.organization.reader-journal-editorial-office-moscow",
             },
             {
                 agent["normalized_agent_ref"]
                 for claim in provision_claims
                 for agent in claim["object"]["agents"]
+                if "normalized_agent_ref" in agent
             },
         )
         self.assertTrue(
@@ -2539,6 +2580,166 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         research_text = ANTONOVSKY_1911_RESEARCH_PATH.read_text(encoding="utf-8")
         self.assertIn("three previous editions", research_text)
         self.assertIn("exact direct derivation of 1911 remains", research_text)
+
+    def test_reader_1899_is_an_exact_but_fragmentary_uncredited_witness(
+        self,
+    ) -> None:
+        expression = json.loads(
+            (READER_1899_EXPRESSION_ROOT / "expression.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        edition = json.loads(
+            (READER_1899_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        item = json.loads(
+            (READER_1899_ITEM_ROOT / "item.json").read_text(encoding="utf-8")
+        )
+        manifest = json.loads(
+            (READER_1899_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (READER_1899_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (READER_1899_ITEM_ROOT / "rights.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("provisional", expression["identity_status"])
+        self.assertEqual("translation", expression["expression_role"])
+        self.assertEqual([], expression["responsibility_claim_refs"])
+        self.assertEqual([], expression["derivation_claim_refs"])
+        self.assertEqual("no_equivalence_claim", expression["same_as_posture"])
+        self.assertEqual("verified", edition["identity_status"])
+        self.assertIsNone(edition["edition_statement"])
+        self.assertEqual(2, len(edition["provision_activity_claim_refs"]))
+        self.assertEqual(1, len(edition["exemplar_claim_refs"]))
+        self.assertIn("fragmentary", item["notes"])
+
+        expected_files = [
+            (
+                155778671,
+                "f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+            ),
+            (
+                167408539,
+                "3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+            ),
+            (
+                206863786,
+                "d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+            ),
+        ]
+        self.assertEqual(
+            expected_files,
+            [
+                (row["byte_size"], row["sha256"])
+                for row in manifest["payload_files"]
+            ],
+        )
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual(
+            [7, 7, 8],
+            [row["summary"]["page_count"] for row in inventory["files"]],
+        )
+        self.assertEqual(
+            22,
+            sum(row["summary"]["resource_count"] for row in inventory["files"]),
+        )
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+
+        provision_claims = [
+            json.loads(line)
+            for line in READER_1899_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        by_kind = {
+            claim["object"]["provision_kind"]: claim
+            for claim in provision_claims
+        }
+        self.assertEqual({"publication", "distribution"}, set(by_kind))
+        self.assertEqual(
+            "tos.organization.reader-journal-editorial-office-moscow",
+            by_kind["publication"]["object"]["agents"][0][
+                "normalized_agent_ref"
+            ],
+        )
+        distributor = by_kind["distribution"]["object"]["agents"][0]
+        self.assertEqual("Д. П. Ефимова", distributor["literal_form"])
+        self.assertNotIn("normalized_agent_ref", distributor)
+
+        anchors = [
+            json.loads(line)
+            for line in READER_1899_SOURCE_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(1, len(anchors))
+        self.assertEqual(1, anchors[0]["selectors"][0]["page"])
+        self.assertEqual("proposed", anchors[0]["status"])
+        self.assertEqual(expected_files[0][1], anchors[0]["file_sha256"])
+
+        discovery = json.loads(READER_1899_DISCOVERY_PATH.read_text(encoding="utf-8"))
+        self.assertEqual("incomplete", discovery["status"])
+        self.assertEqual(
+            [1, 2, 3, 4],
+            [channel["sequence"] for channel in discovery["channels"]],
+        )
+        self.assertEqual(
+            "general-web-search", discovery["channels"][-1]["channel_type"]
+        )
+        self.assertTrue(
+            discovery["channels"][0]["results"][0]["acquisition"]["downloaded"]
+        )
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        request = json.loads(READER_1899_REQUEST_PATH.read_text(encoding="utf-8"))
+        self.assertEqual("draft-not-sent", request["request_status"])
+        self.assertFalse(request["human_send_approval"])
+        self.assertIsNone(request["sent_at"])
+        self.assertEqual("none", request["response"]["state"])
+        for permission in ("ocr_or_transcription", "indexing", "embeddings"):
+            self.assertEqual("requested", request["requested_permissions"][permission])
+        for permission in (
+            "source_redistribution",
+            "derivative_publication",
+            "server_processing",
+        ):
+            self.assertEqual(
+                "not-requested", request["requested_permissions"][permission]
+            )
+
+        server_plan = json.loads(
+            READER_1899_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertTrue(
+            all(
+                row["state"] == "prohibited"
+                for key, row in server_plan["allowed_derivatives"].items()
+                if key not in {"lexical_index", "search_projection", "graph_projection"}
+            )
+        )
+
+        research = READER_1899_RESEARCH_PATH.read_text(encoding="utf-8")
+        self.assertIn("The digital object is not a complete book.", research)
+        self.assertIn("does not name a translator", research)
+        self.assertIn("cataloged 236-page object is complete online", research)
 
     def test_antonovsky_revision_lineage_is_bounded_and_access_gap_stays_unsent(
         self,

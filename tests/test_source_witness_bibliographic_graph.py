@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 129)
-        self.assertEqual(counts["claim_traces"], 129)
-        self.assertEqual(counts["nodes"], 442)
-        self.assertEqual(counts["edges"], 902)
+        self.assertEqual(counts["source_claims"], 134)
+        self.assertEqual(counts["claim_traces"], 134)
+        self.assertEqual(counts["nodes"], 465)
+        self.assertEqual(counts["edges"], 943)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 129})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 129})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 134})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 134})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
@@ -835,7 +835,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             subject_ref=work_ref,
             predicate="has_expression",
         )
-        self.assertEqual(work_result["result_count"], 12)
+        self.assertEqual(work_result["result_count"], 13)
         self.assertTrue(
             all(
                 match["source_return"]["file_ref"].endswith(
@@ -890,8 +890,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
         payload = load_verified_projection()
-        result = query_projection(payload, predicate="embodied_by", limit=24)
-        self.assertEqual(result["result_count"], 24)
+        result = query_projection(payload, predicate="embodied_by", limit=25)
+        self.assertEqual(result["result_count"], 25)
         for match in result["matches"]:
             source_claim = match["source_return"]["source_claim"]
             self.assertEqual(source_claim["claim_type"], "bibliographic")
@@ -918,6 +918,61 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(source_claim["review_status"], "unreviewed")
         self.assertEqual(source_claim["visibility"], "public_metadata_only")
         self.assertEqual(source_claim["object"], edition_1907)
+
+    def test_reader_1899_queries_preserve_positive_topology_and_negative_authorship(
+        self,
+    ) -> None:
+        payload = load_verified_projection()
+        work_ref = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        expression_ref = (
+            "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-reader-1899-uncredited"
+        )
+        edition_ref = (
+            "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
+            "moscow-reader-editorial-office-1899"
+        )
+        item_ref = (
+            "tos.item.friedrich-nietzsche.also-sprach-zarathustra."
+            "ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts"
+        )
+
+        work_expression = query_projection(
+            payload,
+            subject_ref=work_ref,
+            object_ref=expression_ref,
+            predicate="has_expression",
+        )
+        self.assertEqual(1, work_expression["result_count"])
+        expression_edition = query_projection(
+            payload,
+            subject_ref=expression_ref,
+            object_ref=edition_ref,
+            predicate="embodied_by",
+        )
+        self.assertEqual(1, expression_edition["result_count"])
+        edition_item = query_projection(
+            payload,
+            subject_ref=edition_ref,
+            object_ref=item_ref,
+            predicate="exemplified_by",
+        )
+        self.assertEqual(1, edition_item["result_count"])
+
+        translated_by = query_projection(
+            payload,
+            subject_ref=expression_ref,
+            predicate="translated_by",
+        )
+        self.assertEqual("no_match", translated_by["status"])
+        self.assertEqual(0, translated_by["result_count"])
+        derivation = query_projection(
+            payload,
+            subject_ref=expression_ref,
+            predicate="is_derivative_of",
+        )
+        self.assertEqual("no_match", derivation["status"])
+        self.assertEqual(0, derivation["result_count"])
 
     def test_expression_derivation_queries_preserve_direction_and_absent_edges(self) -> None:
         payload = load_verified_projection()

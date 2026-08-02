@@ -103,20 +103,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 85 current objects and all 129
+- The source-witness catalog now exposes all 90 current objects and all 134
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 129 claims as reified
-  claim nodes with 902 claim-centered edges and exact evidence, maker,
+- The derived bibliographic graph now exposes those same 134 claims as reified
+  claim nodes across 465 nodes and 943 claim-centered edges with exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 129 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 134 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 64 topology packets make the declared Work→Expression→Edition→Item
+- The 67 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -136,6 +136,17 @@ contracts intentionally reject simulated human evidence.
   acquired. The catalog reports `[s.n.]`, so no publisher is inferred. Rights,
   source text, responsibility beyond the catalog statement, collation,
   equivalence, and any 1900→1898/1899 derivation remain unresolved.
+- A later exact 1899 source-witness pass lawfully acquires the official RuNEB
+  ZIP once and registers its three byte-exact PDF members as one local-only,
+  fragmentary Item. The title page establishes the Moscow *Reader* Edition,
+  publication by the journal editorial office, and a separate literal D. P.
+  Efimov distribution statement; it names no translator. The returned 7, 7,
+  and 8 PDF surfaces total 22 and do not equal the cataloged 236 pages. ToS
+  therefore adds a separate provisional uncredited Expression, verified
+  Edition and Item, one proposed title-page anchor, two provision claims, and
+  three topology claims while withholding translator responsibility,
+  completeness, 1898/1900 derivation, equivalence, OCR, accepted text, human
+  review, semantics, and canon.
 - A following RSL pass resolves one exact 1903 second corrected Edition and
   four physical holdings. It creates one provisional Edition and one
   `embodied_by` packet but no ToS Item because no copy or source bytes were
@@ -422,6 +433,13 @@ contracts intentionally reject simulated human evidence.
   first asks for copying eligibility, condition, price, and terms before page
   evidence or a complete research reproduction. No message, order, payment,
   payload, permission, redistribution authority, or standing human task exists.
+- The Reader 1899 RNL/RuNEB complete-copy request is likewise public-safe and
+  `draft-not-sent`. It asks first for the current shelfmark and an explanation
+  of the fragmentary object, then for a lawful complete or missing-page
+  research copy. OCR/transcription, indexing, embeddings, quotation, and
+  metadata publication are requested explicitly; source redistribution,
+  derivative publication, and server processing are not. No message, form,
+  order, payment, permission, or publication authority exists.
 - The eKGWB fallback response came from the official public SPA's HTTP include
   route twice with identical bytes, but HTTP is unencrypted and does not
   establish authenticity. A later protocol-native pass found an exact
@@ -765,9 +783,13 @@ not reintroduce a false 90 °C gate.
   1903 RSL second corrected Edition, and the removed-or-replaced RuNEB 1907
   third Edition, one Expression→Edition packet for each, and separate unsent
   request drafts; they add no Item, payload, publisher, rights clearance, or
-  derivation edge. The rebuilt catalog now contains 85 objects and 129 claims;
-  the portable graph contains 442 nodes, 902 claim-centred edges, 129 source-return
-  traces, and no direct subject-object
+  derivation edge. The following Reader 1899 slice adds a separate uncredited
+  Expression, exact Edition, fragmentary three-part PDF Item, provisional
+  Moscow Place and Reader editorial-office Organization, two provision claims,
+  three identity-ladder claims, an unsent complete-copy request, and a
+  metadata-only blocked server plan. The rebuilt catalog now contains 90
+  objects and 134 claims; the portable graph contains 465 nodes, 943
+  claim-centred edges, 134 source-return traces, and no direct subject-object
   edge. The exact PDF remains ignored, local-only, and blocked from site
   transfer; embedded OCR, equivalence, accepted text, rights clearance, human
   review, semantics, publication, and canon remain absent.

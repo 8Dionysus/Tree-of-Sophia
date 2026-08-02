@@ -1,0 +1,140 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.reader-1899-rnl-rusneb-fragment-pdf-parts",
+  "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/item.manifest.json",
+    "sha256": "35d6f8ff1ac916b0e9f2f6105c676e7d73ddd8192c58c9ba3c84f1b5240e108d",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+      "relative_path": "payload/ob000000411_0001.pdf",
+      "byte_size": 155778671,
+      "sha256": "f27a4c1bc95d6452ebe8f13358ded0e0a3012031481285e0239bccb7bfb86b4d",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+      "relative_path": "payload/ob000000411_0002.pdf",
+      "byte_size": 167408539,
+      "sha256": "3b760f94356ecd938e7356b6115c055a8ba38dee029c379166bf9867afc8f818",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+      "relative_path": "payload/ob000000411_0003.pdf",
+      "byte_size": 206863786,
+      "sha256": "d3ce8e66b1f11da99a74362ae2014d73871fe7bb37189b0ea3bf7ff0ed4cef3d",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/rights.json",
+    "rights_record_sha256": "75d49d6563f4a112d9ae426735d1bd2362c5825b92e3531007f7087684c604bf",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/source-metadata-snapshot.json",
+      "https://rusneb.ru/user-agreement/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing is authorized by this metadata-only plan."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No source transcription is served by this plan."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "All three operator-held PDF fragments remain off the future public site."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text or source-image publication is authorized by this plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no source text or recoverable content."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side source processing or content-bearing embedding publication is authorized by this plan."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing aligned text is served by this plan."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-derived translation publication is authorized by this plan."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text, image, or recoverable content."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe metadata and provenance only; no restricted source content or unreviewed textual claim."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-08-01T18:30:00-06:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.reader-1899-rnl-rusneb-fragment-pdf-parts.2026-08-01"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}
