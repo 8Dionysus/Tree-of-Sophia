@@ -25,6 +25,9 @@ PROJECTION_REF = (
     "zarathustra-dta-first-editions-parts-1-4-v1.min.json"
 )
 GENERATOR_REF = "scripts/build_zarathustra_lexical_index.py"
+BASE_PROVENANCE_EVENT_REF = (
+    "tos.event.export.zarathustra-lexical-index-v1.2026-07-29"
+)
 AUTHORITY_BOUNDARY = (
     "mechanical source-observation and rebuildable local search only; no "
     "accepted German, rights clearance, lexeme, lemma, translation, sign, "
@@ -71,7 +74,7 @@ def _validate_schema(payload: object, schema_path: Path, *, label: str) -> None:
         raise LexicalIndexValidationError(f"{label} schema failed: {details}")
 
 
-def _load_provenance(path: Path) -> dict[str, Any]:
+def _load_provenance(path: Path) -> list[dict[str, Any]]:
     try:
         lines = [
             line
@@ -82,19 +85,67 @@ def _load_provenance(path: Path) -> dict[str, Any]:
         raise LexicalIndexValidationError(
             f"cannot read provenance {path}: {exc}"
         ) from exc
-    if len(lines) != 1:
+    if not lines:
         raise LexicalIndexValidationError(
-            "lexical v1 provenance must contain exactly one event"
+            "lexical provenance must contain at least one event"
         )
-    try:
-        payload = json.loads(lines[0])
-    except json.JSONDecodeError as exc:
+    events = []
+    for line_number, line in enumerate(lines, start=1):
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise LexicalIndexValidationError(
+                f"invalid provenance JSON at line {line_number}: {exc}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise LexicalIndexValidationError(
+                f"provenance row {line_number} must be an object"
+            )
+        events.append(payload)
+    return events
+
+
+def _latest_provenance_event(events: list[dict[str, Any]]) -> dict[str, Any]:
+    events_by_id: dict[str, dict[str, Any]] = {}
+    for event in events:
+        event_id = event.get("event_id")
+        if not isinstance(event_id, str) or not event_id:
+            raise LexicalIndexValidationError("provenance event_id is absent")
+        if event_id in events_by_id:
+            raise LexicalIndexValidationError(
+                f"duplicate provenance event_id: {event_id}"
+            )
+        events_by_id[event_id] = event
+    current = events_by_id.get(BASE_PROVENANCE_EVENT_REF)
+    if current is None:
         raise LexicalIndexValidationError(
-            f"invalid provenance JSON: {exc}"
-        ) from exc
-    if not isinstance(payload, dict):
-        raise LexicalIndexValidationError("provenance row must be an object")
-    return payload
+            "lexical base provenance event is absent"
+        )
+    seen = {BASE_PROVENANCE_EVENT_REF}
+    while True:
+        current_id = current["event_id"]
+        successors = [
+            event
+            for event in events
+            if event.get("supersedes_event_ref") == current_id
+        ]
+        if not successors:
+            if seen != set(events_by_id):
+                raise LexicalIndexValidationError(
+                    "lexical provenance contains an orphan event"
+                )
+            return current
+        if len(successors) != 1:
+            raise LexicalIndexValidationError(
+                f"ambiguous provenance supersession from {current_id}"
+            )
+        current = successors[0]
+        next_id = current["event_id"]
+        if next_id in seen:
+            raise LexicalIndexValidationError(
+                "cyclic lexical provenance supersession lineage"
+            )
+        seen.add(next_id)
 
 
 def _resource_maps(inventory: dict[str, Any], file_id: str) -> tuple[set[str], set[str]]:
@@ -428,12 +479,14 @@ def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
         raise LexicalIndexValidationError("linguistic/semantic blockers drift")
 
     provenance_path = REPO_ROOT / plan["provenance_ref"]
-    provenance = _load_provenance(provenance_path)
-    _validate_schema(
-        provenance,
-        REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
-        label="lexical provenance",
-    )
+    provenance_events = _load_provenance(provenance_path)
+    for event_number, event in enumerate(provenance_events, start=1):
+        _validate_schema(
+            event,
+            REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
+            label=f"lexical provenance event {event_number}",
+        )
+    provenance = _latest_provenance_event(provenance_events)
     if provenance.get("event_type") != "export":
         raise LexicalIndexValidationError("lexical provenance is not an export event")
     if provenance.get("method", {}).get("artifact_digest") != projection[

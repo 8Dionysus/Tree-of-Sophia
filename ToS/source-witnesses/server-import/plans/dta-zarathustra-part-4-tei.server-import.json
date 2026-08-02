@@ -19,15 +19,20 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/rights.json",
-    "rights_record_sha256": "092a178e94b0a1877dc667517e18efe919c2f92c6bead36c83394962497a14e0",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "5011bcfdfde6190a8ac9c5115867eda9d357fdc74e386096243358dda23a4b1f",
+    "assessment_status": "open-licensed",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
     "permission_or_license_refs": [
       "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
       "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
       "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra04_1891",
-      "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra04_1891"
+      "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra04_1891",
+      "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -55,7 +60,7 @@
     "snippets": {
       "state": "prohibited",
       "conditions": [
-        "No source-text publication is authorized while the exact annotated-TEI rights evidence remains unreconciled."
+        "The upstream annotated TEI is open-licensed, but no source text is served from the operator-held local payload without separate human rights and operator transfer approval."
       ]
     },
     "lexical_index": {
@@ -116,13 +121,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-28T19:58:00-06:00"
+    "last_reviewed_at": "2026-08-02T02:07:34-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.dta-zarathustra-part-4-tei.2026-07-28"
+    "tos.event.server-import-plan.dta-zarathustra-part-4-tei.layered-rights.2026-08-02"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

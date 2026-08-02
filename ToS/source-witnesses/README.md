@@ -472,11 +472,12 @@ The four DTA TEIs add an institutionally corrected, source-structured German
 sequence without inventing whole-work textual unity. DTA reports OCR followed
 by native-speaker checking for every part, but ToS records that as external
 quality evidence, not as its own linguistic acceptance. The current DTA terms
-and TEI headers report CC BY-SA 4.0 while every live official Dublin Core field
-still reports the former CC BY-NC 3.0; facsimile-image rights are separate.
-The exact TEIs therefore remain local, gitignored, and metadata-only for
-future server routing while the positive and conflicting evidence stays
-visible.
+and TEI headers report CC BY-SA 4.0. Object-specific records now classify the
+exact annotated TEIs as `licensed`, while every live official Dublin Core
+field still reports the former CC BY-NC 3.0 and the distinct plain-text and
+facsimile routes remain separate. The exact operator-held TEIs therefore stay
+local, gitignored, and metadata-only for future server routing even though a
+fresh, independently acquired upstream object has a positive licensed route.
 
 The transfer seed now also includes the exact 274-page Google/Harvard scan
 package of Nietzsche's 1886 Naumann *Jenseits von Gut und Böse*: the Internet

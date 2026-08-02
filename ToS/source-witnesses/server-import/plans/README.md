@@ -11,12 +11,14 @@ public-domain statement is retained for later exact rights review; the current
 plan still exposes metadata/provenance only and transfers no local file.
 
 The four DTA TEIs bring the plan set to nine. Current DTA terms and all four
-live TEI headers provide positive CC BY-SA evidence, but the same official
-service still emits its former CC BY-NC value through Dublin Core and keeps
-facsimiles under distinct holding-library postures. Each plan therefore
-preserves an open route for its exact part without uploading the operator-held
-TEI, collapsing the printed witnesses, or pretending the layer conflict has
-already been reviewed.
+live TEI headers provide positive CC BY-SA evidence. Their layer-specific
+records therefore classify the exact annotated TEIs as `licensed`, while
+retaining the former CC BY-NC value still emitted through Dublin Core, the
+separate unrestricted plain-text claim, and distinct holding-library
+facsimile postures. Each plan records that open upstream route but remains
+`blocked-rights` and metadata-only: human rights review, German acceptance,
+fresh public-object acquisition, and explicit operator transfer approval have
+not occurred, and the operator-held TEIs are not future-site upload sources.
 
 The tenth plan covers the exact 1886 Naumann *Jenseits von Gut und Böse*
 Harvard/Google scan selected through Internet Archive. Its Public Domain Mark,

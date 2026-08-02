@@ -4436,6 +4436,179 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(foundation._git_ignored(REPO_ROOT, private_route))
         self.assertTrue(foundation._git_ignored(REPO_ROOT, private_example))
 
+    def test_dta_open_license_remains_separate_from_local_transfer(self) -> None:
+        rights_validator, _ = foundation._schema_validator(
+            foundation.RIGHTS_SCHEMA,
+            REPO_ROOT,
+        )
+        server_validator, _ = foundation._schema_validator(
+            foundation.SERVER_IMPORT_SCHEMA,
+            REPO_ROOT,
+        )
+        item_and_plan_paths = (
+            (
+                "expressions/de-schmeitzner-1883-part-1/editions/"
+                "chemnitz-schmeitzner-1883-part-1/items/"
+                "dta-sbb-corrected-tei-p5",
+                "dta-zarathustra-part-1-tei.server-import.json",
+            ),
+            (
+                "expressions/de-schmeitzner-1883-part-2/editions/"
+                "chemnitz-schmeitzner-1883-part-2/items/"
+                "dta-sbb-corrected-tei-p5",
+                "dta-zarathustra-part-2-tei.server-import.json",
+            ),
+            (
+                "expressions/de-schmeitzner-1884-part-3/editions/"
+                "chemnitz-schmeitzner-1884-part-3/items/"
+                "dta-sbb-corrected-tei-p5",
+                "dta-zarathustra-part-3-tei.server-import.json",
+            ),
+            (
+                "expressions/de-naumann-1891-part-4/editions/"
+                "leipzig-naumann-1891-part-4/items/"
+                "dta-sub-goettingen-corrected-tei-p5",
+                "dta-zarathustra-part-4-tei.server-import.json",
+            ),
+        )
+        work_root = (
+            REPO_ROOT
+            / "ToS/source-witnesses/works/friedrich-nietzsche/"
+            "also-sprach-zarathustra"
+        )
+        prohibited_derivatives = {
+            "ocr",
+            "transcription",
+            "page_images",
+            "snippets",
+            "embeddings",
+            "alignments",
+            "translations",
+            "annotations",
+        }
+
+        for item_relative, plan_name in item_and_plan_paths:
+            rights = json.loads(
+                (work_root / item_relative / "rights.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            plan = json.loads(
+                (
+                    REPO_ROOT
+                    / "ToS/source-witnesses/server-import/plans"
+                    / plan_name
+                ).read_text(encoding="utf-8")
+            )
+
+            self.assertEqual([], list(rights_validator.iter_errors(rights)))
+            self.assertEqual("licensed", rights["assessment_status"])
+            self.assertEqual(
+                "https://creativecommons.org/licenses/by-sa/4.0/",
+                rights["license_uri"],
+            )
+            self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
+            self.assertEqual("local_only", rights["visibility"])
+            self.assertEqual("not_authorized", rights["redistribution_posture"])
+            self.assertEqual("local_research_only", rights["derivative_posture"])
+            self.assertEqual("unreviewed", rights["review_status"])
+            self.assertEqual(2, rights["record_version"])
+
+            layers = {
+                layer["layer_role"]: layer
+                for layer in rights["layer_assessments"]
+            }
+            self.assertEqual(
+                {"original_work", "edition_presentation", "annotation", "metadata"},
+                set(layers),
+            )
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers["original_work"]["assessment_status"],
+            )
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers["edition_presentation"]["assessment_status"],
+            )
+            self.assertEqual("licensed", layers["annotation"]["assessment_status"])
+            self.assertEqual("licensed", layers["metadata"]["assessment_status"])
+            self.assertTrue(
+                any(
+                    "former CC BY-NC 3.0" in restriction
+                    for restriction in layers["annotation"]["restrictions"]
+                )
+            )
+
+            self.assertEqual([], list(server_validator.iter_errors(plan)))
+            self.assertEqual("open-licensed", plan["rights_policy"]["assessment_status"])
+            self.assertEqual("unreviewed", plan["rights_policy"]["review_status"])
+            self.assertEqual("metadata-only", plan["access_class"])
+            self.assertEqual("blocked-rights", plan["server_import_status"])
+            self.assertEqual("metadata-only", plan["publication_status"])
+            self.assertFalse(plan["payload_transfer_authorized"])
+            self.assertFalse(plan["operator_transfer_approval"]["approved"])
+            self.assertEqual(2, plan["contract_version"])
+            for derivative in prohibited_derivatives:
+                self.assertEqual(
+                    "prohibited",
+                    plan["allowed_derivatives"][derivative]["state"],
+                )
+
+        research = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md"
+        ).read_text(encoding="utf-8")
+        ordered_sections = (
+            "## Classical and official documentation",
+            "## Established scholarship and practice",
+            "## Fresh and currently relevant checks",
+            "## General web search, last",
+        )
+        positions = [research.index(section) for section in ordered_sections]
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn("distinct plain-text form", research)
+        self.assertIn("facsimiles are separate", research)
+        self.assertIn(
+            "local research payloads stay local",
+            " ".join(research.split()),
+        )
+
+    def test_provenance_supersession_requires_one_current_event(self) -> None:
+        base_id = "tos.event.synthetic.base"
+        current_id = "tos.event.synthetic.current"
+        base = {"event_id": base_id, "supersedes_event_ref": None}
+        current = {
+            "event_id": current_id,
+            "supersedes_event_ref": base_id,
+        }
+        issues: list[foundation.Issue] = []
+        resolved = foundation._latest_event_in_supersession_lineage(
+            {base_id: base, current_id: current},
+            base_id,
+            location="synthetic",
+            issues=issues,
+        )
+        self.assertIs(current, resolved)
+        self.assertEqual([], issues)
+
+        competing_id = "tos.event.synthetic.competing"
+        competing = {
+            "event_id": competing_id,
+            "supersedes_event_ref": base_id,
+        }
+        resolved = foundation._latest_event_in_supersession_lineage(
+            {base_id: base, current_id: current, competing_id: competing},
+            base_id,
+            location="synthetic",
+            issues=issues,
+        )
+        self.assertIsNone(resolved)
+        self.assertIn(
+            ("synthetic", f"ambiguous provenance supersession from {base_id}"),
+            issues,
+        )
+
     def test_jenseits_1886_witness_opens_transfer_soil_without_acceptance(self) -> None:
         manifest = json.loads(
             (JENSEITS_1886_ITEM_ROOT / "item.manifest.json").read_text(

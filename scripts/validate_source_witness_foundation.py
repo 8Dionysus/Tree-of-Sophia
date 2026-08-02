@@ -285,6 +285,44 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _latest_event_in_supersession_lineage(
+    events_by_id: dict[str, dict[str, Any]],
+    base_event_id: str,
+    *,
+    location: str,
+    issues: list[Issue],
+) -> dict[str, Any] | None:
+    """Resolve one unambiguous provenance lineage without rewriting history."""
+
+    current = events_by_id.get(base_event_id)
+    if current is None:
+        return None
+    seen = {base_event_id}
+    while True:
+        current_id = current.get("event_id")
+        successors = [
+            event
+            for event in events_by_id.values()
+            if event.get("supersedes_event_ref") == current_id
+        ]
+        if not successors:
+            return current
+        if len(successors) != 1:
+            issues.append(
+                (
+                    location,
+                    f"ambiguous provenance supersession from {current_id}",
+                )
+            )
+            return None
+        current = successors[0]
+        next_id = current.get("event_id")
+        if not isinstance(next_id, str) or next_id in seen:
+            issues.append((location, "cyclic provenance supersession lineage"))
+            return None
+        seen.add(next_id)
+
+
 def _digest_bound_ref_issue(
     digest_bound_ref: object,
     *,
@@ -2734,12 +2772,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 "tos.event.alignment.zarathustra-german-source-triangulation."
                 "za-i-vorrede-1.2026-07-29"
             )
-            triangulation_event = local_events_by_id.get(
-                triangulation_event_id
-            )
             triangulation_location = _relative(
                 german_source_triangulation_path,
                 repo_root,
+            )
+            triangulation_event = _latest_event_in_supersession_lineage(
+                local_events_by_id,
+                triangulation_event_id,
+                location=triangulation_location,
+                issues=issues,
             )
             if triangulation_event is None:
                 issues.append(
@@ -2749,15 +2790,18 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
             else:
-                expected_output = {
-                    "ref": triangulation_location,
-                    "role": "text-free-machine-triangulation-candidate",
-                    "sha256": _sha256(german_source_triangulation_path),
+                actual_outputs = {
+                    (
+                        output.get("ref"),
+                        output.get("sha256"),
+                    )
+                    for output in triangulation_event.get("outputs", [])
+                    if isinstance(output, dict)
                 }
-                if expected_output not in triangulation_event.get(
-                    "outputs",
-                    [],
-                ):
+                if (
+                    triangulation_location,
+                    _sha256(german_source_triangulation_path),
+                ) not in actual_outputs:
                     issues.append(
                         (
                             triangulation_location,
@@ -2770,10 +2814,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 "zarathustra-bounded-translation-input."
                 "za-i-vorrede-1-opening-sentence.2026-07-29"
             )
-            bounded_event = local_events_by_id.get(bounded_event_id)
             bounded_location = _relative(
                 bounded_translation_research_input_path,
                 repo_root,
+            )
+            bounded_event = _latest_event_in_supersession_lineage(
+                local_events_by_id,
+                bounded_event_id,
+                location=bounded_location,
+                issues=issues,
             )
             if bounded_event is None:
                 issues.append(
@@ -2783,14 +2832,18 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
             else:
-                expected_output = {
-                    "ref": bounded_location,
-                    "role": "text-free-bounded-local-calibration-admission",
-                    "sha256": _sha256(
-                        bounded_translation_research_input_path
-                    ),
+                actual_outputs = {
+                    (
+                        output.get("ref"),
+                        output.get("sha256"),
+                    )
+                    for output in bounded_event.get("outputs", [])
+                    if isinstance(output, dict)
                 }
-                if expected_output not in bounded_event.get("outputs", []):
+                if (
+                    bounded_location,
+                    _sha256(bounded_translation_research_input_path),
+                ) not in actual_outputs:
                     issues.append(
                         (
                             bounded_location,

@@ -422,9 +422,12 @@ contracts intentionally reject simulated human evidence.
   transcription, derivative, and server routes remain closed.
 - The current DTA terms and all four exact TEI headers report CC BY-SA 4.0 for
   annotated text, while every live official Dublin Core field still reports
-  the former CC BY-NC 3.0; pure text and facsimile layers also carry distinct
-  statements. The exact TEIs remain local and their server plans metadata-only
-  until that evidence is reviewed at the required layer and jurisdiction.
+  the former CC BY-NC 3.0. Current object-specific records resolve the exact
+  annotated TEI layer as `licensed` and the historical Work/Edition layers as
+  public domain for DE/US; the stale OAI value, DTA's broader prose, distinct
+  plain text, and facsimiles remain explicit separate evidence. The exact ToS
+  TEIs remain local and their server plans metadata-only until fresh public
+  reacquisition, human rights review, and operator transfer approval.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
 - The Antonovsky 1907 Blok-library request and the newer RuNEB/RSL replacement
@@ -503,8 +506,9 @@ contracts intentionally reject simulated human evidence.
   SQLite/FTS5 database remains gitignored; the tracked 12,919,723-byte
   projection contains hashes, counts, and resource refs but no strings,
   sequence, context, or positions. Low-entropy hashes are
-  dictionary-recoverable and not secrecy. The DTA rights conflict and review
-  remain open and German is not accepted. A separate exact-form DWDSmor Open
+  dictionary-recoverable and not secrecy. The annotated DTA TEI license route
+  is now positively assessed, but human publication review, operator transfer,
+  and German acceptance remain open. A separate exact-form DWDSmor Open
   census now supplies mechanical candidate coverage for every form: 6,610 of
   11,352 types and 75,872 of 86,287 token-weighted occurrences receive at
   least one provider analysis; 4,742 types with weight 10,415 remain

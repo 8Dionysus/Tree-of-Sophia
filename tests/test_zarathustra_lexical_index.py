@@ -210,7 +210,7 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
 
     def test_rights_and_publication_remain_blocked(self) -> None:
         self.assertEqual(
-            {"conflicting_evidence"},
+            {"licensed"},
             {
                 item["rights_assessment_status"]
                 for item in self.projection["source_items"]
@@ -274,8 +274,20 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             receipt["generator_sha256"],
         )
         self.assertEqual(
-            hashlib.sha256(PROJECTION_PATH.read_bytes()).hexdigest(),
+            source["tracked_projection_sha256"],
             receipt["source_projection"]["tracked_projection_sha256"],
+        )
+        self.assertTrue(self.morphology_plan["frozen_before_variant_outputs"])
+
+    def test_lexical_provenance_preserves_one_supersession_lineage(self) -> None:
+        provenance_path = ROOT / self.plan["provenance_ref"]
+        events = VALIDATOR._load_provenance(provenance_path)
+        latest = VALIDATOR._latest_provenance_event(events)
+        self.assertEqual(2, len(events))
+        self.assertEqual(2, latest["event_version"])
+        self.assertEqual(
+            VALIDATOR.BASE_PROVENANCE_EVENT_REF,
+            latest["supersedes_event_ref"],
         )
 
     def test_morphology_input_stays_private_and_does_not_open_abc_or_gold(self) -> None:

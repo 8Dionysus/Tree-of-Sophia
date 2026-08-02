@@ -344,7 +344,10 @@
       ],
       "properties": {
         "dta_rights_posture": {
-          "const": "conflicting-provider-fields-unreviewed"
+          "enum": [
+            "conflicting-provider-fields-unreviewed",
+            "licensed-current-header-and-terms-stale-oai-preserved-unreviewed"
+          ]
         },
         "human_rights_review": {
           "const": false
