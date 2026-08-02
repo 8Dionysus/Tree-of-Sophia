@@ -1,0 +1,203 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.nani-1899-parallel-fragment-source-witness.2026-08-01",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.agent.s-p-nani",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+      "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf"
+    ],
+    "description": "Exact RSL/RuNEB digital witness of the 1899 Nani nine-fragment parallel German/Russian edition, sufficient to preserve source-visible responsibility, manufacture, fixity, resource geometry, extent tension, and local-use boundaries without accepting text or equivalence.",
+    "required_properties": [
+      "originating institutional catalog identity",
+      "exact downloadable digital object",
+      "parallel German and Russian title-page statements",
+      "source-visible translator initials and printer statement",
+      "digital surfaces versus catalog extent",
+      "file fixity and rights boundary"
+    ],
+    "acceptable_substitutions": [
+      "another institution-authenticated reproduction of the exact edition with copy identity retained",
+      "a rights-cleared exact reproduction admitted as a distinct Item"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["printed book", "PDF", "HTML", "catalog metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-rsl-runeb-nani-1899-exact-object",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "mixed",
+      "source_name": "Russian State Library and National Electronic Library exact record, terms, and official PDF route",
+      "endpoint_url": "https://rusneb.ru/catalog/000199_000009_003689091/",
+      "interface_type": "web",
+      "interface_version": "RSL and RuNEB public surfaces as served 2026-08-01; curl 8.18.0",
+      "exact_query": "Resolve RuNEB 000199_000009_003689091 and RSL 01003689091; inspect title, responsibility, parallel-language note, provision, extent, holding, access, terms, and official PDF return; acquire once and preserve exact fixity",
+      "queried_at": "2026-08-01T20:02:00-06:00",
+      "elapsed_seconds": 420,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nani-1899-rsl-rusneb-parallel-scan-pdf",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : [Кн. для всех и никого] — Девять отрывков в переводе С. П. Нани",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003689091/",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003689091",
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000199_000009_003689091"},
+            {"scheme": "RSL record", "value": "01003689091"},
+            {"scheme": "RSL call number", "value": "FB M 53/102"}
+          ],
+          "available_formats": ["HTML catalog metadata", "PDF"],
+          "declared_rights": {
+            "statement": "RSL marks the document freely accessible and RuNEB exposes an official PDF route; no exact-file reusable-content license was found.",
+            "scope": "digital-object",
+            "evidence_url": "https://rusneb.ru/user-agreement/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact institutional route returned a fixity-verified 60-page PDF whose parallel title pages establish translator initials, selected-fragment posture, printer, place, and year. Catalog extent and source-visible terminal numbering remain explicitly unresolved.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-01T20:16:26-06:00",
+            "byte_size": 16228737,
+            "sha256": "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+            "event_ref": "tos.event.acquisition.nani-1899-rsl-rusneb-parallel-scan-pdf.2026-08-01"
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "e26fd86c2a3f0601dc5c3d12906b481fce6c16e355ff405aca4491345754e28a",
+            "reason": "A compact tracked snapshot retains bounded institutional fields, volatile response digests, exact payload identity, and extent tension without raw HTML, page images, or source text."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-nani-1899-scholarship",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established Russian Nietzsche translation-history scholarship",
+      "endpoint_url": "https://nlobooks.ru/magazines/novoe_literaturnoe_obozrenie/138_nlo_2_2016/article/11895/",
+      "interface_type": "web",
+      "interface_version": "NLO conference report as inspected 2026-08-01",
+      "exact_query": "Assess what established scholarship says about Nani's nine fragments, selection strategy, philosophical/literary translation framing, and later overlap without promoting reported hypotheses to exact-text relations",
+      "queried_at": "2026-08-01T20:08:00-06:00",
+      "elapsed_seconds": 35,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nani-1899-nlo-translation-history",
+          "rank": 1,
+          "title_as_displayed": "Ницше в России и мире",
+          "result_url": "https://nlobooks.ru/magazines/novoe_literaturnoe_obozrenie/138_nlo_2_2016/article/11895/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["HTML scholarly conference report"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The report preserves translation-history context and a possible later-selection overlap. It is not a collation, source-page derivation proof, Agent authority record, or rights source.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Only bounded bibliographic and methodological observations are retained in the research packet."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-current-nani-1899-specialist-and-copy-check",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Current Nietzsche Documentation Center acquisitions record and 2025 physical-copy market observation",
+      "endpoint_url": "https://www.nietzsche-dokumentationszentrum-naumburg.de/bibliothek/neuzugaenge-2026/",
+      "interface_type": "web",
+      "interface_version": "current combined 2025/2026 acquisitions page and 2025 Litfund record checked 2026-08-01",
+      "exact_query": "Check the freshest inspectable specialist bibliography and recent physical-copy description for exact Nani 1899 edition identity and extent tension",
+      "queried_at": "2026-08-01T20:12:00-06:00",
+      "elapsed_seconds": 24,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.nani-1899-current-ndz-record",
+          "rank": 1,
+          "title_as_displayed": "Also sprach Zarathustra. Ein Buch für Alle und Keinen. Ins Russische übertragen von S. P. Nani",
+          "result_url": "https://www.nietzsche-dokumentationszentrum-naumburg.de/bibliothek/neuzugaenge-2026/",
+          "originating_record_url": null,
+          "identifiers": [{"scheme": "specialist bibliography record", "value": "1899SW003"}],
+          "available_formats": ["HTML specialist bibliography"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The current specialist surface retains the exact translator initials, place, printer form, and year. It does not establish source text, personal identity, or reuse rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Current response digest and bounded record text are retained in the metadata snapshot and research packet."}
+        },
+        {
+          "result_id": "tos-discovery-result.nani-1899-litfund-2025-copy",
+          "rank": 2,
+          "title_as_displayed": "Ницше Ф. Так говорил Заратустра. Девять отрывков в переводе С. П. Нани",
+          "result_url": "https://www.litfund.ru/auction/689/99/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["HTML marketplace description"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The recent copy description reports XIV, [2], 105 and provides a weak physical-copy cross-check; it cannot outrank institutional metadata or settle completeness of the digital Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No marketplace images or content were ingested; only the bounded conflicting extent observation is retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-nani-1899-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-edition and translator-identity search",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "general web results considered last on 2026-08-01",
+      "exact_query": "Exact title, S. P. Nani, С. П. Нани, 1899, Stasyulevich, authority identity, full name, scan, license; do not infer identity from name similarity",
+      "queried_at": "2026-08-01T20:14:00-06:00",
+      "elapsed_seconds": 40,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id":"channel-rsl-runeb-nani-1899-exact-object","completeness":"adequate","metadata_precision":"strong","rights_clarity":"adequate","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":420,"notes":"Only the exact institutional object establishes the Item and source-visible title-page statements; extent and textual acceptance remain open."},
+    {"channel_id":"channel-established-nani-1899-scholarship","completeness":"adequate","metadata_precision":"adequate","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":35,"notes":"Established scholarship supplies historical interpretation but not exact-text or identity authority."},
+    {"channel_id":"channel-current-nani-1899-specialist-and-copy-check","completeness":"adequate","metadata_precision":"strong","rights_clarity":"unknown","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":24,"notes":"The current specialist record confirms bibliographic relevance; the recent commercial record is only a secondary copy observation."},
+    {"channel_id":"channel-general-web-nani-1899-last","completeness":"limited","metadata_precision":"limited","rights_clarity":"poor","machine_interface_quality":"adequate","human_minutes":0,"machine_seconds":40,"notes":"No reliable authority source expanded the translator initials or supplied a reusable-content license."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.nani-1899-rsl-rusneb-parallel-scan-pdf",
+    "tos-discovery-result.nani-1899-nlo-translation-history",
+    "tos-discovery-result.nani-1899-current-ndz-record",
+    "tos-discovery-result.nani-1899-litfund-2025-copy"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type":"model","agent_ref":"model:codex"},
+  "started_at": "2026-08-01T20:02:00-06:00",
+  "ended_at": "2026-08-01T20:16:26-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": ["tos.event.discovery.nani-1899-parallel-fragment-source-witness.2026-08-01"],
+  "record_version": 1
+}

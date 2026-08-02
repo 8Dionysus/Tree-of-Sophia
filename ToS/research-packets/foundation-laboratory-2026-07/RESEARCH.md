@@ -1263,6 +1263,28 @@ organs only if their differences remain visible.
 Automatic metrics may be recorded as diagnostics. They cannot promote a
 translation or settle an etymology.
 
+### Exact parallel soil: S. P. Nani, 1899
+
+The exact 1899 Nani witness makes the translation branch concrete without
+letting the convenient parallel layout collapse the evidence layers. Current
+research followed the required order:
+
+1. exact RSL/RuNEB records, current terms, and the official PDF;
+2. established Russian Nietzsche translation-history scholarship;
+3. current 2025/2026 specialist bibliography and a recent physical-copy
+   observation;
+4. general-web identity and exact-edition search last.
+
+The fixity-verified local Item visibly places German and Russian in parallel
+and credits `С. П. Нани` / `S. P. Nani`. That supports a distinct selected-
+fragment Russian Expression and a printed `translated_by` responsibility. It
+does not identify a German textual state, accept either text layer, expand the
+translator's initials, prove derivation or equivalence, settle the cataloged
+105 pages against terminal numbered page 103, assess translation quality, or
+authorize redistribution. The PDF remains local-only; the tracked surface
+contains public-safe identity, fixity, provenance, rights posture, page
+geometry, source-return anchors, and typed bibliographic claims.
+
 ---
 
 ## Experimental implications

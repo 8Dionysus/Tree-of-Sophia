@@ -475,6 +475,50 @@ READER_1899_SERVER_PLAN_PATH = (
     / "ToS/source-witnesses/server-import/plans/"
     "reader-1899-rnl-rusneb-fragment-pdf-parts.server-import.json"
 )
+NANI_1899_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments"
+)
+NANI_1899_EDITION_ROOT = (
+    NANI_1899_EXPRESSION_ROOT
+    / "editions/saint-petersburg-stasyulevich-1899-nine-fragments"
+)
+NANI_1899_ITEM_ROOT = (
+    NANI_1899_EDITION_ROOT / "items/rsl-rusneb-parallel-scan-pdf"
+)
+NANI_1899_RESPONSIBILITY_CLAIMS_PATH = (
+    NANI_1899_EXPRESSION_ROOT / "responsibility-claims.jsonl"
+)
+NANI_1899_PROVISION_CLAIMS_PATH = (
+    NANI_1899_EDITION_ROOT / "provision-activity-claims.jsonl"
+)
+NANI_1899_SOURCE_ANCHORS_PATH = (
+    NANI_1899_EXPRESSION_ROOT / "structure/source-statements/anchors.jsonl"
+)
+NANI_1899_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json"
+)
+NANI_1899_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
+)
+NANI_1899_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "nani-1899-rsl-rusneb-parallel-scan-pdf.server-import.json"
+)
+NANI_AGENT_PATH = (
+    REPO_ROOT / "ToS/source-witnesses/agents/s-p-nani/agent.json"
+)
+STASYULEVICH_PRINTING_ORGANIZATION_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/organizations/"
+    "m-m-stasyulevich-printing-saint-petersburg/organization.json"
+)
 ANTONOVSKY_IDENTITY_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -1545,10 +1589,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(90, manifest["counts"]["object_total"])
-        self.assertEqual(134, manifest["counts"]["claim"])
-        self.assertEqual(224, manifest["counts"]["total"])
-        self.assertEqual(134, len(claim_entries))
+        self.assertEqual(95, manifest["counts"]["object_total"])
+        self.assertEqual(139, manifest["counts"]["claim"])
+        self.assertEqual(234, manifest["counts"]["total"])
+        self.assertEqual(139, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1586,7 +1630,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 117,
+                "bibliographic_assertion": 122,
                 "scholarly_report": 17,
             },
             {
@@ -1616,9 +1660,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 25,
-                "embodied_by": 25,
-                "exemplified_by": 17,
+                "has_expression": 26,
+                "embodied_by": 26,
+                "exemplified_by": 18,
                 "is_derivative_of": 2,
             },
             {
@@ -1701,7 +1745,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in claim_entries
             if entry["predicate"] == "provision_activity"
         ]
-        self.assertEqual(18, len(provision_claims))
+        self.assertEqual(19, len(provision_claims))
         self.assertEqual(
             {
                 "tos.place.leipzig",
@@ -1726,6 +1770,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "tos.organization.prometey-publishing-saint-petersburg",
                 "tos.organization.energiya-typolithography-saint-petersburg",
                 "tos.organization.reader-journal-editorial-office-moscow",
+                "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
             },
             {
                 agent["normalized_agent_ref"]
@@ -2740,6 +2785,171 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("The digital object is not a complete book.", research)
         self.assertIn("does not name a translator", research)
         self.assertIn("cataloged 236-page object is complete online", research)
+
+    def test_nani_1899_is_exact_parallel_local_soil_without_text_promotion(
+        self,
+    ) -> None:
+        expression = json.loads(
+            (NANI_1899_EXPRESSION_ROOT / "expression.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        edition = json.loads(
+            (NANI_1899_EDITION_ROOT / "edition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        item = json.loads(
+            (NANI_1899_ITEM_ROOT / "item.json").read_text(encoding="utf-8")
+        )
+        manifest = json.loads(
+            (NANI_1899_ITEM_ROOT / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        inventory = json.loads(
+            (NANI_1899_ITEM_ROOT / "resource-inventory.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        rights = json.loads(
+            (NANI_1899_ITEM_ROOT / "rights.json").read_text(encoding="utf-8")
+        )
+        snapshot = json.loads(
+            (NANI_1899_ITEM_ROOT / "source-metadata-snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        agent = json.loads(NANI_AGENT_PATH.read_text(encoding="utf-8"))
+        printer = json.loads(
+            STASYULEVICH_PRINTING_ORGANIZATION_PATH.read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("verified", expression["identity_status"])
+        self.assertEqual("ru", expression["language"])
+        self.assertEqual("translation", expression["expression_role"])
+        self.assertEqual([], expression["derivation_claim_refs"])
+        self.assertEqual(1, len(expression["responsibility_claim_refs"]))
+        self.assertEqual(1, len(expression["embodiment_claim_refs"]))
+
+        self.assertEqual("verified", edition["identity_status"])
+        self.assertIsNone(edition["edition_statement"])
+        self.assertEqual([], edition["publication_claim_refs"])
+        self.assertEqual(1, len(edition["provision_activity_claim_refs"]))
+        self.assertEqual(1, len(edition["exemplar_claim_refs"]))
+        self.assertIn("XIV, [2], 105", edition["notes"])
+        self.assertIn("103", edition["notes"])
+
+        self.assertEqual("verified", item["identity_status"])
+        self.assertEqual("local_gitignored_payload", manifest["storage_posture"])
+        self.assertEqual("local_only", manifest["visibility"])
+        self.assertEqual(1, len(manifest["payload_files"]))
+        payload = manifest["payload_files"][0]
+        self.assertEqual(16228737, payload["byte_size"])
+        self.assertEqual(
+            "044be8c36536c751d1f846109b4e99534323138b7ad829e6266ef3150d1e5704",
+            payload["sha256"],
+        )
+        self.assertFalse(payload["container_member"])
+
+        summary = inventory["files"][0]["summary"]
+        self.assertFalse(inventory["source_text_included"])
+        self.assertEqual(60, summary["page_count"])
+        self.assertEqual(96, summary["image_resource_count"])
+        self.assertEqual(38, summary["distinct_page_geometry_count"])
+        self.assertEqual(60, len(inventory["files"][0]["resources"]))
+
+        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertIsNone(rights["access_request_ref"])
+
+        self.assertEqual("С. П. Нани", agent["preferred_label"])
+        self.assertEqual("provisional", agent["identity_status"])
+        self.assertEqual([], agent["external_identifiers"])
+        self.assertEqual("provisional", printer["identity_status"])
+        self.assertIn("printing-house", printer["notes"])
+        self.assertIn("No publisher role", printer["notes"])
+
+        responsibility = [
+            json.loads(line)
+            for line in NANI_1899_RESPONSIBILITY_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(1, len(responsibility))
+        self.assertEqual("translated_by", responsibility[0]["predicate"])
+        self.assertEqual("tos.agent.s-p-nani", responsibility[0]["object"])
+        self.assertEqual("unreviewed", responsibility[0]["review_status"])
+
+        provision = [
+            json.loads(line)
+            for line in NANI_1899_PROVISION_CLAIMS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(1, len(provision))
+        activity = provision[0]["object"]
+        self.assertEqual("manufacture", activity["provision_kind"])
+        self.assertEqual("statement_date", activity["temporal"]["role"])
+        self.assertEqual("1899", activity["temporal"]["value"])
+        self.assertEqual(
+            "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+            activity["agents"][0]["normalized_agent_ref"],
+        )
+        self.assertNotIn("publisher", activity["agents"][0]["role"])
+        self.assertIn("18 October 1898", activity["activity_warning"])
+
+        anchors = [
+            json.loads(line)
+            for line in NANI_1899_SOURCE_ANCHORS_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(3, len(anchors))
+        self.assertTrue(all(anchor["status"] == "proposed" for anchor in anchors))
+        self.assertEqual(
+            [59, 60],
+            [
+                selector["page"]
+                for selector in anchors[-1]["selectors"]
+            ],
+        )
+
+        self.assertEqual(60, snapshot["download"]["pages"])
+        self.assertIsNone(
+            snapshot["observed_extent_boundary"]["complete_cataloged_extent_returned"]
+        )
+        self.assertEqual(
+            103,
+            snapshot["observed_extent_boundary"]["last_visible_printed_page_number"],
+        )
+
+        discovery = json.loads(NANI_1899_DISCOVERY_PATH.read_text(encoding="utf-8"))
+        self.assertEqual("incomplete", discovery["status"])
+        self.assertEqual([1, 2, 3, 4], [row["sequence"] for row in discovery["channels"]])
+        self.assertEqual("general-web-search", discovery["channels"][-1]["channel_type"])
+        self.assertTrue(discovery["channels"][0]["results"][0]["acquisition"]["downloaded"])
+        self.assertFalse(discovery["technical_access_bypass_used"])
+
+        server_plan = json.loads(
+            NANI_1899_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        for key in ("ocr", "transcription", "page_images", "alignments", "translations", "embeddings"):
+            self.assertEqual("prohibited", server_plan["allowed_derivatives"][key]["state"])
+
+        research = NANI_1899_RESEARCH_PATH.read_text(encoding="utf-8")
+        self.assertIn("The censor date is not the publication", research)
+        self.assertIn("no completeness", research)
+        self.assertIn("German Expression", research)
+        self.assertIn("or authorize", research)
 
     def test_antonovsky_revision_lineage_is_bounded_and_access_gap_stays_unsent(
         self,

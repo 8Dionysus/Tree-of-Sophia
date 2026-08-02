@@ -103,20 +103,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 90 current objects and all 134
+- The source-witness catalog now exposes all 95 current objects and all 139
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 134 claims as reified
-  claim nodes across 465 nodes and 943 claim-centered edges with exact evidence, maker,
+- The derived bibliographic graph now exposes those same 139 claims as reified
+  claim nodes across 488 nodes and 982 claim-centered edges with exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 134 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 139 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 67 topology packets make the declared Work→Expression→Edition→Item
+- The 70 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -147,6 +147,18 @@ contracts intentionally reject simulated human evidence.
   three topology claims while withholding translator responsibility,
   completeness, 1898/1900 derivation, equivalence, OCR, accepted text, human
   review, semantics, and canon.
+- A distinct exact 1899 source-witness pass acquires the official RSL/RuNEB
+  Nani PDF once and retains it as a 16,228,737-byte ignored local Item. The
+  parallel title pages establish nine selected fragments, the printed
+  `С. П. Нани` translator responsibility, and the Saint Petersburg
+  Stasyulevich printer statement. The Agent remains initials-only and the
+  printer remains a provisional Organization rather than a publisher or
+  Person identity. Sixty digital surfaces, terminal numbered page 103, an
+  unnumbered contents surface, and the cataloged `XIV, [2], 105` extent do not
+  settle completeness. The parallel German side is not promoted to an
+  identified Expression or accepted text. OCR, collation, derivation,
+  equivalence, translation quality, rights clearance, human review, semantics,
+  publication, and canon all remain absent.
 - A following RSL pass resolves one exact 1903 second corrected Edition and
   four physical holdings. It creates one provisional Edition and one
   `embodied_by` packet but no ToS Item because no copy or source bytes were
@@ -787,12 +799,17 @@ not reintroduce a false 90 °C gate.
   Expression, exact Edition, fragmentary three-part PDF Item, provisional
   Moscow Place and Reader editorial-office Organization, two provision claims,
   three identity-ladder claims, an unsent complete-copy request, and a
-  metadata-only blocked server plan. The rebuilt catalog now contains 90
-  objects and 134 claims; the portable graph contains 465 nodes, 943
-  claim-centred edges, 134 source-return traces, and no direct subject-object
-  edge. The exact PDF remains ignored, local-only, and blocked from site
-  transfer; embedded OCR, equivalence, accepted text, rights clearance, human
-  review, semantics, publication, and canon remain absent.
+  metadata-only blocked server plan. The following Nani 1899 slice separately
+  adds an initials-only Agent, printer Organization, selected-fragment Russian
+  Expression, parallel Edition, exact local PDF Item, translator claim,
+  manufacture claim, three anchors, three identity-ladder claims, and a second
+  metadata-only blocked server plan. The rebuilt catalog now contains 95
+  objects and 139 claims; the portable graph contains 488 nodes, 982
+  claim-centred edges, 139 source-return traces, and no direct subject-object
+  edge. Both exact PDF routes remain ignored, local-only, and blocked from site
+  transfer; embedded text/OCR, German Expression acceptance, completeness,
+  equivalence, translation quality, rights clearance, human review, semantics,
+  publication, and canon remain absent.
 - External push, pull request, merge, server upload, access-request send, and
   publication were not performed. Those actions require their own explicit
   workflow or human authority.

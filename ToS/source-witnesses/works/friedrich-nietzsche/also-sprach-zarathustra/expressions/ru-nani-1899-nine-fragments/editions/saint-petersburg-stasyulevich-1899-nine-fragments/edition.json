@@ -1,0 +1,51 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments",
+  "preferred_label": "Такъ говорилъ Заратустра: девять отрывков, типография М. М. Стасюлевича, Санкт-Петербург, 1899",
+  "variant_labels": [
+    {
+      "value": "Also sprach Zarathustra: neun Fragmente, ins Russische übertragen von S. P. Nani",
+      "language": "de",
+      "source_ref": "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "tos.anchor.also-sprach-zarathustra.ru-nani-1899.title-pages-responsibility-manufacture",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/nani-1899-parallel-fragment-source-witness.2026-08-01.v1.json",
+    "https://rusneb.ru/catalog/000199_000009_003689091/",
+    "https://search.rsl.ru/ru/record/01003689091"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "RuNEB record",
+      "value": "000199_000009_003689091",
+      "source_ref": "https://rusneb.ru/catalog/000199_000009_003689091/",
+      "status": "verified"
+    },
+    {
+      "scheme": "RSL record",
+      "value": "01003689091",
+      "source_ref": "https://search.rsl.ru/ru/record/01003689091",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments"
+  ],
+  "edition_statement": null,
+  "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.also-sprach-zarathustra.nani-1899-nine-fragments.provision-manufacture"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-stasyulevich-1899-nine-fragments.exemplified-by.rsl-rusneb-parallel-scan-pdf"
+  ],
+  "notes": "Parallel title pages and current RSL/RuNEB records establish this Saint Petersburg 1899 nine-fragment Edition and its manufacture statement. The institutional extent is XIV, [2], 105 pages; the acquired PDF exposes terminal numbered page 103 followed by an unnumbered contents surface. Edition completeness, a publisher role, print run, source German edition, and textual equivalence remain unasserted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}
