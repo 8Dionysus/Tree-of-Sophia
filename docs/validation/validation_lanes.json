@@ -340,6 +340,10 @@
       {
         "label": "validate Zarathustra lexical projection",
         "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
+      },
+      {
+        "label": "check Zarathustra exact-form recurrence projection",
+        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
       }
     ],
     "philosophy_topology": [
@@ -566,6 +570,10 @@
       {
         "label": "validate Zarathustra lexical projection",
         "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
+      },
+      {
+        "label": "check Zarathustra exact-form recurrence projection",
+        "command": ["python", "scripts/build_zarathustra_recurrence_projection.py", "--check"]
       },
       {
         "label": "validate philosophy topology",

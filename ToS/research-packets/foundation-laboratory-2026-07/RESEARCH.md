@@ -4,7 +4,8 @@ Status: non-authoritative research synthesis
 Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
 route refreshed 2026-07-29; exact standalone Nietzsche source-route research
 and the *Ecce Homo* / *Zarathustra* / *Jenseits von Gut und Böse*
-authorial-witness routes refreshed 2026-07-30
+authorial-witness routes refreshed 2026-07-30; exact-form recurrence
+foundation refreshed 2026-08-02
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -669,6 +670,33 @@ The current packet therefore freezes only a content-free 20-task shape:
 five tasks in each of four families, balanced 10 random and 10 hard. It
 materializes zero tasks, schedules zero human work, runs no model or
 annotation tool, and creates no semantic result.
+
+## Exact-form recurrence foundation refresh — 2026-08-02
+
+The whole-work lexical projection now has a named intermediate layer between
+exact occurrence counting and any future sign proposal. The ordered research
+is preserved in
+`EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md`: OntoLex FrAC supplies the
+classical observation/source/unit separation; established corpus work shows
+why frequency and dispersion should remain separate; 2025–2026 range,
+formulaicity, motif, and historical-corpus work confirms that recurrence can
+improve retrieval soil but cannot supply motif or sign truth.
+
+The admitted method is therefore one tuple per existing exact-form hash:
+
+- A retains absolute frequency;
+- B retains part, division, and page range;
+- C retains A+B plus part-size-aware `DP`, maximum part concentration, and
+  declared source-editorial/unsectioned residue.
+
+There is no fused score, output-sensitive ranking, stopword policy, exact
+source string, morphology, lemma, lexeme, motif, sign candidate, concept,
+relation, or human task. The projection reads only the tracked lexical read
+model, uses exact rational arithmetic with an explicit integer rounding law,
+and leaves `initial-sign-packet.v3.json` unchanged and content-free. A later
+semantic episode must still begin with one exact question, accepted
+source-returnable evidence, context, linguistic/translation evidence,
+counterreadings, and the required real-human decision.
 
 ---
 

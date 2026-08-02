@@ -101,6 +101,14 @@ Zarathustra golden kernel. It is not a completed gold set.
   occurrence positions. Lemma, translation, sign candidate, sign, source
   acceptance, rights clearance, and public routing remain zero or blocked,
   and the initial sign packet stays unchanged.
+- the tracked recurrence layer now derives one deterministic observation tuple
+  for each of those 11,352 exact-form hashes without reading local payloads or
+  the private SQLite database. It keeps A frequency, B part/division/page
+  range, and C frequency+range+part-size-aware `DP`+maximum concentration as
+  separate dimensions. It creates no leaderboard or importance score, exposes
+  no source string, and has zero morphology, lemma, lexeme, sign-candidate,
+  semantic, publication, or human-backlog effect. This is queryable soil below
+  the semantic ladder, not a partial opening of `initial-sign-packet.v3.json`.
 - `morphology-evaluation-plan.v1.json` turns that exact-form floor into one
   bounded question without pretending that all morphology is ready. Its
   ignored 11,352-row input packet covers every exact form and represents

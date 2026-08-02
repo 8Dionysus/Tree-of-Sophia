@@ -84,6 +84,15 @@ the ignored database. Neither script accepts German or creates a lexeme,
 lemma, translation, sign candidate, sign, semantic claim, graph edge, canon,
 or runtime search authority.
 
+`build_zarathustra_recurrence_projection.py` is the release-safe next layer
+over that tracked lexical companion. It reads no payload and no private
+database. It preserves absolute frequency, part/division/page range,
+part-size-aware `DP`, maximum part concentration, and declared residue as a
+tuple for every exact-form hash. `--check` proves deterministic parity and the
+focused tests independently recalculate the arithmetic. It deliberately
+creates no rank, composite importance score, exact string, morphology, lemma,
+lexeme, sign candidate, semantic packet, public route, or human task.
+
 `build_zarathustra_morphology_input.py` projects every exact form from that
 private lexical database into a deterministic ignored JSONL packet for the
 admitted DWDSmor A census. Its tracked receipt contains only digests and
@@ -297,6 +306,7 @@ Local owner routes:
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
+| tracked Zarathustra exact-form recurrence observations | `python scripts/build_zarathustra_recurrence_projection.py --check`; omit `--check` only to intentionally rebuild the tracked hash-only frequency/range/DP tuple and provenance from the frozen plan and tracked lexical projection |
 | local Zarathustra morphology census input | `python scripts/build_zarathustra_morphology_input.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`; omit `--check` only to intentionally rebuild the ignored exact-form JSONL and its tracked text-free receipt before any morphology output |
 | private Zarathustra morphology A result | `python scripts/record_zarathustra_morphology_census_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A --check`; omit `--check` only to intentionally record an exact owner-local run as the tracked text-free aggregate receipt |
 | private Zarathustra direct-visual retrieval C result | `python scripts/record_zarathustra_visual_retrieval_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<run-id>/variant-C --prior-run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<prior-run-id>/variant-C --local-query-content /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/retrieval/queries.v1.json --check`; omit `--check` only to intentionally record the exact owner-local run as a tracked text-free mechanical and trigger receipt |

@@ -22,6 +22,25 @@ German text, establish a critical edition, create a lexeme or lemma, infer a
 phrase, nominate a sign, open the initial semantic packet, or authorize
 publication. Frequency is never semantic sufficiency.
 
+The first release-safe downstream observation is frozen in
+`recurrence-plan.v1.json`. Its generated companion is:
+
+`ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json`
+
+For every exact-form hash it keeps three views over the same evidence:
+
+- A: absolute occurrence frequency;
+- B: range across parts, TEI divisions, and pages;
+- C: the A+B tuple plus part-size-aware `DP`, maximum part concentration, and
+  declared source-editorial/unsectioned residue.
+
+The projection remains ordered by exact-form hash. It has no rank, fused
+importance score, stopword judgment, source string, morphology, lemma, lexeme,
+sign candidate, or semantic effect. Its provenance is
+`recurrence-provenance.jsonl`; the research and calculation decision is in
+`ToS/research-packets/foundation-laboratory-2026-07/EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md`.
+The content-free initial sign packet stays unchanged.
+
 The plan is `index-plan.v1.json`. The generated source-withholding companion
 (not cleared for publication) is:
 

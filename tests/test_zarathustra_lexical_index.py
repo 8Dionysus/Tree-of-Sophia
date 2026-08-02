@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from fractions import Fraction
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -32,6 +33,12 @@ MORPHOLOGY_RECEIPT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
 MORPHOLOGY_RESULT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
     "morphology-census-result.a-dwdsmor-open-0.18.0.v1.json"
 )
+RECURRENCE_PLAN_PATH = PLAN_PATH.with_name("recurrence-plan.v1.json")
+RECURRENCE_PROJECTION_PATH = (
+    ROOT / "ToS/derived-exports/lexical-search/"
+    "zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json"
+)
+RECURRENCE_PROVENANCE_PATH = PLAN_PATH.with_name("recurrence-provenance.jsonl")
 
 
 def _load_module(name: str, relative_path: str):
@@ -58,6 +65,10 @@ MORPHOLOGY_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_result_recorder",
     "scripts/record_zarathustra_morphology_census_result.py",
 )
+RECURRENCE_BUILDER = _load_module(
+    "tos_zarathustra_recurrence_projection_builder",
+    "scripts/build_zarathustra_recurrence_projection.py",
+)
 
 
 class ZarathustraLexicalIndexTests(unittest.TestCase):
@@ -73,6 +84,15 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.morphology_result = json.loads(
             MORPHOLOGY_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        cls.recurrence_plan = json.loads(
+            RECURRENCE_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        cls.recurrence_projection = json.loads(
+            RECURRENCE_PROJECTION_PATH.read_text(encoding="utf-8")
+        )
+        cls.recurrence_provenance = json.loads(
+            RECURRENCE_PROVENANCE_PATH.read_text(encoding="utf-8")
         )
         cls.validation = VALIDATOR.validate()
 
@@ -228,6 +248,210 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             self.projection["rights_and_visibility"][
                 "rights_review_required_before_public_route"
             ]
+        )
+
+    def test_recurrence_plan_projection_and_provenance_close_without_source_text(
+        self,
+    ) -> None:
+        plan_schema = json.loads(
+            (ROOT / "ToS/contracts/lexical-recurrence-plan.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        projection_schema = json.loads(
+            (
+                ROOT / "ToS/contracts/lexical-recurrence-projection.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        provenance_schema = json.loads(
+            (ROOT / "ToS/contracts/provenance-event.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(plan_schema).iter_errors(
+                    self.recurrence_plan
+                )
+            ),
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(projection_schema).iter_errors(
+                    self.recurrence_projection
+                )
+            ),
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(provenance_schema).iter_errors(
+                    self.recurrence_provenance
+                )
+            ),
+        )
+        projection = self.recurrence_projection
+        self.assertEqual(
+            hashlib.sha256(RECURRENCE_PLAN_PATH.read_bytes()).hexdigest(),
+            projection["plan"]["sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(PROJECTION_PATH.read_bytes()).hexdigest(),
+            projection["source_projection"]["sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / projection["generator"]["ref"]).read_bytes()
+            ).hexdigest(),
+            projection["generator"]["sha256"],
+        )
+        self.assertEqual(11352, projection["summary"]["row_count"])
+        self.assertEqual(86287, projection["summary"]["token_occurrence_count"])
+        self.assertEqual(1017, projection["summary"]["all_four_parts_form_count"])
+        self.assertEqual(7604, projection["summary"]["single_part_form_count"])
+        self.assertEqual(6529, projection["summary"]["singleton_form_count"])
+        self.assertEqual(0, projection["summary"]["semantic_fields_populated"])
+        self.assertFalse(projection["content_exposure"]["tracked_exact_strings"])
+        self.assertFalse(
+            projection["semantic_boundary"]["creates_sign_candidate"]
+        )
+        self.assertFalse(
+            projection["semantic_boundary"]["opens_initial_sign_packet"]
+        )
+        self.assertFalse(projection["semantic_boundary"]["opens_human_backlog"])
+
+    def test_recurrence_control_forms_preserve_manually_checked_tuples(self) -> None:
+        by_digest = {
+            row["exact_form_sha256"]: row
+            for row in self.recurrence_projection["rows"]
+        }
+        expected = {
+            # Zarathustra
+            "9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55": (
+                527,
+                4,
+                110,
+                256,
+                144983,
+            ),
+            # Übermensch
+            "b62f170c6421a0762ff1f51e2924d073f5a9f873a40259c97a56be7540d2c496": (
+                14,
+                4,
+                10,
+                10,
+                342599,
+            ),
+            # Untergang
+            "896135f538a6ff8b20075ded163e029f713adc024955ef670120305a35a29cbd": (
+                13,
+                3,
+                7,
+                9,
+                617324,
+            ),
+            # Zeichen
+            "e6a8d073a52678889e0cf0edee1064db6450e98d9d6802449644245e83d1ec5f": (
+                23,
+                4,
+                15,
+                18,
+                220802,
+            ),
+        }
+        for digest, values in expected.items():
+            with self.subTest(digest=digest):
+                row = by_digest[digest]
+                self.assertEqual(
+                    values,
+                    (
+                        row["occurrence_count"],
+                        row["part_range"],
+                        row["section_range"],
+                        row["page_range"],
+                        row["part_dp_millionths"],
+                    ),
+                )
+
+    def test_recurrence_dp_is_independently_recomputed_from_part_counts(self) -> None:
+        part_tokens = {
+            item["item_ref"]: item["token_occurrence_count"]
+            for item in self.projection["source_items"]
+        }
+        total_tokens = sum(part_tokens.values())
+        source_by_digest = {
+            row["exact_form_sha256"]: row for row in self.projection["form_rows"]
+        }
+        recurrence_by_digest = {
+            row["exact_form_sha256"]: row
+            for row in self.recurrence_projection["rows"]
+        }
+
+        def round_millionths(value: Fraction) -> int:
+            scaled = value * 1_000_000
+            quotient, remainder = divmod(scaled.numerator, scaled.denominator)
+            if remainder * 2 > scaled.denominator or (
+                remainder * 2 == scaled.denominator and quotient % 2
+            ):
+                quotient += 1
+            return quotient
+
+        for digest in (
+            "9f1d4250b0115ee2a8bbc876f90f2048159bafd860d61a4fd1de3df44ee0aa55",
+            "b62f170c6421a0762ff1f51e2924d073f5a9f873a40259c97a56be7540d2c496",
+            "896135f538a6ff8b20075ded163e029f713adc024955ef670120305a35a29cbd",
+        ):
+            source_row = source_by_digest[digest]
+            counts = {item_ref: 0 for item_ref in part_tokens}
+            for hit in source_row["source_items"]:
+                counts[hit["item_ref"]] = hit["occurrence_count"]
+            observed_total = source_row["occurrence_count"]
+            dp = sum(
+                abs(
+                    Fraction(part_tokens[item_ref], total_tokens)
+                    - Fraction(counts[item_ref], observed_total)
+                )
+                for item_ref in part_tokens
+            ) / 2
+            self.assertEqual(
+                round_millionths(dp),
+                recurrence_by_digest[digest]["part_dp_millionths"],
+            )
+
+    def test_recurrence_contract_rejects_semantic_score_or_source_surface(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (
+                ROOT / "ToS/contracts/lexical-recurrence-projection.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        for field, value in (("sign_score", 0.9), ("exact_form", "Übermensch")):
+            contaminated = json.loads(json.dumps(self.recurrence_projection))
+            contaminated["rows"][0][field] = value
+            with self.subTest(field=field):
+                self.assertTrue(
+                    list(Draft202012Validator(schema).iter_errors(contaminated))
+                )
+
+    def test_recurrence_rounding_and_dp_controls_are_exact(self) -> None:
+        self.assertEqual(
+            0,
+            RECURRENCE_BUILDER.round_fraction_ties_to_even(Fraction(0), 1_000_000),
+        )
+        self.assertEqual(
+            500000,
+            RECURRENCE_BUILDER.round_fraction_ties_to_even(
+                Fraction(1, 2), 1_000_000
+            ),
+        )
+        self.assertEqual(
+            990000,
+            RECURRENCE_BUILDER.round_fraction_ties_to_even(
+                Fraction(99, 100), 1_000_000
+            ),
         )
 
     def test_morphology_plan_and_receipt_close_over_exact_lexical_floor(self) -> None:

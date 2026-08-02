@@ -545,7 +545,7 @@ contracts intentionally reject simulated human evidence.
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and
   structural navigation mechanics only. The 119,533,568-byte sequential
-  SQLite/FTS5 database remains gitignored; the tracked 12,919,723-byte
+  SQLite/FTS5 database remains gitignored; the tracked 12,919,675-byte
   projection contains hashes, counts, and resource refs but no strings,
   sequence, context, or positions. Low-entropy hashes are
   dictionary-recoverable and not secrecy. The annotated DTA TEI license route
@@ -560,6 +560,15 @@ contracts intentionally reject simulated human evidence.
   lexemes, translation correspondences, sign candidates, or semantic packets.
   The residue has not been reviewed, B/C remain unacquired, and no human work
   is scheduled.
+- A separate 5,530,732-byte tracked recurrence projection now materializes the
+  same 11,352 rows as exact-form hash plus frequency, part/division/page range,
+  part-size-aware `DP`, maximum part concentration, and explicit residue. Its
+  rational arithmetic, integer rounding, source totals, row closure, and four
+  known-form control tuples are independently tested. This closes only the
+  mechanical recurrence-observation layer: the projection has no source
+  strings, composite rank, importance score, accepted German, morphology,
+  lemma, lexeme, sign candidate, semantic effect, publication route, or human
+  backlog. It does not alter the content-free initial sign packet.
 - Retrieval operates on 24 nonempty passages. It does not measure corpus-scale
   approximate-nearest-neighbor behavior.
 - Retrieval target declarations and hard negatives are model-proposed. The
@@ -916,6 +925,10 @@ quality.
    rights review, sequential acquisition, and a fresh host preflight; machine
    coverage does not create accepted German, morphology, a lemma, or
    `lexeme_id`.
+7. Preserve the recurrence tuple as a queryable observation surface, not as a
+   sampling leaderboard. Any use of frequency, range, or `DP` must first name
+   the exact question and freeze its selection law; no threshold creates a
+   sign candidate or schedules human review.
 
 ### 2a. Freeze, but do not yet execute, the resident LLM packet
 
@@ -1054,12 +1067,17 @@ from the calibration-only route in section 2b.
 
 ### 4. Open semantic work after accepted forms exist
 
-1. Materialize 20 semantic tasks: 10 random and 10 hard.
-2. Traverse exact form -> recurrence -> context -> morphology -> lemma ->
+1. Declare one source-returnable semantic question and freeze how its first
+   bounded units are selected; do not sort the recurrence projection and call
+   the head “important.”
+2. Materialize only the accepted task-specific units required by that
+   question, preserving the future 10-random/10-hard comparison shape when a
+   full 20-task experiment is actually justified.
+3. Traverse exact form -> recurrence -> context -> morphology -> lemma ->
    translation correspondences -> sign candidate.
-3. Require real-human accept/reject/ambiguous/defer before relations,
+4. Require real-human accept/reject/ambiguous/defer before relations,
    concepts, counterreadings, or graph projection.
-4. Permit new signs and schema pressure; never reward agreement with the
+5. Permit new signs and schema pressure; never reward agreement with the
    existing vocabulary by itself.
 
 ### 5. Test the golden kernel on unseen content

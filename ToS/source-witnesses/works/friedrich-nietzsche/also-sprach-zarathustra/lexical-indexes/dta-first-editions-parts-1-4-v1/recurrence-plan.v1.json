@@ -1,0 +1,101 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/lexical-recurrence-plan.schema.json",
+  "schema_version": "tos_lexical_recurrence_plan_v1",
+  "plan_id": "lexical-recurrence-plan:zarathustra-dta-first-editions-parts-1-4-v1",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "status": "frozen-before-output",
+  "frozen_at": "2026-08-02T13:55:00Z",
+  "frozen_before_output": true,
+  "research_question": "How can exact-form repetition across the four DTA Zarathustra parts be represented as separate frequency, structural-range, and part-size-aware dispersion observations without selecting a sign candidate or turning recurrence into semantic authority?",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md",
+  "source_projection": {
+    "ref": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
+    "sha256": "bc587f7192131450e30a80723d7e2341dd5abc40bf59f19b7ee9e3f04672d542",
+    "schema_version": "tos_lexical_index_projection_v1",
+    "source_item_count": 4,
+    "exact_form_row_count": 11352,
+    "token_occurrence_count": 86287
+  },
+  "observation_unit": "one-row-per-exact-form-hash",
+  "segmentation": {
+    "part": "one-source-item-per-published-part",
+    "section": "tracked-tei-division-resource-within-source-item",
+    "page": "tracked-tei-page-break-resource-within-source-item",
+    "cross_item_labels_collapsed": false
+  },
+  "method_views": [
+    {
+      "label": "A",
+      "method": "absolute-frequency",
+      "fields": [
+        "occurrence_count"
+      ],
+      "semantic_sufficiency": false
+    },
+    {
+      "label": "B",
+      "method": "structural-range",
+      "fields": [
+        "part_range",
+        "section_range",
+        "page_range"
+      ],
+      "semantic_sufficiency": false
+    },
+    {
+      "label": "C",
+      "method": "tupleized-part-size-aware-dispersion",
+      "fields": [
+        "occurrence_count",
+        "part_range",
+        "section_range",
+        "page_range",
+        "part_dp_millionths",
+        "maximum_part_share_millionths",
+        "source_editorial_occurrence_count",
+        "unsectioned_occurrence_count"
+      ],
+      "single_score": false,
+      "semantic_sufficiency": false
+    }
+  ],
+  "calculation_law": {
+    "dp_formula": "0.5 * sum(abs(part_token_share - form_occurrence_share))",
+    "part_total_unit": "exact-token-occurrences",
+    "scale": 1000000,
+    "rounding": "nearest-integer-ties-to-even",
+    "missing_part_observed_share": 0,
+    "composite_score_created": false
+  },
+  "output": {
+    "ref": "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json",
+    "schema_ref": "ToS/contracts/lexical-recurrence-projection.schema.json",
+    "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/recurrence-provenance.jsonl",
+    "row_order": "exact-form-sha256-ascending",
+    "recorded_at": "2026-08-02T14:05:00Z"
+  },
+  "content_exposure": {
+    "tracked_exact_strings": false,
+    "tracked_sequence": false,
+    "tracked_context": false,
+    "tracked_occurrence_positions": false,
+    "tracked_form_hashes": true,
+    "dictionary_recovery_possible": true,
+    "confidentiality_claimed": false
+  },
+  "semantic_boundary": {
+    "accepts_source_text": false,
+    "creates_occurrence_authority": false,
+    "creates_morphology": false,
+    "creates_lemma": false,
+    "creates_lexeme": false,
+    "creates_sign_candidate": false,
+    "creates_sign": false,
+    "creates_concept": false,
+    "opens_initial_sign_packet": false,
+    "opens_human_backlog": false
+  },
+  "provenance_event_ref": "tos.event.export.zarathustra-exact-form-recurrence-v1.2026-08-02",
+  "plan_version": 1,
+  "authority_boundary": "deterministic hash-only exact-form recurrence observation over the current tracked lexical projection; no accepted German, occurrence authority, morphology, lemma, lexeme, translation, sign candidate, sign, concept, relation, graph, canon, public route, or human backlog"
+}

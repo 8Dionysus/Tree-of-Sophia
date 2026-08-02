@@ -13,6 +13,8 @@ judgment true.
 | `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
 | `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |
 | `lexical-index-projection.schema.json` | rebuild receipt and non-sequential form-hash/count/page/division read model over exact local witnesses, with working local query probes but no accepted source, lemma, sign, context, or publication claim |
+| `lexical-recurrence-plan.schema.json` | frozen exact-form recurrence question over the tracked lexical projection, preserving A frequency, B structural range, and C tupleized part-size-aware dispersion without a composite score or semantic effect |
+| `lexical-recurrence-projection.schema.json` | deterministic hash-only frequency/range/DP observation tuples with exact source totals, integer rounding law, residue accounting, and explicit zero authority for source acceptance, linguistic analysis, signs, semantics, or human work |
 | `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, sequentially blocked contextual A/B/C follow-up, explicit layer/competence/rights boundaries, and zero automatic linguistic or semantic promotion |
 | `morphology-input-receipt.schema.json` | text-free fixity and count receipt for the ignored exact-form morphology input packet, binding it to the exact lexical database, tracked projection, plan, and generator without tracking source strings |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
@@ -72,6 +74,11 @@ judgment true.
 - A tracked lexical projection may expose only the content posture authorized
   by its plan. A hash-only form row is a navigational fingerprint, not
   confidentiality, source acceptance, a lexeme, a lemma, or a sign.
+- A recurrence projection may derive frequency, structural range, and
+  part-size-aware dispersion only from a fixity-bound lexical projection.
+  Those dimensions remain separate observations: they are not a rank,
+  philosophical-importance score, motif, sign candidate, sign, or semantic
+  promotion.
 - A morphology input receipt may prove that every exact-form row was
   deterministically materialized into a private packet. It does not prove
   provider coverage, correctness, German competence, a lemma, or a lexeme.
@@ -216,7 +223,10 @@ A schema validator can establish that:
   aggregation threshold, prohibited disclosure classes, raw-preservation law,
   and publication gate before private evidence is opened;
 - a graph plan binds ten pre-output questions to one exact claim-set digest and
-  keeps all four logical layers explicit.
+  keeps all four logical layers explicit;
+- a recurrence plan and projection can bind every hash-only exact-form row to
+  the same source totals, preserve A/B/C observation fields, and reproduce
+  integer-rounded `DP` and maximum-part-share values without source payloads;
 - a morphology plan can freeze an exhaustive type/token coverage question
   before provider output, keep the exact surface unchanged, and block the
   contextual A/B/C stage until one shared occurrence set is frozen;
