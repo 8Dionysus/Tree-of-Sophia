@@ -438,9 +438,20 @@ collection containing it. The seed deliberately includes:
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
 OCR; the EPUB text remains a sealed reference witness until variant outputs
-are frozen. Internet Archive's Public Domain Mark is retained as a source
-statement, while ToS keeps the bytes `local_only` and
-`copyright_undetermined` pending human jurisdiction and terms review.
+are frozen. Their current layer-specific rights results deliberately diverge.
+For the exact image-container PDF, the historical Work, Peter Gast preface,
+1893 Edition presentation, Nietzsche portrait, Overbeck letter facsimile, and
+faithful mass scan are `public_domain_reviewed` for DE/US; the separately
+reported catalog metadata is not folded into that result. The automatic EPUB
+retains positive historical, OCR, and extracted-image evidence but also
+contains a later 2023 Internet Archive notice with no reuse license, plus
+unresolved package, navigation, style, and metadata layers, so its aggregate
+status is `conflicting_evidence`. Both operator-held files remain `local_only`,
+redistribution `not_authorized`, derivatives `local_research_only`, and
+unapproved for server transfer. A future public PDF candidate must be
+independently reacquired and reviewed; a future EPUB must be newly built from
+an accepted rights-positive source rather than obtained by stripping or
+republishing this package.
 
 The 1913 scan likewise preserves the source provider's public-domain
 declaration as positive rights evidence rather than flattening it into either

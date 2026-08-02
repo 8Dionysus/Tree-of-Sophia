@@ -19,27 +19,94 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/rights.json",
-    "rights_record_sha256": "638f9d7da964cf8bcf4057fd5f400482949d0c4bfcd2544ba7468e3e4fed6be6",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "87fc928d4509e88bac9fedc1f3a640d0ece4145a18e186a6c489ee7992e746b5",
+    "assessment_status": "public-domain-reviewed",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
-    "permission_or_license_refs": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+      "http://creativecommons.org/publicdomain/mark/1.0/",
+      "https://archive.org/about/terms",
+      "https://www.copyright.gov/comp3/",
+      "https://blog.sbb.berlin/wp-content/uploads/LiD25_Bildrechte.pdf",
+      "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen"
+    ],
     "expires_at": null,
     "recheck_before_transfer": true
   },
   "access_class": "metadata-only",
   "allowed_derivatives": {
-    "ocr": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "transcription": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "page_images": {"state": "prohibited", "conditions": ["No page-image publication is authorized."]},
-    "snippets": {"state": "prohibited", "conditions": ["No source-text publication is authorized."]},
-    "lexical_index": {"state": "conditional", "conditions": ["Public-safe bibliographic metadata only; no source text."]},
-    "embeddings": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "alignments": {"state": "prohibited", "conditions": ["No restricted aligned text may be served."]},
-    "translations": {"state": "prohibited", "conditions": ["Translation rights remain unreviewed."]},
-    "annotations": {"state": "prohibited", "conditions": ["No source-bearing annotation publication is authorized."]},
-    "search_projection": {"state": "conditional", "conditions": ["Metadata-only records with no payload-derived text."]},
-    "graph_projection": {"state": "conditional", "conditions": ["Metadata and provenance only; no restricted content."]}
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "The public-domain rights assessment does not override the operator's local-payload rule; no server-side OCR is authorized by this metadata-only plan."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "No source transcription is served by this plan; the image-only PDF supplies no accepted text layer."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The operator-held local scan remains off the future public site even though the exact upstream object is positively assessed in DE and US."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text or source-image publication is authorized by this operator-unapproved plan."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic metadata only; no source text, image, recoverable n-gram, or payload-derived content."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing embedding generation or publication is authorized from the operator-held payload."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No content-bearing aligned text is generated or served from the operator-held payload."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Public-domain status of the historical Work is not operator approval for a translation derivative or publication."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing or recoverable-content annotation publication is authorized by this plan."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text, image, embedding, or recoverable content."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe metadata, rights-layer facts, and provenance only; no payload-derived or unreviewed textual claim."
+      ]
+    }
   },
   "payload_transfer_authorized": false,
   "operator_transfer_approval": {
@@ -56,10 +123,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-23T00:00:00Z"
+    "last_reviewed_at": "2026-08-02T03:31:13-06:00"
   },
-  "provenance_event_refs": ["tos.event.server-import-plan.foundation.2026-07-23"],
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.naumann-1893-image-pdf.layered-rights.2026-08-02"
+  ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1
+  "contract_version": 2,
+  "supersedes_server_import_ref": null
 }

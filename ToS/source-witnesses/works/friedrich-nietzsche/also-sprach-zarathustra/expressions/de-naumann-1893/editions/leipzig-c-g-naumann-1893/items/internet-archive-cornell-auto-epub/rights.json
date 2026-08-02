@@ -5,22 +5,428 @@
     "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
     "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de"
   ],
-  "assessment_status": "copyright_undetermined",
+  "assessment_status": "conflicting_evidence",
   "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
   "source_refs": [
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/source-metadata-snapshot.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+    "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
     "https://archive.org/details/NietzscheAlsoSprachZarathustra1893",
     "http://creativecommons.org/publicdomain/mark/1.0/",
-    "https://archive.org/about/terms.php"
+    "https://archive.org/about/terms",
+    "https://www.gesetze-im-internet.de/urhg/__64.html",
+    "https://www.gesetze-im-internet.de/urhg/__66.html",
+    "https://www.gesetze-im-internet.de/urhg/__69.html",
+    "https://www.gesetze-im-internet.de/urhg/__70.html",
+    "https://www.gesetze-im-internet.de/urhg/__72.html",
+    "https://www.gesetze-im-internet.de/urhg/__87a.html",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/comp3/",
+    "https://blog.sbb.berlin/wp-content/uploads/LiD25_Bildrechte.pdf",
+    "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+    "https://creativecommons.org/2025/07/09/recommended-licenses-and-tools-for-cultural-heritage-content/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Nietzsche's underlying Work may be used in Germany and the United States under the reviewed public-domain term rules"
+      ],
+      "restrictions": [
+        "this result does not select or clear a modern critical, editorial, or digital German text",
+        "authorship, name, integrity, and other non-copyright rules remain separate where applicable",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, and current United States guidance places pre-1931 publications in the public domain",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to the historical Work in the reviewed DE/US route; no later textual or digital contribution is included."
+      },
+      "uncertainty": "Work-level public domain does not prove OCR correctness, reading order, edition authority, or permission for later package layers.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current German and United States term rules are expired for Nietzsche's published Work."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.peter-gast-preface",
+      "layer_role": "preface",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.deutsche-biographie.de/pnd127679677.html",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Peter Gast/Heinrich Köselitz's historical preface may be used in the reviewed DE/US public-domain route"
+      ],
+      "restrictions": [
+        "this result concerns the historical preface and does not authenticate or accept the automatic transcription",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Heinrich Köselitz, known as Peter Gast, died in 1918; the ordinary German life-plus-seventy term ended at 1988-12-31, and the preface was published before 1931 for the reviewed United States route",
+        "starts_on": null,
+        "ends_on": "1988-12-31",
+        "uncertainty": "The identity and death date are authority-supported; the result remains limited to the published historical preface."
+      },
+      "uncertainty": "No claim is made about later editorial treatment, commentary, or OCR correctness.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The reviewed German and United States terms are expired for Köselitz's 1893 preface."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.leipzig-c-g-naumann-1893"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible 1893 Edition presentation may be used in the reviewed DE/US public-domain route"
+      ],
+      "restrictions": [
+        "the source-visible historical statement `Uebersetzungsrecht vorbehalten.` is preserved as 1893 evidence but is not treated as a current DE/US restriction or as operator transfer approval",
+        "the historical Edition is not classified as a modern scientific or critical edition",
+        "the result does not clear later EPUB package, navigation, style, notice, or metadata layers",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published in 1893; even the conservative German anonymous-publication route ended at 1963-12-31, and the publication is pre-1931 in the United States",
+        "starts_on": null,
+        "ends_on": "1963-12-31",
+        "uncertainty": "No anonymous authorship or scientific-edition status is asserted; the conservative calculation only shows that no reviewed historical presentation term remains active."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical presentation is outside the reviewed terms while every later EPUB contribution remains separate."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.automatic-ocr-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+        "https://www.copyright.gov/comp3/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the 529 automatically recognized historical page-text members have a positive public-domain basis in the reviewed DE/US routes"
+      ],
+      "restrictions": [
+        "this layer excludes EPUB/notice.html and all later package-support resources",
+        "mechanical public-domain status does not prove correct German, punctuation, characters, page order, reading order, or structure",
+        "the OCR text is not accepted as a ToS source or transcription",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the human-authored historical Work, preface, and Edition are outside the reviewed terms, while automatic OCR supplies no independent human authorship under the reviewed United States administrative rule",
+        "starts_on": null,
+        "ends_on": "1988-12-31",
+        "uncertainty": "The date is the latest relevant reviewed historical text-layer term, not a claim that every OCR token has one author or that machine-output law is identical worldwide."
+      },
+      "uncertainty": "The rights result is deliberately independent of transcription and reading-order quality.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The page XHTML is automatic OCR of public-domain historical pages; later Internet Archive prose is excluded into its own layer."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.extracted-scan-images",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+        "https://www.copyright.gov/comp3/",
+        "https://blog.sbb.berlin/wp-content/uploads/LiD25_Bildrechte.pdf",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the five extracted faithful scan-image resources have a positive public-domain basis in the reviewed DE/US routes"
+      ],
+      "restrictions": [
+        "Public Domain Mark 1.0 is a source statement rather than a license or warranty",
+        "Google and Cornell marks, capture furniture, trademark, contract, access, and attribution questions remain separate",
+        "the resource inventory does not prove that image extraction or ordering is correct",
+        "jurisdictions other than DE and US remain unreviewed",
+        "this layer result is not operator approval to transfer the local Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the images derive from the exact PDM-marked faithful scan; current German institutional book-scan guidance and the current governing United States Compendium treat a faithful simple scan or mere digitization as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "This conclusion is limited to faithful scan images in DE/US and does not clear enhancement, logos, contracts, or other jurisdictions."
+      },
+      "uncertainty": "No blanket worldwide or non-copyright conclusion is inferred from the scan process.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The extracted images inherit the faithful-scan evidence, not the unresolved status of the surrounding EPUB package."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.internet-archive-notice",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de",
+        "tos.resource.epub-member-0010"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+        "https://archive.org/about/terms"
+      ],
+      "rights_holder_refs": [
+        "Internet Archive"
+      ],
+      "permissions": [
+        "local preservation and bounded internal research use only under the operator's custody rule"
+      ],
+      "restrictions": [
+        "no exact license or permission for the 2023 institutional notice prose was found",
+        "the 2015 Item-level PDM supplied by an individual uploader cannot silently clear a later Internet Archive-authored reading-spine member",
+        "do not redistribute, quote at length, adapt, or publish this notice through ToS without a distinct authorized route",
+        "this layer blocks treating the exact whole EPUB as public domain"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "EPUB/notice.html is later institution-authored explanatory prose packaged on 2023-11-22; no exact license, waiver, or public-domain statement for that contribution was found",
+        "starts_on": "2023-11-22",
+        "ends_on": null,
+        "uncertainty": "The exact human author, employment authorship, first-publication facts, and term endpoint are not established; fail-closed in-copyright treatment is required."
+      },
+      "uncertainty": "Internet Archive appears to be the institutional source, but this record does not adjudicate authorship or ownership; absence of a license is decisive for ToS admission.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The notice is substantial explanatory prose from the 2023 automatic EPUB package, not historical book text, and no exact reusable license exists on the reviewed surfaces."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.package-navigation-style",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "tos.file.sha256.adc7eeae2d5a5cf2b225ef81170b595c77664167a539f0cb1a478184aca8e9de"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/forensic-report.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+        "https://archive.org/about/terms",
+        "https://www.gesetze-im-internet.de/urhg/__87a.html",
+        "https://www.copyright.gov/comp3/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded internal package research only"
+      ],
+      "restrictions": [
+        "no exact license was found for the package document, navigation, style, reading-order selection, or other support resources",
+        "automatic generation weakens a human-authorship claim but does not establish a complete DE/US no-rights conclusion for selection, arrangement, software-originated resources, or database interests",
+        "do not publish this exact package or derive the future ToS EPUB from it without a new rights and provenance route"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the package was generated in 2023 with Ebook-lib and hocr-to-epub, but the exact human choices, reusable software-template rights, selection or arrangement, and database investment are not fully identified or licensed",
+        "starts_on": "2023-11-22",
+        "ends_on": null,
+        "uncertainty": "Some elements may be purely functional or machine-generated while others may embody protected templates, selection, or arrangement; no aggregate clearance is inferred."
+      },
+      "uncertainty": "Functional markup and unprotectable machine output are not separated member by member from possibly authored or database-protected contributions.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The package layer has no exact license and insufficient authorship and investment evidence for a positive aggregate conclusion."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-naumann-1893.internet-archive-cornell-auto-epub.layer.metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/resource-inventory.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/NietzscheAlsoSprachZarathustra1893",
+        "https://archive.org/about/terms",
+        "https://www.gesetze-im-internet.de/urhg/__87a.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "bounded public-safe factual metadata may be retained with exact source attribution"
+      ],
+      "restrictions": [
+        "no blanket extraction or republication of the Internet Archive metadata dataset is authorized",
+        "descriptive prose, curation fields, logos, third-party authority data, and substantial database extraction require separate review",
+        "metadata permission does not authorize source text or package transfer"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "many individual fields are factual, but the exact provider surface supplies no blanket CC0 or other metadata license and database or authored-description interests may remain",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Individual facts, authored descriptions, external authority data, and substantial database extraction have different legal postures."
+      },
+      "uncertainty": "The record permits bounded source-attributed facts, not unrestricted reuse of the provider database.",
+      "assessed_at": "2026-08-02T03:31:13-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Metadata remains useful as a public-safe factual layer but has no blanket reuse license."
+    }
   ],
   "permissions": [
-    "local preservation and bounded research use pending human rights review"
+    "local preservation and bounded research use",
+    "the historical Work, Peter Gast preface, 1893 presentation, automatic OCR of historical pages, and extracted faithful scan images have positive public-domain bases in the reviewed DE/US routes",
+    "public-safe bibliographic metadata, rights-layer facts, and provenance may remain tracked",
+    "a new future EPUB may be generated from a separately acquired rights-positive and quality-accepted source with its own provenance and license"
   ],
   "restrictions": [
-    "no payload redistribution promoted by ToS until a human reviews the source Public Domain Mark, applicable jurisdictions, and Internet Archive terms",
-    "underlying 1893 work/edition status and the 2023 automated derivative/item posture must be assessed separately"
+    "the exact aggregate EPUB has conflicting evidence and is not public domain or open licensed as a whole",
+    "EPUB/notice.html is later Internet Archive explanatory prose with no exact license and is treated fail-closed as in copyright",
+    "the 2015 Item-level PDM supplied by an individual uploader cannot silently clear 2023 Internet Archive notice or package contributions",
+    "package, navigation, style, selection, arrangement, software-template, and database layers remain unresolved",
+    "the operator-held local EPUB remains off the future public site regardless of positive historical-layer findings",
+    "Google and Cornell capture furniture, logos, trademark, contractual-access, attribution, moral-rights, privacy, and personality questions remain separate",
+    "jurisdictions other than DE and US remain unreviewed",
+    "no source text, image, OCR, snippet, embedding, alignment, translation, package, or source-bearing derivative is authorized for server transfer by this model-authored record",
+    "human rights review and explicit operator transfer approval have not occurred",
+    "rights status is not German correctness, source acceptance, reading-order proof, critical-text status, semantics, or canon"
   ],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
@@ -29,11 +435,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-22T11:20:52-06:00",
-  "rationale": "The exact Internet Archive item has been checksum-reconciled and advertises Public Domain Mark 1.0. That imported source statement is important evidence but is not a license and is not a substitute for human review of jurisdictions, Internet Archive terms, or any distinct digitization/derivative interests. ToS therefore keeps the payload local while retaining the public source metadata.",
+  "assessed_at": "2026-08-02T03:31:13-06:00",
+  "rationale": "Current German and United States rules support public-domain results for the historical and faithful mechanical layers. The exact EPUB nevertheless contains later Internet Archive notice prose in its reading spine and unresolved package, navigation, style, arrangement, and metadata layers without an exact license. The older Item-level PDM conflicts with those later contributions rather than clearing them, so the whole EPUB remains blocked and operator-local.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 2,
+  "record_version": 3,
   "supersedes_rights_ref": null
 }

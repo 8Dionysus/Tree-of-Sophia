@@ -1065,6 +1065,16 @@ from the calibration-only route in section 2b.
    metadata-only.
 5. Keep the future site a read-only consumer of ToS owner records; it must not
    become source or claim authority.
+6. Keep every operator-held source file local even when an exact layer receives
+   a positive rights assessment; provenance may identify its Work, Expression,
+   Edition, Item, provider, year, and digest without publishing the bytes.
+7. Reacquire a future public Naumann 1893 image PDF independently from a
+   current authorized route and verify its exact fixity, rights, quality,
+   human acceptance, and operator approval before transfer.
+8. Build any future public Naumann 1893 EPUB anew from an accepted
+   rights-positive source. Do not remove the later notice or other born-digital
+   members from the current local EPUB and represent the remainder as a
+   cleared package.
 
 ## Definition-of-done reconciliation
 

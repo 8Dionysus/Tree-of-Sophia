@@ -45,6 +45,34 @@ text and facsimile layers, unreviewed status, German non-acceptance, local
 payload nonpublication rule, and operator gate remain explicit. No source
 payload was added to Git or authorized for server transfer.
 
+The following Naumann 1893 rights continuation applies the same ordered
+research law to the two exact Items descended from one scan family and keeps
+their results separate. The image-container PDF is
+`public_domain_reviewed` for DE/US across its historical Work, Peter Gast
+preface, Edition presentation, portrait, letter facsimile, and faithful mass
+scan layers. The automatic EPUB preserves positive historical, OCR, and image
+evidence but remains aggregate `conflicting_evidence`: a later 2023 Internet
+Archive notice has no reuse license, and the package, navigation, style, and
+metadata layers remain unresolved. Both operator-held files stay local-only,
+not authorized for redistribution, limited to local research derivatives,
+and blocked from server transfer. The server route requires either an
+independently reacquired and reviewed PDF or a newly built EPUB from an
+accepted rights-positive source; deleting conflicting members from the local
+EPUB is not treated as clearance. No source bytes or source text were added to
+Git.
+
+For this exact staged Naumann 1893 rights continuation, the focused
+source-witness suite passed 59 tests with one declared skip, and the complete
+Tree release lane passed 272 tests with the same declared skip. Direct review
+also confirmed the seven PDF layers, the eight EPUB layers, both blocked
+metadata-only server plans, unchanged triangulation/content gate results,
+zero accepted German units, zero opened translation lanes, no staged payload,
+and no source text in the tracked research packet. The portable KAG family
+reconciled 566 shards and all seven compatibility projections. These results
+prove mechanical closure of this slice only; they do not supply human legal
+review, German acceptance, translation quality, semantic truth, publication
+authority, or operator transfer approval.
+
 At `03b5f35`, the complete Tree release lane passed 199 tests with one
 declared skip. Separate source-visible integrity checks reconciled three
 tracked form aggregates against SQLite, the known `Zarathustra` form at
@@ -579,11 +607,15 @@ institutional quality evidence, but they are neither ToS acceptance nor
 critical-edition readings. Per-item rights records now classify the exact
 annotated TEIs as CC BY-SA 4.0 licensed, while separately preserving Work and
 historical Edition public-domain results for DE/US, stale OAI values, the
-distinct plain-text claim, and facsimile layers. The existing triangulation
-and bounded translation input bind the refreshed record through superseding
-provenance without rerunning their content work. This strengthens later
-research without changing the zero accepted German count, opening a human
-task, authorizing local-payload transfer, or opening a translation lane.
+distinct plain-text claim, and facsimile layers. The Naumann 1893 image PDF
+now separately exercises the positive public-domain route across historical
+and faithful-scan layers, while its automatic EPUB preserves a conflicting
+later born-digital notice/package boundary instead of inheriting that result.
+The existing triangulation and bounded translation input bind the refreshed
+records through superseding provenance without rerunning their content work.
+This strengthens later research without changing the zero accepted German
+count, opening a human task, authorizing local-payload transfer, or opening a
+translation lane.
 
 All fifteen fixity-verified local items now have tracked text-free resource
 inventories. The four DTA parts and the Naumann 1893 EPUB/PDF pair additionally

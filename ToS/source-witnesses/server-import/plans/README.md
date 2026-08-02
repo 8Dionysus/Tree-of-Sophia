@@ -10,6 +10,18 @@ candidate without bypassing the operator's local-payload rule. The Commons
 public-domain statement is retained for later exact rights review; the current
 plan still exposes metadata/provenance only and transfers no local file.
 
+The two Naumann 1893 plans preserve a deliberate item-level fork inside one
+scan family. The exact image-container PDF records a positive DE/US
+public-domain assessment for its historical and faithful-scan layers, but its
+operator-held bytes remain local and the plan stays blocked, metadata-only,
+and unapproved. The automatic EPUB remains rights-unknown at plan level: its
+historical and mechanical layers are positive, while the later Internet
+Archive notice and born-digital package layers prevent an aggregate clearance.
+Neither plan permits uploading the local file. A future PDF must be separately
+reacquired and reviewed; a future EPUB must be newly built from an accepted
+rights-positive source, not treated as cleared by removing the conflicting
+package material.
+
 The four DTA TEIs bring the plan set to nine. Current DTA terms and all four
 live TEI headers provide positive CC BY-SA evidence. Their layer-specific
 records therefore classify the exact annotated TEIs as `licensed`, while

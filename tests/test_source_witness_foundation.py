@@ -2135,17 +2135,81 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertFalse(discovery["technical_access_bypass_used"])
 
-        rights = json.loads(
+        pdf_rights = json.loads(
             (
                 NAUMANN_1893_EDITION_ROOT
                 / "items/internet-archive-image-container-pdf/rights.json"
             ).read_text(encoding="utf-8")
         )
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
-        self.assertEqual("local_only", rights["visibility"])
-        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        epub_rights = json.loads(
+            (
+                NAUMANN_1893_EDITION_ROOT
+                / "items/internet-archive-cornell-auto-epub/rights.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            "public_domain_reviewed", pdf_rights["assessment_status"]
+        )
+        self.assertEqual("conflicting_evidence", epub_rights["assessment_status"])
+        for item_rights in (pdf_rights, epub_rights):
+            self.assertEqual(["DE", "US"], item_rights["jurisdictions_reviewed"])
+            self.assertEqual("local_only", item_rights["visibility"])
+            self.assertEqual(
+                "not_authorized", item_rights["redistribution_posture"]
+            )
+            self.assertEqual(
+                "local_research_only", item_rights["derivative_posture"]
+            )
+            self.assertEqual("unreviewed", item_rights["review_status"])
+            self.assertEqual(3, item_rights["record_version"])
+
+        pdf_layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in pdf_rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original-work",
+                "peter-gast-preface",
+                "edition-presentation",
+                "portrait",
+                "letter-facsimile",
+                "digital-scan",
+                "metadata",
+            },
+            set(pdf_layers),
+        )
+        for layer_name in set(pdf_layers) - {"metadata"}:
+            self.assertEqual(
+                "public_domain_reviewed",
+                pdf_layers[layer_name]["assessment_status"],
+            )
+        self.assertEqual(
+            "copyright_undetermined", pdf_layers["metadata"]["assessment_status"]
+        )
+
+        epub_layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in epub_rights["layer_assessments"]
+        }
+        self.assertEqual(
+            "in_copyright",
+            epub_layers["internet-archive-notice"]["assessment_status"],
+        )
+        self.assertEqual(
+            "not_authorized",
+            epub_layers["internet-archive-notice"]["redistribution_posture"],
+        )
+        self.assertEqual(
+            "copyright_undetermined",
+            epub_layers["package-navigation-style"]["assessment_status"],
+        )
         self.assertTrue(
-            any("Uebersetzungsrecht vorbehalten" in row for row in rights["restrictions"])
+            any(
+                "Uebersetzungsrecht vorbehalten" in row
+                for layer in pdf_rights["layer_assessments"]
+                for row in layer["restrictions"]
+            )
         )
         research = NAUMANN_1893_PROVISION_RESEARCH_PATH.read_text(encoding="utf-8")
         self.assertIn("one universal", research)
