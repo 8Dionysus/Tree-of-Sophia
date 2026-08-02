@@ -311,8 +311,9 @@ role-specific provisional publisher and printer Organizations. A separate
 page-4 anchor preserves `Alle Rechte vorbehalten.` only as historical rights
 evidence. All twelve Edition provision claims remain model-made,
 `public_metadata_only`, and `unreviewed`; no Edition statement, exact release,
-textual equivalence, current rights decision, or publication authority is
-created.
+textual equivalence, rights conclusion from the provision claim, or publication
+authority is created. A later independent layer-specific assessment reviews
+current rights evidence without changing any provision claim.
 
 The 1892 second *Zur Genealogie der Moral* Item adds two more claims without
 copying either shared-literal case. Page 5 anchors the publisher and Edition
@@ -497,6 +498,14 @@ XML coordinate companion. All three provider files are checksum-reconciled,
 gitignored, and local-only. The OCR companions are not independent textual
 witnesses and are not accepted German; they exist to make structure experiments
 reproducible without hiding machine navigation behind the PDF's embedded text.
+The historical Work and Edition, faithful historical page scan, and automatic
+historical OCR text are `public_domain_reviewed` for DE/US, but the generated
+Google cover, Harvard holding furniture, coordinate XML, package structure, and
+metadata remain unresolved. The exact three-file aggregate is therefore
+`conflicting_evidence`, redistribution `not_authorized`, derivatives
+`local_research_only`, and blocked from future-site transfer. A separate
+Harvard/Hathi 1886 volume found through the current Institutional Books route
+is not this physical Item and creates no identity or rights edge.
 
 The second transfer-work source tree advances *Zur Genealogie der Moral*
 beyond a provisional Russian collection-member expression. Its acquired file

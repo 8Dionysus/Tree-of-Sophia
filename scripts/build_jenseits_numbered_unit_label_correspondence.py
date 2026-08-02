@@ -60,12 +60,11 @@ MAP_ID = (
 )
 EVENT_ID = (
     "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
-    "jenseits-von-gut-und-boese.rights-refresh.2026-08-01"
+    "jenseits-von-gut-und-boese.layered-rights-refresh.2026-08-02"
 )
 SUPERSEDED_EVENT_ID = (
     "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
-    "jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996."
-    "2026-07-29"
+    "jenseits-von-gut-und-boese.rights-refresh.2026-08-01"
 )
 AUTHORITY_BOUNDARY = (
     "mechanical pairing of identical structural number-label keys already "
@@ -283,7 +282,7 @@ def build_outputs(
         },
         "provenance_ref": PROVENANCE_PATH.as_posix(),
         "provenance_event_ref": EVENT_ID,
-        "map_version": 2,
+        "map_version": 3,
         "supersedes_map_ref": None,
         "authority_boundary": AUTHORITY_BOUNDARY,
         "does_not_establish": DOES_NOT_ESTABLISH,
@@ -339,6 +338,10 @@ def build_outputs(
                 "local_payloads_read": False,
                 "source_to_target_text_compared": False,
                 "translation_alignment_inferred": False,
+                "source_numbered_unit_map_changed": False,
+                "target_numbered_unit_map_changed": False,
+                "pairing_content_changed": False,
+                "rights_binding_refreshed": True,
             },
             "prompt_or_instruction_ref": (
                 "ToS/doctrine/CORPUS_FOUNDATION.md#address-law"
@@ -362,10 +365,15 @@ def build_outputs(
                 "Source-only 237a remains unpaired because the target does not "
                 "materialize a repeated 237/237a label."
             ),
+            (
+                "The superseding event refreshes the source rights-basis digest "
+                "after a layered assessment; it does not rerun payload or text "
+                "comparison and does not establish rights clearance."
+            ),
         ],
         "receipt_refs": [MAP_PATH.as_posix()],
         "rights_basis_ref": None,
-        "event_version": 1,
+        "event_version": 2,
         "supersedes_event_ref": SUPERSEDED_EVENT_ID,
     }
     return rendered_map, _render_jsonl([provenance])
@@ -381,7 +389,7 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument(
         "--event-at",
-        default="2026-08-01T06:22:00-06:00",
+        default="2026-08-02T05:10:00-06:00",
     )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

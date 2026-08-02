@@ -87,6 +87,17 @@ JENSEITS_1886_PROVISION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md"
 )
+JENSEITS_1886_LAYERED_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md"
+)
+JENSEITS_1886_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "jenseits-naumann-1886-internet-archive-google-harvard-"
+    "scan-pdf.server-import.json"
+)
 JENSEITS_AUTHORIAL_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
@@ -2325,10 +2336,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         rights = json.loads(
             (JENSEITS_1886_ITEM_ROOT / "rights.json").read_text(encoding="utf-8")
         )
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
+        self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
         self.assertEqual("local_only", rights["visibility"])
-        self.assertEqual("unknown", rights["redistribution_posture"])
-        self.assertEqual("unknown", rights["derivative_posture"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual(4, rights["record_version"])
         self.assertTrue(
             any("Alle Rechte vorbehalten" in row for row in rights["restrictions"])
         )
@@ -2337,6 +2351,21 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn("historical rights evidence only", research)
         self.assertIn("General web search ran last", research)
+
+        layered_research = JENSEITS_1886_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        ordered_sections = [
+            "## Classical and official documentation",
+            "## Established scholarship, cases, and institutional practice",
+            "## Fresh and currently relevant checks",
+            "## General web search, last",
+        ]
+        positions = [layered_research.index(section) for section in ordered_sections]
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn("zero matches", layered_research)
+        self.assertIn("different physical volume", layered_research)
+        self.assertIn("No restricted row", layered_research)
 
     def test_genealogie_1892_provision_separates_distant_source_surfaces(
         self,
@@ -4691,12 +4720,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             JENSEITS_1886_DISCOVERY_PATH.read_text(encoding="utf-8")
         )
         server_plan = json.loads(
-            (
-                REPO_ROOT
-                / "ToS/source-witnesses/server-import/plans/"
-                "jenseits-naumann-1886-internet-archive-google-harvard-"
-                "scan-pdf.server-import.json"
-            ).read_text(encoding="utf-8")
+            JENSEITS_1886_SERVER_PLAN_PATH.read_text(encoding="utf-8")
         )
         self.assertEqual("digitized_physical_copy", manifest["item_kind"])
         self.assertEqual("local_only", manifest["visibility"])
@@ -4726,12 +4750,62 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "http://creativecommons.org/publicdomain/mark/1.0/",
             rights["rights_statement_uri"],
         )
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
+        self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
         self.assertEqual("unreviewed", rights["review_status"])
-        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual(4, rights["record_version"])
         self.assertIn(
-            "the operator-held payload remains local and is not a future-site upload",
+            "the operator-held PDF, DjVu XML, and ABBYY XML gzip remain local and are not future-site uploads",
             rights["restrictions"],
+        )
+        layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original-work",
+                "edition-presentation",
+                "faithful-page-scan",
+                "google-generated-cover",
+                "harvard-holding-furniture",
+                "automatic-historical-ocr-text",
+                "ocr-coordinate-xml",
+                "pdf-and-derivative-package",
+                "metadata",
+            },
+            set(layers),
+        )
+        for layer_name in {
+            "original-work",
+            "edition-presentation",
+            "faithful-page-scan",
+            "automatic-historical-ocr-text",
+        }:
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers[layer_name]["assessment_status"],
+            )
+        for layer_name in {
+            "google-generated-cover",
+            "harvard-holding-furniture",
+            "ocr-coordinate-xml",
+            "pdf-and-derivative-package",
+            "metadata",
+        }:
+            self.assertEqual(
+                "copyright_undetermined",
+                layers[layer_name]["assessment_status"],
+            )
+        self.assertEqual(
+            {
+                "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+                "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+                "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34",
+            },
+            set(rights["scope_refs"]) - {manifest["item_id"]},
         )
 
         self.assertFalse(inventory["source_text_included"])
@@ -4789,11 +4863,16 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertEqual(3, len(server_plan["payload_files"]))
-        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual("rights-unknown", server_plan["rights_policy"]["assessment_status"])
+        self.assertEqual(
+            ["DE", "US"],
+            server_plan["rights_policy"]["jurisdictions_reviewed"],
+        )
+        self.assertEqual(4, server_plan["contract_version"])
         self.assertEqual(
             [
                 "tos.event.server-import-plan.jenseits-naumann-1886."
-                "historical-rights-refresh.2026-08-01"
+                "layered-rights.2026-08-02"
             ],
             server_plan["provenance_event_refs"],
         )

@@ -7,43 +7,466 @@
     "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
     "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
   ],
-  "assessment_status": "copyright_undetermined",
+  "assessment_status": "conflicting_evidence",
   "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
   "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
     "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
     "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
     "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/structure/provision-statements/anchors.jsonl",
-    "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md",
-    "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
-    "http://creativecommons.org/publicdomain/mark/1.0/",
-    "https://archive.org/about/terms.php"
+    "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+    "https://creativecommons.org/publicdomain/mark/1.0/",
+    "https://creativecommons.org/public-domain/",
+    "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+    "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/lizenzen-und-rechtehinweise-der-lizenzkorb-der-deutschen-digitalen-bibliothek",
+    "https://copyright.gov/what-is-copyright/",
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/circs/circ38b.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/comp3/",
+    "https://library.harvard.edu/about/policies/policy-access-digital-reproductions-works-public-domain",
+    "https://library.harvard.edu/services-tools/harvard-library-public-domain-corpus",
+    "https://huggingface.co/datasets/institutional/institutional-books-1.0-metadata/blob/main/README.md",
+    "https://www.hathitrust.org/the-collection/preservation/rights-database/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://copyright.gov/what-is-copyright/",
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the historical Work may be treated as public domain in the reviewed DE and US routes subject to source-specific and server-admission controls"
+      ],
+      "restrictions": [
+        "this Work-level result does not clear a particular transcription, translation, edition, scan, package, or provider contribution"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900 and the ordinary German life-plus-seventy term ended at 1970-12-31; the Work was therefore already public domain through expiration in its source country on the 1996 URAA restoration date and fails a cumulative 17 U.S.C. 104A restoration condition",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to the historical Work in the reviewed DE and US routes; no later textual or digital contribution is included."
+      },
+      "uncertainty": "Work-level public domain does not prove source correctness, edition authority, or permission for later layers.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The reviewed German and United States terms are expired for Nietzsche's published Work."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+        "https://www.gesetze-im-internet.de/urhg/__66.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://copyright.gov/what-is-copyright/",
+        "https://www.copyright.gov/circs/circ38b.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible historical typography and presentation may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the result excludes modern cover design, holding furniture, scanning, OCR, wrapper, and provider metadata"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the Edition was published in Germany in 1886 and even the conservative German anonymous-publication route ended at 1956-12-31; the historical presentation was therefore already public domain through expiration in its source country on the 1996 URAA restoration date and fails a cumulative 17 U.S.C. 104A restoration condition",
+        "starts_on": null,
+        "ends_on": "1956-12-31",
+        "uncertainty": "No anonymous authorship or scientific-edition status is asserted; the conservative boundary shows that no reviewed historical presentation term remains active."
+      },
+      "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact 1886 presentation is far outside any reviewed term while modern digital and holding layers are assessed independently."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.faithful-page-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://creativecommons.org/publicdomain/mark/1.0/",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/lizenzen-und-rechtehinweise-der-lizenzkorb-der-deutschen-digitalen-bibliothek",
+        "https://www.copyright.gov/comp3/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "faithful page images of the historical public-domain book may be treated as public domain in the reviewed DE and US routes subject to exact-layer and source controls"
+      ],
+      "restrictions": [
+        "this layer excludes the modern Google cover, Harvard holding furniture, OCR coordinate structures, PDF wrapper, provider metadata, marks, and contracts",
+        "the operator-held PDF remains local and is not authorized for future-site upload"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the exact Item carries PDM 1.0; current German institutional book-scan guidance and the governing United States Copyright Office Compendium treat a faithful simple scan or mere digitization as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "This conclusion is limited to faithful historical page images in DE and US and does not clear creative enhancement, modern covers, holding furniture, database rights, contracts, marks, or other jurisdictions."
+      },
+      "uncertainty": "PDM is informational rather than legally operative, and the exact file is a mixed container whose other layers remain separately blocked.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Exact-object PDM, current German book-scan guidance, and the United States mere-copy rule converge for the faithful historical page scan only."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.google-generated-cover",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://creativecommons.org/public-domain/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded research inspection"
+      ],
+      "restrictions": [
+        "the modern page-1 Google cover has independent layout and design whose human authorship and exact license are unresolved",
+        "PDM is not silently extended from the old book to the generated cover"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the generated cover is modern, exact authorship is unknown, and no layer-specific license or waiver was found",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The cover may include automated and standard elements, but ToS has not established their legal origin or originality."
+      },
+      "uncertainty": "No inference of either active copyright or public domain is made.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source-visible modern cover is materially separate from the 1886 book and lacks an exact operative license."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.harvard-holding-furniture",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+        "https://library.harvard.edu/about/policies/policy-access-digital-reproductions-works-public-domain"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation and bounded source inspection",
+        "public-safe provenance may identify Harvard as the holding contributor"
+      ],
+      "restrictions": [
+        "bookplate, seal, stamps, shelf marks, names, trademarks, attribution interests, and other holding furniture remain separately unresolved",
+        "Harvard's policy for open reproductions on Harvard Library websites is not treated as the exact Internet Archive file license"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the holding furniture has mixed dates and functions, exact contributors are unresolved, and non-copyright controls may remain",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Some marks are old or factual, but age, copyright, trademark, attribution, and institutional policy are not interchangeable."
+      },
+      "uncertainty": "The layer is not presumed protected; it is left undetermined because the exact rights and non-copyright route is incomplete.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source-visible holding furniture is distinct from both Nietzsche's Work and the faithful page-capture process."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.automatic-historical-ocr-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+        "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://www.copyright.gov/comp3/",
+        "https://www.gesetze-im-internet.de/urhg/__2.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the mechanically recognized historical Nietzsche text may be treated as public-domain material in the reviewed DE and US routes subject to independent quality and source-admission controls"
+      ],
+      "restrictions": [
+        "this result excludes OCR coordinates, XML hierarchy, provider prose, modern cover text, holding furniture, human correction, and package structure",
+        "no OCR text has been accepted as correct German or authorized for future-site publication"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "automatic ABBYY recognition mechanically renders public-domain historical text and creates no new human-authored literary expression by itself",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result is limited to recognized historical content and does not reach structured coordinates, selection, arrangement, correction, or contracts."
+      },
+      "uncertainty": "Rights-positive automatic text may still be wrong, incomplete, reordered, or contaminated by modern furniture.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical text is public domain and the source metadata identifies ABBYY 9.0 machine recognition rather than a new human-authored edition."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.ocr-coordinate-xml",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+        "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/resource-inventory.json",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://www.gesetze-im-internet.de/urhg/__87a.html",
+        "https://curia.europa.eu/jcms/upload/docs/application/pdf/2012-03/cp120016en.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local parsing, comparison, and bounded laboratory use"
+      ],
+      "restrictions": [
+        "no exact license was found for the coordinate sets, hierarchy, arrangement, or XML files as packages",
+        "possible database and contract interests remain separate from the public-domain text tokens"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "individual coordinates are likely factual or mechanical, but the exact arrangement, database investment, and provider-contract posture have not been fully resolved",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Weak copyright originality does not itself eliminate database, contract, attribution, or other jurisdictional questions."
+      },
+      "uncertainty": "The structured layer is not declared protected; it remains fail-closed pending an exact reusable route.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The public-domain text and the machine coordinate database are distinct objects and the exact latter has no operative license."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.pdf-and-derivative-package",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "tos.file.sha256.6227d4a797fb27608386733a9d71fd06c049e5458c9e0687cb582f0c31177be0",
+        "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "http://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://archive.org/about/terms",
+        "https://creativecommons.org/public-domain/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "local preservation, fixity verification, and bounded laboratory processing"
+      ],
+      "restrictions": [
+        "PDM is not an operative package license and the current provider terms route supplied no exact file-level grant",
+        "wrapper structure, derivative choices, generated furniture, coordinate hierarchy, and mixed-layer composition remain excluded from public transfer"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the package is modern and mechanically generated but combines unresolved cover, holding, coordinate, wrapper, and provider layers without an exact operative license",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Automation weakens human-authorship claims but does not establish a complete copyright, database, contract, or other-rights result."
+      },
+      "uncertainty": "The exact three-file package cannot inherit the most permissive result of only its historical layers.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The derivative chain is fixity-known and rights-mixed; no exact license clears the package as a whole."
+    },
+    {
+      "layer_id": "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf.layer.metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+        "https://library.harvard.edu/services-tools/harvard-library-apis-datasets",
+        "https://huggingface.co/datasets/institutional/institutional-books-1.0-metadata/blob/main/README.md",
+        "https://www.hathitrust.org/the-collection/preservation/rights-database/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "bounded source-attributed bibliographic facts and transformed non-substitute research findings may remain public-safe",
+        "ToS may record that exact OCLC 247426798 was absent from the queried Institutional Books snapshot and that one non-identical 1886 volume was found"
+      ],
+      "restrictions": [
+        "no blanket provider metadata or database extraction is authorized",
+        "the Institutional Books Early Access row, dataset subset, source text, and source images are not redistributed",
+        "a low-precedence Hathi pd/bib determination is not manual rights clearance or an identity bridge"
+      ],
+      "redistribution_posture": "metadata_only",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "many individual fields are factual, but exact provider collections, authored descriptions, database extraction, and access contracts have distinct postures",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Harvard bibliographic metadata policy, Internet Archive metadata, Hathi rights data, and the Institutional Books Early Access contract are not interchangeable."
+      },
+      "uncertainty": "The record permits bounded attributed facts and transformed research conclusions, not unrestricted reuse of any source database.",
+      "assessed_at": "2026-08-02T04:45:00-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Metadata remains a separate fail-closed layer even where particular bibliographic facts are public-safe."
+    }
   ],
   "permissions": [
     "local preservation and bounded research use",
     "public bibliographic metadata and provenance may remain tracked",
-    "the source provider marks the exact Internet Archive digital object with Public Domain Mark 1.0 and exposes open download routes for the PDF and OCR companions"
+    "the historical Work, 1886 Edition presentation, faithful historical page scan, and automatic historical OCR text have a positive public-domain basis in the reviewed DE and US routes"
   ],
   "restrictions": [
-    "the operator-held payload remains local and is not a future-site upload",
-    "Public Domain Mark 1.0 is a source statement rather than a license or a jurisdiction-complete ToS conclusion",
-    "underlying 1886 text, physical scan, Google digitization, Internet Archive PDF, embedded OCR, DjVu XML, and ABBYY XML layers require separate review",
+    "the operator-held PDF, DjVu XML, and ABBYY XML gzip remain local and are not future-site uploads",
+    "Public Domain Mark 1.0 is an informational source statement rather than a license, waiver, warranty, or jurisdiction-complete ToS conclusion",
+    "the modern Google cover, Harvard holding furniture, OCR-coordinate XML, PDF and derivative package, and metadata layers remain unresolved",
     "preserve the source-visible 1886 Alle Rechte vorbehalten statement as historical evidence without treating it as a current prohibition or permission",
-    "any future public-site payload must be independently selected or reacquired through an exact currently authorized route after human rights review"
+    "the distinct Harvard and Hathi volume found through Institutional Books is not the same physical Item and supplies no rights bridge to this package",
+    "any future public payload must be independently reacquired through an exact then-current upstream route and pass fresh fixity, layer, human-rights-review, and explicit operator-approval gates",
+    "no source text, OCR correctness, translation, semantic claim, or graph relation is accepted by this rights record"
   ],
   "visibility": "local_only",
-  "redistribution_posture": "unknown",
-  "derivative_posture": "unknown",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
   "assessed_by": {
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-08-01T06:03:00-06:00",
-  "rationale": "The exact 1886 item carries unusually strong positive evidence: a source-visible historical title page, an Internet Archive Public Domain Mark, open PDF and OCR-companion download routes, an independent e-rara Public Domain Mark route, and a public-domain-age underlying work. The following source page also visibly states Alle Rechte vorbehalten. These facts concern different layers and times and are not a ToS legal conclusion or license. They do not replace jurisdiction-specific human review or the operator rule that locally held source files are never uploaded to the site. The local copies therefore remain research-only while public routes are preserved for later exact review.",
+  "assessed_at": "2026-08-02T04:45:00-06:00",
+  "rationale": "Current exact-object, German, United States, Creative Commons, Harvard, Hathi, and Institutional Books evidence supports the historical and faithful mechanical layers but not the mixed modern package. PDM is strong evidence for the old-book object, yet no exact operative license clears the generated cover, holding furniture, coordinate hierarchy, wrapper, or provider collection. The aggregate is therefore conflicting evidence and remains local-only and fail-closed for transfer. Local custody and future server admission remain stricter operator decisions even for rights-positive layers.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 3,
+  "record_version": 4,
   "supersedes_rights_ref": null
 }

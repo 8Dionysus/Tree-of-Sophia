@@ -33,14 +33,28 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
-    "rights_record_sha256": "57421cdb9dc1e4e8d0ced20f7d9d5182df883d8f0bf77b11147aa495279960eb",
+    "rights_record_sha256": "474d865fd4cb5bf49e0697477cf7003515bce23a3c6fcece5b780d1796860365",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
     "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/source-metadata-snapshot.json",
-      "https://archive.org/details/bub_gb_YIURAAAAYAAJ",
-      "http://creativecommons.org/publicdomain/mark/1.0/"
+      "https://archive.org/metadata/bub_gb_YIURAAAAYAAJ",
+      "https://creativecommons.org/publicdomain/mark/1.0/",
+      "https://creativecommons.org/public-domain/",
+      "https://www.gesetze-im-internet.de/urhg/BJNR012730965.html",
+      "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/lizenzen-und-rechtehinweise-der-lizenzkorb-der-deutschen-digitalen-bibliothek",
+      "https://copyright.gov/what-is-copyright/",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/comp3/",
+      "https://library.harvard.edu/about/policies/policy-access-digital-reproductions-works-public-domain",
+      "https://huggingface.co/datasets/institutional/institutional-books-1.0-metadata/blob/main/README.md"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -50,19 +64,19 @@
     "ocr": {
       "state": "prohibited",
       "conditions": [
-        "This future-server plan authorizes no server-side source processing; local laboratory OCR remains a separate non-public lane."
+        "The historical and faithful mechanical layers have positive DE/US evidence, but the mixed package, human rights review, and operator approval gates remain unresolved; local laboratory OCR is a separate non-public lane."
       ]
     },
     "transcription": {
       "state": "prohibited",
       "conditions": [
-        "No embedded or derived transcription has been textually accepted or authorized for server publication."
+        "Automatic historical OCR is rights-positive only as a mechanical rendering; it has not been checked, textually accepted, or authorized for server publication."
       ]
     },
     "page_images": {
       "state": "prohibited",
       "conditions": [
-        "The operator-held scan remains local and is never uploaded to the future site."
+        "The operator-held scan remains local and is never uploaded to the future site; any public candidate must be independently reacquired and reviewed by layer."
       ]
     },
     "snippets": {
@@ -74,13 +88,13 @@
     "lexical_index": {
       "state": "conditional",
       "conditions": [
-        "Public-safe bibliographic metadata only; no payload-derived text."
+        "Public-safe, source-attributed bibliographic metadata and transformed non-substitute research findings only; no provider database row or payload-derived text."
       ]
     },
     "embeddings": {
       "state": "prohibited",
       "conditions": [
-        "No server-side source processing is authorized by this plan."
+        "No server-side source processing is authorized while modern cover, holding furniture, coordinate XML, package, and metadata layers remain unresolved."
       ]
     },
     "alignments": {
@@ -104,13 +118,13 @@
     "search_projection": {
       "state": "conditional",
       "conditions": [
-        "Metadata-only records with no payload-derived text."
+        "Metadata-only records with no payload-derived text, OCR coordinates, or restricted dataset rows."
       ]
     },
     "graph_projection": {
       "state": "conditional",
       "conditions": [
-        "Public-safe work, expression, edition, item, provenance, and source-route metadata only."
+        "Public-safe work, expression, edition, item, provenance, layer-status, and source-route metadata only; the separate Harvard/Hathi volume is not an identity edge."
       ]
     }
   },
@@ -129,13 +143,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-01T06:20:00-06:00"
+    "last_reviewed_at": "2026-08-02T04:48:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.jenseits-naumann-1886.historical-rights-refresh.2026-08-01"
+    "tos.event.server-import-plan.jenseits-naumann-1886.layered-rights.2026-08-02"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 3,
+  "contract_version": 4,
   "supersedes_server_import_ref": null
 }

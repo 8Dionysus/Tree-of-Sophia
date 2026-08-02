@@ -33,15 +33,17 @@ fresh public-object acquisition, and explicit operator transfer approval have
 not occurred, and the operator-held TEIs are not future-site upload sources.
 
 The tenth plan covers the exact 1886 Naumann *Jenseits von Gut und Böse*
-Harvard/Google scan selected through Internet Archive. Its Public Domain Mark,
-historical age, open route, and source-visible title page are retained as
-positive publication-candidate evidence. The separately addressed `Alle
-Rechte vorbehalten.` line is historical evidence rather than a current legal
-conclusion, so the record remains rights-unknown and local-only, with
-redistribution and derivative publication unknown. The plan still transfers no local
-payload: a future site may only select or reacquire an independently reviewed
-authorized object, and neither the embedded OCR nor any German–Russian
-derivative inherits publication approval from the scan record.
+Harvard/Google three-file scan package selected through Internet Archive. Its
+historical Work and Edition, faithful page-scan layer, and automatic historical
+OCR text are `public_domain_reviewed` for DE/US. Its generated Google cover,
+Harvard holding furniture, word-coordinate XML, PDF/derivative package, and
+metadata remain unresolved, so the aggregate record is `conflicting_evidence`
+and the plan remains rights-unknown. The separately addressed `Alle Rechte
+vorbehalten.` line is historical evidence rather than a current prohibition or
+permission. The plan still transfers no local payload and authorizes no
+content-bearing derivative. A future site may only select or reacquire an
+independently reviewed current object; the different Harvard/Hathi volume found
+through Institutional Books is a separate route, not the same Item.
 
 The eleventh plan covers the exact Wikimedia Commons revision of the
 UNC/Internet Archive scan of the 1892 second Naumann *Zur Genealogie der

@@ -101,7 +101,7 @@ NUMBERED_UNIT_LABEL_TARGET_RIGHTS_PATH = Path(
 )
 NUMBERED_UNIT_LABEL_EVENT_ID = (
     "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche."
-    "jenseits-von-gut-und-boese.rights-refresh.2026-08-01"
+    "jenseits-von-gut-und-boese.layered-rights-refresh.2026-08-02"
 )
 NUMBERED_UNIT_EVENT_ID = (
     "tos.event.numbered-unit-page-map.friedrich-nietzsche."

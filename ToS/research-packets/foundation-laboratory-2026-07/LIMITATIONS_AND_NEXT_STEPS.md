@@ -372,11 +372,15 @@ contracts intentionally reject simulated human evidence.
   1913 scan remains local and is not a future-site upload source. A later site
   may serve only a separately reviewed, explicitly authorized material route.
 - The exact 1886 Naumann *Jenseits* item is likewise marked by Internet
-  Archive with Public Domain Mark 1.0 and has a strong historical-age case.
-  That is positive route evidence, not a license or a jurisdiction-complete
-  decision across scan, digitization, PDF, and OCR layers. Its operator-held
-  copy remains local; any future public object must be independently reviewed
-  and selected or reacquired through a current authorized route.
+  Archive with Public Domain Mark 1.0. Current DE/US research positively
+  assesses the historical Work and Edition, faithful historical page scan, and
+  automatic historical OCR text. It does not clear the generated Google cover,
+  Harvard holding furniture, coordinate XML, PDF/derivative package, or
+  metadata; PDM is informational rather than an operative license. The exact
+  three-file aggregate is therefore `conflicting_evidence`, not one open
+  payload. Its operator-held files remain local. A distinct Harvard/Hathi 1886
+  volume found through Institutional Books is a possible separately governed
+  acquisition route, not the same physical Item or a rights bridge.
 - Wikimedia Commons declares the exact acquired 2020 *Genealogie* file
   revision public domain, `Copyrighted=False`, and covered by its
   `PD-US-expired` template. This is strong exact-file evidence, not a
@@ -1075,6 +1079,15 @@ from the calibration-only route in section 2b.
    rights-positive source. Do not remove the later notice or other born-digital
    members from the current local EPUB and represent the remainder as a
    cleared package.
+9. Reacquire any future public *Jenseits* 1886 object independently and inspect
+   its exact page-image, cover, holding-furniture, OCR, coordinate, package, and
+   metadata layers before human rights review and operator approval. Do not
+   upload any of the three operator-held files or relabel a stripped local
+   derivative as the original package.
+10. Treat the different Harvard/Hathi 1886 volume as a new Item only after an
+    operator-approved request and current access-contract review. Shared author,
+    title, publisher, and year do not establish physical identity, rights
+    equivalence, text equivalence, or server admission.
 
 ## Definition-of-done reconciliation
 

@@ -186,7 +186,7 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
 
         actual_map, actual_provenance = label_builder.build_outputs(
             repo_root=REPO_ROOT,
-            event_at="2026-08-01T06:22:00-06:00",
+            event_at="2026-08-02T05:10:00-06:00",
         )
 
         self.assertEqual(expected_map, actual_map)
