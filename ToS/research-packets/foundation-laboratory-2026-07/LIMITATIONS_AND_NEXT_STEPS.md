@@ -441,11 +441,18 @@ contracts intentionally reject simulated human evidence.
   historical Edition, scan, mechanical text, creative reconstruction,
   translation, and metadata as separately governed layers.
 - Commons marks the exact acquired *Ecce Homo* revision `PD-US-expired`.
-  That is positive United States evidence, not a global conclusion. Raoul
-  Richter's editorial layer, Henry van de Velde's binding and ornaments, the
-  Getty scan, Internet Archive lineage, Commons revision, embedded OCR, and
-  future derivatives remain separately reviewable. The operator-held PDF
-  stays local and its server plan remains metadata-only.
+  Current DE/US research makes that boundary concrete rather than global:
+  Nietzsche's Work and Richter's editing and separately authored afterword are
+  `public_domain_reviewed`, while the title, binding, lettering, and ornaments
+  attributed by the colophon to Henry van de Velde remain `in_copyright` in
+  Germany through 2027-12-31. Faithful scanning adds no new right but cannot
+  erase the protected design. The exact mixed Commons PDF is therefore
+  aggregate `in_copyright`; Getty holding furniture and Internet Archive
+  package layers remain unresolved, while Commons structured metadata is CC0
+  and unstructured description prose CC BY-SA only within those exact scopes.
+  The operator-held PDF stays local and its plan remains `restricted`,
+  metadata-only, blocked, and operator-unapproved. A post-2027 route is a new
+  reacquisition and review cycle, not automatic promotion of the local file.
 - The exact GSA IIIF manifests for the selected *Ecce Homo* manuscript route
   declare their digital objects `Public Domain`, while the general GSA usage
   regulations require prior approval for reproduction use beyond personal

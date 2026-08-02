@@ -431,10 +431,13 @@ collection containing it. The seed deliberately includes:
   *Götzen-Dämmerung*, with 164 ordered IIIF canvases, the same explicit
   provider-cover offset, local fixity, and a text-free 165-page inventory;
 - the exact permanent Wikimedia Commons revision of the Getty/Internet
-  Archive scan of the posthumous 1908 Insel *Ecce homo*, copy 965, with local
-  fixity, a text-free 166-page inventory, a source-visible Nietzsche/Richter
-  responsibility boundary, and the DNB 155-page versus IA/Open Library
-  154-page catalog conflict preserved.
+Archive scan of the posthumous 1908 Insel *Ecce homo*, copy 965, with local
+fixity, a text-free 166-page inventory, a source-visible Nietzsche/Richter
+responsibility boundary, and the DNB 155-page versus IA/Open Library
+154-page catalog conflict preserved. Its eleven-layer rights record separates
+public-domain Nietzsche and Richter strata from van de Velde's German design
+term through 2027-12-31, the exact mixed Commons object, Getty furniture,
+licensed Commons metadata surfaces, and unresolved Internet Archive package.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -575,9 +578,15 @@ the posthumous Richter/Köselitz expression is Nietzsche's lost author-final
 state or a modern critical reconstruction. The visible book itself separates
 Nietzsche's text through printed page 130 from Richter's separately titled
 afterword beginning at printed page 133. Commons' `PD-US-expired` statement is
-positive but US-scoped evidence; van de Velde's binding and ornaments and the
-other object layers remain unreviewed. The local PDF is not a future-site
-upload source.
+positive but US-scoped evidence. Current DE/US research now assesses
+Nietzsche's Work and Richter's editing and afterword as public domain, while
+the source-visible title, binding, lettering, and ornaments attributed to van
+de Velde remain in copyright in Germany through 2027-12-31. Commons carries no
+German source-country tag, Getty exposes no exact CC0 record for this scanned
+book, and the exact aggregate is therefore `in_copyright`, `local_only`, and
+`not_authorized`. The local PDF is never a future-site upload source; a
+post-2027 candidate must be independently reacquired and pass fresh rights,
+fixity, quality, human-review, and operator gates.
 
 The same route now exercises multi-role responsibility claims without
 flattening the book into one creator. The Work points to Nietzsche through

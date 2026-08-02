@@ -240,6 +240,11 @@ ECCE_HOMO_1908_ITEM_ROOT = (
 ECCE_HOMO_RESPONSIBILITY_CLAIMS_PATH = (
     ECCE_HOMO_WORK_ROOT / "responsibility-claims.jsonl"
 )
+ECCE_HOMO_1908_LAYERED_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 WORK_CHRONOLOGY_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication"
@@ -6754,15 +6759,68 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             source_snapshot["editorial_and_critical_boundary"]["decision"],
         )
 
-        self.assertEqual("copyright_undetermined", rights["assessment_status"])
-        self.assertEqual([], rights["jurisdictions_reviewed"])
-        self.assertEqual("unknown", rights["redistribution_posture"])
+        self.assertEqual("in_copyright", rights["assessment_status"])
+        self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual(2, rights["record_version"])
         self.assertIn(
             "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
             rights["rights_statement_uri"],
         )
         self.assertTrue(
-            any("Henry van de Velde" in restriction for restriction in rights["restrictions"])
+            any("van de Velde" in restriction for restriction in rights["restrictions"])
+        )
+        rights_layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original-work",
+                "richter-editing",
+                "richter-afterword",
+                "van-de-velde-applied-art",
+                "faithful-capture-process",
+                "embedded-historical-ocr",
+                "exact-commons-digital-object",
+                "getty-holding-furniture",
+                "commons-structured-metadata",
+                "commons-unstructured-description",
+                "internet-archive-lineage-package",
+            },
+            set(rights_layers),
+        )
+        for layer_id in (
+            "original-work",
+            "richter-editing",
+            "richter-afterword",
+            "faithful-capture-process",
+            "embedded-historical-ocr",
+        ):
+            self.assertEqual(
+                "public_domain_reviewed",
+                rights_layers[layer_id]["assessment_status"],
+            )
+        self.assertEqual(
+            "in_copyright",
+            rights_layers["van-de-velde-applied-art"]["assessment_status"],
+        )
+        self.assertEqual(
+            "2027-12-31",
+            rights_layers["van-de-velde-applied-art"]["term"]["ends_on"],
+        )
+        self.assertEqual(
+            "in_copyright",
+            rights_layers["exact-commons-digital-object"]["assessment_status"],
+        )
+        self.assertEqual(
+            "https://creativecommons.org/publicdomain/zero/1.0/",
+            rights_layers["commons-structured-metadata"]["license_uri"],
+        )
+        self.assertEqual(
+            "https://creativecommons.org/licenses/by-sa/4.0/",
+            rights_layers["commons-unstructured-description"]["license_uri"],
         )
 
         self.assertEqual(
@@ -6859,6 +6917,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertEqual("metadata-only", server_plan["publication_status"])
+        self.assertEqual(
+            "restricted", server_plan["rights_policy"]["assessment_status"]
+        )
+        self.assertEqual(
+            ["DE", "US"], server_plan["rights_policy"]["jurisdictions_reviewed"]
+        )
+        self.assertEqual(2, server_plan["contract_version"])
         for derivative in (
             "ocr",
             "transcription",
@@ -6881,7 +6946,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        responsibility_event = provenance_events[-1]
+        responsibility_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.annotation.ecce-homo."
+            "insel-1908-responsibility-claims.2026-07-30"
+        )
         self.assertEqual(
             "tos.event.annotation.ecce-homo."
             "insel-1908-responsibility-claims.2026-07-30",
@@ -6912,6 +6983,39 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             },
             responsibility_event["method"]["configuration"],
         )
+        rights_event = provenance_events[-1]
+        self.assertEqual(
+            "tos.event.rights-assessment.ecce-homo."
+            "insel-1908.layered-rights.2026-08-02",
+            rights_event["event_id"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ECCE_HOMO_1908_ITEM_ROOT / "rights.json").read_bytes()
+            ).hexdigest(),
+            rights_event["outputs"][0]["sha256"],
+        )
+        self.assertEqual(
+            11, rights_event["method"]["configuration"]["layers_assessed"]
+        )
+        self.assertFalse(
+            rights_event["method"]["configuration"]["source_text_admitted"]
+        )
+
+        rights_research = ECCE_HOMO_1908_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        ordered_sections = [
+            "## Classical and official documentation",
+            "## Established scholarship, cases, and institutional practice",
+            "## Fresh and currently relevant checks",
+            "## General web search, last",
+        ]
+        positions = [rights_research.index(section) for section in ordered_sections]
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn("eleven-layer rights model", rights_research)
+        self.assertIn("2027-12-31", rights_research)
+        self.assertIn("operator-held PDF is never", rights_research)
 
         responsibility_route = (
             REPO_ROOT

@@ -5,41 +5,575 @@
     "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
     "tos.file.sha256.f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc"
   ],
-  "assessment_status": "copyright_undetermined",
+  "assessment_status": "in_copyright",
   "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "DE",
+    "US"
+  ],
   "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
     "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
     "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
     "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
-    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+    "https://archive.org/metadata/eccehomo00niet_0",
+    "https://d-nb.info/gnd/116512857",
+    "https://d-nb.info/gnd/118626442",
+    "https://www.gesetze-im-internet.de/urhg/__2.html",
+    "https://www.gesetze-im-internet.de/urhg/__64.html",
+    "https://www.gesetze-im-internet.de/urhg/__69.html",
+    "https://www.copyright.gov/circs/circ15a.pdf"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.ecce-homo"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Nietzsche's historical Ecce Homo Work may be treated as public domain in the reviewed DE and US routes subject to source-specific and server-admission controls"
+      ],
+      "restrictions": [
+        "the Work-level result does not clear the 1908 editing, afterword, design, scan, digital object, OCR arrangement, provider contribution, critical reconstruction, translation, or accepted text"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900 and the German ordinary life-plus-seventy term ended at 1970-12-31; the Work was published in 1908 and is also inside the current United States pre-1931 public-domain boundary",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to Nietzsche's historical Work in the reviewed DE and US routes and includes no later editorial, design, textual, or digital contribution."
+      },
+      "uncertainty": "Work-level public domain does not prove source correctness, author-final status, completeness, edition authority, or permission for later layers.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The reviewed German and United States terms are expired for Nietzsche's historical Work."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.richter-editing",
+      "layer_role": "editing",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+        "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+        "tos.agent.raoul-richter"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/responsibility-claims.jsonl",
+        "https://d-nb.info/gnd/116512857",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.gesetze-im-internet.de/urhg/__70.html",
+        "https://infocuria.curia.europa.eu/tabs/affair?lang=en&publishedId=C-649%2F23",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.raoul-richter"
+      ],
+      "permissions": [
+        "any copyright-capable creative editing by Richter in the 1908 Edition may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the result does not establish that every editorial choice was creative, qualify the Edition under UrhG Section 70, or accept the resulting text as Nietzsche-final or critical",
+        "later critical, normalized, or AI-plus-human editions remain independent rights and responsibility layers"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Richter died in 1912, so a conservative ordinary German author term ended at 1982-12-31; any qualifying 1908 scientific-edition related right under UrhG Section 70 ended at 1933-12-31; the 1908 publication is also inside the current United States pre-1931 boundary",
+        "starts_on": null,
+        "ends_on": "1982-12-31",
+        "uncertainty": "The later endpoint is used conservatively without asserting that the editing independently qualified as a creative work or scientific edition."
+      },
+      "uncertainty": "CJEU Case C-649/23 confirms that creative critical editing can be separately protected, but this record makes no originality or critical-edition adjudication and only calculates expired alternative terms.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Every plausible reviewed German or United States term for Richter's 1908 editorial contribution has expired."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.richter-afterword",
+      "layer_role": "commentary",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+        "tos.agent.raoul-richter"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/responsibility-claims.jsonl",
+        "https://d-nb.info/gnd/116512857",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.raoul-richter"
+      ],
+      "permissions": [
+        "Richter's separately titled editor's afterword may be treated as public domain in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "the afterword must retain distinct authorship and anchors and must never be flattened into Nietzsche's voice",
+        "public-domain status does not establish transcription quality, scholarly authority, or acceptance"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Richter died in 1912 and the German ordinary life-plus-seventy term ended at 1982-12-31; the afterword was published in 1908 and is also inside the current United States pre-1931 boundary",
+        "starts_on": null,
+        "ends_on": "1982-12-31",
+        "uncertainty": "The result is limited to Richter's historical afterword and excludes later notes, transcriptions, commentary, and annotations."
+      },
+      "uncertainty": "The source-visible afterword boundary is model-reviewed and has not been independently repeated by a human.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Richter's independently authored 1908 afterword is outside the reviewed German and United States terms."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.van-de-velde-applied-art",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.ecce-homo.leipzig-insel-verlag-1908",
+        "tos.agent.henry-van-de-velde",
+        "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/responsibility-claims.jsonl",
+        "https://d-nb.info/gnd/118626442",
+        "https://www.gesetze-im-internet.de/urhg/__2.html",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://juris.curia.europa.eu/juris/document/document.jsf?docid=306835&doclang=en"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.henry-van-de-velde"
+      ],
+      "permissions": [
+        "the 1908 applied-art layer is public domain in the reviewed United States route because it was published before 1931",
+        "local preservation and bounded internal research may continue under the operator's private-custody rule"
+      ],
+      "restrictions": [
+        "treat van de Velde's attributed title, binding, lettering, and ornaments as in copyright in Germany through 2027-12-31 absent an exact permission",
+        "no exact license, waiver, or current rights-holder permission was found",
+        "CJEU originality doctrine does not permit dismissal of applied art because it is utilitarian, but this model record does not adjudicate originality or ownership",
+        "do not publish the exact PDF, its designed pages, or a source-derived page set through ToS under the current German route"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "active",
+        "basis": "van de Velde died on 1957-10-25; under UrhG Sections 64 and 69 the German ordinary life-plus-seventy term runs through 2027-12-31, while the 1908 publication is already public domain in the United States",
+        "starts_on": null,
+        "ends_on": "2027-12-31",
+        "uncertainty": "The endpoint assumes copyright-capable applied-art expression and does not identify a current rights holder, adjudicate originality, or review jurisdictions other than DE and US."
+      },
+      "uncertainty": "The exact colophon and visible design strongly require a fail-closed posture, but a court or human legal reviewer could characterize particular elements differently.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The named and visible van de Velde design contribution has an active ordinary German term and no exact permission; that layer blocks aggregate publication."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.faithful-capture-process",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+        "tos.file.sha256.f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/resource-inventory.json",
+        "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the faithful mechanical capture process adds no independent copyright to the depicted pages in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "this no-new-right result does not make depicted in-copyright design public domain and does not clear Getty furniture, creative enhancement, OCR arrangement, PDF packaging, contracts, marks, or other jurisdictions",
+        "the operator-held PDF remains local and is not authorized for future-site upload"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "current German institutional guidance and the United States human-authorship rule treat faithful simple scanning or mere digitization as creating no new copyrightable authorship",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result addresses only the act of faithful capture, not the rights status of the depicted content or the exact derivative package."
+      },
+      "uncertainty": "The source capture is treated as faithful for this bounded rule; creative enhancement or non-flat physical-object photography would require a different assessment.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The scan process adds no separate reviewed right, while the active German design remains fully preserved as a depicted-content ceiling."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.embedded-historical-ocr",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+        "tos.file.sha256.f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
+        "https://archive.org/metadata/eccehomo00niet_0",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "mechanically recognized Nietzsche and Richter historical text adds no new literary copyright in the reviewed DE and US routes"
+      ],
+      "restrictions": [
+        "this rights result does not accept a single OCR token, reading order, responsibility boundary, coordinate, layout, or transcription",
+        "OCR coordinates, arrangement, and the derivative package remain separate and no server text processing is authorized by the aggregate Item"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "automatic recognition of public-domain historical text supplies no new human-authored literary expression",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "This does not decide whether isolated OCR arrangement, correction, or annotation contains separately authored material."
+      },
+      "uncertainty": "The embedded layer has not been fully extracted, responsibility-separated, collated, or human reviewed.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The recognized Nietzsche and Richter prose is outside the reviewed terms, while OCR correctness and package rights remain open."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.exact-commons-digital-object",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf",
+        "tos.file.sha256.f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc",
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+        "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+        "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+        "https://www.gesetze-im-internet.de/urhg/__64.html",
+        "https://www.gesetze-im-internet.de/urhg/__69.html",
+        "https://www.copyright.gov/circs/circ15a.pdf"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.henry-van-de-velde"
+      ],
+      "permissions": [
+        "Commons supplies positive public-domain evidence for the exact file in the United States",
+        "local preservation and bounded internal research may continue under the operator's private-custody rule"
+      ],
+      "restrictions": [
+        "the current file page uses only PD-US-expired and lacks the source-country tag that its own template requires for a non-United-States work",
+        "the exact file reproduces the active German van de Velde design layer and has no exact German permission or license",
+        "Commons extmetadata and hosting do not constitute a jurisdiction-complete warranty",
+        "unresolved Getty furniture, OCR arrangement, PDF wrapper, marks, contract, and other-jurisdiction questions remain separate",
+        "the operator-held PDF remains local and is never uploaded to the future site"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "active",
+        "basis": "the exact object transmits van de Velde's active German applied-art layer through 2027-12-31 even though the 1908 publication is public domain in the United States",
+        "starts_on": null,
+        "ends_on": "2027-12-31",
+        "uncertainty": "Expiry of the design term will not automatically clear contracts, furniture, marks, package contributions, other jurisdictions, or operator admission."
+      },
+      "uncertainty": "The exact current United States provider statement is positive, but the German source-country result is adverse and other exact-object layers remain unresolved.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact PDF is public domain only on the current United States route; its active German design layer requires aggregate in-copyright treatment."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.getty-holding-furniture",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "not_assessed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/forensic-report.md",
+        "https://www.getty.edu/legal/terms-of-use/"
+      ],
+      "rights_holder_refs": [
+        "Getty Research Institute"
+      ],
+      "permissions": [
+        "public-safe facts about the physical holding and scan lineage may remain source attributed"
+      ],
+      "restrictions": [
+        "the Getty barcode, label, blank plate, marks, and other physical-copy furniture have no exact object-specific CC0 or publication grant",
+        "Getty's general Open Content Program applies only to exact marked records and was not inherited from institutional contribution or sponsorship",
+        "trademark, contract, attribution, and other non-copyright interests remain separately applicable"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the dates, authorship, originality, exact Getty terms, and non-copyright interests of the holding furniture are not established",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Some elements may be factual, unprotected, or marks rather than works; no positive aggregate permission is inferred."
+      },
+      "uncertainty": "The layer is preserved as an explicit ceiling rather than treated as old-book content.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "No exact Getty Open Content mark or object-specific permission was found for the source-visible holding furniture."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.commons-structured-metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "rights_holder_refs": [
+        "Wikimedia Commons contributors"
+      ],
+      "permissions": [
+        "structured file-namespace data identified by the Commons footer may be reused under CC0 1.0 within its exact scope"
+      ],
+      "restrictions": [
+        "CC0 applies to the identified structured metadata surface and is not a license for the PDF, historical design, scan images, OCR, unstructured prose, Getty furniture, or Internet Archive package",
+        "ToS retains source attribution and exact identifiers even where CC0 does not require attribution"
+      ],
+      "redistribution_posture": "authorized",
+      "derivative_posture": "allowed",
+      "server_processing_posture": "authorized",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the current Commons file-page footer identifies structured file-namespace data as available under CC0 1.0",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Field boundaries, third-party linked content, unstructured prose, and non-copyright rights remain separately scoped."
+      },
+      "uncertainty": "The metadata route does not convert the exact Commons PDF or its German design layer into CC0 material.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Commons supplies a distinct CC0 route for structured file-namespace data only."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.commons-unstructured-description",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": null,
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": [
+        "Wikimedia Commons contributors"
+      ],
+      "permissions": [
+        "unstructured Commons description prose may be reused under CC BY-SA 4.0 within its exact scope"
+      ],
+      "restrictions": [
+        "reuse requires attribution, a license link, change indication where applicable, and ShareAlike for adapted material",
+        "the prose license is not a license for the PDF, historical design, scan images, OCR, Getty furniture, or Internet Archive package"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "the current Commons file-page footer identifies unstructured page text as available under CC BY-SA 4.0",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The exact boundary between structured data, transcluded templates, third-party facts, and contributor prose must be preserved."
+      },
+      "uncertainty": "Only actually reused contributor prose enters this layer; source-visible book text is excluded.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Commons supplies a distinct CC BY-SA 4.0 route for unstructured page prose only."
+    },
+    {
+      "layer_id": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf.layer.internet-archive-lineage-package",
+      "layer_role": "other",
+      "scope_refs": [
+        "https://archive.org/details/eccehomo00niet_0",
+        "https://archive.org/metadata/eccehomo00niet_0"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "not_assessed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "DE",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/details/eccehomo00niet_0",
+        "https://archive.org/metadata/eccehomo00niet_0",
+        "https://archive.org/about/terms.php"
+      ],
+      "rights_holder_refs": [
+        "Internet Archive",
+        "Getty Research Institute"
+      ],
+      "permissions": [
+        "public-safe source-attributed lineage facts and identifiers may remain in ToS metadata"
+      ],
+      "restrictions": [
+        "the current Internet Archive Item exposes no rights or licenseurl value",
+        "the current Internet Archive PDF is byte-different from the exact acquired Commons revision and is not a fixity or rights substitute",
+        "no license is inferred for OCR coordinates, derivative arrangement, PDF wrapper, scandata, package, or metadata database",
+        "institutional contribution and sponsorship do not establish ownership or permission"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "permission_required",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the exact authorship, ownership, license, contribution dates, and separability of the current Internet Archive metadata and derivative package are not established",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Factual metadata may not be copyrightable, but no blanket database, prose, layout, or package permission is inferred."
+      },
+      "uncertainty": "This layer preserves lineage without equating the current upstream derivative to the local Commons revision.",
+      "assessed_at": "2026-08-02T07:19:46-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The current Item lacks exact rights fields and its PDF has diverged, so the provider package remains unresolved."
+    }
   ],
   "permissions": [
     "local preservation and bounded research use",
-    "public bibliographic metadata and provenance may remain tracked",
-    "Wikimedia Commons reports the exact file public domain in the United States",
-    "the permanent Commons file revision exposes an open HTTPS route and exact source checksum"
+    "public bibliographic, provenance, contributor, term, and layer-status metadata may remain tracked",
+    "Nietzsche's Work and Richter's editing and afterword are public domain in the reviewed DE and US routes",
+    "Commons supplies positive United States public-domain evidence for the exact file and exact licenses for its structured metadata and unstructured prose layers"
   ],
   "restrictions": [
-    "the operator-held payload remains local and is not a future-site upload",
-    "the Commons statement is US-scoped source evidence rather than a jurisdiction-complete ToS legal conclusion",
-    "Henry van de Velde is credited for binding and ornaments; the applicability and term of those design contributions have not been reviewed",
-    "Nietzsche's text, Richter's editorial work, the physical copy, Getty scan, Internet Archive lineage, Commons revision, embedded OCR, and later derivatives remain separately reviewable",
-    "any future public-site payload must be independently selected or reacquired through an exact currently authorized route after human rights review"
+    "the operator-held payload remains local and is never a future-site upload",
+    "van de Velde's title, binding, lettering, and ornaments are treated as in copyright in Germany through 2027-12-31 absent exact permission",
+    "the Commons PD-US-expired statement is United States-scoped and lacks the source-country tag required by its own template for this German publication",
+    "Getty's general Open Content Program is not inherited without an exact marked record",
+    "Getty furniture, OCR arrangement, PDF packaging, Internet Archive lineage, provider prose, marks, contracts, and other jurisdictions remain separately reviewable",
+    "any future public candidate must be independently reacquired from a then-current route after term or permission review and pass fresh fixity, quality, human-review, and operator gates"
   ],
   "visibility": "local_only",
-  "redistribution_posture": "unknown",
-  "derivative_posture": "unknown",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
   "assessed_by": {
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-30T10:58:00-06:00",
-  "rationale": "The exact Commons revision is openly reachable and carries a PD-US-expired statement, but that statement is explicitly US-scoped. The 1908 object also credits Raoul Richter's editorial work and Henry van de Velde's binding and ornaments. ToS therefore preserves positive route evidence while refusing to infer global redistribution, derivative, or publication authority.",
+  "assessed_at": "2026-08-02T07:19:46-06:00",
+  "rationale": "The exact mixed PDF contains public-domain Nietzsche and Richter layers but also source-visible van de Velde applied art whose ordinary German term remains active through 2027-12-31. Commons supplies only a United States public-domain statement for the file, Getty supplies no exact marked CC0 record, and other provider and furniture layers remain unresolved. The aggregate therefore fails closed as in copyright while preserving exact positive sublayer findings and a future post-2027 reacquisition route.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
-  "supersedes_rights_ref": null
+  "record_version": 2,
+  "supersedes_rights_ref": "tos.rights.ecce-homo.insel-1908.wikimedia-commons-getty-scan-pdf"
 }

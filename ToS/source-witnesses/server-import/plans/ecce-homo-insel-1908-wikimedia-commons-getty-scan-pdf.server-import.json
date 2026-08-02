@@ -19,14 +19,28 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/rights.json",
-    "rights_record_sha256": "cd3ed85bcb9d8447de54fd0da538d9f78671765c8666eec3d6809669db582385",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "2d4e4b37be7085c460d7325385bafcbe5daf7ce9bea937084f0df8ecd138276f",
+    "assessment_status": "restricted",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "DE",
+      "US"
+    ],
     "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/source-metadata-snapshot.json",
       "https://commons.wikimedia.org/w/index.php?oldid=1074063624",
-      "https://commons.wikimedia.org/wiki/Template:PD-US-expired"
+      "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
+      "https://creativecommons.org/publicdomain/zero/1.0/",
+      "https://creativecommons.org/licenses/by-sa/4.0/",
+      "https://archive.org/metadata/eccehomo00niet_0",
+      "https://d-nb.info/gnd/118626442",
+      "https://www.gesetze-im-internet.de/urhg/__2.html",
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
+      "https://www.gesetze-im-internet.de/urhg/__69.html",
+      "https://juris.curia.europa.eu/juris/document/document.jsf?docid=306835&doclang=en",
+      "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.getty.edu/legal/terms-of-use/"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -36,37 +50,37 @@
     "ocr": {
       "state": "prohibited",
       "conditions": [
-        "This future-server plan authorizes no server-side source processing; local laboratory OCR remains a separate non-public lane."
+        "Public-domain historical text and a no-new-right scan process do not clear the exact mixed PDF: van de Velde's German design term remains active through 2027-12-31 and local laboratory OCR remains a separate non-public lane."
       ]
     },
     "transcription": {
       "state": "prohibited",
       "conditions": [
-        "Neither embedded OCR nor any derived transcription has been accepted, responsibility-separated, or authorized for publication."
+        "The embedded historical OCR adds no new literary right, but it has not been accepted, responsibility-separated, or authorized for publication and the aggregate Item remains restricted."
       ]
     },
     "page_images": {
       "state": "prohibited",
       "conditions": [
-        "The operator-held Commons/Getty scan remains local and is never uploaded to the future site."
+        "The operator-held Commons/Getty scan remains local and is never uploaded to the future site; it reproduces van de Velde's active German design layer and unresolved holding furniture."
       ]
     },
     "snippets": {
       "state": "prohibited",
       "conditions": [
-        "No source-text or editor-afterword publication is authorized by this metadata-only plan."
+        "Nietzsche's Work and Richter's afterword have positive DE/US term results, but no source text, design-bearing page, or editor-afterword snippet is authorized by this metadata-only plan."
       ]
     },
     "lexical_index": {
       "state": "conditional",
       "conditions": [
-        "Public-safe bibliographic metadata only; no payload-derived text or dictionary-recoverable source forms."
+        "Public-safe, source-attributed ToS bibliographic, provenance, contributor, term, and layer-status metadata plus scoped licensed Commons metadata only; no payload-derived text, provider prose outside its license, or dictionary-recoverable source forms."
       ]
     },
     "embeddings": {
       "state": "prohibited",
       "conditions": [
-        "No server-side source or editorial text processing is authorized by this plan."
+        "No server-side source or editorial text processing is authorized while the German design term and unresolved package and holding layers remain blocking."
       ]
     },
     "alignments": {
@@ -90,13 +104,13 @@
     "search_projection": {
       "state": "conditional",
       "conditions": [
-        "Metadata-only records with no payload-derived text."
+        "Metadata-only records with no payload-derived text, OCR positions, design images, Getty furniture, or unlicensed provider prose."
       ]
     },
     "graph_projection": {
       "state": "conditional",
       "conditions": [
-        "Public-safe work, posthumous expression, edition, item, contributor, provenance, catalog-conflict, source-route, and rights-status metadata only."
+        "Public-safe work, posthumous expression, edition, item, contributor, provenance, catalog-conflict, source-route, eleven-layer rights-status, German term-expiry, and future-reacquisition metadata only."
       ]
     }
   },
@@ -115,13 +129,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-30T11:08:00-06:00"
+    "last_reviewed_at": "2026-08-02T07:19:46-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.ecce-homo-insel-1908-wikimedia-commons-getty-scan-pdf.2026-07-30"
+    "tos.event.server-import-plan.ecce-homo-insel-1908.layered-rights.2026-08-02"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
-  "supersedes_server_import_ref": null
+  "contract_version": 2,
+  "supersedes_server_import_ref": "tos.server-import.ecce-homo-insel-1908-wikimedia-commons-getty-scan-pdf"
 }

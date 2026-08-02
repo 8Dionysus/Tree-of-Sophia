@@ -24,8 +24,9 @@ and all four exact DTA annotated-TEI CC BY-SA versus local-custody boundaries
 plus the Naumann 1893 PDF/EPUB fork, the Jenseits 1886 mixed-package boundary,
 the Genealogie 1892 Commons/UNC and Antichrist 1906 Commons/Stanford
 eleven-layer boundaries, and the contrasting five-layer MDZ permission versus
-license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889 refreshed
-2026-08-02
+license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889, plus the
+exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary
+refreshed 2026-08-02
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -60,6 +61,7 @@ and what must be tested manually.
 | `GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md` | Why the exact 2020 Commons revision has public-domain-reviewed historical, faithful-scan, and automatic-text layers plus separately licensed Commons metadata surfaces, yet remains aggregate `conflicting_evidence` because its binding, UNC holding furniture, OCR layout, PDF package, and Internet Archive metadata are unresolved; why the Commons source-country expression is incomplete; and why the current Internet Archive PDF is a different revision rather than a substitute? |
 | `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` | Why the exact Commons/Stanford DjVu has public-domain-reviewed represented Work, historical-presentation, faithful-scan, and automatic-text layers plus separately licensed Commons metadata surfaces, yet remains aggregate `conflicting_evidence` because archive editorial responsibility, Stanford furniture, OCR layout, the DjVu package, and contaminated Internet Archive metadata are not completely resolved; and why its model-made pages 228-329 member boundary stays outside rights and text acceptance? |
 | `MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md` | Why two exact MDZ objects with the same public-domain historical soil require different exact-object outcomes: `permission_granted` under the non-license `NoC-NC 1.0` statement for *Der Fall Wagner*, `licensed` under CC BY-NC-SA 4.0 for *Götzen-Dämmerung*, separate CC0 bibliographic metadata, no invented OCR layer, and unchanged operator-local/non-transfer server gates? |
+| `ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md` | Why Nietzsche's Work and Richter's editing and afterword are public-domain-reviewed in DE/US while van de Velde's source-visible applied art remains in copyright in Germany through 2027-12-31; why the exact mixed Commons PDF is therefore restricted despite its US statement and scoped metadata licenses; and why only a newly reacquired future object may re-enter the gates? |
 | `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` | Why the exact `Zweite Auflage` wording, combined `Druck und Verlag` imprint, publisher/printer authority split, Leipzig statement year, release chronology, textual state, and historical translation-right reservation must remain distinct? |
 | `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` | Why the exact 1886 *Jenseits* `Druck und Verlag` literal supports separate publication and manufacture claims; why the page-4 rights reservation is historical evidence only; and why Edition statement, release, textual state, current rights, publisher/printer legal identity, and marketplace metadata remain outside the claim? |
 | `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` | Why the 1892 second-edition title page and undated terminal printer line require two independently anchored provision claims; why the Edition year is not printing completion or release; and why the 1887 first print, critical text, current English translation, marketplace records, and publisher/printer legal identity remain outside the claims? |
