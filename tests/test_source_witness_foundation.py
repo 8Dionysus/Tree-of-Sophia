@@ -506,6 +506,11 @@ NANI_1899_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md"
 )
+NANI_1899_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "NANI_1899_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 NANI_1899_SERVER_PLAN_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/server-import/plans/"
@@ -2864,6 +2869,52 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("local_only", rights["visibility"])
         self.assertIsNone(rights["access_request_ref"])
+        self.assertEqual(["RU"], rights["jurisdictions_reviewed"])
+        self.assertEqual(2, rights["record_version"])
+        layers_by_role = {
+            layer["layer_role"]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original_work",
+                "translation",
+                "preface",
+                "edition_presentation",
+                "digital_scan",
+                "embedded_text",
+                "annotation",
+            },
+            set(layers_by_role),
+        )
+        for role in ("original_work", "translation", "preface"):
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "authorized_with_conditions",
+                layers_by_role[role]["redistribution_posture"],
+            )
+            self.assertEqual(["RU"], layers_by_role[role]["jurisdictions_reviewed"])
+        for role in (
+            "edition_presentation",
+            "digital_scan",
+            "embedded_text",
+            "annotation",
+        ):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "not_authorized",
+                layers_by_role[role]["redistribution_posture"],
+            )
+        self.assertEqual(
+            "local_research_only",
+            layers_by_role["digital_scan"]["server_processing_posture"],
+        )
 
         self.assertEqual("С. П. Нани", agent["preferred_label"])
         self.assertEqual("provisional", agent["identity_status"])
@@ -2950,6 +3001,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("no completeness", research)
         self.assertIn("German Expression", research)
         self.assertIn("or authorize", research)
+        rights_research = NANI_1899_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("The answer cannot be one scalar", rights_research)
+        self.assertIn("General web search, last", rights_research)
+        self.assertIn("public_domain_reviewed", rights_research)
+        self.assertIn("aggregate Item/File", rights_research)
 
     def test_antonovsky_revision_lineage_is_bounded_and_access_gap_stays_unsent(
         self,

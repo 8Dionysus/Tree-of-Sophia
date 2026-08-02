@@ -280,6 +280,17 @@ intended use. Conditions such as attribution, noncommercial use, no
 derivatives, share-alike, or source-site terms remain machine-readable
 restrictions rather than being flattened into either “free” or “forbidden”.
 
+An Item-level `rights.json` therefore has two distinct jobs. Its top-level
+status is the conservative admission posture for the exact Item and File as a
+whole. Optional `layer_assessments` preserve narrower conclusions for the
+original work, translation, preface, commentary, editing, edition
+presentation, digital scan, embedded text, annotation, or metadata. A positive
+layer does not lift the aggregate Item/File gate: every content-bearing public
+or server route must select the exact layer it carries, the reviewed
+jurisdiction, and the intended use. Unknown marginalia or scan production can
+therefore keep the exact PDF local while a separately reviewed public-domain
+text layer remains a real positive finding rather than being erased.
+
 ## Projection boundary
 
 The authoritative chain is:

@@ -19,12 +19,15 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/rights.json",
-    "rights_record_sha256": "a6816ba89d07c9ca90c67063be2ddfbcf39d4763496fab9a49f14e2779016da2",
+    "rights_record_sha256": "887e156998571605fed86912bab5f8139261efbaebcc1cf0cca1b2d4eae1c0a9",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": ["RU"],
     "permission_or_license_refs": [
       "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/source-metadata-snapshot.json",
+      "ToS/research-packets/foundation-laboratory-2026-07/NANI_1899_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://rusneb.ru/catalog/000199_000009_003689091/",
+      "https://rusneb.ru/faq/",
       "https://rusneb.ru/user-agreement/"
     ],
     "expires_at": null,
@@ -114,13 +117,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-01T20:36:00-06:00"
+    "last_reviewed_at": "2026-08-01T22:45:08-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.nani-1899-rsl-rusneb-parallel-scan-pdf.2026-08-01"
+    "tos.event.server-import-plan.nani-1899-rsl-rusneb-parallel-scan-pdf.layered-rights.2026-08-01"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

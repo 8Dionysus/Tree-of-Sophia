@@ -31,20 +31,7 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
-    "assessment_status": {
-      "enum": [
-        "not_assessed",
-        "copyright_not_evaluated",
-        "copyright_undetermined",
-        "in_copyright",
-        "public_domain_reviewed",
-        "licensed",
-        "permission_requested",
-        "permission_granted",
-        "permission_denied",
-        "conflicting_evidence"
-      ]
-    },
+    "assessment_status": {"$ref": "#/$defs/assessmentStatus"},
     "rights_statement_uri": {
       "anyOf": [
         {"type": "string", "format": "uri"},
@@ -68,17 +55,18 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "layer_assessments": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/layerAssessment"}
+    },
     "permissions": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "restrictions": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "visibility": {
       "enum": ["local_only", "research_group", "permission_requested", "public_metadata_only", "public_payload"]
     },
-    "redistribution_posture": {
-      "enum": ["not_authorized", "unknown", "metadata_only", "authorized_with_conditions", "authorized"]
-    },
-    "derivative_posture": {
-      "enum": ["local_research_only", "unknown", "permission_required", "allowed_with_conditions", "allowed"]
-    },
+    "redistribution_posture": {"$ref": "#/$defs/redistributionPosture"},
+    "derivative_posture": {"$ref": "#/$defs/derivativePosture"},
     "assessed_by": {
       "type": "object",
       "additionalProperties": false,
@@ -104,6 +92,198 @@
         {"type": "string", "pattern": "^tos\\.rights\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
         {"type": "null"}
       ]
+    }
+  },
+  "$defs": {
+    "assessmentStatus": {
+      "enum": [
+        "not_assessed",
+        "copyright_not_evaluated",
+        "copyright_undetermined",
+        "in_copyright",
+        "public_domain_reviewed",
+        "licensed",
+        "permission_requested",
+        "permission_granted",
+        "permission_denied",
+        "conflicting_evidence"
+      ]
+    },
+    "redistributionPosture": {
+      "enum": [
+        "not_authorized",
+        "unknown",
+        "metadata_only",
+        "authorized_with_conditions",
+        "authorized"
+      ]
+    },
+    "derivativePosture": {
+      "enum": [
+        "local_research_only",
+        "unknown",
+        "permission_required",
+        "allowed_with_conditions",
+        "allowed"
+      ]
+    },
+    "termAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calculation_status",
+        "basis",
+        "starts_on",
+        "ends_on",
+        "uncertainty"
+      ],
+      "properties": {
+        "calculation_status": {
+          "enum": [
+            "not_applicable",
+            "not_calculated",
+            "active",
+            "expired",
+            "unknown"
+          ]
+        },
+        "basis": {"type": "string", "minLength": 1},
+        "starts_on": {
+          "anyOf": [
+            {"type": "string", "format": "date"},
+            {"type": "null"}
+          ]
+        },
+        "ends_on": {
+          "anyOf": [
+            {"type": "string", "format": "date"},
+            {"type": "null"}
+          ]
+        },
+        "uncertainty": {"type": "string", "minLength": 1}
+      }
+    },
+    "layerAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layer_id",
+        "layer_role",
+        "scope_refs",
+        "assessment_status",
+        "assessment_basis",
+        "jurisdictions_reviewed",
+        "source_refs",
+        "rights_holder_refs",
+        "permissions",
+        "restrictions",
+        "redistribution_posture",
+        "derivative_posture",
+        "server_processing_posture",
+        "term",
+        "uncertainty",
+        "assessed_at",
+        "review_status",
+        "rationale"
+      ],
+      "properties": {
+        "layer_id": {
+          "type": "string",
+          "pattern": "^tos\\.rights\\.[a-z0-9]+(?:[.-][a-z0-9]+)*\\.layer\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "layer_role": {
+          "enum": [
+            "original_work",
+            "translation",
+            "preface",
+            "commentary",
+            "editing",
+            "edition_presentation",
+            "digital_scan",
+            "embedded_text",
+            "annotation",
+            "metadata",
+            "other"
+          ]
+        },
+        "scope_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "assessment_status": {"$ref": "#/$defs/assessmentStatus"},
+        "assessment_basis": {
+          "enum": [
+            "not_assessed",
+            "law",
+            "operator_statement",
+            "license",
+            "permission",
+            "contract",
+            "mixed"
+          ]
+        },
+        "rights_statement_uri": {
+          "anyOf": [
+            {"type": "string", "format": "uri"},
+            {"type": "null"}
+          ]
+        },
+        "license_uri": {
+          "anyOf": [
+            {"type": "string", "format": "uri"},
+            {"type": "null"}
+          ]
+        },
+        "jurisdictions_reviewed": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 2}
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "rights_holder_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "permissions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "redistribution_posture": {"$ref": "#/$defs/redistributionPosture"},
+        "derivative_posture": {"$ref": "#/$defs/derivativePosture"},
+        "server_processing_posture": {
+          "enum": [
+            "not_authorized",
+            "local_research_only",
+            "unknown",
+            "authorized_with_conditions",
+            "authorized"
+          ]
+        },
+        "term": {"$ref": "#/$defs/termAssessment"},
+        "uncertainty": {"type": "string", "minLength": 1},
+        "assessed_at": {"type": "string", "format": "date-time"},
+        "review_status": {
+          "enum": [
+            "unreviewed",
+            "human_reviewed",
+            "legal_review_requested",
+            "superseded"
+          ]
+        },
+        "rationale": {"type": "string", "minLength": 1}
+      }
     }
   }
 }

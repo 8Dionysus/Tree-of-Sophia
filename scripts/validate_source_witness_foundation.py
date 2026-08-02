@@ -1261,6 +1261,25 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues.append((rights_location, f"scope_refs does not include item_id {item_id}"))
             if rights.get("visibility") != manifest.get("visibility"):
                 issues.append((rights_location, "rights visibility differs from item manifest visibility"))
+            layer_ids: set[str] = set()
+            for layer_index, layer_assessment in enumerate(
+                rights.get("layer_assessments", []),
+                start=1,
+            ):
+                if not isinstance(layer_assessment, dict):
+                    continue
+                layer_location = f"{rights_location}#layer_assessments/{layer_index}"
+                layer_id = layer_assessment.get("layer_id")
+                if isinstance(layer_id, str):
+                    if layer_id in layer_ids:
+                        issues.append((layer_location, f"duplicate layer_id: {layer_id}"))
+                    layer_ids.add(layer_id)
+                _validate_source_refs(
+                    repo_root,
+                    layer_assessment,
+                    layer_location,
+                    issues,
+                )
 
         provenance_path = repo_root / str(manifest.get("provenance_ref", ""))
         local_event_ids: set[str] = set()

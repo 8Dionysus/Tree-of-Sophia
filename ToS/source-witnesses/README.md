@@ -455,6 +455,19 @@ redistribution license. Its exact payload remains local-only and unpublished;
 only public metadata, fixity, provenance, text-free resource geometry, and
 proposed source-return anchors are tracked.
 
+The Nani 1899 parallel witness now exercises the required per-layer rights
+model. The exact record is freely downloadable and the current RuNEB FAQ says
+that only public-domain works may be downloaded, so the underlying Nietzsche
+work plus the published Nani translation and preface retain a positive
+`public_domain_reviewed` assessment for Russia. That conclusion does not clear
+the complete PDF: edition presentation, exact scan production, embedded text,
+and handwritten annotations remain unresolved, no reusable-file license was
+found, and no non-Russian serving jurisdiction was reviewed. The aggregate
+Item/File therefore stays `copyright_undetermined`, `local_only`, and blocked
+from the future site. Its `layer_assessments` are positive and negative
+evidence, not a mechanism for lifting the most restrictive content-bearing
+gate.
+
 The four DTA TEIs add an institutionally corrected, source-structured German
 sequence without inventing whole-work textual unity. DTA reports OCR followed
 by native-speaker checking for every part, but ToS records that as external
