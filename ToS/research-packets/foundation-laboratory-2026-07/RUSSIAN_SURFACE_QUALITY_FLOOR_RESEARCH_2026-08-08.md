@@ -1,13 +1,14 @@
 # Russian-Surface Quality Floor Research
 
-Status: ordered research completed; deterministic A and pinned offline
-LanguageTool B executed source-free; C not selected or acquired; no German,
-translation, semantic, graph, publication, canon, or human-review authority
+Status: ordered research completed; deterministic A, pinned offline
+LanguageTool B, and pinned local Qwen GEC C executed source-free; C rejected as
+a required gate or autonomous corrector; no German, translation, semantic,
+graph, publication, canon, or human-review authority
 
 Snapshot: 2026-08-08
 
 Implementation snapshot: `abyss-stack`
-`f0adef34d774d58e495b86592ace303336a6bfa8`
+`125466415f20b9303a1342eed2d71dff6dc39a59`
 
 ## Result first
 
@@ -31,6 +32,16 @@ owned by A, three explicit grammar or punctuation defect controls, and one
 unbalanced-quote boundary; it also marked one deliberately ambiguous
 lowercase literary fragment. B is therefore retained only as an advisory
 layer above A. No private candidate was rerun to make this comparison.
+
+The evidence-gated C has now been selected and executed on those same 36
+source-free controls. It pins the smallest published Qwen3.5 SyntErr-to-
+LoRuGEC adapter and runs it locally in an offline user/network namespace. The
+model exactly corrected only 3 of 15 correction targets, changed 2 of 12
+already-correct literary controls, and removed punctuation from one
+intentional repetition. Its only visible gain over frozen B was the intrusive
+subject-comma case. C is retained as quality-negative method evidence and is
+rejected as a mandatory stage or autonomous corrector. It changes no A/B
+disposition and creates no human task.
 
 ## Research question and boundary
 
@@ -180,6 +191,36 @@ Sources:
 - [JUDGE-BENCH across 20 NLP evaluation tasks](https://aclanthology.org/2025.acl-short.20/)
 - [LLM-as-a-Judge failures on poor-quality free-form text](https://aclanthology.org/2025.newsum-main.1/)
 
+### 4. The selected C minimizes machine burden, not epistemic risk
+
+The SyntErr release exposes code, a v1.0.1 archive, a 39,209-example synthetic
+training file, adapters, and per-rule results. Its current implementation
+covers 48 of the paper's 98 categories. The published Qwen3.5-0.8B results
+rise from 13.7 zero-shot F0.5 to 45.2 after SyntErr training and 54.0 after
+SyntErr-to-LoRuGEC continuation. Those aggregates justified a bounded trial,
+not adoption: the paper's own per-rule table retains zero or very low results
+for lexical compatibility, quantitative-numeral declension, government, and
+agreeing participles, while some punctuation categories vary sharply.
+
+The 0.8B route was chosen before output because it fit this machine without a
+multi-gigabyte 4B challenger and could run direct BF16 CPU inference without a
+quantization confound. The exact base revision is Apache-2.0. The adapter
+repository has no formal license declaration, so its two selected files remain
+local-research-only and non-redistributable. The trained JSONL was
+byte-verified, but the published mixed-source list is not a bit-reproducible
+training provenance surface: it contains about 47,000 duplicate lines,
+including one line repeated 4,694 times. This limits lineage confidence even
+before quality is considered.
+
+Sources:
+
+- [SyntErr project and per-rule tables](https://synterr-nlp.github.io/papers/bea-2026/)
+- [SyntErr source](https://github.com/synterr-nlp/synterr)
+- [SyntErr v1.0.1 archive](https://doi.org/10.5281/zenodo.20182862)
+- [Published GEC adapters](https://huggingface.co/synterr-nlp/bea2026-gec-adapters)
+- [Published SyntErr v4 training dataset](https://huggingface.co/datasets/synterr-nlp/synterr-v4-sft)
+- [Qwen3.5-0.8B base model](https://huggingface.co/Qwen/Qwen3.5-0.8B)
+
 ## Method selected for the first executable floor
 
 The stack-owned implementation is
@@ -287,19 +328,63 @@ contains 488 explicit `grammar.xml` rule IDs, 22 top-level compiled rule
 classes, and 5 top-level resource files; those counts identify the packaged
 surface but do not prove that every rule is enabled, correct, or exercised.
 
-## Next C gate
+## Executed C comparison and manual inspection
 
-The next comparison, only when a measured uncovered question justifies it,
-should preserve the completed A/B evidence and add:
+The pinned local C used Qwen3.5-0.8B revision
+`2fc06364715b967f1860aea9cf38778875588b17`, adapter revision
+`95aa4d62ba258194593511256215a186962ad5ed`, direct BF16 CPU inference,
+greedy decoding, batches of four, and one offline namespace for the complete
+control run. Base and adapter selected-file bytes, Python, packages, prompt,
+decoding, `unshare`, and frozen A/B receipt were verified before inference.
+No private source or translation candidate entered the run.
 
-1. A — deterministic floor alone;
-2. B — A plus a pinned offline LanguageTool snapshot;
-3. C — A plus a pinned Russian acceptability/GEC candidate selected after
-   license, hardware, and benchmark-fit review;
-4. optional D — an independent checklist LLM only if A/B/C leave a measured
-   gap worth its runtime cost.
+The comparison receipt reports:
 
-Measure false rejection, missed high-confidence defects, per-rule coverage,
-abstention, latency, memory, storage, and human-attention avoided separately.
-Do not optimize or promote from an aggregate score. Do not ask the solo
-operator to review another translation candidate merely to test this method.
+- 3 exact corrections among 15 targets: preposition/case, an intrusive subject
+  comma, and a missing subordinate-clause comma;
+- 12 missed or wrong corrections, including unchanged spelling, agreement,
+  lexical-government, repetition, typography, casing, and relative-clause
+  controls;
+- wrong non-minimal rewrites for the double-comparative and unbalanced-quote
+  controls;
+- 10 exact preservations among 12 already-correct controls, with both clean
+  literary em-dash controls altered;
+- one observed-only change that removed punctuation from deliberate literary
+  repetition;
+- no protocol-wrapper failure, but pass-through of meta, non-Russian, and
+  corrupt-string boundary observations, which demonstrates that C cannot
+  replace deterministic A.
+
+Every actual source-free input, output, and explicit target was then read in
+the private manual view. The all-row AI inspection receipt records that this
+was content review rather than inference from schema or green tests; it is not
+a human review. The result rejects this profile as a default surface gate,
+autonomous corrector, or mandatory pipeline stage. Its narrow subject-comma
+gain does not compensate for twelve correction misses and literary damage.
+
+The owner-routed run measured 111.711071750 seconds comparison wall, nine
+batches, 101.711699502 seconds summed shared-batch generation wall, a 3.5 GiB
+cgroup memory peak, and zero process swap. Post-run temperature was 63 °C. The
+comparison receipt SHA-256 is
+`1ec8cb48e9bce2e630fbc7876eb996b7a43ccf59a1b2edcc343da269b2f30d21`;
+the actual-output view SHA-256 is
+`ed778dff7f32b1ec5b74a50327d8b4cff6ed7b7c33845a6759575fcb24a9cdbf`;
+the all-row manual inspection receipt SHA-256 is
+`d8a4ace39c68fb3c9e0d3e78dd030b8aa9959fe8d60e5eb3990e2bfe6fa03a0b`.
+
+Artifact fixity is sufficient for this local experiment but not for
+production admission. Formal ABI, SBOM, ML-BOM, SLSA/in-toto,
+Sigstore/Cosign, and durable registry evidence are absent, and the adapter has
+no formal license. The base, adapter, runtime, actual outputs, and receipts
+therefore remain private and local. The test neither publishes nor
+redistributes them.
+
+## Next evidence gate
+
+Preserve completed A/B/C as separate methods. Do not rerun this C profile on a
+private candidate and do not ask the solo operator to review another
+translation merely to exercise it. A future C successor or optional checklist
+LLM D requires a new measured gap, per-rule hypothesis, frozen preservation
+controls, license and artifact review, and current machine admission. It must
+beat the relevant A/B rule evidence without literary damage; an aggregate
+score, schema-valid output, or fluent rewrite is insufficient.

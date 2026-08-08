@@ -111,7 +111,20 @@ one deliberately ambiguous literary casing control. The isolated cold-start
 run took 78.004763012 seconds with 600,440 KiB peak child RSS. No private
 translation candidate was rerun, and this source-free Russian-surface evidence
 does not improve or assess German fidelity, translation quality, etymology,
-semantics, or any accepted lane. C remains unselected and unacquired.
+semantics, or any accepted lane.
+
+The measured B gap then admitted one exact source-free generative C:
+Qwen3.5-0.8B with the published SyntErr-to-LoRuGEC adapter, pinned to exact
+base, adapter, runtime, prompt, and decoding identities and run offline on CPU.
+All 36 actual outputs were read after execution. C exactly corrected 3 of 15
+targets, missed or wrongly changed 12, altered 2 of 12 clean literary
+em-dash controls, and changed one intentional repetition. Its only visible
+gain over B was the intrusive subject-comma case. The profile is retained as
+negative quality/cost evidence and rejected as a required gate, autonomous
+corrector, or mandatory stage. It did not touch a private candidate, change an
+A/B disposition, or create human, German, translation, semantic, graph,
+publication, or canon authority. Missing adapter license and production trust
+evidence keep publication and redistribution closed as well.
 
 ## Evidence sequence
 

@@ -156,6 +156,15 @@ The A/B/C identities in this table apply only to a model-proposal comparison;
 they do not replace the separate human-only / AI-only / AI+human translation
 lanes.
 
+## Russian-surface triage candidates
+
+| Route | State | Evidence | Decision |
+| --- | --- | --- | --- |
+| A / deterministic floor | retained asymmetric reject floor | nine invented controls and two digest-bound retrospective private receipts; about 7.707 ms/candidate without Hunspell | may reject only declared high-precision packet/surface failures; a clean result stays `uncertain` |
+| B / pinned offline LanguageTool 6.9 | retained advisory challenger | 36 source-free controls, 13 observed rule IDs, nine declared defect misses, one ambiguous literary signal, 78.004763012 s cold-start comparison wall | independent rule evidence only; cannot change A disposition or admit content |
+| C / Qwen3.5-0.8B SyntErr-to-LoRuGEC | executed and rejected as required/autonomous stage | all 36 actual source-free outputs read; 3/15 exact corrections, 12 missed or wrong, two clean literary false changes, one intentional-repetition change, 111.711071750 s wall and 3.5 GiB cgroup peak | retain negative quality/cost and one narrow B-complement; no private-candidate rerun, production use, publication, redistribution, automatic correction, or human task |
+| D / independent checklist LLM | deferred | no frozen measured gap after C and no admitted artifact | open only for a new question whose expected benefit exceeds runtime and preservation risk |
+
 ## Translation methods
 
 | Route | Method | State | Human visibility |

@@ -3,7 +3,8 @@
 Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C evidence, not a general benchmark result
 
 Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26;
-direct-visual runtime, admission, and execution refreshed 2026-07-30
+direct-visual runtime, admission, and execution refreshed 2026-07-30;
+Russian-surface Qwen GEC admission and execution refreshed 2026-08-08
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -29,6 +30,15 @@ unchanged configuration, and multilingual PaddleOCR C progressed through an
 OOM configuration failure, an invalid runner-scope attempt, exact one-page
 repeats, and one successful 36/36 run. These are execution, resource, and
 advisory inspection facts. Human-gold metrics and an OCR winner remain absent.
+
+One later source-free Russian-surface question admitted the smaller
+Qwen3.5-0.8B base plus a pinned SyntErr-to-LoRuGEC adapter in a separate BF16
+CPU runtime. The 36-control run completed in 111.711071750 seconds with a
+3.5 GiB cgroup peak and zero process swap, proving fit. All outputs were then
+read: only 3/15 correction targets were exact, two clean literary controls and
+one intentional repetition were changed. Machine fit therefore does not imply
+method fit; this profile is rejected as a required or autonomous correction
+stage.
 
 ## Observed machine surface
 
@@ -201,6 +211,7 @@ maximum contexts are never the default local test setting.
 | resident Gemma 4 E4B | none | feasible sequential workhorse | first wave B |
 | resident Qwen3 4B INT4 | none | feasible OpenVINO family/runtime control | first wave C |
 | resident Qwen3 8B INT4 | none | feasible but higher memory/cost | only after smaller-model failure taxonomy |
+| Qwen3.5-0.8B + SyntErr-to-LoRuGEC adapter | acquired exact base plus two selected adapter files for local research | measured 3.5 GiB cgroup peak, zero process swap, 111.711071750 s for 36 controls | machine-fit proven; quality-negative profile rejected as required/autonomous Russian-surface stage; no private-candidate run, production admission, or redistribution |
 | Qwen3.5-4B | new artifact | likely feasible with reduced context | second wave after storage preflight |
 | TranslateGemma 4B | gated new artifact | runtime feasible; rights/context uncertain | license-gated second wave |
 | Granite Embedding 311M Multilingual R2 | 348,082,051 bytes already present | strong CPU/OpenVINO fit; independent IBM family; 200+ languages | Retrieval C executed twice; deterministic mechanics proven; human quality unresolved |
@@ -295,6 +306,13 @@ next sequential model-proposal A/B/C set, but it does not admit execution
 before the matching human/source packet exists. Qwen3 8B is escalation only;
 Qwen3.5-4B, TranslateGemma, Qwen3.6, SYCL, and NPU generation remain closed
 without a specific failure hypothesis.
+
+The Qwen3.5-0.8B GEC exception does not reopen Qwen3.5-4B for translation. It
+answered one source-free Russian-surface question with a different adapter,
+scope, runtime, and preservation test, and it closed at a negative method
+decision. Its local runtime and cache remain removable host artifacts; the
+adapter's absent formal license and missing production trust evidence prohibit
+publication, redistribution, and automatic consumer admission.
 
 Granite R2 is the already earned bounded retrieval exception; the sequential
 OCR gate has now earned and materialized all three isolated runtimes without

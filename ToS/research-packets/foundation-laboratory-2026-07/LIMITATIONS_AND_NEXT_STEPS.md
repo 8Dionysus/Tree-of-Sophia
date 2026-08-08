@@ -69,8 +69,20 @@ preserves exact archive/runtime/commit/rule-inventory fixity and measured
 78.004763012 seconds wall plus 600,440 KiB peak child RSS. It is a prepared
 local experimental artifact only: missing upstream signature/checksum, SBOM,
 SLSA/in-toto, Sigstore/Cosign, and registry evidence keep the owner trust gate
-`unknown` and fail-closed for release use. C remains unselected and unacquired;
-no human task or content authority was created.
+`unknown` and fail-closed for release use.
+
+The measured gap then admitted exactly one generative C without touching those
+private candidates: the smallest published Qwen3.5 SyntErr-to-LoRuGEC adapter,
+pinned to exact base/adapter revisions and run offline in BF16 on CPU. Manual
+AI inspection of all 36 invented outputs found 3/15 exact corrections, 12
+missed or wrong corrections, 2/12 false changes to clean literary em-dash
+controls, and one change to intentional repetition. Its only visible gain over
+frozen B was the subject-comma control. The profile is therefore rejected as a
+default gate, autonomous corrector, or mandatory stage; it changes no A/B
+disposition and creates no human task. The 111.711071750-second run peaked at
+3.5 GiB cgroup memory with zero process swap. Missing adapter license, ABI,
+SBOM, ML-BOM, SLSA/in-toto, Sigstore/Cosign, and durable registry evidence also
+deny production, publication, and redistribution admission.
 
 The new metadata-only *Zarathustra* authorial route narrows that future work
 without opening a standing human backlog. It establishes current remote
@@ -1123,10 +1135,15 @@ open for cosmetic reruns.
     separate advisory-only comparison which changes no A disposition. Its
     extra rule signals, explicit misses, literary false-positive pressure,
     cold-start cost, and fail-closed artifact-trust ceiling are the result;
-    do not rerun private candidates to decorate it. Any GEC or independent
-    checklist-LLM C requires a separately justified and frozen question,
-    license/artifact review, and current machine admission. Do not create a
-    human task automatically from this screen.
+    do not rerun private candidates to decorate it. Preserve the completed
+    source-free Qwen3.5 GEC C as negative quality and cost evidence: one narrow
+    B-complement does not outweigh twelve missed or wrong correction targets,
+    two clean literary false changes, and one intentional-repetition change.
+    Do not rerun this C profile on a private candidate or make it a required or
+    autonomous correction stage. Any successor C or independent checklist-LLM
+    D requires a separately justified and frozen question, license/artifact
+    review, current machine admission, and explicit preservation controls. Do
+    not create a human task automatically from this screen.
 
 ### 2c. Preserve direct visual retrieval evidence and defer human judgment
 
@@ -1272,11 +1289,11 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B added advisory rule evidence without changing an A disposition or touching private candidates; neither can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts, with a 259,264,698-byte archive and 414,841,492-byte runtime; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; monetary, energy, real-human correction time, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |
