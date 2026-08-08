@@ -15,6 +15,7 @@ philosophy; it does not transfer Nietzsche's ontology as a universal schema.
 | Path | Use For |
 | --- | --- |
 | `GOLDEN_GROWTH_KERNEL.md` | why this is the first seed, what the full cycle teaches, and what must not transfer |
+| `lived-witness/` | private-by-default voluntary route for the human author's own lived relation to the work |
 | `prologue-1/` | worked route capsule for the current bounded prologue entry |
 | `public-entry/` | tiny-entry route surface for public and low-context entry |
 
@@ -26,3 +27,7 @@ The source text stays in `ToS/source-witnesses/`.
 The authored source node stays in `ToS/canon/`.
 The compatibility example stays in `ToS/public-compatibility/`.
 The generated downstream read model stays in `ToS/derived-exports/`.
+
+The lived-witness route is separate from that source-to-canon chain. It begins
+only when the author explicitly chooses to speak, stays local by default, and
+can inform a later claim only through a separate permission and review event.

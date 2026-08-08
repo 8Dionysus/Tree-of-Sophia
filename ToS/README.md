@@ -12,7 +12,7 @@ home.
 | --- | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation ladder, and authored route doctrine | review notes and generated readers |
 | `source-witnesses/` | tracked Agent/Place/Organization and work/expression/edition/item catalog, explicit identity-ladder, chronology, responsibility, publication, and provision claims, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
-| `zarathustra/` | first golden growth kernel plus public-entry orientation for the bounded Zarathustra path | generic orientation and generated readers |
+| `zarathustra/` | first golden growth kernel, private-by-default lived-witness route, and public-entry orientation for the bounded Zarathustra path | generic orientation and generated readers |
 | `research-packets/` | non-authoritative research scaffolds and capture metadata | philosophy branch review |
 | `philosophy/` | growing domain tree of philosophy: trunk, eras, regions, traditions, works, figures, concepts, transmissions, local graph workbenches | candidate intake and generated readers |
 | `candidate-intake/` | provisional extraction and promotion ledgers | generated exports |
@@ -37,6 +37,8 @@ current bounded Zarathustra route:
   `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 - current source-owned question-scoped context receipt:
   `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json`
+- prepared human-root route, with no testimony captured:
+  `ToS/zarathustra/lived-witness/README.md`
 - current source-returnable bibliographic claim graph:
   `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
 - current exact source-return query route:

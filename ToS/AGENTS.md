@@ -36,7 +36,7 @@ nearest nested `AGENTS.md` for the branch being touched.
 | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation posture |
 | `source-witnesses/` | source-facing witness material |
-| `zarathustra/` | first golden growth kernel and current bounded route orientation |
+| `zarathustra/` | first golden growth kernel, private lived-witness route, and current bounded route orientation |
 | `research-packets/` | non-authoritative research scaffolds |
 | `philosophy/` | domain-shaped philosophical growth |
 | `candidate-intake/` | provisional extraction and promotion residue |
@@ -54,6 +54,7 @@ editing:
 | Artifact | Owner |
 | --- | --- |
 | primary text, edition, translation, or aligned witness | `source-witnesses/` |
+| voluntary first-person lived testimony | `zarathustra/lived-witness/` |
 | annotation layer, semantic distinction, or promotion law | `doctrine/` |
 | machine-checkable payload shape | `contracts/` |
 | extracted observation or agent proposal | `candidate-intake/` |
@@ -99,5 +100,6 @@ transformation event. Graph and retrieval stores remain disposable readers.
 ## Validation
 
 Run the branch-local validator first. For source-home topology changes, use
-`scripts/validate_tos_source_home.py`, `scripts/validate_philosophy_topology.py`,
-and `scripts/validate_nested_agents.py`.
+`scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route.py`,
+`scripts/validate_philosophy_topology.py`, and
+`scripts/validate_nested_agents.py`.

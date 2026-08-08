@@ -1726,6 +1726,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/validate_lived_witness_route.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/zarathustra/lived-witness/AGENTS.md",
+      "source_truth": [
+        "ToS/zarathustra/lived-witness/CAPTURE_PROTOCOL.md",
+        "ToS/zarathustra/lived-witness/CAPTURE_FORM.md",
+        "ToS/contracts/lived-witness-packet.schema.json",
+        ".gitignore"
+      ],
+      "reads": [
+        "lived-witness route documents and schemas",
+        "Git ignore and tracked-path state for the private capture boundary"
+      ],
+      "writes": [],
+      "side_effects": "validation output only",
+      "validation_lane": "source_home",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_lived_witness_route.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validation_lanes.py",
       "family": "lane_loader",
       "organ_lane": "validation-authority",

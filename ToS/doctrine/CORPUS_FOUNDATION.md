@@ -207,6 +207,13 @@ An assertion may cite another layer but cannot disguise its own posture. Lived
 witness may explain sustained attention and salience; it cannot settle source
 text, bibliography, etymology, or necessary meaning.
 
+The exact first-person body, capture conditions, experience/capture time,
+author confirmation, privacy, permission, and revision lifecycle belong to
+the dedicated `ToS/zarathustra/lived-witness/` route and
+`ToS/contracts/lived-witness-packet.schema.json`. A generic claim may cite an
+author-confirmed packet only through its own evidence, visibility, and review
+route; it does not replace that authored record.
+
 ## Claim law
 
 A claim records:

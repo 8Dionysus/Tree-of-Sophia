@@ -557,6 +557,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_lived_witness_route.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_home",
+      "owner_surface": "ToS/zarathustra/lived-witness/AGENTS.md",
+      "protects": "private-by-default lived-witness schema, human authorship, separate permissions, no silent transformation, ignore boundary, and non-promotion posture",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_lived_witness_route.py",
+      "failure_route": "Fix the lived-witness owner route, contract, or privacy boundary before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_validation_lanes.py",
       "home": "tests",
       "home_scope": "root",

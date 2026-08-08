@@ -29,6 +29,7 @@ judgment true.
 | `collection-work-boundary-map.schema.json` | text-free complete or explicitly partial member-work representation, contiguous represented/non-member/unrepresented container-page coverage, exact Work/Expression/claim refs, optional evidence-bearing responsibility refs, source order and anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `provenance-event.schema.json` | acquisition and transformation entity/activity/agent trail |
+| `lived-witness-packet.schema.json` | private-by-default first-person authored body, distinct experience/capture time, work or passage targets, raw/AI/transformation provenance, third-party posture, separate downstream permissions, author confirmation, revision/withdrawal, and explicit zero source/philology/semantic/canon authority |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |
 | `material-discovery-record.schema.json` | exact ordered queries, result order, originating-record links, declared-rights evidence, acquisition/snapshot posture, and channel cost comparison |
 | `access-request.schema.json` | public-safe request scope, institutional contact route, separate permission purposes, private-correspondence boundary, response/expiry state, and no-bypass law |

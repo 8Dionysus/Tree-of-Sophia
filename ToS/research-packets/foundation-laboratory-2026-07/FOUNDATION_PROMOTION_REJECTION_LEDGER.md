@@ -23,6 +23,18 @@ The promotion authorities remain separate:
 - the server, a validator, a model, or this ledger cannot promote a claim by
   itself.
 
+## Lived-witness route decision — 2026-08-08
+
+Promote the dedicated packet schema, private speaking path, conversational
+capture form, provenance event kinds, narrow ignore rule, separate permission
+law, and structural check as durable foundation mechanics.
+
+Do not promote or imply any personal testimony. No body, date, life context,
+tracked metadata receipt, semantic candidate, graph edge, retrieval document,
+training datum, or public artifact was created. The route activates only on an
+explicit author request; an author-confirmed packet may inform a later claim
+only through a separate permission and review event.
+
 ## Decision register
 
 The current MDZ pair pass extends the existing *Der Fall Wagner*,

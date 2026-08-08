@@ -1,0 +1,595 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lived-witness-packet.schema.json",
+  "title": "Tree of Sophia authored lived-witness packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "work_ref",
+    "author",
+    "record_status",
+    "testimony",
+    "targets",
+    "experience_context",
+    "capture",
+    "third_party_posture",
+    "rights",
+    "use_permissions",
+    "author_review",
+    "revision",
+    "provenance_event_refs",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/lived-witness-packet.schema.json"
+    },
+    "schema_version": {"const": "tos_lived_witness_packet_v1"},
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.lived-witness\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {"$ref": "#/$defs/workId"},
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_ref",
+        "agent_kind",
+        "first_person_human_authorship_asserted"
+      ],
+      "properties": {
+        "agent_ref": {"$ref": "#/$defs/humanAgentRef"},
+        "agent_kind": {"const": "human"},
+        "first_person_human_authorship_asserted": {"const": true},
+        "public_name": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "record_status": {
+      "enum": ["draft", "author-confirmed", "superseded", "withdrawn"]
+    },
+    "testimony": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "body",
+        "body_sha256",
+        "language",
+        "media_type",
+        "authorship_posture",
+        "human_wording_asserted"
+      ],
+      "properties": {
+        "body": {"type": "string", "minLength": 1},
+        "body_sha256": {"$ref": "#/$defs/sha256"},
+        "language": {"type": "string", "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"},
+        "media_type": {"enum": ["text/plain", "text/markdown"]},
+        "authorship_posture": {
+          "enum": [
+            "verbatim-human-utterance",
+            "human-authored-text",
+            "human-approved-edited-text"
+          ]
+        },
+        "human_wording_asserted": {"const": true}
+      }
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/target"}
+    },
+    "experience_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temporal_scopes",
+        "author_context_terms",
+        "context_note",
+        "recollection_posture"
+      ],
+      "properties": {
+        "temporal_scopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/temporalScope"}
+        },
+        "author_context_terms": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "context_note": {"type": ["string", "null"], "minLength": 1},
+        "recollection_posture": {
+          "const": "first-person-recollection-not-objective-event-proof"
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "recorded_at",
+        "recorder_ref",
+        "raw_artifacts",
+        "ai_involvement",
+        "transformations",
+        "silent_transformation_allowed"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "self-authored-text",
+            "human-interview",
+            "voice-recording",
+            "ai-assisted-dialogue"
+          ]
+        },
+        "recorded_at": {"type": "string", "format": "date-time"},
+        "recorder_ref": {
+          "oneOf": [
+            {"$ref": "#/$defs/agentRef"},
+            {"type": "null"}
+          ]
+        },
+        "raw_artifacts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/rawArtifact"}
+        },
+        "ai_involvement": {"$ref": "#/$defs/aiInvolvement"},
+        "transformations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/transformation"}
+        },
+        "silent_transformation_allowed": {"const": false}
+      }
+    },
+    "third_party_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mentions_or_implicates_others",
+        "risk_review_status",
+        "redaction_status",
+        "public_derivative_blocked_until_review"
+      ],
+      "properties": {
+        "mentions_or_implicates_others": {"enum": ["no", "yes", "uncertain"]},
+        "risk_review_status": {"enum": ["not-needed", "pending", "completed"]},
+        "redaction_status": {"enum": ["not-needed", "pending", "completed", "declined"]},
+        "public_derivative_blocked_until_review": {"const": true}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "copyright_holder_ref",
+        "copyright_posture",
+        "license_ref",
+        "permission_model"
+      ],
+      "properties": {
+        "copyright_holder_ref": {"$ref": "#/$defs/humanAgentRef"},
+        "copyright_posture": {
+          "enum": ["author-retained", "scoped-license-granted", "public-domain-dedication"]
+        },
+        "license_ref": {"type": ["string", "null"], "minLength": 1},
+        "permission_model": {"const": "purpose-specific-no-inheritance"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"copyright_posture": {"const": "scoped-license-granted"}},
+            "required": ["copyright_posture"]
+          },
+          "then": {"properties": {"license_ref": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    },
+    "use_permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store_local",
+        "track_metadata_in_git",
+        "quote",
+        "lexical_index",
+        "semantic_index",
+        "graph_projection",
+        "public_release",
+        "model_training",
+        "external_service_processing"
+      ],
+      "properties": {
+        "store_local": {
+          "$ref": "#/$defs/permissionDecision",
+          "properties": {"status": {"const": "granted"}}
+        },
+        "track_metadata_in_git": {"$ref": "#/$defs/permissionDecision"},
+        "quote": {"$ref": "#/$defs/permissionDecision"},
+        "lexical_index": {"$ref": "#/$defs/permissionDecision"},
+        "semantic_index": {"$ref": "#/$defs/permissionDecision"},
+        "graph_projection": {"$ref": "#/$defs/permissionDecision"},
+        "public_release": {"$ref": "#/$defs/permissionDecision"},
+        "model_training": {"$ref": "#/$defs/permissionDecision"},
+        "external_service_processing": {"$ref": "#/$defs/permissionDecision"}
+      }
+    },
+    "author_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author_confirmed",
+        "confirmed_at",
+        "confirmation_method",
+        "reviewed_body_sha256",
+        "review_note"
+      ],
+      "properties": {
+        "author_confirmed": {"type": "boolean"},
+        "confirmed_at": {"type": ["string", "null"], "format": "date-time"},
+        "confirmation_method": {
+          "enum": ["not-yet-confirmed", "explicit-text-confirmation", "explicit-voice-confirmation"]
+        },
+        "reviewed_body_sha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "review_note": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_version",
+        "supersedes_packet_ref",
+        "superseded_by_packet_ref",
+        "change_summary",
+        "withdrawal_note"
+      ],
+      "properties": {
+        "packet_version": {"type": "integer", "minimum": 1},
+        "supersedes_packet_ref": {
+          "oneOf": [{"$ref": "#/$defs/packetId"}, {"type": "null"}]
+        },
+        "superseded_by_packet_ref": {
+          "oneOf": [{"$ref": "#/$defs/packetId"}, {"type": "null"}]
+        },
+        "change_summary": {"type": ["string", "null"], "minLength": 1},
+        "withdrawal_note": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "provenance_event_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/eventId"}
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_first_person_authored_record",
+        "is_primary_source_witness",
+        "establishes_textual_fact",
+        "establishes_bibliographic_fact",
+        "establishes_philological_fact",
+        "establishes_translation_truth",
+        "establishes_semantic_truth",
+        "promotes_canon",
+        "ai_output_alone_can_be_lived_witness",
+        "separate_claim_and_review_required_for_promotion"
+      ],
+      "properties": {
+        "is_first_person_authored_record": {"const": true},
+        "is_primary_source_witness": {"const": false},
+        "establishes_textual_fact": {"const": false},
+        "establishes_bibliographic_fact": {"const": false},
+        "establishes_philological_fact": {"const": false},
+        "establishes_translation_truth": {"const": false},
+        "establishes_semantic_truth": {"const": false},
+        "promotes_canon": {"const": false},
+        "ai_output_alone_can_be_lived_witness": {"const": false},
+        "separate_claim_and_review_required_for_promotion": {"const": true}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"record_status": {"const": "author-confirmed"}},
+        "required": ["record_status"]
+      },
+      "then": {
+        "properties": {
+          "author_review": {
+            "properties": {
+              "author_confirmed": {"const": true},
+              "confirmed_at": {"type": "string", "format": "date-time"},
+              "confirmation_method": {
+                "enum": ["explicit-text-confirmation", "explicit-voice-confirmation"]
+              },
+              "reviewed_body_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"record_status": {"const": "superseded"}},
+        "required": ["record_status"]
+      },
+      "then": {
+        "properties": {
+          "revision": {
+            "properties": {
+              "superseded_by_packet_ref": {"$ref": "#/$defs/packetId"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"record_status": {"const": "withdrawn"}},
+        "required": ["record_status"]
+      },
+      "then": {
+        "properties": {
+          "use_permissions": {
+            "properties": {
+              "track_metadata_in_git": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "quote": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "lexical_index": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "semantic_index": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "graph_projection": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "public_release": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "model_training": {"$ref": "#/$defs/nonGrantedPermissionDecision"},
+              "external_service_processing": {"$ref": "#/$defs/nonGrantedPermissionDecision"}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "packetId": {
+      "type": "string",
+      "pattern": "^tos\\.lived-witness\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "humanAgentRef": {
+      "anyOf": [
+        {"type": "string", "pattern": "^tos\\.agent\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        {"type": "string", "pattern": "^human:[^\\s]+$"}
+      ]
+    },
+    "agentRef": {
+      "anyOf": [
+        {"type": "string", "pattern": "^tos\\.agent\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        {"type": "string", "pattern": "^(human|software|model):[^\\s]+$"}
+      ]
+    },
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_kind", "target_ref", "anchor_refs", "relationship", "note"],
+      "properties": {
+        "target_kind": {
+          "enum": [
+            "whole-work",
+            "expression",
+            "edition",
+            "item",
+            "part",
+            "passage",
+            "reading-event",
+            "recitation-event",
+            "life-context"
+          ]
+        },
+        "target_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^tos\\.(work|expression|edition|item|passage|anchor|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+            },
+            {"type": "null"}
+          ]
+        },
+        "anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos\\.(passage|anchor)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          }
+        },
+        "relationship": {
+          "enum": [
+            "read",
+            "reread",
+            "listened-to",
+            "recited",
+            "memorized",
+            "lived-with",
+            "interprets",
+            "associates-with"
+          ]
+        },
+        "note": {"type": ["string", "null"], "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target_kind": {
+                "enum": ["whole-work", "expression", "edition", "item", "part", "passage"]
+              }
+            },
+            "required": ["target_kind"]
+          },
+          "then": {"properties": {"target_ref": {"type": "string"}}}
+        },
+        {
+          "if": {
+            "properties": {"target_kind": {"const": "passage"}},
+            "required": ["target_kind"]
+          },
+          "then": {"properties": {"anchor_refs": {"minItems": 1}}}
+        }
+      ]
+    },
+    "temporalScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["precision", "started", "ended", "author_note"],
+      "properties": {
+        "precision": {"enum": ["exact", "month", "year", "range", "relative", "unknown", "withheld"]},
+        "started": {"type": ["string", "null"]},
+        "ended": {"type": ["string", "null"]},
+        "author_note": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "rawArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "role", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "role": {"enum": ["raw-text", "audio", "video", "transcript", "notes", "prompt-log"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "aiInvolvement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["involved", "roles", "model_refs", "prompt_or_instruction_refs"],
+      "properties": {
+        "involved": {"type": "boolean"},
+        "roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "question-prompting",
+              "transcription",
+              "metadata-structuring",
+              "translation",
+              "editing-proposal",
+              "analysis"
+            ]
+          }
+        },
+        "model_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^model:[^\\s]+$"}
+        },
+        "prompt_or_instruction_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/repoRelativePath"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"involved": {"const": false}}, "required": ["involved"]},
+          "then": {
+            "properties": {
+              "roles": {"maxItems": 0},
+              "model_refs": {"maxItems": 0},
+              "prompt_or_instruction_refs": {"maxItems": 0}
+            }
+          },
+          "else": {"properties": {"roles": {"minItems": 1}}}
+        }
+      ]
+    },
+    "transformation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transformation_kind",
+        "maker_ref",
+        "input_sha256",
+        "output_sha256",
+        "applied_to_testimony_body",
+        "author_confirmed",
+        "output_posture"
+      ],
+      "properties": {
+        "transformation_kind": {
+          "enum": [
+            "transcription",
+            "punctuation",
+            "orthographic-normalization",
+            "translation",
+            "redaction",
+            "structural-edit",
+            "summary"
+          ]
+        },
+        "maker_ref": {"$ref": "#/$defs/agentRef"},
+        "input_sha256": {"$ref": "#/$defs/sha256"},
+        "output_sha256": {"$ref": "#/$defs/sha256"},
+        "applied_to_testimony_body": {"type": "boolean"},
+        "author_confirmed": {"type": "boolean"},
+        "output_posture": {"enum": ["testimony-body-candidate", "separate-derived-artifact"]}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"applied_to_testimony_body": {"const": true}},
+            "required": ["applied_to_testimony_body"]
+          },
+          "then": {
+            "properties": {
+              "author_confirmed": {"const": true},
+              "output_posture": {"const": "testimony-body-candidate"}
+            }
+          }
+        }
+      ]
+    },
+    "permissionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "decided_at", "scope_note"],
+      "properties": {
+        "status": {"enum": ["not-granted", "granted", "withdrawn"]},
+        "decided_at": {"type": ["string", "null"], "format": "date-time"},
+        "scope_note": {"type": ["string", "null"], "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "granted"}}, "required": ["status"]},
+          "then": {"properties": {"decided_at": {"type": "string", "format": "date-time"}}}
+        }
+      ]
+    },
+    "nonGrantedPermissionDecision": {
+      "$ref": "#/$defs/permissionDecision",
+      "properties": {"status": {"enum": ["not-granted", "withdrawn"]}}
+    }
+  }
+}

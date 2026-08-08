@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-08-02
+Snapshot: 2026-08-08
 
 ## Honest boundary
 
@@ -16,6 +16,14 @@ It does **not** establish a completed human gold set, accepted German source
 text, a translation, a semantic sign, a philosophical relation, a quality
 winner, or a successful golden-kernel transfer. Those are not small missing
 fields. They are the next authority layer.
+
+The dedicated lived-witness route is now prepared from ordered official,
+established, and current-through-2026-08-08 research. It defines a local-only
+default, exact human authorship, separate experience and capture time, visible
+AI transformations, third-party review, purpose-specific permissions,
+revision, supersession, and withdrawal. It does not contain, schedule, infer,
+index, graph, publish, or promote the user's testimony. The route opens only
+when the user explicitly chooses to record one account.
 
 The new metadata-only *Zarathustra* authorial route narrows that future work
 without opening a standing human backlog. It establishes current remote

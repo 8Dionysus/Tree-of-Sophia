@@ -55,6 +55,10 @@ layer. Lived witness may explain sustained attention and salience, but it
 remains distinct from primary text, bibliographic evidence, scholarship,
 interpretation, and canon.
 
+The current private-by-default capture and authorship route is
+`ToS/zarathustra/lived-witness/`. It creates no record until the human author
+explicitly invokes it and confirms the exact body.
+
 See [GOLDEN_GROWTH_KERNEL](../zarathustra/GOLDEN_GROWTH_KERNEL.md) for the
 current architecture and preparation boundary.
 

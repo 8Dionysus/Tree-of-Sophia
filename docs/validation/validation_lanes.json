@@ -322,6 +322,10 @@
       {
         "label": "validate ToS source home",
         "command": ["python", "scripts/validate_tos_source_home.py"]
+      },
+      {
+        "label": "validate lived-witness private route",
+        "command": ["python", "scripts/validate_lived_witness_route.py"]
       }
     ],
     "source_witness_foundation": [

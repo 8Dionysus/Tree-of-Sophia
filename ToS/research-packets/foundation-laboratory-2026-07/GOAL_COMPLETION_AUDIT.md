@@ -463,6 +463,17 @@ This audit therefore records only its public-safe consequence: one real
 reviewer completed one method-blind candidate-review pass, while no diplomatic
 gold, accepted text, or public derivative was created.
 
+## Lived-witness objective — 2026-08-08
+
+The goal's human-root requirement is now prepared as a dedicated
+private-by-default route with an ordered research packet, first-person packet
+schema, conversational form, narrow ignored storage path, author-confirmation
+law, separate AI/transformation provenance, third-party posture, nine distinct
+use permissions, revision/supersession/withdrawal, and a structural release
+check. No testimony or tracked metadata was created, and no human task was
+scheduled. This closes the missing **form and route**, not the still-voluntary
+future act of authoring lived witness or any later interpretive promotion.
+
 ## Thirty-one required artifacts
 
 The 2026-08-01 Antonovsky Agent continuation is independent of the earlier

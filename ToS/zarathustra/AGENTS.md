@@ -14,12 +14,12 @@ observation, review, canon, bounded concept hop, and derived read models.
 | Field | Route |
 | --- | --- |
 | role | Zarathustra golden growth kernel for the first full ToS learning cycle |
-| input | lived route provenance, bounded Zarathustra witness route, public-entry capsule, source/canon refs, and tiny-entry orientation |
+| input | explicit lived-witness author invocation, bounded Zarathustra witness route, public-entry capsule, source/canon refs, and tiny-entry orientation |
 | output | route surfaces that keep the source-to-review growth path legible while returning to witness and canon authority |
 | owner | `ToS/zarathustra/AGENTS.md` |
 | next route | witness -> address -> observation/proposal -> human review -> canon -> compatibility -> derived export |
-| tools | `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`, `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`, source-home manifest, tiny-entry and KAG validators |
-| check | source-home, tiny-entry, KAG export, and route-card validators |
+| tools | `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`, `ToS/zarathustra/lived-witness/CAPTURE_PROTOCOL.md`, `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`, source-home manifest, lived-witness, tiny-entry, and KAG validators |
+| check | source-home, lived-witness, tiny-entry, KAG export, and route-card validators |
 
 ## Boundary Routes
 
@@ -58,7 +58,8 @@ review posture and route the pressure to doctrine/contracts.
 
 ## Validation
 
-Use `scripts/validate_tos_source_home.py`, `scripts/validate_tiny_entry_route.py`,
+Use `scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route.py`,
+`scripts/validate_tiny_entry_route.py`,
 `mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`,
 and `scripts/validate_nested_agents.py` when this branch changes. Use the ToS
 review checklist for source/interpretation, lived-witness, method-transfer, and
