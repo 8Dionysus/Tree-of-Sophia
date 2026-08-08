@@ -1,0 +1,188 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-episode.schema.json",
+  "schema_version": "tos_experimental_translation_episode_v1",
+  "episode_id": "tos.experimental-translation-episode.qwen3-8b-ovms-cpu.russian-surface-rejection.v1",
+  "status": "frozen-ai-only-experimental-candidate",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "critical_locator_siglum": "Za-I-Vorrede-1"
+  },
+  "admission": {
+    "citation_witness_decision": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-citation-witness-decision.ekgwb.za-i-vorrede-1.v1.json",
+      "sha256": "46373690c5627511b3dc68dade95fe0c2d11a7496a66a994edfe6179567f5a5e"
+    },
+    "current_source_return_overlay": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json",
+      "sha256": "b894e0070e9bbd614627312b0e71584156da226db42538c010fc1775083bd0fb"
+    },
+    "ordered_research_refresh": {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md",
+      "sha256": "f35449353ea0ede58b12748519a5eb640b9919916d1159c1cce3f5b8c7044f12"
+    }
+  },
+  "method_freeze": {
+    "runtime_owner": "abyss-stack",
+    "owner_revision": "d2e318ebc3428c72404e389fef44e7d9dda00c62",
+    "profile_id": "tos-zarathustra-experimental-translation-qwen3-8b-ovms-cpu-v1",
+    "profile_sha256": "6f4bd32e6a0c2a8629e63dc0e7cd49b0bf5f6f21b820b0112ce322d0187c5c5f",
+    "prompt_id": "direct-independent-translation-json-v1",
+    "runner": {
+      "module_ref": "mechanics/inference-pilots/parts/tos-foundation-lab/experimental_translation_ovms_candidate.py",
+      "module_sha256": "64f530468bca84a746f38bb873c866d9f48c350e7a1698915e3c8e137e4481e9",
+      "base_module_ref": "mechanics/inference-pilots/parts/tos-foundation-lab/experimental_translation_candidate.py",
+      "base_module_sha256": "b37d8e74faa14bec82fd2609adce848bdb77d0957a10079b69c684e1c74395c6"
+    },
+    "model": {
+      "model_id": "OpenVINO/Qwen3-8B-int4-ov",
+      "upstream_revision": "5c47abf4b8e12ebe8e99745bb0c1ec17e0c0abcc",
+      "artifact_kind": "directory-tree",
+      "artifact_file_count": 19,
+      "artifact_size_bytes": 4882866534,
+      "artifact_tree_sha256": "c75dc7bb87fe010aa8d50fccdf2ab58803e2aba37bea61996fc6c3eb8857f00a",
+      "primary_weight_sha256": "f2e6960fde61d24a83c477c46f9ee7158748762089f2018fc2bb6a6d6c7f2a7e",
+      "quantization": "NNCF INT4_ASYM group-size-128 ratio-1.0"
+    },
+    "runtime": {
+      "runtime_mode": "ovms-container-cpu",
+      "runtime_id": "ovms-2026.2-resident-cpu",
+      "backend": "OpenVINO Model Server container",
+      "device": "CPU",
+      "image_ref": "docker.io/openvino/model_server@sha256:fdc34725b35d79cde23cff1967f90efb40237b7cf5545a70460209056f3da733",
+      "image_id": "sha256:f2f53396b27d6efcf76f0184df0d10f0eb55ee09fa78b49e4277e23c585b6968",
+      "context_tokens": 8192,
+      "threads": 6,
+      "cache_size_gib": 2,
+      "container_network": "none",
+      "model_mount_read_only": true,
+      "model_view_kind": "verified-byte-copy-no-git",
+      "model_view_file_count": 19,
+      "model_view_size_bytes": 4882866534,
+      "model_view_sha256": "c75dc7bb87fe010aa8d50fccdf2ab58803e2aba37bea61996fc6c3eb8857f00a",
+      "runtime_userns": "keep-id:uid=5000,gid=5000",
+      "runtime_process_uid": 5000,
+      "runtime_process_gid": 5000,
+      "runtime_graph_filename": "graph.pbtxt",
+      "runtime_model_projection_file_count": 18,
+      "runtime_model_projection_sha256": "c0b4dfce3f904f8af4e4722f7bf7f60d6916bb4967f726c05fcecf15475627e7",
+      "runtime_metadata_mount_writable": true,
+      "container_name_prefix": "tos-qwen3-8b-ovms-",
+      "smoke_timeout_seconds": 120,
+      "candidate_timeout_seconds": 600,
+      "jinja_chat_template": true,
+      "generation_schema_mode": "source-free-json-schema-smoke-then-private-exact-source-post-validation"
+    },
+    "decoding": {
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "seed": 42,
+      "max_tokens": 1536
+    }
+  },
+  "private_run": {
+    "run_id": "za-i-vorrede-1-opening-qwen3-8b-ovms-cpu-v4-20260808",
+    "run_receipt": {
+      "ref": "tos.private.experimental-translation.qwen3-8b-ovms-cpu-v4.run-receipt",
+      "sha256": "652228a520f2ce762a21cf287dce0edc95bd0e1d2b3f929f72a9191832f3037a"
+    },
+    "local_source_artifact_sha256": "a19c2f080eaff61b9412c0555954b632ffc4dd6c06f47f46aa464ab389d2b9f4",
+    "source_text_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224",
+    "candidate_artifact": {
+      "ref": "tos.private.experimental-translation.qwen3-8b-ovms-cpu-v4.candidate",
+      "sha256": "db8c559e7072ee65a8609e977522457187093512accb2fe2e613cf7b07191993"
+    }
+  },
+  "content_boundary": {
+    "source_text_tracked": false,
+    "candidate_text_tracked": false,
+    "private_paths_tracked": false,
+    "recognized_comparator_revealed": false
+  },
+  "outcome": {
+    "kind": "candidate-rejected-by-ai-russian-surface-triage",
+    "candidate_present": true,
+    "ai_triage": {
+      "ref": "tos.private.experimental-translation.qwen3-8b-ovms-cpu-v4.ai-russian-surface-triage",
+      "sha256": "b53f4f41fee30857989425d9d11be903d51a0229b126883a9e7ed8d65b287226"
+    },
+    "scope": "russian-surface-only-no-german-competence-claim",
+    "run_integrity_verified": true,
+    "output_contract_valid": true,
+    "source_echo_exact": true,
+    "russian_surface_posture": "obvious-defects",
+    "observed_issue_ids": [
+      "defective-name-case-across-main-and-alternatives",
+      "generic-unsupported-rhythm-notes",
+      "internal-contradiction-with-russian-norm-claim",
+      "literal-gloss-duplicates-candidate",
+      "ungrammatical-zarathustra-age-construction"
+    ],
+    "useful_uncertainty_preserved": true,
+    "disposition": "reject-before-human-review",
+    "human_review_created": false
+  },
+  "measurements": {
+    "measurement_mode": "ovms-container-with-owner-wrapper-boundary-v1",
+    "overall_wall_seconds": 206.546902,
+    "model_wall_seconds": 177.70907,
+    "owner_wrapper_systemd": {
+      "result": "success",
+      "service_runtime": "2min 57.905s",
+      "cpu_time_consumed": "2.253s",
+      "memory_peak_bytes": 55312384,
+      "memory_swap_peak_bytes": 0,
+      "coverage_limit": "owner wrapper cgroup excludes the rootless OVMS container model process"
+    },
+    "generation_usage": {
+      "prompt_tokens": 496,
+      "completion_tokens": 860,
+      "total_tokens": 1356
+    },
+    "host_before": {
+      "memory_available_bytes": 18363473920,
+      "swap_free_bytes": 5700194304,
+      "load_1m": 4.078125,
+      "temperature_c_max": null,
+      "package_temperature_c_max": null
+    },
+    "host_after": {
+      "memory_available_bytes": 18440396800,
+      "swap_free_bytes": 5733412864,
+      "load_1m": 7.2177734375,
+      "temperature_c_max": null,
+      "package_temperature_c_max": null
+    },
+    "owner_launch_thermal": {
+      "sensor_temperature_c_max": 101.0,
+      "package_temperature_c_max": 101.0,
+      "core_temperature_c_max": 100.0
+    },
+    "model_process_peak_bytes": null,
+    "model_memory_measurement_status": "not-captured-by-owner-wrapper",
+    "monetary_cost": "unmeasured-local-execution",
+    "energy_cost": "unmeasured",
+    "human_correction_seconds": "not-incurred",
+    "quality_cost_speed_are_separate_dimensions": true
+  },
+  "rights_and_visibility": {
+    "environment": "local-only",
+    "use": "private-non-commercial-research",
+    "source_or_candidate_sharing_authorized": false,
+    "publication_authorized": false,
+    "commercial_use_authorized": false
+  },
+  "gate_effects": {
+    "experimental_episodes_recorded": 1,
+    "infrastructure_failures_retained": 0,
+    "ai_only_experimental_candidates_recorded": 1,
+    "ai_human_tasks_created": 0,
+    "accepted_german_units": 0,
+    "accepted_translation_packets": 0,
+    "semantic_tasks_opened": 0,
+    "graph_or_canon_promotion_authorized": false
+  },
+  "provenance_event_ref": "tos.event.translation.zarathustra-experimental-qwen3-8b-ovms-cpu-russian-surface-rejection.za-i-vorrede-1-opening.2026-08-08",
+  "authority_boundary": "a private experimental translation episode may preserve method, failure, Russian-surface triage, speed, resource, and fixity evidence; it cannot establish German correctness, translation fidelity, etymology, semantics, publication permission, graph truth, or canon authority"
+}

@@ -92,59 +92,22 @@
           "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
         },
         "runner": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["module_ref", "module_sha256", "cli_ref", "cli_sha256"],
-          "properties": {
-            "module_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
-            "module_sha256": {"$ref": "#/$defs/sha256"},
-            "cli_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
-            "cli_sha256": {"$ref": "#/$defs/sha256"}
-          }
+          "oneOf": [
+            {"$ref": "#/$defs/llamaRunner"},
+            {"$ref": "#/$defs/ovmsRunner"}
+          ]
         },
         "model": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "model_id",
-            "upstream_revision",
-            "artifact_size_bytes",
-            "artifact_sha256",
-            "quantization"
-          ],
-          "properties": {
-            "model_id": {"type": "string", "minLength": 1},
-            "upstream_revision": {"type": "string", "minLength": 1},
-            "artifact_size_bytes": {"type": "integer", "minimum": 1},
-            "artifact_sha256": {"$ref": "#/$defs/sha256"},
-            "quantization": {"type": "string", "minLength": 1}
-          }
+          "oneOf": [
+            {"$ref": "#/$defs/singleFileModel"},
+            {"$ref": "#/$defs/directoryTreeModel"}
+          ]
         },
         "runtime": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "runtime_id",
-            "runtime_revision",
-            "backend",
-            "device",
-            "launcher_sha256",
-            "binary_sha256",
-            "context_tokens",
-            "gpu_layers",
-            "threads"
-          ],
-          "properties": {
-            "runtime_id": {"type": "string", "minLength": 1},
-            "runtime_revision": {"type": "string", "minLength": 1},
-            "backend": {"type": "string", "minLength": 1},
-            "device": {"type": "string", "minLength": 1},
-            "launcher_sha256": {"$ref": "#/$defs/sha256"},
-            "binary_sha256": {"$ref": "#/$defs/sha256"},
-            "context_tokens": {"type": "integer", "minimum": 1},
-            "gpu_layers": {"type": "integer", "minimum": 0},
-            "threads": {"type": "integer", "minimum": 1}
-          }
+          "oneOf": [
+            {"$ref": "#/$defs/llamaRuntime"},
+            {"$ref": "#/$defs/ovmsRuntime"}
+          ]
         },
         "decoding": {
           "type": "object",
@@ -207,7 +170,12 @@
         {"$ref": "#/$defs/triageOutcome"}
       ]
     },
-    "measurements": {"$ref": "#/$defs/measurements"},
+    "measurements": {
+      "oneOf": [
+        {"$ref": "#/$defs/llamaMeasurements"},
+        {"$ref": "#/$defs/ovmsMeasurements"}
+      ]
+    },
     "rights_and_visibility": {
       "type": "object",
       "additionalProperties": false,
@@ -324,6 +292,163 @@
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     },
+    "llamaRunner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module_ref", "module_sha256", "cli_ref", "cli_sha256"],
+      "properties": {
+        "module_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+        "module_sha256": {"$ref": "#/$defs/sha256"},
+        "cli_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+        "cli_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "ovmsRunner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_ref",
+        "module_sha256",
+        "base_module_ref",
+        "base_module_sha256"
+      ],
+      "properties": {
+        "module_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+        "module_sha256": {"$ref": "#/$defs/sha256"},
+        "base_module_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+        "base_module_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "singleFileModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "upstream_revision",
+        "artifact_size_bytes",
+        "artifact_sha256",
+        "quantization"
+      ],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "upstream_revision": {"type": "string", "minLength": 1},
+        "artifact_size_bytes": {"type": "integer", "minimum": 1},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "quantization": {"type": "string", "minLength": 1}
+      }
+    },
+    "directoryTreeModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "upstream_revision",
+        "artifact_kind",
+        "artifact_file_count",
+        "artifact_size_bytes",
+        "artifact_tree_sha256",
+        "primary_weight_sha256",
+        "quantization"
+      ],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "upstream_revision": {"type": "string", "minLength": 1},
+        "artifact_kind": {"const": "directory-tree"},
+        "artifact_file_count": {"type": "integer", "minimum": 1},
+        "artifact_size_bytes": {"type": "integer", "minimum": 1},
+        "artifact_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "primary_weight_sha256": {"$ref": "#/$defs/sha256"},
+        "quantization": {"type": "string", "minLength": 1}
+      }
+    },
+    "llamaRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "runtime_revision",
+        "backend",
+        "device",
+        "launcher_sha256",
+        "binary_sha256",
+        "context_tokens",
+        "gpu_layers",
+        "threads"
+      ],
+      "properties": {
+        "runtime_id": {"type": "string", "minLength": 1},
+        "runtime_revision": {"type": "string", "minLength": 1},
+        "backend": {"type": "string", "minLength": 1},
+        "device": {"type": "string", "minLength": 1},
+        "launcher_sha256": {"$ref": "#/$defs/sha256"},
+        "binary_sha256": {"$ref": "#/$defs/sha256"},
+        "context_tokens": {"type": "integer", "minimum": 1},
+        "gpu_layers": {"type": "integer", "minimum": 0},
+        "threads": {"type": "integer", "minimum": 1}
+      }
+    },
+    "ovmsRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_mode",
+        "runtime_id",
+        "backend",
+        "device",
+        "image_ref",
+        "image_id",
+        "context_tokens",
+        "threads",
+        "cache_size_gib",
+        "container_network",
+        "model_mount_read_only",
+        "model_view_kind",
+        "model_view_file_count",
+        "model_view_size_bytes",
+        "model_view_sha256",
+        "runtime_userns",
+        "runtime_process_uid",
+        "runtime_process_gid",
+        "runtime_graph_filename",
+        "runtime_model_projection_file_count",
+        "runtime_model_projection_sha256",
+        "runtime_metadata_mount_writable",
+        "container_name_prefix",
+        "smoke_timeout_seconds",
+        "candidate_timeout_seconds",
+        "jinja_chat_template",
+        "generation_schema_mode"
+      ],
+      "properties": {
+        "runtime_mode": {"const": "ovms-container-cpu"},
+        "runtime_id": {"type": "string", "minLength": 1},
+        "backend": {"const": "OpenVINO Model Server container"},
+        "device": {"const": "CPU"},
+        "image_ref": {"type": "string", "pattern": "^docker\\.io/openvino/model_server@sha256:[a-f0-9]{64}$"},
+        "image_id": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "context_tokens": {"type": "integer", "minimum": 1},
+        "threads": {"type": "integer", "minimum": 1},
+        "cache_size_gib": {"type": "integer", "minimum": 1},
+        "container_network": {"const": "none"},
+        "model_mount_read_only": {"const": true},
+        "model_view_kind": {"const": "verified-byte-copy-no-git"},
+        "model_view_file_count": {"type": "integer", "minimum": 1},
+        "model_view_size_bytes": {"type": "integer", "minimum": 1},
+        "model_view_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_userns": {"const": "keep-id:uid=5000,gid=5000"},
+        "runtime_process_uid": {"const": 5000},
+        "runtime_process_gid": {"const": 5000},
+        "runtime_graph_filename": {"const": "graph.pbtxt"},
+        "runtime_model_projection_file_count": {"type": "integer", "minimum": 1},
+        "runtime_model_projection_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_metadata_mount_writable": {"const": true},
+        "container_name_prefix": {"type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*-$"},
+        "smoke_timeout_seconds": {"type": "integer", "minimum": 1},
+        "candidate_timeout_seconds": {"type": "integer", "minimum": 1},
+        "jinja_chat_template": {"const": true},
+        "generation_schema_mode": {"type": "string", "minLength": 1}
+      }
+    },
     "failureOutcome": {
       "type": "object",
       "additionalProperties": false,
@@ -391,7 +516,7 @@
         "human_review_created": {"const": false}
       }
     },
-    "measurements": {
+    "llamaMeasurements": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -451,6 +576,83 @@
         "quality_cost_speed_are_separate_dimensions": {"const": true}
       }
     },
+    "ovmsMeasurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_mode",
+        "overall_wall_seconds",
+        "model_wall_seconds",
+        "owner_wrapper_systemd",
+        "generation_usage",
+        "host_before",
+        "host_after",
+        "owner_launch_thermal",
+        "model_process_peak_bytes",
+        "model_memory_measurement_status",
+        "monetary_cost",
+        "energy_cost",
+        "human_correction_seconds",
+        "quality_cost_speed_are_separate_dimensions"
+      ],
+      "properties": {
+        "measurement_mode": {"const": "ovms-container-with-owner-wrapper-boundary-v1"},
+        "overall_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "model_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "owner_wrapper_systemd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "service_runtime",
+            "cpu_time_consumed",
+            "memory_peak_bytes",
+            "memory_swap_peak_bytes",
+            "coverage_limit"
+          ],
+          "properties": {
+            "result": {"const": "success"},
+            "service_runtime": {"type": "string", "minLength": 1},
+            "cpu_time_consumed": {"type": "string", "minLength": 1},
+            "memory_peak_bytes": {"type": "integer", "minimum": 0},
+            "memory_swap_peak_bytes": {"type": "integer", "minimum": 0},
+            "coverage_limit": {"const": "owner wrapper cgroup excludes the rootless OVMS container model process"}
+          }
+        },
+        "generation_usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prompt_tokens", "completion_tokens", "total_tokens"],
+          "properties": {
+            "prompt_tokens": {"type": "integer", "minimum": 0},
+            "completion_tokens": {"type": "integer", "minimum": 0},
+            "total_tokens": {"type": "integer", "minimum": 0}
+          }
+        },
+        "host_before": {"$ref": "#/$defs/hostSnapshot"},
+        "host_after": {"$ref": "#/$defs/hostSnapshot"},
+        "owner_launch_thermal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sensor_temperature_c_max",
+            "package_temperature_c_max",
+            "core_temperature_c_max"
+          ],
+          "properties": {
+            "sensor_temperature_c_max": {"type": "number"},
+            "package_temperature_c_max": {"type": "number"},
+            "core_temperature_c_max": {"type": "number"}
+          }
+        },
+        "model_process_peak_bytes": {"type": "null"},
+        "model_memory_measurement_status": {"const": "not-captured-by-owner-wrapper"},
+        "monetary_cost": {"const": "unmeasured-local-execution"},
+        "energy_cost": {"const": "unmeasured"},
+        "human_correction_seconds": {"const": "not-incurred"},
+        "quality_cost_speed_are_separate_dimensions": {"const": true}
+      }
+    },
     "hostSnapshot": {
       "type": "object",
       "additionalProperties": false,
@@ -465,8 +667,8 @@
         "memory_available_bytes": {"type": "integer", "minimum": 0},
         "swap_free_bytes": {"type": "integer", "minimum": 0},
         "load_1m": {"type": "number", "minimum": 0},
-        "temperature_c_max": {"type": "number"},
-        "package_temperature_c_max": {"type": "number"}
+        "temperature_c_max": {"type": ["number", "null"]},
+        "package_temperature_c_max": {"type": ["number", "null"]}
       }
     }
   }

@@ -87,6 +87,18 @@ Zarathustra golden kernel. It is not a completed gold set.
   text, candidate text, recognized translations, or private paths. It creates
   no human task, accepted German, accepted translation, semantic object, graph
   assertion, publication route, or canon effect.
+- `experimental-translation-episode.qwen3-8b-ovms-cpu.russian-surface-rejection.v1.json`
+  records the separately admitted Qwen3-8B/OpenVINO CPU successor. Its private
+  lineage retains three source-free topology failures, one pre-worker resource
+  block, one request timeout, and one incomplete bounded JSON result before a
+  1536-token run returned a schema-valid candidate. AI inspection was limited
+  to the Russian surface and rejected the candidate before human review. The
+  companion `provenance.experimental-translation-episodes.qwen3-8b-ovms-cpu.jsonl`
+  binds those private receipts only by digest. No source or candidate text,
+  private path, recognized translation, accepted German, accepted translation,
+  semantic object, graph assertion, publication route, or canon effect enters
+  the tracked tree. The owner-wrapper memory number explicitly excludes the
+  rootless OVMS model process and is therefore not reported as model peak.
 - `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
   admits one deterministically selected 20-token DTA sentence to local blind
   machine-method calibration. Its source-bearing companion is gitignored; the

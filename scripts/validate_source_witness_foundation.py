@@ -1508,8 +1508,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             gold_root
             / "provenance.critical-edition-citation-decision.jsonl"
         )
-        experimental_translation_episode_provenance_path = (
-            gold_root / "provenance.experimental-translation-episodes.jsonl"
+        experimental_translation_episode_provenance_paths = sorted(
+            gold_root.glob("provenance.experimental-translation-episodes*.jsonl")
         )
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
@@ -2754,6 +2754,16 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues,
             )
             admission = episode.get("admission", {})
+            episode_model_id = (
+                episode.get("method_freeze", {})
+                .get("model", {})
+                .get("model_id")
+            )
+            research_refresh_name = (
+                "LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md"
+                if episode_model_id == "OpenVINO/Qwen3-8B-int4-ov"
+                else "LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md"
+            )
             expected_bindings = [
                 (
                     "citation_witness_decision",
@@ -2767,7 +2777,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     "ordered_research_refresh",
                     repo_root
                     / "ToS/research-packets/foundation-laboratory-2026-07/"
-                    "LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md",
+                    / research_refresh_name,
                 ),
             ]
             for field, expected_path in expected_bindings:
@@ -3126,10 +3136,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 critical_edition_citation_decision_provenance_path
             )
-        if experimental_translation_episode_provenance_path.is_file():
-            local_provenance_paths.append(
-                experimental_translation_episode_provenance_path
-            )
+        local_provenance_paths.extend(
+            experimental_translation_episode_provenance_paths
+        )
         for local_provenance_path in local_provenance_paths:
             for index, event in enumerate(
                 _load_jsonl(local_provenance_path, repo_root, issues), start=1
