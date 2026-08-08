@@ -56,6 +56,18 @@ Zarathustra golden kernel. It is not a completed gold set.
   replacement plus page furniture. The tracked packet contains no source text.
   Unencrypted HTTP, rights, bibliography, language competence, and all
   translation/semantic gates remain explicitly open.
+- `critical-edition-citation-witness-decision.ekgwb.za-i-vorrede-1.v1.json`
+  is the additive 2026-08-08 admission overlay over that frozen history. It
+  binds the metadata packet, exact triangulation, institutional WARC
+  corroboration, rights record, and ordered current research by SHA-256. It
+  prepares exactly one human question: whether to admit the locator and
+  local-only observed reading as an edition-typed citation witness for private
+  AI-only and AI+human translation experiments. The current status is
+  `awaiting_human_decision`; admission, accepted German, every translation
+  lane, publication, semantics, graph truth, and canon effects remain zero.
+  Even a later `admit-with-limits` decision would leave publisher
+  authentication and German linguistic correctness false and would never open
+  a human-only lane for the current operator.
 - `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
   admits one deterministically selected 20-token DTA sentence to local blind
   machine-method calibration. Its source-bearing companion is gitignored; the

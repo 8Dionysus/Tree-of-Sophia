@@ -31,6 +31,11 @@ GERMAN_ASSISTED_REVIEW_PATH = (
 CRITICAL_EDITION_WITNESS_PATH = (
     GOLD_ROOT / "critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
 )
+CRITICAL_EDITION_CITATION_DECISION_PATH = (
+    GOLD_ROOT
+    / "critical-edition-citation-witness-decision."
+    "ekgwb.za-i-vorrede-1.v1.json"
+)
 GERMAN_SOURCE_TRIANGULATION_PATH = (
     GOLD_ROOT
     / "german-source-triangulation."
@@ -7690,6 +7695,91 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn(
             "critical-edition local section start anchor is absent or ambiguous in the visual sample plan",
             alignment_issues,
+        )
+
+    def test_citation_witness_decision_is_one_fail_closed_human_gate(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.CRITICAL_EDITION_CITATION_WITNESS_DECISION_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            CRITICAL_EDITION_CITATION_DECISION_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual("awaiting_human_decision", packet["status"])
+        self.assertEqual("pending", packet["human_decision"]["decision_status"])
+        self.assertIsNone(packet["human_decision"]["reviewer_ref"])
+        self.assertFalse(
+            packet["gate_effects"]["critical_edition_unit_admitted"]
+        )
+        self.assertEqual([], packet["gate_effects"]["translation_lanes_opened"])
+        self.assertFalse(
+            packet["transport_and_fixity"][
+                "publisher_authentication_established"
+            ]
+        )
+        self.assertFalse(
+            packet["transport_and_fixity"][
+                "german_linguistic_correctness_established"
+            ]
+        )
+
+        false_admission = copy.deepcopy(packet)
+        false_admission["gate_effects"][
+            "critical_edition_unit_admitted"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_admission)))
+
+        silent_human = copy.deepcopy(packet)
+        silent_human["status"] = "human_admitted_with_limits"
+        self.assertTrue(list(validator.iter_errors(silent_human)))
+
+        unbound_supersession = copy.deepcopy(packet)
+        unbound_supersession["status"] = "superseded"
+        self.assertTrue(list(validator.iter_errors(unbound_supersession)))
+
+        admitted = copy.deepcopy(packet)
+        admitted["status"] = "human_admitted_with_limits"
+        admitted["human_decision"] = {
+            "decision_status": "admit-with-limits",
+            "reviewer_ref": "human:dionysus",
+            "reviewed_at": "2026-08-08T08:00:00Z",
+            "bibliographic_identity_accepted": True,
+            "bounded_rights_scope_accepted": True,
+            "citation_witness_admitted": True,
+            "rationale": "Admitted only for the declared local experimental scope.",
+        }
+        admitted["gate_effects"]["critical_edition_unit_admitted"] = True
+        admitted["gate_effects"]["translation_lanes_opened"] = [
+            "ai_only",
+            "ai_human",
+        ]
+        self.assertEqual([], list(validator.iter_errors(admitted)))
+
+        research_binding = packet["evidence"]["ordered_research_refresh"]
+        research_path = REPO_ROOT / research_binding["ref"]
+        self.assertIsNone(
+            foundation._digest_bound_ref_issue(
+                research_binding,
+                expected_path=research_path,
+                repo_root=REPO_ROOT,
+                field="evidence.ordered_research_refresh",
+            )
+        )
+        tampered_binding = copy.deepcopy(research_binding)
+        tampered_binding["sha256"] = "0" * 64
+        self.assertEqual(
+            "evidence.ordered_research_refresh digest drifted",
+            foundation._digest_bound_ref_issue(
+                tampered_binding,
+                expected_path=research_path,
+                repo_root=REPO_ROOT,
+                field="evidence.ordered_research_refresh",
+            ),
         )
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(

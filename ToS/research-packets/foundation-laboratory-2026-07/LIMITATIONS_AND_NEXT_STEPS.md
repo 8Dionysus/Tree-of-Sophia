@@ -25,6 +25,17 @@ revision, supersession, and withdrawal. It does not contain, schedule, infer,
 index, graph, publish, or promote the user's testimony. The route opens only
 when the user explicitly chooses to record one account.
 
+The 2026-08-08 eKGWB admission refresh now compresses the first translation
+source blocker into one real decision instead of reopening the 30-unit German
+worksheet. Official edition metadata, the editor's account, ITEM, the freshly
+indexed 2026-06-08 scholarly-edition catalog, exact owner/WARC block fixity,
+the eKGWB↔DTA normalized comparison, and the layered rights record are bound
+by digest in one fail-closed packet. The recommendation is
+`admit-with-limits` for citation-only, private, non-commercial AI-only and
+AI+human experiments. No answer has been recorded: admitted critical
+witnesses, accepted German units, translation lanes, publication authority,
+and semantic effects all remain zero.
+
 The new metadata-only *Zarathustra* authorial route narrows that future work
 without opening a standing human backlog. It establishes current remote
 identity for mixed compositional notebooks, D 17 (`GSA 71/25`) for part IV,
@@ -93,7 +104,7 @@ or publication route.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source-acceptance option | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; all 30 rows unscheduled; human debt 0; solo reviewer is visual-only | the packet remains reusable evidence, not a backlog; a later task opens only the exact source unit it needs, and the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; accepted: 0; admitted critical witnesses: 0; translation lanes: 0; human debt: 0 | private non-commercial adaptation and independent historical byte corroboration are supported, but the current owner HTTP route is unauthenticated and the archive disclaims source validation; publisher origin, bibliography, German-competent review, public sharing, and publication remain open; archive/DTA/machine agreement is not critical-edition admission or ToS acceptance |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, one digest-bound citation-witness decision packet, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine runs: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; one triggered citation-only decision pending; routine German backlog: 0; accepted: 0; admitted critical witnesses: 0; translation lanes: 0 | the operator need decide only whether the evidence supports edition-typed citation use within the declared private limits; this is not a German-language judgment. Unauthenticated owner transport, archive non-validation, German-competent acceptance, public sharing, and publication remain open even if the bounded citation witness is later admitted |
 | bounded translation-method calibration | one ignored 20-token DTA-derived source string plus a tracked text-free admission packet | eligible local inputs: 1; A frozen schema-valid but Russian-defective candidate; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, and runtime failure still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or the GPU hang's root cause |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |

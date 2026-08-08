@@ -99,6 +99,9 @@ GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
 CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
     CONTRACT_ROOT / "critical-edition-witness-admission.schema.json"
 )
+CRITICAL_EDITION_CITATION_WITNESS_DECISION_SCHEMA = (
+    CONTRACT_ROOT / "critical-edition-citation-witness-decision.schema.json"
+)
 GERMAN_SOURCE_TRIANGULATION_SCHEMA = (
     CONTRACT_ROOT / "german-source-triangulation.schema.json"
 )
@@ -1120,6 +1123,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA,
             repo_root,
         )
+        critical_edition_citation_decision_validator, _ = _schema_validator(
+            CRITICAL_EDITION_CITATION_WITNESS_DECISION_SCHEMA,
+            repo_root,
+        )
         german_source_triangulation_validator, _ = _schema_validator(
             GERMAN_SOURCE_TRIANGULATION_SCHEMA,
             repo_root,
@@ -1441,6 +1448,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         critical_edition_witness_paths = sorted(
             gold_root.glob("critical-edition-witness.*.json")
         )
+        critical_edition_citation_decision_path = (
+            gold_root
+            / "critical-edition-citation-witness-decision."
+            "ekgwb.za-i-vorrede-1.v1.json"
+        )
         german_source_triangulation_path = (
             gold_root
             / "german-source-triangulation."
@@ -1469,6 +1481,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         bounded_translation_research_input_provenance_path = (
             gold_root
             / "provenance.bounded-translation-research-input.jsonl"
+        )
+        critical_edition_citation_decision_provenance_path = (
+            gold_root
+            / "provenance.critical-edition-citation-decision.jsonl"
         )
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
@@ -1510,6 +1526,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             for path in critical_edition_witness_paths
             if (payload := _load_json(path, repo_root, issues)) is not None
         ]
+        critical_edition_citation_decision = (
+            _load_json(
+                critical_edition_citation_decision_path,
+                repo_root,
+                issues,
+            )
+            if critical_edition_citation_decision_path.is_file()
+            else None
+        )
         german_source_triangulation = (
             _load_json(
                 german_source_triangulation_path,
@@ -2449,6 +2474,163 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "pending critical-edition witness opened a translation lane",
                         )
                     )
+        if critical_edition_citation_decision is not None:
+            decision_location = _relative(
+                critical_edition_citation_decision_path,
+                repo_root,
+            )
+            _validate_payload(
+                critical_edition_citation_decision,
+                critical_edition_citation_decision_validator,
+                decision_location,
+                issues,
+            )
+            historical_witness_path = (
+                critical_edition_witness_paths[0]
+                if len(critical_edition_witness_paths) == 1
+                else None
+            )
+            institutional_corroboration_path = (
+                repo_root
+                / SOURCE_ROOT
+                / "discovery/runs/"
+                "ekgwb-za-i-vorrede-1-institutional-corroboration."
+                "2026-07-30.v3.json"
+            )
+            rights_path = gold_root / "rights.ekgwb.za-i-vorrede-1.v1.json"
+            decision_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "EKGWB_CITATION_WITNESS_DECISION_REFRESH_2026-08-08.md"
+            )
+            expected_evidence = (
+                ("historical_metadata_packet", historical_witness_path),
+                ("machine_triangulation_packet", german_source_triangulation_path),
+                ("institutional_corroboration_record", institutional_corroboration_path),
+                ("rights_record", rights_path),
+                ("ordered_research_refresh", decision_research_path),
+            )
+            for field, expected_path in expected_evidence:
+                if expected_path is None or not expected_path.is_file():
+                    issues.append(
+                        (
+                            decision_location,
+                            f"{field} has no current owner artifact",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    critical_edition_citation_decision.get("evidence", {}).get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"evidence.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((decision_location, digest_issue))
+
+            decision_target = critical_edition_citation_decision.get("target", {})
+            triangulation_target = (
+                german_source_triangulation.get("target", {})
+                if isinstance(german_source_triangulation, dict)
+                else {}
+            )
+            for field in (
+                "review_unit_id",
+                "context_anchor_ref",
+                "critical_locator_siglum",
+            ):
+                if decision_target.get(field) != triangulation_target.get(field):
+                    issues.append(
+                        (
+                            decision_location,
+                            f"citation-witness decision target {field} drifted from triangulation",
+                        )
+                    )
+
+            transport_fixity = critical_edition_citation_decision.get(
+                "transport_and_fixity",
+                {},
+            )
+            triangulation_results = (
+                german_source_triangulation.get("results", {})
+                if isinstance(german_source_triangulation, dict)
+                else {}
+            )
+            normalized_digest = triangulation_results.get(
+                "ekgwb_reference",
+                {},
+            ).get("normalized_sequence_sha256")
+            if transport_fixity.get("normalized_sequence_sha256") != normalized_digest:
+                issues.append(
+                    (
+                        decision_location,
+                        "citation-witness normalized sequence digest drifted from triangulation",
+                    )
+                )
+
+            institutional_record = (
+                _load_json(
+                    institutional_corroboration_path,
+                    repo_root,
+                    issues,
+                )
+                if institutional_corroboration_path.is_file()
+                else None
+            )
+            target_block_digests: set[str] = set()
+            if isinstance(institutional_record, dict):
+                selected_ids = set(institutional_record.get("selected_result_ids", []))
+                for channel in institutional_record.get("channels", []):
+                    if not isinstance(channel, dict):
+                        continue
+                    for result in channel.get("results", []):
+                        if (
+                            not isinstance(result, dict)
+                            or result.get("result_id") not in selected_ids
+                        ):
+                            continue
+                        for identifier in result.get("identifiers", []):
+                            if (
+                                isinstance(identifier, dict)
+                                and identifier.get("scheme")
+                                == "exact target block SHA-256"
+                                and isinstance(identifier.get("value"), str)
+                            ):
+                                target_block_digests.add(identifier["value"])
+            if target_block_digests != {
+                transport_fixity.get("exact_target_block_sha256")
+            }:
+                issues.append(
+                    (
+                        decision_location,
+                        "citation-witness target-block digest lacks exact selected-channel closure",
+                    )
+                )
+
+            decision_admitted = (
+                critical_edition_citation_decision.get("status")
+                == "human_admitted_with_limits"
+            )
+            if isinstance(german_assisted_review, dict):
+                assisted_state = german_assisted_review.get("current_state", {})
+                expected_admitted_units = 1 if decision_admitted else 0
+                expected_lanes = ["ai_only", "ai_human"] if decision_admitted else []
+                if assisted_state.get("admitted_critical_edition_units") != (
+                    expected_admitted_units
+                ):
+                    issues.append(
+                        (
+                            decision_location,
+                            "citation-witness decision and assisted-review admitted count disagree",
+                        )
+                    )
+                if assisted_state.get("translation_lanes_opened") != expected_lanes:
+                    issues.append(
+                        (
+                            decision_location,
+                            "citation-witness decision and assisted-review translation lanes disagree",
+                        )
+                    )
         if translation_laboratory_plan is not None:
             laboratory_location = _relative(translation_laboratory_path, repo_root)
             _validate_payload(
@@ -2731,6 +2913,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 bounded_translation_research_input_provenance_path
             )
+        if critical_edition_citation_decision_provenance_path.is_file():
+            local_provenance_paths.append(
+                critical_edition_citation_decision_provenance_path
+            )
         for local_provenance_path in local_provenance_paths:
             for index, event in enumerate(
                 _load_jsonl(local_provenance_path, repo_root, issues), start=1
@@ -2765,6 +2951,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             repo_root,
                         ),
                         "critical-edition witness provenance event is absent from gold-set provenance",
+                    )
+                )
+        if critical_edition_citation_decision is not None:
+            decision_event_ref = critical_edition_citation_decision.get(
+                "provenance_event_ref"
+            )
+            if decision_event_ref not in local_event_ids:
+                issues.append(
+                    (
+                        _relative(
+                            critical_edition_citation_decision_path,
+                            repo_root,
+                        ),
+                        "citation-witness decision provenance event is absent from gold-set provenance",
                     )
                 )
         if german_source_triangulation is not None:

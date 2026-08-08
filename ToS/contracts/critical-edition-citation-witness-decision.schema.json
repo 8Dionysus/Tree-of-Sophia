@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/critical-edition-citation-witness-decision.schema.json",
+  "title": "Tree of Sophia critical-edition citation-witness decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "status",
+    "work_ref",
+    "target",
+    "evidence",
+    "bibliographic_identity",
+    "transport_and_fixity",
+    "rights_scope",
+    "proposed_decision",
+    "human_decision",
+    "gate_effects",
+    "provenance_event_ref",
+    "authority_boundary",
+    "supersedes_decision_ref"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/critical-edition-citation-witness-decision.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_critical_edition_citation_witness_decision_v1"
+    },
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.critical-edition-citation-witness-decision\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "awaiting_human_decision",
+        "human_admitted_with_limits",
+        "human_rejected"
+      ]
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "context_anchor_ref",
+        "critical_locator_siglum",
+        "critical_locator_url",
+        "decision_scope"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        },
+        "context_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "critical_locator_siglum": {"type": "string", "minLength": 1},
+        "critical_locator_url": {"type": "string", "format": "uri"},
+        "decision_scope": {"const": "citation-witness-only"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "historical_metadata_packet",
+        "machine_triangulation_packet",
+        "institutional_corroboration_record",
+        "rights_record",
+        "ordered_research_refresh"
+      ],
+      "properties": {
+        "historical_metadata_packet": {"$ref": "#/$defs/digestBoundRef"},
+        "machine_triangulation_packet": {"$ref": "#/$defs/digestBoundRef"},
+        "institutional_corroboration_record": {"$ref": "#/$defs/digestBoundRef"},
+        "rights_record": {"$ref": "#/$defs/digestBoundRef"},
+        "ordered_research_refresh": {"$ref": "#/$defs/digestBoundRef"}
+      }
+    },
+    "bibliographic_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "edition_siglum",
+        "author",
+        "print_editors",
+        "digital_editor",
+        "publisher",
+        "publication_start_year",
+        "identity_evidence_posture"
+      ],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "edition_siglum": {"const": "eKGWB"},
+        "author": {"const": "Friedrich Nietzsche"},
+        "print_editors": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "digital_editor": {"const": "Paolo D'Iorio"},
+        "publisher": {"const": "Nietzsche Source"},
+        "publication_start_year": {"const": 2009},
+        "identity_evidence_posture": {
+          "const": "official-documentation-editor-account-institutional-catalog-agree"
+        }
+      }
+    },
+    "transport_and_fixity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_transport_posture",
+        "publisher_authentication_established",
+        "institutional_archive_corroboration",
+        "archive_validates_publisher_origin",
+        "exact_target_block_sha256",
+        "dta_normalized_sequence_agreement",
+        "normalized_sequence_sha256",
+        "german_linguistic_correctness_established"
+      ],
+      "properties": {
+        "owner_transport_posture": {
+          "const": "publisher-host-observed-over-unauthenticated-http"
+        },
+        "publisher_authentication_established": {"const": false},
+        "institutional_archive_corroboration": {"const": true},
+        "archive_validates_publisher_origin": {"const": false},
+        "exact_target_block_sha256": {"$ref": "#/$defs/sha256"},
+        "dta_normalized_sequence_agreement": {"const": true},
+        "normalized_sequence_sha256": {"$ref": "#/$defs/sha256"},
+        "german_linguistic_correctness_established": {"const": false}
+      }
+    },
+    "rights_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_license",
+        "assessment_status",
+        "private_noncommercial_local_research_supported",
+        "adapted_material_sharing_authorized",
+        "source_publication_authorized_by_tos",
+        "commercial_use_authorized",
+        "human_scope_review_required",
+        "not_legal_advice"
+      ],
+      "properties": {
+        "declared_license": {"const": "CC-BY-NC-ND-4.0"},
+        "assessment_status": {"const": "conflicting-layer-evidence"},
+        "private_noncommercial_local_research_supported": {"const": true},
+        "adapted_material_sharing_authorized": {"const": false},
+        "source_publication_authorized_by_tos": {"const": false},
+        "commercial_use_authorized": {"const": false},
+        "human_scope_review_required": {"const": true},
+        "not_legal_advice": {"const": true}
+      }
+    },
+    "proposed_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_recommendation",
+        "allowed_if_admitted",
+        "still_prohibited_if_admitted",
+        "single_human_question"
+      ],
+      "properties": {
+        "model_recommendation": {"const": "admit-with-limits"},
+        "allowed_if_admitted": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "still_prohibited_if_admitted": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "single_human_question": {"type": "string", "minLength": 1}
+      }
+    },
+    "human_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_status",
+        "reviewer_ref",
+        "reviewed_at",
+        "bibliographic_identity_accepted",
+        "bounded_rights_scope_accepted",
+        "citation_witness_admitted",
+        "rationale"
+      ],
+      "properties": {
+        "decision_status": {"enum": ["pending", "admit-with-limits", "reject"]},
+        "reviewer_ref": {"type": ["string", "null"], "minLength": 1},
+        "reviewed_at": {"type": ["string", "null"], "format": "date-time"},
+        "bibliographic_identity_accepted": {"type": ["boolean", "null"]},
+        "bounded_rights_scope_accepted": {"type": ["boolean", "null"]},
+        "citation_witness_admitted": {"type": ["boolean", "null"]},
+        "rationale": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "critical_edition_unit_admitted",
+        "accepted_german_unit_created",
+        "translation_lanes_opened",
+        "human_only_lane_opened",
+        "recognized_translation_revealed",
+        "semantic_or_canon_promotion_authorized"
+      ],
+      "properties": {
+        "critical_edition_unit_admitted": {"type": "boolean"},
+        "accepted_german_unit_created": {"const": false},
+        "translation_lanes_opened": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["ai_only", "ai_human"]}
+        },
+        "human_only_lane_opened": {"const": false},
+        "recognized_translation_revealed": {"const": false},
+        "semantic_or_canon_promotion_authorized": {"const": false}
+      }
+    },
+    "provenance_event_ref": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "authority_boundary": {
+      "const": "citation-witness admission decision only: not publisher authentication, accepted German, German linguistic review, translation acceptance, publication permission, semantic evidence, graph truth, or canon authority"
+    },
+    "supersedes_decision_ref": {
+      "anyOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/digestBoundRef"}
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "awaiting_human_decision"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "human_decision": {
+            "properties": {
+              "decision_status": {"const": "pending"},
+              "reviewer_ref": {"type": "null"},
+              "reviewed_at": {"type": "null"},
+              "bibliographic_identity_accepted": {"type": "null"},
+              "bounded_rights_scope_accepted": {"type": "null"},
+              "citation_witness_admitted": {"type": "null"},
+              "rationale": {"type": "null"}
+            }
+          },
+          "gate_effects": {
+            "properties": {
+              "critical_edition_unit_admitted": {"const": false},
+              "translation_lanes_opened": {"maxItems": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "human_admitted_with_limits"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "human_decision": {
+            "properties": {
+              "decision_status": {"const": "admit-with-limits"},
+              "reviewer_ref": {"type": "string"},
+              "reviewed_at": {"type": "string"},
+              "bibliographic_identity_accepted": {"const": true},
+              "bounded_rights_scope_accepted": {"const": true},
+              "citation_witness_admitted": {"const": true},
+              "rationale": {"type": "string"}
+            }
+          },
+          "gate_effects": {
+            "properties": {
+              "critical_edition_unit_admitted": {"const": true},
+              "translation_lanes_opened": {
+                "const": ["ai_only", "ai_human"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "human_rejected"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "human_decision": {
+            "properties": {
+              "decision_status": {"const": "reject"},
+              "reviewer_ref": {"type": "string"},
+              "reviewed_at": {"type": "string"},
+              "citation_witness_admitted": {"const": false},
+              "rationale": {"type": "string"}
+            }
+          },
+          "gate_effects": {
+            "properties": {
+              "critical_edition_unit_admitted": {"const": false},
+              "translation_lanes_opened": {"maxItems": 0}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

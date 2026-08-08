@@ -3,7 +3,7 @@
 Status: active requirement-by-requirement audit; the corpus mechanics are
 substantial, but the full foundation goal is not complete
 
-Audit snapshot: 2026-08-02
+Audit snapshot: 2026-08-08
 
 ## Purpose
 
@@ -44,6 +44,19 @@ general-web-last order. Their Work and historical Edition layers are
 text and facsimile layers, unreviewed status, German non-acceptance, local
 payload nonpublication rule, and operator gate remain explicit. No source
 payload was added to Git or authorized for server transfer.
+
+The first eKGWB citation-witness decision is now genuinely review-ready rather
+than merely named as a future gate. A 2026-08-08 official -> established ->
+fresh/current refresh binds the historical metadata packet, exact local
+eKGWB/DTA/Naumann triangulation, Arquivo.pt WARC corroboration, layered rights
+record, editor account, ITEM identity, and the scholarly-edition catalog last
+changed 2026-06-08. The resulting packet asks one human question and is
+fail-closed at `awaiting_human_decision`. It currently creates no admission,
+accepted German, translation lane, publication permission, semantic task,
+graph truth, or canon effect. Its recommended `admit-with-limits` route would
+open only private non-commercial AI-only and AI+human translation proposals;
+publisher authentication, German competence, human-only translation, and all
+promotion gates would remain false.
 
 The current exact-form recurrence continuation adds a frozen observation plan,
 two fail-closed schemas, one deterministic tracked-only builder, and a
@@ -945,12 +958,14 @@ exhaustive page-identity review or a human acceptance event.
    assisted protocol only for a specific source/translation question and
    retain the competence block on orthography, grammar, semantics, etymology,
    and translation fidelity. Treat the structure-compatible
-   `Za-I-Vorrede-1` triangulation as a machine candidate until publisher-origin
-   authentication, bibliography, and German-competent source acceptance are
-   actually reviewed. The Arquivo.pt WARC-backed snapshot strengthens
-   historical fixity but explicitly does not validate source origin. Its
-   refreshed private-use rights route does not itself admit the source or
-   authorize public sharing.
+   `Za-I-Vorrede-1` triangulation as a machine candidate for German truth. The
+   separate 2026-08-08 packet now presents one bounded human choice: admit the
+   exact locator and local-only observed reading as an edition-typed citation
+   witness for private AI-only and AI+human experiments, or reject/defer it.
+   Such admission would not authenticate publisher transport, establish German
+   competence, open human-only translation, or authorize public sharing. The
+   Arquivo.pt WARC-backed snapshot strengthens historical fixity but explicitly
+   does not validate source origin.
 3. Materialize no morphology task merely because the method research exists.
    When an admitted source/translation/sign/retrieval question actually needs
    morphology, freeze its source-local occurrences first, then create the
