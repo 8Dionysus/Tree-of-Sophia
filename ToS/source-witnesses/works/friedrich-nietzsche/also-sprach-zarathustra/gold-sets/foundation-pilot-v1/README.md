@@ -75,6 +75,18 @@ Zarathustra golden kernel. It is not a completed gold set.
   obvious defects, so the candidate is retained as negative evidence and
   rejected before human review. It creates no human task, accepted German,
   accepted translation, semantic object, graph assertion, or canon effect.
+- `experimental-translation-episode.e4b-direct.infrastructure-failure.v1.json`
+  and `experimental-translation-episode.e4b-direct.russian-surface-rejection.v1.json`
+  extend that method with one separately frozen resident E4B capacity probe,
+  not a fourth historical A/B/C lane. The first episode retains a
+  runner-contract failure before any candidate existed; the corrected episode
+  returned one schema-valid private candidate that AI Russian-surface triage
+  rejected before human review. The paired
+  `provenance.experimental-translation-episodes.jsonl` binds run, candidate,
+  triage, method, resource, and tracked receipt fixity without copying source
+  text, candidate text, recognized translations, or private paths. It creates
+  no human task, accepted German, accepted translation, semantic object, graph
+  assertion, publication route, or canon effect.
 - `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
   admits one deterministically selected 20-token DTA sentence to local blind
   machine-method calibration. Its source-bearing companion is gitignored; the

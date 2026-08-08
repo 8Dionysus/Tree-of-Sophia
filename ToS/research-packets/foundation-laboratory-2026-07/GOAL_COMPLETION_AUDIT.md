@@ -59,6 +59,15 @@ first admitted experimental AI-only candidate without rerun. Its obvious
 Russian-surface defects caused rejection before human review, so no correction
 task or human debt was created.
 
+A separately frozen resident Gemma E4B successor probe then exercised the
+general single-candidate route without becoming historical variant D. Its
+first launch failed before candidate generation and is retained as
+infrastructure evidence. The corrected route returned one schema-valid private
+candidate, which AI Russian-surface triage also rejected before human review.
+The reusable episode contract records method fixity, failure, quality, speed,
+resources, and unmeasured costs separately while keeping every language,
+human, semantic, graph, publication, and canon authority effect at zero.
+
 The current exact-form recurrence continuation adds a frozen observation plan,
 two fail-closed schemas, one deterministic tracked-only builder, and a
 5,530,732-byte hash-only projection over all 11,352 lexical rows. The complete
@@ -749,6 +758,13 @@ candidate and rejected before human review. No AI+human task, accepted German,
 accepted translation, comparator reveal, semantic object, graph assertion, or
 canon effect follows from it.
 
+The later E4B successor is recorded through two additive
+`experimental-translation-episode` receipts. The first preserves a
+pre-candidate runner-contract failure rather than counting it as language
+quality. The second binds a valid private candidate and its AI-only
+Russian-surface rejection. Neither receipt copies source/candidate text or
+private paths, reopens A/B/C, reveals a comparator, or creates human work.
+
 Four separate DTA TEIs now cover the public part sequence from 1883, 1884, and
 1891 with exact local fixity, holding-copy identity, and page-return
 structure. DTA's native-speaker-checking statements are preserved as external
@@ -1004,6 +1020,10 @@ exhaustive page-identity review or a human acceptance event.
    admission-linked negative candidate without human review. Preserve the
    source-free i915 hang diagnosis as a separate runtime result and do not
    reopen GPU work until its explicit re-entry gates are met.
+   Preserve the later E4B capacity probe separately: retain both its
+   pre-candidate infrastructure failure and its rejected candidate, reuse the
+   corrected method only for a new one-factor question, and do not rerun this
+   output for a greener result or human-interface exercise.
 5. Keep direct visual retrieval separate from the completed text A/B/C
    comparison. Preserve audit-complete r9, audit-incomplete r8, all admission
    negatives, and the text-free result receipt. Do not rerun for another green

@@ -64,6 +64,16 @@ surface already contains obvious defects, it was rejected before human review
 and retained as the first negative experimental AI-only candidate. No
 AI+human task, correction task, comparator reveal, or promotion was opened.
 
+The later resident Gemma E4B successor probe was deliberately separate from
+historical A/B/C. A first owner-admitted launch produced no candidate because
+the strict grammar and chat-template route were incompatible with the exact
+runtime; that failure is retained, and correction was allowed only because no
+model output existed. The corrected route returned one schema-valid private
+candidate with exact source echo. AI-only Russian-surface triage found obvious
+defects and rejected it before human review. This supports the reusable
+single-candidate/early-triage method, not the candidate or a larger-model
+quality claim.
+
 ## Evidence sequence
 
 ### 1. Frozen v1 source candidates
@@ -134,6 +144,11 @@ The current assisted overlay therefore reports selected units 1, machine runs
 admitted critical citation witness, and two private experimental lanes:
 `ai_only` and `ai_human`. The human-only and every accepted-translation lane
 remain closed.
+
+Outside that historical overlay, the E4B successor contributes two separately
+typed episodes: one infrastructure failure before candidate generation and one
+candidate-bearing run rejected by AI surface triage. They add zero accepted
+German units, zero accepted translations, and zero human tasks.
 
 ### 4. Bounded local calibration admission
 
@@ -372,6 +387,10 @@ Missing human time is not zero cost.
   candidate, bind it as the first admitted experimental AI-only negative, and
   reject it before human review. Retain B as a fixed invalid-output result
   rather than rerunning it.
+- Retain the E4B successor's first no-candidate failure and corrected
+  candidate as separate text-free episodes. Reject the candidate before human
+  review, preserve the early Russian-surface filter, and do not turn the probe
+  into historical D, a recognized-translation comparison, or a quality winner.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
 - Retain C as a single failed GPU-execution result whose source-free diagnosis

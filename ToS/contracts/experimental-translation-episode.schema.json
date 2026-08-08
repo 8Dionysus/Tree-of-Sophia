@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-episode.schema.json",
+  "title": "Tree of Sophia private experimental translation episode receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "episode_id",
+    "status",
+    "work_ref",
+    "target",
+    "admission",
+    "method_freeze",
+    "private_run",
+    "content_boundary",
+    "outcome",
+    "measurements",
+    "rights_and_visibility",
+    "gate_effects",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-episode.schema.json"
+    },
+    "schema_version": {"const": "tos_experimental_translation_episode_v1"},
+    "episode_id": {
+      "type": "string",
+      "pattern": "^tos\\.experimental-translation-episode\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "failed-and-retained",
+        "frozen-ai-only-experimental-candidate"
+      ]
+    },
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_unit_id", "context_anchor_ref", "critical_locator_siglum"],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v[0-9]+-[0-9]{3}$"
+        },
+        "context_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "critical_locator_siglum": {"type": "string", "minLength": 1}
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "citation_witness_decision",
+        "current_source_return_overlay",
+        "ordered_research_refresh"
+      ],
+      "properties": {
+        "citation_witness_decision": {"$ref": "#/$defs/digestBoundRef"},
+        "current_source_return_overlay": {"$ref": "#/$defs/digestBoundRef"},
+        "ordered_research_refresh": {"$ref": "#/$defs/digestBoundRef"}
+      }
+    },
+    "method_freeze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_owner",
+        "owner_revision",
+        "profile_id",
+        "profile_sha256",
+        "prompt_id",
+        "runner",
+        "model",
+        "runtime",
+        "decoding"
+      ],
+      "properties": {
+        "runtime_owner": {"const": "abyss-stack"},
+        "owner_revision": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "profile_sha256": {"$ref": "#/$defs/sha256"},
+        "prompt_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "runner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module_ref", "module_sha256", "cli_ref", "cli_sha256"],
+          "properties": {
+            "module_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+            "module_sha256": {"$ref": "#/$defs/sha256"},
+            "cli_ref": {"type": "string", "pattern": "^mechanics/[A-Za-z0-9._/-]+$"},
+            "cli_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "upstream_revision",
+            "artifact_size_bytes",
+            "artifact_sha256",
+            "quantization"
+          ],
+          "properties": {
+            "model_id": {"type": "string", "minLength": 1},
+            "upstream_revision": {"type": "string", "minLength": 1},
+            "artifact_size_bytes": {"type": "integer", "minimum": 1},
+            "artifact_sha256": {"$ref": "#/$defs/sha256"},
+            "quantization": {"type": "string", "minLength": 1}
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime_id",
+            "runtime_revision",
+            "backend",
+            "device",
+            "launcher_sha256",
+            "binary_sha256",
+            "context_tokens",
+            "gpu_layers",
+            "threads"
+          ],
+          "properties": {
+            "runtime_id": {"type": "string", "minLength": 1},
+            "runtime_revision": {"type": "string", "minLength": 1},
+            "backend": {"type": "string", "minLength": 1},
+            "device": {"type": "string", "minLength": 1},
+            "launcher_sha256": {"$ref": "#/$defs/sha256"},
+            "binary_sha256": {"$ref": "#/$defs/sha256"},
+            "context_tokens": {"type": "integer", "minimum": 1},
+            "gpu_layers": {"type": "integer", "minimum": 0},
+            "threads": {"type": "integer", "minimum": 1}
+          }
+        },
+        "decoding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["temperature", "top_p", "seed", "max_tokens"],
+          "properties": {
+            "temperature": {"type": "number", "minimum": 0},
+            "top_p": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+            "seed": {"type": "integer"},
+            "max_tokens": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "private_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "run_receipt",
+        "local_source_artifact_sha256",
+        "source_text_sha256",
+        "candidate_artifact"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "run_receipt": {"$ref": "#/$defs/privateDigestRef"},
+        "local_source_artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_text_sha256": {"$ref": "#/$defs/sha256"},
+        "candidate_artifact": {
+          "oneOf": [
+            {"$ref": "#/$defs/privateDigestRef"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "content_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_text_tracked",
+        "candidate_text_tracked",
+        "private_paths_tracked",
+        "recognized_comparator_revealed"
+      ],
+      "properties": {
+        "source_text_tracked": {"const": false},
+        "candidate_text_tracked": {"const": false},
+        "private_paths_tracked": {"const": false},
+        "recognized_comparator_revealed": {"const": false}
+      }
+    },
+    "outcome": {
+      "oneOf": [
+        {"$ref": "#/$defs/failureOutcome"},
+        {"$ref": "#/$defs/triageOutcome"}
+      ]
+    },
+    "measurements": {"$ref": "#/$defs/measurements"},
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "use",
+        "source_or_candidate_sharing_authorized",
+        "publication_authorized",
+        "commercial_use_authorized"
+      ],
+      "properties": {
+        "environment": {"const": "local-only"},
+        "use": {"const": "private-non-commercial-research"},
+        "source_or_candidate_sharing_authorized": {"const": false},
+        "publication_authorized": {"const": false},
+        "commercial_use_authorized": {"const": false}
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experimental_episodes_recorded",
+        "infrastructure_failures_retained",
+        "ai_only_experimental_candidates_recorded",
+        "ai_human_tasks_created",
+        "accepted_german_units",
+        "accepted_translation_packets",
+        "semantic_tasks_opened",
+        "graph_or_canon_promotion_authorized"
+      ],
+      "properties": {
+        "experimental_episodes_recorded": {"const": 1},
+        "infrastructure_failures_retained": {"type": "integer", "minimum": 0, "maximum": 1},
+        "ai_only_experimental_candidates_recorded": {"type": "integer", "minimum": 0, "maximum": 1},
+        "ai_human_tasks_created": {"const": 0},
+        "accepted_german_units": {"const": 0},
+        "accepted_translation_packets": {"const": 0},
+        "semantic_tasks_opened": {"const": 0},
+        "graph_or_canon_promotion_authorized": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "authority_boundary": {
+      "const": "a private experimental translation episode may preserve method, failure, Russian-surface triage, speed, resource, and fixity evidence; it cannot establish German correctness, translation fidelity, etymology, semantics, publication permission, graph truth, or canon authority"
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "failed-and-retained"}}},
+      "then": {
+        "properties": {
+          "private_run": {
+            "properties": {"candidate_artifact": {"type": "null"}}
+          },
+          "outcome": {"$ref": "#/$defs/failureOutcome"},
+          "gate_effects": {
+            "properties": {
+              "infrastructure_failures_retained": {"const": 1},
+              "ai_only_experimental_candidates_recorded": {"const": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "frozen-ai-only-experimental-candidate"}}},
+      "then": {
+        "properties": {
+          "private_run": {
+            "properties": {
+              "candidate_artifact": {"$ref": "#/$defs/privateDigestRef"}
+            }
+          },
+          "outcome": {"$ref": "#/$defs/triageOutcome"},
+          "gate_effects": {
+            "properties": {
+              "infrastructure_failures_retained": {"const": 0},
+              "ai_only_experimental_candidates_recorded": {"const": 1}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "privateDigestRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^tos\\.private\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "failureOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "candidate_present",
+        "failure_class",
+        "observed_issue_ids",
+        "private_failure_evidence",
+        "corrected_after_no_candidate",
+        "corrective_followup_run_id"
+      ],
+      "properties": {
+        "kind": {"const": "infrastructure-failure-before-candidate"},
+        "candidate_present": {"const": false},
+        "failure_class": {"const": "runtime-contract-incompatibility-before-generation"},
+        "observed_issue_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+        },
+        "private_failure_evidence": {"$ref": "#/$defs/privateDigestRef"},
+        "corrected_after_no_candidate": {"const": true},
+        "corrective_followup_run_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        }
+      }
+    },
+    "triageOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "candidate_present",
+        "ai_triage",
+        "scope",
+        "run_integrity_verified",
+        "output_contract_valid",
+        "source_echo_exact",
+        "russian_surface_posture",
+        "observed_issue_ids",
+        "useful_uncertainty_preserved",
+        "disposition",
+        "human_review_created"
+      ],
+      "properties": {
+        "kind": {"const": "candidate-rejected-by-ai-russian-surface-triage"},
+        "candidate_present": {"const": true},
+        "ai_triage": {"$ref": "#/$defs/privateDigestRef"},
+        "scope": {"const": "russian-surface-only-no-german-competence-claim"},
+        "run_integrity_verified": {"const": true},
+        "output_contract_valid": {"const": true},
+        "source_echo_exact": {"const": true},
+        "russian_surface_posture": {"const": "obvious-defects"},
+        "observed_issue_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+        },
+        "useful_uncertainty_preserved": {"type": "boolean"},
+        "disposition": {"const": "reject-before-human-review"},
+        "human_review_created": {"const": false}
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_wall_seconds",
+        "model_wall_seconds",
+        "systemd",
+        "generation",
+        "host_before",
+        "host_after",
+        "monetary_cost",
+        "energy_cost",
+        "human_correction_seconds",
+        "quality_cost_speed_are_separate_dimensions"
+      ],
+      "properties": {
+        "overall_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "model_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "systemd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "service_runtime",
+            "cpu_time_consumed",
+            "memory_peak_bytes",
+            "memory_swap_peak_bytes"
+          ],
+          "properties": {
+            "result": {"enum": ["success", "exit-code"]},
+            "service_runtime": {"type": "string", "minLength": 1},
+            "cpu_time_consumed": {"type": "string", "minLength": 1},
+            "memory_peak_bytes": {"type": "integer", "minimum": 0},
+            "memory_swap_peak_bytes": {"type": "integer", "minimum": 0}
+          }
+        },
+        "generation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prompt_tokens",
+            "prompt_tokens_per_second",
+            "completion_eval_runs",
+            "completion_eval_runs_per_second"
+          ],
+          "properties": {
+            "prompt_tokens": {"type": ["integer", "null"], "minimum": 0},
+            "prompt_tokens_per_second": {"type": ["number", "null"], "exclusiveMinimum": 0},
+            "completion_eval_runs": {"type": ["integer", "null"], "minimum": 0},
+            "completion_eval_runs_per_second": {"type": ["number", "null"], "exclusiveMinimum": 0}
+          }
+        },
+        "host_before": {"$ref": "#/$defs/hostSnapshot"},
+        "host_after": {"$ref": "#/$defs/hostSnapshot"},
+        "monetary_cost": {"const": "unmeasured-local-execution"},
+        "energy_cost": {"const": "unmeasured"},
+        "human_correction_seconds": {"const": "not-incurred"},
+        "quality_cost_speed_are_separate_dimensions": {"const": true}
+      }
+    },
+    "hostSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory_available_bytes",
+        "swap_free_bytes",
+        "load_1m",
+        "temperature_c_max",
+        "package_temperature_c_max"
+      ],
+      "properties": {
+        "memory_available_bytes": {"type": "integer", "minimum": 0},
+        "swap_free_bytes": {"type": "integer", "minimum": 0},
+        "load_1m": {"type": "number", "minimum": 0},
+        "temperature_c_max": {"type": "number"},
+        "package_temperature_c_max": {"type": "number"}
+      }
+    }
+  }
+}

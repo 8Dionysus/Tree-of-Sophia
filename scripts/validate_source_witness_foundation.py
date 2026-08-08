@@ -111,6 +111,9 @@ BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA = (
 EXPERIMENTAL_TRANSLATION_CANDIDATE_SCHEMA = (
     CONTRACT_ROOT / "experimental-translation-candidate.schema.json"
 )
+EXPERIMENTAL_TRANSLATION_EPISODE_SCHEMA = (
+    CONTRACT_ROOT / "experimental-translation-episode.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -1142,6 +1145,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             EXPERIMENTAL_TRANSLATION_CANDIDATE_SCHEMA,
             repo_root,
         )
+        experimental_translation_episode_validator, _ = _schema_validator(
+            EXPERIMENTAL_TRANSLATION_EPISODE_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -1475,6 +1482,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             / "experimental-translation-candidate."
             "admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json"
         )
+        experimental_translation_episode_paths = sorted(
+            gold_root.glob("experimental-translation-episode.*.json")
+        )
         initial_sign_packet_path = gold_root / "initial-sign-packet.v3.json"
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
@@ -1497,6 +1507,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         critical_edition_citation_decision_provenance_path = (
             gold_root
             / "provenance.critical-edition-citation-decision.jsonl"
+        )
+        experimental_translation_episode_provenance_path = (
+            gold_root / "provenance.experimental-translation-episodes.jsonl"
         )
         anchor_paths = [gold_root / "anchors.jsonl", gold_root / "translation-anchors.jsonl"]
         if ocr_anchor_path.is_file():
@@ -1574,6 +1587,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if experimental_translation_candidate_path.is_file()
             else None
         )
+        experimental_translation_episodes = [
+            (path, payload)
+            for path in experimental_translation_episode_paths
+            if (payload := _load_json(path, repo_root, issues)) is not None
+        ]
         initial_sign_packet = _load_json(
             initial_sign_packet_path,
             repo_root,
@@ -2727,6 +2745,101 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "experimental translation candidate target drifted from the admitted citation witness",
                     )
                 )
+        for episode_path, episode in experimental_translation_episodes:
+            episode_location = _relative(episode_path, repo_root)
+            _validate_payload(
+                episode,
+                experimental_translation_episode_validator,
+                episode_location,
+                issues,
+            )
+            admission = episode.get("admission", {})
+            expected_bindings = [
+                (
+                    "citation_witness_decision",
+                    critical_edition_citation_decision_path,
+                ),
+                (
+                    "current_source_return_overlay",
+                    bounded_translation_research_input_path,
+                ),
+                (
+                    "ordered_research_refresh",
+                    repo_root
+                    / "ToS/research-packets/foundation-laboratory-2026-07/"
+                    "LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md",
+                ),
+            ]
+            for field, expected_path in expected_bindings:
+                binding = admission.get(field)
+                if not isinstance(binding, dict):
+                    issues.append(
+                        (episode_location, f"admission.{field} is absent")
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    binding,
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"admission.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((episode_location, digest_issue))
+            if (
+                not isinstance(critical_edition_citation_decision, dict)
+                or critical_edition_citation_decision.get("status")
+                != "human_admitted_with_limits"
+                or "ai_only"
+                not in critical_edition_citation_decision.get(
+                    "gate_effects", {}
+                ).get("translation_lanes_opened", [])
+            ):
+                issues.append(
+                    (
+                        episode_location,
+                        "experimental translation episode lacks an admitted AI-only citation-witness route",
+                    )
+                )
+            elif episode.get("target") != {
+                "review_unit_id": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("review_unit_id"),
+                "context_anchor_ref": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("context_anchor_ref"),
+                "critical_locator_siglum": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("critical_locator_siglum"),
+            }:
+                issues.append(
+                    (
+                        episode_location,
+                        "experimental translation episode target drifted from the admitted citation witness",
+                    )
+                )
+            if isinstance(bounded_translation_research_input, dict):
+                local_artifact = bounded_translation_research_input.get(
+                    "local_artifact", {}
+                )
+                private_run = episode.get("private_run", {})
+                if private_run.get("local_source_artifact_sha256") != (
+                    local_artifact.get("artifact_sha256")
+                ):
+                    issues.append(
+                        (
+                            episode_location,
+                            "experimental translation episode local source artifact digest drifted",
+                        )
+                    )
+                if private_run.get("source_text_sha256") != local_artifact.get(
+                    "source_text_sha256"
+                ):
+                    issues.append(
+                        (
+                            episode_location,
+                            "experimental translation episode source-text digest drifted",
+                        )
+                    )
         if translation_laboratory_plan is not None:
             laboratory_location = _relative(translation_laboratory_path, repo_root)
             _validate_payload(
@@ -3013,6 +3126,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 critical_edition_citation_decision_provenance_path
             )
+        if experimental_translation_episode_provenance_path.is_file():
+            local_provenance_paths.append(
+                experimental_translation_episode_provenance_path
+            )
         for local_provenance_path in local_provenance_paths:
             for index, event in enumerate(
                 _load_jsonl(local_provenance_path, repo_root, issues), start=1
@@ -3075,6 +3192,30 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             repo_root,
                         ),
                         "experimental translation candidate provenance event is absent from gold-set provenance",
+                    )
+                )
+        for episode_path, episode in experimental_translation_episodes:
+            episode_location = _relative(episode_path, repo_root)
+            episode_event_ref = episode.get("provenance_event_ref")
+            episode_event = local_events_by_id.get(episode_event_ref)
+            if episode_event is None:
+                issues.append(
+                    (
+                        episode_location,
+                        "experimental translation episode provenance event is absent from gold-set provenance",
+                    )
+                )
+                continue
+            episode_outputs = {
+                (output.get("ref"), output.get("sha256"))
+                for output in episode_event.get("outputs", [])
+                if isinstance(output, dict)
+            }
+            if (episode_location, _sha256(episode_path)) not in episode_outputs:
+                issues.append(
+                    (
+                        episode_location,
+                        "experimental translation episode provenance output drifted",
                     )
                 )
         if german_source_triangulation is not None:

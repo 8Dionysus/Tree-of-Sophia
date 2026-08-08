@@ -193,6 +193,16 @@ redistribution, or open semantic, graph, or canon work. The builder also binds
 the older authored canon node and compatibility mirror so their translations
 can be explicitly sealed from blind candidates; it does not revalidate them.
 
+`experimental-translation-episode.schema.json` and the source-witness
+validator receive repeated single-candidate returns from the owner-local
+`abyss-stack` laboratory. They keep a pre-candidate infrastructure failure
+distinct from a candidate-bearing AI Russian-surface triage, bind admission,
+source fixity, research, profile, runner, model, runtime, private receipts,
+measurements, and provenance, and prohibit tracked source/candidate text or
+private paths. A green episode proves neither German correctness, translation
+fidelity, etymology, semantics, human review, publication, graph truth, nor
+canon authority.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream

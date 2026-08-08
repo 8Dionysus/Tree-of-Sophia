@@ -51,6 +51,14 @@ EXPERIMENTAL_TRANSLATION_CANDIDATE_PATH = (
     / "experimental-translation-candidate."
     "admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json"
 )
+EXPERIMENTAL_TRANSLATION_FAILURE_EPISODE_PATH = (
+    GOLD_ROOT
+    / "experimental-translation-episode.e4b-direct.infrastructure-failure.v1.json"
+)
+EXPERIMENTAL_TRANSLATION_REJECTION_EPISODE_PATH = (
+    GOLD_ROOT
+    / "experimental-translation-episode.e4b-direct.russian-surface-rejection.v1.json"
+)
 EKGWB_RIGHTS_PATH = (
     GOLD_ROOT / "rights.ekgwb.za-i-vorrede-1.v1.json"
 )
@@ -7895,6 +7903,84 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(list(validator.iter_errors(simulated_human)))
 
         false_promotion = copy.deepcopy(packet)
+        false_promotion["gate_effects"]["accepted_translation_packets"] = 1
+        self.assertTrue(list(validator.iter_errors(false_promotion)))
+
+    def test_experimental_translation_episode_preserves_failure_and_rejection_without_promotion(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.EXPERIMENTAL_TRANSLATION_EPISODE_SCHEMA,
+            REPO_ROOT,
+        )
+        failure = json.loads(
+            EXPERIMENTAL_TRANSLATION_FAILURE_EPISODE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        rejection = json.loads(
+            EXPERIMENTAL_TRANSLATION_REJECTION_EPISODE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual([], list(validator.iter_errors(failure)))
+        self.assertEqual([], list(validator.iter_errors(rejection)))
+        self.assertEqual("failed-and-retained", failure["status"])
+        self.assertIsNone(failure["private_run"]["candidate_artifact"])
+        self.assertEqual(
+            "runtime-contract-incompatibility-before-generation",
+            failure["outcome"]["failure_class"],
+        )
+        self.assertTrue(failure["outcome"]["corrected_after_no_candidate"])
+        self.assertEqual(
+            "frozen-ai-only-experimental-candidate", rejection["status"]
+        )
+        self.assertEqual(
+            "reject-before-human-review", rejection["outcome"]["disposition"]
+        )
+        self.assertFalse(rejection["outcome"]["human_review_created"])
+        self.assertEqual(
+            0, rejection["gate_effects"]["accepted_translation_packets"]
+        )
+        self.assertEqual(
+            542,
+            rejection["measurements"]["generation"]["completion_eval_runs"],
+        )
+
+        prospective = copy.deepcopy(rejection)
+        prospective["episode_id"] = (
+            "tos.experimental-translation-episode.future-model.surface-rejection.v1"
+        )
+        prospective["method_freeze"]["model"]["model_id"] = (
+            "local/future-model"
+        )
+        prospective["method_freeze"]["profile_id"] = (
+            "tos-future-experimental-translation-v1"
+        )
+        prospective["private_run"]["run_id"] = (
+            "future-experimental-translation-v1-20260808"
+        )
+        prospective["provenance_event_ref"] = (
+            "tos.event.translation.future-experimental-episode.2026-08-08"
+        )
+        self.assertEqual([], list(validator.iter_errors(prospective)))
+
+        status_drift = copy.deepcopy(rejection)
+        status_drift["status"] = "failed-and-retained"
+        self.assertTrue(list(validator.iter_errors(status_drift)))
+
+        candidate_on_failure = copy.deepcopy(failure)
+        candidate_on_failure["private_run"]["candidate_artifact"] = (
+            rejection["private_run"]["candidate_artifact"]
+        )
+        self.assertTrue(list(validator.iter_errors(candidate_on_failure)))
+
+        tracked_private_path = copy.deepcopy(rejection)
+        tracked_private_path["content_boundary"]["private_paths_tracked"] = True
+        self.assertTrue(list(validator.iter_errors(tracked_private_path)))
+
+        false_promotion = copy.deepcopy(rejection)
         false_promotion["gate_effects"]["accepted_translation_packets"] = 1
         self.assertTrue(list(validator.iter_errors(false_promotion)))
 

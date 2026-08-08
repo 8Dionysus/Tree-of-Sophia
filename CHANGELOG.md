@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Executed one separately admitted resident Gemma E4B successor capacity probe
+  without reopening the closed historical translation A/B/C. A first
+  no-candidate runner-contract failure is retained independently; the corrected
+  route produced one schema-valid private candidate, which AI Russian-surface
+  triage rejected before human review for obvious defects. A new reusable,
+  text-free experimental-episode contract separates failure, fixity, quality,
+  speed, resource, monetary, energy, and human-cost evidence. No source or
+  candidate text, private path, human task, accepted German, translation,
+  semantics, graph truth, publication, or canon effect was added.
 - Admitted the exact eKGWB `Za-I-Vorrede-1` locator and local-only observed
   reading as one edition-typed citation witness for private non-commercial
   AI-only and AI+human experiments. The additive decision keeps accepted
