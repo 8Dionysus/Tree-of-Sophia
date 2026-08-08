@@ -1054,7 +1054,9 @@ materialization, annotation-tool execution, and human work remain blocked.
 
 Current state: one source string is eligible; historical A/B/C remain frozen
 at their actual outcomes; separately admitted resident E4B and Qwen3 8B CPU
-successor probes are also frozen. None is open for cosmetic reruns.
+successor probes are also frozen. A later deterministic source-blind screen
+was applied to their existing private artifacts without model reruns. None is
+open for cosmetic reruns.
 
 1. Read the source string only from the ignored local artifact and verify its
    artifact and source-text digests before each run.
@@ -1101,6 +1103,13 @@ successor probes are also frozen. None is open for cosmetic reruns.
    and AI-only Russian-surface rejection, do not substitute owner-wrapper
    memory for unmeasured model-process memory, and do not rerun it for human
    interface exercise or a greener output.
+10. Retain the deterministic Russian-surface floor as an asymmetric early
+    rejection method. Its nine invented controls and two digest-bound private
+    receipts prove the current high-precision and advisory rules only. A
+    finding-free result remains `uncertain`, never review-worthy or accepted;
+    broader rule coverage, a pinned offline LanguageTool challenger, and any
+    GEC/LLM challenger require separately frozen A/B/C work. Do not create a
+    human task automatically from this screen.
 
 ### 2c. Preserve direct visual retrieval evidence and defer human judgment
 
@@ -1246,11 +1255,11 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models but cannot admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |

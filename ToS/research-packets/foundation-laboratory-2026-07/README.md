@@ -29,7 +29,8 @@ exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary
 and the exact-form recurrence plus question-scoped usage-context foundations
 refreshed 2026-08-02; lived-witness authorship, privacy, provenance, AI-role,
 permission, revision, and the zero-model-download Qwen3-8B CPU translation
-challenger foundation refreshed 2026-08-08
+challenger plus the deterministic Russian-surface pre-human quality floor
+refreshed 2026-08-08
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -81,6 +82,7 @@ and what must be tested manually.
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md` | Which exact resident translation successor is justified after current official -> established -> freshest research, and why it remains one private capacity probe outside the closed historical A/B/C? |
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_RESULT_2026-08-08.md` | What did the resident E4B probe actually cost and produce; why is the first failure retained as infrastructure evidence, the candidate rejected before human review, and the reusable method kept without translation or semantic promotion? |
 | `LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md` | Why the already-local official Qwen3-8B INT4 artifact enters only as a separately isolated CPU challenger after both Gemma surface rejections, with a source-free smoke, no live-service mutation, no GPU re-entry, and no content authority? |
+| `RUSSIAN_SURFACE_QUALITY_FLOOR_RESEARCH_2026-08-08.md` | Which official, established, and freshest Russian GEC/acceptability evidence supports a source-blind pre-human filter; why its first executable layer is per-rule, asymmetric, deterministic, and text-free; what nine manual controls and two private successor receipts proved; and why a clean result remains uncertain? |
 | `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` | Which exact surface, normalization, lemma, POS, morphology, and review layers must remain distinct; what the executed exhaustive DWDSmor A census actually measured; and why its reproducible coverage and residue still create no accepted morphology, lexeme, B/C task, or human backlog? |
 | `EXACT_FORM_RECURRENCE_FOUNDATION_RESEARCH.md` | Why exact recurrence should be materialized as separate frequency, structural-range, part-size-aware `DP`, and concentration observations; what classical, established, and freshest evidence supports that route; and why no fused score, motif, sign candidate, semantic promotion, or human task follows? |
 | `QUESTION_SCOPED_USAGE_CONTEXT_FOUNDATION_RESEARCH.md` | Why context should be materialized only for a frozen question; why the first control is a complete page-bounded exact KWIC census rather than recurrence-ranked sampling; how source-state plus structural and position selectors preserve return; and why sentence, sense, embedding, LLM, sign, public, and human-work routes stay closed? |

@@ -86,6 +86,20 @@ defective name case and an ungrammatical age construction, and rejected the
 candidate before human review. No candidate text, source text, private path,
 German judgment, comparator reveal, or human task entered the tracked Tree.
 
+A later ordered research pass (classical and official Russian rules and
+corpora, established Russian GEC work, then current 2025--2026 diagnostic and
+judge research) produced a separate deterministic Russian-surface floor. Its
+nine invented controls behaved exactly as frozen: five high-precision defects
+rejected, two ambiguous constructions remained advisory and `uncertain`, and
+two clean controls also remained `uncertain`. Applied retrospectively without
+rerunning either model, the floor rejected both private successor candidates
+for exact candidate/literal role collapse and added one advisory age-pattern
+finding to E4B. It did not recover all independently observed Qwen defects,
+including the name-case defect. The floor therefore corroborates the two
+rejections but neither replaces AI triage nor admits a clean candidate. Its
+tracked evidence contains no source or candidate text and creates no human,
+German, translation, semantic, graph, publication, or canon authority.
+
 ## Evidence sequence
 
 ### 1. Frozen v1 source candidates
@@ -168,6 +182,13 @@ smoke, container cleanup, method fixity, candidate integrity, latency, token
 counts, and explicit resource-measurement limit are retained separately. It
 adds zero accepted German units, zero accepted translations, and zero human
 tasks.
+
+Two later mode-0600 private screening receipts bind the deterministic floor to
+the existing E4B and Qwen candidates by digest. Both run verifiers pass. The
+receipts contain field paths, issue identifiers, counts, provider
+fingerprints, and authority boundaries rather than text. They corroborate the
+earlier AI-only rejection decisions; they do not supersede the richer manual
+AI surface observations or reopen either episode.
 
 ### 4. Bounded local calibration admission
 
