@@ -74,6 +74,18 @@ defects and rejected it before human review. This supports the reusable
 single-candidate/early-triage method, not the candidate or a larger-model
 quality claim.
 
+A subsequent, separately researched Qwen3 8B CPU episode reused the admitted
+source and sealed-comparator law while changing model family, capacity,
+quantization, runtime, and device together. It therefore is not a clean
+capacity comparison and does not repair historical C. The exact already-local
+OpenVINO model tree and pinned OVMS image first passed an offline source-free
+schema smoke in a network-disabled disposable CPU container. One later private
+source-bearing request returned a schema-valid candidate with exact source
+echo. AI-only Russian-surface triage found obvious defects, including a
+defective name case and an ungrammatical age construction, and rejected the
+candidate before human review. No candidate text, source text, private path,
+German judgment, comparator reveal, or human task entered the tracked Tree.
+
 ## Evidence sequence
 
 ### 1. Frozen v1 source candidates
@@ -150,6 +162,13 @@ typed episodes: one infrastructure failure before candidate generation and one
 candidate-bearing run rejected by AI surface triage. They add zero accepted
 German units, zero accepted translations, and zero human tasks.
 
+The later Qwen3 8B CPU successor contributes one more candidate-bearing
+episode rejected by the same Russian-surface-only gate. Its exact source-free
+smoke, container cleanup, method fixity, candidate integrity, latency, token
+counts, and explicit resource-measurement limit are retained separately. It
+adds zero accepted German units, zero accepted translations, and zero human
+tasks.
+
 ### 4. Bounded local calibration admission
 
 `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
@@ -217,6 +236,13 @@ etymology, semantic, rights, graph, or canon conclusion.
 | A: Gemma E2B direct | schema-valid candidate; obvious Russian grammar defects under direct AI inspection | 146.973579 s | 542 / 736 | 5.007703 tokens/s |
 | B: Gemma E2B source-aware | HTTP success; 768-token ceiling; incomplete outer JSON retained as invalid model output | 169.745670 s | 574 / 768 | 4.524416 tokens/s |
 | C: Qwen3 4B OVMS | exact request reached runtime; i915 `GPU HANG` and context reset preceded OVMS `CL_OUT_OF_RESOURCES` and exit 139; no candidate | 35.420039 s to failed request; kernel hang at +17.331189 s | 526 / no completion count; 768-token ceiling | unavailable |
+
+Successor episodes are deliberately outside the historical A/B/C comparison:
+
+| Episode | Frozen result | Overall / model wall | Prompt / completion tokens | Resource boundary |
+| --- | --- | ---: | ---: | --- |
+| resident Gemma E4B, corrected route | schema-valid private candidate; obvious Russian-surface defects; rejected before human review | 288.737642 s / 256.656317 s | 544 / 542 evaluation runs | exact resident llama.cpp route; 11,505,102,848-byte owner cgroup memory peak; no quality or winner inference |
+| Qwen3 8B INT4, OVMS CPU | source-free smoke passed; schema-valid private candidate with exact source echo; obvious Russian-surface defects; rejected before human review | 206.546902 s / 177.709070 s | 496 / 860 | owner wrapper excluded the rootless model process, so model peak memory is explicitly unmeasured; launch thermal 101 C maximum |
 
 Against A on this single fixed runtime, B took 15.494% more wall time and
 produced completion tokens 9.651% more slowly. The visible partial Russian
@@ -391,6 +417,11 @@ Missing human time is not zero cost.
   candidate as separate text-free episodes. Reject the candidate before human
   review, preserve the early Russian-surface filter, and do not turn the probe
   into historical D, a recognized-translation comparison, or a quality winner.
+- Retain the Qwen3 8B CPU source-free smoke and rejected private candidate as
+  one separate successor episode. The successful CPU execution closes only the
+  exact runtime question; it does not repair Qwen3 4B GPU C, prove a model-size
+  effect, or establish translation quality. Keep model-process peak memory
+  unmeasured rather than substituting the owner-wrapper cgroup value.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
 - Retain C as a single failed GPU-execution result whose source-free diagnosis
@@ -419,6 +450,13 @@ i915 hang/reset chain and blocked the exact route for translation-sized work,
 without claiming a root cause or rewriting C. Any re-entry is a new
 `abyss-stack` runtime experiment with its own question and receipts.
 
+The separate Qwen3 8B CPU re-entry has now been executed under that rule and
+is likewise closed at its actual result. It proved that the exact CPU
+container route can complete the schema-bound request and clean itself up, but
+its Russian-surface failure prevents operator review. It must not be rerun for
+a greener candidate or treated as evidence that the blocked 4B GPU route is
+healthy.
+
 In parallel, the next authority-bearing source action remains
 question-triggered: prefer an authenticated or institutionally supplied copy
 of the exact eKGWB witness, then complete bibliographic and rights review at
@@ -433,8 +471,10 @@ accepted-translation lanes.
 Until then, the honest laboratory conclusion is narrow: Tree of Sophia has a
 translation method capable of preserving source, alternatives, etymological
 evidence, and comparator influence, plus one exact calibration-only input.
-That input has three frozen machine outcomes—one poor contract-complete
-candidate, one truncated invalid output, and one GPU runtime failure—but it
-has yielded only one admission-linked negative experimental candidate. It has
-not been translated through an accepted lane or yielded one accepted German or
-translation unit.
+That input has three frozen historical machine outcomes—one poor
+contract-complete candidate, one truncated invalid output, and one GPU runtime
+failure—and three later successor episodes: an E4B pre-candidate
+infrastructure failure, an E4B Russian-surface rejection, and a Qwen3 8B CPU
+Russian-surface rejection. It has yielded three admission-linked negative
+experimental candidates in total. It has not been translated through an
+accepted lane or yielded one accepted German or translation unit.

@@ -50,6 +50,16 @@ triage found obvious defects and rejected it before human review. The method,
 measurements, and immutable failure/candidate lineage are retained; accepted
 German, accepted translation, human debt, semantics, and promotion remain zero.
 
+A later Qwen3 8B INT4 CPU successor was admitted only after an ordered current
+research refresh and an exact offline source-free smoke. The isolated,
+network-disabled OVMS container then returned one schema-valid private
+candidate with exact source echo. AI Russian-surface triage again found obvious
+defects and rejected it before human review. The successful runtime route does
+not repair historical Qwen3 4B GPU C or support a family/capacity winner; the
+source, candidate, and private paths remain untracked, model-process peak
+memory remains unmeasured, and every German, translation, semantic, human,
+graph, publication, and canon effect remains zero.
+
 The new metadata-only *Zarathustra* authorial route narrows that future work
 without opening a standing human backlog. It establishes current remote
 identity for mixed compositional notebooks, D 17 (`GSA 71/25`) for part IV,
@@ -118,8 +128,8 @@ or publication route.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source-acceptance option | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; all 30 rows unscheduled; human debt 0; solo reviewer is visual-only | the packet remains reusable evidence, not a backlog; a later task opens only the exact source unit it needs, and the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, one digest-bound citation-witness decision packet, one historical text-free experimental-candidate receipt, two successor episode receipts, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; historical admitted candidates: 1; successor infrastructure episodes: 1; successor candidate episodes: 1; citation decision closed at `human_admitted_with_limits`; routine German backlog: 0; accepted German: 0; admitted critical citation witnesses: 1; open experimental lanes: `ai_only`, `ai_human`; human-only lane: closed | the decision establishes only edition-typed citation use within the declared private limits, not a German-language judgment. Unauthenticated owner transport, archive non-validation, German-competent acceptance, public sharing, publication, and every promotion route remain open |
-| bounded translation-method calibration | one ignored 20-token DTA-derived source string, a tracked text-free admission packet, one historical admission-linked candidate receipt, and a reusable successor-episode contract | eligible local inputs: 1; historical A frozen schema-valid but Russian-defective and rejected before human review; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; E4B episode 1 retained as a pre-candidate infrastructure failure; E4B episode 2 schema-valid but Russian-defective and rejected before human review; experimental AI-only candidates: 2; human-review tasks: 0; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, resource use, runtime failures, and Russian-surface rejections still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or either GPU/runtime root cause |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, one digest-bound citation-witness decision packet, one historical text-free experimental-candidate receipt, two candidate-bearing successor episode receipts, one successor infrastructure-failure receipt, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; historical admitted candidates: 1; successor infrastructure episodes: 1; successor candidate episodes: 2; citation decision closed at `human_admitted_with_limits`; routine German backlog: 0; accepted German: 0; admitted critical citation witnesses: 1; open experimental lanes: `ai_only`, `ai_human`; human-only lane: closed | the decision establishes only edition-typed citation use within the declared private limits, not a German-language judgment. Unauthenticated owner transport, archive non-validation, German-competent acceptance, public sharing, publication, and every promotion route remain open |
+| bounded translation-method calibration | one ignored 20-token DTA-derived source string, a tracked text-free admission packet, one historical admission-linked candidate receipt, and a reusable successor-episode contract | eligible local inputs: 1; historical A frozen schema-valid but Russian-defective and rejected before human review; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; E4B episode 1 retained as a pre-candidate infrastructure failure; E4B episode 2 and Qwen3 8B CPU are schema-valid but Russian-defective and rejected before human review; experimental AI-only candidates: 3; human-review tasks: 0; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, resource use, runtime failures, and Russian-surface rejections still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or either GPU/runtime root cause |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
@@ -1043,8 +1053,8 @@ materialization, annotation-tool execution, and human work remain blocked.
 ### 2b. Preserve the bounded translation calibration and successor probe
 
 Current state: one source string is eligible; historical A/B/C remain frozen
-at their actual outcomes; one separately admitted resident E4B successor probe
-is also frozen. Neither route is open for cosmetic reruns.
+at their actual outcomes; separately admitted resident E4B and Qwen3 8B CPU
+successor probes are also frozen. None is open for cosmetic reruns.
 
 1. Read the source string only from the ignored local artifact and verify its
    artifact and source-text digests before each run.
@@ -1085,6 +1095,12 @@ is also frozen. Neither route is open for cosmetic reruns.
    review. Retain the reusable runner and triage method, but do not rerun this
    candidate, reveal a recognized comparator, or spend operator attention on
    correction.
+9. Keep the Qwen3 8B CPU successor outside the historical A/B/C namespace and
+   separate from the 4B GPU failure. Its source-free smoke and candidate run
+   prove the exact isolated CPU mechanics only. Preserve its private candidate
+   and AI-only Russian-surface rejection, do not substitute owner-wrapper
+   memory for unmeasured model-process memory, and do not rerun it for human
+   interface exercise or a greener output.
 
 ### 2c. Preserve direct visual retrieval evidence and defer human judgment
 
@@ -1230,11 +1246,11 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and one E4B successor candidate rejected by AI surface triage; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, and the E4B successor have bounded speed/resource evidence; monetary and energy cost remain unmeasured, E4B human correction was not incurred, and human quality/correction evidence remains incomplete |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |
