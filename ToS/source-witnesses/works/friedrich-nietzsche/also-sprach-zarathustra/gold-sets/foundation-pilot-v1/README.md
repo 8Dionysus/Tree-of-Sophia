@@ -32,9 +32,11 @@ Zarathustra golden kernel. It is not a completed gold set.
 - `german-assisted-source-review.v1.json` adds a solo+AI route without
   inventing German competence. It separates visual human evidence,
   critical-edition witnesses, independent machine candidates, sourced AI
-  explanations, and later competent-human acceptance. It currently selects
-  one unit for one machine-only triangulation run, creates zero human debt,
-  accepts zero German units, and opens no translation lane.
+  explanations, and later competent-human acceptance. It selects one unit for
+  one machine-only triangulation run, creates zero human debt, accepts zero
+  German units, and now opens only the private `ai_only` and `ai_human`
+  experimental lanes through the later bounded citation-witness admission.
+  The `human_only` lane remains forbidden for the visual-only solo operator.
 - `critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json` freezes one exact
   eKGWB section locator for the first prepared German unit. It stores no
   eKGWB text, records the failed direct-fetch paths, and binds the locator to
@@ -60,14 +62,19 @@ Zarathustra golden kernel. It is not a completed gold set.
   is the additive 2026-08-08 admission overlay over that frozen history. It
   binds the metadata packet, exact triangulation, institutional WARC
   corroboration, rights record, and ordered current research by SHA-256. It
-  prepares exactly one human question: whether to admit the locator and
-  local-only observed reading as an edition-typed citation witness for private
-  AI-only and AI+human translation experiments. The current status is
-  `awaiting_human_decision`; admission, accepted German, every translation
-  lane, publication, semantics, graph truth, and canon effects remain zero.
-  Even a later `admit-with-limits` decision would leave publisher
-  authentication and German linguistic correctness false and would never open
-  a human-only lane for the current operator.
+  records the operator's `human_admitted_with_limits` decision for the locator
+  and local-only observed reading as an edition-typed citation witness. The
+  admission opens only private non-commercial `ai_only` and `ai_human`
+  experiments. Accepted German, accepted translation, publisher
+  authentication, German linguistic correctness, publication, semantics,
+  graph truth, canon effects, and the `human_only` lane remain false.
+- `experimental-translation-candidate.admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json`
+  binds the first admitted experimental `ai_only` candidate to that decision,
+  the current source-return overlay, and the exact private frozen A run without
+  tracking source or candidate text. Direct Russian-surface inspection found
+  obvious defects, so the candidate is retained as negative evidence and
+  rejected before human review. It creates no human task, accepted German,
+  accepted translation, semantic object, graph assertion, or canon effect.
 - `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
   admits one deterministically selected 20-token DTA sentence to local blind
   machine-method calibration. Its source-bearing companion is gitignored; the

@@ -2,7 +2,7 @@
   "$schema": "https://tree-of-sophia.local/ToS/contracts/critical-edition-citation-witness-decision.schema.json",
   "schema_version": "tos_critical_edition_citation_witness_decision_v1",
   "packet_id": "tos.critical-edition-citation-witness-decision.ekgwb.za-i-vorrede-1.v1",
-  "status": "awaiting_human_decision",
+  "status": "human_admitted_with_limits",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "target": {
     "review_unit_id": "tos-translation-source-review-v2-001",
@@ -18,7 +18,7 @@
     },
     "machine_triangulation_packet": {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
-      "sha256": "ca45f9fcf3c32a2b1e8daf7afd39307c94900f8ad10fbb55fa3d04db93a93137"
+      "sha256": "b5e2b7f2ea349cf92c561d8acbd1fb42aea81535ac3194a8e01df918ce30e03b"
     },
     "institutional_corroboration_record": {
       "ref": "ToS/source-witnesses/discovery/runs/ekgwb-za-i-vorrede-1-institutional-corroboration.2026-07-30.v3.json",
@@ -84,23 +84,26 @@
     "single_human_question": "Admit this eKGWB unit with exactly these limits as a citation-only witness for private AI-only and AI+human translation experiments?"
   },
   "human_decision": {
-    "decision_status": "pending",
-    "reviewer_ref": null,
-    "reviewed_at": null,
-    "bibliographic_identity_accepted": null,
-    "bounded_rights_scope_accepted": null,
-    "citation_witness_admitted": null,
-    "rationale": null
+    "decision_status": "admit-with-limits",
+    "reviewer_ref": "human:dionysus",
+    "reviewed_at": "2026-08-08T09:16:54-06:00",
+    "bibliographic_identity_accepted": true,
+    "bounded_rights_scope_accepted": true,
+    "citation_witness_admitted": true,
+    "rationale": "Admitted on the operator's explicit instruction only for the declared private, non-commercial citation-witness scope and its AI-only and AI+human experimental lanes."
   },
   "gate_effects": {
-    "critical_edition_unit_admitted": false,
+    "critical_edition_unit_admitted": true,
     "accepted_german_unit_created": false,
-    "translation_lanes_opened": [],
+    "translation_lanes_opened": [
+      "ai_only",
+      "ai_human"
+    ],
     "human_only_lane_opened": false,
     "recognized_translation_revealed": false,
     "semantic_or_canon_promotion_authorized": false
   },
-  "provenance_event_ref": "tos.event.annotation.ekgwb-citation-witness-decision-preparation.2026-08-08",
+  "provenance_event_ref": "tos.event.annotation.ekgwb-citation-witness-decision-admission.2026-08-08",
   "authority_boundary": "citation-witness admission decision only: not publisher authentication, accepted German, German linguistic review, translation acceptance, publication permission, semantic evidence, graph truth, or canon authority",
   "supersedes_decision_ref": null
 }

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-candidate.schema.json",
+  "schema_version": "tos_experimental_translation_candidate_v1",
+  "packet_id": "tos.experimental-translation-candidate.admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1",
+  "status": "frozen-ai-only-experimental-candidate",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "target": {
+    "review_unit_id": "tos-translation-source-review-v2-001",
+    "context_anchor_ref": "tos.anchor.zarathustra-translation-pilot-v1.t001",
+    "critical_locator_siglum": "Za-I-Vorrede-1"
+  },
+  "admission": {
+    "citation_witness_decision": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/critical-edition-citation-witness-decision.ekgwb.za-i-vorrede-1.v1.json",
+      "sha256": "46373690c5627511b3dc68dade95fe0c2d11a7496a66a994edfe6179567f5a5e"
+    },
+    "current_source_return_overlay": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json",
+      "sha256": "b894e0070e9bbd614627312b0e71584156da226db42538c010fc1775083bd0fb"
+    }
+  },
+  "historical_private_run": {
+    "runtime_owner": "abyss-stack",
+    "run_id": "za-i-vorrede-1-opening-v1-20260729",
+    "variant": "A",
+    "profile_id": "tos-zarathustra-bounded-translation-calibration-v1",
+    "profile_sha256": "e0608d7559ce8efb29a13278f6e202a128fdc79e94256db78367c1dab050f32a",
+    "experiment_id": "tos-bounded-translation-calibration-v1",
+    "run_receipt": {
+      "ref": "tos.private.translation-calibration.run-receipt.variant-a",
+      "sha256": "dcd67c2652c6979c3e5b6ba987091670b275e188d51644e9f0d9438549e4b5e9"
+    },
+    "candidate_artifact": {
+      "ref": "tos.private.translation-calibration.candidate.variant-a",
+      "sha256": "54b09e5dc4453a26e12790d15bab2e469c8030e2a1e5233ebc02d280c12d9071"
+    },
+    "ai_inspection": {
+      "ref": "tos.private.translation-calibration.ai-inspection.abc-final",
+      "sha256": "d811a35d24ad38e2e2349c8aca508b8e539bb2475251a0b17a5dc0d4bebb3886"
+    },
+    "historical_source_admission_sha256": "fb550b417739c7953cacee715fe4f9bb67bf2ac00c09d4bbddf5b53b0b293dcb",
+    "local_source_artifact_sha256": "a19c2f080eaff61b9412c0555954b632ffc4dd6c06f47f46aa464ab389d2b9f4",
+    "source_text_sha256": "a507f7293ac73ec37f7c78a38b3270f45bc98418b8fd824f2ab72ebc18377224",
+    "prompt_id": "direct-independent-translation-json-v1",
+    "model": {
+      "model_id": "unsloth/gemma-4-E2B-it-GGUF",
+      "upstream_revision": "90f9618340396838ee7ff5b0ba2da27da62953d3",
+      "artifact_sha256": "b8906b8c5e05e57b657646bbc657bd35814a269b2c20f0a2579047fafa1a67dd",
+      "quantization": "UD-Q4_K_XL"
+    },
+    "runtime": {
+      "runtime_id": "llama.cpp-05ff59c-vulkan",
+      "runtime_revision": "05ff59cb57860cc992fc6dcede32c696efea711c",
+      "device": "Vulkan",
+      "container_image_digest": "sha256:dca559dd886b415b4ced54f09197a2d84b55c432736a3a3fccca82359444f50c"
+    },
+    "measurements": {
+      "wall_seconds": 146.973579,
+      "prompt_tokens": 542,
+      "completion_tokens": 736,
+      "completion_tokens_per_second": 5.007703,
+      "monetary_cost": "unmeasured",
+      "energy_cost": "unmeasured"
+    }
+  },
+  "content_boundary": {
+    "source_text_tracked": false,
+    "candidate_text_tracked": false,
+    "private_paths_tracked": false,
+    "recognized_comparator_revealed": false
+  },
+  "assessment": {
+    "assessor_ref": "model:codex",
+    "scope": "russian-surface-only-no-german-competence-claim",
+    "run_integrity_verified": true,
+    "output_contract_valid": true,
+    "source_echo_exact": true,
+    "russian_surface_posture": "obvious-defects",
+    "observed_issues": [
+      "unidiomatic-age-construction",
+      "defective-literal-gloss-government",
+      "incomplete-alternative-clause"
+    ],
+    "useful_uncertainty_preserved": true,
+    "disposition": "reject-before-human-review",
+    "human_review_performed": false,
+    "translation_accepted": false
+  },
+  "rights_and_visibility": {
+    "environment": "local-only",
+    "use": "private-non-commercial-research",
+    "source_or_candidate_sharing_authorized": false,
+    "publication_authorized": false,
+    "commercial_use_authorized": false
+  },
+  "gate_effects": {
+    "ai_only_experimental_candidates_recorded": 1,
+    "ai_human_tasks_created": 0,
+    "accepted_german_units": 0,
+    "accepted_translation_packets": 0,
+    "human_only_lane_opened": false,
+    "semantic_tasks_opened": 0,
+    "graph_or_canon_promotion_authorized": false
+  },
+  "provenance_event_ref": "tos.event.translation.zarathustra-experimental-ai-only-candidate-admission.za-i-vorrede-1-opening.2026-08-08",
+  "authority_boundary": "verified private model runs may be recorded and triaged as experimental candidates before any optional human Russian-surface review; this is not accepted German, translation quality, publication permission, semantic evidence, graph truth, or canon authority"
+}

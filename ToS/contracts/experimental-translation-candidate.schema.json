@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-candidate.schema.json",
+  "title": "Tree of Sophia private experimental translation candidate receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "status",
+    "work_ref",
+    "target",
+    "admission",
+    "historical_private_run",
+    "content_boundary",
+    "assessment",
+    "rights_and_visibility",
+    "gate_effects",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/experimental-translation-candidate.schema.json"
+    },
+    "schema_version": {"const": "tos_experimental_translation_candidate_v1"},
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.experimental-translation-candidate\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {"const": "frozen-ai-only-experimental-candidate"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_unit_id", "context_anchor_ref", "critical_locator_siglum"],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v[0-9]+-[0-9]{3}$"
+        },
+        "context_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "critical_locator_siglum": {"type": "string", "minLength": 1}
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["citation_witness_decision", "current_source_return_overlay"],
+      "properties": {
+        "citation_witness_decision": {"$ref": "#/$defs/digestBoundRef"},
+        "current_source_return_overlay": {"$ref": "#/$defs/digestBoundRef"}
+      }
+    },
+    "historical_private_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_owner",
+        "run_id",
+        "variant",
+        "profile_id",
+        "profile_sha256",
+        "experiment_id",
+        "run_receipt",
+        "candidate_artifact",
+        "ai_inspection",
+        "historical_source_admission_sha256",
+        "local_source_artifact_sha256",
+        "source_text_sha256",
+        "prompt_id",
+        "model",
+        "runtime",
+        "measurements"
+      ],
+      "properties": {
+        "runtime_owner": {"const": "abyss-stack"},
+        "run_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "variant": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*$"},
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "profile_sha256": {"$ref": "#/$defs/sha256"},
+        "experiment_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "run_receipt": {"$ref": "#/$defs/privateDigestRef"},
+        "candidate_artifact": {"$ref": "#/$defs/privateDigestRef"},
+        "ai_inspection": {"$ref": "#/$defs/privateDigestRef"},
+        "historical_source_admission_sha256": {"$ref": "#/$defs/sha256"},
+        "local_source_artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_text_sha256": {"$ref": "#/$defs/sha256"},
+        "prompt_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model_id", "upstream_revision", "artifact_sha256", "quantization"],
+          "properties": {
+            "model_id": {"type": "string", "minLength": 1},
+            "upstream_revision": {"type": "string", "minLength": 1},
+            "artifact_sha256": {"$ref": "#/$defs/sha256"},
+            "quantization": {"type": "string", "minLength": 1}
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runtime_id", "runtime_revision", "device", "container_image_digest"],
+          "properties": {
+            "runtime_id": {"type": "string", "minLength": 1},
+            "runtime_revision": {"type": "string", "minLength": 1},
+            "device": {"type": "string", "minLength": 1},
+            "container_image_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+          }
+        },
+        "measurements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wall_seconds", "prompt_tokens", "completion_tokens", "completion_tokens_per_second", "monetary_cost", "energy_cost"],
+          "properties": {
+            "wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+            "prompt_tokens": {"type": "integer", "minimum": 0},
+            "completion_tokens": {"type": "integer", "minimum": 0},
+            "completion_tokens_per_second": {"type": "number", "exclusiveMinimum": 0},
+            "monetary_cost": {"const": "unmeasured"},
+            "energy_cost": {"const": "unmeasured"}
+          }
+        }
+      }
+    },
+    "content_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_text_tracked", "candidate_text_tracked", "private_paths_tracked", "recognized_comparator_revealed"],
+      "properties": {
+        "source_text_tracked": {"const": false},
+        "candidate_text_tracked": {"const": false},
+        "private_paths_tracked": {"const": false},
+        "recognized_comparator_revealed": {"const": false}
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assessor_ref", "scope", "run_integrity_verified", "output_contract_valid", "source_echo_exact", "russian_surface_posture", "observed_issues", "useful_uncertainty_preserved", "disposition", "human_review_performed", "translation_accepted"],
+      "properties": {
+        "assessor_ref": {
+          "type": "string",
+          "pattern": "^(model|software):[A-Za-z0-9._/-]+$"
+        },
+        "scope": {"const": "russian-surface-only-no-german-competence-claim"},
+        "run_integrity_verified": {"const": true},
+        "output_contract_valid": {"const": true},
+        "source_echo_exact": {"const": true},
+        "russian_surface_posture": {
+          "enum": ["unassessed", "obvious-defects", "review-worthy", "uncertain"]
+        },
+        "observed_issues": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "useful_uncertainty_preserved": {"type": "boolean"},
+        "disposition": {
+          "enum": [
+            "reject-before-human-review",
+            "advance-to-human-russian-review",
+            "retain-for-method-comparison"
+          ]
+        },
+        "human_review_performed": {"const": false},
+        "translation_accepted": {"const": false}
+      }
+    },
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "use", "source_or_candidate_sharing_authorized", "publication_authorized", "commercial_use_authorized"],
+      "properties": {
+        "environment": {"const": "local-only"},
+        "use": {"const": "private-non-commercial-research"},
+        "source_or_candidate_sharing_authorized": {"const": false},
+        "publication_authorized": {"const": false},
+        "commercial_use_authorized": {"const": false}
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ai_only_experimental_candidates_recorded", "ai_human_tasks_created", "accepted_german_units", "accepted_translation_packets", "human_only_lane_opened", "semantic_tasks_opened", "graph_or_canon_promotion_authorized"],
+      "properties": {
+        "ai_only_experimental_candidates_recorded": {"const": 1},
+        "ai_human_tasks_created": {"const": 0},
+        "accepted_german_units": {"const": 0},
+        "accepted_translation_packets": {"const": 0},
+        "human_only_lane_opened": {"const": false},
+        "semantic_tasks_opened": {"const": 0},
+        "graph_or_canon_promotion_authorized": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "authority_boundary": {
+      "const": "verified private model runs may be recorded and triaged as experimental candidates before any optional human Russian-surface review; this is not accepted German, translation quality, publication permission, semantic evidence, graph truth, or canon authority"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "repoRef": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"},
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {"ref": {"$ref": "#/$defs/repoRef"}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "privateDigestRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^tos\\.private\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

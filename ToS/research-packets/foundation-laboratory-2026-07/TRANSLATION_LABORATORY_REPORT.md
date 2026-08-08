@@ -1,8 +1,8 @@
 # Translation Laboratory Report: Foundation Pilot v1
 
 Status: source-review laboratory prepared and mechanically exercised; one
-bounded local machine-calibration input admitted; calibration A/B/C executed
-with C failed and retained; accepted translation A/B/C not started
+bounded eKGWB citation witness admitted for private AI experiments; frozen A
+linked as a rejected AI-only candidate; accepted translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
 Report date: 2026-07-29
 
@@ -54,6 +54,15 @@ runtime diagnosis established the event chain: Linux i915 recorded a
 surfaced `CL_OUT_OF_RESOURCES` before segfaulting. It was retained without
 rerun or tuning; the diagnosis does not convert the runtime failure into a
 translation result.
+
+On 2026-08-08 the operator admitted the exact eKGWB locator and local-only
+observed reading with limits for private non-commercial `ai_only` and
+`ai_human` experiments. The admission did not accept German or authenticate
+publisher transport. The exact existing A result was integrity-verified and
+bound to the current source-return chain without rerun. Because its Russian
+surface already contains obvious defects, it was rejected before human review
+and retained as the first negative experimental AI-only candidate. No
+AI+human task, correction task, comparator reveal, or promotion was opened.
 
 ## Evidence sequence
 
@@ -120,9 +129,11 @@ seconds and were byte-identical. Unencrypted transport remains an authenticity
 risk. The payload is gitignored and local-only; declared BY-NC-ND evidence is
 not a ToS rights decision.
 
-The assisted plan therefore reports selected units 1, machine runs 1,
-machine-triangulated candidates 1, accepted German 0, human debt 0, admitted
-critical witnesses 0, and translation lanes 0.
+The current assisted overlay therefore reports selected units 1, machine runs
+1, machine-triangulated candidates 1, accepted German 0, human debt 0, one
+admitted critical citation witness, and two private experimental lanes:
+`ai_only` and `ai_human`. The human-only and every accepted-translation lane
+remain closed.
 
 ### 4. Bounded local calibration admission
 
@@ -141,12 +152,14 @@ The tracked packet records:
 - accepted German 0, accepted translation lanes 0, semantic tasks 0, human
   debt 0, and promotion false.
 
-The recognized comparator remains sealed. The frozen `human_only`, accepted
-`ai_only`, `ai_alternatives`, and `ai_human` lanes remain blocked. Any output
-from the new route must be labeled a laboratory candidate and may be judged by
-the operator only for Russian readability, rhythm, and usefulness—not German
-correctness or cross-language fidelity. The existing authored Russian and
-English witnesses are also hidden until every calibration candidate freezes.
+The recognized comparator remains sealed. The accepted `human_only`,
+`ai_only`, `ai_alternatives`, and `ai_human` lanes remain blocked. The bounded
+citation admission opens only separate private experimental `ai_only` and
+`ai_human` routes. Any output from those routes must be labeled a laboratory
+candidate and may be judged by the operator only for Russian readability,
+rhythm, and usefulness—not German correctness or cross-language fidelity. The
+existing authored Russian and English witnesses remain hidden until the
+relevant candidate freezes.
 
 ### 5. Reference and pre-draft soil
 
@@ -356,7 +369,9 @@ Missing human time is not zero cost.
 - Admit the one DTA-derived sentence only to local blind machine-method
   calibration; keep its source string ignored and every result non-promotional.
 - Retain A as a contract-complete but Russian-surface-defective machine
-  candidate, and B as a fixed invalid-output result rather than rerunning it.
+  candidate, bind it as the first admitted experimental AI-only negative, and
+  reject it before human review. Retain B as a fixed invalid-output result
+  rather than rerunning it.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
 - Retain C as a single failed GPU-execution result whose source-free diagnosis
@@ -388,15 +403,19 @@ without claiming a root cause or rewriting C. Any re-entry is a new
 In parallel, the next authority-bearing source action remains
 question-triggered: prefer an authenticated or institutionally supplied copy
 of the exact eKGWB witness, then complete bibliographic and rights review at
-the exact layer. German textual acceptance still requires actual declared
-competence and source-visible receipts; the current operator may contribute
-visual identity and Russian-language evaluation only. Only accepted source
-units can enter the independent accepted-translation lanes.
+the exact layer. A next experimental candidate should reach a credible Russian
+surface floor before consuming operator attention; the rejected A candidate
+must not be sent for redundant human correction. German textual acceptance
+still requires actual declared competence and source-visible receipts; the
+current operator may contribute visual identity and Russian-language
+evaluation only. Only accepted source units can enter the independent
+accepted-translation lanes.
 
 Until then, the honest laboratory conclusion is narrow: Tree of Sophia has a
 translation method capable of preserving source, alternatives, etymological
 evidence, and comparator influence, plus one exact calibration-only input.
 That input has three frozen machine outcomes—one poor contract-complete
 candidate, one truncated invalid output, and one GPU runtime failure—but it
-has not been translated through an accepted lane or yielded one accepted
-German or translation unit.
+has yielded only one admission-linked negative experimental candidate. It has
+not been translated through an accepted lane or yielded one accepted German or
+translation unit.

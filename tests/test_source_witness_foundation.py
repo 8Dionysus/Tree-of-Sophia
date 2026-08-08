@@ -46,6 +46,11 @@ BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH = (
     / "bounded-translation-research-input."
     "za-i-vorrede-1-opening-sentence.v1.json"
 )
+EXPERIMENTAL_TRANSLATION_CANDIDATE_PATH = (
+    GOLD_ROOT
+    / "experimental-translation-candidate."
+    "admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json"
+)
 EKGWB_RIGHTS_PATH = (
     GOLD_ROOT / "rights.ekgwb.za-i-vorrede-1.v1.json"
 )
@@ -7369,7 +7374,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
-    def test_german_assisted_review_adds_no_false_competence_or_human_debt(
+    def test_german_assisted_review_opens_only_bounded_experiment_lanes(
         self,
     ) -> None:
         validator, _ = foundation._schema_validator(
@@ -7404,7 +7409,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "prepared_critical_edition_witness_packets"
             ],
         )
-        self.assertEqual([], plan["current_state"]["translation_lanes_opened"])
+        self.assertEqual(
+            ["ai_only", "ai_human"],
+            plan["current_state"]["translation_lanes_opened"],
+        )
+        self.assertEqual(
+            1, plan["current_state"]["admitted_critical_edition_units"]
+        )
         self.assertFalse(plan["current_state"]["promotion_authorized"])
 
         false_acceptance = copy.deepcopy(plan)
@@ -7416,6 +7427,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "machine_agreement_supplies_language_competence"
         ] = True
         self.assertTrue(list(validator.iter_errors(false_competence)))
+
+        false_human_only = copy.deepcopy(plan)
+        false_human_only["current_state"]["translation_lanes_opened"].append(
+            "human_only"
+        )
+        self.assertTrue(list(validator.iter_errors(false_human_only)))
 
     def test_german_source_triangulation_is_machine_only_and_text_free(
         self,
@@ -7697,7 +7714,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             alignment_issues,
         )
 
-    def test_citation_witness_decision_is_one_fail_closed_human_gate(
+    def test_citation_witness_decision_records_bounded_human_admission(
         self,
     ) -> None:
         validator, _ = foundation._schema_validator(
@@ -7710,13 +7727,28 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
         self.assertEqual([], list(validator.iter_errors(packet)))
-        self.assertEqual("awaiting_human_decision", packet["status"])
-        self.assertEqual("pending", packet["human_decision"]["decision_status"])
-        self.assertIsNone(packet["human_decision"]["reviewer_ref"])
-        self.assertFalse(
+        self.assertEqual("human_admitted_with_limits", packet["status"])
+        self.assertEqual(
+            "admit-with-limits", packet["human_decision"]["decision_status"]
+        )
+        self.assertEqual(
+            "human:dionysus", packet["human_decision"]["reviewer_ref"]
+        )
+        self.assertTrue(
             packet["gate_effects"]["critical_edition_unit_admitted"]
         )
-        self.assertEqual([], packet["gate_effects"]["translation_lanes_opened"])
+        self.assertEqual(
+            ["ai_only", "ai_human"],
+            packet["gate_effects"]["translation_lanes_opened"],
+        )
+        self.assertFalse(packet["gate_effects"]["accepted_german_unit_created"])
+        self.assertFalse(packet["gate_effects"]["human_only_lane_opened"])
+        self.assertFalse(
+            packet["gate_effects"]["recognized_translation_revealed"]
+        )
+        self.assertFalse(
+            packet["gate_effects"]["semantic_or_canon_promotion_authorized"]
+        )
         self.assertFalse(
             packet["transport_and_fixity"][
                 "publisher_authentication_established"
@@ -7728,37 +7760,34 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ]
         )
 
-        false_admission = copy.deepcopy(packet)
+        pending = copy.deepcopy(packet)
+        pending["status"] = "awaiting_human_decision"
+        pending["human_decision"] = {
+            "decision_status": "pending",
+            "reviewer_ref": None,
+            "reviewed_at": None,
+            "bibliographic_identity_accepted": None,
+            "bounded_rights_scope_accepted": None,
+            "citation_witness_admitted": None,
+            "rationale": None,
+        }
+        pending["gate_effects"]["critical_edition_unit_admitted"] = False
+        pending["gate_effects"]["translation_lanes_opened"] = []
+        self.assertEqual([], list(validator.iter_errors(pending)))
+
+        false_admission = copy.deepcopy(pending)
         false_admission["gate_effects"][
             "critical_edition_unit_admitted"
         ] = True
         self.assertTrue(list(validator.iter_errors(false_admission)))
 
-        silent_human = copy.deepcopy(packet)
+        silent_human = copy.deepcopy(pending)
         silent_human["status"] = "human_admitted_with_limits"
         self.assertTrue(list(validator.iter_errors(silent_human)))
 
         unbound_supersession = copy.deepcopy(packet)
         unbound_supersession["status"] = "superseded"
         self.assertTrue(list(validator.iter_errors(unbound_supersession)))
-
-        admitted = copy.deepcopy(packet)
-        admitted["status"] = "human_admitted_with_limits"
-        admitted["human_decision"] = {
-            "decision_status": "admit-with-limits",
-            "reviewer_ref": "human:dionysus",
-            "reviewed_at": "2026-08-08T08:00:00Z",
-            "bibliographic_identity_accepted": True,
-            "bounded_rights_scope_accepted": True,
-            "citation_witness_admitted": True,
-            "rationale": "Admitted only for the declared local experimental scope.",
-        }
-        admitted["gate_effects"]["critical_edition_unit_admitted"] = True
-        admitted["gate_effects"]["translation_lanes_opened"] = [
-            "ai_only",
-            "ai_human",
-        ]
-        self.assertEqual([], list(validator.iter_errors(admitted)))
 
         research_binding = packet["evidence"]["ordered_research_refresh"]
         research_path = REPO_ROOT / research_binding["ref"]
@@ -7781,6 +7810,93 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 field="evidence.ordered_research_refresh",
             ),
         )
+
+    def test_experimental_translation_candidate_reuses_run_without_promotion(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.EXPERIMENTAL_TRANSLATION_CANDIDATE_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            EXPERIMENTAL_TRANSLATION_CANDIDATE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual(
+            "frozen-ai-only-experimental-candidate", packet["status"]
+        )
+        self.assertEqual(
+            "reject-before-human-review", packet["assessment"]["disposition"]
+        )
+        self.assertFalse(packet["assessment"]["human_review_performed"])
+        self.assertFalse(packet["assessment"]["translation_accepted"])
+        self.assertFalse(packet["content_boundary"]["source_text_tracked"])
+        self.assertFalse(packet["content_boundary"]["candidate_text_tracked"])
+        self.assertFalse(
+            packet["content_boundary"]["recognized_comparator_revealed"]
+        )
+        self.assertEqual(
+            0, packet["gate_effects"]["accepted_translation_packets"]
+        )
+        self.assertEqual(0, packet["gate_effects"]["semantic_tasks_opened"])
+
+        prospective_candidate = copy.deepcopy(packet)
+        prospective_candidate["packet_id"] = (
+            "tos.experimental-translation-candidate.future.variant-d.v1"
+        )
+        prospective_candidate["historical_private_run"]["run_id"] = (
+            "future-translation-run-v1-20260808"
+        )
+        prospective_candidate["historical_private_run"]["variant"] = "D"
+        prospective_candidate["historical_private_run"]["model"][
+            "model_id"
+        ] = "local/future-model"
+        prospective_candidate["assessment"]["russian_surface_posture"] = (
+            "review-worthy"
+        )
+        prospective_candidate["assessment"]["observed_issues"] = []
+        prospective_candidate["assessment"]["disposition"] = (
+            "advance-to-human-russian-review"
+        )
+        prospective_candidate["provenance_event_ref"] = (
+            "tos.event.translation.future-experimental-candidate.2026-08-08"
+        )
+        self.assertEqual(
+            [], list(validator.iter_errors(prospective_candidate))
+        )
+
+        for field, expected_path in (
+            (
+                "citation_witness_decision",
+                CRITICAL_EDITION_CITATION_DECISION_PATH,
+            ),
+            (
+                "current_source_return_overlay",
+                BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH,
+            ),
+        ):
+            self.assertIsNone(
+                foundation._digest_bound_ref_issue(
+                    packet["admission"][field],
+                    expected_path=expected_path,
+                    repo_root=REPO_ROOT,
+                    field=f"admission.{field}",
+                )
+            )
+
+        tracked_candidate = copy.deepcopy(packet)
+        tracked_candidate["content_boundary"]["candidate_text_tracked"] = True
+        self.assertTrue(list(validator.iter_errors(tracked_candidate)))
+
+        simulated_human = copy.deepcopy(packet)
+        simulated_human["assessment"]["human_review_performed"] = True
+        self.assertTrue(list(validator.iter_errors(simulated_human)))
+
+        false_promotion = copy.deepcopy(packet)
+        false_promotion["gate_effects"]["accepted_translation_packets"] = 1
+        self.assertTrue(list(validator.iter_errors(false_promotion)))
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,

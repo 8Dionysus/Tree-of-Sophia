@@ -260,7 +260,9 @@
           "current_state": {
             "properties": {
               "accepted_german_units": {"const": 0},
-              "translation_lanes_opened": {"maxItems": 0},
+              "translation_lanes_opened": {
+                "not": {"contains": {"const": "human_only"}}
+              },
               "promotion_authorized": {"const": false}
             }
           }

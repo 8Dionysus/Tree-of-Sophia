@@ -108,6 +108,9 @@ GERMAN_SOURCE_TRIANGULATION_SCHEMA = (
 BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA = (
     CONTRACT_ROOT / "bounded-translation-research-input.schema.json"
 )
+EXPERIMENTAL_TRANSLATION_CANDIDATE_SCHEMA = (
+    CONTRACT_ROOT / "experimental-translation-candidate.schema.json"
+)
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
@@ -1135,6 +1138,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             BOUNDED_TRANSLATION_RESEARCH_INPUT_SCHEMA,
             repo_root,
         )
+        experimental_translation_candidate_validator, _ = _schema_validator(
+            EXPERIMENTAL_TRANSLATION_CANDIDATE_SCHEMA,
+            repo_root,
+        )
         catalog_validator, catalog_schema = _schema_validator(CATALOG_SCHEMA, repo_root)
     except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
         return [(CONTRACT_ROOT.as_posix(), f"cannot load contract schemas: {exc}")]
@@ -1463,6 +1470,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             / "bounded-translation-research-input."
             "za-i-vorrede-1-opening-sentence.v1.json"
         )
+        experimental_translation_candidate_path = (
+            gold_root
+            / "experimental-translation-candidate."
+            "admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json"
+        )
         initial_sign_packet_path = gold_root / "initial-sign-packet.v3.json"
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
@@ -1551,6 +1563,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues,
             )
             if bounded_translation_research_input_path.is_file()
+            else None
+        )
+        experimental_translation_candidate = (
+            _load_json(
+                experimental_translation_candidate_path,
+                repo_root,
+                issues,
+            )
+            if experimental_translation_candidate_path.is_file()
             else None
         )
         initial_sign_packet = _load_json(
@@ -2158,14 +2179,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 if (
                     current_state.get("accepted_german_units") != 0
-                    or current_state.get("admitted_critical_edition_units") != 0
-                    or current_state.get("translation_lanes_opened")
                     or current_state.get("promotion_authorized") is not False
                 ):
                     issues.append(
                         (
                             triangulation_location,
-                            "machine triangulation crossed a human or translation gate",
+                            "machine triangulation crossed a German-acceptance or promotion gate",
                         )
                     )
         if bounded_translation_research_input is not None:
@@ -2456,9 +2475,17 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 ocr_sample_plan=ocr_sample_plan,
             ):
                 issues.append((witness_location, message))
-            if critical_edition_witness.get("status") != (
-                "citation_witness_admitted"
-            ) and isinstance(german_assisted_review, dict):
+            additive_decision_admitted = (
+                isinstance(critical_edition_citation_decision, dict)
+                and critical_edition_citation_decision.get("status")
+                == "human_admitted_with_limits"
+            )
+            if (
+                critical_edition_witness.get("status")
+                != "citation_witness_admitted"
+                and not additive_decision_admitted
+                and isinstance(german_assisted_review, dict)
+            ):
                 state = german_assisted_review.get("current_state", {})
                 if state.get("admitted_critical_edition_units") != 0:
                     issues.append(
@@ -2631,6 +2658,75 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "citation-witness decision and assisted-review translation lanes disagree",
                         )
                     )
+        if experimental_translation_candidate is not None:
+            candidate_location = _relative(
+                experimental_translation_candidate_path,
+                repo_root,
+            )
+            _validate_payload(
+                experimental_translation_candidate,
+                experimental_translation_candidate_validator,
+                candidate_location,
+                issues,
+            )
+            admission = experimental_translation_candidate.get("admission", {})
+            expected_bindings = [
+                (
+                    "citation_witness_decision",
+                    critical_edition_citation_decision_path,
+                ),
+                (
+                    "current_source_return_overlay",
+                    bounded_translation_research_input_path,
+                ),
+            ]
+            for field, expected_path in expected_bindings:
+                binding = admission.get(field)
+                if not isinstance(binding, dict):
+                    issues.append(
+                        (candidate_location, f"admission.{field} is absent")
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    binding,
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"admission.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((candidate_location, digest_issue))
+            if (
+                not isinstance(critical_edition_citation_decision, dict)
+                or critical_edition_citation_decision.get("status")
+                != "human_admitted_with_limits"
+                or "ai_only"
+                not in critical_edition_citation_decision.get(
+                    "gate_effects", {}
+                ).get("translation_lanes_opened", [])
+            ):
+                issues.append(
+                    (
+                        candidate_location,
+                        "experimental translation candidate lacks an admitted AI-only citation-witness route",
+                    )
+                )
+            elif experimental_translation_candidate.get("target") != {
+                "review_unit_id": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("review_unit_id"),
+                "context_anchor_ref": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("context_anchor_ref"),
+                "critical_locator_siglum": critical_edition_citation_decision.get(
+                    "target", {}
+                ).get("critical_locator_siglum"),
+            }:
+                issues.append(
+                    (
+                        candidate_location,
+                        "experimental translation candidate target drifted from the admitted citation witness",
+                    )
+                )
         if translation_laboratory_plan is not None:
             laboratory_location = _relative(translation_laboratory_path, repo_root)
             _validate_payload(
@@ -2965,6 +3061,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             repo_root,
                         ),
                         "citation-witness decision provenance event is absent from gold-set provenance",
+                    )
+                )
+        if experimental_translation_candidate is not None:
+            candidate_event_ref = experimental_translation_candidate.get(
+                "provenance_event_ref"
+            )
+            if candidate_event_ref not in local_event_ids:
+                issues.append(
+                    (
+                        _relative(
+                            experimental_translation_candidate_path,
+                            repo_root,
+                        ),
+                        "experimental translation candidate provenance event is absent from gold-set provenance",
                     )
                 )
         if german_source_triangulation is not None:

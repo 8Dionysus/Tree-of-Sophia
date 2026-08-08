@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Admitted the exact eKGWB `Za-I-Vorrede-1` locator and local-only observed
+  reading as one edition-typed citation witness for private non-commercial
+  AI-only and AI+human experiments. The additive decision keeps accepted
+  German, human-only translation, publisher authentication, public sharing,
+  semantics, graph truth, and canon effects closed. The exact frozen Gemma E2B
+  A run was integrity-verified rather than rerun, recorded through a new
+  text-free experimental-candidate contract, and rejected before human review
+  because of obvious Russian-surface defects. No source or candidate text was
+  added to Git and no human correction task was created.
 - Refreshed the Stanford Loeb–Tinsley *Thus Spoke Zarathustra* release
   frontier on 2026-08-08 in official -> established -> freshest order. The
   register now distinguishes cloth, paper, and eBook ISBNs, preserves the
