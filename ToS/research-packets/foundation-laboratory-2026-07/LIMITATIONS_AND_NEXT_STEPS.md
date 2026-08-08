@@ -60,6 +60,18 @@ source, candidate, and private paths remain untracked, model-process peak
 memory remains unmeasured, and every German, translation, semantic, human,
 graph, publication, and canon effect remains zero.
 
+The next Russian-surface method step has now been executed without touching
+those private candidates. Deterministic A and one pinned offline LanguageTool
+B were compared over 36 invented source-free controls. B added 13 advisory
+rule IDs but changed no A disposition, missed nine declared defect controls,
+and marked one deliberately ambiguous literary casing control. The run
+preserves exact archive/runtime/commit/rule-inventory fixity and measured
+78.004763012 seconds wall plus 600,440 KiB peak child RSS. It is a prepared
+local experimental artifact only: missing upstream signature/checksum, SBOM,
+SLSA/in-toto, Sigstore/Cosign, and registry evidence keep the owner trust gate
+`unknown` and fail-closed for release use. C remains unselected and unacquired;
+no human task or content authority was created.
+
 The new metadata-only *Zarathustra* authorial route narrows that future work
 without opening a standing human backlog. It establishes current remote
 identity for mixed compositional notebooks, D 17 (`GSA 71/25`) for part IV,
@@ -1107,8 +1119,13 @@ open for cosmetic reruns.
     rejection method. Its nine invented controls and two digest-bound private
     receipts prove the current high-precision and advisory rules only. A
     finding-free result remains `uncertain`, never review-worthy or accepted;
-    broader rule coverage, a pinned offline LanguageTool challenger, and any
-    GEC/LLM challenger require separately frozen A/B/C work. Do not create a
+    preserve the completed 36-control pinned offline LanguageTool B as a
+    separate advisory-only comparison which changes no A disposition. Its
+    extra rule signals, explicit misses, literary false-positive pressure,
+    cold-start cost, and fail-closed artifact-trust ceiling are the result;
+    do not rerun private candidates to decorate it. Any GEC or independent
+    checklist-LLM C requires a separately justified and frozen question,
+    license/artifact review, and current machine admission. Do not create a
     human task automatically from this screen.
 
 ### 2c. Preserve direct visual retrieval evidence and defer human judgment
@@ -1255,11 +1272,11 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models but cannot admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B added advisory rule evidence without changing an A disposition or touching private candidates; neither can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts, with a 259,264,698-byte archive and 414,841,492-byte runtime; monetary and energy cost remain unmeasured, successor human correction was not incurred, Qwen model-process peak memory was not captured by the owner wrapper, and human quality/correction evidence remains incomplete |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |

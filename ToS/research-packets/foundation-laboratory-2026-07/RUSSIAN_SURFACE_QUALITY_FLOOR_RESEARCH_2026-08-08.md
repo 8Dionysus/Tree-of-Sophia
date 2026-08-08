@@ -1,13 +1,13 @@
 # Russian-Surface Quality Floor Research
 
-Status: ordered research completed; deterministic source-blind floor executed;
-no German, translation, semantic, graph, publication, canon, or human-review
-authority
+Status: ordered research completed; deterministic A and pinned offline
+LanguageTool B executed source-free; C not selected or acquired; no German,
+translation, semantic, graph, publication, canon, or human-review authority
 
 Snapshot: 2026-08-08
 
 Implementation snapshot: `abyss-stack`
-`1af448f892fd8269b2495909d69f58666a0ab752`
+`f0adef34d774d58e495b86592ace303336a6bfa8`
 
 ## Result first
 
@@ -23,6 +23,14 @@ and returns no source or candidate text. Two already frozen private successor
 candidates were screened without rerunning either model. Both retained their
 earlier rejection and gained a separate digest-bound floor receipt. This is
 method evidence only.
+
+The first independent rule-engine challenger is now executed as B on 36
+invented controls. It adds useful rule-specific signals but does not change a
+single A disposition. LanguageTool missed all five packet/surface boundaries
+owned by A, three explicit grammar or punctuation defect controls, and one
+unbalanced-quote boundary; it also marked one deliberately ambiguous
+lowercase literary fragment. B is therefore retained only as an advisory
+layer above A. No private candidate was rerun to make this comparison.
 
 ## Research question and boundary
 
@@ -80,9 +88,14 @@ experiment identity. The public API is unsuitable for private ToS source work:
 it transfers text externally, disallows automated use at scale, and may change
 without warning.
 
-LanguageTool is therefore the first rule-engine challenger only after an exact
-offline snapshot, license, tree digest, rule inventory, false-positive controls,
-and no-network runtime are frozen.
+LanguageTool therefore entered the laboratory only after an exact offline
+snapshot, license, archive and full-runtime-tree digests, rule inventory,
+false-positive controls, and a per-control no-network runtime were frozen.
+The exact 2026-08-08 snapshot is now a prepared local experimental artifact,
+not a release-admitted OS Abyss artifact: upstream supplied no adjacent
+checksum or signature, and the owner trust gate remains fail-closed at
+`unknown` because no durable registry record, SBOM, SLSA/in-toto evidence, or
+Sigstore/Cosign evidence exists.
 
 Sources:
 
@@ -235,10 +248,49 @@ This is useful negative evidence: v1 reproduces enough of the earlier rejection
 to save attention, while its missed issue categories remain visible rather than
 being hidden by a successful disposition.
 
-## Next laboratory comparison
+## Executed A/B comparison
 
-The next A/B/C method experiment should compare on a larger, source-free,
-rule-stratified control set:
+The frozen source-free set contains 12 acceptable, 20 defect, and 4 ambiguous
+literary controls. All 36 expected A and LanguageTool observations matched the
+actual per-control output. LanguageTool exposed 13 distinct rule IDs. It left
+nine defect controls without any LanguageTool signal:
+
+- five candidate-packet/surface failures already rejected by A;
+- number agreement, an intrusive subject comma, and a missing relative-clause
+  comma;
+- one unbalanced-quote provider boundary.
+
+One ambiguous lowercase literary fragment triggered
+`UPPERCASE_SENTENCE_START`. Because every LanguageTool finding remains
+advisory-only, A and B both reject exactly the same five controls. This is not
+an accuracy score or a production benchmark; it is a manually inspectable
+rule-stratified method comparison with zero expectation disagreements.
+
+The isolated cold-start comparison measured:
+
+- 78.004763012 seconds total wall time for 36 controls;
+- 1.528671645--2.553019610 seconds per LanguageTool call, with a
+  2.054580681-second median and 74.734542889-second sum;
+- 600,440 KiB peak child RSS;
+- a 259,264,698-byte archive and 414,841,492-byte unpacked runtime payload;
+- zero network content transfer, human tasks, accepted German units,
+  translation packets, or semantic tasks.
+
+The archive SHA-256 is
+`07c0bd839258bfb3314f8e7b04bdf578dd5815f82b9d314a5ba4190545b96363`;
+the 1,812-file runtime-tree SHA-256 is
+`2f82cb558599790cf154f01456406cf280a62099e197800bac77e3201e6e65a9`.
+The CLI identifies LanguageTool `6.9-SNAPSHOT`, build
+`2026-08-08 18:49:10 +0200`, from source commit
+`384f4ba1b6c5f80e8c444b3449fec37795b67d80`. The Russian package inventory
+contains 488 explicit `grammar.xml` rule IDs, 22 top-level compiled rule
+classes, and 5 top-level resource files; those counts identify the packaged
+surface but do not prove that every rule is enabled, correct, or exercised.
+
+## Next C gate
+
+The next comparison, only when a measured uncovered question justifies it,
+should preserve the completed A/B evidence and add:
 
 1. A — deterministic floor alone;
 2. B — A plus a pinned offline LanguageTool snapshot;

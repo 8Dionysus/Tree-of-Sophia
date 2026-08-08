@@ -2,7 +2,8 @@
 
 Status: source-review laboratory prepared and mechanically exercised; one
 bounded eKGWB citation witness admitted for private AI experiments; frozen A
-linked as a rejected AI-only candidate; accepted translation A/B/C not started
+linked as a rejected AI-only candidate; deterministic Russian floor and
+source-free LanguageTool B executed; accepted translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
 Report date: 2026-07-29
 
@@ -99,6 +100,18 @@ including the name-case defect. The floor therefore corroborates the two
 rejections but neither replaces AI triage nor admits a clean candidate. Its
 tracked evidence contains no source or candidate text and creates no human,
 German, translation, semantic, graph, publication, or canon authority.
+
+The next source-free method comparison expanded the invented control set to
+36 units and ran the exact pinned offline LanguageTool 6.9 snapshot as B above
+deterministic A. All frozen per-control expectations matched, but B changed no
+A disposition. It supplied 13 advisory rule IDs while missing all five
+candidate-packet/surface defects owned by A, three declared grammar or
+punctuation defect controls, and one unbalanced-quote boundary; it also marked
+one deliberately ambiguous literary casing control. The isolated cold-start
+run took 78.004763012 seconds with 600,440 KiB peak child RSS. No private
+translation candidate was rerun, and this source-free Russian-surface evidence
+does not improve or assess German fidelity, translation quality, etymology,
+semantics, or any accepted lane. C remains unselected and unacquired.
 
 ## Evidence sequence
 
