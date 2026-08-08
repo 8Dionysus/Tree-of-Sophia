@@ -660,6 +660,13 @@ evidence separates D 17, mixed notebooks, historical prints, the corrected
 GSA 71/25a ensemble, and eKGWB. The same pass found no 2026 philology changing
 those identities and registered the forthcoming August 2026 Loeb/Tinsley
 Stanford translation only as a deferred metadata candidate.
+`STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md` then rechecked
+the official publisher record, established translator lineage, and fresh
+distribution state. Three ISBNs are now explicit, but on 2026-08-08 the
+publisher still gives only August, the anticipated retailer date is
+2026-08-11, and current records conflict at 424 versus 552 pages. The route
+therefore remains metadata-only; post-street-date manifestation, rights,
+reception, and suitability review are still open.
 The first cross-work route was refreshed the same day in
 `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md`: current GSA/Kalliope, HAAB, DFGA,
 eKGWB, e-rara, established genesis scholarship, and 2024-2025 textual-genetic

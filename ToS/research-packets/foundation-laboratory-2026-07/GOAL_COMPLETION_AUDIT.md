@@ -212,6 +212,15 @@ boundaries—not manuscript completeness, German correctness, an author-final
 reading, translation quality, rights clearance, semantics, publication, or
 human acceptance.
 
+The separate 2026-08-08 Stanford release-frontier refresh keeps the same
+non-admission boundary current three days before the retailer-supplied
+anticipated street date. It adds the eBook ISBN, established prior-volume
+review lineage, and the unresolved 424/552-page metadata conflict while
+keeping all three manifestations unacquired and content-free. This is a
+freshness and conflict-preservation result only, not proof of publication,
+exact extent, translation quality, lawful content use, recognition, or
+laboratory admission.
+
 For the staged *Jenseits* authorial-witness slice, the complete Tree release
 lane passed 219 tests with one declared skip on 2026-07-30. Focused regression
 keeps mixed preparatory regions, D 18, C 4615/C 4619, first print, critical

@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Refreshed the Stanford Loeb–Tinsley *Thus Spoke Zarathustra* release
+  frontier on 2026-08-08 in official -> established -> freshest order. The
+  register now distinguishes cloth, paper, and eBook ISBNs, preserves the
+  publisher's August/424-page baseline beside the retailer-supplied
+  anticipated 2026-08-11 date and conflicting 424/552 extents, and records
+  specialist review only for the translators' earlier volume 14. The stable
+  v1 entry remains metadata-only, unacquired, blind to translation lanes, and
+  blocked on exact manifestation, rights, reception, and suitability review;
+  no request, source text, translation authority, human task, semantics,
+  publication, or canon was added.
 - Added an exact source-returnable `translated_by` claim for the separately
   identified 2007 Cultural Revolution *Zarathustra* Expression. Direct visual
   inspection of the fixity-verified local PDF anchors the translator credit on

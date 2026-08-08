@@ -1,16 +1,18 @@
 # Translation Reference Research
 
 Status: bounded research complete; eKGWB rights/transport refreshed
-2026-07-30; forthcoming Stanford translation route added; zero reference
-content admitted; human bibliographic and rights review pending
+2026-07-30; Stanford release frontier refreshed 2026-08-08 and still
+forthcoming; zero reference content admitted; human bibliographic and rights
+review pending
 
-Research snapshot: 2026-07-30; eKGWB rights/transport refresh: 2026-07-30
+Research snapshot: 2026-08-08; eKGWB rights/transport refresh: 2026-07-30;
+Stanford release-frontier refresh: 2026-08-08
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`70f6c15e0a21553a4c2eca8fcbd57b6efe7be3c252888ab93de03b421a417f5f`
+`52a1d9156532c6510a0c4ac3fe9a81684fd3645c08d3c05a4eff5054c59d6f3b`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -356,22 +358,34 @@ structurally valid:
 An early-2026 catalog update is evidence of a dated surface, not proof that a
 resource remains unchanged.
 
-### Forthcoming 2026 translation frontier
+### 2026 translation release frontier
 
 The current
 [Stanford University Press record](https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra)
 lists *Thus Spoke Zarathustra*, Complete Works volume 7, translated with an
 afterword by Paul S. Loeb and David F. Tinsley, for August 2026. The publisher
-announces 424 pages, ISBNs `9780804728799` and `9781503647282`, notebook
-variant cross-references, discussion of translation problems, and a key-term
-glossary.
+announces 424 pages, cloth ISBN `9780804728799`, paper ISBN `9781503647282`,
+notebook-variant cross-references, discussion of translation problems, and a
+key-term glossary. Its Spring/Summer catalog adds eBook ISBN
+`9781503647299`.
 
-On 2026-07-30 this is metadata for a forthcoming work, not an inspectable
-translation. The register therefore marks it as a deferred research
-candidate. No review-copy request was sent. After publication, the exact
-manifestation, actual publication date, contents, rights, independent
-reception, and passage-level suitability must be checked before it enters any
-comparison lane. Newness alone establishes neither recognition nor quality.
+The dated
+[`STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md`](STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md)
+returns first to those official surfaces, then to the established
+Loeb–Tinsley Complete Works lineage and Robin Small's specialist review of
+volume 14, and only then to current distribution metadata. On 2026-08-08 the
+publisher still gives only August, while current preorder records converge on
+an anticipated 2026-08-11 street date. Records also conflict at 424 versus
+552 pages. The conflict is manifestation evidence to preserve, not a value to
+normalize before an exact copy exists.
+
+The register therefore keeps the volume as a deferred metadata-only research
+candidate under its stable v1 ID. No review-copy request was sent. After the
+anticipated street date, the three ISBN manifestations, exact publication
+date, extent, contents, rights, independent reception, and passage-level
+suitability must be checked separately before any comparison lane can see it.
+Newness and prior translator reputation establish neither recognition nor
+quality for volume 7.
 
 ## Admission result
 
@@ -402,8 +416,9 @@ The result is deliberately **zero admitted content entries**:
 - one eKGWB section locator registered as metadata-only, with zero text
   capture and zero citation-witness admission;
 - zero recognized or additional translation passages revealed;
-- one forthcoming August 2026 English translation registered as metadata-only
-  and deferred;
+- one August 2026 English translation rechecked three days before its
+  anticipated retailer-supplied street date, still registered as metadata-only
+  and deferred with a preserved 424/552-page conflict;
 - zero accepted lexical senses or etymologies.
 
 The laboratory remains blocked on publisher-origin authentication,

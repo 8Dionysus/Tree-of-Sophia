@@ -4,7 +4,7 @@
   "register_id": "tos.translation-reference-register.zarathustra-foundation-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-  "research_snapshot": "2026-07-30",
+  "research_snapshot": "2026-08-08",
   "status": "researched-not-content-admitted",
   "research_order": [
     "classical-official-documentation",
@@ -1156,21 +1156,28 @@
         "translators": ["Paul S. Loeb", "David F. Tinsley"]
       },
       "dating": {
-        "original_or_coverage_date": "scheduled for August 2026",
-        "edition_or_version": "Complete Works volume 7; 424 pages; current publisher metadata only; no published manifestation inspected as of 2026-07-30",
-        "verified_at": "2026-07-30"
+        "original_or_coverage_date": "publisher schedules August 2026; current distribution metadata supplies an anticipated 2026-08-11 street date",
+        "edition_or_version": "Complete Works volume 7; cloth, paper, and eBook manifestations announced; publisher says 424 pages while current distribution records conflict at 424 versus 552; no published manifestation inspected as of 2026-08-08",
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
         {"scheme": "ISBN-hardcover", "value": "9780804728799"},
         {"scheme": "ISBN-paperback", "value": "9781503647282"},
+        {"scheme": "ISBN-ebook", "value": "9781503647299"},
         {"scheme": "Complete Works volume", "value": "7"}
       ],
       "primary_url": "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
       "evidence_urls": [
         "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
-        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
+        "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
+        "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests",
+        "https://scholarlypublishingcollective.org/psup/nietzsche-studies/article/51/1/133/210365/Unpublished-Fragments-from-the-Period-of-Thus",
+        "https://imusic.co/books/9781503647282/friedrich-nietzsche-2026-thus-spoke-zarathustra-volume-7-the-complete-works-of-friedrich-nietzsche-paperback-book",
+        "https://www.harvard.com/book/9781503647282",
+        "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=Oi2H0QEACAAJ",
+        "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=kgrzEQAAQBAJ"
       ],
-      "scholarly_posture": "forthcoming publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison",
+      "scholarly_posture": "forthcoming publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison; established specialist review of the translators' earlier Complete Works volume supports candidate value but does not transfer a quality verdict to volume 7",
       "intended_uses": [
         "translation-witness",
         "critical-source-comparison",
@@ -1178,8 +1185,11 @@
         "bibliographic-identity"
       ],
       "limits": [
-        "the volume is forthcoming, not an inspectable or admitted translation",
+        "on 2026-08-08 the volume remains forthcoming against a retailer-supplied anticipated 2026-08-11 street date, not an inspectable or admitted translation",
         "publisher description is not passage-level quality evidence",
+        "the publisher gives only August 2026 and does not currently confirm the retailer-supplied exact day",
+        "publisher and current distribution records conflict at 424 versus 552 pages, so extent cannot be normalized before exact manifestation inspection",
+        "specialist review of the translators' 2019 volume 14 is established lineage evidence, not reception or a quality verdict for the unreleased volume 7",
         "newness does not establish recognition, accuracy, or superiority",
         "the in-copyright text has not been acquired and no review-copy request was sent",
         "publication date, manifestation identity, pagination, and actual contents require post-release verification"
@@ -1205,12 +1215,14 @@
         ],
         "rights_evidence_urls": [
           "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra",
+          "https://supress.sites-pro.stanford.edu/sites/supress/files/media/file/spring26_catalog.pdf",
           "https://www.sup.org/books/theory-and-philosophy/thus-spoke-zarathustra/desk-examination-copy-requests"
         ]
       },
       "tos_refs": {
         "record_refs": [],
         "path_refs": [
+          "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md",
           "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
           "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json"
         ]
@@ -1223,11 +1235,12 @@
         "blocking_reasons": [
           "the scheduled publication has not occurred",
           "no exact manifestation or content has been inspected",
+          "the 424-versus-552 extent conflict remains unresolved per manifestation",
           "rights and permissible research-use scope remain unreviewed",
           "passage-level comparison and recognition evidence do not yet exist"
         ]
       },
-      "notes": "Refresh after actual publication. Until then this entry is a dated metadata lead only and must not be revealed to independent translation lanes as a comparator."
+      "notes": "Recheck after the anticipated 2026-08-11 street date and again against an exact acquired manifestation. The stable v1 reference ID preserves research history; it does not assert permanent forthcoming status. Until release, manifestation, rights, and suitability gates are separately proven, this entry is a dated metadata lead only and must not be revealed to independent translation lanes as a comparator."
     }
   ],
   "coverage": {
