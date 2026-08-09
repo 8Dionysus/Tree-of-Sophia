@@ -96,6 +96,9 @@ PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
 PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA = (
     CONTRACT_ROOT / "public-laboratory-evidence-derivative.schema.json"
 )
+TRANSFER_CANDIDATE_CROSSWALK_SCHEMA = (
+    CONTRACT_ROOT / "transfer-candidate-structural-crosswalk.schema.json"
+)
 GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "german-assisted-source-review.schema.json"
 )
@@ -120,6 +123,12 @@ EXPERIMENTAL_TRANSLATION_EPISODE_SCHEMA = (
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
+)
+TRANSFER_CANDIDATE_CROSSWALK_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/alignments/structure/"
+    "naumann-1886-polilov-mysl-1996/"
+    "transfer-candidate-page-crosswalk.v1.json"
 )
 BIBLIOGRAPHIC_TOPOLOGY_ROOT = SOURCE_ROOT / "relations"
 BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE = (
@@ -566,6 +575,132 @@ def _public_evidence_derivative_issues(
             "public evidence derivative names forbidden disclosure classes: "
             f"{leaked_forbidden_labels}"
         )
+    return issues
+
+
+def _transfer_candidate_crosswalk_issues(
+    crosswalk: object,
+    *,
+    transfer_plan: object,
+    target_map: object,
+    label_map: object,
+) -> list[str]:
+    if not all(
+        isinstance(value, dict)
+        for value in (crosswalk, transfer_plan, target_map, label_map)
+    ):
+        return ["transfer candidate crosswalk inputs are not objects"]
+    issues: list[str] = []
+    work_ref = crosswalk.get("work_ref")
+    expected_candidates = {
+        candidate.get("unit_id"): candidate
+        for candidate in transfer_plan.get("candidate_target_units", [])
+        if isinstance(candidate, dict) and candidate.get("work_ref") == work_ref
+    }
+    pairings = {
+        pairing.get("unit_key"): pairing
+        for pairing in label_map.get("pairings", [])
+        if isinstance(pairing, dict)
+    }
+    starts = [
+        start
+        for start in target_map.get("unit_starts", [])
+        if isinstance(start, dict)
+        and isinstance(start.get("pdf_page"), int)
+        and isinstance(start.get("unit_key"), str)
+    ]
+    actual_candidates = crosswalk.get("candidates", [])
+    if not isinstance(actual_candidates, list):
+        return ["transfer candidate crosswalk candidates are not a list"]
+    actual_ids = [
+        candidate.get("candidate_unit_id")
+        for candidate in actual_candidates
+        if isinstance(candidate, dict)
+    ]
+    if len(actual_ids) != len(set(actual_ids)):
+        issues.append("transfer candidate crosswalk repeats a candidate unit")
+    if set(actual_ids) != set(expected_candidates):
+        issues.append("transfer candidate crosswalk does not close the work quota")
+
+    possible_pairing_count = 0
+    pages_with_starts = 0
+    for candidate in actual_candidates:
+        if not isinstance(candidate, dict):
+            issues.append("transfer candidate crosswalk contains a non-object row")
+            continue
+        unit_id = candidate.get("candidate_unit_id")
+        expected = expected_candidates.get(unit_id)
+        if expected is None:
+            continue
+        page = expected.get("page")
+        if candidate.get("candidate_anchor_ref") != expected.get("anchor_ref"):
+            issues.append(f"{unit_id} candidate anchor drifted")
+        if candidate.get("target_pdf_page") != page:
+            issues.append(f"{unit_id} candidate page drifted")
+        if candidate.get("stratum") != expected.get("stratum"):
+            issues.append(f"{unit_id} candidate stratum drifted")
+        if not isinstance(page, int):
+            issues.append(f"{unit_id} has no integer target page")
+            continue
+        prior = [start for start in starts if start.get("pdf_page", 0) < page]
+        on_page = [start for start in starts if start.get("pdf_page") == page]
+        following = [start for start in starts if start.get("pdf_page", 0) > page]
+        expected_keys = (
+            ([] if not prior else [prior[-1].get("unit_key")])
+            + [start.get("unit_key") for start in on_page]
+        )
+        expected_start_keys = [start.get("unit_key") for start in on_page]
+        if candidate.get("possible_unit_keys") != expected_keys:
+            issues.append(f"{unit_id} possible unit keys drifted")
+        if candidate.get("starts_on_page_unit_keys") != expected_start_keys:
+            issues.append(f"{unit_id} on-page unit starts drifted")
+        expected_relation = (
+            "within-one-proposed-numbered-unit"
+            if not on_page
+            else "prior-unit-spill-plus-unit-starts"
+        )
+        if candidate.get("page_relation") != expected_relation:
+            issues.append(f"{unit_id} page relation drifted")
+        if not following:
+            issues.append(f"{unit_id} has no following proposed start")
+        else:
+            expected_next = {
+                "unit_key": following[0].get("unit_key"),
+                "target_pdf_page": following[0].get("pdf_page"),
+            }
+            if candidate.get("next_proposed_start") != expected_next:
+                issues.append(f"{unit_id} following proposed start drifted")
+        for unit_key in expected_keys:
+            pairing = pairings.get(unit_key)
+            if pairing is None:
+                issues.append(f"{unit_id} unit {unit_key} has no shared-label pairing")
+            elif pairing.get("translation_alignment_claimed") is not False:
+                issues.append(f"{unit_id} unit {unit_key} claims translation alignment")
+        possible_pairing_count += len(expected_keys)
+        pages_with_starts += bool(on_page)
+
+    summary = crosswalk.get("summary", {})
+    if not isinstance(summary, dict):
+        issues.append("transfer candidate crosswalk summary is not an object")
+        return issues
+    expected_summary = {
+        "candidate_page_count": len(expected_candidates),
+        "random_page_count": sum(
+            candidate.get("stratum") == "random"
+            for candidate in expected_candidates.values()
+        ),
+        "hard_page_count": sum(
+            candidate.get("stratum") == "hard"
+            for candidate in expected_candidates.values()
+        ),
+        "page_with_unit_start_count": int(pages_with_starts),
+        "page_without_unit_start_count": len(expected_candidates)
+        - int(pages_with_starts),
+        "possible_pairing_count": possible_pairing_count,
+    }
+    for field, expected_value in expected_summary.items():
+        if summary.get(field) != expected_value:
+            issues.append(f"transfer candidate crosswalk summary {field} drifted")
     return issues
 
 
@@ -1197,6 +1332,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA,
             repo_root,
         )
+        transfer_candidate_crosswalk_validator, _ = _schema_validator(
+            TRANSFER_CANDIDATE_CROSSWALK_SCHEMA,
+            repo_root,
+        )
         german_assisted_review_validator, _ = _schema_validator(
             GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
             repo_root,
@@ -1262,6 +1401,59 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         handoff=private_handoff,
                     ):
                         issues.append((derivative_location, message))
+
+    transfer_crosswalk_path = repo_root / TRANSFER_CANDIDATE_CROSSWALK_PATH
+    transfer_crosswalk = _load_json(transfer_crosswalk_path, repo_root, issues)
+    if transfer_crosswalk is not None:
+        transfer_crosswalk_location = _relative(transfer_crosswalk_path, repo_root)
+        _validate_payload(
+            transfer_crosswalk,
+            transfer_candidate_crosswalk_validator,
+            transfer_crosswalk_location,
+            issues,
+        )
+        loaded_crosswalk_inputs: dict[str, object] = {}
+        for input_name, digest_bound_ref in transfer_crosswalk.get("inputs", {}).items():
+            if not isinstance(digest_bound_ref, dict):
+                continue
+            input_ref = digest_bound_ref.get("ref")
+            if not isinstance(input_ref, str):
+                continue
+            input_path = repo_root / input_ref
+            digest_issue = _digest_bound_ref_issue(
+                digest_bound_ref,
+                expected_path=input_path,
+                repo_root=repo_root,
+                field=f"inputs.{input_name}",
+            )
+            if digest_issue is not None:
+                issues.append((transfer_crosswalk_location, digest_issue))
+            if input_name in {
+                "transfer_plan",
+                "target_numbered_unit_map",
+                "shared_label_correspondence",
+            }:
+                loaded_crosswalk_inputs[input_name] = _load_json(
+                    input_path,
+                    repo_root,
+                    issues,
+                )
+        required_crosswalk_inputs = (
+            "transfer_plan",
+            "target_numbered_unit_map",
+            "shared_label_correspondence",
+        )
+        if all(
+            loaded_crosswalk_inputs.get(name) is not None
+            for name in required_crosswalk_inputs
+        ):
+            for message in _transfer_candidate_crosswalk_issues(
+                transfer_crosswalk,
+                transfer_plan=loaded_crosswalk_inputs["transfer_plan"],
+                target_map=loaded_crosswalk_inputs["target_numbered_unit_map"],
+                label_map=loaded_crosswalk_inputs["shared_label_correspondence"],
+            ):
+                issues.append((transfer_crosswalk_location, message))
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}

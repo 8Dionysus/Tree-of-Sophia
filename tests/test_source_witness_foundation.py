@@ -25,6 +25,13 @@ PRIVATE_HANDOFF_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
 )
+TRANSFER_CANDIDATE_CROSSWALK_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "jenseits-von-gut-und-boese/alignments/structure/"
+    "naumann-1886-polilov-mysl-1996/"
+    "transfer-candidate-page-crosswalk.v1.json"
+)
 GERMAN_ASSISTED_REVIEW_PATH = (
     GOLD_ROOT / "german-assisted-source-review.v1.json"
 )
@@ -7491,6 +7498,60 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 leaked_path,
                 handoff=handoff,
             )
+        )
+
+    def test_transfer_candidate_crosswalk_closes_to_frozen_structural_inputs(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.TRANSFER_CANDIDATE_CROSSWALK_SCHEMA,
+            REPO_ROOT,
+        )
+        crosswalk = json.loads(
+            TRANSFER_CANDIDATE_CROSSWALK_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(crosswalk)))
+
+        loaded_inputs: dict[str, object] = {}
+        for name, digest_bound_ref in crosswalk["inputs"].items():
+            input_path = REPO_ROOT / digest_bound_ref["ref"]
+            self.assertEqual(
+                digest_bound_ref["sha256"],
+                hashlib.sha256(input_path.read_bytes()).hexdigest(),
+            )
+            if name in {
+                "transfer_plan",
+                "target_numbered_unit_map",
+                "shared_label_correspondence",
+            }:
+                loaded_inputs[name] = json.loads(
+                    input_path.read_text(encoding="utf-8")
+                )
+
+        self.assertEqual(
+            [],
+            foundation._transfer_candidate_crosswalk_issues(
+                crosswalk,
+                transfer_plan=loaded_inputs["transfer_plan"],
+                target_map=loaded_inputs["target_numbered_unit_map"],
+                label_map=loaded_inputs["shared_label_correspondence"],
+            ),
+        )
+        self.assertEqual(8, crosswalk["summary"]["candidate_page_count"])
+        self.assertEqual(15, crosswalk["summary"]["possible_pairing_count"])
+        self.assertEqual(0, crosswalk["summary"]["human_review_count"])
+        self.assertEqual(0, crosswalk["summary"]["eligible_target_unit_count"])
+
+        drifted_page = copy.deepcopy(crosswalk)
+        drifted_page["candidates"][0]["target_pdf_page"] += 1
+        self.assertIn(
+            "tos-target-candidate-jenseits-p0308-random candidate page drifted",
+            foundation._transfer_candidate_crosswalk_issues(
+                drifted_page,
+                transfer_plan=loaded_inputs["transfer_plan"],
+                target_map=loaded_inputs["target_numbered_unit_map"],
+                label_map=loaded_inputs["shared_label_correspondence"],
+            ),
         )
 
     def test_german_assisted_review_opens_only_bounded_experiment_lanes(

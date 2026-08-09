@@ -322,6 +322,38 @@ authority gap:
 - human review tasks or debt opened: 0;
 - A/B/C outputs: 0.
 
+### Text-free *Jenseits* page crosswalk
+
+The eight already-frozen *Jenseits* pages now have a tracked structural
+crosswalk from each target PDF page to the proposed target numbered-unit starts
+and then to the existing same-label German/target routes. The operation did not
+read either text, change the sampling frame, or inspect variant output:
+
+| Target PDF page | Stratum | Possible proposed unit keys | Structural state |
+| ---: | --- | --- | --- |
+| 267 | hard | 32 | no proposed start on page; within one proposed span |
+| 279 | hard | 46, 47 | prior-unit spill plus proposed start 47 |
+| 308 | random | 187, 188 | prior-unit spill plus proposed start 188 |
+| 319 | hard | 201 | no proposed start on page; within one proposed span |
+| 321 | hard | 202 | no proposed start on page; within one proposed span |
+| 325 | random | 204 | no proposed start on page; within one proposed span |
+| 336 | random | 211, 212 | prior-unit spill plus proposed start 212 |
+| 399 | random | 284, 285, 286, 287, 288 | prior-unit spill plus proposed starts 285–288 |
+
+This yields fifteen **possible** same-label routes: four candidate pages have
+one or more proposed unit starts, while four have none. The crosswalk and its
+provenance are tracked under the Naumann-1886 / Polilov-Mysl-1996 structural
+alignment route and are digest-bound to the frozen transfer plan, candidate
+anchors, target start map, shared-label correspondence, and both rights
+records.
+
+This is narrower preparation soil, not passage evidence. It establishes no
+exact page-end or line boundary, accepted German or Russian, source-to-target
+alignment, translation correspondence, equivalence or quality, eligible
+target unit, target gold, semantic work, human task, rights clearance, or
+canon authority. All eight pages retain
+`eligible_for_variant_execution: false`.
+
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
 relation reasoning. That observation proves only that an exact title can be
@@ -350,9 +382,11 @@ the kernel even when the target text resists it.
 
 The three title pages remain scouting units. The twenty newly prepared pages
 are the frozen sampling frame, but they are not yet exact philosophical
-passages. Before execution, a deliberately triggered transfer run must turn
-that frame into twenty authority-bearing `target_units` without looking at any
-variant output:
+passages. The fifteen possible *Jenseits* routes reduce later lookup work but
+do not decide which unit or units actually intersect a complete passage.
+Before execution, a deliberately triggered transfer run must turn that frame
+into twenty authority-bearing `target_units` without looking at any variant
+output:
 
 - preserve the fixed 10-random / 10-hard balance and the three-work quotas;
 - resolve exact passage boundaries and source text from the visible source;

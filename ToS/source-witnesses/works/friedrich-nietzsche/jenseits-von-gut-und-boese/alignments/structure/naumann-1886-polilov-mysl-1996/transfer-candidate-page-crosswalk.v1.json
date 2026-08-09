@@ -1,0 +1,193 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-structural-crosswalk.schema.json",
+  "schema_version": "tos_transfer_candidate_structural_crosswalk_v1",
+  "crosswalk_id": "tos.transfer-candidate-crosswalk.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-polilov-mysl-1996-v1",
+  "status": "prepared-structural-only-ineligible",
+  "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+  "target_expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+  "target_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "inputs": {
+    "transfer_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+      "sha256": "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6"
+    },
+    "candidate_anchor_set": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+      "sha256": "e4dfbb6f35100e1ba44975ab9efa6ccbad4e507ab499e2a5119c5ef31129596a"
+    },
+    "target_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json",
+      "sha256": "e2621e08e49bc7f96a8c6dd6c45d32f90fdf3a9e280644e0adbefd5d2c7e09f6"
+    },
+    "shared_label_correspondence": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json",
+      "sha256": "4d98ecdd323d475d6efd0444994c276bfca0a3e5c613e9acd0048fd880740d2e"
+    },
+    "source_rights": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json",
+      "sha256": "474d865fd4cb5bf49e0697477cf7003515bce23a3c6fcece5b780d1796860365"
+    },
+    "target_rights": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "sha256": "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0"
+    }
+  },
+  "method": {
+    "name": "tracked-target-page-to-proposed-unit-start-crosswalk",
+    "version": "1",
+    "selection_frame_changed": false,
+    "source_or_target_text_read": false,
+    "number_labels_compared_as_text": false,
+    "page_intersection_rule": "preceding proposed target unit start plus every proposed target unit start on the candidate page, followed by exact unit-key lookup in the frozen shared-label correspondence"
+  },
+  "summary": {
+    "candidate_page_count": 8,
+    "random_page_count": 4,
+    "hard_page_count": 4,
+    "page_with_unit_start_count": 4,
+    "page_without_unit_start_count": 4,
+    "possible_pairing_count": 15,
+    "human_review_count": 0,
+    "eligible_target_unit_count": 0,
+    "target_gold_count": 0
+  },
+  "candidates": [
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0308-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0308",
+      "target_pdf_page": 308,
+      "stratum": "random",
+      "page_relation": "prior-unit-spill-plus-unit-starts",
+      "possible_unit_keys": ["187", "188"],
+      "starts_on_page_unit_keys": ["188"],
+      "next_proposed_start": {"unit_key": "189", "target_pdf_page": 310},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0399-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0399",
+      "target_pdf_page": 399,
+      "stratum": "random",
+      "page_relation": "prior-unit-spill-plus-unit-starts",
+      "possible_unit_keys": ["284", "285", "286", "287", "288"],
+      "starts_on_page_unit_keys": ["285", "286", "287", "288"],
+      "next_proposed_start": {"unit_key": "289", "target_pdf_page": 400},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0336-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0336",
+      "target_pdf_page": 336,
+      "stratum": "random",
+      "page_relation": "prior-unit-spill-plus-unit-starts",
+      "possible_unit_keys": ["211", "212"],
+      "starts_on_page_unit_keys": ["212"],
+      "next_proposed_start": {"unit_key": "213", "target_pdf_page": 337},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0325-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0325",
+      "target_pdf_page": 325,
+      "stratum": "random",
+      "page_relation": "within-one-proposed-numbered-unit",
+      "possible_unit_keys": ["204"],
+      "starts_on_page_unit_keys": [],
+      "next_proposed_start": {"unit_key": "205", "target_pdf_page": 326},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0319-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0319",
+      "target_pdf_page": 319,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-numbered-unit",
+      "possible_unit_keys": ["201"],
+      "starts_on_page_unit_keys": [],
+      "next_proposed_start": {"unit_key": "202", "target_pdf_page": 320},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0267-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0267",
+      "target_pdf_page": 267,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-numbered-unit",
+      "possible_unit_keys": ["32"],
+      "starts_on_page_unit_keys": [],
+      "next_proposed_start": {"unit_key": "33", "target_pdf_page": 268},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0321-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0321",
+      "target_pdf_page": 321,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-numbered-unit",
+      "possible_unit_keys": ["202"],
+      "starts_on_page_unit_keys": [],
+      "next_proposed_start": {"unit_key": "203", "target_pdf_page": 322},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-jenseits-p0279-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-jenseits-p0279",
+      "target_pdf_page": 279,
+      "stratum": "hard",
+      "page_relation": "prior-unit-spill-plus-unit-starts",
+      "possible_unit_keys": ["46", "47"],
+      "starts_on_page_unit_keys": ["47"],
+      "next_proposed_start": {"unit_key": "48", "target_pdf_page": 280},
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    }
+  ],
+  "source_text_included": false,
+  "target_text_included": false,
+  "effects": {
+    "candidate_frame_changed": false,
+    "exact_passage_boundary_created": false,
+    "source_text_accepted": false,
+    "target_text_accepted": false,
+    "translation_alignment_created": false,
+    "target_unit_eligible": false,
+    "target_gold_created": false,
+    "semantic_work_opened": false,
+    "human_work_scheduled": false
+  },
+  "provenance_event_ref": "tos.event.transfer-candidate-crosswalk.friedrich-nietzsche.jenseits-von-gut-und-boese.2026-08-08",
+  "does_not_establish": [
+    "source_text",
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "accepted_german",
+    "accepted_russian",
+    "target_gold",
+    "eligible_target_unit",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ],
+  "authority_boundary": "text-free structural narrowing of eight frozen whole-page transfer candidates to fifteen possible same-label source/target unit routes; proposed start pages and shared labels remain unreviewed, exact page ends remain unknown, and no source text, target text, passage alignment, translation relation, eligible unit, target gold, semantic task, human work, rights clearance, or canon authority follows"
+}

@@ -161,7 +161,7 @@ or publication route.
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
-| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
+| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; the eight frozen *Jenseits* pages now narrow mechanically to fifteen possible same-label structural routes; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; 8 structurally narrowed *Jenseits* pages; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | the crosswalk has no exact passage ends, accepted text, alignment, or translation authority; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -607,7 +607,12 @@ contracts intentionally reject simulated human evidence.
   mechanically hard) and twenty proposed anchors. They remain automatic
   `pdftotext` candidates, not exact passages or target gold; mechanical
   difficulty is not semantic difficulty, and the preparation opens no routine
-  human backlog.
+  human backlog. A separate text-free crosswalk narrows the eight frozen
+  *Jenseits* pages to fifteen possible same-label numbered-unit routes: four
+  pages contain proposed starts and retain spill ambiguity, while four fall
+  within one proposed unit span. It reads no source or target text and creates
+  no passage boundary, alignment, eligible unit, target gold, semantic task,
+  rights clearance, or human debt.
 - Whole-work lexical observation now exists over the four exact DTA part TEIs:
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and
@@ -1263,9 +1268,12 @@ from the calibration-only route in section 2b.
    become target gold, or satisfy a kernel-transfer gate.
 2. Do not expand all *Jenseits* units 1–296 by default. Their existing
    numbered-unit starts and division/page mappings remain structural
-   candidates. Advance a printed passage to admitted text anchors only
-   through the German source gate and only when a bounded question requires
-   it. *Zur Genealogie der Moral* is separately promoted beyond provisional
+   candidates. The eight frozen target pages have already been narrowed to
+   fifteen possible same-label routes; use that crosswalk only to reduce
+   source-visible lookup, never as a passage, alignment, or translation
+   decision. Advance a printed passage to admitted text anchors only through
+   the German source gate and only when a bounded question requires it. *Zur
+   Genealogie der Moral* is separately promoted beyond provisional
    collection membership through its exact 1892 second-edition Item and now
    has a metadata-only D 20a/D 20b -> partial K 11/C 4616 -> E 40 -> later
    print/critical route. Those named documentary stages are not transfer
