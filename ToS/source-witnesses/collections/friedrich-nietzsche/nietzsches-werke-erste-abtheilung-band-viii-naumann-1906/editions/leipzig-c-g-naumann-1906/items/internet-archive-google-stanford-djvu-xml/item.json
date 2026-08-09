@@ -2,12 +2,24 @@
   "schema_version": "tos_corpus_record_v1",
   "record_type": "item",
   "record_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
-  "preferred_label": "Internet Archive automatic DjVuXML OCR derivative for the Google/Stanford scan lineage of Nietzsche's Werke, Band VIII (1906)",
+  "preferred_label": "Internet Archive navigation derivatives for the Google/Stanford scan lineage of Nietzsche's Werke, Band VIII (1906)",
   "variant_labels": [
     {
       "value": "nietzscheswerke00nietgoog_djvu.xml",
       "language": "und",
       "source_ref": "https://archive.org/download/nietzscheswerke00nietgoog/nietzscheswerke00nietgoog_djvu.xml",
+      "status": "verified"
+    },
+    {
+      "value": "nietzscheswerke00nietgoog_jp2.zip",
+      "language": "und",
+      "source_ref": "https://archive.org/download/nietzscheswerke00nietgoog/nietzscheswerke00nietgoog_jp2.zip",
+      "status": "verified"
+    },
+    {
+      "value": "nietzscheswerke00nietgoog_scandata.xml",
+      "language": "und",
+      "source_ref": "https://archive.org/download/nietzscheswerke00nietgoog/nietzscheswerke00nietgoog_scandata.xml",
       "status": "verified"
     }
   ],
@@ -15,6 +27,7 @@
   "source_refs": [
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
     "https://archive.org/metadata/nietzscheswerke00nietgoog"
   ],
   "external_identifiers": [
@@ -33,7 +46,7 @@
   ],
   "same_as_posture": "no_equivalence_claim",
   "item_manifest_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
-  "notes": "This Item owns one exact provider-generated OCR/layout derivative, not the Commons DjVu and not an accepted German text. The current Internet Archive descriptive title is contaminated and is not used as bibliographic identity evidence. Its relation to the exact Commons scan is bounded to separately tracked source-visible structural evidence and does not establish byte identity, page identity, textual identity, edition equivalence, or correctness.",
-  "record_version": 1,
+  "notes": "This Item owns exact provider-generated page-image, scandata, and OCR/layout derivatives, not the Commons DjVu and not an accepted German text. The current Internet Archive descriptive title is contaminated and is not used as bibliographic identity evidence. Its internal zero-based leaf/member to one-based navigation-page relation is separately fixed, while its relation to the exact Commons scan remains bounded source-visible structural evidence and does not establish byte identity, whole-container page identity, textual identity, edition equivalence, or correctness.",
+  "record_version": 2,
   "supersedes_ref": null
 }

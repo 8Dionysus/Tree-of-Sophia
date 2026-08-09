@@ -78,6 +78,7 @@
       "additionalProperties": false,
       "properties": {
         "page_index": {"type": "integer", "minimum": 1},
+        "leaf_number": {"type": "integer", "minimum": 0},
         "width_points": {"type": "number", "exclusiveMinimum": 0},
         "height_points": {"type": "number", "exclusiveMinimum": 0},
         "width_pixels": {"type": "integer", "minimum": 1},
@@ -117,7 +118,9 @@
             "epub_member",
             "tei_page_break",
             "tei_division",
-            "ocr_page"
+            "ocr_page",
+            "image_page",
+            "scan_data_page"
           ]
         },
         "locator": {"$ref": "#/$defs/locator"},
@@ -187,7 +190,9 @@
             "epub_resources_v1",
             "tei_structure_v1",
             "djvu_xml_pages_v1",
-            "abbyy_xml_pages_v1"
+            "abbyy_xml_pages_v1",
+            "jp2_zip_pages_v1",
+            "scandata_pages_v1"
           ]
         },
         "summary": {"$ref": "#/$defs/summary"},

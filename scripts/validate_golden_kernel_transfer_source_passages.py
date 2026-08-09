@@ -24,14 +24,9 @@ TARGET_PATH = GOLD_ROOT / "transfer-target-passage-candidates.v1.json"
 OUTPUT_PATH = GOLD_ROOT / "transfer-source-passage-candidates.v1.json"
 ANCHOR_PATH = GOLD_ROOT / "transfer-source-passage-anchors.v1.jsonl"
 PROVENANCE_PATH = GOLD_ROOT / "transfer-provenance.jsonl"
-SCHEMA_PATH = Path(
-    "ToS/contracts/transfer-source-passage-candidate-set.schema.json"
-)
+SCHEMA_PATH = Path("ToS/contracts/transfer-source-passage-candidate-set.schema.json")
 ANCHOR_SCHEMA_PATH = Path("ToS/contracts/source-anchor.schema.json")
-EVENT_ID = (
-    "tos.event.segmentation.golden-kernel-transfer-source-passages-v1."
-    "2026-08-08"
-)
+EVENT_ID = "tos.event.segmentation.golden-kernel-transfer-source-passages-v1.2026-08-08"
 EXPECTED_UNRESOLVED = {
     (
         "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
@@ -45,32 +40,72 @@ EXPECTED_UNRESOLVED = {
         "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
         "essay-1:10",
     ): ("end_exclusive",),
-    (
-        "tos.work.friedrich-nietzsche.der-antichrist",
-        "main:8",
-    ): ("start", "end_exclusive"),
-    (
-        "tos.work.friedrich-nietzsche.der-antichrist",
-        "main:9",
-    ): ("start",),
-    (
-        "tos.work.friedrich-nietzsche.der-antichrist",
-        "main:43",
-    ): ("end_exclusive",),
-    (
-        "tos.work.friedrich-nietzsche.der-antichrist",
-        "main:44",
-    ): ("start",),
 }
 EXPECTED_LAYER_COUNTS = {
     "abbyy-xml-paragraph": 12,
     "djvu-xml-line": 9,
+    "jp2-visible-marker-plus-djvu-xml-line": 4,
     "poppler-pdf-bbox-line": 7,
+}
+EXPECTED_JP2_MARKER_RETURNS = {
+    "main:8": (
+        (
+            "start",
+            "8",
+            240,
+            239,
+            "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0239.jp2",
+            (1839, 2011, 56, 57),
+            8,
+        ),
+        (
+            "end_exclusive",
+            "9",
+            241,
+            240,
+            "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0240.jp2",
+            (1979, 2253, 61, 62),
+            10,
+        ),
+    ),
+    "main:9": (
+        (
+            "start",
+            "9",
+            241,
+            240,
+            "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0240.jp2",
+            (1979, 2253, 61, 62),
+            10,
+        ),
+    ),
+    "main:43": (
+        (
+            "end_exclusive",
+            "44",
+            290,
+            289,
+            "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0289.jp2",
+            (1834, 3399, 97, 52),
+            20,
+        ),
+    ),
+    "main:44": (
+        (
+            "start",
+            "44",
+            290,
+            289,
+            "nietzscheswerke00nietgoog_jp2/nietzscheswerke00nietgoog_0289.jp2",
+            (1834, 3399, 97, 52),
+            20,
+        ),
+    ),
 }
 EXPECTED_SUMMARY = {
     "conservative_source_route_count": 35,
-    "materialized_source_passage_candidate_count": 28,
-    "unresolved_source_boundary_count": 7,
+    "materialized_source_passage_candidate_count": 32,
+    "unresolved_source_boundary_count": 3,
     "accepted_source_passage_count": 0,
     "source_to_target_alignment_count": 0,
     "eligible_target_unit_count": 0,
@@ -125,9 +160,7 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         try:
             record = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise ValidationFailure(
-                f"cannot read {path}:{line_number}: {exc}"
-            ) from exc
+            raise ValidationFailure(f"cannot read {path}:{line_number}: {exc}") from exc
         if not isinstance(record, dict):
             raise ValidationFailure(f"{path}:{line_number} is not an object")
         records.append(record)
@@ -171,7 +204,10 @@ def _validate_candidates(
     candidates = payload["passage_candidates"]
     if len(candidates) != 35:
         raise ValidationFailure(f"expected 35 source routes, got {len(candidates)}")
-    if len({candidate["source_passage_candidate_id"] for candidate in candidates}) != 35:
+    if (
+        len({candidate["source_passage_candidate_id"] for candidate in candidates})
+        != 35
+    ):
         raise ValidationFailure("source passage candidate IDs are not unique")
     target_by_id = {
         candidate["passage_candidate_id"]: candidate
@@ -185,12 +221,12 @@ def _validate_candidates(
         raise ValidationFailure("source candidate set does not close over target frame")
 
     materialized = []
+    jp2_marker_returns: dict[str, tuple[tuple[Any, ...], ...]] = {}
     unresolved: dict[tuple[str, str], tuple[str, ...]] = {}
     for candidate in candidates:
         target = target_by_id[candidate["target_passage_candidate_id"]]
         if (
-            candidate["frozen_page_candidate_id"]
-            != target["frozen_page_candidate_id"]
+            candidate["frozen_page_candidate_id"] != target["frozen_page_candidate_id"]
             or candidate["qualified_unit_key"] != target["qualified_unit_key"]
             or candidate["work_ref"] != target["work_ref"]
             or candidate["source_structural_anchor_ref"]
@@ -219,6 +255,7 @@ def _validate_candidates(
                     "navigation_page_span",
                     "address_page_span",
                     "content_witness",
+                    "boundary_evidence",
                     "source_passage_anchor_ref",
                     "private_content_ref",
                     "private_content_sha256",
@@ -245,14 +282,56 @@ def _validate_candidates(
             or candidate["start"]["page"] > navigation_span[0]
             or candidate["end_exclusive"]["page"] < navigation_span[-1]
             or not all(
-                candidate["start"]["page"] <= page
-                <= candidate["end_exclusive"]["page"]
+                candidate["start"]["page"] <= page <= candidate["end_exclusive"]["page"]
                 for page in navigation_span
             )
         ):
             raise ValidationFailure("materialized source boundary span drifted")
         work = candidate["work_ref"]
         relation = candidate["navigation_relation"]
+        boundary_evidence = candidate["boundary_evidence"]
+        if candidate["boundary_layer"] == "jp2-visible-marker-plus-djvu-xml-line":
+            if (
+                not work.endswith(".der-antichrist")
+                or not isinstance(boundary_evidence, dict)
+                or boundary_evidence["relation"]
+                != "same-Item-scandata-leaf-to-jp2-member-and-djvu-xml-object-order"
+                or boundary_evidence["image_witness"]["file_ref"]
+                != "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9"
+                or boundary_evidence["scandata_witness"]["file_ref"]
+                != "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5"
+                or any(
+                    marker["navigation_page"] != marker["leaf_number"] + 1
+                    or marker["jp2_resource_id"]
+                    != f"jp2-page-{marker['navigation_page']:04d}"
+                    or marker["scandata_resource_id"]
+                    != f"scandata-page-{marker['navigation_page']:04d}"
+                    or marker["human_review_performed"]
+                    for marker in boundary_evidence["marker_returns"]
+                )
+            ):
+                raise ValidationFailure("JP2 marker boundary evidence drifted")
+            jp2_marker_returns[candidate["qualified_unit_key"]] = tuple(
+                (
+                    marker["boundary_role"],
+                    marker["expected_unit_key"],
+                    marker["navigation_page"],
+                    marker["leaf_number"],
+                    marker["member_path"],
+                    (
+                        marker["pixel_bbox"]["x"],
+                        marker["pixel_bbox"]["y"],
+                        marker["pixel_bbox"]["width"],
+                        marker["pixel_bbox"]["height"],
+                    ),
+                    marker["following_djvu_xml_record_order"],
+                )
+                for marker in boundary_evidence["marker_returns"]
+            )
+        elif boundary_evidence is not None:
+            raise ValidationFailure(
+                "automatic-only candidate acquired boundary evidence"
+            )
         if work.endswith(".der-antichrist"):
             if (
                 relation
@@ -261,7 +340,9 @@ def _validate_candidates(
                 or content["file_ref"] == address["file_ref"]
                 or address_span != [page - 2 for page in navigation_span]
             ):
-                raise ValidationFailure("Antichrist no-identity navigation boundary drifted")
+                raise ValidationFailure(
+                    "Antichrist no-identity navigation boundary drifted"
+                )
         elif work.endswith(".jenseits-von-gut-und-boese"):
             if (
                 relation != "same-fixity-bound-Item-navigation-layer"
@@ -291,6 +372,8 @@ def _validate_candidates(
         EXPECTED_LAYER_COUNTS
     ):
         raise ValidationFailure("source boundary layer census drifted")
+    if jp2_marker_returns != EXPECTED_JP2_MARKER_RETURNS:
+        raise ValidationFailure("exact JP2 marker return set drifted")
     if payload["summary"] != EXPECTED_SUMMARY:
         raise ValidationFailure(f"summary drifted: {payload['summary']}")
     effects = payload["effects"]
@@ -310,8 +393,8 @@ def _validate_anchors(
         for candidate in payload["passage_candidates"]
         if candidate["status"] == "materialized-layer-exact-candidate"
     ]
-    if len(anchors) != 28:
-        raise ValidationFailure(f"expected 28 source anchors, got {len(anchors)}")
+    if len(anchors) != 32:
+        raise ValidationFailure(f"expected 32 source anchors, got {len(anchors)}")
     by_id: dict[str, dict[str, Any]] = {}
     for anchor in anchors:
         _validate_schema(anchor, schema, anchor.get("anchor_id", "anchor"))
@@ -378,23 +461,24 @@ def _validate_provenance(
     private_outputs = {
         ref
         for ref, item in outputs.items()
-        if item.get("role")
-        == "gitignored-private-automatic-source-passage-candidate"
+        if item.get("role") == "gitignored-private-automatic-source-passage-candidate"
     }
     if private_outputs != private_refs:
         raise ValidationFailure("private source provenance output set drifted")
     for candidate in materialized:
-        if outputs[candidate["private_content_ref"]]["sha256"] != candidate[
-            "private_content_sha256"
-        ]:
+        if (
+            outputs[candidate["private_content_ref"]]["sha256"]
+            != candidate["private_content_sha256"]
+        ):
             raise ValidationFailure("private source digest/provenance mismatch")
     configuration = event.get("method", {}).get("configuration", {})
     expected_configuration = {
         "conservative_source_routes": 35,
-        "materialized_source_passage_candidates": 28,
-        "unresolved_source_boundaries": 7,
-        "private_content_files": 28,
-        "source_visible_ocr_marker_overrides": 1,
+        "materialized_source_passage_candidates": 32,
+        "unresolved_source_boundaries": 3,
+        "private_content_files": 32,
+        "source_visible_abbyy_marker_overrides": 1,
+        "model_visible_jp2_marker_returns": 3,
         "tracked_text_created": False,
         "human_review_count": 0,
         "accepted_source_passages": 0,
@@ -464,6 +548,7 @@ def _validate_local_content(
             != candidate["target_passage_candidate_id"]
             or private.get("content_witness") != candidate["content_witness"]
             or private.get("boundary_layer") != candidate["boundary_layer"]
+            or private.get("boundary_evidence") != candidate["boundary_evidence"]
             or not isinstance(records, list)
             or len(records) != candidate["record_count"]
             or not isinstance(automatic_text, str)
@@ -477,7 +562,9 @@ def _validate_local_content(
         / GOLD_ROOT.relative_to("ToS/source-witnesses")
         / "local-content/transfer-source-passages/v1"
     )
-    actual_paths = set(candidate_dir.glob("*.json")) if candidate_dir.is_dir() else set()
+    actual_paths = (
+        set(candidate_dir.glob("*.json")) if candidate_dir.is_dir() else set()
+    )
     if actual_paths != expected_paths:
         raise ValidationFailure("private source candidate file set drifted")
 
@@ -500,9 +587,7 @@ def main(argv: list[str] | None = None) -> int:
         _validate_schema(payload, _read_json(repo_root / SCHEMA_PATH), "candidate set")
         _validate_inputs(repo_root, payload)
         _validate_candidates(payload, target_payload)
-        _validate_anchors(
-            payload, anchors, _read_json(repo_root / ANCHOR_SCHEMA_PATH)
-        )
+        _validate_anchors(payload, anchors, _read_json(repo_root / ANCHOR_SCHEMA_PATH))
         _validate_provenance(repo_root, payload, events)
         _validate_no_tracked_private_content(repo_root, payload)
         if args.local_output_root is not None:
@@ -515,7 +600,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(
         "Golden-kernel transfer source passage validation passed "
-        "(35 routes, 28 private layer-exact candidates, 7 unresolved source "
+        "(35 routes, 32 private layer-exact candidates, 3 unresolved source "
         "boundaries; 0 accepted German/alignment/eligibility/gold/human/"
         "semantic/canon effects)."
     )

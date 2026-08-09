@@ -869,17 +869,18 @@ eligible units, target gold, semantic claims, canon effects, publication
 authority, or new human work.
 
 The German side now has a matching but deliberately partial exact-layer pass.
-It keeps all thirty-five conservative routes and materializes twenty-eight
-private mode-0600 source candidates only where an expected numbered label and
-the next same-series label resolve inside one ABBYY, DjVuXML, or PDF-bbox
-layer. Seven routes remain explicit unresolved-boundary records: *Jenseits*
-32 and 201, *Genealogie* `essay-1:10`, and *Antichrist* `main:8`, `main:9`,
-`main:43`, and `main:44`. Tracked artifacts remain text-free and retain
-content/address witness separation; the *Antichrist* two-page navigation
-offset still asserts no textual identity. These candidates are not diplomatic
-or accepted German, source-to-target passage alignments, translation evidence,
-eligible units, gold, human tasks, semantic claims, publication objects, or
-canon effects.
+It keeps all thirty-five conservative routes and materializes thirty-two
+private mode-0600 source candidates. Twenty-eight resolve inside one ABBYY,
+DjVuXML, or PDF-bbox layer; four *Antichrist* routes use three exact visible
+section markers in the same Internet Archive JP2 package, bound through its
+scandata leaves to the first following DjVuXML line. Three routes remain
+explicit unresolved-boundary records: *Jenseits* 32 and 201 and *Genealogie*
+`essay-1:10`. Tracked artifacts remain text-free and retain content/address
+witness separation; the *Antichrist* two-page navigation offset still asserts
+no textual identity. The JP2 ZIP and scandata remain ignored local source
+payloads. These candidates are not diplomatic or accepted German,
+source-to-target passage alignments, translation evidence, eligible units,
+gold, human tasks, semantic claims, publication objects, or canon effects.
 
 The Zarathustra foundation pilot also carries one deliberately narrower
 German source-triangulation packet. A deterministic local builder compares an

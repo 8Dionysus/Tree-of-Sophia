@@ -304,20 +304,22 @@ effect, publication route, or human task.
 ## Frozen German source-passage boundary materialization
 
 The German companion preserves all thirty-five routes but requires both
-numbered-unit boundaries to resolve inside one named automatic source layer.
-Twenty-eight private mode-0600 candidates meet that mechanical condition:
-twelve ABBYY paragraph slices, nine DjVuXML line slices, and seven PDF-bbox
-line slices. Seven routes retain unresolved boundaries rather than invented
-coordinates: *Jenseits* 32/201, *Genealogie* `essay-1:10`, and *Antichrist*
-`main:8`, `main:9`, `main:43`, `main:44`.
+numbered-unit boundaries to resolve inside one named automatic source layer or
+through an exact source-visible marker bound to that layer. Thirty-two private
+mode-0600 candidates meet that mechanical condition: twelve ABBYY paragraph
+slices, nine DjVuXML line slices, four Antichrist JP2-marker-plus-following-
+DjVuXML-line slices, and seven PDF-bbox line slices. Three routes retain
+unresolved boundaries rather than invented coordinates: *Jenseits* 32/201 and
+*Genealogie* `essay-1:10`.
 
 Tracked output is source-text-free and records geometry, digests, counts,
-witness relations, twenty-eight proposed anchors, and the seven negatives.
-For *Antichrist*, the separate Internet Archive DjVuXML navigation Item is
-related to the Commons address Item by a bounded two-page offset only, never
-textual identity. The result creates no diplomatic or accepted German,
-source-target passage or translation alignment, eligibility, gold, human task,
-semantic or canon effect, rights clearance, or publication route.
+witness relations, thirty-two proposed anchors, and the three negatives. Three
+visible Antichrist markers recover the four former route gaps through the exact
+Internet Archive JP2 ZIP and scandata package without changing the separate
+Commons address Item or its bounded two-page navigation-only relation. No
+textual identity is asserted. The result creates no diplomatic or accepted
+German, source-target passage or translation alignment, eligibility, gold,
+human task, semantic or canon effect, rights clearance, or publication route.
 
 ## Decisions
 

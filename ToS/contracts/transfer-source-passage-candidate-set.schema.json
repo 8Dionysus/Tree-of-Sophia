@@ -45,14 +45,14 @@
         "human_review_performed"
       ],
       "properties": {
-        "name": {"const": "same-source-layer-numbered-label-to-next-label-slice"},
-        "version": {"const": "1"},
+        "name": {"const": "numbered-label-or-source-visible-marker-to-next-boundary-slice"},
+        "version": {"const": "2"},
         "maker_type": {"const": "mixed"},
         "layers": {
           "type": "array",
           "minItems": 3,
           "uniqueItems": true,
-          "items": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "poppler-pdf-bbox-line"]}
+          "items": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "poppler-pdf-bbox-line"]}
         },
         "local_payloads_read": {"const": true},
         "private_content_written": {"const": true},
@@ -80,8 +80,8 @@
       ],
       "properties": {
         "conservative_source_route_count": {"const": 35},
-        "materialized_source_passage_candidate_count": {"const": 28},
-        "unresolved_source_boundary_count": {"const": 7},
+        "materialized_source_passage_candidate_count": {"const": 32},
+        "unresolved_source_boundary_count": {"const": 3},
         "accepted_source_passage_count": {"const": 0},
         "source_to_target_alignment_count": {"const": 0},
         "eligible_target_unit_count": {"const": 0},
@@ -172,8 +172,68 @@
             "exact-expected-label-in-abbyy-paragraph-layer",
             "source-visible-label-over-abbyy-ocr-token",
             "exact-normalized-label-in-djvu-xml-word-layer",
+            "model-visible-jp2-number-marker-plus-first-following-djvu-xml-line",
             "exact-normalized-label-in-poppler-pdf-bbox-layer"
           ]
+        }
+      }
+    },
+    "pixelBBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height", "coordinate_space"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 0},
+        "y": {"type": "integer", "minimum": 0},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "coordinate_space": {"const": "top_left_pixels"}
+      }
+    },
+    "normalizedBBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height", "coordinate_space"],
+      "properties": {
+        "x": {"type": "number", "minimum": 0, "maximum": 1},
+        "y": {"type": "number", "minimum": 0, "maximum": 1},
+        "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "coordinate_space": {"const": "normalized_0_1"}
+      }
+    },
+    "boundaryEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image_witness", "scandata_witness", "relation", "marker_returns"],
+      "properties": {
+        "image_witness": {"$ref": "#/$defs/witness"},
+        "scandata_witness": {"$ref": "#/$defs/witness"},
+        "relation": {"const": "same-Item-scandata-leaf-to-jp2-member-and-djvu-xml-object-order"},
+        "marker_returns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["boundary_role", "expected_unit_key", "navigation_page", "leaf_number", "jp2_resource_id", "scandata_resource_id", "member_path", "pixel_bbox", "normalized_bbox", "following_djvu_xml_record_order", "maker_type", "human_review_performed"],
+            "properties": {
+              "boundary_role": {"enum": ["start", "end_exclusive"]},
+              "expected_unit_key": {"type": "string", "pattern": "^[0-9]+$"},
+              "navigation_page": {"type": "integer", "minimum": 1},
+              "leaf_number": {"type": "integer", "minimum": 0},
+              "jp2_resource_id": {"type": "string", "pattern": "^jp2-page-[0-9]{4}$"},
+              "scandata_resource_id": {"type": "string", "pattern": "^scandata-page-[0-9]{4}$"},
+              "member_path": {"$ref": "#/$defs/repoPath"},
+              "pixel_bbox": {"$ref": "#/$defs/pixelBBox"},
+              "normalized_bbox": {"$ref": "#/$defs/normalizedBBox"},
+              "following_djvu_xml_record_order": {"type": "integer", "minimum": 0},
+              "maker_type": {"const": "model"},
+              "human_review_performed": {"const": false}
+            }
+          }
         }
       }
     },
@@ -197,6 +257,7 @@
         "address_page_span",
         "content_witness",
         "address_witness",
+        "boundary_evidence",
         "navigation_relation",
         "source_passage_anchor_ref",
         "private_content_ref",
@@ -222,13 +283,14 @@
         "source_passage_ref": {"$ref": "#/$defs/tosId"},
         "source_structural_anchor_ref": {"$ref": "#/$defs/tosId"},
         "status": {"enum": ["materialized-layer-exact-candidate", "boundary-unresolved"]},
-        "boundary_layer": {"type": ["string", "null"], "enum": ["abbyy-xml-paragraph", "djvu-xml-line", "poppler-pdf-bbox-line", null]},
+        "boundary_layer": {"type": ["string", "null"], "enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "poppler-pdf-bbox-line", null]},
         "start": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
         "end_exclusive": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
         "navigation_page_span": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
         "address_page_span": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
         "content_witness": {"anyOf": [{"$ref": "#/$defs/witness"}, {"type": "null"}]},
         "address_witness": {"$ref": "#/$defs/witness"},
+        "boundary_evidence": {"anyOf": [{"$ref": "#/$defs/boundaryEvidence"}, {"type": "null"}]},
         "navigation_relation": {"type": "string", "minLength": 1},
         "source_passage_anchor_ref": {"anyOf": [{"$ref": "#/$defs/tosId"}, {"type": "null"}]},
         "private_content_ref": {"anyOf": [{"$ref": "#/$defs/repoPath"}, {"type": "null"}]},
@@ -273,6 +335,7 @@
               "navigation_page_span": {"type": "null"},
               "address_page_span": {"type": "null"},
               "content_witness": {"type": "null"},
+              "boundary_evidence": {"type": "null"},
               "source_passage_anchor_ref": {"type": "null"},
               "private_content_ref": {"type": "null"},
               "private_content_sha256": {"type": "null"},

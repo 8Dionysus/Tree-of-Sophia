@@ -5,7 +5,7 @@
   "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
   "manifest": {
     "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
-    "sha256": "f754a3f06434af7a51f50cf94376a5136c665084e5bdb721d8aba23b945abb9a",
+    "sha256": "dfb5bc272a28372146173c20b4ea0dcbcf68de7060d8e5c96827182372bbae65",
     "verified": true
   },
   "payload_files": [
@@ -15,17 +15,32 @@
       "byte_size": 8882082,
       "sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
       "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "relative_path": "payload/nietzscheswerke00nietgoog_jp2.zip",
+      "byte_size": 79087792,
+      "sha256": "fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "relative_path": "payload/nietzscheswerke00nietgoog_scandata.xml",
+      "byte_size": 157669,
+      "sha256": "5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "verified": true
     }
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
-    "rights_record_sha256": "deb32a9e7ec167aeaaf5f7976405ddb25f51bea9d33e076e8075754e2e82fb37",
+    "rights_record_sha256": "c0dc3d68aee82515f4c2f800fbdad5ae22258ba93f3d7ffa079be679d53322e1",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": ["DE", "US"],
     "permission_or_license_refs": [
       "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+      "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
       "https://archive.org/metadata/nietzscheswerke00nietgoog"
     ],
     "expires_at": null,
@@ -43,7 +58,7 @@
     },
     "page_images": {
       "state": "prohibited",
-      "conditions": ["The DjVuXML contains no authorized public page-image route and the operator-held payload remains local-only."]
+      "conditions": ["The exact JP2 page-image package is locally held, but no exact-package redistribution or future-site upload route is authorized."]
     },
     "snippets": {
       "state": "prohibited",
@@ -100,6 +115,6 @@
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

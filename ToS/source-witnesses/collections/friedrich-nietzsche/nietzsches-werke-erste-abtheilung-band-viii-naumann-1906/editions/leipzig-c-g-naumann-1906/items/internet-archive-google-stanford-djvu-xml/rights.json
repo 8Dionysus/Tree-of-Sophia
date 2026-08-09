@@ -3,7 +3,9 @@
   "rights_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
   "scope_refs": [
     "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
-    "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"
+    "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+    "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+    "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5"
   ],
   "assessment_status": "conflicting_evidence",
   "rights_statement_uri": null,
@@ -12,6 +14,7 @@
   "source_refs": [
     "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
     "https://archive.org/metadata/nietzscheswerke00nietgoog",
     "https://www.gesetze-im-internet.de/urhg/__64.html",
@@ -116,7 +119,9 @@
       "layer_role": "other",
       "scope_refs": [
         "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
-        "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"
+        "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+        "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+        "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5"
       ],
       "assessment_status": "copyright_undetermined",
       "assessment_basis": "mixed",
@@ -125,11 +130,12 @@
       "jurisdictions_reviewed": ["DE", "US"],
       "source_refs": [
         "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
         "https://archive.org/metadata/nietzscheswerke00nietgoog"
       ],
       "rights_holder_refs": [],
       "permissions": ["local preservation, format inspection, and bounded laboratory derivation", "public-safe attributed fixity, lineage, contamination, and structural facts may be recorded"],
-      "restrictions": ["the provider record supplies no exact license for the DjVuXML wrapper, arrangement, database extraction, or archive-added matter", "the contaminated descriptive record is not reusable bibliographic authority", "the payload is not authorized for future-site upload"],
+      "restrictions": ["the provider record supplies no exact license for the DjVuXML wrapper, JP2 package, scandata arrangement, database extraction, or archive-added matter", "the contaminated descriptive record is not reusable bibliographic authority", "the payloads are not authorized for future-site upload"],
       "redistribution_posture": "not_authorized",
       "derivative_posture": "local_research_only",
       "server_processing_posture": "local_research_only",
@@ -147,7 +153,7 @@
     }
   ],
   "permissions": ["local preservation, exact-file parsing, and bounded source-structure research", "public-safe attributed fixity and lineage facts may be tracked without payload publication"],
-  "restrictions": ["no payload redistribution or future-site upload", "no provider OCR, coordinate, layout, or contaminated metadata layer may be promoted to accepted German or bibliographic truth", "independent public-source admission remains required for any publishable derivative"],
+  "restrictions": ["no payload redistribution or future-site upload", "no provider page image, scandata, OCR, coordinate, layout, or contaminated metadata layer may be promoted to accepted German or bibliographic truth", "independent public-source admission remains required for any publishable derivative"],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
   "derivative_posture": "local_research_only",
@@ -157,6 +163,6 @@
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }

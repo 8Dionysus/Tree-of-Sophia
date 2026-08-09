@@ -32,8 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = Path("ToS/source-witnesses")
 INVENTORY_NAME = "resource-inventory.json"
 SCHEMA_REF = (
-    "https://tree-of-sophia.local/ToS/contracts/"
-    "source-resource-inventory.schema.json"
+    "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json"
 )
 AUTHORITY_BOUNDARY = (
     "resource enumeration, geometry, ordering, counts, and one-way fingerprints "
@@ -138,7 +137,9 @@ def _pdf_inventory(
     base_info = _run(("pdfinfo", str(payload_path)))
     pages_match = re.search(r"^Pages:\s+(\d+)\s*$", base_info, re.MULTILINE)
     if pages_match is None:
-        raise InventoryBuildError(f"pdfinfo did not report a page count for {payload_path}")
+        raise InventoryBuildError(
+            f"pdfinfo did not report a page count for {payload_path}"
+        )
     page_count = int(pages_match.group(1))
 
     box_info = _run(
@@ -195,11 +196,15 @@ def _pdf_inventory(
     }
 
 
-def _epub_package(zf: zipfile.ZipFile) -> tuple[dict[str, dict[str, str]], dict[str, int]]:
+def _epub_package(
+    zf: zipfile.ZipFile,
+) -> tuple[dict[str, dict[str, str]], dict[str, int]]:
     try:
         container = ET.fromstring(zf.read("META-INF/container.xml"))
     except (KeyError, ET.ParseError) as exc:
-        raise InventoryBuildError(f"EPUB container metadata is unreadable: {exc}") from exc
+        raise InventoryBuildError(
+            f"EPUB container metadata is unreadable: {exc}"
+        ) from exc
     rootfile = container.find(".//{*}rootfile")
     if rootfile is None or not rootfile.get("full-path"):
         raise InventoryBuildError("EPUB container has no rootfile")
@@ -208,7 +213,9 @@ def _epub_package(zf: zipfile.ZipFile) -> tuple[dict[str, dict[str, str]], dict[
     try:
         package = ET.fromstring(zf.read(opf_path))
     except (KeyError, ET.ParseError) as exc:
-        raise InventoryBuildError(f"EPUB package metadata is unreadable: {exc}") from exc
+        raise InventoryBuildError(
+            f"EPUB package metadata is unreadable: {exc}"
+        ) from exc
 
     opf_parent = posixpath.dirname(opf_path)
     manifest: dict[str, dict[str, str]] = {}
@@ -250,7 +257,9 @@ def _epub_inventory(
     with zipfile.ZipFile(payload_path) as zf:
         bad_member = zf.testzip()
         if bad_member is not None:
-            raise InventoryBuildError(f"EPUB member failed CRC verification: {bad_member}")
+            raise InventoryBuildError(
+                f"EPUB member failed CRC verification: {bad_member}"
+            )
         manifest, spine = _epub_package(zf)
         for container_order, info in enumerate(
             (entry for entry in zf.infolist() if not entry.is_dir()),
@@ -325,6 +334,143 @@ def _epub_inventory(
             ),
             "xhtml_count": xhtml_count,
             "image_resource_count": image_count,
+        },
+        "resources": resources,
+    }
+
+
+def _jp2_zip_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    resources: list[dict[str, Any]] = []
+    member_pattern = re.compile(r"(?:^|/)[^/]+_(\d{4})\.jp2$")
+    try:
+        with zipfile.ZipFile(payload_path) as zf:
+            bad_member = zf.testzip()
+            if bad_member is not None:
+                raise InventoryBuildError(
+                    f"JP2 ZIP member failed CRC verification: {bad_member}"
+                )
+            members = [entry for entry in zf.infolist() if not entry.is_dir()]
+            for container_order, info in enumerate(members, start=1):
+                match = member_pattern.search(info.filename)
+                if match is None:
+                    raise InventoryBuildError(
+                        f"JP2 ZIP contains a non-page member: {info.filename}"
+                    )
+                leaf_number = int(match.group(1))
+                if leaf_number != container_order - 1:
+                    raise InventoryBuildError(
+                        "JP2 ZIP leaf numbering is not zero-based and contiguous"
+                    )
+                member = zf.read(info.filename)
+                resources.append(
+                    {
+                        "resource_id": f"jp2-page-{container_order:04d}",
+                        "resource_kind": "image_page",
+                        "locator": {
+                            "page_index": container_order,
+                            "leaf_number": leaf_number,
+                            "member_path": info.filename,
+                            "container_order": container_order,
+                        },
+                        "media_type": "image/jp2",
+                        "byte_size": info.file_size,
+                        "sha256": _sha256_bytes(member),
+                        "structural_role": "page",
+                    }
+                )
+    except (OSError, zipfile.BadZipFile) as exc:
+        raise InventoryBuildError(f"JP2 ZIP is unreadable: {exc}") from exc
+    if not resources:
+        raise InventoryBuildError("JP2 ZIP yielded no page resources")
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "jp2_zip_pages_v1",
+        "summary": {
+            "resource_count": len(resources),
+            "page_count": len(resources),
+            "member_count": len(resources),
+        },
+        "resources": resources,
+    }
+
+
+def _scandata_inventory(
+    payload_path: Path,
+    *,
+    file_id: str,
+    file_sha256: str,
+    media_type: str,
+) -> dict[str, Any]:
+    try:
+        root = ET.parse(payload_path).getroot()
+    except (OSError, ET.ParseError) as exc:
+        raise InventoryBuildError(f"scandata XML is unreadable: {exc}") from exc
+    if _local_name(root.tag) != "book":
+        raise InventoryBuildError("scandata XML root is not book")
+    leaf_count_text = root.findtext("./bookData/leafCount")
+    dpi_text = root.findtext("./bookData/dpi")
+    try:
+        leaf_count = int(leaf_count_text or "")
+        dpi = int(dpi_text or "")
+    except ValueError as exc:
+        raise InventoryBuildError("scandata XML has invalid book geometry") from exc
+    resources: list[dict[str, Any]] = []
+    for page_index, page in enumerate(root.findall("./pageData/page"), start=1):
+        try:
+            leaf_number = int(page.attrib["leafNum"])
+            width = int(page.findtext("origWidth") or "")
+            height = int(page.findtext("origHeight") or "")
+        except (KeyError, ValueError) as exc:
+            raise InventoryBuildError(
+                f"scandata page {page_index} has invalid identity or geometry"
+            ) from exc
+        if leaf_number != page_index - 1:
+            raise InventoryBuildError(
+                "scandata leaf numbering is not zero-based and contiguous"
+            )
+        resources.append(
+            {
+                "resource_id": f"scandata-page-{page_index:04d}",
+                "resource_kind": "scan_data_page",
+                "locator": {
+                    "page_index": page_index,
+                    "leaf_number": leaf_number,
+                    "width_pixels": width,
+                    "height_pixels": height,
+                    "resolution_dpi": dpi,
+                },
+                "structural_role": "page",
+            }
+        )
+    if len(resources) != leaf_count:
+        raise InventoryBuildError(
+            f"scandata leaf count drifted: declared {leaf_count}, got {len(resources)}"
+        )
+    geometries = {
+        (
+            resource["locator"]["width_pixels"],
+            resource["locator"]["height_pixels"],
+            resource["locator"]["resolution_dpi"],
+        )
+        for resource in resources
+    }
+    return {
+        "file_id": file_id,
+        "file_sha256": file_sha256,
+        "media_type": media_type,
+        "profile": "scandata_pages_v1",
+        "summary": {
+            "resource_count": len(resources),
+            "page_count": len(resources),
+            "distinct_page_geometry_count": len(geometries),
         },
         "resources": resources,
     }
@@ -451,7 +597,9 @@ def _tei_inventory(
 
     walk(text, path="TEI/text[1]", division_depth=0, parent_division_id=None)
     if not resources:
-        raise InventoryBuildError("TEI payload yielded no page-break or division resources")
+        raise InventoryBuildError(
+            "TEI payload yielded no page-break or division resources"
+        )
     return {
         "file_id": file_id,
         "file_sha256": file_sha256,
@@ -614,9 +762,7 @@ def _djvu_page_form_offsets(data: bytes) -> list[int]:
     if root_type == b"DJVU":
         return [4]
     if root_type != b"DJVM":
-        raise InventoryBuildError(
-            f"DjVu root FORM has unsupported type {root_type!r}"
-        )
+        raise InventoryBuildError(f"DjVu root FORM has unsupported type {root_type!r}")
 
     cursor = 16
     directory: bytes | None = None
@@ -742,9 +888,7 @@ def _abbyy_xml_inventory(
     file_sha256: str,
     media_type: str,
 ) -> dict[str, Any]:
-    namespace = (
-        "{http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml}"
-    )
+    namespace = "{http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml}"
     resources: list[dict[str, Any]] = []
     try:
         with gzip.open(payload_path, "rb") as source:
@@ -765,8 +909,7 @@ def _abbyy_xml_inventory(
                 characters = list(page.iter(f"{namespace}charParams"))
                 page_text = "".join(character.text or "" for character in characters)
                 word_count = sum(
-                    character.get("wordStart") == "true"
-                    for character in characters
+                    character.get("wordStart") == "true" for character in characters
                 )
                 resources.append(
                     {
@@ -817,7 +960,9 @@ def _abbyy_xml_inventory(
     }
 
 
-def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> dict[str, Any]:
+def build_file_inventory(
+    payload_path: Path, payload_entry: dict[str, Any]
+) -> dict[str, Any]:
     media_type = payload_entry["media_type"]
     kwargs = {
         "file_id": payload_entry["file_id"],
@@ -828,15 +973,22 @@ def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> d
         return _pdf_inventory(payload_path, **kwargs)
     if media_type == "application/epub+zip":
         return _epub_inventory(payload_path, **kwargs)
+    if media_type == "application/zip" and payload_entry["relative_path"].endswith(
+        "_jp2.zip"
+    ):
+        return _jp2_zip_inventory(payload_path, **kwargs)
     if media_type == "image/vnd.djvu":
         return _djvu_inventory(payload_path, **kwargs)
     if media_type == "application/vnd.djvu+xml":
         return _djvu_xml_inventory(payload_path, **kwargs)
-    if (
-        media_type == "application/gzip"
-        and payload_entry["relative_path"].endswith(".abbyy.xml.gz")
+    if media_type == "application/gzip" and payload_entry["relative_path"].endswith(
+        ".abbyy.xml.gz"
     ):
         return _abbyy_xml_inventory(payload_path, **kwargs)
+    if media_type in {"application/xml", "text/xml"} and payload_entry[
+        "relative_path"
+    ].endswith("_scandata.xml"):
+        return _scandata_inventory(payload_path, **kwargs)
     if media_type in {"application/tei+xml", "application/xml", "text/xml"}:
         return _tei_inventory(payload_path, **kwargs)
     raise InventoryBuildError(
@@ -847,6 +999,49 @@ def build_file_inventory(payload_path: Path, payload_entry: dict[str, Any]) -> d
 def _default_event_ref(item_id: str, event_date: str) -> str:
     suffix = item_id.removeprefix("tos.item.")
     return f"tos.event.resource-inventory.{suffix}.{event_date}"
+
+
+def _preserve_prior_pdf_number_shapes(
+    file_inventories: list[dict[str, Any]], prior: dict[str, Any]
+) -> None:
+    """Keep legacy integral JSON numbers stable when their values did not move."""
+    prior_files = {
+        entry.get("file_id"): entry
+        for entry in prior.get("files", [])
+        if isinstance(entry, dict) and isinstance(entry.get("file_id"), str)
+    }
+    for file_inventory in file_inventories:
+        if file_inventory.get("profile") != "pdf_pages_v1":
+            continue
+        prior_file = prior_files.get(file_inventory.get("file_id"))
+        if not isinstance(prior_file, dict):
+            continue
+        prior_resources = {
+            entry.get("resource_id"): entry
+            for entry in prior_file.get("resources", [])
+            if isinstance(entry, dict) and isinstance(entry.get("resource_id"), str)
+        }
+        for resource in file_inventory.get("resources", []):
+            if not isinstance(resource, dict):
+                continue
+            prior_resource = prior_resources.get(resource.get("resource_id"))
+            if not isinstance(prior_resource, dict):
+                continue
+            locator = resource.get("locator")
+            prior_locator = prior_resource.get("locator")
+            if not isinstance(locator, dict) or not isinstance(prior_locator, dict):
+                continue
+            for field in ("width_points", "height_points"):
+                current_value = locator.get(field)
+                prior_value = prior_locator.get(field)
+                if (
+                    isinstance(prior_value, int)
+                    and not isinstance(prior_value, bool)
+                    and isinstance(current_value, float)
+                    and current_value.is_integer()
+                    and current_value == prior_value
+                ):
+                    locator[field] = prior_value
 
 
 def build_inventory(
@@ -868,6 +1063,9 @@ def build_inventory(
 
     output_path = manifest_path.parent / INVENTORY_NAME
     event_ref = _default_event_ref(manifest["item_id"], event_date)
+    inventory_version = 1
+    supersedes_inventory_ref: str | None = None
+    prior: dict[str, Any] = {}
     if output_path.is_file():
         try:
             prior = json.loads(output_path.read_text(encoding="utf-8"))
@@ -876,6 +1074,13 @@ def build_inventory(
         prior_event_ref = prior.get("provenance_event_ref")
         if isinstance(prior_event_ref, str):
             event_ref = prior_event_ref
+        prior_version = prior.get("inventory_version")
+        if isinstance(prior_version, int) and prior_version >= 1:
+            inventory_version = prior_version
+        prior_supersedes = prior.get("supersedes_inventory_ref")
+        if isinstance(prior_supersedes, str):
+            supersedes_inventory_ref = prior_supersedes
+    _preserve_prior_pdf_number_shapes(file_inventories, prior)
     return {
         "$schema": SCHEMA_REF,
         "schema_version": "tos_source_resource_inventory_v1",
@@ -889,8 +1094,8 @@ def build_inventory(
             "version": "1",
         },
         "provenance_event_ref": event_ref,
-        "inventory_version": 1,
-        "supersedes_inventory_ref": None,
+        "inventory_version": inventory_version,
+        "supersedes_inventory_ref": supersedes_inventory_ref,
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
 
@@ -950,7 +1155,9 @@ def main() -> int:
         processed += 1
         rendered = render_inventory(payload)
         if args.check:
-            current = output_path.read_text(encoding="utf-8") if output_path.is_file() else ""
+            current = (
+                output_path.read_text(encoding="utf-8") if output_path.is_file() else ""
+            )
             if current != rendered:
                 drift.append(output_path.relative_to(repo_root).as_posix())
         else:

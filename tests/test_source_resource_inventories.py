@@ -140,6 +140,66 @@ class SourceResourceInventoryTests(unittest.TestCase):
         self.assertNotIn("Source text", serialized)
         self.assertNotIn("Heading", serialized)
 
+    def test_jp2_zip_inventory_preserves_leaf_order_and_member_fixity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sample_jp2.zip"
+            with zipfile.ZipFile(path, "w") as zf:
+                zf.writestr("sample_jp2/sample_0000.jp2", b"first-image")
+                zf.writestr("sample_jp2/sample_0001.jp2", b"second-image")
+            payload = inventories.build_file_inventory(
+                path,
+                {
+                    "file_id": "tos.file.sha256." + "f" * 64,
+                    "sha256": "f" * 64,
+                    "media_type": "application/zip",
+                    "relative_path": "payload/sample_jp2.zip",
+                },
+            )
+
+        self.assertEqual("jp2_zip_pages_v1", payload["profile"])
+        self.assertEqual(2, payload["summary"]["page_count"])
+        self.assertEqual(2, payload["summary"]["member_count"])
+        self.assertEqual(0, payload["resources"][0]["locator"]["leaf_number"])
+        self.assertEqual(2, payload["resources"][1]["locator"]["page_index"])
+        self.assertEqual(
+            inventories._sha256_bytes(b"second-image"),
+            payload["resources"][1]["sha256"],
+        )
+
+    def test_scandata_inventory_preserves_leaf_to_page_geometry(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sample_scandata.xml"
+            path.write_text(
+                """<book><bookData><dpi>600</dpi><leafCount>2</leafCount></bookData>
+                <pageData><page leafNum="0"><origWidth>100</origWidth>
+                <origHeight>200</origHeight></page><page leafNum="1">
+                <origWidth>110</origWidth><origHeight>210</origHeight>
+                </page></pageData></book>""",
+                encoding="utf-8",
+            )
+            payload = inventories.build_file_inventory(
+                path,
+                {
+                    "file_id": "tos.file.sha256." + "1" * 64,
+                    "sha256": "1" * 64,
+                    "media_type": "application/xml",
+                    "relative_path": "payload/sample_scandata.xml",
+                },
+            )
+
+        self.assertEqual("scandata_pages_v1", payload["profile"])
+        self.assertEqual(2, payload["summary"]["page_count"])
+        self.assertEqual(
+            {
+                "page_index": 2,
+                "leaf_number": 1,
+                "width_pixels": 110,
+                "height_pixels": 210,
+                "resolution_dpi": 600,
+            },
+            payload["resources"][1]["locator"],
+        )
+
     def test_pdfinfo_geometry_parser_accepts_named_page_size_suffix(self) -> None:
         sizes, rotations = inventories._parse_pdf_page_geometries(
             "\n".join(

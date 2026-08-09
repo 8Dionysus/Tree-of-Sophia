@@ -765,12 +765,12 @@
         "ToS/contracts/source-anchor.schema.json"
       ],
       "reads": [
-        "the tracked thirty-five-route target frame plus exact local German PDF, ABBYY, and DjVuXML layers, source maps, manifests, inventories, and separate rights records"
+        "the tracked thirty-five-route target frame plus exact local German PDF, ABBYY, DjVuXML, JP2 ZIP, and scandata layers, source maps, manifests, inventories, and separate rights records"
       ],
       "writes": [
-        "twenty-eight ignored mode-0600 private German automatic-layer passage JSON files plus a tracked text-free candidate set, twenty-eight proposed anchors, seven unresolved boundary records, and provenance unless --check is used"
+        "thirty-two ignored mode-0600 private German automatic-layer or exact source-visible-marker passage JSON files plus a tracked text-free candidate set, thirty-two proposed anchors, three unresolved boundary records, and provenance unless --check is used"
       ],
-      "side_effects": "keeps all thirty-five routes; materializes only twenty-eight same-layer boundary candidates and preserves seven exact unresolved negatives; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
+      "side_effects": "keeps all thirty-five routes; materializes thirty-two candidates through same-layer boundaries or exact JP2/scandata marker returns and preserves three exact unresolved negatives; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
@@ -1016,7 +1016,7 @@
         "tracked schema, target frame, text-free source candidate closure, anchors, provenance, input digests, rights and ignore boundary; optionally the explicit private output root"
       ],
       "writes": [],
-      "side_effects": "validation output only; preserves exactly thirty-five routes, twenty-eight private layer-exact candidates, seven unresolved boundaries, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
+      "side_effects": "validation output only; preserves exactly thirty-five routes, thirty-two private layer-exact or exact source-visible-marker candidates, three unresolved boundaries, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_golden_kernel_transfer_source_passages.py",

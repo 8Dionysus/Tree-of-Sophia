@@ -1,0 +1,79 @@
+{
+  "schema_version": "tos_source_metadata_snapshot_v1",
+  "captured_at": "2026-08-08T23:03:34-06:00",
+  "capture_method": {
+    "maker_type": "mixed",
+    "name": "fresh official Internet Archive metadata capture plus exact local package fixity and structure inspection",
+    "version": "curl 8.18.0; Python 3.14.6; unzip 6.00"
+  },
+  "target": "Exact JP2 page-image package and scandata derivative used only for bounded source-visible boundary evidence across the Google/Stanford scan lineage",
+  "internet_archive_record": {
+    "identifier": "nietzscheswerke00nietgoog",
+    "item_page_url": "https://archive.org/details/nietzscheswerke00nietgoog",
+    "metadata_url": "https://archive.org/metadata/nietzscheswerke00nietgoog",
+    "metadata_response_byte_size": 98571,
+    "metadata_response_sha256": "148f0105b675363710c55b2949691f68cee0819cd61d633f0422dce934cb5716",
+    "queried_at": "2026-08-08T23:03:34-06:00",
+    "current_descriptive_title": "Gesammelte Werke",
+    "current_descriptive_creator": "Siewerth, Gustav, 1903-1963",
+    "descriptive_identity_status": "contaminated-unrelated-to-source-visible-1906-volume",
+    "google_books_source_lineage_identifier": "raDHLnqFdIwC",
+    "jp2_package_file": {
+      "name": "nietzscheswerke00nietgoog_jp2.zip",
+      "download_url": "https://archive.org/download/nietzscheswerke00nietgoog/nietzscheswerke00nietgoog_jp2.zip",
+      "format": "Single Page Processed JP2 ZIP",
+      "source": "derivative",
+      "original": "nietzscheswerke00nietgoog.pdf",
+      "byte_size": 79087792,
+      "member_count": 525,
+      "sha1": "118ae03f81c0e82138a56db5eef78a0aecf8813d",
+      "provider_mtime": "2009-04-18T22:53:19Z",
+      "local_sha256": "fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "local_byte_size_match": true,
+      "local_sha1_match": true,
+      "zip_crc_verified": true
+    },
+    "scandata_file": {
+      "name": "nietzscheswerke00nietgoog_scandata.xml",
+      "download_url": "https://archive.org/download/nietzscheswerke00nietgoog/nietzscheswerke00nietgoog_scandata.xml",
+      "format": "Scandata",
+      "source": "derivative",
+      "original": "nietzscheswerke00nietgoog_djvu.xml",
+      "byte_size": 157669,
+      "leaf_count": 525,
+      "sha1": "432ce3a49315b8d6502ba7d6f6504b9ce6837e7a",
+      "provider_mtime": "2024-07-07T05:04:49Z",
+      "local_sha256": "5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "local_byte_size_match": true,
+      "local_sha1_match": true,
+      "xml_root": "book"
+    }
+  },
+  "lineage_boundary": {
+    "djvu_xml_file_sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+    "djvu_xml_page_count": 525,
+    "jp2_member_count": 525,
+    "scandata_leaf_count": 525,
+    "page_leaf_relation_status": "same-Internet-Archive-Item zero-based leaf order verified for bounded navigation",
+    "commons_djvu_item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+    "commons_djvu_file_sha256": "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+    "commons_djvu_page_count": 523,
+    "commons_relation_status": "bounded-source-visible-two-page-offset-only",
+    "does_not_establish": [
+      "byte identity with the Commons DjVu",
+      "whole-container page identity with the Commons DjVu",
+      "textual identity",
+      "edition equivalence",
+      "accepted German",
+      "OCR correctness"
+    ]
+  },
+  "storage_boundary": {
+    "local_only": true,
+    "payload_published": false,
+    "future_site_upload_authorized": false,
+    "tracked_payload_bytes": false
+  },
+  "snapshot_boundary": "Fresh official metadata and exact fixity admit the JP2 and scandata files only as local source-visible and leaf-order evidence. Three visually observed number markers may support bounded OCR-line boundary candidates; no payload, accepted text, translation, semantic, rights, publication, or canon authority follows.",
+  "snapshot_version": 1
+}

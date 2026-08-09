@@ -15,6 +15,26 @@
       "sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
       "fixity_verified_at": "2026-08-08T20:41:33-06:00",
       "container_member": false
+    },
+    {
+      "file_id": "tos.file.sha256.fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "relative_path": "payload/nietzscheswerke00nietgoog_jp2.zip",
+      "original_basename": "nietzscheswerke00nietgoog_jp2.zip",
+      "media_type": "application/zip",
+      "byte_size": 79087792,
+      "sha256": "fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+      "fixity_verified_at": "2026-08-08T23:12:37-06:00",
+      "container_member": false
+    },
+    {
+      "file_id": "tos.file.sha256.5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "relative_path": "payload/nietzscheswerke00nietgoog_scandata.xml",
+      "original_basename": "nietzscheswerke00nietgoog_scandata.xml",
+      "media_type": "application/xml",
+      "byte_size": 157669,
+      "sha256": "5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+      "fixity_verified_at": "2026-08-08T23:12:37-06:00",
+      "container_member": false
     }
   ],
   "acquisition_event_ref": "tos.event.acquisition.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.2026-08-08",
@@ -25,10 +45,11 @@
   "source_record_refs": [
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.json",
     "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
     "https://archive.org/details/nietzscheswerke00nietgoog",
     "https://archive.org/metadata/nietzscheswerke00nietgoog"
   ],
   "visibility": "local_only",
-  "manifest_version": 1,
+  "manifest_version": 2,
   "supersedes_manifest_ref": null
 }

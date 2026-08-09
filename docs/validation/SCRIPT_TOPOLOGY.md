@@ -100,12 +100,14 @@ alignment, target gold, eligibility, semantics, canon, or human judgment.
 
 The companion transfer source-passage builder returns to the exact German
 layers but does not pretend that every structural route has a recoverable text
-boundary. It materializes twenty-eight private mode-0600 candidates only where
-both numbered labels resolve inside one named ABBYY, DjVuXML, or PDF-bbox
-layer; seven routes remain explicit unresolved-boundary records. Tracked data
-contains geometry, digests, witness relations, counts, anchors, and no source
-strings. The validator separately preserves the Antichrist Commons-address to
-Internet-Archive-navigation two-page relation as navigation only, with no
+boundary. It materializes thirty-two private mode-0600 candidates: twenty-eight
+use one named ABBYY, DjVuXML, or PDF-bbox layer and four use an exact
+source-visible JP2 marker bound through same-Item scandata to the first
+following DjVuXML line. Three routes remain explicit unresolved-boundary
+records. Tracked data contains geometry, digests, witness relations, counts,
+anchors, and no source strings. The validator separately preserves the
+Antichrist Commons-address to Internet-Archive-navigation two-page relation as
+navigation only, with no
 textual-identity claim. Neither builder nor validator accepts German, aligns a
 source passage to Russian, opens eligibility or gold, schedules human work, or
 creates semantic, publication, or canon authority.
