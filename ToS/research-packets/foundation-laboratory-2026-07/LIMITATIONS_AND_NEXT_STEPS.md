@@ -610,9 +610,15 @@ contracts intentionally reject simulated human evidence.
   human backlog. A separate text-free crosswalk narrows the eight frozen
   *Jenseits* pages to fifteen possible same-label numbered-unit routes: four
   pages contain proposed starts and retain spill ambiguity, while four fall
-  within one proposed unit span. It reads no source or target text and creates
-  no passage boundary, alignment, eligible unit, target gold, semantic task,
-  rights clearance, or human debt.
+  within one proposed unit span. Two additional target-only maps preserve 140
+  series-qualified starts—78 across four independently resetting *Genealogie*
+  series and 62 for *Antichrist*. Their crosswalks narrow the remaining twelve
+  frozen pages to twenty possible target routes, but materialize zero German
+  parallel routes. Thus all twenty pages are target-side narrowed, while only
+  the eight *Jenseits* pages have possible same-label source/target routes. The
+  operation reads no source or target prose and creates no exact passage
+  boundary, alignment, eligible unit, target gold, semantic task, rights
+  clearance, or human debt.
 - Whole-work lexical observation now exists over the four exact DTA part TEIs:
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and

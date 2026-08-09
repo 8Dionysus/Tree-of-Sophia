@@ -168,6 +168,15 @@ remain separate, page-returnable claims. The 1892 title-page year is not
 promoted to printing completion or public release, and the publisher and
 printer authorities remain distinct provisional normalization targets.
 
+A ninth structural pass returns to the exact local Mysl volume without adding
+its prose to Git. It preserves four independently resetting numbered series
+for *Zur Genealogie der Moral* and one for *Der Antichrist*: 140 proposed
+target starts narrow the remaining twelve frozen transfer pages to twenty
+possible target-only routes. No German parallel route is materialized, so the
+result creates no passage alignment, accepted text, translation relation,
+semantic claim, eligible transfer unit, target gold, rights clearance, or
+human task.
+
 ## Current Public Route
 
 The current bounded route keeps `README.md` as the public `tos-root` and routes

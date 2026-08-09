@@ -172,6 +172,18 @@ pairings, and keeps source-only 237a unpaired. The output is reusable
 structural navigation, not a source-to-target passage alignment, translation
 correspondence, equivalence, quality judgment, or semantic relation.
 
+`build_mysl_transfer_target_structure.py` is the explicit-local target-only
+companion for the frozen *Genealogie* and *Antichrist* transfer pages in the
+exact Mysl collection Item. It preserves independently resetting number series,
+combines ordered embedded-PDF bbox candidates with a fixed model-visible gap
+review, and emits only series-qualified proposed whole-page starts, anchors,
+target-only crosswalks, and provenance. Its `--check` route requires the exact
+ignored PDF; the release-safe source-foundation validator closes tracked
+schema, digest, transfer-plan, count, and zero-authority invariants without the
+payload. Neither route creates a German parallel unit map, passage alignment,
+accepted Russian, translation relation, eligible transfer unit, target gold,
+semantics, rights clearance, or human work.
+
 `build_zarathustra_german_source_triangulation.py` is the explicit-local
 companion for one German source question. It reads one ignored eKGWB HTTP
 response, the exact DTA part-I TEI, and two exact Naumann automatic-EPUB
@@ -339,6 +351,7 @@ Local owner routes:
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits target numbered-unit structure | `python scripts/build_jenseits_polilov_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | Jenseits shared number-label candidates | `python scripts/build_jenseits_numbered_unit_label_correspondence.py --check`, then `python scripts/validate_witness_structure_correspondence.py`; this route reads tracked maps only |
+| local Mysl Genealogie/Antichrist target structure | `python scripts/build_mysl_transfer_target_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the local route reads only the exact ignored target PDF, while release validation uses tracked text-free outputs |
 | local Zarathustra German source triangulation | `python scripts/build_zarathustra_german_source_triangulation.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the release lane validates tracked closure without requiring the ignored inputs |
 | bounded local Zarathustra translation calibration input | `python scripts/build_zarathustra_bounded_translation_input.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the two explicit roots respectively supply exact inputs and own the ignored source-bearing output |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

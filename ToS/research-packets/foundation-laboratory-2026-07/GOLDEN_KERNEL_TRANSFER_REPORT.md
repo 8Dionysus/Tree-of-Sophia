@@ -354,6 +354,34 @@ target unit, target gold, semantic work, human task, rights clearance, or
 canon authority. All eight pages retain
 `eligible_for_variant_execution: false`.
 
+### Target-only *Genealogie* and *Antichrist* crosswalks
+
+The other twelve already-frozen pages now have a distinct target-only route.
+The exact local Mysl scan yields series-qualified target starts—four resetting
+number series for *Genealogie* and one 1–62 series for *Antichrist*—without
+copying Russian prose into tracked artifacts.
+
+| Work | Frozen pages | Possible target-only routes | Pages with proposed starts | Pages within one proposed span | Source parallel routes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| *Genealogie* | 6 | 8 | 2 | 4 | 0 |
+| *Antichrist* | 6 | 12 | 5 | 1 | 0 |
+| **Total** | **12** | **20** | **7** | **5** | **0** |
+
+Together with the *Jenseits* crosswalk, all twenty frozen candidate pages are
+now structurally narrowed on the target side. Only the eight *Jenseits* pages
+currently reach possible same-label source/target routes; the twelve pages in
+this subsection do not, because no German parallel numbered-unit map has been
+materialized for either work.
+
+The target-only maps contain 140 proposed starts: 78 across the four
+*Genealogie* series and 62 in *Antichrist*. Their crosswalks remain digest-bound
+to the frozen transfer plan, candidate anchors, target maps, exact target
+rights record, inventory, and work boundaries. All twelve pages retain zero
+source routes, zero eligibility, zero target gold, and zero human work. No
+number match, Work identity, or page proximity is treated as passage
+alignment, translation correspondence, equivalence, semantics, or content
+acceptance.
+
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
 relation reasoning. That observation proves only that an exact title can be

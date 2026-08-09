@@ -32,6 +32,16 @@ TRANSFER_CANDIDATE_CROSSWALK_PATH = (
     "naumann-1886-polilov-mysl-1996/"
     "transfer-candidate-page-crosswalk.v1.json"
 )
+HIERARCHICAL_TARGET_STRUCTURE_ROOTS = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/"
+    "structure/mysl-1996-volume-2-operator-pdf",
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "der-antichrist/expressions/ru-flerova-mysl-1996/"
+    "structure/mysl-1996-volume-2-operator-pdf",
+)
 GERMAN_ASSISTED_REVIEW_PATH = (
     GOLD_ROOT / "german-assisted-source-review.v1.json"
 )
@@ -7553,6 +7563,115 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 label_map=loaded_inputs["shared_label_correspondence"],
             ),
         )
+
+    def test_hierarchical_target_maps_and_crosswalks_close_without_text_authority(
+        self,
+    ) -> None:
+        map_validator, _ = foundation._schema_validator(
+            foundation.HIERARCHICAL_TARGET_NUMBERED_UNIT_MAP_SCHEMA,
+            REPO_ROOT,
+        )
+        crosswalk_validator, _ = foundation._schema_validator(
+            foundation.TARGET_STRUCTURAL_CROSSWALK_SCHEMA,
+            REPO_ROOT,
+        )
+        expected = {
+            "tos.work.friedrich-nietzsche.zur-genealogie-der-moral": {
+                "map": (4, 78, 71, 7),
+                "crosswalk": (6, 8, 2, 0),
+            },
+            "tos.work.friedrich-nietzsche.der-antichrist": {
+                "map": (1, 62, 52, 10),
+                "crosswalk": (6, 12, 5, 0),
+            },
+        }
+
+        for structure_root in HIERARCHICAL_TARGET_STRUCTURE_ROOTS:
+            map_path = structure_root / "hierarchical-numbered-unit-page-map.json"
+            crosswalk_path = (
+                structure_root / "transfer-candidate-page-crosswalk.v1.json"
+            )
+            target_map = json.loads(map_path.read_text(encoding="utf-8"))
+            crosswalk = json.loads(crosswalk_path.read_text(encoding="utf-8"))
+            work_expected = expected[target_map["work_ref"]]
+
+            self.assertEqual([], list(map_validator.iter_errors(target_map)))
+            self.assertEqual(
+                [],
+                foundation._hierarchical_target_numbered_unit_map_issues(
+                    target_map
+                ),
+            )
+            for binding_name in ("inventory", "work_boundary"):
+                binding = target_map[binding_name]
+                bound_path = REPO_ROOT / binding["ref"]
+                self.assertEqual(
+                    binding["sha256"],
+                    hashlib.sha256(bound_path.read_bytes()).hexdigest(),
+                )
+
+            map_summary = target_map["summary"]
+            self.assertEqual(
+                work_expected["map"],
+                (
+                    map_summary["series_count"],
+                    map_summary["numbered_unit_count"],
+                    map_summary["ordered_bbox_candidate_match_count"],
+                    map_summary["source_visible_override_unit_count"],
+                ),
+            )
+            self.assertFalse(target_map["target_text_included"])
+            self.assertFalse(map_summary["human_review_performed"])
+
+            self.assertEqual(
+                [], list(crosswalk_validator.iter_errors(crosswalk))
+            )
+            loaded_inputs: dict[str, object] = {}
+            for name, binding in crosswalk["inputs"].items():
+                bound_path = REPO_ROOT / binding["ref"]
+                self.assertEqual(
+                    binding["sha256"],
+                    hashlib.sha256(bound_path.read_bytes()).hexdigest(),
+                )
+                if name == "transfer_plan":
+                    loaded_inputs[name] = json.loads(
+                        bound_path.read_text(encoding="utf-8")
+                    )
+            self.assertEqual(
+                [],
+                foundation._target_structural_crosswalk_issues(
+                    crosswalk,
+                    transfer_plan=loaded_inputs["transfer_plan"],
+                    target_map=target_map,
+                ),
+            )
+            crosswalk_summary = crosswalk["summary"]
+            self.assertEqual(
+                work_expected["crosswalk"],
+                (
+                    crosswalk_summary["candidate_page_count"],
+                    crosswalk_summary["possible_target_unit_route_count"],
+                    crosswalk_summary["page_with_unit_start_count"],
+                    crosswalk_summary["source_parallel_route_count"],
+                ),
+            )
+            self.assertEqual(0, crosswalk_summary["human_review_count"])
+            self.assertEqual(0, crosswalk_summary["eligible_target_unit_count"])
+            self.assertEqual(0, crosswalk_summary["target_gold_count"])
+            self.assertFalse(crosswalk["source_text_included"])
+            self.assertFalse(crosswalk["target_text_included"])
+
+            drifted = copy.deepcopy(crosswalk)
+            drifted["candidates"][0]["possible_target_unit_refs"] = [
+                "invented-series:999"
+            ]
+            self.assertTrue(
+                foundation._target_structural_crosswalk_issues(
+                    drifted,
+                    transfer_plan=loaded_inputs["transfer_plan"],
+                    target_map=target_map,
+                )
+            )
 
     def test_german_assisted_review_opens_only_bounded_experiment_lanes(
         self,

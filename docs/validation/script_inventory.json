@@ -485,6 +485,34 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_mysl_transfer_target_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/resource-inventory.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+        "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Mysl 1996 PDF, its tracked inventory, collection work boundaries, frozen transfer plan and candidate anchors, plus the target rights record"
+      ],
+      "writes": [
+        "tracked text-free hierarchical target maps, proposed whole-page anchors, target-only frozen-candidate crosswalks, and provenance for Genealogie and Antichrist unless --check is used"
+      ],
+      "side_effects": "140 proposed series-qualified target starts and 20 target-only candidate routes with no tracked prose, German parallel route, passage alignment, accepted text, translation relation, eligibility, target gold, semantics, rights clearance, or human work",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -710,6 +738,8 @@
         "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
         "ToS/contracts/german-source-triangulation.schema.json",
         "ToS/contracts/bounded-translation-research-input.schema.json",
+        "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
+        "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
         "ToS/contracts/source-gated-evaluation-plan.schema.json",
         "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
       ],

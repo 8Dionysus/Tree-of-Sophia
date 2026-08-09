@@ -99,6 +99,12 @@ PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA = (
 TRANSFER_CANDIDATE_CROSSWALK_SCHEMA = (
     CONTRACT_ROOT / "transfer-candidate-structural-crosswalk.schema.json"
 )
+HIERARCHICAL_TARGET_NUMBERED_UNIT_MAP_SCHEMA = (
+    CONTRACT_ROOT / "hierarchical-target-numbered-unit-page-map.schema.json"
+)
+TARGET_STRUCTURAL_CROSSWALK_SCHEMA = (
+    CONTRACT_ROOT / "transfer-candidate-target-structural-crosswalk.schema.json"
+)
 GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "german-assisted-source-review.schema.json"
 )
@@ -129,6 +135,18 @@ TRANSFER_CANDIDATE_CROSSWALK_PATH = Path(
     "jenseits-von-gut-und-boese/alignments/structure/"
     "naumann-1886-polilov-mysl-1996/"
     "transfer-candidate-page-crosswalk.v1.json"
+)
+HIERARCHICAL_TARGET_STRUCTURE_PATHS = (
+    Path(
+        "ToS/source-witnesses/works/friedrich-nietzsche/"
+        "zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/"
+        "structure/mysl-1996-volume-2-operator-pdf"
+    ),
+    Path(
+        "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/"
+        "expressions/ru-flerova-mysl-1996/structure/"
+        "mysl-1996-volume-2-operator-pdf"
+    ),
 )
 BIBLIOGRAPHIC_TOPOLOGY_ROOT = SOURCE_ROOT / "relations"
 BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE = (
@@ -701,6 +719,323 @@ def _transfer_candidate_crosswalk_issues(
     for field, expected_value in expected_summary.items():
         if summary.get(field) != expected_value:
             issues.append(f"transfer candidate crosswalk summary {field} drifted")
+    return issues
+
+
+def _hierarchical_target_numbered_unit_map_issues(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["hierarchical target numbered-unit map is not an object"]
+    series_rows = payload.get("series", [])
+    if not isinstance(series_rows, list):
+        return ["hierarchical target numbered-unit series are not a list"]
+    issues: list[str] = []
+    series_keys: list[str] = []
+    series_sequences: list[object] = []
+    all_pages: list[int] = []
+    all_anchor_refs: list[str] = []
+    expected_override_refs: list[str] = []
+    expected_override_pages: set[int] = set()
+    expected_machine_count = 0
+    method = payload.get("method", {})
+    if not isinstance(method, dict):
+        issues.append("hierarchical target map method is not an object")
+        method = {}
+    series_trials = method.get("series_trials", [])
+    if not isinstance(series_trials, list):
+        issues.append("hierarchical target map method trials are not a list")
+        series_trials = []
+    trial_by_key: dict[str, dict[str, Any]] = {}
+    for trial in series_trials:
+        if not isinstance(trial, dict):
+            issues.append("hierarchical target map contains a non-object method trial")
+            continue
+        trial_key = trial.get("series_key")
+        if not isinstance(trial_key, str):
+            issues.append("hierarchical target map method trial has no string series key")
+            continue
+        if trial_key in trial_by_key:
+            issues.append(f"hierarchical target map repeats method trial {trial_key}")
+        trial_by_key[trial_key] = trial
+
+    for expected_series_sequence, series in enumerate(series_rows, start=1):
+        if not isinstance(series, dict):
+            issues.append("hierarchical target map contains a non-object series")
+            continue
+        series_key = series.get("series_key")
+        if not isinstance(series_key, str):
+            issues.append("hierarchical target series key is not a string")
+            continue
+        series_keys.append(series_key)
+        series_sequences.append(series.get("series_sequence"))
+        if series.get("series_sequence") != expected_series_sequence:
+            issues.append(f"hierarchical target series {series_key} sequence drifted")
+        expected_count = series.get("expected_unit_count")
+        starts = series.get("unit_starts", [])
+        if not isinstance(starts, list):
+            issues.append(f"hierarchical target series {series_key} starts are not a list")
+            continue
+        if not isinstance(expected_count, int) or len(starts) != expected_count:
+            issues.append(f"hierarchical target series {series_key} count drifted")
+            continue
+        expected_keys = [str(number) for number in range(1, expected_count + 1)]
+        actual_keys = [
+            start.get("unit_key") if isinstance(start, dict) else None
+            for start in starts
+        ]
+        actual_sequences = [
+            start.get("sequence") if isinstance(start, dict) else None
+            for start in starts
+        ]
+        if actual_keys != expected_keys:
+            issues.append(f"hierarchical target series {series_key} unit keys drifted")
+        if actual_sequences != list(range(1, expected_count + 1)):
+            issues.append(f"hierarchical target series {series_key} unit sequences drifted")
+
+        start_page = series.get("start_page")
+        end_page = series.get("end_page")
+        series_pages: list[int] = []
+        series_override_keys: list[str] = []
+        for start in starts:
+            if not isinstance(start, dict):
+                continue
+            unit_key = start.get("unit_key")
+            page = start.get("pdf_page")
+            if not isinstance(page, int):
+                continue
+            series_pages.append(page)
+            all_pages.append(page)
+            anchor_ref = start.get("anchor_ref")
+            if isinstance(anchor_ref, str):
+                all_anchor_refs.append(anchor_ref)
+            else:
+                issues.append(
+                    f"hierarchical target unit {series_key}:{unit_key} has no anchor ref"
+                )
+            if (
+                not isinstance(start_page, int)
+                or not isinstance(end_page, int)
+                or not start_page <= page <= end_page
+            ):
+                issues.append(
+                    f"hierarchical target unit {series_key}:{unit_key} leaves its series"
+                )
+            if start.get("resource_id") != f"pdf-page-{page:04d}":
+                issues.append(
+                    f"hierarchical target unit {series_key}:{unit_key} resource drifted"
+                )
+            if start.get("basis") == "source_visible_gap_review":
+                series_override_keys.append(str(unit_key))
+                expected_override_refs.append(f"{series_key}:{unit_key}")
+                expected_override_pages.add(page)
+        if series_pages != sorted(series_pages):
+            issues.append(f"hierarchical target series {series_key} pages are not monotonic")
+
+        trial = trial_by_key.get(series_key)
+        if not isinstance(trial, dict):
+            issues.append(f"hierarchical target series {series_key} has no method trial")
+        else:
+            expected_machine = expected_count - len(series_override_keys)
+            if trial.get("expected_unit_count") != expected_count:
+                issues.append(f"hierarchical target series {series_key} trial count drifted")
+            if trial.get("ordered_bbox_candidate_match_count") != expected_machine:
+                issues.append(
+                    f"hierarchical target series {series_key} machine count drifted"
+                )
+            if trial.get("source_visible_override_unit_keys") != series_override_keys:
+                issues.append(
+                    f"hierarchical target series {series_key} override keys drifted"
+                )
+            expected_machine_count += expected_machine
+
+    if len(series_keys) != len(set(series_keys)):
+        issues.append("hierarchical target map repeats a series key")
+    if series_sequences != list(range(1, len(series_rows) + 1)):
+        issues.append("hierarchical target map series sequence is not contiguous")
+    if all_pages != sorted(all_pages):
+        issues.append("hierarchical target map pages are not globally monotonic")
+    if len(all_anchor_refs) != len(set(all_anchor_refs)):
+        issues.append("hierarchical target map repeats an anchor ref")
+    if set(trial_by_key) != set(series_keys):
+        issues.append("hierarchical target map method trials do not close the series")
+
+    source_visible_review = method.get("source_visible_review", {})
+    if not isinstance(source_visible_review, dict):
+        issues.append("hierarchical target source-visible review is not an object")
+    else:
+        if source_visible_review.get("override_unit_refs") != expected_override_refs:
+            issues.append("hierarchical target override refs drifted")
+        if source_visible_review.get("reviewed_target_pdf_pages") != sorted(
+            expected_override_pages
+        ):
+            issues.append("hierarchical target reviewed pages drifted")
+
+    summary = payload.get("summary", {})
+    if not isinstance(summary, dict):
+        issues.append("hierarchical target map summary is not an object")
+        return issues
+    expected_summary = {
+        "series_count": len(series_rows),
+        "numbered_unit_count": len(all_pages),
+        "ordered_bbox_candidate_match_count": expected_machine_count,
+        "source_visible_override_unit_count": len(expected_override_refs),
+        "source_visible_reviewed_page_count": len(expected_override_pages),
+        "exact_start_page_candidates_materialized": len(all_pages),
+    }
+    for field, expected_value in expected_summary.items():
+        if summary.get(field) != expected_value:
+            issues.append(f"hierarchical target map summary {field} drifted")
+    return issues
+
+
+def _target_structural_crosswalk_issues(
+    crosswalk: object,
+    *,
+    transfer_plan: object,
+    target_map: object,
+) -> list[str]:
+    if not all(
+        isinstance(value, dict)
+        for value in (crosswalk, transfer_plan, target_map)
+    ):
+        return ["target structural crosswalk inputs are not objects"]
+    issues: list[str] = []
+    work_ref = crosswalk.get("work_ref")
+    target_series = target_map.get("series", [])
+    if not isinstance(target_series, list):
+        return ["target structural crosswalk target series are not a list"]
+    transfer_candidates = transfer_plan.get("candidate_target_units", [])
+    if not isinstance(transfer_candidates, list):
+        return ["target structural crosswalk transfer candidates are not a list"]
+    expected_candidates = {
+        candidate.get("unit_id"): candidate
+        for candidate in transfer_candidates
+        if (
+            isinstance(candidate, dict)
+            and isinstance(candidate.get("unit_id"), str)
+            and candidate.get("work_ref") == work_ref
+        )
+    }
+    starts: list[dict[str, object]] = []
+    for series in target_series:
+        if not isinstance(series, dict):
+            issues.append("target structural crosswalk map contains a non-object series")
+            continue
+        series_key = series.get("series_key")
+        unit_starts = series.get("unit_starts", [])
+        if not isinstance(series_key, str) or not isinstance(unit_starts, list):
+            issues.append("target structural crosswalk map series is malformed")
+            continue
+        for start in unit_starts:
+            if not isinstance(start, dict):
+                issues.append("target structural crosswalk map has a non-object start")
+                continue
+            unit_key = start.get("unit_key")
+            pdf_page = start.get("pdf_page")
+            if not isinstance(unit_key, str) or not isinstance(pdf_page, int):
+                issues.append("target structural crosswalk map start is malformed")
+                continue
+            starts.append(
+                {
+                    "target_unit_ref": f"{series_key}:{unit_key}",
+                    "pdf_page": pdf_page,
+                }
+            )
+    actual_candidates = crosswalk.get("candidates", [])
+    if not isinstance(actual_candidates, list):
+        return ["target structural crosswalk candidates are not a list"]
+    actual_ids: list[str] = []
+    for candidate in actual_candidates:
+        if not isinstance(candidate, dict):
+            continue
+        candidate_id = candidate.get("candidate_unit_id")
+        if isinstance(candidate_id, str):
+            actual_ids.append(candidate_id)
+        else:
+            issues.append("target structural crosswalk candidate has no string id")
+    if len(actual_ids) != len(set(actual_ids)):
+        issues.append("target structural crosswalk repeats a candidate unit")
+    if set(actual_ids) != set(expected_candidates):
+        issues.append("target structural crosswalk does not close the work quota")
+    if crosswalk.get("target_expression_ref") != target_map.get("expression_ref"):
+        issues.append("target structural crosswalk expression drifted")
+    if crosswalk.get("target_item_ref") != target_map.get("item_ref"):
+        issues.append("target structural crosswalk item drifted")
+
+    possible_route_count = 0
+    pages_with_starts = 0
+    for candidate in actual_candidates:
+        if not isinstance(candidate, dict):
+            issues.append("target structural crosswalk contains a non-object row")
+            continue
+        unit_id = candidate.get("candidate_unit_id")
+        expected = expected_candidates.get(unit_id)
+        if expected is None:
+            continue
+        page = expected.get("page")
+        if candidate.get("candidate_anchor_ref") != expected.get("anchor_ref"):
+            issues.append(f"{unit_id} target candidate anchor drifted")
+        if candidate.get("target_pdf_page") != page:
+            issues.append(f"{unit_id} target candidate page drifted")
+        if candidate.get("stratum") != expected.get("stratum"):
+            issues.append(f"{unit_id} target candidate stratum drifted")
+        if not isinstance(page, int):
+            issues.append(f"{unit_id} has no integer target page")
+            continue
+        prior = [start for start in starts if start["pdf_page"] < page]
+        on_page = [start for start in starts if start["pdf_page"] == page]
+        following = [start for start in starts if start["pdf_page"] > page]
+        if not prior or not following:
+            issues.append(f"{unit_id} lacks surrounding proposed starts")
+            continue
+        expected_refs = [prior[-1]["target_unit_ref"]] + [
+            start["target_unit_ref"] for start in on_page
+        ]
+        expected_start_refs = [
+            start["target_unit_ref"] for start in on_page
+        ]
+        if candidate.get("possible_target_unit_refs") != expected_refs:
+            issues.append(f"{unit_id} possible target unit refs drifted")
+        if candidate.get("starts_on_page_target_unit_refs") != expected_start_refs:
+            issues.append(f"{unit_id} on-page target unit starts drifted")
+        expected_relation = (
+            "prior-target-unit-spill-plus-unit-starts"
+            if on_page
+            else "within-one-proposed-target-numbered-unit"
+        )
+        if candidate.get("page_relation") != expected_relation:
+            issues.append(f"{unit_id} target page relation drifted")
+        expected_next = {
+            "target_unit_ref": following[0]["target_unit_ref"],
+            "target_pdf_page": following[0]["pdf_page"],
+        }
+        if candidate.get("next_proposed_start") != expected_next:
+            issues.append(f"{unit_id} following target start drifted")
+        possible_route_count += len(expected_refs)
+        pages_with_starts += bool(on_page)
+
+    summary = crosswalk.get("summary", {})
+    if not isinstance(summary, dict):
+        issues.append("target structural crosswalk summary is not an object")
+        return issues
+    expected_summary = {
+        "candidate_page_count": len(expected_candidates),
+        "random_page_count": sum(
+            candidate.get("stratum") == "random"
+            for candidate in expected_candidates.values()
+        ),
+        "hard_page_count": sum(
+            candidate.get("stratum") == "hard"
+            for candidate in expected_candidates.values()
+        ),
+        "page_with_unit_start_count": int(pages_with_starts),
+        "page_without_unit_start_count": (
+            len(expected_candidates) - int(pages_with_starts)
+        ),
+        "possible_target_unit_route_count": possible_route_count,
+    }
+    for field, expected_value in expected_summary.items():
+        if summary.get(field) != expected_value:
+            issues.append(f"target structural crosswalk summary {field} drifted")
     return issues
 
 
@@ -1336,6 +1671,14 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             TRANSFER_CANDIDATE_CROSSWALK_SCHEMA,
             repo_root,
         )
+        hierarchical_target_map_validator, _ = _schema_validator(
+            HIERARCHICAL_TARGET_NUMBERED_UNIT_MAP_SCHEMA,
+            repo_root,
+        )
+        target_structural_crosswalk_validator, _ = _schema_validator(
+            TARGET_STRUCTURAL_CROSSWALK_SCHEMA,
+            repo_root,
+        )
         german_assisted_review_validator, _ = _schema_validator(
             GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
             repo_root,
@@ -1454,6 +1797,92 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 label_map=loaded_crosswalk_inputs["shared_label_correspondence"],
             ):
                 issues.append((transfer_crosswalk_location, message))
+
+    for target_structure_root in HIERARCHICAL_TARGET_STRUCTURE_PATHS:
+        target_map_path = (
+            repo_root
+            / target_structure_root
+            / "hierarchical-numbered-unit-page-map.json"
+        )
+        target_map = _load_json(target_map_path, repo_root, issues)
+        if target_map is None:
+            continue
+        target_map_location = _relative(target_map_path, repo_root)
+        _validate_payload(
+            target_map,
+            hierarchical_target_map_validator,
+            target_map_location,
+            issues,
+        )
+        for binding_name in ("inventory", "work_boundary"):
+            binding = target_map.get(binding_name)
+            if not isinstance(binding, dict):
+                continue
+            binding_ref = binding.get("ref")
+            if not isinstance(binding_ref, str):
+                continue
+            digest_issue = _digest_bound_ref_issue(
+                binding,
+                expected_path=repo_root / binding_ref,
+                repo_root=repo_root,
+                field=binding_name,
+            )
+            if digest_issue is not None:
+                issues.append((target_map_location, digest_issue))
+        for message in _hierarchical_target_numbered_unit_map_issues(target_map):
+            issues.append((target_map_location, message))
+
+        target_crosswalk_path = (
+            repo_root
+            / target_structure_root
+            / "transfer-candidate-page-crosswalk.v1.json"
+        )
+        target_crosswalk = _load_json(
+            target_crosswalk_path,
+            repo_root,
+            issues,
+        )
+        if target_crosswalk is None:
+            continue
+        target_crosswalk_location = _relative(target_crosswalk_path, repo_root)
+        _validate_payload(
+            target_crosswalk,
+            target_structural_crosswalk_validator,
+            target_crosswalk_location,
+            issues,
+        )
+        loaded_target_crosswalk_inputs: dict[str, object] = {}
+        for input_name, digest_bound_ref in target_crosswalk.get(
+            "inputs", {}
+        ).items():
+            if not isinstance(digest_bound_ref, dict):
+                continue
+            input_ref = digest_bound_ref.get("ref")
+            if not isinstance(input_ref, str):
+                continue
+            input_path = repo_root / input_ref
+            digest_issue = _digest_bound_ref_issue(
+                digest_bound_ref,
+                expected_path=input_path,
+                repo_root=repo_root,
+                field=f"inputs.{input_name}",
+            )
+            if digest_issue is not None:
+                issues.append((target_crosswalk_location, digest_issue))
+            if input_name == "transfer_plan":
+                loaded_target_crosswalk_inputs[input_name] = _load_json(
+                    input_path,
+                    repo_root,
+                    issues,
+                )
+        transfer_plan_input = loaded_target_crosswalk_inputs.get("transfer_plan")
+        if transfer_plan_input is not None:
+            for message in _target_structural_crosswalk_issues(
+                target_crosswalk,
+                transfer_plan=transfer_plan_input,
+                target_map=target_map,
+            ):
+                issues.append((target_crosswalk_location, message))
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}

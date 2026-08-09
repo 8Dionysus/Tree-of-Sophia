@@ -828,6 +828,19 @@ records, not either payload or text. A pairing means only “both witnesses
 materialize this structural label”; it is not an exact passage alignment or a
 translation claim.
 
+The same exact Mysl Item now supplies two additional target-only structure
+routes without exposing its prose. *Zur Genealogie der Moral* preserves 78
+proposed starts across four independently resetting series—preface and three
+essays—while *Der Antichrist* preserves 62 starts in one series. Their
+series-qualified identities prevent repeated numerals from collapsing into a
+false flat unit namespace. Target-only crosswalks narrow the twelve already
+frozen transfer pages to twenty possible target routes, but the German
+parallel-route count remains zero because neither work has an admitted
+source-side numbered-unit map here. These maps and crosswalks create no exact
+passage boundary, accepted Russian, source-to-target alignment, translation
+relation, eligible transfer unit, target gold, semantics, rights clearance,
+or human work.
+
 The Zarathustra foundation pilot also carries one deliberately narrower
 German source-triangulation packet. A deterministic local builder compares an
 ignored eKGWB HTTP response, the exact DTA part-I TEI, and two exact members of

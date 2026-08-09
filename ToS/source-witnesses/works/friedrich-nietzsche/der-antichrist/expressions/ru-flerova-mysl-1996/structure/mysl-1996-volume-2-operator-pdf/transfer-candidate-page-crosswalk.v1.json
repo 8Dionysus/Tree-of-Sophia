@@ -1,0 +1,215 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+  "schema_version": "tos_transfer_candidate_target_structural_crosswalk_v1",
+  "crosswalk_id": "tos.transfer-candidate-target-crosswalk.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996-v1",
+  "status": "prepared-target-structural-only-ineligible",
+  "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+  "target_expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996",
+  "target_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "inputs": {
+    "transfer_plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+      "sha256": "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6"
+    },
+    "candidate_anchor_set": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl",
+      "sha256": "e4dfbb6f35100e1ba44975ab9efa6ccbad4e507ab499e2a5119c5ef31129596a"
+    },
+    "target_hierarchical_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+      "sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c"
+    },
+    "target_rights": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+      "sha256": "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0"
+    }
+  },
+  "method": {
+    "name": "tracked-target-page-to-hierarchical-proposed-unit-start-crosswalk",
+    "version": "1",
+    "selection_frame_changed": false,
+    "source_or_target_text_read": false,
+    "page_intersection_rule": "preceding proposed target unit start plus every proposed target unit start on the candidate page",
+    "source_parallel_unit_map_available": false
+  },
+  "summary": {
+    "candidate_page_count": 6,
+    "random_page_count": 3,
+    "hard_page_count": 3,
+    "page_with_unit_start_count": 5,
+    "page_without_unit_start_count": 1,
+    "possible_target_unit_route_count": 12,
+    "source_parallel_route_count": 0,
+    "human_review_count": 0,
+    "eligible_target_unit_count": 0,
+    "target_gold_count": 0
+  },
+  "candidates": [
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0637-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0637",
+      "target_pdf_page": 637,
+      "stratum": "random",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "main:8",
+        "main:9"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "main:9"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "main:10",
+        "target_pdf_page": 638
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0655-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0655",
+      "target_pdf_page": 655,
+      "stratum": "random",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "main:29",
+        "main:30"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "main:30"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "main:31",
+        "target_pdf_page": 656
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0663-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0663",
+      "target_pdf_page": 663,
+      "stratum": "random",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "main:38",
+        "main:39"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "main:39"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "main:40",
+        "target_pdf_page": 664
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0668-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0668",
+      "target_pdf_page": 668,
+      "stratum": "hard",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "main:43",
+        "main:44"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "main:44"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "main:45",
+        "target_pdf_page": 670
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0685-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0685",
+      "target_pdf_page": 685,
+      "stratum": "hard",
+      "page_relation": "within-one-proposed-target-numbered-unit",
+      "possible_target_unit_refs": [
+        "main:57"
+      ],
+      "starts_on_page_target_unit_refs": [],
+      "next_proposed_start": {
+        "target_unit_ref": "main:58",
+        "target_pdf_page": 686
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0661-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0661",
+      "target_pdf_page": 661,
+      "stratum": "hard",
+      "page_relation": "prior-target-unit-spill-plus-unit-starts",
+      "possible_target_unit_refs": [
+        "main:35",
+        "main:36",
+        "main:37"
+      ],
+      "starts_on_page_target_unit_refs": [
+        "main:36",
+        "main:37"
+      ],
+      "next_proposed_start": {
+        "target_unit_ref": "main:38",
+        "target_pdf_page": 662
+      },
+      "source_parallel_route_status": "not_materialized",
+      "exact_page_end_boundary_known": false,
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    }
+  ],
+  "source_text_included": false,
+  "target_text_included": false,
+  "effects": {
+    "candidate_frame_changed": false,
+    "exact_passage_boundary_created": false,
+    "source_text_accepted": false,
+    "target_text_accepted": false,
+    "source_to_target_alignment_created": false,
+    "translation_alignment_created": false,
+    "target_unit_eligible": false,
+    "target_gold_created": false,
+    "semantic_work_opened": false,
+    "human_work_scheduled": false
+  },
+  "provenance_event_ref": "tos.event.transfer-candidate-target-crosswalk.friedrich-nietzsche.der-antichrist.2026-08-08",
+  "does_not_establish": [
+    "source_text",
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "source_parallel_unit_route",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "accepted_german",
+    "accepted_russian",
+    "target_gold",
+    "eligible_target_unit",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ],
+  "authority_boundary": "text-free target-side narrowing of already-frozen whole-page transfer candidates through one proposed hierarchical target numbered-unit map; no German parallel unit map is materialized, so the result establishes neither a source route nor source-to-target passage alignment, accepted German or Russian, translation correspondence, equivalence or quality, exact passage ends, eligible target units, target gold, semantic work, human work, rights clearance, or canon authority"
+}

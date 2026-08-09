@@ -69,6 +69,13 @@ companions, catalog parity, and any locally present payload bytes. Neither tool
 can certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
+Explicit-local structure builders remain separate from that release-safe
+validator. The Mysl transfer-target builder reads one exact ignored PDF only
+when given a payload root, preserves independently resetting *Genealogie* and
+*Antichrist* number series, and writes text-free proposed anchors and target-only
+crosswalks. Release validation checks their tracked schemas, digests, frozen
+transfer-frame closure, and zero-authority gates without requiring the book.
+
 The catalog/validator pair also owns exact mechanical closure for the three
 authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
 It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim

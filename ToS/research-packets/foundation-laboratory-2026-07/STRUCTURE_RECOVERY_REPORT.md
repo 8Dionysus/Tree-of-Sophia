@@ -226,6 +226,38 @@ neither payload nor text, and it leaves source-only `237a` unpaired. This makes
 future review returnable at shared-label granularity; it does not perform the
 source-to-target passage alignment that remains an open content question.
 
+## Hierarchical Mysl target-only trial
+
+The remaining twelve frozen transfer pages belong to two works whose printed
+numbering cannot honestly reuse the flat *Jenseits* label map. *Zur Genealogie
+der Moral* resets its numerals across four independent series: preface and
+essays 1, 2, and 3. *Der Antichrist* has one 1–62 series. A later bounded
+target-only trial therefore preserves series-qualified identities instead of
+collapsing repeated labels into one false unit namespace.
+
+Over the exact local Mysl PDF, ordered embedded-PDF bbox candidates supplied
+123 of 140 proposed starts. Seventeen gaps were resolved through model-only
+source-visible page inspection: seven *Genealogie* starts across seven pages
+and ten *Antichrist* starts across nine pages. The resulting maps preserve:
+
+| Target expression | Series | Proposed starts | Ordered bbox | Visible model overrides |
+| --- | ---: | ---: | ---: | ---: |
+| *Genealogie*, Svasyan | 4 | 78 | 71 | 7 |
+| *Antichrist*, Flerova | 1 | 62 | 52 | 10 |
+| **Total** | **5** | **140** | **123** | **17** |
+
+The builder emits no Russian prose. It binds the exact local Item inventory
+and collection work-boundary map, emits proposed whole-page anchors, and keeps
+all starts unreviewed by a real human. A separate target-only crosswalk narrows
+the six frozen *Genealogie* pages to eight possible series-qualified routes
+and the six *Antichrist* pages to twelve. No German parallel numbered-unit map
+exists for either work in this slice, so the source-route count remains zero.
+
+This closes target-side navigation mechanics only. It supplies no exact line
+or passage-end boundary, accepted Russian, German source route,
+source-to-target alignment, translation relation, semantics, rights
+clearance, eligible transfer unit, target gold, or human work.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all
@@ -245,13 +277,17 @@ source-to-target passage alignment that remains an open content question.
 7. Keep all 15 gold candidates unaccepted until two real source-visible human
    passes are recorded.
 8. Reuse the 246 Zarathustra structural addresses, 299 Jenseits source starts,
-   and 298 target-only Polilov/Mysl starts for future bounded review and
-   comparison, but require a narrower reviewed anchor before treating a whole
-   member or page as an exact passage boundary.
+   298 target-only Polilov/Mysl starts, and 140 series-qualified
+   Genealogie/Antichrist target starts for future bounded review and comparison,
+   but require a narrower reviewed anchor before treating a whole member or
+   page as an exact passage boundary.
 9. Keep source and target numbered-unit maps independent. The derived
    shared-label pairs may seed later explicit passage-alignment review, but
    they do not themselves prove textual, translational, or semantic
    correspondence.
+10. Keep the Genealogie and Antichrist crosswalks target-only until an exact
+    source-side question justifies a separately evidenced German unit map; do
+    not manufacture parallel routes from matching numerals or work identity.
 
 ## What remains unknown
 
@@ -264,6 +300,9 @@ source-to-target passage alignment that remains an open content question.
   provided auto-EPUB text;
 - whether independently reviewed narrow source and target anchors support any
   unit-level translation alignment beyond shared visible numbering;
+- whether a question-specific German source map can be admitted for either
+  *Genealogie* or *Antichrist* without flattening documentary or numbering
+  structure;
 - whether any structure output is stable enough to seed translation,
   semantic, sign, relation, concept, or graph work.
 

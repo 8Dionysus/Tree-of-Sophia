@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
+  "title": "Tree of Sophia transfer candidate target-only structural crosswalk",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "crosswalk_id",
+    "status",
+    "work_ref",
+    "target_expression_ref",
+    "target_item_ref",
+    "inputs",
+    "method",
+    "summary",
+    "candidates",
+    "source_text_included",
+    "target_text_included",
+    "effects",
+    "provenance_event_ref",
+    "does_not_establish",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_transfer_candidate_target_structural_crosswalk_v1"
+    },
+    "crosswalk_id": {
+      "type": "string",
+      "pattern": "^tos\\.transfer-candidate-target-crosswalk\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {"const": "prepared-target-structural-only-ineligible"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "target_expression_ref": {"$ref": "#/$defs/tosId"},
+    "target_item_ref": {"$ref": "#/$defs/tosId"},
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transfer_plan",
+        "candidate_anchor_set",
+        "target_hierarchical_numbered_unit_map",
+        "target_rights"
+      ],
+      "properties": {
+        "transfer_plan": {"$ref": "#/$defs/fileRef"},
+        "candidate_anchor_set": {"$ref": "#/$defs/fileRef"},
+        "target_hierarchical_numbered_unit_map": {"$ref": "#/$defs/fileRef"},
+        "target_rights": {"$ref": "#/$defs/fileRef"}
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "selection_frame_changed",
+        "source_or_target_text_read",
+        "page_intersection_rule",
+        "source_parallel_unit_map_available"
+      ],
+      "properties": {
+        "name": {"const": "tracked-target-page-to-hierarchical-proposed-unit-start-crosswalk"},
+        "version": {"const": "1"},
+        "selection_frame_changed": {"const": false},
+        "source_or_target_text_read": {"const": false},
+        "page_intersection_rule": {
+          "const": "preceding proposed target unit start plus every proposed target unit start on the candidate page"
+        },
+        "source_parallel_unit_map_available": {"const": false}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_page_count",
+        "random_page_count",
+        "hard_page_count",
+        "page_with_unit_start_count",
+        "page_without_unit_start_count",
+        "possible_target_unit_route_count",
+        "source_parallel_route_count",
+        "human_review_count",
+        "eligible_target_unit_count",
+        "target_gold_count"
+      ],
+      "properties": {
+        "candidate_page_count": {"type": "integer", "minimum": 1},
+        "random_page_count": {"type": "integer", "minimum": 0},
+        "hard_page_count": {"type": "integer", "minimum": 0},
+        "page_with_unit_start_count": {"type": "integer", "minimum": 0},
+        "page_without_unit_start_count": {"type": "integer", "minimum": 0},
+        "possible_target_unit_route_count": {"type": "integer", "minimum": 1},
+        "source_parallel_route_count": {"const": 0},
+        "human_review_count": {"const": 0},
+        "eligible_target_unit_count": {"const": 0},
+        "target_gold_count": {"const": 0}
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/candidate"}
+    },
+    "source_text_included": {"const": false},
+    "target_text_included": {"const": false},
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_frame_changed",
+        "exact_passage_boundary_created",
+        "source_text_accepted",
+        "target_text_accepted",
+        "source_to_target_alignment_created",
+        "translation_alignment_created",
+        "target_unit_eligible",
+        "target_gold_created",
+        "semantic_work_opened",
+        "human_work_scheduled"
+      ],
+      "properties": {
+        "candidate_frame_changed": {"const": false},
+        "exact_passage_boundary_created": {"const": false},
+        "source_text_accepted": {"const": false},
+        "target_text_accepted": {"const": false},
+        "source_to_target_alignment_created": {"const": false},
+        "translation_alignment_created": {"const": false},
+        "target_unit_eligible": {"const": false},
+        "target_gold_created": {"const": false},
+        "semantic_work_opened": {"const": false},
+        "human_work_scheduled": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "does_not_establish": {
+      "const": [
+        "source_text",
+        "target_text",
+        "exact_line_boundaries",
+        "exact_passage_end_boundaries",
+        "source_parallel_unit_route",
+        "source_to_target_passage_alignment",
+        "translation_correspondence",
+        "translation_equivalence",
+        "translation_quality",
+        "textual_identity",
+        "accepted_german",
+        "accepted_russian",
+        "target_gold",
+        "eligible_target_unit",
+        "semantics",
+        "rights_clearance",
+        "canon_promotion"
+      ]
+    },
+    "authority_boundary": {"type": "string", "minLength": 180}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoPath": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.[A-Za-z0-9._-]+$"},
+    "targetUnitRef": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*:[1-9][0-9]*$"
+    },
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "nextStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_unit_ref", "target_pdf_page"],
+      "properties": {
+        "target_unit_ref": {"$ref": "#/$defs/targetUnitRef"},
+        "target_pdf_page": {"type": "integer", "minimum": 1}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_unit_id",
+        "candidate_anchor_ref",
+        "target_pdf_page",
+        "stratum",
+        "page_relation",
+        "possible_target_unit_refs",
+        "starts_on_page_target_unit_refs",
+        "next_proposed_start",
+        "source_parallel_route_status",
+        "exact_page_end_boundary_known",
+        "eligible_for_variant_execution",
+        "target_gold_status"
+      ],
+      "properties": {
+        "candidate_unit_id": {
+          "type": "string",
+          "pattern": "^tos-target-candidate-[a-z0-9-]+$"
+        },
+        "candidate_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "target_pdf_page": {"type": "integer", "minimum": 1},
+        "stratum": {"enum": ["random", "hard"]},
+        "page_relation": {
+          "enum": [
+            "within-one-proposed-target-numbered-unit",
+            "prior-target-unit-spill-plus-unit-starts"
+          ]
+        },
+        "possible_target_unit_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/targetUnitRef"}
+        },
+        "starts_on_page_target_unit_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/targetUnitRef"}
+        },
+        "next_proposed_start": {"$ref": "#/$defs/nextStart"},
+        "source_parallel_route_status": {"const": "not_materialized"},
+        "exact_page_end_boundary_known": {"const": false},
+        "eligible_for_variant_execution": {"const": false},
+        "target_gold_status": {"const": "not_started"}
+      }
+    }
+  }
+}
