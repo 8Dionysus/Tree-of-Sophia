@@ -280,6 +280,27 @@ boundary, accepted German or Russian, source-to-target passage alignment,
 translation relation, semantics, rights clearance, eligible transfer unit,
 target gold, canon effect, or human work.
 
+## Frozen target-passage boundary materialization
+
+A later target-only continuation used those structural routes as conservative
+inputs, then returned to the exact ignored Mysl PDF. For all thirty-five routes
+it sliced the ordered word-bbox layer from one visible numbered-unit label to
+the next label in the same series. The result preserves the frozen twenty-page
+sample and makes the earlier spill ambiguity testable:
+
+- 35 private layer-exact automatic passage candidates were materialized;
+- 32 geometrically intersect the frozen candidate page;
+- *Jenseits* 284/page 399, *Jenseits* 46/page 279, and *Antichrist*
+  `main:35`/page 661 are explicit rejected nonintersections;
+- all private strings remain mode 0600 under the ignored owner-local content
+  tree; tracked artifacts contain only geometry, counts, digests, anchors,
+  provenance, and zero-effect gates.
+
+This is exact only relative to the automatic PDF bbox layer. It creates no
+diplomatic or accepted Russian, German source passage, source-to-target
+alignment, translation relation, eligibility, target gold, semantic or canon
+effect, publication route, or human task.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all

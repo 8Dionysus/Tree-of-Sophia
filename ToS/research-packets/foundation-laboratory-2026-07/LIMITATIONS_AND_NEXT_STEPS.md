@@ -161,7 +161,7 @@ or publication route.
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
-| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; the eight frozen *Jenseits* pages narrow to fifteen possible same-label routes, and all twelve frozen *Genealogie*/*Antichrist* pages now narrow through twenty additional German structural routes; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; all 20 structurally source-routable; 35 possible routes; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | structural labels still give no exact passage ends, accepted text, passage or translation alignment; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
+| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; all twenty pages are structurally source-routable through thirty-five conservative routes; a target-only exact-layer pass materializes thirty-five private numbered-unit slices while retaining three spill routes as explicit nonintersection negatives; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible pages; 35 layer-exact automatic target candidates; 32 page intersections; 3 rejected nonintersections; 0 accepted target passages; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | automatic target-layer boundaries are not diplomatic or accepted Russian and still give no German source passage, passage or translation alignment; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -618,10 +618,13 @@ contracts intentionally reject simulated human evidence.
   navigation under a bounded two-page relation. Their crosswalks narrow the
   remaining twelve frozen pages to twenty possible German structural routes.
   Thus all twenty pages are structurally source-routable through 35 possible
-  routes, but none has an exact passage end or passage/translation alignment.
-  The tracked pairing and route transform reads no source or target prose and
-  creates no accepted text, eligible unit, target gold, semantic task, rights
-  clearance, canon effect, or human debt.
+  routes. A separate exact local pass now slices all thirty-five routes in the
+  automatic target PDF bbox layer: thirty-two intersect the frozen page and
+  three are retained as rejected nonintersections. The private strings remain
+  ignored and mode 0600; tracked artifacts remain text-free. None of these
+  slices is diplomatic or accepted Russian, a German source passage, a passage
+  or translation alignment, an eligible unit, target gold, semantic task,
+  rights clearance, canon effect, or human debt.
 - Whole-work lexical observation now exists over the four exact DTA part TEIs:
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and
@@ -1292,11 +1295,13 @@ from the calibration-only route in section 2b.
    aggregate route, and proposed structural source starts. It still needs
    admitted German and question-bounded exact passage anchors; the separate
    DjVuXML navigation Item is not textual identity or an accepted witness text.
-3. If the user deliberately activates the transfer experiment, advance the
-   twenty already frozen private page candidates into exact source-visible
-   target passages and target gold without viewing variant outputs. Introduce
-   hard negatives only after an accepted kernel sign exists; preparation
-   itself schedules no human backlog.
+3. If the user deliberately activates the transfer experiment, begin from the
+   thirty-two intersecting layer-exact target candidates and the three retained
+   nonintersection negatives. Verify or correct target boundaries, admit the
+   target text, establish the German source passages and alignments, then freeze
+   target gold without viewing variant outputs. Introduce hard negatives only
+   after an accepted kernel sign exists; preparation itself schedules no human
+   backlog.
 4. Run A without the kernel, B with general contracts only, and C with
    human-accepted *Zarathustra* packets under identical runtime conditions.
 5. Measure speed, accuracy, correction, traceability, hallucinated relations,

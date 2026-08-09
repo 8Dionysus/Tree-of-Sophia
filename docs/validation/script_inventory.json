@@ -724,6 +724,33 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_golden_kernel_transfer_target_passages.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/payload/*",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/alignments/structure/**",
+        "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Mysl PDF plus the tracked frozen transfer plan, target structural maps, source structural routes and pairings, rights, and source anchors"
+      ],
+      "writes": [
+        "thirty-five ignored mode-0600 private target-passage JSON files plus a tracked text-free candidate set, proposed/rejected anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "keeps the frozen twenty-page frame; materializes thirty-five layer-exact bbox candidates with thirty-two page intersections and three explicit negative intersections; creates no accepted text, source passage, alignment, eligibility, gold, human, semantic, canon, or publication effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_golden_kernel_transfer_target_passages.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_witness_structure_correspondence.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -917,6 +944,31 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_golden_kernel_transfer_target_passages.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "source_truth": [
+        "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-anchors.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl",
+        ".gitignore"
+      ],
+      "reads": [
+        "tracked schema, frozen plan, text-free candidate closure, anchors, provenance, input digests, and ignore boundary; optionally the explicit private output root"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; preserves exactly thirty-five candidates, thirty-two intersections, three rejected nonintersections, ignored private content, and zero accepted-text/alignment/eligibility/gold/human/semantic/canon effects",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_target_passages.py",
       "disposition": "keep"
     },
     {

@@ -346,6 +346,10 @@
         "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
       },
       {
+        "label": "validate golden-kernel transfer target passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
+      },
+      {
         "label": "validate Zarathustra lexical projection",
         "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
       },
@@ -578,6 +582,10 @@
       {
         "label": "validate Nietzsche transfer source routes",
         "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
+      },
+      {
+        "label": "validate golden-kernel transfer target passages",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_target_passages.py"]
       },
       {
         "label": "validate Zarathustra lexical projection",

@@ -26,6 +26,9 @@ The valid result is therefore a stopped result before execution:
 - reject those pages as semantic-transfer evaluation units;
 - retain twenty private, content-bearing whole-page candidates selected before
   any variant output as **ineligible preparation soil**, not target gold;
+- retain thirty-two private numbered-unit slices that actually intersect those
+  frozen pages as **layer-exact automatic candidates**, while preserving three
+  conservative spill routes as explicit nonintersection rejections;
 - retain the exact *Jenseits* §22 route from W I 7 through D 18 to the
   publication/critical comparison as separate textual-genetic source soil,
   outside both the twenty-page sampling frame and the A/B/C transfer variants;
@@ -380,10 +383,34 @@ keys and closes all 140 structural label pairs. Composed with the immutable
 target-only crosswalks, it gives the twelve pages twenty possible German
 structural routes. Together with the fifteen *Jenseits* routes, all twenty
 frozen pages are structurally source-routable through 35 possibilities. Every
-page retains zero exact passage ends, zero passage/translation alignment, zero
-accepted German or Russian, zero eligibility, zero target gold, zero semantic
-or canon effect, and zero human work. No number match, Work identity, or page
-proximity is treated as content acceptance or correspondence.
+page retains zero accepted target or German-source passage ends, zero
+passage/translation alignment, zero accepted German or Russian, zero
+eligibility, zero target gold, zero semantic or canon effect, and zero human
+work. No number match, Work identity, or page proximity is treated as content
+acceptance or correspondence.
+
+### Layer-exact target passage candidates
+
+A later target-only pass returned to the exact ignored Mysl PDF and resolved
+each of those thirty-five conservative routes from one numbered label to the
+next same-series label in the ordered word-bbox layer. The frozen page frame
+did not change. Thirty-two slices geometrically intersect their candidate
+page; three do not and are retained as negative evidence:
+
+| Frozen page | Conservative route | Layer-exact result |
+| ---: | --- | --- |
+| 399, *Jenseits* | 284 | rejected nonintersection |
+| 279, *Jenseits* | 46 | rejected nonintersection |
+| 661, *Antichrist* | `main:35` | rejected nonintersection |
+
+The private target strings are mode 0600 under ignored
+`local-content/transfer-target-passages/v1/`. Tracked records carry only
+selectors, geometry, counts, digests, proposed/rejected anchors, and
+provenance. “Layer-exact” means exact inside this automatic embedded-PDF layer;
+it does not mean diplomatic transcription, accepted Russian, a complete
+philosophical sample, exact German source passage, source-to-target alignment,
+translation evidence, eligibility, target gold, semantic authority, or human
+review. All twenty frozen pages still have at least one intersecting candidate.
 
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
@@ -412,15 +439,19 @@ the kernel even when the target text resists it.
 ## What still must become an eligible target sample
 
 The three title pages remain scouting units. The twenty newly prepared pages
-are the frozen sampling frame, but they are not yet exact philosophical
-passages. The thirty-five possible structural routes reduce later lookup work
-but do not decide which unit or units actually intersect a complete passage.
+are the frozen sampling frame, but they are not yet accepted philosophical
+passages. The thirty-five conservative routes now have exact automatic target
+layer slices: thirty-two intersect their candidate page and three are rejected
+nonintersections. This removes page-spill ambiguity mechanically but does not
+decide which slice becomes the authority-bearing sample.
 Before execution, a deliberately triggered transfer run must turn that frame
 into twenty authority-bearing `target_units` without looking at any variant
 output:
 
 - preserve the fixed 10-random / 10-hard balance and the three-work quotas;
-- resolve exact passage boundaries and source text from the visible source;
+- verify or correct the target-layer boundaries against the visible source,
+  admit the target text, and separately establish the exact German source
+  passage and source-to-target alignment;
 - freeze target annotations and an error rubric through the required
   source-visible passes;
 - classify prose, rhetoric, page-boundary cases, and target-specific signs
@@ -478,7 +509,9 @@ compensate for added human correction.
   new categories are durable laboratory method.
 - **Retain with limits:** the three title pages remain source-addressable
   scouting boundaries for structure and retrieval; the twenty private pages
-  remain reproducible, pre-output candidate soil only.
+  and thirty-two intersecting layer-exact slices remain reproducible,
+  pre-output candidate soil only; the three nonintersections remain negative
+  evidence.
 - **Block:** all semantic transfer, sign reuse, translation reuse, relation
   reuse, benefit claims, harm claims, and backend winner claims.
 - **Reject as invalid:** any run that uses title pages or ineligible page

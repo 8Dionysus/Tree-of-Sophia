@@ -177,6 +177,17 @@ anchors, digests, provenance, pairings, and routes. None of these routes accepts
 German or Russian text, creates exact passage ends or passage/translation
 alignment, or opens eligibility, gold, semantic, canon, or human work.
 
+`build_golden_kernel_transfer_target_passages.py` returns from those conservative
+routes to the exact ignored Mysl PDF through explicit payload and output roots.
+It keeps the frozen twenty-page frame unchanged, slices all thirty-five routes
+from one numbered label to the next same-series label, writes private mode-0600
+content under ignored `local-content/`, and emits only text-free geometry,
+digests, proposed/rejected anchors, and provenance to Git. The companion
+validator preserves thirty-two page intersections and three rejected
+nonintersections. Neither route creates diplomatic or accepted Russian, a
+source passage or source-to-target alignment, eligibility, gold, semantics,
+canon, publication authority, or human work.
+
 `build_jenseits_numbered_unit_label_correspondence.py` is the release-safe
 companion over the two independently generated Jenseits numbered-unit maps.
 It reads no payload or text: it intersects exact materialized `unit_key`
@@ -367,6 +378,7 @@ Local owner routes:
 | local Mysl Genealogie/Antichrist target structure | `python scripts/build_mysl_transfer_target_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the local route reads only the exact ignored target PDF, while release validation uses tracked text-free outputs |
 | local Genealogie/Antichrist German source structure | `python scripts/build_nietzsche_transfer_source_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_nietzsche_transfer_source_routes.py`; local payloads remain ignored and the tracked result is text-free |
 | Genealogie/Antichrist shared labels and frozen-candidate source routes | `python scripts/build_nietzsche_transfer_source_routes.py --check`, then `python scripts/validate_nietzsche_transfer_source_routes.py`; this route reads tracked maps only and preserves zero text/alignment/eligibility/gold/human/semantic effects |
+| private golden-kernel target numbered-unit passage candidates | `python scripts/build_golden_kernel_transfer_target_passages.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_golden_kernel_transfer_target_passages.py --local-output-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses`; tracked release validation omits the private root and preserves the 32-intersection/3-rejection boundary |
 | local Zarathustra German source triangulation | `python scripts/build_zarathustra_german_source_triangulation.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the release lane validates tracked closure without requiring the ignored inputs |
 | bounded local Zarathustra translation calibration input | `python scripts/build_zarathustra_bounded_translation_input.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_source_witness_foundation.py`; the two explicit roots respectively supply exact inputs and own the ignored source-bearing output |
 | canon/example contracts | `python scripts/validate_tree_node_contracts.py`, `python mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py`, or `python mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py` |

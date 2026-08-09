@@ -850,9 +850,23 @@ DjVuXML Item is navigation evidence under a source-visible, bounded two-page
 offset. This relation is not full-container or textual identity. A payload-free
 intersection pairs only identical `series:unit` keys, and a second composition
 gives all twelve frozen pages twenty possible German structural routes. These
-routes create no exact passage end, accepted German or Russian,
+source routes create no German source passage end, accepted German or Russian,
 source-to-target passage alignment, translation relation, eligible transfer
 unit, target gold, semantics, rights clearance, canon effect, or human work.
+
+The frozen target side now has a separate exact-layer boundary preparation
+step over the ignored Mysl PDF. It expands the twenty page candidates into
+thirty-five numbered-unit passage candidates, using ordered PDF word geometry
+from one visible unit label to the next same-series label. Thirty-two candidates
+intersect their frozen page; three conservative spill routes (`Jenseits` 284 on
+page 399, `Jenseits` 46 on page 279, and `Antichrist` 35 on page 661) are kept
+as explicit rejected nonintersections instead of being silently discarded.
+Private strings remain mode 0600 below ignored `local-content/`; Git receives
+only selectors, geometry, counts, digests, proposed/rejected anchors, and
+provenance. These are layer-exact target candidates, not diplomatic or accepted
+Russian, exact German passages, passage alignments, translation evidence,
+eligible units, target gold, semantic claims, canon effects, publication
+authority, or new human work.
 
 The Zarathustra foundation pilot also carries one deliberately narrower
 German source-triangulation packet. A deterministic local builder compares an

@@ -212,6 +212,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_golden_kernel_transfer_target_passages.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+      "protects": "20 frozen page candidates, 35 private layer-exact target passage candidates, 32 page intersections, three preserved nonintersection negatives, ignored text custody, and zero accepted text, alignment, eligibility, gold, human, semantic, or canon promotion",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_golden_kernel_transfer_target_passages.py",
+      "failure_route": "Fix the target passage candidate contract, tracked receipt, anchors, provenance, builder, or validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_bibliographic_graph.py",
       "home": "tests",
       "home_scope": "root",

@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json",
+  "title": "Tree of Sophia transfer target passage candidate set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "candidate_set_id",
+    "transfer_plan_ref",
+    "transfer_plan_sha256",
+    "target_witness",
+    "inputs",
+    "method",
+    "passage_candidates",
+    "summary",
+    "effects",
+    "provenance_event_ref",
+    "status",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-target-passage-candidate-set.schema.json"},
+    "schema_version": {"const": "tos_transfer_target_passage_candidate_set_v1"},
+    "candidate_set_id": {"$ref": "#/$defs/tosId"},
+    "transfer_plan_ref": {"$ref": "#/$defs/repoPath"},
+    "transfer_plan_sha256": {"$ref": "#/$defs/sha256"},
+    "target_witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_ref", "file_sha256", "rights_ref", "rights_sha256"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_ref": {"$ref": "#/$defs/repoPath"},
+        "rights_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/inputRef"}
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "maker_type",
+        "navigation_tool",
+        "selection_law",
+        "local_payloads_read",
+        "private_content_written",
+        "human_review_performed"
+      ],
+      "properties": {
+        "name": {"const": "expected-structural-label-to-next-label-bbox-slice"},
+        "version": {"const": "1"},
+        "maker_type": {"const": "mixed"},
+        "navigation_tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "mode"],
+          "properties": {
+            "name": {"const": "pdftotext"},
+            "version": {"type": "string", "minLength": 1},
+            "mode": {"const": "bbox-layout"}
+          }
+        },
+        "selection_law": {"const": "include expected numbered-unit label line and following bbox lines until the next same-series expected label, excluding the next label and page footer"},
+        "local_payloads_read": {"const": true},
+        "private_content_written": {"const": true},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "passage_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/passageCandidate"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frozen_page_candidate_count",
+        "conservative_structural_route_count",
+        "layer_exact_passage_candidate_count",
+        "candidate_page_intersection_count",
+        "nonintersecting_route_count",
+        "accepted_target_passage_count",
+        "eligible_target_unit_count",
+        "target_gold_count",
+        "human_review_count"
+      ],
+      "properties": {
+        "frozen_page_candidate_count": {"type": "integer", "minimum": 1},
+        "conservative_structural_route_count": {"type": "integer", "minimum": 1},
+        "layer_exact_passage_candidate_count": {"type": "integer", "minimum": 1},
+        "candidate_page_intersection_count": {"type": "integer", "minimum": 0},
+        "nonintersecting_route_count": {"type": "integer", "minimum": 0},
+        "accepted_target_passage_count": {"const": 0},
+        "eligible_target_unit_count": {"const": 0},
+        "target_gold_count": {"const": 0},
+        "human_review_count": {"const": 0}
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_frame_changed",
+        "private_target_text_materialized",
+        "tracked_target_text_created",
+        "layer_exact_target_boundary_candidates_created",
+        "accepted_target_text_created",
+        "source_passage_boundary_created",
+        "source_to_target_passage_alignment_created",
+        "translation_alignment_created",
+        "target_unit_eligible",
+        "target_gold_created",
+        "semantic_work_opened",
+        "human_work_scheduled",
+        "canon_effect"
+      ],
+      "properties": {
+        "candidate_frame_changed": {"const": false},
+        "private_target_text_materialized": {"const": true},
+        "tracked_target_text_created": {"const": false},
+        "layer_exact_target_boundary_candidates_created": {"const": true},
+        "accepted_target_text_created": {"const": false},
+        "source_passage_boundary_created": {"const": false},
+        "source_to_target_passage_alignment_created": {"const": false},
+        "translation_alignment_created": {"const": false},
+        "target_unit_eligible": {"const": false},
+        "target_gold_created": {"const": false},
+        "semantic_work_opened": {"const": false},
+        "human_work_scheduled": {"const": false},
+        "canon_effect": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "status": {"const": "prepared-ineligible"},
+    "authority_boundary": {"type": "string", "minLength": 1},
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.(work|expression|edition|collection|item|file|passage|anchor|event|transfer-candidate-set)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "inputRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "role", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "role": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "pointBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "x_min_points", "y_min_points", "x_max_points", "y_max_points", "marker_basis"],
+      "properties": {
+        "page": {"type": "integer", "minimum": 1},
+        "x_min_points": {"type": "number", "minimum": 0},
+        "y_min_points": {"type": "number", "minimum": 0},
+        "x_max_points": {"type": "number", "exclusiveMinimum": 0},
+        "y_max_points": {"type": "number", "exclusiveMinimum": 0},
+        "marker_basis": {"enum": ["exact-expected-single-line-number-label-in-pdf-bbox-layer", "source-visible-exact-label-over-ocr-token"]}
+      }
+    },
+    "passageCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passage_candidate_id",
+        "frozen_page_candidate_id",
+        "frozen_candidate_page",
+        "stratum",
+        "work_ref",
+        "expression_ref",
+        "qualified_unit_key",
+        "passage_ref",
+        "passage_anchor_ref",
+        "prior_start_anchor_ref",
+        "source_structural_anchor_ref",
+        "source_structural_start_page",
+        "route_basis_ref",
+        "start",
+        "end_exclusive",
+        "page_span",
+        "candidate_page_line_count",
+        "candidate_page_intersects_passage",
+        "private_content_ref",
+        "private_content_sha256",
+        "private_content_bytes",
+        "text_character_count",
+        "line_count",
+        "word_count",
+        "source_layer",
+        "boundary_posture",
+        "status",
+        "human_review_performed",
+        "accepted_target_text",
+        "eligible_for_variant_execution",
+        "target_gold_status",
+        "limitations"
+      ],
+      "properties": {
+        "passage_candidate_id": {"type": "string", "pattern": "^tos-target-passage-candidate-[a-z0-9-]+$"},
+        "frozen_page_candidate_id": {"type": "string", "pattern": "^tos-target-candidate-[a-z0-9-]+$"},
+        "frozen_candidate_page": {"type": "integer", "minimum": 1},
+        "stratum": {"enum": ["random", "hard"]},
+        "work_ref": {"$ref": "#/$defs/tosId"},
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "qualified_unit_key": {"type": "string", "pattern": "^(?:[a-z0-9-]+:)?[0-9]+(?:a)?$"},
+        "passage_ref": {"$ref": "#/$defs/tosId"},
+        "passage_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "prior_start_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "source_structural_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "source_structural_start_page": {"type": "integer", "minimum": 1},
+        "route_basis_ref": {"$ref": "#/$defs/repoPath"},
+        "start": {"$ref": "#/$defs/pointBoundary"},
+        "end_exclusive": {"$ref": "#/$defs/pointBoundary"},
+        "page_span": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1}
+        },
+        "candidate_page_line_count": {"type": "integer", "minimum": 0},
+        "candidate_page_intersects_passage": {"type": "boolean"},
+        "private_content_ref": {"$ref": "#/$defs/repoPath"},
+        "private_content_sha256": {"$ref": "#/$defs/sha256"},
+        "private_content_bytes": {"type": "integer", "minimum": 1},
+        "text_character_count": {"type": "integer", "minimum": 1},
+        "line_count": {"type": "integer", "minimum": 1},
+        "word_count": {"type": "integer", "minimum": 1},
+        "source_layer": {"const": "embedded-pdf-bbox-pdftotext-automatic-candidate"},
+        "boundary_posture": {"const": "layer-exact-proposed-not-diplomatic"},
+        "status": {"enum": ["proposed-intersecting-layer-exact", "rejected-nonintersecting-layer-exact"]},
+        "human_review_performed": {"const": false},
+        "accepted_target_text": {"const": false},
+        "eligible_for_variant_execution": {"const": false},
+        "target_gold_status": {"const": "not_started"},
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

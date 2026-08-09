@@ -88,6 +88,16 @@ and route closure; it explicitly cannot prove accepted text, exact passage
 ends, source-target passage alignment, translation, eligibility, gold,
 semantics, canon, or human judgment.
 
+The transfer target-passage builder is the next deliberately local-only layer.
+It keeps the twenty frozen pages and thirty-five conservative routes unchanged,
+then slices each expected target numbered unit from its label to the next
+same-series label in the exact Mysl PDF bbox layer. Thirty-five private mode-0600
+files stay ignored; tracked geometry, counts, digests, anchors, and provenance
+retain thirty-two real page intersections and three nonintersection negatives.
+Its release validator proves that closure without reading private text. Layer
+exactness is not diplomatic or accepted Russian, source-passage evidence,
+alignment, target gold, eligibility, semantics, canon, or human judgment.
+
 The catalog/validator pair also owns exact mechanical closure for the three
 authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
 It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim

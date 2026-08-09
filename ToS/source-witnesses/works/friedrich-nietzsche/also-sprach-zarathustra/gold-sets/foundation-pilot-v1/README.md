@@ -184,6 +184,15 @@ Zarathustra golden kernel. It is not a completed gold set.
   kernel gold units, accepted sign and translation packets, and 20
   double-checked content-bearing target passages. `transfer-provenance.jsonl`
   binds that non-run decision to the current source and gold gates.
+- `transfer-target-passage-candidates.v1.json` now returns all thirty-five
+  conservative routes to the exact ignored Mysl PDF. It records thirty-two
+  page-intersecting and three rejected nonintersecting numbered-unit slices;
+  private strings are mode 0600 under ignored
+  `local-content/transfer-target-passages/v1/`, while tracked candidates and
+  anchors contain only selectors, geometry, counts, digests, provenance, and
+  zero-effect gates. Layer-exact automatic boundaries are not diplomatic or
+  accepted Russian, German source passages, alignments, eligible units, gold,
+  semantics, canon, publication authority, or human work.
 - `semantic-samples.json` uses the task-specific semantic v2 contract while
   retaining the universal 30-source/15-gold gate only as a digest-bound
   historical snapshot without scheduling or execution authority.
