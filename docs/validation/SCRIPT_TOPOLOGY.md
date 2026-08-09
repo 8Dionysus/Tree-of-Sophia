@@ -99,18 +99,25 @@ exactness is not diplomatic or accepted Russian, source-passage evidence,
 alignment, target gold, eligibility, semantics, canon, or human judgment.
 
 The companion transfer source-passage builder returns to the exact German
-layers but does not pretend that every structural route has a recoverable text
-boundary. It materializes thirty-two private mode-0600 candidates: twenty-eight
-use one named ABBYY, DjVuXML, or PDF-bbox layer and four use an exact
+layers and materializes all thirty-five private mode-0600 candidates.
+Twenty-nine use one named ABBYY, DjVuXML, or PDF-bbox layer; four use an exact
 source-visible JP2 marker bound through same-Item scandata to the first
-following DjVuXML line. Three routes remain explicit unresolved-boundary
-records. Tracked data contains geometry, digests, witness relations, counts,
-anchors, and no source strings. The validator separately preserves the
+following DjVuXML line; two use an embedded same-PDF image-mask marker bound to
+the first following Poppler bbox record. Tracked data contains geometry,
+digests, witness relations, counts, anchors, and no source strings. The
+validator fixes both visible-marker mechanisms and separately preserves the
 Antichrist Commons-address to Internet-Archive-navigation two-page relation as
-navigation only, with no
-textual-identity claim. Neither builder nor validator accepts German, aligns a
-source passage to Russian, opens eligibility or gold, schedules human work, or
-creates semantic, publication, or canon authority.
+navigation only, with no textual-identity claim.
+
+The tracked-only readiness builder then joins source and target candidate IDs
+without reading private content. It records thirty-five dual mechanically
+available routes, the target's thirty-two intersections and three
+nonintersections, and at least one dual intersecting route for each of the
+twenty frozen pages. Its validator prevents co-availability from becoming a
+bilingual passage pair. None of these builders or validators accepts German or
+Russian, aligns a source passage to a target passage, opens eligibility or
+gold, schedules human work, or creates semantic, publication, or canon
+authority.
 
 The catalog/validator pair also owns exact mechanical closure for the three
 authored identity-ladder claim files under `ToS/source-witnesses/relations/`.

@@ -27,25 +27,13 @@ PROVENANCE_PATH = GOLD_ROOT / "transfer-provenance.jsonl"
 SCHEMA_PATH = Path("ToS/contracts/transfer-source-passage-candidate-set.schema.json")
 ANCHOR_SCHEMA_PATH = Path("ToS/contracts/source-anchor.schema.json")
 EVENT_ID = "tos.event.segmentation.golden-kernel-transfer-source-passages-v1.2026-08-08"
-EXPECTED_UNRESOLVED = {
-    (
-        "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
-        "32",
-    ): ("start",),
-    (
-        "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
-        "201",
-    ): ("end_exclusive",),
-    (
-        "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
-        "essay-1:10",
-    ): ("end_exclusive",),
-}
+EXPECTED_UNRESOLVED: dict[tuple[str, str], tuple[str, ...]] = {}
 EXPECTED_LAYER_COUNTS = {
     "abbyy-xml-paragraph": 12,
     "djvu-xml-line": 9,
     "jp2-visible-marker-plus-djvu-xml-line": 4,
-    "poppler-pdf-bbox-line": 7,
+    "pdf-visible-marker-plus-poppler-pdf-bbox-line": 2,
+    "poppler-pdf-bbox-line": 8,
 }
 EXPECTED_JP2_MARKER_RETURNS = {
     "main:8": (
@@ -102,10 +90,40 @@ EXPECTED_JP2_MARKER_RETURNS = {
         ),
     ),
 }
+EXPECTED_PDF_MARKER_RETURNS = {
+    "32": (
+        (
+            "start",
+            "32",
+            52,
+            "pdf-page-0052",
+            252,
+            0,
+            (2500, 3900),
+            (1168, 2485, 77, 47),
+            39,
+            (54.96, 311.874983, 249.60096, 317.82565),
+        ),
+    ),
+    "essay-1:10": (
+        (
+            "end_exclusive",
+            "11",
+            40,
+            "pdf-page-0040",
+            194,
+            0,
+            (2636, 4283),
+            (1289, 2469, 72, 32),
+            58,
+            (241.40662, 375.444496, 322.070076, 383.544),
+        ),
+    ),
+}
 EXPECTED_SUMMARY = {
     "conservative_source_route_count": 35,
-    "materialized_source_passage_candidate_count": 32,
-    "unresolved_source_boundary_count": 3,
+    "materialized_source_passage_candidate_count": 35,
+    "unresolved_source_boundary_count": 0,
     "accepted_source_passage_count": 0,
     "source_to_target_alignment_count": 0,
     "eligible_target_unit_count": 0,
@@ -222,6 +240,7 @@ def _validate_candidates(
 
     materialized = []
     jp2_marker_returns: dict[str, tuple[tuple[Any, ...], ...]] = {}
+    pdf_marker_returns: dict[str, tuple[tuple[Any, ...], ...]] = {}
     unresolved: dict[tuple[str, str], tuple[str, ...]] = {}
     for candidate in candidates:
         target = target_by_id[candidate["target_passage_candidate_id"]]
@@ -328,6 +347,79 @@ def _validate_candidates(
                 )
                 for marker in boundary_evidence["marker_returns"]
             )
+        elif candidate["boundary_layer"] == (
+            "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+        ):
+            if (
+                not (
+                    work.endswith(".jenseits-von-gut-und-boese")
+                    or work.endswith(".zur-genealogie-der-moral")
+                )
+                or not isinstance(boundary_evidence, dict)
+                or boundary_evidence["relation"]
+                != "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+                or boundary_evidence["pdf_witness"] != content
+                or content != address
+                or any(
+                    marker["pdf_resource_id"] != f"pdf-page-{marker['pdf_page']:04d}"
+                    or marker["image_kind"] != "jbig2-mask"
+                    or marker["human_review_performed"]
+                    or marker["pixel_bbox"]["x"] + marker["pixel_bbox"]["width"]
+                    > marker["image_width_pixels"]
+                    or marker["pixel_bbox"]["y"] + marker["pixel_bbox"]["height"]
+                    > marker["image_height_pixels"]
+                    or marker["normalized_bbox"]["x"]
+                    != round(
+                        marker["pixel_bbox"]["x"] / marker["image_width_pixels"],
+                        8,
+                    )
+                    or marker["normalized_bbox"]["y"]
+                    != round(
+                        marker["pixel_bbox"]["y"] / marker["image_height_pixels"],
+                        8,
+                    )
+                    or marker["normalized_bbox"]["width"]
+                    != round(
+                        marker["pixel_bbox"]["width"] / marker["image_width_pixels"],
+                        8,
+                    )
+                    or marker["normalized_bbox"]["height"]
+                    != round(
+                        marker["pixel_bbox"]["height"] / marker["image_height_pixels"],
+                        8,
+                    )
+                    for marker in boundary_evidence["marker_returns"]
+                )
+            ):
+                raise ValidationFailure("PDF marker boundary evidence drifted")
+            pdf_marker_returns[candidate["qualified_unit_key"]] = tuple(
+                (
+                    marker["boundary_role"],
+                    marker["expected_unit_key"],
+                    marker["pdf_page"],
+                    marker["pdf_resource_id"],
+                    marker["image_object_number"],
+                    marker["image_object_generation"],
+                    (
+                        marker["image_width_pixels"],
+                        marker["image_height_pixels"],
+                    ),
+                    (
+                        marker["pixel_bbox"]["x"],
+                        marker["pixel_bbox"]["y"],
+                        marker["pixel_bbox"]["width"],
+                        marker["pixel_bbox"]["height"],
+                    ),
+                    marker["following_poppler_record_order"],
+                    (
+                        marker["following_poppler_line_bbox"]["x_min"],
+                        marker["following_poppler_line_bbox"]["y_min"],
+                        marker["following_poppler_line_bbox"]["x_max"],
+                        marker["following_poppler_line_bbox"]["y_max"],
+                    ),
+                )
+                for marker in boundary_evidence["marker_returns"]
+            )
         elif boundary_evidence is not None:
             raise ValidationFailure(
                 "automatic-only candidate acquired boundary evidence"
@@ -344,11 +436,27 @@ def _validate_candidates(
                     "Antichrist no-identity navigation boundary drifted"
                 )
         elif work.endswith(".jenseits-von-gut-und-boese"):
+            same_pdf_layer = candidate["boundary_layer"] in {
+                "pdf-visible-marker-plus-poppler-pdf-bbox-line",
+                "poppler-pdf-bbox-line",
+            }
             if (
-                relation != "same-fixity-bound-Item-navigation-layer"
-                or content["item_ref"] != address["item_ref"]
-                or content["file_ref"] == address["file_ref"]
-                or address_span != navigation_span
+                address_span != navigation_span
+                or (
+                    same_pdf_layer
+                    and (
+                        relation != "same-fixity-bound-file-page-index"
+                        or content != address
+                    )
+                )
+                or (
+                    not same_pdf_layer
+                    and (
+                        relation != "same-fixity-bound-Item-navigation-layer"
+                        or content["item_ref"] != address["item_ref"]
+                        or content["file_ref"] == address["file_ref"]
+                    )
+                )
             ):
                 raise ValidationFailure("Jenseits Item-layer relation drifted")
         elif work.endswith(".zur-genealogie-der-moral"):
@@ -374,6 +482,8 @@ def _validate_candidates(
         raise ValidationFailure("source boundary layer census drifted")
     if jp2_marker_returns != EXPECTED_JP2_MARKER_RETURNS:
         raise ValidationFailure("exact JP2 marker return set drifted")
+    if pdf_marker_returns != EXPECTED_PDF_MARKER_RETURNS:
+        raise ValidationFailure("exact PDF marker return set drifted")
     if payload["summary"] != EXPECTED_SUMMARY:
         raise ValidationFailure(f"summary drifted: {payload['summary']}")
     effects = payload["effects"]
@@ -393,8 +503,8 @@ def _validate_anchors(
         for candidate in payload["passage_candidates"]
         if candidate["status"] == "materialized-layer-exact-candidate"
     ]
-    if len(anchors) != 32:
-        raise ValidationFailure(f"expected 32 source anchors, got {len(anchors)}")
+    if len(anchors) != 35:
+        raise ValidationFailure(f"expected 35 source anchors, got {len(anchors)}")
     by_id: dict[str, dict[str, Any]] = {}
     for anchor in anchors:
         _validate_schema(anchor, schema, anchor.get("anchor_id", "anchor"))
@@ -474,11 +584,12 @@ def _validate_provenance(
     configuration = event.get("method", {}).get("configuration", {})
     expected_configuration = {
         "conservative_source_routes": 35,
-        "materialized_source_passage_candidates": 32,
-        "unresolved_source_boundaries": 3,
-        "private_content_files": 32,
+        "materialized_source_passage_candidates": 35,
+        "unresolved_source_boundaries": 0,
+        "private_content_files": 35,
         "source_visible_abbyy_marker_overrides": 1,
         "model_visible_jp2_marker_returns": 3,
+        "model_visible_pdf_marker_returns": 2,
         "tracked_text_created": False,
         "human_review_count": 0,
         "accepted_source_passages": 0,
@@ -600,7 +711,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(
         "Golden-kernel transfer source passage validation passed "
-        "(35 routes, 32 private layer-exact candidates, 3 unresolved source "
+        "(35 routes, 35 private layer-exact candidates, 0 unresolved source "
         "boundaries; 0 accepted German/alignment/eligibility/gold/human/"
         "semantic/canon effects)."
     )

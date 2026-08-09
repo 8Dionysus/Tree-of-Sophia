@@ -192,14 +192,25 @@ canon, publication authority, or human work.
 companion over the same thirty-five routes. It slices from one expected
 numbered label to the next only when both boundaries resolve inside one named
 ABBYY, DjVuXML, or PDF-bbox layer, or through an exact source-visible JP2
-marker bound by same-Item scandata to the first following DjVuXML line. It
-writes thirty-two mode-0600 candidates under ignored `local-content/` and
-preserves three unresolved boundaries as tracked negative evidence. The
-validator keeps content versus address witnesses distinct, especially the
-bounded two-page Antichrist navigation relation that asserts no textual
-identity. It creates no diplomatic or accepted German, source-to-target
-passage alignment, eligibility, gold, human work, semantics, publication
-authority, or canon effect.
+marker bound by same-Item scandata to the first following DjVuXML line, or an
+exact embedded PDF image-mask marker bound to the first following Poppler bbox
+record in that same fixity-bound PDF. It writes all thirty-five mode-0600
+candidates under ignored `local-content/`. The validator fixes the two PDF
+marker returns and four affected JP2-marker routes, keeps content versus
+address witnesses distinct, and preserves the bounded two-page Antichrist
+navigation relation that asserts no textual identity. It creates no diplomatic
+or accepted German, source-to-target passage alignment, eligibility, gold,
+human work, semantics, publication authority, or canon effect.
+
+`build_golden_kernel_transfer_route_readiness.py` is a tracked-only derived
+projection over the source and target candidate sets. It reads no private
+content. It closes all thirty-five candidate identities, reports thirty-two
+frozen-page intersections plus three target nonintersections, and verifies that
+each of the twenty frozen pages still has at least one dual mechanically
+available intersecting route. Its companion validator treats co-availability
+as navigation only: it must never become a bilingual passage pair,
+source-to-target alignment, eligibility, gold, human task, semantic opening,
+publication grant, or canon effect.
 
 `build_jenseits_numbered_unit_label_correspondence.py` is the release-safe
 companion over the two independently generated Jenseits numbered-unit maps.

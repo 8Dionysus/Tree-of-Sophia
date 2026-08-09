@@ -46,13 +46,13 @@
       ],
       "properties": {
         "name": {"const": "numbered-label-or-source-visible-marker-to-next-boundary-slice"},
-        "version": {"const": "2"},
+        "version": {"const": "3"},
         "maker_type": {"const": "mixed"},
         "layers": {
           "type": "array",
           "minItems": 3,
           "uniqueItems": true,
-          "items": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "poppler-pdf-bbox-line"]}
+          "items": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "pdf-visible-marker-plus-poppler-pdf-bbox-line", "poppler-pdf-bbox-line"]}
         },
         "local_payloads_read": {"const": true},
         "private_content_written": {"const": true},
@@ -80,8 +80,8 @@
       ],
       "properties": {
         "conservative_source_route_count": {"const": 35},
-        "materialized_source_passage_candidate_count": {"const": 32},
-        "unresolved_source_boundary_count": {"const": 3},
+        "materialized_source_passage_candidate_count": {"const": 35},
+        "unresolved_source_boundary_count": {"const": 0},
         "accepted_source_passage_count": {"const": 0},
         "source_to_target_alignment_count": {"const": 0},
         "eligible_target_unit_count": {"const": 0},
@@ -122,7 +122,7 @@
       }
     },
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
-    "status": {"const": "prepared-partial-ineligible"},
+    "status": {"const": "prepared-complete-ineligible"},
     "authority_boundary": {"type": "string", "minLength": 1},
     "does_not_establish": {
       "type": "array",
@@ -173,6 +173,7 @@
             "source-visible-label-over-abbyy-ocr-token",
             "exact-normalized-label-in-djvu-xml-word-layer",
             "model-visible-jp2-number-marker-plus-first-following-djvu-xml-line",
+            "model-visible-pdf-image-mask-number-marker-plus-first-following-poppler-pdf-bbox-line",
             "exact-normalized-label-in-poppler-pdf-bbox-layer"
           ]
         }
@@ -202,7 +203,7 @@
         "coordinate_space": {"const": "normalized_0_1"}
       }
     },
-    "boundaryEvidence": {
+    "jp2BoundaryEvidence": {
       "type": "object",
       "additionalProperties": false,
       "required": ["image_witness", "scandata_witness", "relation", "marker_returns"],
@@ -236,6 +237,60 @@
           }
         }
       }
+    },
+    "pdfLineBBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x_min", "y_min", "x_max", "y_max"],
+      "properties": {
+        "x_min": {"type": "number", "minimum": 0},
+        "y_min": {"type": "number", "minimum": 0},
+        "x_max": {"type": "number", "exclusiveMinimum": 0},
+        "y_max": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "pdfBoundaryEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pdf_witness", "relation", "marker_returns"],
+      "properties": {
+        "pdf_witness": {"$ref": "#/$defs/witness"},
+        "relation": {"const": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"},
+        "marker_returns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["boundary_role", "expected_unit_key", "pdf_page", "pdf_resource_id", "image_object_number", "image_object_generation", "image_width_pixels", "image_height_pixels", "image_kind", "pixel_bbox", "normalized_bbox", "following_poppler_record_order", "following_poppler_line_bbox", "maker_type", "human_review_performed"],
+            "properties": {
+              "boundary_role": {"enum": ["start", "end_exclusive"]},
+              "expected_unit_key": {"type": "string", "pattern": "^[0-9]+$"},
+              "pdf_page": {"type": "integer", "minimum": 1},
+              "pdf_resource_id": {"type": "string", "pattern": "^pdf-page-[0-9]{4}$"},
+              "image_object_number": {"type": "integer", "minimum": 0},
+              "image_object_generation": {"type": "integer", "minimum": 0},
+              "image_width_pixels": {"type": "integer", "minimum": 1},
+              "image_height_pixels": {"type": "integer", "minimum": 1},
+              "image_kind": {"const": "jbig2-mask"},
+              "pixel_bbox": {"$ref": "#/$defs/pixelBBox"},
+              "normalized_bbox": {"$ref": "#/$defs/normalizedBBox"},
+              "following_poppler_record_order": {"type": "integer", "minimum": 0},
+              "following_poppler_line_bbox": {"$ref": "#/$defs/pdfLineBBox"},
+              "maker_type": {"const": "model"},
+              "human_review_performed": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    "boundaryEvidence": {
+      "oneOf": [
+        {"$ref": "#/$defs/jp2BoundaryEvidence"},
+        {"$ref": "#/$defs/pdfBoundaryEvidence"}
+      ]
     },
     "passageCandidate": {
       "type": "object",
@@ -283,7 +338,7 @@
         "source_passage_ref": {"$ref": "#/$defs/tosId"},
         "source_structural_anchor_ref": {"$ref": "#/$defs/tosId"},
         "status": {"enum": ["materialized-layer-exact-candidate", "boundary-unresolved"]},
-        "boundary_layer": {"type": ["string", "null"], "enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "poppler-pdf-bbox-line", null]},
+        "boundary_layer": {"type": ["string", "null"], "enum": ["abbyy-xml-paragraph", "djvu-xml-line", "jp2-visible-marker-plus-djvu-xml-line", "pdf-visible-marker-plus-poppler-pdf-bbox-line", "poppler-pdf-bbox-line", null]},
         "start": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
         "end_exclusive": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
         "navigation_page_span": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},

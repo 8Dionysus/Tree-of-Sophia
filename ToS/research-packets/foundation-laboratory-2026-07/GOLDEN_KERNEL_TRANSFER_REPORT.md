@@ -424,23 +424,35 @@ label resolve in one named layer:
 | Jenseits ABBYY paragraph | 12 |
 | Jenseits/Antichrist DjVuXML line | 9 |
 | Antichrist JP2 visible marker plus following DjVuXML line | 4 |
-| Genealogie PDF bbox line | 7 |
-| **Total** | **32** |
+| Jenseits/Genealogie PDF image-mask marker plus following Poppler bbox line | 2 |
+| Jenseits/Genealogie PDF bbox line | 8 |
+| **Total** | **35** |
 
-Three boundaries fail closed instead of receiving inferred coordinates:
-*Jenseits* 32 (start) and 201 (end), and *Genealogie* `essay-1:10` (end).
 Three exact source-visible *Antichrist* markers recover the four former route
 gaps: §8 start and §9 end/start on navigation pages 240/241, and §44
 end/start on navigation page 290. Each marker is bound by the same Internet
 Archive Item's scandata leaf to its exact JP2 member and to the first following
 DjVuXML line; this is boundary evidence, not OCR correction or text acceptance.
-The thirty-two private JSON files are mode 0600 under ignored
+Two further exact PDF image-mask returns close the remaining visible-label
+gaps: *Jenseits* §32 start on PDF page 52 and *Genealogie* I:11, used only as
+the exclusive end before that unit on PDF page 40. Each is tied to the first
+following Poppler bbox record in the same fixity-bound PDF; *Jenseits* §201 to
+§202 resolves directly in the PDF bbox layer. The thirty-five private JSON
+files are mode 0600 under ignored
 `local-content/transfer-source-passages/v1/`; tracked artifacts retain only
-geometry, counts, digests, witness relations, anchors, and the three negative
-records. The *Antichrist* content layer remains a separate Internet Archive
-navigation Item related to the Commons address Item by a bounded source-visible
-two-page offset only; no textual identity is asserted. Its JP2 ZIP and scandata
-payloads remain local and ignored.
+geometry, counts, digests, witness relations, and anchors. The *Antichrist*
+content layer remains a separate Internet Archive navigation Item related to
+the Commons address Item by a bounded source-visible two-page offset only; no
+textual identity is asserted. Its JP2 ZIP and scandata payloads remain local
+and ignored.
+
+The derived `transfer-route-readiness.v1.json` reads neither private layer. It
+shows only that all thirty-five structural routes now have independently
+materialized source and target candidates: thirty-two intersect the frozen
+target page, three retain their explicit target nonintersection, and every one
+of the twenty frozen pages has at least one dual intersecting route. This
+co-availability is navigation evidence, not a bilingual passage pair or
+source-to-target alignment.
 
 Automatic-layer exactness is not diplomatic or accepted German. This pass
 creates zero accepted German or Russian passages, zero source-to-target
@@ -477,9 +489,11 @@ The three title pages remain scouting units. The twenty newly prepared pages
 are the frozen sampling frame, but they are not yet accepted philosophical
 passages. The thirty-five conservative routes now have exact automatic target-
 layer slices: thirty-two intersect their candidate page and three are rejected
-nonintersections. On the source side, thirty-two slices are materialized and
-three exact boundaries remain unresolved; four of the materialized routes use
-the bounded JP2/scandata marker return described above. This narrows the
+nonintersections. On the source side, all thirty-five slices are materialized;
+four routes use the bounded JP2/scandata marker return and two use the same-PDF
+image-mask/Poppler return described above. The text-free readiness projection
+therefore closes mechanical co-availability for all thirty-five routes and
+retains at least one intersecting route for every frozen page. This narrows the
 mechanical soil but does not decide which source or target slice becomes an
 authority-bearing sample and does not establish any source-target pairing.
 Before execution, a deliberately triggered transfer run must turn that frame

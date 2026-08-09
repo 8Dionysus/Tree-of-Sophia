@@ -233,12 +233,27 @@
       "family": "validator_behavior",
       "validation_lane": "source_witness_foundation",
       "owner_surface": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
-      "protects": "35 conservative German source routes, 32 private layer-exact or exact source-visible-marker passage candidates, three exact unresolved-boundary negatives, address/navigation witness separation, ignored text custody, and zero accepted German, alignment, eligibility, gold, human, semantic, or canon promotion",
+      "protects": "35 conservative German source routes, 35 private layer-exact or exact source-visible-marker passage candidates, exact PDF/JP2 visible-marker returns, address/navigation witness separation, ignored text custody, and zero accepted German, alignment, eligibility, gold, human, semantic, or canon promotion",
       "coverage_authority": "tests/AGENTS.md root unittest discovery",
       "mode": "blocking",
       "runtime_cost": "fast",
       "focused_target": "tests/test_golden_kernel_transfer_source_passages.py",
       "failure_route": "Fix the source passage candidate contract, tracked receipt, anchors, provenance, builder, or validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_golden_kernel_transfer_route_readiness.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "protects": "text-free co-availability across all 35 source/target candidate routes, 32 frozen-page intersections, three preserved target nonintersections, at least one dual intersecting route for all 20 frozen pages, and zero alignment, eligibility, gold, human, semantic, publication, or canon promotion",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_golden_kernel_transfer_route_readiness.py",
+      "failure_route": "Fix the readiness contract, source/target candidate sets, builder, tracked projection, provenance, or validator before changing test expectations.",
       "disposition": "keep"
     },
     {

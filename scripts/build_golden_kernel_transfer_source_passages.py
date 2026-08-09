@@ -38,6 +38,10 @@ PROVENANCE_PATH = GOLD_ROOT / "transfer-provenance.jsonl"
 LOCAL_CONTENT_ROOT = GOLD_ROOT / "local-content/transfer-source-passages/v1"
 SCHEMA_PATH = Path("ToS/contracts/transfer-source-passage-candidate-set.schema.json")
 SOURCE_ANCHOR_SCHEMA_PATH = Path("ToS/contracts/source-anchor.schema.json")
+BOUNDARY_FORENSIC_RETURN = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/"
+    "TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md"
+)
 EVENT_ID = "tos.event.segmentation.golden-kernel-transfer-source-passages-v1.2026-08-08"
 EVENT_AT = "2026-08-08T23:35:00-06:00"
 SET_ID = "tos.transfer-candidate-set.golden-kernel-transfer-source-passages-v1"
@@ -73,13 +77,30 @@ ANTI_NAV_ITEM_DIR = SOURCE_ROOT / (
 )
 ANTI_MAP = ANTI_ADDRESS_ITEM_DIR / "structure/hierarchical-numbered-unit-page-map.json"
 
-JENSEITS_UNRESOLVED = {
-    "32": ("start",),
-    "201": ("end_exclusive",),
-}
-GENE_UNRESOLVED = {"essay-1:10": ("end_exclusive",)}
+JENSEITS_UNRESOLVED: dict[str, tuple[str, ...]] = {}
+GENE_UNRESOLVED: dict[str, tuple[str, ...]] = {}
 ANTI_UNRESOLVED: dict[str, tuple[str, ...]] = {}
 JENSEITS_ABBYY_MARKER_OVERRIDES = {"188": "i8s"}
+PDF_VISIBLE_MARKER_RETURNS = {
+    ("jenseits", 52, "32"): {
+        "image_object_number": 252,
+        "image_object_generation": 0,
+        "image_width_pixels": 2500,
+        "image_height_pixels": 3900,
+        "pixel_bbox": (1168, 2485, 77, 47),
+        "record_order": 39,
+        "line_bbox": (54.96, 311.874983, 249.60096, 317.82565),
+    },
+    ("genealogie", 40, "11"): {
+        "image_object_number": 194,
+        "image_object_generation": 0,
+        "image_width_pixels": 2636,
+        "image_height_pixels": 4283,
+        "pixel_bbox": (1289, 2469, 72, 32),
+        "record_order": 58,
+        "line_bbox": (241.40662, 375.444496, 322.070076, 383.544),
+    },
+}
 ANTI_JP2_MARKER_RETURNS = {
     (240, "8"): {
         "leaf_number": 239,
@@ -449,10 +470,12 @@ def _djvu_pages(
 def _pdf_marker(
     pages: dict[int, dict[str, Any]], page: int, key: str
 ) -> dict[str, Any]:
+    page_width = pages[page]["width"]
     matches = [
         record
         for record in pages[page]["records"]
-        if 150 <= record["x_min"] <= 220 and _numeric_candidate(record["text"]) == key
+        if 0.3 <= record["x_min"] / page_width <= 0.7
+        and _numeric_candidate(record["text"]) == key
     ]
     if len(matches) != 1:
         raise SourcePassageBuildError(
@@ -462,6 +485,86 @@ def _pdf_marker(
         **matches[0],
         "marker_basis": "exact-normalized-label-in-poppler-pdf-bbox-layer",
     }
+
+
+def _pdf_visible_marker(
+    pages: dict[int, dict[str, Any]],
+    *,
+    slug: str,
+    page: int,
+    key: str,
+    boundary_role: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    reviewed = PDF_VISIBLE_MARKER_RETURNS.get((slug, page, key))
+    if reviewed is None:
+        raise SourcePassageBuildError(
+            f"missing reviewed PDF marker return for {slug}:{key} on page {page}"
+        )
+    matches = [
+        record
+        for record in pages[page]["records"]
+        if record["order"] == reviewed["record_order"]
+    ]
+    if len(matches) != 1:
+        raise SourcePassageBuildError(
+            f"reviewed PDF following line disappeared for {slug}:{key} on page {page}"
+        )
+    marker = matches[0]
+    observed_line_bbox = (
+        marker["x_min"],
+        marker["y_min"],
+        marker["x_max"],
+        marker["y_max"],
+    )
+    if observed_line_bbox != reviewed["line_bbox"]:
+        raise SourcePassageBuildError(
+            f"reviewed PDF following-line geometry drifted for {slug}:{key} "
+            f"on page {page}"
+        )
+    x, y, width, height = reviewed["pixel_bbox"]
+    image_width = reviewed["image_width_pixels"]
+    image_height = reviewed["image_height_pixels"]
+    evidence = {
+        "boundary_role": boundary_role,
+        "expected_unit_key": key,
+        "pdf_page": page,
+        "pdf_resource_id": f"pdf-page-{page:04d}",
+        "image_object_number": reviewed["image_object_number"],
+        "image_object_generation": reviewed["image_object_generation"],
+        "image_width_pixels": image_width,
+        "image_height_pixels": image_height,
+        "image_kind": "jbig2-mask",
+        "pixel_bbox": {
+            "x": x,
+            "y": y,
+            "width": width,
+            "height": height,
+            "coordinate_space": "top_left_pixels",
+        },
+        "normalized_bbox": {
+            "x": round(x / image_width, 8),
+            "y": round(y / image_height, 8),
+            "width": round(width / image_width, 8),
+            "height": round(height / image_height, 8),
+            "coordinate_space": "normalized_0_1",
+        },
+        "following_poppler_record_order": reviewed["record_order"],
+        "following_poppler_line_bbox": {
+            "x_min": marker["x_min"],
+            "y_min": marker["y_min"],
+            "x_max": marker["x_max"],
+            "y_max": marker["y_max"],
+        },
+        "maker_type": "model",
+        "human_review_performed": False,
+    }
+    return {
+        **marker,
+        "marker_basis": (
+            "model-visible-pdf-image-mask-number-marker-plus-first-following-"
+            "poppler-pdf-bbox-line"
+        ),
+    }, evidence
 
 
 def _abbyy_marker(
@@ -696,9 +799,15 @@ def _input_refs(repo_root: Path) -> list[dict[str, Any]]:
         (JENSEITS_ITEM_DIR / "item.manifest.json", "Jenseits-source-item-manifest"),
         (JENSEITS_ITEM_DIR / "resource-inventory.json", "Jenseits-source-inventory"),
         (JENSEITS_ITEM_DIR / "rights.json", "Jenseits-source-rights"),
+        (JENSEITS_ITEM_DIR / "forensic-report.md", "Jenseits-baseline-forensic-report"),
         (GENE_ITEM_DIR / "item.manifest.json", "Genealogie-source-item-manifest"),
         (GENE_ITEM_DIR / "resource-inventory.json", "Genealogie-source-inventory"),
         (GENE_ITEM_DIR / "rights.json", "Genealogie-source-rights"),
+        (GENE_ITEM_DIR / "forensic-report.md", "Genealogie-baseline-forensic-report"),
+        (
+            BOUNDARY_FORENSIC_RETURN,
+            "bounded-model-visible-PDF-marker-return",
+        ),
         (
             ANTI_ADDRESS_ITEM_DIR / "item.manifest.json",
             "Antichrist-address-item-manifest",
@@ -806,7 +915,7 @@ def build_outputs(
         item_dir=JENSEITS_ITEM_DIR,
         media_type="application/gzip",
     )
-    _j_manifest_pdf, j_pdf_entry, _j_pdf_path = _manifest_entry(
+    _j_manifest_pdf, j_pdf_entry, j_pdf_path = _manifest_entry(
         repo_root=repo_root,
         payload_root=payload_source_root,
         item_dir=JENSEITS_ITEM_DIR,
@@ -852,6 +961,10 @@ def build_outputs(
 
     abbyy_pages = _abbyy_pages(j_abbyy_path)
     j_djvu_pages = _djvu_pages(j_djvu_path, expected_count=274, body_y_min=350)
+    j_pdf_pages = {
+        **_pdf_pages(j_pdf_path, start_page=52, end_page=54),
+        **_pdf_pages(j_pdf_path, start_page=128, end_page=131),
+    }
     g_pdf_pages = _pdf_pages(g_pdf_path, start_page=7, end_page=202)
     a_djvu_pages = _djvu_pages(a_xml_path, expected_count=525, body_y_min=950)
     a_inventory = _read_json(repo_root / ANTI_NAV_ITEM_DIR / "resource-inventory.json")
@@ -942,7 +1055,40 @@ def build_outputs(
 
         boundary_evidence = None
 
-        if slug == "jenseits" and candidate["qualified_unit_key"] == "202":
+        if slug == "jenseits" and candidate["qualified_unit_key"] == "32":
+            pages = j_pdf_pages
+            start_page = int(unit["start"]["pdf_page"])
+            end_page = int(unit["next"]["pdf_page"])
+            start_marker, start_evidence = _pdf_visible_marker(
+                pages,
+                slug=slug,
+                page=start_page,
+                key=unit["unit_key"],
+                boundary_role="start",
+            )
+            end_marker = _pdf_marker(pages, end_page, str(unit["next"]["unit_key"]))
+            layer = "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+            content_witness = j_address
+            boundary_evidence = {
+                "pdf_witness": j_address,
+                "relation": (
+                    "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+                ),
+                "marker_returns": [start_evidence],
+            }
+            relation = "same-fixity-bound-file-page-index"
+            address_offset = 0
+        elif slug == "jenseits" and candidate["qualified_unit_key"] == "201":
+            layer = "poppler-pdf-bbox-line"
+            pages = j_pdf_pages
+            start_page = int(unit["start"]["pdf_page"])
+            end_page = int(unit["next"]["pdf_page"])
+            start_marker = _pdf_marker(pages, start_page, unit["unit_key"])
+            end_marker = _pdf_marker(pages, end_page, str(unit["next"]["unit_key"]))
+            content_witness = j_address
+            relation = "same-fixity-bound-file-page-index"
+            address_offset = 0
+        elif slug == "jenseits" and candidate["qualified_unit_key"] == "202":
             layer = "djvu-xml-line"
             pages = j_djvu_pages
             start_page = int(unit["start"]["pdf_page"])
@@ -965,12 +1111,29 @@ def build_outputs(
             )
             address_offset = 0
         elif slug == "genealogie":
-            layer = "poppler-pdf-bbox-line"
             pages = g_pdf_pages
             start_page = int(unit["start"]["navigation_page"])
             end_page = int(unit["next"]["navigation_page"])
             start_marker = _pdf_marker(pages, start_page, unit["unit_key"])
-            end_marker = _pdf_marker(pages, end_page, str(unit["next"]["unit_key"]))
+            if candidate["qualified_unit_key"] == "essay-1:10":
+                end_marker, end_evidence = _pdf_visible_marker(
+                    pages,
+                    slug=slug,
+                    page=end_page,
+                    key=str(unit["next"]["unit_key"]),
+                    boundary_role="end_exclusive",
+                )
+                layer = "pdf-visible-marker-plus-poppler-pdf-bbox-line"
+                boundary_evidence = {
+                    "pdf_witness": g_address,
+                    "relation": (
+                        "same-PDF-page-image-mask-to-first-following-poppler-bbox-order"
+                    ),
+                    "marker_returns": [end_evidence],
+                }
+            else:
+                end_marker = _pdf_marker(pages, end_page, str(unit["next"]["unit_key"]))
+                layer = "poppler-pdf-bbox-line"
             content_witness = g_address
             address_offset = 0
         else:
@@ -1140,7 +1303,7 @@ def build_outputs(
                 "selector_method": {
                     "maker_type": "mixed",
                     "method": "numbered label or source-visible marker to next boundary slice",
-                    "version": "2",
+                    "version": "3",
                     "configuration_ref": OUTPUT_PATH.as_posix(),
                 },
                 "status": "proposed",
@@ -1155,9 +1318,9 @@ def build_outputs(
         result["status"] == "materialized-layer-exact-candidate" for result in results
     )
     unresolved_count = len(results) - materialized_count
-    if materialized_count != 32 or unresolved_count != 3 or len(anchors) != 32:
+    if materialized_count != 35 or unresolved_count != 0 or len(anchors) != 35:
         raise SourcePassageBuildError(
-            f"expected 32 materialized / 3 unresolved / 32 anchors, got "
+            f"expected 35 materialized / 0 unresolved / 35 anchors, got "
             f"{materialized_count} / {unresolved_count} / {len(anchors)}"
         )
     input_refs = _input_refs(repo_root)
@@ -1172,12 +1335,13 @@ def build_outputs(
         "inputs": input_refs,
         "method": {
             "name": "numbered-label-or-source-visible-marker-to-next-boundary-slice",
-            "version": "2",
+            "version": "3",
             "maker_type": "mixed",
             "layers": [
                 "abbyy-xml-paragraph",
                 "djvu-xml-line",
                 "jp2-visible-marker-plus-djvu-xml-line",
+                "pdf-visible-marker-plus-poppler-pdf-bbox-line",
                 "poppler-pdf-bbox-line",
             ],
             "local_payloads_read": True,
@@ -1210,11 +1374,11 @@ def build_outputs(
             "canon_effect": False,
         },
         "provenance_event_ref": EVENT_ID,
-        "status": "prepared-partial-ineligible",
+        "status": "prepared-complete-ineligible",
         "authority_boundary": (
-            "thirty-two private source-passage candidates are exact only "
-            "inside their named automatic or model-visible-marker-supported layers; three boundaries remain "
-            "explicitly unresolved, tracked data is source-text-free, and no "
+            "all thirty-five private source-passage candidates are exact only "
+            "inside their named automatic or model-visible-marker-supported "
+            "layers; tracked data is source-text-free, and no "
             "accepted German, source-to-target alignment, translation, "
             "eligibility, gold, human, semantic, publication, or canon "
             "authority follows"
@@ -1273,7 +1437,7 @@ def build_outputs(
         "method": {
             "maker_type": "mixed",
             "name": "numbered-label-or-source-visible-marker-to-next-boundary-slice",
-            "version": "2",
+            "version": "3",
             "artifact_digest": _sha256_path(
                 repo_root / "scripts/build_golden_kernel_transfer_source_passages.py"
             ),
@@ -1288,6 +1452,7 @@ def build_outputs(
                     JENSEITS_ABBYY_MARKER_OVERRIDES
                 ),
                 "model_visible_jp2_marker_returns": len(ANTI_JP2_MARKER_RETURNS),
+                "model_visible_pdf_marker_returns": len(PDF_VISIBLE_MARKER_RETURNS),
                 "tracked_text_created": False,
                 "human_review_count": 0,
                 "accepted_source_passages": 0,
@@ -1303,8 +1468,8 @@ def build_outputs(
         "status": "completed_with_warnings",
         "warnings": [
             "automatic-layer exactness is not diplomatic or accepted German",
-            "three source boundaries remain unresolved and have no private content",
             "three Antichrist number markers use exact JP2 source-visible return plus the first following DjVuXML line and have no human repeat",
+            "two PDF number markers use exact embedded image-mask return plus the first following Poppler bbox line and have no human repeat",
             "the Antichrist navigation Item is not asserted textually identical to the address Item",
             "shared numbering does not establish passage or translation alignment",
             "no eligibility, gold, human work, semantics, publication, or canon effect was created",
@@ -1314,7 +1479,7 @@ def build_outputs(
         # rights records are digest-bound inputs; no one record governs the
         # aggregate candidate set or grants publication authority.
         "rights_basis_ref": None,
-        "event_version": 2,
+        "event_version": 3,
         "supersedes_event_ref": None,
     }
     return output, anchors, private_outputs, event
@@ -1353,12 +1518,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         rendered_output = _render_json(output).encode("utf-8")
         rendered_anchors = _render_jsonl(anchors).encode("utf-8")
-        events = [
-            record
-            for record in _read_jsonl(repo_root / PROVENANCE_PATH)
-            if record.get("event_id") != EVENT_ID
+        events = _read_jsonl(repo_root / PROVENANCE_PATH)
+        event_indexes = [
+            index
+            for index, record in enumerate(events)
+            if record.get("event_id") == EVENT_ID
         ]
-        events.append(event)
+        if len(event_indexes) > 1:
+            raise SourcePassageBuildError("source provenance event is duplicated")
+        if event_indexes:
+            events[event_indexes[0]] = event
+        else:
+            events.append(event)
         checks = [
             _write_or_check(repo_root / OUTPUT_PATH, rendered_output, check=args.check),
             _write_or_check(

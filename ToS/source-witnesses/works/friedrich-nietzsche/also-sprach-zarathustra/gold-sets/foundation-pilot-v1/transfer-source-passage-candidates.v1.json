@@ -41,6 +41,11 @@
       "sha256": "474d865fd4cb5bf49e0697477cf7003515bce23a3c6fcece5b780d1796860365"
     },
     {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/forensic-report.md",
+      "role": "Jenseits-baseline-forensic-report",
+      "sha256": "2b9b2ba405833280b527039861957ffc9fe2315cc50d8b70f6ac96e4661b2cd6"
+    },
+    {
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json",
       "role": "Genealogie-source-item-manifest",
       "sha256": "18d25135ff69029ce6381715c72925b7e684e552476b36c7777da3232288fa4e"
@@ -54,6 +59,16 @@
       "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json",
       "role": "Genealogie-source-rights",
       "sha256": "df69951170daee136b3703aaae91ddca6c9f1469bebbd35f94c8ae473338c4a0"
+    },
+    {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/forensic-report.md",
+      "role": "Genealogie-baseline-forensic-report",
+      "sha256": "4815d73347c24bcf3b7e9db3ed5a5ec638ab05b6b10b7598e3b0cad9375ac1d0"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md",
+      "role": "bounded-model-visible-PDF-marker-return",
+      "sha256": "151a0d87a60d36399d90eb7359cf14bb00a35e0edbfc22421815f6484b8e4e82"
     },
     {
       "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json",
@@ -98,7 +113,7 @@
     {
       "ref": "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
       "role": "source-passage-candidate-set-contract",
-      "sha256": "e7659479d0dbdb01f662c7be173b7af3d49b96eec90b90ca3947d24a6ce33d89"
+      "sha256": "23c616725cd98f7e4477b26fd07703531f7fe86df480af428870ddf6cafbde41"
     },
     {
       "ref": "ToS/contracts/source-anchor.schema.json",
@@ -108,12 +123,13 @@
   ],
   "method": {
     "name": "numbered-label-or-source-visible-marker-to-next-boundary-slice",
-    "version": "2",
+    "version": "3",
     "maker_type": "mixed",
     "layers": [
       "abbyy-xml-paragraph",
       "djvu-xml-line",
       "jp2-visible-marker-plus-djvu-xml-line",
+      "pdf-visible-marker-plus-poppler-pdf-bbox-line",
       "poppler-pdf-bbox-line"
     ],
     "local_payloads_read": true,
@@ -842,13 +858,42 @@
       "source_expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
       "source_passage_ref": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-201",
       "source_structural_anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-201.pdf-start-page",
-      "status": "boundary-unresolved",
-      "boundary_layer": null,
-      "start": null,
-      "end_exclusive": null,
-      "navigation_page_span": null,
-      "address_page_span": null,
-      "content_witness": null,
+      "status": "materialized-layer-exact-candidate",
+      "boundary_layer": "poppler-pdf-bbox-line",
+      "start": {
+        "page": 128,
+        "x": 0.5132,
+        "y": 0.24739565,
+        "width": 0.0443984,
+        "height": 0.01017895,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "exact-normalized-label-in-poppler-pdf-bbox-layer"
+      },
+      "end_exclusive": {
+        "page": 131,
+        "x": 0.4304,
+        "y": 0.11529436,
+        "width": 0.048,
+        "height": 0.00984551,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "exact-normalized-label-in-poppler-pdf-bbox-layer"
+      },
+      "navigation_page_span": [
+        128,
+        129,
+        130
+      ],
+      "address_page_span": [
+        128,
+        129,
+        130
+      ],
+      "content_witness": {
+        "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+      },
       "address_witness": {
         "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
         "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
@@ -856,26 +901,25 @@
         "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
       },
       "boundary_evidence": null,
-      "navigation_relation": "same-fixity-bound-Item-navigation-layer",
-      "source_passage_anchor_ref": null,
-      "private_content_ref": null,
-      "private_content_sha256": null,
-      "private_content_bytes": null,
-      "text_character_count": null,
-      "record_count": null,
-      "word_count": null,
-      "unresolved_boundaries": [
-        "end_exclusive"
-      ],
+      "navigation_relation": "same-fixity-bound-file-page-index",
+      "source_passage_anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-201.source-passage-candidate-v1",
+      "private_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-passages/v1/tos-source-passage-candidate-jenseits-p0319-hard-unit-201.json",
+      "private_content_sha256": "aabdcf623122cc65a75416e4b04d898484648324a9dfe820c3c157ec396fb38f",
+      "private_content_bytes": 53889,
+      "text_character_count": 4825,
+      "record_count": 170,
+      "word_count": 699,
+      "unresolved_boundaries": [],
       "human_review_performed": false,
       "accepted_source_text": false,
       "source_to_target_alignment_created": false,
       "eligible_for_variant_execution": false,
       "limitations": [
-        "one or both numbered-unit markers do not resolve inside one admitted automatic source layer",
-        "the source-visible start-page map is insufficient to invent an exact within-page boundary",
-        "no private source string is materialized for this unresolved route",
-        "the unresolved route creates no German acceptance, alignment, eligibility, gold, semantics, or human task"
+        "the boundary is exact only inside the named automatic or model-visible-marker-supported source layer",
+        "the private slice is not diplomatic or accepted German text",
+        "same numbering and paired structural starts do not establish passage or translation alignment",
+        "the candidate remains ineligible and has no target gold or human review",
+        "private source text is local-only and not authorized for publication"
       ]
     },
     {
@@ -887,40 +931,112 @@
       "source_expression_ref": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886",
       "source_passage_ref": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-32",
       "source_structural_anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-32.pdf-start-page",
-      "status": "boundary-unresolved",
-      "boundary_layer": null,
-      "start": null,
-      "end_exclusive": null,
-      "navigation_page_span": null,
-      "address_page_span": null,
-      "content_witness": null,
+      "status": "materialized-layer-exact-candidate",
+      "boundary_layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line",
+      "start": {
+        "page": 52,
+        "x": 0.1832,
+        "y": 0.66639954,
+        "width": 0.6488032,
+        "height": 0.0127151,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "model-visible-pdf-image-mask-number-marker-plus-first-following-poppler-pdf-bbox-line"
+      },
+      "end_exclusive": {
+        "page": 54,
+        "x": 0.4368,
+        "y": 0.63999919,
+        "width": 0.0331992,
+        "height": 0.00923375,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "exact-normalized-label-in-poppler-pdf-bbox-layer"
+      },
+      "navigation_page_span": [
+        52,
+        53,
+        54
+      ],
+      "address_page_span": [
+        52,
+        53,
+        54
+      ],
+      "content_witness": {
+        "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+        "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+      },
       "address_witness": {
         "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
         "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
         "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
         "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
       },
-      "boundary_evidence": null,
-      "navigation_relation": "same-fixity-bound-Item-navigation-layer",
-      "source_passage_anchor_ref": null,
-      "private_content_ref": null,
-      "private_content_sha256": null,
-      "private_content_bytes": null,
-      "text_character_count": null,
-      "record_count": null,
-      "word_count": null,
-      "unresolved_boundaries": [
-        "start"
-      ],
+      "boundary_evidence": {
+        "pdf_witness": {
+          "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+          "file_ref": "tos.file.sha256.6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+          "file_sha256": "6ae316c90f958d09045fea27b2430b86623ebb85f8a27146099d028775cdc80a",
+          "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+        },
+        "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order",
+        "marker_returns": [
+          {
+            "boundary_role": "start",
+            "expected_unit_key": "32",
+            "pdf_page": 52,
+            "pdf_resource_id": "pdf-page-0052",
+            "image_object_number": 252,
+            "image_object_generation": 0,
+            "image_width_pixels": 2500,
+            "image_height_pixels": 3900,
+            "image_kind": "jbig2-mask",
+            "pixel_bbox": {
+              "x": 1168,
+              "y": 2485,
+              "width": 77,
+              "height": 47,
+              "coordinate_space": "top_left_pixels"
+            },
+            "normalized_bbox": {
+              "x": 0.4672,
+              "y": 0.63717949,
+              "width": 0.0308,
+              "height": 0.01205128,
+              "coordinate_space": "normalized_0_1"
+            },
+            "following_poppler_record_order": 39,
+            "following_poppler_line_bbox": {
+              "x_min": 54.96,
+              "y_min": 311.874983,
+              "x_max": 249.60096,
+              "y_max": 317.82565
+            },
+            "maker_type": "model",
+            "human_review_performed": false
+          }
+        ]
+      },
+      "navigation_relation": "same-fixity-bound-file-page-index",
+      "source_passage_anchor_ref": "tos.anchor.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.unit-32.source-passage-candidate-v1",
+      "private_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-passages/v1/tos-source-passage-candidate-jenseits-p0267-hard-unit-32.json",
+      "private_content_sha256": "445ea93c7fc3017fcf0615b4ef3f872c1efbbdaa5032878f2399a2d932f75df9",
+      "private_content_bytes": 40030,
+      "text_character_count": 3410,
+      "record_count": 118,
+      "word_count": 519,
+      "unresolved_boundaries": [],
       "human_review_performed": false,
       "accepted_source_text": false,
       "source_to_target_alignment_created": false,
       "eligible_for_variant_execution": false,
       "limitations": [
-        "one or both numbered-unit markers do not resolve inside one admitted automatic source layer",
-        "the source-visible start-page map is insufficient to invent an exact within-page boundary",
-        "no private source string is materialized for this unresolved route",
-        "the unresolved route creates no German acceptance, alignment, eligibility, gold, semantics, or human task"
+        "the boundary is exact only inside the named automatic or model-visible-marker-supported source layer",
+        "the private slice is not diplomatic or accepted German text",
+        "same numbering and paired structural starts do not establish passage or translation alignment",
+        "the candidate remains ineligible and has no target gold or human review",
+        "private source text is local-only and not authorized for publication"
       ]
     },
     {
@@ -1445,40 +1561,116 @@
       "source_expression_ref": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
       "source_passage_ref": "tos.passage.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-10",
       "source_structural_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-10.source-start-page",
-      "status": "boundary-unresolved",
-      "boundary_layer": null,
-      "start": null,
-      "end_exclusive": null,
-      "navigation_page_span": null,
-      "address_page_span": null,
-      "content_witness": null,
+      "status": "materialized-layer-exact-candidate",
+      "boundary_layer": "pdf-visible-marker-plus-poppler-pdf-bbox-line",
+      "start": {
+        "page": 36,
+        "x": 0.50152285,
+        "y": 0.56822628,
+        "width": 0.02807238,
+        "height": 0.00754202,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "exact-normalized-label-in-poppler-pdf-bbox-layer"
+      },
+      "end_exclusive": {
+        "page": 40,
+        "x": 0.63695678,
+        "y": 0.60948782,
+        "width": 0.21283234,
+        "height": 0.01314855,
+        "coordinate_space": "normalized_0_1",
+        "marker_basis": "model-visible-pdf-image-mask-number-marker-plus-first-following-poppler-pdf-bbox-line"
+      },
+      "navigation_page_span": [
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "address_page_span": [
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "content_witness": {
+        "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+        "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+        "file_sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+        "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json"
+      },
       "address_witness": {
         "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
         "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
         "file_sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
         "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json"
       },
-      "boundary_evidence": null,
+      "boundary_evidence": {
+        "pdf_witness": {
+          "item_ref": "tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf",
+          "file_ref": "tos.file.sha256.5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+          "file_sha256": "5705dbc4f32faa924919fd533962c931e92462d72dab5183610eb68adeecac03",
+          "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/rights.json"
+        },
+        "relation": "same-PDF-page-image-mask-to-first-following-poppler-bbox-order",
+        "marker_returns": [
+          {
+            "boundary_role": "end_exclusive",
+            "expected_unit_key": "11",
+            "pdf_page": 40,
+            "pdf_resource_id": "pdf-page-0040",
+            "image_object_number": 194,
+            "image_object_generation": 0,
+            "image_width_pixels": 2636,
+            "image_height_pixels": 4283,
+            "image_kind": "jbig2-mask",
+            "pixel_bbox": {
+              "x": 1289,
+              "y": 2469,
+              "width": 72,
+              "height": 32,
+              "coordinate_space": "top_left_pixels"
+            },
+            "normalized_bbox": {
+              "x": 0.48899848,
+              "y": 0.57646509,
+              "width": 0.02731411,
+              "height": 0.0074714,
+              "coordinate_space": "normalized_0_1"
+            },
+            "following_poppler_record_order": 58,
+            "following_poppler_line_bbox": {
+              "x_min": 241.40662,
+              "y_min": 375.444496,
+              "x_max": 322.070076,
+              "y_max": 383.544
+            },
+            "maker_type": "model",
+            "human_review_performed": false
+          }
+        ]
+      },
       "navigation_relation": "same-fixity-bound-file-page-index",
-      "source_passage_anchor_ref": null,
-      "private_content_ref": null,
-      "private_content_sha256": null,
-      "private_content_bytes": null,
-      "text_character_count": null,
-      "record_count": null,
-      "word_count": null,
-      "unresolved_boundaries": [
-        "end_exclusive"
-      ],
+      "source_passage_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-10.source-passage-candidate-v1",
+      "private_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/transfer-source-passages/v1/tos-source-passage-candidate-genealogie-p0426-hard-unit-essay-1-10.json",
+      "private_content_sha256": "0c7eef5d98e0030282a45394ff1a8a9455679a986e2c979e41b24bb36ff0c596",
+      "private_content_bytes": 100049,
+      "text_character_count": 6972,
+      "record_count": 355,
+      "word_count": 1065,
+      "unresolved_boundaries": [],
       "human_review_performed": false,
       "accepted_source_text": false,
       "source_to_target_alignment_created": false,
       "eligible_for_variant_execution": false,
       "limitations": [
-        "one or both numbered-unit markers do not resolve inside one admitted automatic source layer",
-        "the source-visible start-page map is insufficient to invent an exact within-page boundary",
-        "no private source string is materialized for this unresolved route",
-        "the unresolved route creates no German acceptance, alignment, eligibility, gold, semantics, or human task"
+        "the boundary is exact only inside the named automatic or model-visible-marker-supported source layer",
+        "the private slice is not diplomatic or accepted German text",
+        "same numbering and paired structural starts do not establish passage or translation alignment",
+        "the candidate remains ineligible and has no target gold or human review",
+        "private source text is local-only and not authorized for publication"
       ]
     },
     {
@@ -2773,8 +2965,8 @@
   ],
   "summary": {
     "conservative_source_route_count": 35,
-    "materialized_source_passage_candidate_count": 32,
-    "unresolved_source_boundary_count": 3,
+    "materialized_source_passage_candidate_count": 35,
+    "unresolved_source_boundary_count": 0,
     "accepted_source_passage_count": 0,
     "source_to_target_alignment_count": 0,
     "eligible_target_unit_count": 0,
@@ -2796,8 +2988,8 @@
     "canon_effect": false
   },
   "provenance_event_ref": "tos.event.segmentation.golden-kernel-transfer-source-passages-v1.2026-08-08",
-  "status": "prepared-partial-ineligible",
-  "authority_boundary": "thirty-two private source-passage candidates are exact only inside their named automatic or model-visible-marker-supported layers; three boundaries remain explicitly unresolved, tracked data is source-text-free, and no accepted German, source-to-target alignment, translation, eligibility, gold, human, semantic, publication, or canon authority follows",
+  "status": "prepared-complete-ineligible",
+  "authority_boundary": "all thirty-five private source-passage candidates are exact only inside their named automatic or model-visible-marker-supported layers; tracked data is source-text-free, and no accepted German, source-to-target alignment, translation, eligibility, gold, human, semantic, publication, or canon authority follows",
   "does_not_establish": [
     "diplomatic_transcription",
     "accepted_german",

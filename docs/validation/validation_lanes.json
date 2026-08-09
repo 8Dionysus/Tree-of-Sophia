@@ -354,6 +354,14 @@
         "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
       },
       {
+        "label": "check golden-kernel transfer route readiness",
+        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
+      },
+      {
+        "label": "validate golden-kernel transfer route readiness",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
+      },
+      {
         "label": "validate Zarathustra lexical projection",
         "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
       },
@@ -594,6 +602,14 @@
       {
         "label": "validate golden-kernel transfer source passages",
         "command": ["python", "scripts/validate_golden_kernel_transfer_source_passages.py"]
+      },
+      {
+        "label": "check golden-kernel transfer route readiness",
+        "command": ["python", "scripts/build_golden_kernel_transfer_route_readiness.py", "--check"]
+      },
+      {
+        "label": "validate golden-kernel transfer route readiness",
+        "command": ["python", "scripts/validate_golden_kernel_transfer_route_readiness.py"]
       },
       {
         "label": "validate Zarathustra lexical projection",

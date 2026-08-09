@@ -758,22 +758,44 @@
       "source_truth": [
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/{jenseits-von-gut-und-boese,zur-genealogie-der-moral,der-antichrist}/**/structure/**",
-        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/**/items/internet-archive-google-harvard-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,payload/*}",
-        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/items/wikimedia-commons-unc-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,payload/*}",
+        "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/**/items/internet-archive-google-harvard-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,forensic-report.md,payload/*}",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/items/wikimedia-commons-unc-scan-pdf/{item.manifest.json,resource-inventory.json,rights.json,forensic-report.md,payload/*}",
         "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/**/items/{wikimedia-commons-stanford-scan-djvu,internet-archive-google-stanford-djvu-xml}/{item.manifest.json,resource-inventory.json,rights.json,payload/*}",
         "ToS/contracts/transfer-source-passage-candidate-set.schema.json",
         "ToS/contracts/source-anchor.schema.json"
       ],
       "reads": [
-        "the tracked thirty-five-route target frame plus exact local German PDF, ABBYY, DjVuXML, JP2 ZIP, and scandata layers, source maps, manifests, inventories, and separate rights records"
+        "the tracked thirty-five-route target frame plus exact local German PDF image masks and bbox layers, ABBYY, DjVuXML, JP2 ZIP, and scandata layers, source maps, manifests, inventories, forensic marker reports, and separate rights records"
       ],
       "writes": [
-        "thirty-two ignored mode-0600 private German automatic-layer or exact source-visible-marker passage JSON files plus a tracked text-free candidate set, thirty-two proposed anchors, three unresolved boundary records, and provenance unless --check is used"
+        "thirty-five ignored mode-0600 private German automatic-layer or exact source-visible-marker passage JSON files plus a tracked text-free candidate set, thirty-five proposed anchors, and provenance unless --check is used"
       ],
-      "side_effects": "keeps all thirty-five routes; materializes thirty-two candidates through same-layer boundaries or exact JP2/scandata marker returns and preserves three exact unresolved negatives; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
+      "side_effects": "keeps and materializes all thirty-five routes through same-layer boundaries, exact JP2/scandata marker returns, or exact same-PDF image-mask/Poppler returns; creates no diplomatic or accepted German, source-target alignment, eligibility, gold, human, semantic, canon, or publication effect",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_golden_kernel_transfer_route_readiness.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/contracts/transfer-route-readiness-projection.schema.json"
+      ],
+      "reads": [
+        "tracked candidate identities, mechanical statuses, boundary-layer names, frozen-page identities, and authority flags only; no private content"
+      ],
+      "writes": [
+        "one tracked text-free thirty-five-route and twenty-page readiness projection plus one provenance event unless --check is used"
+      ],
+      "side_effects": "reports 35 dual mechanically available routes, 32 frozen-page intersections, three target nonintersections, and 20 of 20 pages with an intersecting route; creates no bilingual pair, alignment, accepted text, eligibility, gold, human, semantic, publication, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
       "disposition": "keep"
     },
     {
@@ -1016,10 +1038,32 @@
         "tracked schema, target frame, text-free source candidate closure, anchors, provenance, input digests, rights and ignore boundary; optionally the explicit private output root"
       ],
       "writes": [],
-      "side_effects": "validation output only; preserves exactly thirty-five routes, thirty-two private layer-exact or exact source-visible-marker candidates, three unresolved boundaries, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
+      "side_effects": "validation output only; preserves exactly thirty-five private layer-exact or exact source-visible-marker routes, exact PDF and JP2 marker returns, Antichrist address/navigation non-identity, ignored private content, and zero accepted-German/alignment/eligibility/gold/human/semantic/canon effects",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_golden_kernel_transfer_source_passages.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_golden_kernel_transfer_route_readiness.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-route-readiness-projection.schema.json",
+      "source_truth": [
+        "ToS/contracts/transfer-route-readiness-projection.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-source-passage-candidates.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-provenance.jsonl"
+      ],
+      "reads": [
+        "tracked readiness contract, source and target candidate frames, text-free projection, input digests, and provenance"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; independently checks 35 dual candidate routes, the 32/3 intersection split, 20 of 20 frozen-page coverage, text-free shape, and zero alignment/eligibility/gold/human/semantic/publication/canon effects",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_golden_kernel_transfer_route_readiness.py",
       "disposition": "keep"
     },
     {
