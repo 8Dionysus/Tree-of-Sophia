@@ -412,6 +412,35 @@ philosophical sample, exact German source passage, source-to-target alignment,
 translation evidence, eligibility, target gold, semantic authority, or human
 review. All twenty frozen pages still have at least one intersecting candidate.
 
+### Layer-exact German source passage candidates
+
+The source-side continuation keeps the same thirty-five-route frame and reads
+only exact fixity-bound local German layers. It materializes a private source
+slice only when both the expected numbered label and the next same-series
+label resolve in one named layer:
+
+| Automatic source layer | Materialized candidates |
+| --- | ---: |
+| Jenseits ABBYY paragraph | 12 |
+| Jenseits/Antichrist DjVuXML line | 9 |
+| Genealogie PDF bbox line | 7 |
+| **Total** | **28** |
+
+Seven boundaries fail closed instead of receiving inferred coordinates:
+*Jenseits* 32 (start) and 201 (end), *Genealogie* `essay-1:10` (end), and
+*Antichrist* `main:8` (both), `main:9` (start), `main:43` (end), and `main:44`
+(start). The twenty-eight private JSON files are mode 0600 under ignored
+`local-content/transfer-source-passages/v1/`; tracked artifacts retain only
+geometry, counts, digests, witness relations, anchors, and the seven negative
+records. The *Antichrist* content layer remains a separate Internet Archive
+DjVuXML navigation Item related to the Commons address Item by a bounded
+source-visible two-page offset only; no textual identity is asserted.
+
+Automatic-layer exactness is not diplomatic or accepted German. This pass
+creates zero accepted German or Russian passages, zero source-to-target
+passage or translation alignments, zero eligible units or gold, and zero
+human, semantic, publication, or canon effects.
+
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
 relation reasoning. That observation proves only that an exact title can be
@@ -440,10 +469,12 @@ the kernel even when the target text resists it.
 
 The three title pages remain scouting units. The twenty newly prepared pages
 are the frozen sampling frame, but they are not yet accepted philosophical
-passages. The thirty-five conservative routes now have exact automatic target
+passages. The thirty-five conservative routes now have exact automatic target-
 layer slices: thirty-two intersect their candidate page and three are rejected
-nonintersections. This removes page-spill ambiguity mechanically but does not
-decide which slice becomes the authority-bearing sample.
+nonintersections. On the source side, twenty-eight same-layer slices are
+materialized and seven exact boundaries remain unresolved. This narrows the
+mechanical soil but does not decide which source or target slice becomes an
+authority-bearing sample and does not establish any source-target pairing.
 Before execution, a deliberately triggered transfer run must turn that frame
 into twenty authority-bearing `target_units` without looking at any variant
 output:

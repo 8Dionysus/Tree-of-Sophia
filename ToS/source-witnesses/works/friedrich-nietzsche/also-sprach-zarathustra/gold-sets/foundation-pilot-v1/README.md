@@ -193,6 +193,17 @@ Zarathustra golden kernel. It is not a completed gold set.
   zero-effect gates. Layer-exact automatic boundaries are not diplomatic or
   accepted Russian, German source passages, alignments, eligible units, gold,
   semantics, canon, publication authority, or human work.
+- `transfer-source-passage-candidates.v1.json` returns those same thirty-five
+  routes to the exact German source layers. Twenty-eight routes have both
+  numbered boundaries inside one named automatic layer and therefore receive
+  private mode-0600 candidates under ignored
+  `local-content/transfer-source-passages/v1/`; seven remain explicit
+  boundary-unresolved negatives. Tracked data contains only geometry, counts,
+  digests, witness relations and twenty-eight proposed anchors. In particular,
+  the *Antichrist* Commons address Item and Internet Archive DjVuXML navigation
+  Item retain a bounded two-page relation with no textual-identity assertion.
+  This creates no diplomatic or accepted German, source-target alignment,
+  eligibility, gold, human work, semantics, publication authority, or canon.
 - `semantic-samples.json` uses the task-specific semantic v2 contract while
   retaining the universal 30-source/15-gold gate only as a digest-bound
   historical snapshot without scheduling or execution authority.

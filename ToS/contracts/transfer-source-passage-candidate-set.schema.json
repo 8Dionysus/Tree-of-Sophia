@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json",
+  "title": "Tree of Sophia transfer source passage candidate set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "candidate_set_id",
+    "target_passage_candidate_set_ref",
+    "target_passage_candidate_set_sha256",
+    "inputs",
+    "method",
+    "passage_candidates",
+    "summary",
+    "effects",
+    "provenance_event_ref",
+    "status",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json"},
+    "schema_version": {"const": "tos_transfer_source_passage_candidate_set_v1"},
+    "candidate_set_id": {"$ref": "#/$defs/tosId"},
+    "target_passage_candidate_set_ref": {"$ref": "#/$defs/repoPath"},
+    "target_passage_candidate_set_sha256": {"$ref": "#/$defs/sha256"},
+    "inputs": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/inputRef"}
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "maker_type",
+        "layers",
+        "local_payloads_read",
+        "private_content_written",
+        "human_review_performed"
+      ],
+      "properties": {
+        "name": {"const": "same-source-layer-numbered-label-to-next-label-slice"},
+        "version": {"const": "1"},
+        "maker_type": {"const": "mixed"},
+        "layers": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {"enum": ["abbyy-xml-paragraph", "djvu-xml-line", "poppler-pdf-bbox-line"]}
+        },
+        "local_payloads_read": {"const": true},
+        "private_content_written": {"const": true},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "passage_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/passageCandidate"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conservative_source_route_count",
+        "materialized_source_passage_candidate_count",
+        "unresolved_source_boundary_count",
+        "accepted_source_passage_count",
+        "source_to_target_alignment_count",
+        "eligible_target_unit_count",
+        "target_gold_count",
+        "human_review_count"
+      ],
+      "properties": {
+        "conservative_source_route_count": {"const": 35},
+        "materialized_source_passage_candidate_count": {"const": 28},
+        "unresolved_source_boundary_count": {"const": 7},
+        "accepted_source_passage_count": {"const": 0},
+        "source_to_target_alignment_count": {"const": 0},
+        "eligible_target_unit_count": {"const": 0},
+        "target_gold_count": {"const": 0},
+        "human_review_count": {"const": 0}
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_frame_changed",
+        "private_source_text_materialized",
+        "tracked_source_text_created",
+        "layer_exact_source_boundary_candidates_created",
+        "accepted_source_text_created",
+        "source_to_target_passage_alignment_created",
+        "translation_alignment_created",
+        "target_unit_eligible",
+        "target_gold_created",
+        "semantic_work_opened",
+        "human_work_scheduled",
+        "canon_effect"
+      ],
+      "properties": {
+        "candidate_frame_changed": {"const": false},
+        "private_source_text_materialized": {"const": true},
+        "tracked_source_text_created": {"const": false},
+        "layer_exact_source_boundary_candidates_created": {"const": true},
+        "accepted_source_text_created": {"const": false},
+        "source_to_target_passage_alignment_created": {"const": false},
+        "translation_alignment_created": {"const": false},
+        "target_unit_eligible": {"const": false},
+        "target_gold_created": {"const": false},
+        "semantic_work_opened": {"const": false},
+        "human_work_scheduled": {"const": false},
+        "canon_effect": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "status": {"const": "prepared-partial-ineligible"},
+    "authority_boundary": {"type": "string", "minLength": 1},
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {"type": "string", "pattern": "^tos\\.(work|expression|edition|collection|item|file|passage|anchor|event|transfer-candidate-set)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "inputRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "role", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "role": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_ref", "file_ref", "file_sha256", "rights_ref"],
+      "properties": {
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "rights_ref": {"$ref": "#/$defs/repoPath"}
+      }
+    },
+    "pointBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "x", "y", "width", "height", "coordinate_space", "marker_basis"],
+      "properties": {
+        "page": {"type": "integer", "minimum": 1},
+        "x": {"type": "number", "minimum": 0, "maximum": 1},
+        "y": {"type": "number", "minimum": 0, "maximum": 1},
+        "width": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "height": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "coordinate_space": {"const": "normalized_0_1"},
+        "marker_basis": {
+          "enum": [
+            "exact-expected-label-in-abbyy-paragraph-layer",
+            "source-visible-label-over-abbyy-ocr-token",
+            "exact-normalized-label-in-djvu-xml-word-layer",
+            "exact-normalized-label-in-poppler-pdf-bbox-layer"
+          ]
+        }
+      }
+    },
+    "passageCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_passage_candidate_id",
+        "target_passage_candidate_id",
+        "frozen_page_candidate_id",
+        "qualified_unit_key",
+        "work_ref",
+        "source_expression_ref",
+        "source_passage_ref",
+        "source_structural_anchor_ref",
+        "status",
+        "boundary_layer",
+        "start",
+        "end_exclusive",
+        "navigation_page_span",
+        "address_page_span",
+        "content_witness",
+        "address_witness",
+        "navigation_relation",
+        "source_passage_anchor_ref",
+        "private_content_ref",
+        "private_content_sha256",
+        "private_content_bytes",
+        "text_character_count",
+        "record_count",
+        "word_count",
+        "unresolved_boundaries",
+        "human_review_performed",
+        "accepted_source_text",
+        "source_to_target_alignment_created",
+        "eligible_for_variant_execution",
+        "limitations"
+      ],
+      "properties": {
+        "source_passage_candidate_id": {"type": "string", "pattern": "^tos-source-passage-candidate-[a-z0-9-]+$"},
+        "target_passage_candidate_id": {"type": "string", "pattern": "^tos-target-passage-candidate-[a-z0-9-]+$"},
+        "frozen_page_candidate_id": {"type": "string", "pattern": "^tos-target-candidate-[a-z0-9-]+$"},
+        "qualified_unit_key": {"type": "string", "pattern": "^(?:[a-z0-9-]+:)?[0-9]+(?:a)?$"},
+        "work_ref": {"$ref": "#/$defs/tosId"},
+        "source_expression_ref": {"$ref": "#/$defs/tosId"},
+        "source_passage_ref": {"$ref": "#/$defs/tosId"},
+        "source_structural_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "status": {"enum": ["materialized-layer-exact-candidate", "boundary-unresolved"]},
+        "boundary_layer": {"type": ["string", "null"], "enum": ["abbyy-xml-paragraph", "djvu-xml-line", "poppler-pdf-bbox-line", null]},
+        "start": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
+        "end_exclusive": {"anyOf": [{"$ref": "#/$defs/pointBoundary"}, {"type": "null"}]},
+        "navigation_page_span": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "address_page_span": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+        "content_witness": {"anyOf": [{"$ref": "#/$defs/witness"}, {"type": "null"}]},
+        "address_witness": {"$ref": "#/$defs/witness"},
+        "navigation_relation": {"type": "string", "minLength": 1},
+        "source_passage_anchor_ref": {"anyOf": [{"$ref": "#/$defs/tosId"}, {"type": "null"}]},
+        "private_content_ref": {"anyOf": [{"$ref": "#/$defs/repoPath"}, {"type": "null"}]},
+        "private_content_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "private_content_bytes": {"type": ["integer", "null"], "minimum": 1},
+        "text_character_count": {"type": ["integer", "null"], "minimum": 1},
+        "record_count": {"type": ["integer", "null"], "minimum": 1},
+        "word_count": {"type": ["integer", "null"], "minimum": 1},
+        "unresolved_boundaries": {"type": "array", "uniqueItems": true, "items": {"enum": ["start", "end_exclusive"]}},
+        "human_review_performed": {"const": false},
+        "accepted_source_text": {"const": false},
+        "source_to_target_alignment_created": {"const": false},
+        "eligible_for_variant_execution": {"const": false},
+        "limitations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "materialized-layer-exact-candidate"}}},
+          "then": {
+            "properties": {
+              "boundary_layer": {"type": "string"},
+              "start": {"$ref": "#/$defs/pointBoundary"},
+              "end_exclusive": {"$ref": "#/$defs/pointBoundary"},
+              "navigation_page_span": {"type": "array", "minItems": 1},
+              "address_page_span": {"type": "array", "minItems": 1},
+              "content_witness": {"$ref": "#/$defs/witness"},
+              "source_passage_anchor_ref": {"$ref": "#/$defs/tosId"},
+              "private_content_ref": {"$ref": "#/$defs/repoPath"},
+              "private_content_sha256": {"$ref": "#/$defs/sha256"},
+              "private_content_bytes": {"type": "integer", "minimum": 1},
+              "text_character_count": {"type": "integer", "minimum": 1},
+              "record_count": {"type": "integer", "minimum": 1},
+              "word_count": {"type": "integer", "minimum": 1},
+              "unresolved_boundaries": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "properties": {
+              "boundary_layer": {"type": "null"},
+              "start": {"type": "null"},
+              "end_exclusive": {"type": "null"},
+              "navigation_page_span": {"type": "null"},
+              "address_page_span": {"type": "null"},
+              "content_witness": {"type": "null"},
+              "source_passage_anchor_ref": {"type": "null"},
+              "private_content_ref": {"type": "null"},
+              "private_content_sha256": {"type": "null"},
+              "private_content_bytes": {"type": "null"},
+              "text_character_count": {"type": "null"},
+              "record_count": {"type": "null"},
+              "word_count": {"type": "null"},
+              "unresolved_boundaries": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

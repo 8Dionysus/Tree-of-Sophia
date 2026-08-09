@@ -301,6 +301,24 @@ diplomatic or accepted Russian, German source passage, source-to-target
 alignment, translation relation, eligibility, target gold, semantic or canon
 effect, publication route, or human task.
 
+## Frozen German source-passage boundary materialization
+
+The German companion preserves all thirty-five routes but requires both
+numbered-unit boundaries to resolve inside one named automatic source layer.
+Twenty-eight private mode-0600 candidates meet that mechanical condition:
+twelve ABBYY paragraph slices, nine DjVuXML line slices, and seven PDF-bbox
+line slices. Seven routes retain unresolved boundaries rather than invented
+coordinates: *Jenseits* 32/201, *Genealogie* `essay-1:10`, and *Antichrist*
+`main:8`, `main:9`, `main:43`, `main:44`.
+
+Tracked output is source-text-free and records geometry, digests, counts,
+witness relations, twenty-eight proposed anchors, and the seven negatives.
+For *Antichrist*, the separate Internet Archive DjVuXML navigation Item is
+related to the Commons address Item by a bounded two-page offset only, never
+textual identity. The result creates no diplomatic or accepted German,
+source-target passage or translation alignment, eligibility, gold, human task,
+semantic or canon effect, rights clearance, or publication route.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all

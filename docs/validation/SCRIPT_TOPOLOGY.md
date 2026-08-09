@@ -98,6 +98,18 @@ Its release validator proves that closure without reading private text. Layer
 exactness is not diplomatic or accepted Russian, source-passage evidence,
 alignment, target gold, eligibility, semantics, canon, or human judgment.
 
+The companion transfer source-passage builder returns to the exact German
+layers but does not pretend that every structural route has a recoverable text
+boundary. It materializes twenty-eight private mode-0600 candidates only where
+both numbered labels resolve inside one named ABBYY, DjVuXML, or PDF-bbox
+layer; seven routes remain explicit unresolved-boundary records. Tracked data
+contains geometry, digests, witness relations, counts, anchors, and no source
+strings. The validator separately preserves the Antichrist Commons-address to
+Internet-Archive-navigation two-page relation as navigation only, with no
+textual-identity claim. Neither builder nor validator accepts German, aligns a
+source passage to Russian, opens eligibility or gold, schedules human work, or
+creates semantic, publication, or canon authority.
+
 The catalog/validator pair also owns exact mechanical closure for the three
 authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
 It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim
