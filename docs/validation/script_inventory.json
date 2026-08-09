@@ -513,6 +513,58 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_nietzsche_transfer_source_structure.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/payload/*",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/payload/*",
+        "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+        "ToS/contracts/source-anchor.schema.json"
+      ],
+      "reads": [
+        "the exact local Genealogie PDF and separate Antichrist Commons DjVu plus Internet Archive DjVuXML navigation Item, all with fixity, inventory, and layered rights bindings"
+      ],
+      "writes": [
+        "two tracked text-free German hierarchical numbered-unit maps, 140 proposed whole-page anchors, and provenance unless --check is used"
+      ],
+      "side_effects": "78 Genealogie and 62 Antichrist proposed source starts with explicit OCR/visible-review basis and no accepted German, passage ends, alignment, translation, semantics, eligibility, gold, canon, or human work",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/build_nietzsche_transfer_source_routes.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "source_truth": [
+        "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+        "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/**/hierarchical-numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/**/hierarchical-numbered-unit-page-map.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/**/transfer-candidate-page-crosswalk.v1.json",
+        "ToS/source-witnesses/**/rights.json"
+      ],
+      "reads": [
+        "tracked source and target hierarchical maps, target-only frozen-candidate crosswalks, and rights records; no witness payload or text"
+      ],
+      "writes": [
+        "140 text-free series-qualified label pairings, 20 possible source structural routes for 12 frozen candidate pages, and provenance unless --check is used"
+      ],
+      "side_effects": "structural navigation candidates only, with exact passage ends, source-target passage alignment, translation, accepted text, eligibility, gold, semantics, rights clearance, canon, and human work held false",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_jenseits_polilov_numbered_unit_structure.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",
@@ -839,6 +891,32 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_witness_structure_correspondence.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/validate_nietzsche_transfer_source_routes.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+      "source_truth": [
+        "ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+        "ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json",
+        "ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+        "ToS/contracts/source-anchor.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/**/structure/**",
+        "ToS/source-witnesses/works/friedrich-nietzsche/{zur-genealogie-der-moral,der-antichrist}/alignments/structure/**",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/rights.json"
+      ],
+      "reads": [
+        "tracked German source maps, proposed anchors, source and target inventories, rights, pairings, candidate routes, target-only crosswalks, and digest-bound provenance"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; checks 140 structural pairs and 20 routes while rejecting text, alignment, eligibility, gold, human, and semantic promotion",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_nietzsche_transfer_source_routes.py",
       "disposition": "keep"
     },
     {

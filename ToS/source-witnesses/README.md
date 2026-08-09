@@ -430,6 +430,12 @@ collection containing it. The seed deliberately includes:
   *Nietzsche's Werke*, Band VIII aggregate, with a text-free 523-page bundled
   DjVu inventory and an explicitly partial proposed boundary for *Der
   Antichrist*;
+- a separate exact Internet Archive automatic DjVuXML derivative from the
+  Google/Stanford scan lineage, with provider SHA-1 plus local SHA-256 closure,
+  a text-free 525-page/5,434-paragraph/16,467-line/105,803-word inventory, and
+  local-only navigation posture; contaminated descriptive metadata, OCR
+  correctness, container identity, accepted German, and future-site upload
+  remain explicitly unestablished;
 - an exact official MDZ PDF of the Bamberg Staatsbibliothek `30.1972` copy of
   the standalone 1888 Naumann *Der Fall Wagner*, with 74 ordered IIIF
   canvases, a one-page provider-cover offset, local fixity, and a text-free
@@ -828,18 +834,25 @@ records, not either payload or text. A pairing means only “both witnesses
 materialize this structural label”; it is not an exact passage alignment or a
 translation claim.
 
-The same exact Mysl Item now supplies two additional target-only structure
-routes without exposing its prose. *Zur Genealogie der Moral* preserves 78
-proposed starts across four independently resetting series—preface and three
-essays—while *Der Antichrist* preserves 62 starts in one series. Their
-series-qualified identities prevent repeated numerals from collapsing into a
-false flat unit namespace. Target-only crosswalks narrow the twelve already
-frozen transfer pages to twenty possible target routes, but the German
-parallel-route count remains zero because neither work has an admitted
-source-side numbered-unit map here. These maps and crosswalks create no exact
-passage boundary, accepted Russian, source-to-target alignment, translation
-relation, eligible transfer unit, target gold, semantics, rights clearance,
-or human work.
+The same exact Mysl Item supplies two additional target structure routes
+without exposing its prose. *Zur Genealogie der Moral* preserves 78 proposed
+starts across four independently resetting series—preface and three essays—
+while *Der Antichrist* preserves 62 starts in one series. Their series-qualified
+identities prevent repeated numerals from collapsing into a false flat unit
+namespace. The original target-only crosswalks narrow the twelve frozen pages
+to twenty possible target routes and remain unchanged as historical inputs.
+
+Separate German source maps now materialize the same 140 structural labels.
+The 1892 *Genealogie* Item supplies 78 proposed PDF starts. The 1906
+*Antichrist* route preserves a stronger boundary: the 523-page Commons DjVu is
+the address witness, while a separately registered 525-page Internet Archive
+DjVuXML Item is navigation evidence under a source-visible, bounded two-page
+offset. This relation is not full-container or textual identity. A payload-free
+intersection pairs only identical `series:unit` keys, and a second composition
+gives all twelve frozen pages twenty possible German structural routes. These
+routes create no exact passage end, accepted German or Russian,
+source-to-target passage alignment, translation relation, eligible transfer
+unit, target gold, semantics, rights clearance, canon effect, or human work.
 
 The Zarathustra foundation pilot also carries one deliberately narrower
 German source-triangulation packet. A deterministic local builder compares an

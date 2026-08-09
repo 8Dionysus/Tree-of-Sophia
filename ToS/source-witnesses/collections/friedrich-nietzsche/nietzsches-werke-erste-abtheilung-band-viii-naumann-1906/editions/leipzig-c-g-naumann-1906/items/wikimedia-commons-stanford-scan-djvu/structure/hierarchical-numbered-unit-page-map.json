@@ -1,0 +1,876 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/hierarchical-source-numbered-unit-page-map.schema.json",
+  "schema_version": "tos_hierarchical_source_numbered_unit_page_map_v1",
+  "map_id": "tos.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8",
+  "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+  "expression_ref": "tos.expression.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8",
+  "edition_ref": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+  "address_witness": {
+    "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+    "file_ref": "tos.file.sha256.8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+    "file_sha256": "8f61aaecd55339fc3ba11eca24fbeef85e953d1a262200b36e59d5fbc545ca9d",
+    "inventory_profile": "djvu_pages_v1",
+    "inventory": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/resource-inventory.json",
+      "sha256": "597b72094b4c875df672ada698ab4638a4070024fe9e4710441e44fca38f54db"
+    },
+    "rights": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/rights.json",
+      "sha256": "f867c2af11f86389fa5f9eacc05977800162f935ce45f68414a24372f0fc42af"
+    }
+  },
+  "navigation_witness": {
+    "item_ref": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+    "file_ref": "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+    "file_sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+    "inventory_profile": "djvu_xml_pages_v1",
+    "inventory": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/resource-inventory.json",
+      "sha256": "34f6651e8be989d0ddc1334628f53f23ede650ffa0a6b1eda749f7c8997c9cbf"
+    },
+    "rights": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
+      "sha256": "deb32a9e7ec167aeaaf5f7976405ddb25f51bea9d33e076e8075754e2e82fb37"
+    }
+  },
+  "navigation_relation": {
+    "relation_scope": "bounded-source-visible-two-page-offset-only",
+    "address_page_from_navigation_page_offset": -2,
+    "source_visible_compared_address_pages": [
+      232,
+      233,
+      234,
+      238,
+      239,
+      250,
+      254,
+      257,
+      261,
+      264,
+      280,
+      288,
+      327,
+      329
+    ],
+    "full_container_page_identity_claimed": false,
+    "textual_identity_claimed": false
+  },
+  "represented_page_range": {
+    "start_page": 232,
+    "end_page": 329,
+    "basis": "tracked collection member boundary plus source-visible title, numbered opening, OCR-gap, late-sequence, and terminal pages"
+  },
+  "work_boundary": {
+    "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/structure/work-boundaries/work-boundary-map.json",
+    "sha256": "a57c54b49d87a9e29ddf564a8dc1976620c4d27c2360471703d783ee16ed5a3d",
+    "member_sequence": 1,
+    "start_page": 228,
+    "end_page": 329,
+    "epistemic_status": "observed",
+    "review_status": "unreviewed"
+  },
+  "map_authority": "machine_candidates_with_bounded_model_source_visible_gap_review_only",
+  "source_text_included": false,
+  "method": {
+    "name": "series-scoped-fixed-page-number-candidate-verification-plus-source-visible-gap-review",
+    "version": "1",
+    "maker_type": "mixed",
+    "local_payloads_read": true,
+    "candidate_verification_profiles": [
+      "provider-djvu-xml-page-word-number-candidate-v1"
+    ],
+    "numeric_candidate_normalizations": [
+      "remove non-ASCII alphanumeric characters",
+      "ASCII casefold",
+      "map i l x to 1, o to 0, s to 5, z to 2",
+      "join at most two adjacent same-baseline PDF short-line fragments"
+    ],
+    "series_trials": [
+      {
+        "series_key": "main",
+        "expected_unit_count": 62,
+        "machine_number_candidate_count": 51,
+        "source_visible_override_unit_keys": [
+          "4",
+          "5",
+          "8",
+          "9",
+          "19",
+          "22",
+          "24",
+          "26",
+          "27",
+          "39",
+          "44"
+        ]
+      }
+    ],
+    "source_visible_review": {
+      "maker_type": "model",
+      "human_repeat_performed": false,
+      "reviewed_address_pages": [
+        234,
+        238,
+        239,
+        250,
+        254,
+        257,
+        261,
+        264,
+        280,
+        288
+      ],
+      "override_unit_refs": [
+        "main:4",
+        "main:5",
+        "main:8",
+        "main:9",
+        "main:19",
+        "main:22",
+        "main:24",
+        "main:26",
+        "main:27",
+        "main:39",
+        "main:44"
+      ]
+    },
+    "source_to_target_text_compared": false,
+    "translation_alignment_inferred": false,
+    "semantic_matching_used": false,
+    "no_source_text_emitted": true
+  },
+  "series": [
+    {
+      "series_key": "main",
+      "series_sequence": 1,
+      "series_kind": "numbered-main-sequence",
+      "start_page": 232,
+      "end_page": 329,
+      "expected_unit_count": 62,
+      "status": "proposed",
+      "unit_starts": [
+        {
+          "sequence": 1,
+          "unit_key": "1",
+          "source_page": 232,
+          "resource_id": "djvu-page-0232",
+          "navigation_page": 234,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-1.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 2,
+          "unit_key": "2",
+          "source_page": 233,
+          "resource_id": "djvu-page-0233",
+          "navigation_page": 235,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-2.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 3,
+          "unit_key": "3",
+          "source_page": 233,
+          "resource_id": "djvu-page-0233",
+          "navigation_page": 235,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-3.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 4,
+          "unit_key": "4",
+          "source_page": 234,
+          "resource_id": "djvu-page-0234",
+          "navigation_page": 236,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-4.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 5,
+          "unit_key": "5",
+          "source_page": 234,
+          "resource_id": "djvu-page-0234",
+          "navigation_page": 236,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-5.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 6,
+          "unit_key": "6",
+          "source_page": 235,
+          "resource_id": "djvu-page-0235",
+          "navigation_page": 237,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-6.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 7,
+          "unit_key": "7",
+          "source_page": 236,
+          "resource_id": "djvu-page-0236",
+          "navigation_page": 238,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-7.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 8,
+          "unit_key": "8",
+          "source_page": 238,
+          "resource_id": "djvu-page-0238",
+          "navigation_page": 240,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-8.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 9,
+          "unit_key": "9",
+          "source_page": 239,
+          "resource_id": "djvu-page-0239",
+          "navigation_page": 241,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-9.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 10,
+          "unit_key": "10",
+          "source_page": 240,
+          "resource_id": "djvu-page-0240",
+          "navigation_page": 242,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-10.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 11,
+          "unit_key": "11",
+          "source_page": 241,
+          "resource_id": "djvu-page-0241",
+          "navigation_page": 243,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-11.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 12,
+          "unit_key": "12",
+          "source_page": 242,
+          "resource_id": "djvu-page-0242",
+          "navigation_page": 244,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-12.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 13,
+          "unit_key": "13",
+          "source_page": 243,
+          "resource_id": "djvu-page-0243",
+          "navigation_page": 245,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-13.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 14,
+          "unit_key": "14",
+          "source_page": 244,
+          "resource_id": "djvu-page-0244",
+          "navigation_page": 246,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-14.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 15,
+          "unit_key": "15",
+          "source_page": 246,
+          "resource_id": "djvu-page-0246",
+          "navigation_page": 248,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-15.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 16,
+          "unit_key": "16",
+          "source_page": 247,
+          "resource_id": "djvu-page-0247",
+          "navigation_page": 249,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-16.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 17,
+          "unit_key": "17",
+          "source_page": 248,
+          "resource_id": "djvu-page-0248",
+          "navigation_page": 250,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-17.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 18,
+          "unit_key": "18",
+          "source_page": 250,
+          "resource_id": "djvu-page-0250",
+          "navigation_page": 252,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-18.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 19,
+          "unit_key": "19",
+          "source_page": 250,
+          "resource_id": "djvu-page-0250",
+          "navigation_page": 252,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-19.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 20,
+          "unit_key": "20",
+          "source_page": 251,
+          "resource_id": "djvu-page-0251",
+          "navigation_page": 253,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-20.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 21,
+          "unit_key": "21",
+          "source_page": 253,
+          "resource_id": "djvu-page-0253",
+          "navigation_page": 255,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-21.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 22,
+          "unit_key": "22",
+          "source_page": 254,
+          "resource_id": "djvu-page-0254",
+          "navigation_page": 256,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-22.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 23,
+          "unit_key": "23",
+          "source_page": 255,
+          "resource_id": "djvu-page-0255",
+          "navigation_page": 257,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-23.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 24,
+          "unit_key": "24",
+          "source_page": 257,
+          "resource_id": "djvu-page-0257",
+          "navigation_page": 259,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-24.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 25,
+          "unit_key": "25",
+          "source_page": 259,
+          "resource_id": "djvu-page-0259",
+          "navigation_page": 261,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-25.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 26,
+          "unit_key": "26",
+          "source_page": 261,
+          "resource_id": "djvu-page-0261",
+          "navigation_page": 263,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-26.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 27,
+          "unit_key": "27",
+          "source_page": 264,
+          "resource_id": "djvu-page-0264",
+          "navigation_page": 266,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-27.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 28,
+          "unit_key": "28",
+          "source_page": 266,
+          "resource_id": "djvu-page-0266",
+          "navigation_page": 268,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-28.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 29,
+          "unit_key": "29",
+          "source_page": 266,
+          "resource_id": "djvu-page-0266",
+          "navigation_page": 268,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-29.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 30,
+          "unit_key": "30",
+          "source_page": 268,
+          "resource_id": "djvu-page-0268",
+          "navigation_page": 270,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-30.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 31,
+          "unit_key": "31",
+          "source_page": 269,
+          "resource_id": "djvu-page-0269",
+          "navigation_page": 271,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-31.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 32,
+          "unit_key": "32",
+          "source_page": 271,
+          "resource_id": "djvu-page-0271",
+          "navigation_page": 273,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-32.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 33,
+          "unit_key": "33",
+          "source_page": 273,
+          "resource_id": "djvu-page-0273",
+          "navigation_page": 275,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-33.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 34,
+          "unit_key": "34",
+          "source_page": 274,
+          "resource_id": "djvu-page-0274",
+          "navigation_page": 276,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-34.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 35,
+          "unit_key": "35",
+          "source_page": 276,
+          "resource_id": "djvu-page-0276",
+          "navigation_page": 278,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-35.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 36,
+          "unit_key": "36",
+          "source_page": 276,
+          "resource_id": "djvu-page-0276",
+          "navigation_page": 278,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-36.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 37,
+          "unit_key": "37",
+          "source_page": 277,
+          "resource_id": "djvu-page-0277",
+          "navigation_page": 279,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-37.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 38,
+          "unit_key": "38",
+          "source_page": 278,
+          "resource_id": "djvu-page-0278",
+          "navigation_page": 280,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-38.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 39,
+          "unit_key": "39",
+          "source_page": 280,
+          "resource_id": "djvu-page-0280",
+          "navigation_page": 282,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-39.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 40,
+          "unit_key": "40",
+          "source_page": 282,
+          "resource_id": "djvu-page-0282",
+          "navigation_page": 284,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-40.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 41,
+          "unit_key": "41",
+          "source_page": 284,
+          "resource_id": "djvu-page-0284",
+          "navigation_page": 286,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-41.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 42,
+          "unit_key": "42",
+          "source_page": 285,
+          "resource_id": "djvu-page-0285",
+          "navigation_page": 287,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-42.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 43,
+          "unit_key": "43",
+          "source_page": 286,
+          "resource_id": "djvu-page-0286",
+          "navigation_page": 288,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-43.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 44,
+          "unit_key": "44",
+          "source_page": 288,
+          "resource_id": "djvu-page-0288",
+          "navigation_page": 290,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-44.source-start-page",
+          "basis": "source_visible_gap_review",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 45,
+          "unit_key": "45",
+          "source_page": 291,
+          "resource_id": "djvu-page-0291",
+          "navigation_page": 293,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-45.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 46,
+          "unit_key": "46",
+          "source_page": 294,
+          "resource_id": "djvu-page-0294",
+          "navigation_page": 296,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-46.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 47,
+          "unit_key": "47",
+          "source_page": 296,
+          "resource_id": "djvu-page-0296",
+          "navigation_page": 298,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-47.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 48,
+          "unit_key": "48",
+          "source_page": 297,
+          "resource_id": "djvu-page-0297",
+          "navigation_page": 299,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-48.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 49,
+          "unit_key": "49",
+          "source_page": 299,
+          "resource_id": "djvu-page-0299",
+          "navigation_page": 301,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-49.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 50,
+          "unit_key": "50",
+          "source_page": 300,
+          "resource_id": "djvu-page-0300",
+          "navigation_page": 302,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-50.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 51,
+          "unit_key": "51",
+          "source_page": 302,
+          "resource_id": "djvu-page-0302",
+          "navigation_page": 304,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-51.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 52,
+          "unit_key": "52",
+          "source_page": 304,
+          "resource_id": "djvu-page-0304",
+          "navigation_page": 306,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-52.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 53,
+          "unit_key": "53",
+          "source_page": 306,
+          "resource_id": "djvu-page-0306",
+          "navigation_page": 308,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-53.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 54,
+          "unit_key": "54",
+          "source_page": 308,
+          "resource_id": "djvu-page-0308",
+          "navigation_page": 310,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-54.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 55,
+          "unit_key": "55",
+          "source_page": 310,
+          "resource_id": "djvu-page-0310",
+          "navigation_page": 312,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-55.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 56,
+          "unit_key": "56",
+          "source_page": 313,
+          "resource_id": "djvu-page-0313",
+          "navigation_page": 315,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-56.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 57,
+          "unit_key": "57",
+          "source_page": 314,
+          "resource_id": "djvu-page-0314",
+          "navigation_page": 316,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-57.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 58,
+          "unit_key": "58",
+          "source_page": 319,
+          "resource_id": "djvu-page-0319",
+          "navigation_page": 321,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-58.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 59,
+          "unit_key": "59",
+          "source_page": 322,
+          "resource_id": "djvu-page-0322",
+          "navigation_page": 324,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-59.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 60,
+          "unit_key": "60",
+          "source_page": 324,
+          "resource_id": "djvu-page-0324",
+          "navigation_page": 326,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-60.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 61,
+          "unit_key": "61",
+          "source_page": 325,
+          "resource_id": "djvu-page-0325",
+          "navigation_page": 327,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-61.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        },
+        {
+          "sequence": 62,
+          "unit_key": "62",
+          "source_page": 327,
+          "resource_id": "djvu-page-0327",
+          "navigation_page": 329,
+          "anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-62.source-start-page",
+          "basis": "provider_djvu_xml_number_candidate",
+          "status": "proposed",
+          "human_review_performed": false
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "series_count": 1,
+    "numbered_unit_count": 62,
+    "machine_number_candidate_count": 51,
+    "source_visible_override_unit_count": 11,
+    "source_visible_reviewed_page_count": 10,
+    "exact_start_page_candidates_materialized": 62,
+    "unresolved_unit_count": 0,
+    "start_pages_monotonic_within_series": true,
+    "all_anchor_statuses": [
+      "proposed"
+    ],
+    "human_review_performed": false,
+    "accepted_german_unit_count": 0
+  },
+  "provenance_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/provenance.numbered-unit-page-map.jsonl",
+  "provenance_event_ref": "tos.event.hierarchical-source-numbered-unit-page-map.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.2026-08-08",
+  "map_version": 1,
+  "supersedes_map_ref": null,
+  "authority_boundary": "fixity-bound German source-page start candidates for independently named series-qualified printed number labels only, verified through disposable embedded or provider OCR navigation plus a bounded model-visible review of explicit OCR gaps; all anchors remain proposed whole-page addresses, the provider OCR remains unaccepted, and no source prose, exact passage end, accepted German, source-to-target passage alignment, translation relation, equivalence, quality, textual or edition identity, semantics, rights clearance, transfer eligibility, target gold, or canon authority follows",
+  "does_not_establish": [
+    "source_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "accepted_german",
+    "provider_ocr_correctness",
+    "full_container_page_identity",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "edition_equivalence",
+    "semantics",
+    "rights_clearance",
+    "eligible_target_unit",
+    "target_gold",
+    "canon_promotion"
+  ]
+}

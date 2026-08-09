@@ -161,7 +161,7 @@ or publication route.
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
-| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; the eight frozen *Jenseits* pages now narrow mechanically to fifteen possible same-label structural routes; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; 8 structurally narrowed *Jenseits* pages; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | the crosswalk has no exact passage ends, accepted text, alignment, or translation authority; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
+| golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; the eight frozen *Jenseits* pages narrow to fifteen possible same-label routes, and all twelve frozen *Genealogie*/*Antichrist* pages now narrow through twenty additional German structural routes; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible candidates; all 20 structurally source-routable; 35 possible routes; 0 eligible target passages; §22 is outside the sampling frame; target human debt 0 | structural labels still give no exact passage ends, accepted text, passage or translation alignment; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -170,20 +170,20 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- The source-witness catalog now exposes all 95 current objects and all 139
+- The source-witness catalog now exposes all 96 current objects and all 140
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact
   source-returnable projection. Its source line and canonical digest prove
   navigation parity only. Every current claim remains unreviewed; catalog
   presence does not establish bibliographic truth, relation truth, semantic
   meaning, graph authority, canon, or corpus completeness.
-- The derived bibliographic graph now exposes those same 139 claims as reified
-  claim nodes across 488 nodes and 982 claim-centered edges with exact evidence, maker,
+- The derived bibliographic graph now exposes those same 140 claims as reified
+  claim nodes across 492 nodes and 989 claim-centered edges with exact evidence, maker,
   provenance-time/method, review, source-line, and digest return. It emits no
-  direct subject-object edge and leaves all 139 claims `unreviewed`. Its green
+  direct subject-object edge and leaves all 140 claims `unreviewed`. Its green
   rebuild proves projection fidelity, not truth, acceptance, graph-backend
   superiority, runtime/site suitability, or human trace cost.
-- The 70 topology packets make the declared Work→Expression→Edition→Item
+- The 71 topology packets make the declared Work→Expression→Edition→Item
   routes traceable, but they do not independently verify bibliographic truth.
   In particular, Expression `embodied_by` Edition is not textual identity,
   critical equivalence, source acceptance, or translation quality.
@@ -612,13 +612,16 @@ contracts intentionally reject simulated human evidence.
   pages contain proposed starts and retain spill ambiguity, while four fall
   within one proposed unit span. Two additional target-only maps preserve 140
   series-qualified starts—78 across four independently resetting *Genealogie*
-  series and 62 for *Antichrist*. Their crosswalks narrow the remaining twelve
-  frozen pages to twenty possible target routes, but materialize zero German
-  parallel routes. Thus all twenty pages are target-side narrowed, while only
-  the eight *Jenseits* pages have possible same-label source/target routes. The
-  operation reads no source or target prose and creates no exact passage
-  boundary, alignment, eligible unit, target gold, semantic task, rights
-  clearance, or human debt.
+  series and 62 for *Antichrist*. Separate German maps now preserve the same
+  140 series-qualified labels from the exact 1892 PDF and the 1906 Commons
+  DjVu, with a distinct 525-page Internet Archive DjVuXML Item used only for
+  navigation under a bounded two-page relation. Their crosswalks narrow the
+  remaining twelve frozen pages to twenty possible German structural routes.
+  Thus all twenty pages are structurally source-routable through 35 possible
+  routes, but none has an exact passage end or passage/translation alignment.
+  The tracked pairing and route transform reads no source or target prose and
+  creates no accepted text, eligible unit, target gold, semantic task, rights
+  clearance, canon effect, or human debt.
 - Whole-work lexical observation now exists over the four exact DTA part TEIs:
   86,287 local token occurrences, 11,352 exact-form rows, 506 body pages, and
   213 divisions. This closes deterministic exact/normalized/prefix/phrase and
@@ -969,9 +972,9 @@ not reintroduce a false 90 °C gate.
   adds an initials-only Agent, printer Organization, selected-fragment Russian
   Expression, parallel Edition, exact local PDF Item, translator claim,
   manufacture claim, three anchors, three identity-ladder claims, and a second
-  metadata-only blocked server plan. The rebuilt catalog now contains 95
-  objects and 139 claims; the portable graph contains 488 nodes, 982
-  claim-centred edges, 139 source-return traces, and no direct subject-object
+  metadata-only blocked server plan. The rebuilt catalog now contains 96
+  objects and 140 claims; the portable graph contains 492 nodes, 989
+  claim-centred edges, 140 source-return traces, and no direct subject-object
   edge. Both exact PDF routes remain ignored, local-only, and blocked from site
   transfer; embedded text/OCR, German Expression acceptance, completeness,
   equivalence, translation quality, rights clearance, human review, semantics,
@@ -1285,9 +1288,10 @@ from the calibration-only route in section 2b.
    print/critical route. Those named documentary stages are not transfer
    variants, admitted text, or target gold; an exact source-surface question,
    rights, German competence, and passage anchors remain necessary.
-   *Der Antichrist* likewise has an exact-source discovery receipt and a 1906
-   aggregate route with proposed member boundaries, but still needs an
-   explicitly justified witness, admitted German, and exact passage anchors.
+   *Der Antichrist* likewise has an exact-source discovery receipt, a 1906
+   aggregate route, and proposed structural source starts. It still needs
+   admitted German and question-bounded exact passage anchors; the separate
+   DjVuXML navigation Item is not textual identity or an accepted witness text.
 3. If the user deliberately activates the transfer experiment, advance the
    twenty already frozen private page candidates into exact source-visible
    target passages and target gold without viewing variant outputs. Introduce

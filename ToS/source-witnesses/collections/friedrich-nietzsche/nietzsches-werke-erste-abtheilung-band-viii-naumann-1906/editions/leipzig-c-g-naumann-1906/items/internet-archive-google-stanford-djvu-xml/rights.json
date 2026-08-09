@@ -1,0 +1,162 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+  "scope_refs": [
+    "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+    "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"
+  ],
+  "assessment_status": "conflicting_evidence",
+  "rights_statement_uri": null,
+  "license_uri": null,
+  "jurisdictions_reviewed": ["DE", "US"],
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
+    "https://archive.org/metadata/nietzscheswerke00nietgoog",
+    "https://www.gesetze-im-internet.de/urhg/__64.html",
+    "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.layer.original-work",
+      "layer_role": "original_work",
+      "scope_refs": ["tos.work.friedrich-nietzsche.der-antichrist"],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["DE", "US"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.gesetze-im-internet.de/urhg/__64.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["the historical Der Antichrist Work may be treated as public domain in the reviewed DE and US routes subject to source-specific controls"],
+      "restrictions": ["the Work-level result does not clear this OCR file, coordinates, archive additions, package, metadata, or accepted text"],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900 and the reviewed ordinary German term ended at 1970-12-31; the reviewed United States route yields no active term for the historical Work",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The calculation is limited to the historical Work and does not include later textual, editorial, or digital contributions."
+      },
+      "uncertainty": "Public-domain status does not prove source correctness, author-final status, or permission for later layers.",
+      "assessed_at": "2026-08-08T20:41:33-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The prior ordered layer assessment and reviewed statutory routes apply to the historical Work independently of this derivative file."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.layer.automatic-historical-ocr-text",
+      "layer_role": "embedded_text",
+      "scope_refs": ["tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["DE", "US"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["mechanically recognized public-domain historical Nietzsche text may be treated as public-domain material in the reviewed DE and US routes subject to independent quality and source admission"],
+      "restrictions": ["the result excludes coordinates, layout arrangement, archive additions, metadata, human correction, and package structure", "no OCR text is accepted as correct German or authorized for future-site publication"],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "automatic recognition mechanically renders public-domain historical text and supplies no new human-authored literary expression by itself",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The result does not reach selection, arrangement, coordinates, human correction, contracts, or contaminated archive matter."
+      },
+      "uncertainty": "Rights-positive automatic text may still be wrong, incomplete, reordered, or contaminated.",
+      "assessed_at": "2026-08-08T20:41:33-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical content is public domain and the OCR is machine-produced, while correctness remains a separate gate."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.layer.ocr-coordinate-and-layout",
+      "layer_role": "other",
+      "scope_refs": ["tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["DE", "US"],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["local parsing, comparison, and bounded laboratory use"],
+      "restrictions": ["no exact license was found for OCR positions, page relationships, layout structures, or their arrangement", "possible database and contract interests remain separate from public-domain text tokens"],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "individual coordinates are likely factual or mechanical, but the exact arrangement, database investment, and provider-contract posture are unresolved",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Weak copyright originality does not eliminate database, contract, attribution, or other jurisdictional questions."
+      },
+      "uncertainty": "The structured layer remains fail-closed for redistribution and future-site upload.",
+      "assessed_at": "2026-08-08T20:41:33-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Public-domain text and machine position or layout structure are distinct rights objects."
+    },
+    {
+      "layer_id": "tos.rights.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.layer.derivative-package-and-archive-matter",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+        "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": ["DE", "US"],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+        "https://archive.org/metadata/nietzscheswerke00nietgoog"
+      ],
+      "rights_holder_refs": [],
+      "permissions": ["local preservation, format inspection, and bounded laboratory derivation", "public-safe attributed fixity, lineage, contamination, and structural facts may be recorded"],
+      "restrictions": ["the provider record supplies no exact license for the DjVuXML wrapper, arrangement, database extraction, or archive-added matter", "the contaminated descriptive record is not reusable bibliographic authority", "the payload is not authorized for future-site upload"],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "the exact derivative combines public-domain historical content with unresolved structured, archive, database, and contract layers",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Many elements may be functional or unprotectable, but no complete exact-package permission route was found."
+      },
+      "uncertainty": "The file is not presumed protected; unresolved layers require local-only treatment.",
+      "assessed_at": "2026-08-08T20:41:33-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The provider derivative and metadata posture are distinct from the public-domain historical Work and OCR tokens."
+    }
+  ],
+  "permissions": ["local preservation, exact-file parsing, and bounded source-structure research", "public-safe attributed fixity and lineage facts may be tracked without payload publication"],
+  "restrictions": ["no payload redistribution or future-site upload", "no provider OCR, coordinate, layout, or contaminated metadata layer may be promoted to accepted German or bibliographic truth", "independent public-source admission remains required for any publishable derivative"],
+  "visibility": "local_only",
+  "redistribution_posture": "not_authorized",
+  "derivative_posture": "local_research_only",
+  "assessed_by": {"maker_type": "model", "agent_ref": "model:codex"},
+  "assessed_at": "2026-08-08T20:41:33-06:00",
+  "rationale": "Existing ordered exact-object rights research plus the fresh official file record support local structural use and public-safe provenance, while the structured derivative and archive layers remain unresolved for redistribution.",
+  "review_status": "unreviewed",
+  "review_refs": [],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

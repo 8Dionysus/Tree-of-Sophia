@@ -354,33 +354,36 @@ target unit, target gold, semantic work, human task, rights clearance, or
 canon authority. All eight pages retain
 `eligible_for_variant_execution: false`.
 
-### Target-only *Genealogie* and *Antichrist* crosswalks
+### *Genealogie* and *Antichrist* hierarchical source routes
 
-The other twelve already-frozen pages now have a distinct target-only route.
+The other twelve already-frozen pages retain their original target-only route.
 The exact local Mysl scan yields series-qualified target starts—four resetting
 number series for *Genealogie* and one 1–62 series for *Antichrist*—without
-copying Russian prose into tracked artifacts.
+copying Russian prose into tracked artifacts. These target-only crosswalks stay
+unchanged as historical inputs.
 
-| Work | Frozen pages | Possible target-only routes | Pages with proposed starts | Pages within one proposed span | Source parallel routes |
+| Work | Frozen pages | Possible target routes | Pages with proposed starts | Pages within one proposed span | Possible German structural routes |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| *Genealogie* | 6 | 8 | 2 | 4 | 0 |
-| *Antichrist* | 6 | 12 | 5 | 1 | 0 |
-| **Total** | **12** | **20** | **7** | **5** | **0** |
+| *Genealogie* | 6 | 8 | 2 | 4 | 8 |
+| *Antichrist* | 6 | 12 | 5 | 1 | 12 |
+| **Total** | **12** | **20** | **7** | **5** | **20** |
 
-Together with the *Jenseits* crosswalk, all twenty frozen candidate pages are
-now structurally narrowed on the target side. Only the eight *Jenseits* pages
-currently reach possible same-label source/target routes; the twelve pages in
-this subsection do not, because no German parallel numbered-unit map has been
-materialized for either work.
+Separate German maps contain the same 140 proposed labels: 78 from the exact
+1892 *Genealogie* PDF and 62 from the exact 1906 *Antichrist* Commons DjVu.
+The latter uses a separately registered 525-page Internet Archive DjVuXML Item
+only for structural navigation, under a bounded source-visible two-page offset
+to the 523-page DjVu. This does not claim whole-container page or textual
+identity.
 
-The target-only maps contain 140 proposed starts: 78 across the four
-*Genealogie* series and 62 in *Antichrist*. Their crosswalks remain digest-bound
-to the frozen transfer plan, candidate anchors, target maps, exact target
-rights record, inventory, and work boundaries. All twelve pages retain zero
-source routes, zero eligibility, zero target gold, and zero human work. No
-number match, Work identity, or page proximity is treated as passage
-alignment, translation correspondence, equivalence, semantics, or content
-acceptance.
+A tracked payload-free transform intersects only identical `series:unit`
+keys and closes all 140 structural label pairs. Composed with the immutable
+target-only crosswalks, it gives the twelve pages twenty possible German
+structural routes. Together with the fifteen *Jenseits* routes, all twenty
+frozen pages are structurally source-routable through 35 possibilities. Every
+page retains zero exact passage ends, zero passage/translation alignment, zero
+accepted German or Russian, zero eligibility, zero target gold, zero semantic
+or canon effect, and zero human work. No number match, Work identity, or page
+proximity is treated as content acceptance or correspondence.
 
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
@@ -410,8 +413,8 @@ the kernel even when the target text resists it.
 
 The three title pages remain scouting units. The twenty newly prepared pages
 are the frozen sampling frame, but they are not yet exact philosophical
-passages. The fifteen possible *Jenseits* routes reduce later lookup work but
-do not decide which unit or units actually intersect a complete passage.
+passages. The thirty-five possible structural routes reduce later lookup work
+but do not decide which unit or units actually intersect a complete passage.
 Before execution, a deliberately triggered transfer run must turn that frame
 into twenty authority-bearing `target_units` without looking at any variant
 output:

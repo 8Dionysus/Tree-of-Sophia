@@ -1,0 +1,34 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+      "relative_path": "payload/nietzscheswerke00nietgoog_djvu.xml",
+      "original_basename": "nietzscheswerke00nietgoog_djvu.xml",
+      "media_type": "application/vnd.djvu+xml",
+      "byte_size": 8882082,
+      "sha256": "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+      "fixity_verified_at": "2026-08-08T20:41:33-06:00",
+      "container_member": false
+    }
+  ],
+  "acquisition_event_ref": "tos.event.acquisition.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml.2026-08-08",
+  "rights_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
+  "provenance_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/edition.json",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
+    "https://archive.org/details/nietzscheswerke00nietgoog",
+    "https://archive.org/metadata/nietzscheswerke00nietgoog"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null
+}

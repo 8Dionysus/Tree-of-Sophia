@@ -1,0 +1,241 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+  "schema_version": "tos_transfer_candidate_source_structural_route_v1",
+  "route_set_id": "tos.route-set.transfer-candidate-source-structural.friedrich-nietzsche.zur-genealogie-der-moral",
+  "status": "prepared-structural-source-routes-ineligible",
+  "work_ref": "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+  "inputs": {
+    "target_only_crosswalk": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+      "sha256": "5036b6716c0f3271bf95fb9dd3135f424d677843e1789dab2a434bc7f2023849"
+    },
+    "source_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/structure/hierarchical-numbered-unit-page-map.json",
+      "sha256": "2f90121d2948a88e89bfd29713327bb79ab55a666f1f73697feebae3f08ad208"
+    },
+    "target_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/ru-svasyan-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+      "sha256": "f7012f8538be5c1962eb8e7f9a38b41785e8e9d8af4dd834349115227e66d5b4"
+    },
+    "label_correspondence": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/alignments/structure/naumann-1892-second-svasyan-mysl-1996/hierarchical-numbered-unit-label-correspondence.json",
+      "sha256": "9a0b01ac546bbe7756e4bd3cb4462b6771037d0bf2e08b89a3678fc925083799"
+    }
+  },
+  "method": {
+    "name": "target-candidate-qualified-label-to-source-structural-route",
+    "version": "1",
+    "local_payloads_read": false,
+    "source_or_target_text_read": false,
+    "route_key": "series_key:unit_key",
+    "translation_alignment_inferred": false,
+    "semantic_matching_used": false
+  },
+  "summary": {
+    "candidate_page_count": 6,
+    "structurally_source_routable_candidate_page_count": 6,
+    "possible_target_route_count": 8,
+    "source_structural_route_count": 8,
+    "human_review_count": 0,
+    "eligible_target_unit_count": 0,
+    "target_gold_count": 0
+  },
+  "candidates": [
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0410-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0410",
+      "target_pdf_page": 410,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "preface:3",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-3.source-start-page",
+          "source_page": 9,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-3.pdf-start-page",
+          "target_pdf_page": 409,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "preface:4",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.preface.unit-4.source-start-page",
+          "source_page": 11,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.preface.unit-4.pdf-start-page",
+          "target_pdf_page": 410,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0519-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0519",
+      "target_pdf_page": 519,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "essay-3:25",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-25.source-start-page",
+          "source_page": 190,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-25.pdf-start-page",
+          "target_pdf_page": 517,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0489-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0489",
+      "target_pdf_page": 489,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "essay-3:11",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-11.source-start-page",
+          "source_page": 142,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-11.pdf-start-page",
+          "target_pdf_page": 488,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0426-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0426",
+      "target_pdf_page": 426,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "essay-1:10",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-1.unit-10.source-start-page",
+          "source_page": 36,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-1.unit-10.pdf-start-page",
+          "target_pdf_page": 424,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0482-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0482",
+      "target_pdf_page": 482,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "essay-3:8",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-3.unit-8.source-start-page",
+          "source_page": 131,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-3.unit-8.pdf-start-page",
+          "target_pdf_page": 481,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-genealogie-p0463-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-genealogie-p0463",
+      "target_pdf_page": 463,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "essay-2:17",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-17.source-start-page",
+          "source_page": 99,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-17.pdf-start-page",
+          "target_pdf_page": 462,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "essay-2:18",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.essay-2.unit-18.source-start-page",
+          "source_page": 101,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996.essay-2.unit-18.pdf-start-page",
+          "target_pdf_page": 463,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    }
+  ],
+  "source_text_included": false,
+  "target_text_included": false,
+  "effects": {
+    "candidate_frame_changed": false,
+    "exact_passage_boundary_created": false,
+    "source_text_accepted": false,
+    "target_text_accepted": false,
+    "source_to_target_passage_alignment_created": false,
+    "translation_alignment_created": false,
+    "target_unit_eligible": false,
+    "target_gold_created": false,
+    "semantic_work_opened": false,
+    "human_work_scheduled": false
+  },
+  "provenance_event_ref": "tos.event.transfer-candidate-source-structural-route.friedrich-nietzsche.zur-genealogie-der-moral.2026-08-08",
+  "does_not_establish": [
+    "source_text",
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "accepted_german",
+    "accepted_russian",
+    "target_gold",
+    "eligible_target_unit",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ],
+  "authority_boundary": "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority"
+}

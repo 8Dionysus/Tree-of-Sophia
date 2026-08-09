@@ -1,0 +1,289 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
+  "schema_version": "tos_transfer_candidate_source_structural_route_v1",
+  "route_set_id": "tos.route-set.transfer-candidate-source-structural.friedrich-nietzsche.der-antichrist",
+  "status": "prepared-structural-source-routes-ineligible",
+  "work_ref": "tos.work.friedrich-nietzsche.der-antichrist",
+  "inputs": {
+    "target_only_crosswalk": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/transfer-candidate-page-crosswalk.v1.json",
+      "sha256": "7aeee66161a6491754aaa64b98faf4c97250cfce417b7f313f347ee1802d6cc4"
+    },
+    "source_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/structure/hierarchical-numbered-unit-page-map.json",
+      "sha256": "83a3b2ddc91723c12267f46ebcf5ab88529efc5e87f42242e7a3c22d742388b0"
+    },
+    "target_numbered_unit_map": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/expressions/ru-flerova-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/hierarchical-numbered-unit-page-map.json",
+      "sha256": "a07b84f2c668b248a44dde791077238a993df0eb8e18d03cf3f9470aecf6d38c"
+    },
+    "label_correspondence": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/alignments/structure/naumann-1906-flerova-mysl-1996/hierarchical-numbered-unit-label-correspondence.json",
+      "sha256": "9c5bc000722fe8763d48a0159c25e76aef053113e399ff6b8b186942375bdc8c"
+    }
+  },
+  "method": {
+    "name": "target-candidate-qualified-label-to-source-structural-route",
+    "version": "1",
+    "local_payloads_read": false,
+    "source_or_target_text_read": false,
+    "route_key": "series_key:unit_key",
+    "translation_alignment_inferred": false,
+    "semantic_matching_used": false
+  },
+  "summary": {
+    "candidate_page_count": 6,
+    "structurally_source_routable_candidate_page_count": 6,
+    "possible_target_route_count": 12,
+    "source_structural_route_count": 12,
+    "human_review_count": 0,
+    "eligible_target_unit_count": 0,
+    "target_gold_count": 0
+  },
+  "candidates": [
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0637-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0637",
+      "target_pdf_page": 637,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:8",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-8.source-start-page",
+          "source_page": 238,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-8.pdf-start-page",
+          "target_pdf_page": 636,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:9",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-9.source-start-page",
+          "source_page": 239,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-9.pdf-start-page",
+          "target_pdf_page": 637,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0655-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0655",
+      "target_pdf_page": 655,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:29",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-29.source-start-page",
+          "source_page": 266,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-29.pdf-start-page",
+          "target_pdf_page": 654,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:30",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-30.source-start-page",
+          "source_page": 268,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-30.pdf-start-page",
+          "target_pdf_page": 655,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0663-random",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0663",
+      "target_pdf_page": 663,
+      "stratum": "random",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:38",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-38.source-start-page",
+          "source_page": 278,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-38.pdf-start-page",
+          "target_pdf_page": 662,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:39",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-39.source-start-page",
+          "source_page": 280,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-39.pdf-start-page",
+          "target_pdf_page": 663,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0668-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0668",
+      "target_pdf_page": 668,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:43",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-43.source-start-page",
+          "source_page": 286,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-43.pdf-start-page",
+          "target_pdf_page": 667,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:44",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-44.source-start-page",
+          "source_page": 288,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-44.pdf-start-page",
+          "target_pdf_page": 668,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0685-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0685",
+      "target_pdf_page": 685,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:57",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-57.source-start-page",
+          "source_page": 314,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-57.pdf-start-page",
+          "target_pdf_page": 684,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    },
+    {
+      "candidate_unit_id": "tos-target-candidate-antichrist-p0661-hard",
+      "candidate_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.transfer-antichrist-p0661",
+      "target_pdf_page": 661,
+      "stratum": "hard",
+      "source_route_status": "structurally-routable-ineligible",
+      "possible_source_structural_routes": [
+        {
+          "qualified_unit_key": "main:35",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-35.source-start-page",
+          "source_page": 276,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-35.pdf-start-page",
+          "target_pdf_page": 660,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:36",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-36.source-start-page",
+          "source_page": 276,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-36.pdf-start-page",
+          "target_pdf_page": 661,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        },
+        {
+          "qualified_unit_key": "main:37",
+          "source_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.de-naumann-1906-volume-8.main.unit-37.source-start-page",
+          "source_page": 277,
+          "target_anchor_ref": "tos.anchor.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996.main.unit-37.pdf-start-page",
+          "target_pdf_page": 661,
+          "basis": "series_qualified_number_label_candidate",
+          "status": "proposed",
+          "exact_passage_end_boundary_known": false,
+          "source_to_target_passage_alignment_claimed": false,
+          "translation_alignment_claimed": false
+        }
+      ],
+      "eligible_for_variant_execution": false,
+      "target_gold_status": "not_started"
+    }
+  ],
+  "source_text_included": false,
+  "target_text_included": false,
+  "effects": {
+    "candidate_frame_changed": false,
+    "exact_passage_boundary_created": false,
+    "source_text_accepted": false,
+    "target_text_accepted": false,
+    "source_to_target_passage_alignment_created": false,
+    "translation_alignment_created": false,
+    "target_unit_eligible": false,
+    "target_gold_created": false,
+    "semantic_work_opened": false,
+    "human_work_scheduled": false
+  },
+  "provenance_event_ref": "tos.event.transfer-candidate-source-structural-route.friedrich-nietzsche.der-antichrist.2026-08-08",
+  "does_not_establish": [
+    "source_text",
+    "target_text",
+    "exact_line_boundaries",
+    "exact_passage_end_boundaries",
+    "source_to_target_passage_alignment",
+    "translation_correspondence",
+    "translation_equivalence",
+    "translation_quality",
+    "textual_identity",
+    "accepted_german",
+    "accepted_russian",
+    "target_gold",
+    "eligible_target_unit",
+    "semantics",
+    "rights_clearance",
+    "canon_promotion"
+  ],
+  "authority_boundary": "mechanical pairing and routing of identical series-qualified structural number-label keys already materialized independently in exact source and target witness maps; it reads no witness text and establishes neither exact passage boundaries nor passage or translation alignment, accepted German or Russian, eligibility, gold, semantics, rights, or canon authority"
+}

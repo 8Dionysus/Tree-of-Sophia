@@ -342,6 +342,10 @@
         "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
       },
       {
+        "label": "validate Nietzsche transfer source routes",
+        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
+      },
+      {
         "label": "validate Zarathustra lexical projection",
         "command": ["python", "scripts/validate_zarathustra_lexical_index.py"]
       },
@@ -570,6 +574,10 @@
       {
         "label": "validate witness-structure correspondence",
         "command": ["python", "scripts/validate_witness_structure_correspondence.py"]
+      },
+      {
+        "label": "validate Nietzsche transfer source routes",
+        "command": ["python", "scripts/validate_nietzsche_transfer_source_routes.py"]
       },
       {
         "label": "validate Zarathustra lexical projection",

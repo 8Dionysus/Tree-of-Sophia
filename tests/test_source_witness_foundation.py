@@ -1679,10 +1679,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(95, manifest["counts"]["object_total"])
-        self.assertEqual(139, manifest["counts"]["claim"])
-        self.assertEqual(234, manifest["counts"]["total"])
-        self.assertEqual(139, len(claim_entries))
+        self.assertEqual(96, manifest["counts"]["object_total"])
+        self.assertEqual(140, manifest["counts"]["claim"])
+        self.assertEqual(236, manifest["counts"]["total"])
+        self.assertEqual(140, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -1720,7 +1720,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 122,
+                "bibliographic_assertion": 123,
                 "scholarly_report": 17,
             },
             {
@@ -1752,7 +1752,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             {
                 "has_expression": 26,
                 "embodied_by": 26,
-                "exemplified_by": 18,
+                "exemplified_by": 19,
                 "is_derivative_of": 2,
             },
             {

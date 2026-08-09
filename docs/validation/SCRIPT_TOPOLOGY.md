@@ -76,6 +76,18 @@ when given a payload root, preserves independently resetting *Genealogie* and
 crosswalks. Release validation checks their tracked schemas, digests, frozen
 transfer-frame closure, and zero-authority gates without requiring the book.
 
+The German transfer-source builder follows the same split while preserving a
+more demanding witness boundary: *Genealogie* uses one exact local PDF, whereas
+*Antichrist* binds a Commons DjVu address witness to a separate Internet
+Archive DjVuXML navigation Item through a bounded two-page relation. Its
+tracked outputs contain 140 proposed source addresses and no prose. A second,
+payload-free builder intersects only `series:unit` keys and composes twenty
+possible German structural routes for all twelve frozen candidate pages. The
+release validator proves inventory, rights, anchor, digest, provenance, label,
+and route closure; it explicitly cannot prove accepted text, exact passage
+ends, source-target passage alignment, translation, eligibility, gold,
+semantics, canon, or human judgment.
+
 The catalog/validator pair also owns exact mechanical closure for the three
 authored identity-ladder claim files under `ToS/source-witnesses/relations/`.
 It must reconcile Work→Expression, Expression→Edition, and Edition→Item claim
