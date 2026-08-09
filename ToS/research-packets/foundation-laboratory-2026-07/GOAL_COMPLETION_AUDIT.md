@@ -1058,6 +1058,32 @@ An agent visual spot-check separately compared PDF page indices 54, 78, 166,
 the selected part/title boundaries. This is bounded visual evidence, not an
 exhaustive page-identity review or a human acceptance event.
 
+## Etymology evidence-route objective — 2026-08-08
+
+The ordered official -> established -> fresh/current -> general-web-last pass
+now closes the route-design gap without claiming an etymology corpus. Current
+TEI and LMF orientation, exact DWDS/Pfeifer headword addressing and terms,
+exact DWB `lemid` discovery, established evaluation literature, fresh
+historical-language methods, and a source-visible public-domain Kluge 1889
+candidate are recorded in a protocol-native receipt.
+
+The pass retains three consequential negatives: the DWB convenience endpoint
+returned fuzzy `-wort` instead of exact neuter `Wort`; the Wörterbuchnetz
+EtymWb API route failed because the official client delegates that resource
+to DWDS; and the Commons-linked Internet Archive identifier currently carries
+mismatched 2002 metadata. No source payload or dictionary article was retained.
+The translation reference register moves from fifteen to sixteen candidates
+while keeping content admission, human bibliography, human rights review, and
+accepted truth at zero.
+
+This proves a usable future A/B/C route, not a content result. A is the open
+Kluge 1889 page witness after separate acquisition and fixity; B is Pfeifer
+point citation under current terms; C is DWB/DTA/Nietzsche occurrence
+triangulation. RAG, embeddings, historical models, dependency profiles, frame
+semantics, and LLM definitions remain proposal-only. The next real episode
+needs one exact accepted German occurrence and a predeclared lexical question;
+it must not begin with mass extraction or a model-generated etymology.
+
 ## Dependency-ordered next owner work
 
 1. Use the frozen private-to-public handoff contract before any tracked result
@@ -1081,6 +1107,12 @@ exhaustive page-identity review or a human acceptance event.
    result remains `uncertain` rather than accepted. The Arquivo.pt WARC-backed
    snapshot strengthens historical fixity but explicitly does not validate
    source origin.
+   When one accepted German occurrence creates a real etymology question, use
+   the selected source route in `ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md`: exact
+   lemma/homograph resolution, point citation, competing evidence, and an
+   explicit unresolved state. Do not infer meaning or authorial intent from
+   word origin, and do not convert DWDS or the undocumented Wörterbuchnetz API
+   into an unrestricted agent backend.
 3. Materialize no morphology task merely because the method research exists.
    When an admitted source/translation/sign/retrieval question actually needs
    morphology, freeze its source-local occurrences first, then create the

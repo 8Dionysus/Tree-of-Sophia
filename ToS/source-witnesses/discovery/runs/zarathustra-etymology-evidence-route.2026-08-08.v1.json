@@ -1,0 +1,982 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.zarathustra-etymology-evidence-route.2026-08-08",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "lexical-resource",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    ],
+    "description": "A rights-aware and source-returnable route from one exact accepted German occurrence to historical sense, etymology, modern control, competing evidence, and an explicitly non-authoritative translation consequence proposal.",
+    "required_properties": [
+      "official modeling guidance checked before implementation",
+      "exact edition or resource identity and headword or page locator",
+      "current access and automated-use terms",
+      "one open historical page-witness candidate",
+      "established evaluation literature before fresh 2025-2026 methods",
+      "fuzzy and contaminated identifier failures retained",
+      "no article body or source payload admitted",
+      "no etymology promoted from model memory"
+    ],
+    "acceptable_substitutions": [
+      "another institutionally identified public-domain German etymological dictionary with exact page images and item-level rights evidence",
+      "a permission-backed point or machine interface to a current scholarly etymological resource",
+      "a later confirmed ISO 24613-3 edition used only as external compatibility orientation"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "formats": [
+      "official HTML documentation",
+      "dictionary HTML",
+      "JSON discovery response",
+      "TEI P5",
+      "public-domain DjVu",
+      "peer-reviewed paper"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-official-modeling-standards",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "TEI Consortium and ISO official publication lifecycle surfaces",
+      "endpoint_url": "https://tei-c.org/release/doc/tei-p5-doc/en/html/DI.html",
+      "interface_type": "web",
+      "interface_version": "TEI P5 4.12.0 updated 2026-07-28 at revision 113e933e2; ISO lifecycle pages as served 2026-08-08",
+      "exact_query": "Official TEI dictionary entry and etymology documentation, ISO 24613-1:2024 core, and ISO 24613-3:2021 diachrony-etymology publication and review state",
+      "queried_at": "2026-08-08T17:55:49-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tei-p5-dictionaries-etym",
+          "rank": 1,
+          "title_as_displayed": "Dictionaries — The TEI Guidelines",
+          "result_url": "https://tei-c.org/release/doc/tei-p5-doc/en/html/DI.html",
+          "originating_record_url": "https://tei-c.org/release/doc/tei-p5-doc/en/html/DI.html",
+          "identifiers": [
+            {
+              "scheme": "TEI P5 version",
+              "value": "4.12.0"
+            }
+          ],
+          "available_formats": [
+            "official HTML documentation",
+            "TEI P5 schema and reference documentation"
+          ],
+          "declared_rights": {
+            "statement": "TEI Consortium documentation terms apply; this run retained identifiers, public metadata, and ToS-authored conclusions only.",
+            "scope": "content",
+            "evidence_url": "https://tei-c.org/release/doc/tei-p5-doc/en/html/DI.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current official representation guidance for structured dictionary entries and etymology, including the warning that variation makes full capture of intellectual structure and precise word interrelations impracticable.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The current official documentation was consulted without retaining a body snapshot."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.iso-24613-1-2024-lmf-core",
+          "rank": 2,
+          "title_as_displayed": "ISO 24613-1:2024 Language resource management — Lexical markup framework (LMF) — Part 1: Core model",
+          "result_url": "https://www.iso.org/standard/82014.html",
+          "originating_record_url": "https://www.iso.org/standard/82014.html",
+          "identifiers": [
+            {
+              "scheme": "ISO",
+              "value": "24613-1:2024"
+            }
+          ],
+          "available_formats": [
+            "public bibliographic metadata",
+            "protected standard"
+          ],
+          "declared_rights": {
+            "statement": "The current ISO page states that its publications and materials are protected and any use, including reproduction, requires written permission; ToS retained only public identifier and lifecycle metadata.",
+            "scope": "unknown",
+            "evidence_url": "https://www.iso.org/standard/82014.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Current LMF core is useful as external compatibility orientation, but no protected standard content was ingested or copied into a ToS contract.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "ISO protected content was not captured or supplied to an AI workflow."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.iso-24613-3-2021-etymology",
+          "rank": 3,
+          "title_as_displayed": "ISO 24613-3:2021 Language resource management — Lexical markup framework (LMF) — Part 3: Etymological extension",
+          "result_url": "https://www.iso.org/standard/75410.html",
+          "originating_record_url": "https://www.iso.org/standard/75410.html",
+          "identifiers": [
+            {
+              "scheme": "ISO",
+              "value": "24613-3:2021"
+            }
+          ],
+          "available_formats": [
+            "public bibliographic and lifecycle metadata",
+            "protected standard"
+          ],
+          "declared_rights": {
+            "statement": "The current ISO page states that its publications and materials are protected and any use, including reproduction, requires written permission; ToS retained only public identifier, publication status, and review dates.",
+            "scope": "unknown",
+            "evidence_url": "https://www.iso.org/standard/75410.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "The current page still identifies the 2021 publication while a 2026 systematic review has closed; recheck the post-review outcome before any interoperability implementation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Only public publication and lifecycle metadata were retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-official-dwds-etymology",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "DWDS and BBAW official lexical-resource, citation, and terms surfaces",
+      "endpoint_url": "https://www.dwds.de/d/wb-etymwb",
+      "interface_type": "web",
+      "interface_version": "live DWDS pages as served 2026-08-08; EtymWB based on the second 1993 edition and updated through 2020",
+      "exact_query": "Official EtymWB resource identity, exact headword addressing for Wort, official citation format, current use terms, and BBAW/CLARIN object metadata",
+      "queried_at": "2026-08-08T17:55:53-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dwds-pfeifer-etymwb-official",
+          "rank": 1,
+          "title_as_displayed": "Etymologisches Wörterbuch des Deutschen",
+          "result_url": "https://www.dwds.de/d/wb-etymwb",
+          "originating_record_url": "https://clarin.bbaw.de/en/objects/dwds%3A3/",
+          "identifiers": [
+            {
+              "scheme": "DWDS resource siglum",
+              "value": "EtymWB"
+            },
+            {
+              "scheme": "print basis",
+              "value": "Pfeifer 1993 second edition"
+            }
+          ],
+          "available_formats": [
+            "dictionary HTML",
+            "TEI P5-conformant internal representation",
+            "article-level web access"
+          ],
+          "declared_rights": {
+            "statement": "Individual articles are openly consultable; current DWDS terms separately restrict automated querying, crawling, parsing, text/data mining, and other content uses absent permission or a documented legal exception.",
+            "scope": "content",
+            "evidence_url": "https://www.dwds.de/d/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current institutionally maintained etymological point-reference baseline with exact headword routes and an official citation format; selected for consultation and citation, not bulk ingestion.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No dictionary article body or resource dataset was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dwds-etymwb-wort-exact-route",
+          "rank": 2,
+          "title_as_displayed": "›Wort‹ in: Etymologisches Wörterbuch des Deutschen | DWDS",
+          "result_url": "https://www.dwds.de/wb/etymwb/Wort",
+          "originating_record_url": "https://www.dwds.de/d/wb-etymwb",
+          "identifiers": [
+            {
+              "scheme": "headword",
+              "value": "Wort"
+            }
+          ],
+          "available_formats": [
+            "exact dictionary article HTML"
+          ],
+          "declared_rights": {
+            "statement": "Ordinary consultation and bounded citation remain distinct from automated or bulk content use under current DWDS terms.",
+            "scope": "content",
+            "evidence_url": "https://www.dwds.de/d/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Demonstrates an exact, human-readable headword locator suitable for per-finding citation without archiving the article body.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only locator, response state, and public bibliographic identity were checked."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.dwds-citation-and-terms",
+          "rank": 3,
+          "title_as_displayed": "DWDS citation guidance and terms of use",
+          "result_url": "https://www.dwds.de/d/zitieren",
+          "originating_record_url": "https://www.dwds.de/d/nutzungsbedingungen",
+          "identifiers": [],
+          "available_formats": [
+            "official citation guidance HTML",
+            "official terms HTML"
+          ],
+          "declared_rights": {
+            "statement": "The current owner pages define citation details and distinguish ordinary lookup from automated querying and text/data mining.",
+            "scope": "content",
+            "evidence_url": "https://www.dwds.de/d/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Owner-supplied boundary for exact citation and for blocking an unpermitted agent or bulk-ingestion route.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No terms or guidance body was archived; exact URLs and dated conclusions were retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-official-woerterbuchnetz-dwb",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Wörterbuchnetz current interface and API",
+      "endpoint_url": "https://woerterbuchnetz.de/",
+      "interface_type": "api",
+      "interface_version": "live undocumented API and official client configuration as served 2026-08-08",
+      "exact_query": "GET /dictionaries; exact DWB lemma list query /dictionaries/DWB/lemmata/lemma/Wort%2A/100/json; negative control /dictionaries/DWB/entrypoint/lemma/Wort; current EtymWb remote-resource configuration and failed API route",
+      "queried_at": "2026-08-08T17:55:56-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.woerterbuchnetz-dwb-w26937",
+          "rank": 1,
+          "title_as_displayed": "wort, n. — DWB lemma ID W26937",
+          "result_url": "https://woerterbuchnetz.de/DWB?lemid=W26937",
+          "originating_record_url": "https://api.woerterbuchnetz.de/dictionaries/DWB/lemmata/lemma/Wort%2A/100/json",
+          "identifiers": [
+            {
+              "scheme": "Wörterbuchnetz DWB lemma ID",
+              "value": "W26937"
+            }
+          ],
+          "available_formats": [
+            "stable article HTML route",
+            "JSON lemma discovery response"
+          ],
+          "declared_rights": {
+            "statement": "No reusable article-data license or documented public API contract was established; consultation and citation remain the conservative route.",
+            "scope": "unknown",
+            "evidence_url": "https://woerterbuchnetz.de/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact lemma-list discovery plus the stable lemid article route can support a bounded historical-sense citation after grammatical and homograph selection.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No API response or article content was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.woerterbuchnetz-dwb-fuzzy-v04845",
+          "rank": 2,
+          "title_as_displayed": "-wort — fuzzy first result V04845",
+          "result_url": "https://woerterbuchnetz.de/DWB?lemid=V04845",
+          "originating_record_url": "https://api.woerterbuchnetz.de/dictionaries/DWB/entrypoint/lemma/Wort",
+          "identifiers": [
+            {
+              "scheme": "Wörterbuchnetz DWB lemma ID",
+              "value": "V04845"
+            }
+          ],
+          "available_formats": [
+            "JSON convenience response",
+            "article HTML route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://woerterbuchnetz.de/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The convenience endpoint returns a fuzzy first hit rather than the exact neuter headword and would silently misaddress lexical evidence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The negative identity result is fully represented by endpoint, returned ID, and rejection rationale."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.woerterbuchnetz-etymwb-api-backend",
+          "rank": 3,
+          "title_as_displayed": "EtymWb remote dictionary API route",
+          "result_url": "https://api.woerterbuchnetz.de/dictionaries/EtymWb/lemmata/lemma/Wort%2A/100/json",
+          "originating_record_url": "https://woerterbuchnetz.de/js/wbProperties.js",
+          "identifiers": [
+            {
+              "scheme": "Wörterbuchnetz dictionary siglum",
+              "value": "EtymWb"
+            }
+          ],
+          "available_formats": [
+            "official client configuration",
+            "failed remote-resource API response"
+          ],
+          "declared_rights": {
+            "statement": "The official client delegates EtymWb article links to DWDS; no independent Wörterbuchnetz EtymWb data license or working backend was established.",
+            "scope": "unknown",
+            "evidence_url": "https://www.dwds.de/d/nutzungsbedingungen",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unavailable",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "The API route failed and the official client identifies EtymWb as remote; ToS must use the exact DWDS headword route rather than inventing a local backend contract.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The failed route and official remote configuration are retained as bounded negative evidence."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-established-etymology-change-research",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "ACL Anthology established etymology modeling and lexical semantic change literature",
+      "endpoint_url": "https://aclanthology.org/2020.lrec-1.388/",
+      "interface_type": "web",
+      "interface_version": "ACL Anthology publication pages as served 2026-08-08",
+      "exact_query": "Established LMF/TEI etymology modeling, diachronic word-embedding survey, and SemEval-2020 Task 1 benchmark",
+      "queried_at": "2026-08-08T17:55:58-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.khan-2020-lmf-tei-etymology",
+          "rank": 1,
+          "title_as_displayed": "Modelling Etymology in LMF/TEI: The Grande Dicionário Houaiss da Língua Portuguesa Dictionary as a Use Case",
+          "result_url": "https://aclanthology.org/2020.lrec-1.388/",
+          "originating_record_url": "https://aclanthology.org/2020.lrec-1.388/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2020.lrec-1.388"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology page and paper terms apply; only bibliographic metadata and ToS-authored synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/2020.lrec-1.388/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Established interoperability bridge for a later LMF/TEI export, not a source of German etymological facts and not pressure for a new ToS contract now.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kutuzov-2018-diachronic-embeddings-survey",
+          "rank": 2,
+          "title_as_displayed": "Diachronic word embeddings and semantic shifts: a survey",
+          "result_url": "https://aclanthology.org/C18-1117/",
+          "originating_record_url": "https://aclanthology.org/C18-1117/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "C18-1117"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology page and paper terms apply; only bibliographic metadata and ToS-authored synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/C18-1117/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Supports discovery-only use and explicit evaluation limits for diachronic representation methods; it cannot establish an etymology or philosophical importance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.semeval-2020-lexical-change",
+          "rank": 3,
+          "title_as_displayed": "SemEval-2020 Task 1: Unsupervised Lexical Semantic Change Detection",
+          "result_url": "https://aclanthology.org/2020.semeval-1.1/",
+          "originating_record_url": "https://aclanthology.org/2020.semeval-1.1/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2020.semeval-1.1"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed shared-task paper",
+            "benchmark documentation"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology and separately linked dataset terms apply; no dataset or paper payload was acquired in this run.",
+            "scope": "unknown",
+            "evidence_url": "https://aclanthology.org/2020.semeval-1.1/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Benchmark-setting evidence that manually annotated evaluation is required; the benchmark is not a German etymology authority or ToS gold set.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper or benchmark payload was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-fresh-2025-2026-methods",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "ACL Anthology fresh historical German and interpretable lexical-change research",
+      "endpoint_url": "https://aclanthology.org/2025.latechclfl-1.16/",
+      "interface_type": "web",
+      "interface_version": "2025 and 2026 primary-paper pages as served 2026-08-08",
+      "exact_query": "Fresh 2025 historical German LLM/RAG evaluation followed by 2026 historical-language-model, dependency-profile, and frame-semantic lexical-change work",
+      "queried_at": "2026-08-08T17:55:59-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.hagen-2025-historical-german-llm-rag",
+          "rank": 1,
+          "title_as_displayed": "Lexical Semantic Change Annotation with Large Language Models",
+          "result_url": "https://aclanthology.org/2025.latechclfl-1.16/",
+          "originating_record_url": "https://aclanthology.org/2025.latechclfl-1.16/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2025.latechclfl-1.16"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology publication terms apply; only bibliographic metadata and bounded synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/2025.latechclfl-1.16/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Directly relevant negative evidence against treating RAG as a universal quality guarantee; a later ToS test must stratify part of speech and preserve regressions.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.fittschen-2026-historical-language-models",
+          "rank": 2,
+          "title_as_displayed": "Pretraining Language Models for Diachronic Linguistic Change Discovery",
+          "result_url": "https://aclanthology.org/2026.findings-eacl.241/",
+          "originating_record_url": "https://aclanthology.org/2026.findings-eacl.241/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2026.findings-eacl.241"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology publication terms apply; only bibliographic metadata and bounded synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/2026.findings-eacl.241/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Future machine-fit candidate for reducing anachronistic contamination, not a current German etymology or meaning authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.tat-2026-dependency-profiles",
+          "rank": 3,
+          "title_as_displayed": "Transparent Semantic Change Detection with Dependency-Based Profiles",
+          "result_url": "https://aclanthology.org/2026.lchange-1.8/",
+          "originating_record_url": "https://aclanthology.org/2026.lchange-1.8/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2026.lchange-1.8"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology publication terms apply; only bibliographic metadata and bounded synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/2026.lchange-1.8/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Interpretable future semantic-change challenger that can expose observable dependency evidence but cannot establish etymology or authorial intent.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.tat-2026-frame-semantics",
+          "rank": 4,
+          "title_as_displayed": "ReFRAME or Remain: Unsupervised Lexical Semantic Change Detection with Frame Semantics",
+          "result_url": "https://aclanthology.org/2026.starsem-conference.5/",
+          "originating_record_url": "https://aclanthology.org/2026.starsem-conference.5/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "2026.starsem-conference.5"
+            }
+          ],
+          "available_formats": [
+            "peer-reviewed paper HTML metadata",
+            "paper PDF"
+          ],
+          "declared_rights": {
+            "statement": "ACL Anthology publication terms apply; only bibliographic metadata and bounded synthesis were retained.",
+            "scope": "content",
+            "evidence_url": "https://aclanthology.org/2026.starsem-conference.5/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Interpretable later semantic-layer candidate; deliberately excluded from the source etymology layer.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No paper payload was persisted."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-open-library-kluge-1889",
+      "sequence": 6,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Wikimedia Commons exact Kluge 1889 DjVu object and linked Internet Archive identity control",
+      "endpoint_url": "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+      "interface_type": "api",
+      "interface_version": "MediaWiki API and Commons file page as served 2026-08-08",
+      "exact_query": "Exact Commons title plus imageinfo extmetadata, size, SHA-1, MIME, page count, source-visible title page, and linked Internet Archive identifier metadata reconciliation",
+      "queried_at": "2026-08-08T18:02:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.kluge-1889-fourth-commons",
+          "rank": 1,
+          "title_as_displayed": "Etymologisches Wörterbuch der deutschen Sprache 4. Auflage.djvu",
+          "result_url": "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+          "originating_record_url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Csize%7Csha1%7Cmime%7Cextmetadata&titles=File%3AEtymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+          "identifiers": [
+            {
+              "scheme": "Wikimedia Commons page ID",
+              "value": "71024227"
+            },
+            {
+              "scheme": "SHA-1",
+              "value": "c4c9722f1d7842fc1e601032eed18d16ec5e0b81"
+            },
+            {
+              "scheme": "edition statement",
+              "value": "Vierte verbesserte Auflage"
+            }
+          ],
+          "available_formats": [
+            "535-page DjVu",
+            "source-visible page images",
+            "MediaWiki metadata JSON"
+          ],
+          "declared_rights": {
+            "statement": "The exact Commons file page and API metadata declare the digital object public domain and free of known restrictions.",
+            "scope": "digital-object",
+            "evidence_url": "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "select",
+          "rationale": "Exact source-visible 1889 fourth edition, historically close to Zarathustra and suitable for a later page-returnable local OCR A route after separate acquisition, fixity, and item-level review.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only transient title-page previews and metadata were inspected; the 28,671,111-byte object was not acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.kluge-commons-linked-ia-contaminated",
+          "rank": 2,
+          "title_as_displayed": "Internet Archive metadata for etymologischesw08kluggoog",
+          "result_url": "https://archive.org/details/etymologischesw08kluggoog",
+          "originating_record_url": "https://archive.org/metadata/etymologischesw08kluggoog",
+          "identifiers": [
+            {
+              "scheme": "Internet Archive identifier",
+              "value": "etymologischesw08kluggoog"
+            }
+          ],
+          "available_formats": [
+            "Internet Archive item page",
+            "metadata JSON"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": "https://archive.org/metadata/etymologischesw08kluggoog",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Current metadata describes a 2002 Kluge/Seebold manifestation and conflicts with the source-visible 1889 Commons file; it cannot identify or date the Commons bytes.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The identifier mismatch is retained as a negative provenance result without acquiring either object."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "sequence": 7,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search exact-title and open-license control",
+      "endpoint_url": "https://www.google.com/search",
+      "interface_type": "web",
+      "interface_version": "search results as observed 2026-08-08",
+      "exact_query": "Kluge Etymologisches Wörterbuch deutsche Sprache public domain scan; German etymological dictionary open license dataset; exact 1889 fourth edition controls",
+      "queried_at": "2026-08-08T18:04:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": []
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-official-modeling-standards",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Strong official model and lifecycle metadata; protected ISO content was deliberately not ingested and the Part 3 post-review state remains freshness-sensitive. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-official-dwds-etymology",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Exact resource basis, headword addressing, citation rules, and automated-use limits were all resolved; article content was not retained. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-official-woerterbuchnetz-dwb",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Exact DWB lemma discovery works, but the API is undocumented, the shortcut is fuzzy, EtymWb is remote, and no reusable content license was established. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-established-etymology-change-research",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Supplies an interoperability bridge, a mature method survey, and a benchmark/evaluation baseline without becoming lexical authority. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-fresh-2025-2026-methods",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "Current primary work adds concrete RAG regressions, temporal-contamination pressure, and interpretable challenger methods; all remain proposal-only. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-open-library-kluge-1889",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "The exact source-visible Commons object has strong identity and public-domain evidence; the linked Internet Archive identifier is contaminated and was rejected. Timing was not separately instrumented, so no estimate is asserted."
+    },
+    {
+      "channel_id": "channel-general-web-last",
+      "completeness": "poor",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "limited",
+      "human_minutes": 0,
+      "machine_seconds": 0,
+      "notes": "No lead improved on official, scholarly, or exact open-library routes; no result was promoted. Timing was not separately instrumented, so no estimate is asserted."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.tei-p5-dictionaries-etym",
+    "tos-discovery-result.dwds-pfeifer-etymwb-official",
+    "tos-discovery-result.dwds-etymwb-wort-exact-route",
+    "tos-discovery-result.dwds-citation-and-terms",
+    "tos-discovery-result.woerterbuchnetz-dwb-w26937",
+    "tos-discovery-result.kluge-1889-fourth-commons"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.woerterbuchnetz-dwb-fuzzy-v04845",
+    "tos-discovery-result.woerterbuchnetz-etymwb-api-backend",
+    "tos-discovery-result.kluge-commons-linked-ia-contaminated"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-08T17:55:49-06:00",
+  "ended_at": "2026-08-08T18:04:02-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.zarathustra-etymology-evidence-route.2026-08-08"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

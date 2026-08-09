@@ -8459,7 +8459,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             translation_laboratory_plan["recognized_comparator"]["visibility"],
         )
         self.assertEqual(17, len(translation_laboratory_plan["workflow_order"]))
-        self.assertEqual(15, len(translation_reference_register["entries"]))
+        self.assertEqual(16, len(translation_reference_register["entries"]))
+        self.assertEqual(
+            len(translation_reference_register["entries"]),
+            translation_reference_register["coverage"]["entry_count"],
+        )
         self.assertEqual(
             set(translation_reference_register["required_categories"]),
             {

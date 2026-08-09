@@ -292,3 +292,12 @@ found. The pass therefore adds only a provisional Edition and one
 `embodied_by` packet; it does not create an Item, provision claim, publisher,
 rights conclusion, changed derivation, equivalence, semantic claim, message,
 form submission, order, or payment.
+
+`zarathustra-etymology-evidence-route.2026-08-08.v1.json` applies the ordered
+official -> established -> fresh/current -> general-web-last method to the
+lexical foundation. It selects exact TEI orientation, DWDS/Pfeifer point
+citation, the DWB `lemid` discovery route, and a source-visible public-domain
+Kluge 1889 candidate. It rejects the fuzzy DWB convenience result, the failed
+remote EtymWb API route, and contaminated Internet Archive metadata. No
+dictionary article, standard body, scan, OCR corpus, etymology, translation
+judgment, semantic claim, or human task was admitted.

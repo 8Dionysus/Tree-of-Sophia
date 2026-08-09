@@ -30,8 +30,9 @@ and the exact-form recurrence plus question-scoped usage-context foundations
 refreshed 2026-08-02; lived-witness authorship, privacy, provenance, AI-role,
 permission, revision, and the zero-model-download Qwen3-8B CPU translation
 challenger plus the deterministic Russian-surface pre-human quality floor,
-pinned offline LanguageTool B, and source-free Qwen3.5-0.8B GEC C
-refreshed 2026-08-08
+pinned offline LanguageTool B, and source-free Qwen3.5-0.8B GEC C,
+plus the exact-address, rights-aware etymology evidence route and open Kluge
+1889 candidate refreshed 2026-08-08
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -101,6 +102,7 @@ and what must be tested manually.
 | `translation-source-selector-inspection.v1.json` | Which exact 30 candidate hashes, pages, advisory decisions, and failure modes close the selector rejection? |
 | `TRANSLATION_SOURCE_REVIEW_V2.md` | Was the blind two-pass source-review interface actually materialized, checked beyond validator green, and kept short of human acceptance? |
 | `TRANSLATION_REFERENCE_RESEARCH.md` | Which lexical, corpus, critical-edition, and translation witnesses are defensible candidates, and what do access and rights actually permit? |
+| `ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md` | How can one exact accepted German occurrence reach page- or headword-addressed historical, etymological, modern-control, and competing evidence without turning word origin, dictionary output, or an LLM proposal into meaning, intent, sign, concept, or graph truth? |
 | `STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md` | Why the planned 2026-08-11 Loeb–Tinsley Stanford volume remains metadata-only on 2026-08-08; which three ISBNs are now visible; what established translator lineage supports candidate value; and why the unresolved 424/552-page conflict requires exact post-release manifestation review? |
 | `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` | What does current CC BY-NC-ND 4.0 permit for private local adaptation, what does it prohibit sharing, what does the Arquivo.pt WARC witness corroborate, and why publisher-origin authentication and source admission remain separate? |
 | `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` | Which exact GSA, DFGA, and eKGWB objects lead from late compositional layers through D 25/D 25a and the replacement section to the critical text; which identifiers, dates, and rights conflict; and why this creates no false local item or author-final text? |

@@ -51,15 +51,18 @@
       },
       "dating": {
         "original_or_coverage_date": "printed first edition published 1854-1960",
-        "edition_or_version": "Wörterbuchnetz web surface reports version 01/25; exact article revision must be captured per consultation",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "live Wörterbuchnetz DWB surface and undocumented API as served 2026-08-08; exact article URL uses the resolved DWB lemma ID",
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
-        {"scheme": "resource-siglum", "value": "1DWB"}
+        {"scheme": "resource-siglum", "value": "1DWB"},
+        {"scheme": "Wörterbuchnetz dictionary siglum", "value": "DWB"}
       ],
-      "primary_url": "https://woerterbuchnetz.de/",
+      "primary_url": "https://woerterbuchnetz.de/DWB",
       "evidence_urls": [
         "https://woerterbuchnetz.de/",
+        "https://api.woerterbuchnetz.de/dictionaries",
+        "https://woerterbuchnetz.de/js/wbProperties.js",
         "https://fedora.dwds.de/de/lexik/"
       ],
       "scholarly_posture": "institutionally maintained historical German dictionary and a starting witness for period-sensitive senses, never a sufficient Nietzsche-specific interpretation",
@@ -69,7 +72,9 @@
       ],
       "limits": [
         "dictionary article date and cited source range must be recorded per word",
-        "the digital presentation license was not established from the landing page",
+        "the live API has no discovered public OpenAPI contract and is a discovery aid rather than a durable ToS dependency",
+        "the convenience entrypoint endpoint can return a fuzzy first hit, so exact lemma-list and homograph selection are mandatory",
+        "the digital presentation license was not established from the current owner surfaces",
         "a dictionary sense does not establish Nietzsche's intended sense"
       ],
       "access": {
@@ -86,9 +91,12 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite dictionary title, article headword, Wörterbuchnetz URL, displayed version, and access date"
+          "cite article headword, dictionary title, stable lemid URL, displayed version when available, and access date"
         ],
-        "rights_evidence_urls": ["https://woerterbuchnetz.de/"]
+        "rights_evidence_urls": [
+          "https://woerterbuchnetz.de/",
+          "https://woerterbuchnetz.de/js/wbProperties.js"
+        ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
       "admission": {
@@ -98,10 +106,10 @@
         "accepted_as_truth": false,
         "blocking_reasons": [
           "exact article and source citations are not yet selected",
-          "resource-specific reuse terms require human review"
+          "no reusable article-data license or documented API contract was established"
         ]
       },
-      "notes": "Prefer article-level citation and preserve disagreement with modern and Nietzsche-specific resources."
+      "notes": "Resolve the exact lemma and grammatical homograph before citation. The 2026-08-08 Wort control resolved neuter W26937; the convenience endpoint instead returned fuzzy -wort V04845 and is rejected for exact addressing."
     },
     {
       "reference_id": "tos-ref.dwds.woerterbuch",
@@ -119,15 +127,16 @@
       "dating": {
         "original_or_coverage_date": "contemporary German lexicographic project",
         "edition_or_version": "continuously expanded; exact article revision must be frozen at consultation time",
-        "verified_at": "2026-07-23"
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
         {"scheme": "resource-name", "value": "DWDS-Wörterbuch"}
       ],
-      "primary_url": "https://www.dwds.de/",
+      "primary_url": "https://www.dwds.de/wb/Wort",
       "evidence_urls": [
         "https://fedora.dwds.de/de/lexik/",
-        "https://fedora.dwds.de/de/repo/"
+        "https://www.dwds.de/d/zitieren",
+        "https://www.dwds.de/d/nutzungsbedingungen"
       ],
       "scholarly_posture": "continuously maintained modern German meaning dictionary used as a control against anachronistic or obsolete readings",
       "intended_uses": [
@@ -136,7 +145,8 @@
       ],
       "limits": [
         "modern definitions cannot substitute for late-nineteenth-century evidence",
-        "the exact online dictionary dataset license was not confirmed from the general repository policy",
+        "current terms distinguish normal lookup from automated querying, crawling, parsing, text/data mining, and other content use",
+        "no agent or bulk-content route is authorized without express permission or a documented statutory basis",
         "article revision must be snapshotted per use"
       ],
       "access": {
@@ -153,11 +163,11 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite the DWDS article URL, article revision or access date, and owning BBAW project"
+          "follow the official DWDS format with exact article URL, resource identity, and access date"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/repo/",
-          "https://fedora.dwds.de/de/imprint/"
+          "https://www.dwds.de/d/zitieren",
+          "https://www.dwds.de/d/nutzungsbedingungen"
         ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
@@ -171,7 +181,7 @@
           "modern meaning must be triangulated with historical witnesses"
         ]
       },
-      "notes": "Use as a modern control, not as the historical authority for Nietzsche's German."
+      "notes": "Use as a point-consulted modern control, not as the historical authority for Nietzsche's German or an unrestricted machine corpus."
     },
     {
       "reference_id": "tos-ref.dwds.pfeifer-etymwb",
@@ -187,17 +197,19 @@
         "translators": []
       },
       "dating": {
-        "original_or_coverage_date": "developed in the 1980s",
-        "edition_or_version": "over 22000 headwords and continuously supplemented and revised; exact article revision must be frozen",
-        "verified_at": "2026-07-23"
+        "original_or_coverage_date": "developed in the 1980s; first and second print editions 1989 and 1993",
+        "edition_or_version": "digital version based on the second 1993 edition, updated by Wolfgang Pfeifer through 2020; over 23000 lexemes, over 9000 main entries, and over 14000 subentries",
+        "verified_at": "2026-08-08"
       },
       "identifiers": [
         {"scheme": "resource-siglum", "value": "EtymWB"}
       ],
-      "primary_url": "https://www.dwds.de/",
+      "primary_url": "https://www.dwds.de/d/wb-etymwb",
       "evidence_urls": [
-        "https://fedora.dwds.de/de/lexik/",
-        "https://fedora.dwds.de/de/repo/"
+        "https://www.dwds.de/d/wb-etymwb",
+        "https://clarin.bbaw.de/en/objects/dwds%3A3/",
+        "https://www.dwds.de/d/zitieren",
+        "https://www.dwds.de/d/nutzungsbedingungen"
       ],
       "scholarly_posture": "institutionally maintained etymological reference candidate; every etymological statement still needs exact article citation and competing-source review",
       "intended_uses": [
@@ -207,7 +219,9 @@
       "limits": [
         "etymological reconstruction is not semantic intention",
         "model paraphrase of an entry is not evidence",
-        "the exact resource license and article revision remain item-level questions"
+        "no etymology is accepted from one source",
+        "current DWDS terms do not authorize an unrestricted automated or bulk-content route",
+        "the exact headword URL and access date must be recorded per finding"
       ],
       "access": {
         "access_state": "open-web",
@@ -223,11 +237,11 @@
         "redistribution": "not-authorized",
         "derivative_use": "unknown",
         "citation_requirements": [
-          "cite EtymWB, the exact headword URL, revision or access date, and the BBAW owner"
+          "cite the headword, Wolfgang Pfeifer et al., the 1993 resource basis, exact EtymWB URL, and access date using the official DWDS guidance"
         ],
         "rights_evidence_urls": [
-          "https://fedora.dwds.de/de/repo/",
-          "https://fedora.dwds.de/de/imprint/"
+          "https://www.dwds.de/d/zitieren",
+          "https://www.dwds.de/d/nutzungsbedingungen"
         ]
       },
       "tos_refs": {"record_refs": [], "path_refs": []},
@@ -238,10 +252,86 @@
         "accepted_as_truth": false,
         "blocking_reasons": [
           "no headword packet has been selected",
-          "a second etymological source is required for contested claims"
+          "a second etymological source is required for every accepted finding or disagreement must remain unresolved",
+          "automated access requires express permission or a documented legal basis"
         ]
       },
-      "notes": "An accepted ToS etymology may cite this resource but can never be created from model memory alone."
+      "notes": "Use exact routes such as https://www.dwds.de/wb/etymwb/Wort for point consultation. Wörterbuchnetz configures EtymWb as a remote DWDS resource; its failed API route is not a backend contract."
+    },
+    {
+      "reference_id": "tos-ref.kluge.1889-fourth-commons",
+      "category": "etymological_dictionary",
+      "research_tier": "current-access-rights-and-version-surfaces",
+      "title": "Etymologisches Wörterbuch der deutschen Sprache, vierte verbesserte Auflage (Kluge 1889), Wikimedia Commons object",
+      "languages": ["de"],
+      "responsibility": {
+        "institutions": ["Wikimedia Commons"],
+        "publishers": ["Karl J. Trübner"],
+        "authors": ["Friedrich Kluge"],
+        "editors": [],
+        "translators": []
+      },
+      "dating": {
+        "original_or_coverage_date": "1889",
+        "edition_or_version": "Vierte verbesserte Auflage; source-visible title page; 535-page Commons DjVu metadata checked 2026-08-08",
+        "verified_at": "2026-08-08"
+      },
+      "identifiers": [
+        {"scheme": "Wikimedia Commons page ID", "value": "71024227"},
+        {"scheme": "Commons object SHA-1", "value": "c4c9722f1d7842fc1e601032eed18d16ec5e0b81"}
+      ],
+      "primary_url": "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+      "evidence_urls": [
+        "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu",
+        "https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Csize%7Csha1%7Cmime%7Cextmetadata&titles=File%3AEtymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+      ],
+      "scholarly_posture": "historically near, source-visible public-domain etymological witness suitable for a later page-returnable OCR and citation control, never a modern or sole etymological authority",
+      "intended_uses": [
+        "etymology-evidence",
+        "historical-sense-evidence",
+        "bibliographic-identity"
+      ],
+      "limits": [
+        "nineteenth-century etymological scholarship is historically dated and must be triangulated with current and occurrence evidence",
+        "the Commons object has not been acquired or SHA-256 registered by ToS",
+        "the linked Internet Archive identifier currently exposes mismatched 2002 Kluge-Seebold metadata and cannot identify the Commons bytes",
+        "public-domain metadata does not establish OCR quality or accepted etymology"
+      ],
+      "access": {
+        "access_state": "open-download-candidate",
+        "acquisition_state": "not-acquired",
+        "content_ingested_for_translation_lab": false,
+        "access_request_required_before_content_use": false,
+        "contact_routes": [
+          "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+        ],
+        "request_state": "not-required-for-web-consultation"
+      },
+      "rights": {
+        "assessment": "resource-specific-review-required",
+        "license_uri": null,
+        "redistribution": "per-item-review-required",
+        "derivative_use": "per-item-review-required",
+        "citation_requirements": [
+          "cite Kluge, fourth improved edition, Strasbourg, Karl J. Trübner, 1889, exact page, Commons object URL, and access date"
+        ],
+        "rights_evidence_urls": [
+          "https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu"
+        ]
+      },
+      "tos_refs": {"record_refs": [], "path_refs": []},
+      "admission": {
+        "state": "research-candidate",
+        "human_bibliographic_review": false,
+        "human_rights_review": false,
+        "accepted_as_truth": false,
+        "blocking_reasons": [
+          "no exact-object ToS acquisition event or SHA-256 exists",
+          "no page-level OCR or source-visible quality trial has run",
+          "every future etymology finding requires competing evidence and an exact Nietzsche occurrence anchor"
+        ]
+      },
+      "notes": "Selected as future open historical A soil because its exact 1889 title page and current Commons public-domain object are visible. Do not inherit the contaminated linked Internet Archive metadata."
     },
     {
       "reference_id": "tos-ref.dta.historical-corpus",
@@ -1245,7 +1335,7 @@
   ],
   "coverage": {
     "required_category_count": 9,
-    "entry_count": 15,
+    "entry_count": 16,
     "all_required_categories_present": true,
     "content_admitted_entries": 0,
     "human_bibliographic_reviews": 0,

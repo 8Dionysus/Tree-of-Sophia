@@ -1173,6 +1173,39 @@ unscheduled.
    admission without force, and a one-factor comparison plan frozen before
    output.
 
+### 2d. Open etymology only from one exact accepted occurrence
+
+Current state: the source and rights route is researched and protocol-native;
+six route results are selected, three misleading or broken routes are
+rejected, and one open historical candidate is registered. No dictionary
+article, standard body, source scan, OCR corpus, etymology, or semantic claim
+is admitted.
+
+1. Do not acquire or extract a dictionary merely because it is available.
+   Begin only when one exact accepted German occurrence creates a declared
+   lexical or translation question.
+2. Resolve surface form, lemma, grammatical category, and homograph before
+   consulting an article. Preserve the fuzzy DWB negative as a regression
+   control.
+3. Use Kluge 1889 as a source-visible historical A only after a separate
+   exact-object acquisition, SHA-256, rights, and page-quality receipt. Its
+   date is evidence, not authority.
+4. Use Pfeifer EtymWB as point-cited B under the current DWDS terms. Do not
+   crawl, parse, mine, or expose it as an agent backend without express
+   permission or a documented legal basis.
+5. Use DWB plus DTA/eKGWB occurrence evidence as C triangulation, with modern
+   DWDS as an anachronism control. No frequency or dictionary sense proves
+   Nietzsche's intended sense.
+6. Require a competing source or leave the finding unresolved. Reject any LLM
+   answer that cannot return to an exact source locator.
+7. Keep etymology, historical sense, current sense, translation consequence,
+   sign, concept, and graph relation as separate claims. In particular, do not
+   commit the etymological fallacy by treating word origin as passage meaning.
+8. Measure any later RAG, embedding, historical-model, dependency-profile, or
+   frame-semantic challenger for source return, regressions, quality, cost,
+   speed, and correction burden. Execution or agreement creates no accepted
+   etymology.
+
 ### 3. Open translation only after source acceptance
 
 The accepted translation lifecycle below remains source-gated. It is distinct
@@ -1289,7 +1322,7 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract and exact-address etymology A/B/C evidence route prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |

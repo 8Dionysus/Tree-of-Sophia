@@ -1,18 +1,18 @@
 # Translation Reference Research
 
 Status: bounded research complete; eKGWB rights/transport refreshed
-2026-07-30; Stanford release frontier refreshed 2026-08-08 and still
-forthcoming; zero reference content admitted; human bibliographic and rights
-review pending
+2026-07-30; Stanford release frontier and the source-first etymology evidence
+route refreshed 2026-08-08; Stanford remains forthcoming; zero reference
+content admitted; human bibliographic and rights review pending
 
 Research snapshot: 2026-08-08; eKGWB rights/transport refresh: 2026-07-30;
-Stanford release-frontier refresh: 2026-08-08
+Stanford release-frontier and etymology evidence-route refresh: 2026-08-08
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`52a1d9156532c6510a0c4ac3fe9a81684fd3645c08d3c05a4eff5054c59d6f3b`
+`1a8022068ec8893605725046239a5e90c0a3f3a2ed1d1e771140f8dae7a4f7aa`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -40,6 +40,14 @@ question to translation reference material:
 
 No source text, dictionary article, translation passage, or subscriber-only
 content was downloaded or copied during this research.
+
+The dedicated
+[`ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md`](ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md)
+refresh applies the same order to the lexical foundation. It resolves current
+TEI/LMF orientation, exact DWDS and DWB addressing, automated-use limits, an
+open source-visible Kluge 1889 candidate, established evaluation work, and
+fresh 2025-2026 historical-language methods. It creates a route, not an
+etymology corpus or accepted etymology.
 
 ## Governing distinctions
 
@@ -77,12 +85,16 @@ Use: period-sensitive sense evidence and historical citations.
 
 Limits:
 
-- cite the exact article, cited source range, displayed version, URL, and
-  access date;
+- resolve the exact lemma and grammatical homograph, then cite the article,
+  cited source range, stable `lemid` URL, displayed version when available,
+  and access date;
 - do not infer Nietzsche's intended sense from a dictionary entry alone;
-- the landing surface did not establish a reusable license for article data,
-  so ToS permits consultation and citation only until resource-specific terms
-  are reviewed.
+- the current API has no discovered public OpenAPI contract or reusable
+  article-data license, so it is a discovery aid rather than a durable ToS
+  dependency;
+- the `Wort` control resolved the neuter article as `W26937`, while the
+  convenience entrypoint returned fuzzy `-wort` (`V04845`); shortcut output
+  is therefore not exact lexical identity.
 
 ### Modern German control
 
@@ -98,16 +110,21 @@ Limits:
 
 - record the exact article revision or access date;
 - never replace 1880s evidence with a contemporary definition;
-- the general BBAW repository statement says owner-produced resources are
-  normally CC BY-SA unless otherwise stated, but that general statement is
-  not enough to assign a license to a particular online dictionary article.
+- follow the current [citation guidance](https://www.dwds.de/d/zitieren);
+- current [terms](https://www.dwds.de/d/nutzungsbedingungen) distinguish
+  ordinary lookup from automated queries, crawling, parsing, text/data mining,
+  and other content use, so no agent or bulk route is authorized without
+  express permission or a documented legal basis.
 
 ### Etymological dictionary
 
-The same BBAW inventory documents the
-[*Etymologisches Wörterbuch des Deutschen*](https://fedora.dwds.de/de/lexik/)
-(EtymWB), developed under Wolfgang Pfeifer, with more than 22,000 headwords
-and continued revision.
+The official DWDS page documents the
+[*Etymologisches Wörterbuch des Deutschen*](https://www.dwds.de/d/wb-etymwb)
+(EtymWB), developed under Wolfgang Pfeifer. The digital version is based on
+the second 1993 print edition, was updated by Pfeifer through 2020, and reports
+more than 23,000 lexemes, over 9,000 main entries, and over 14,000 subentries.
+Exact headword routes such as
+[`/wb/etymwb/Wort`](https://www.dwds.de/wb/etymwb/Wort) support point citation.
 
 Use: externally sourced etymological evidence.
 
@@ -115,9 +132,33 @@ Limits:
 
 - etymological history does not prove semantic intention in a Nietzsche
   passage;
-- each claim needs the exact headword, revision or access date, and a second
-  source when the history is contested;
-- an LLM's recollection or paraphrase of an entry is not evidence.
+- every claim needs the exact headword URL, resource identity, access date,
+  and competing evidence or an explicit unresolved state;
+- an LLM's recollection or paraphrase of an entry is not evidence;
+- current terms support point consultation but do not authorize using EtymWB
+  as an unrestricted agent backend or bulk corpus.
+
+### Open historical etymological control
+
+Wikimedia Commons exposes Friedrich Kluge's source-visible public-domain
+[*Etymologisches Wörterbuch der deutschen Sprache*, fourth improved edition,
+1889](https://commons.wikimedia.org/wiki/File:Etymologisches_W%C3%B6rterbuch_der_deutschen_Sprache_4._Auflage.djvu).
+Its current object metadata reports 535 pages, 28,671,111 bytes, and SHA-1
+`c4c9722f1d7842fc1e601032eed18d16ec5e0b81`. The exact object was not
+downloaded or admitted.
+
+Use: historically near, page-returnable A candidate for later local OCR and
+manual-source comparison.
+
+Limits:
+
+- nineteenth-century etymology is dated evidence, not modern truth;
+- later acquisition still needs exact-object SHA-256, provenance, and
+  item-level review;
+- the linked Internet Archive identifier currently carries mismatched 2002
+  Kluge/Seebold metadata and must not identify the Commons bytes;
+- a public-domain declaration does not prove OCR quality or accept any
+  etymology.
 
 ### Historical corpus
 
