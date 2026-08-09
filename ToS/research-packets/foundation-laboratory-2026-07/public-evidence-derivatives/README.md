@@ -16,3 +16,7 @@ Creating a derivative does not publish it, and publication requires a separate
 real-human rights and correlation-risk review. A derivative remains
 non-authoritative research evidence: it cannot establish source text,
 translation, semantics, rights, canon, or a method winner.
+
+Active-goal authorization may open one bounded local read for derivative
+preparation. It is not publication approval and cannot be recorded as human
+rights or correlation review.

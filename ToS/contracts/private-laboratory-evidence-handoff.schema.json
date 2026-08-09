@@ -32,6 +32,7 @@
     "status": {
       "enum": [
         "contract_frozen_raw_unopened",
+        "derivative_authorized_raw_unopened",
         "derivative_prepared_private",
         "human_reviewed_publication_blocked",
         "published",
@@ -112,7 +113,7 @@
           "const": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json"
         },
         "artifact_write_authority": {
-          "enum": ["contract_only", "human_approved_derivative"]
+          "enum": ["contract_only", "operator_goal_authorized_derivative"]
         },
         "publication_authority": {"type": "boolean"},
         "source_authority": {"const": false}
@@ -189,6 +190,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "derivative_preparation_authority",
         "machine_sanitization_is_human_approval",
         "rights_review_required",
         "correlation_risk_review_required",
@@ -198,6 +200,9 @@
         "current_correlation_review"
       ],
       "properties": {
+        "derivative_preparation_authority": {
+          "enum": ["not_authorized", "operator_goal_authorized"]
+        },
         "machine_sanitization_is_human_approval": {"const": false},
         "rights_review_required": {"const": true},
         "correlation_risk_review_required": {"const": true},
@@ -261,6 +266,7 @@
           },
           "review_gate": {
             "properties": {
+              "derivative_preparation_authority": {"const": "not_authorized"},
               "current_human_approval": {"const": false},
               "current_rights_review": {"const": "not_performed"},
               "current_correlation_review": {"const": "not_performed"}
@@ -270,6 +276,82 @@
             "properties": {
               "raw_read": {"const": false},
               "derivative_created": {"const": false},
+              "publication": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "derivative_authorized_raw_unopened"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "destination": {
+            "properties": {
+              "artifact_write_authority": {"const": "operator_goal_authorized_derivative"},
+              "publication_authority": {"const": false}
+            }
+          },
+          "source_boundary": {
+            "properties": {
+              "raw_read_authority": {"const": "authorized_for_bounded_derivative"}
+            }
+          },
+          "review_gate": {
+            "properties": {
+              "derivative_preparation_authority": {"const": "operator_goal_authorized"},
+              "current_human_approval": {"const": false},
+              "current_rights_review": {"const": "not_performed"},
+              "current_correlation_review": {"const": "not_performed"}
+            }
+          },
+          "effects": {
+            "properties": {
+              "raw_read": {"const": false},
+              "derivative_created": {"const": false},
+              "publication": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "derivative_prepared_private"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "destination": {
+            "properties": {
+              "artifact_write_authority": {"const": "operator_goal_authorized_derivative"},
+              "publication_authority": {"const": false}
+            }
+          },
+          "source_boundary": {
+            "properties": {
+              "raw_read_authority": {"const": "authorized_for_bounded_derivative"}
+            }
+          },
+          "review_gate": {
+            "properties": {
+              "derivative_preparation_authority": {"const": "operator_goal_authorized"},
+              "current_human_approval": {"const": false},
+              "current_rights_review": {"const": "not_performed"},
+              "current_correlation_review": {"const": "not_performed"}
+            }
+          },
+          "effects": {
+            "properties": {
+              "raw_read": {"const": true},
+              "derivative_created": {"const": true},
               "publication": {"const": false}
             }
           }

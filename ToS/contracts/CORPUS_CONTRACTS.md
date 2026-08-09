@@ -34,7 +34,7 @@ judgment true.
 | `material-discovery-record.schema.json` | exact ordered queries, result order, originating-record links, declared-rights evidence, acquisition/snapshot posture, and channel cost comparison |
 | `access-request.schema.json` | public-safe request scope, institutional contact route, separate permission purposes, private-correspondence boundary, response/expiry state, and no-bypass law |
 | `server-import-contract.schema.json` | future item/file manifest handoff, checksum and rights gates, access class, derivative matrix, operator approval, publication/takedown state, and server non-authority |
-| `private-laboratory-evidence-handoff.schema.json` | exact private-raw custody boundary, public-safe aggregate allowlist, reconstructive-detail denylist, governed destination, separate creation/publication effects, and human publication gate |
+| `private-laboratory-evidence-handoff.schema.json` | exact private-raw custody boundary, a distinct active-goal authorization state before raw read, public-safe aggregate allowlist, reconstructive-detail denylist, governed destination, separate creation/publication effects, and human publication gate |
 | `public-laboratory-evidence-derivative.schema.json` | actual aggregate derivative payload: opaque private return, minimum-cell suppression, method/outcome/error/cost summaries, explicit confounds, review state, and zero source/translation/semantic/canon authority |
 | `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse, using distinct occurrence, lexeme, sign, and concept identities |
 | `claim-packet.schema.json` | evidence-bearing assertion over a stable ToS subject, with alternatives, lineage, and human review state |

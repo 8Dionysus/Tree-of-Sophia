@@ -671,10 +671,15 @@ contracts intentionally reject simulated human evidence.
 - A completed private OCR candidate pass contains browser-observed human time,
   but its display-position imbalance blocks comparative correction-cost
   ranking. Valid human-inclusive total cost remains incomplete.
-- That private pass now has a frozen, exact public-safe handoff contract. Raw
-  evidence was not opened for contract design, no derivative was created, and
-  publication remains blocked pending human rights and correlation-risk
-  review.
+- That private pass now has a frozen, exact public-safe handoff contract and
+  one actual aggregate derivative. The destination was frozen before raw
+  inspection; active-goal authorization then opened one bounded local read
+  without granting publication approval. The derivative suppresses four
+  small cells and excludes source text, unit judgments, identities, local
+  paths, screenshots, private timestamps, and resolvable private locators.
+  Its aggregate outcomes, overlapping error taxonomy, method-time evidence,
+  and confounded human-time total remain publication-blocked pending separate
+  human rights and correlation-risk review.
 - One OCR A R2 mechanical aggregate has now been independently recomputed from
   all 144 output files and all 36 raw TSV records through a one-off shell route,
   with zero file/count mismatches and matching derived speed/confidence values.

@@ -137,7 +137,10 @@
       "items": {"$ref": "#/$defs/aggregateCountRow"}
     },
     "aggregate_machine_cost": {
-      "$ref": "#/$defs/aggregateMeasurement"
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/methodMeasurement"}
     },
     "aggregate_human_time_with_confounds": {
       "$ref": "#/$defs/aggregateMeasurement"
@@ -275,6 +278,40 @@
           }
         }
       ]
+    },
+    "methodMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "method_id",
+        "measurement_status",
+        "value",
+        "unit",
+        "confounds"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "method_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "measurement_status": {
+          "enum": ["measured", "partial", "not_measured"]
+        },
+        "value": {"type": ["number", "null"], "minimum": 0},
+        "unit": {
+          "enum": ["seconds", "bytes", "count", "not_applicable"]
+        },
+        "confounds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 12}
+        }
+      }
     }
   },
   "allOf": [

@@ -7346,7 +7346,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertFalse(Path(local_ref["relative_path"]).is_absolute())
             self.assertNotIn("..", Path(local_ref["relative_path"]).parts)
 
-    def test_private_evidence_handoff_freezes_destination_before_raw_read(
+    def test_private_evidence_handoff_records_bounded_derivative_transition(
         self,
     ) -> None:
         validator, _ = foundation._schema_validator(
@@ -7362,10 +7362,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 repo_root=REPO_ROOT,
             ),
         )
-        self.assertFalse(handoff["effects"]["raw_read"])
-        self.assertFalse(handoff["effects"]["derivative_created"])
+        self.assertTrue(handoff["effects"]["raw_read"])
+        self.assertTrue(handoff["effects"]["derivative_created"])
         self.assertFalse(handoff["effects"]["publication"])
         self.assertFalse(handoff["destination"]["publication_authority"])
+        self.assertEqual(
+            "derivative_prepared_private",
+            handoff["status"],
+        )
+        self.assertEqual(
+            "operator_goal_authorized",
+            handoff["review_gate"]["derivative_preparation_authority"],
+        )
 
         unauthorized_publication = copy.deepcopy(handoff)
         unauthorized_publication["effects"]["publication"] = True
@@ -7419,12 +7427,16 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 {"code": "reviewed", "count": 3}
             ],
             "aggregate_error_taxonomy": [],
-            "aggregate_machine_cost": {
-                "measurement_status": "not_measured",
-                "value": None,
-                "unit": "not_applicable",
-                "confounds": [],
-            },
+            "aggregate_machine_cost": [
+                {
+                    "measurement_id": "synthetic-wall",
+                    "method_id": "synthetic-a",
+                    "measurement_status": "not_measured",
+                    "value": None,
+                    "unit": "not_applicable",
+                    "confounds": [],
+                }
+            ],
             "aggregate_human_time_with_confounds": {
                 "measurement_status": "not_measured",
                 "value": None,

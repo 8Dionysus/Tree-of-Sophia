@@ -1,0 +1,149 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+  "schema_version": "tos_public_laboratory_evidence_derivative_v1",
+  "derivative_id": "tos.public-evidence-derivative.ocr-candidate-review-foundation-v1",
+  "status": "prepared_local_publication_blocked",
+  "handoff_id": "tos.evidence-handoff.ocr-candidate-review-foundation-v1",
+  "source_boundary": {
+    "evidence_set_id": "tos.private-evidence.ocr-candidate-review-foundation-v1",
+    "public_return_handle": "tos.private-return.ocr-candidate-review-foundation-v1",
+    "raw_evidence_embedded": false,
+    "source_content_embedded": false,
+    "private_locator_embedded": false,
+    "unit_level_judgments_embedded": false
+  },
+  "public_experiment_id": "tos-ocr-candidate-review-v1",
+  "disclosed_classes": [
+    "public_experiment_id",
+    "method_family",
+    "aggregate_outcome_counts",
+    "aggregate_error_taxonomy",
+    "aggregate_machine_cost",
+    "aggregate_human_time_with_confounds",
+    "evidence_posture",
+    "limitations",
+    "public_source_refs",
+    "opaque_private_return_handle"
+  ],
+  "method_family": [
+    {
+      "method_id": "tesseract-5.5.2",
+      "role": "baseline"
+    },
+    {
+      "method_id": "kraken-7.0.2-party-c2589b1",
+      "role": "challenger"
+    },
+    {
+      "method_id": "paddleocr-3.7.0-paddlex-3.7.2",
+      "role": "challenger"
+    }
+  ],
+  "aggregation": {
+    "source_unit_count": 10,
+    "candidate_observation_count": 30,
+    "minimum_group_size_applied": 3,
+    "suppressed_small_cell_count": 4
+  },
+  "aggregate_outcome_counts": [
+    {"code": "decision-accept-with-limits", "count": 14},
+    {"code": "decision-corrected", "count": 7},
+    {"code": "decision-reject", "count": 6},
+    {"code": "decision-uncertain", "count": 3},
+    {"code": "fidelity-exact", "count": 14},
+    {"code": "fidelity-major-errors", "count": 5},
+    {"code": "fidelity-minor-errors", "count": 10},
+    {"code": "completeness-added-text", "count": 7},
+    {"code": "completeness-complete", "count": 17},
+    {"code": "completeness-minor-omissions", "count": 3},
+    {"code": "structure-correct", "count": 12},
+    {"code": "structure-minor-errors", "count": 13},
+    {"code": "structure-not-assessed", "count": 4}
+  ],
+  "aggregate_error_taxonomy": [
+    {"code": "addition", "count": 9},
+    {"code": "layout-furniture", "count": 12},
+    {"code": "omission", "count": 9},
+    {"code": "punctuation", "count": 6},
+    {"code": "reading-order", "count": 6},
+    {"code": "spacing", "count": 11},
+    {"code": "substitution", "count": 9}
+  ],
+  "aggregate_machine_cost": [
+    {
+      "measurement_id": "recognition-wall-a",
+      "method_id": "tesseract-5.5.2",
+      "measurement_status": "partial",
+      "value": 40.151,
+      "unit": "seconds",
+      "confounds": [
+        "full recognition run covered 36 pages while the human pass covered a selected ten-page subset"
+      ]
+    },
+    {
+      "measurement_id": "recognition-wall-b",
+      "method_id": "kraken-7.0.2-party-c2589b1",
+      "measurement_status": "partial",
+      "value": 13786.43,
+      "unit": "seconds",
+      "confounds": [
+        "run stopped under experiment law after partial execution and is not workload-comparable to A or C"
+      ]
+    },
+    {
+      "measurement_id": "recognition-wall-c",
+      "method_id": "paddleocr-3.7.0-paddlex-3.7.2",
+      "measurement_status": "partial",
+      "value": 605.563,
+      "unit": "seconds",
+      "confounds": [
+        "full recognition run covered 36 pages while the human pass covered a selected ten-page subset"
+      ]
+    }
+  ],
+  "aggregate_human_time_with_confounds": {
+    "measurement_status": "partial",
+    "value": 8334,
+    "unit": "seconds",
+    "confounds": [
+      "candidate display positions were imbalanced across methods",
+      "one human pass cannot establish independent gold or correction-cost stability",
+      "method totals must not be ranked because display position and page difficulty were not balanced"
+    ]
+  },
+  "evidence_posture": {
+    "raw_preserved": true,
+    "negative_results_preserved": true,
+    "human_source_visible_review_observed": true,
+    "independent_human_gold": false,
+    "general_method_winner": false,
+    "content_authority": false
+  },
+  "public_source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/OCR_ADMISSION.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_ASSURANCE_RESEARCH.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/private-evidence-handoff.v1.json"
+  ],
+  "limitations": [
+    "The derivative summarizes one source-visible human pass over ten pages and thirty candidate observations only.",
+    "No accepted independent transcription exists, so CER, WER, exact gold, and a general OCR winner remain unavailable.",
+    "Four outcome cells below the frozen aggregation floor are suppressed and no unit-level judgments are exposed.",
+    "Machine wall times describe different execution extents and one stopped run, so they are not a fair speed ranking.",
+    "The tracked artifact remains publication-blocked until separate human rights and correlation-risk review passes."
+  ],
+  "review_gate": {
+    "human_publication_approval": false,
+    "rights_review": "not_performed",
+    "correlation_review": "not_performed"
+  },
+  "effects": {
+    "tracked_derivative_created": true,
+    "repository_publication": false,
+    "source_text_accepted": false,
+    "translation_accepted": false,
+    "semantic_claim_accepted": false,
+    "rights_cleared": false,
+    "canon_promoted": false
+  },
+  "claim_limit": "aggregate derivative reports bounded laboratory evidence only; it does not establish source text, translation, semantics, rights, canon, or a method winner"
+}

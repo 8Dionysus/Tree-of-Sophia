@@ -96,7 +96,8 @@ and what must be tested manually.
 | `HUMAN_GOLD_REVIEW_PACKET.md` | Is the 15-page source-visible double-review interface real, blind, hash-closed, and still honestly 0/15? |
 | `HUMAN_ASSURANCE_RESEARCH.md` | How should solo+AI review, delayed self-recheck, AI exposure, language competence, and balanced A/B/C assignment be stated without false gold? |
 | `GERMAN_ASSISTED_REVIEW_RESEARCH.md` | What can a Russian-speaking solo+AI operator verify in German source work, what belongs to critical editions or machines, and what remains competence-blocked? |
-| `private-evidence-handoff.v1.json` | Which exact public-safe destination, aggregation boundary, prohibited disclosures, owners, effects, and human publication gate must exist before private laboratory evidence is read? |
+| `private-evidence-handoff.v1.json` | Which exact public-safe destination, aggregation boundary, prohibited disclosures, owners, effects, and human publication gate must exist before private laboratory evidence is read, and how does active-goal derivative authorization stay distinct from publication approval? |
+| `public-evidence-derivatives/ocr-candidate-review-foundation-v1.json` | What aggregate OCR candidate-review evidence can safely cross from private custody after small-cell suppression, and which human-time, rights, correlation, gold, winner, and content-authority limits remain? |
 | `RETRIEVAL_C_ADMISSION.md` | Which exact independent embedding challenger was frozen before C output, why, and with what artifact/comparability boundary? |
 | `STRUCTURE_RECOVERY_REPORT.md` | What did the first real Structure A runs produce, and what was rejected? |
 | `RETRIEVAL_COMPARISON_REPORT.md` | What do the executed text A/B/C routes and the separate audit-complete direct-page-image challenger prove, disagree about, cost, and still leave to rare human judgment? |
