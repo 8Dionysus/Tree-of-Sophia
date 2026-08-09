@@ -5,6 +5,11 @@ run admitted
 
 Research snapshot: 2026-07-26
 
+Currentness continuation: `SOFTWARE_MODEL_STACK_CURRENTNESS_REFRESH_2026-08-08.md`
+updates official software/model watch and future preflight facts without
+superseding this exact admission decision or authorizing a download, upgrade,
+run, or human task.
+
 Owner boundary: Tree of Sophia owns the task material, source posture, review
 meaning, and promotion decision. `abyss-stack` owns the experiment mechanics
 and receipts. `abyss-machine` owns the live device, model, runtime, storage,

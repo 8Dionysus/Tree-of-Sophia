@@ -6,7 +6,7 @@ route refreshed 2026-07-29; exact standalone Nietzsche source-route research
 and the *Ecce Homo* / *Zarathustra* / *Jenseits von Gut und Böse*
 authorial-witness routes refreshed 2026-07-30; exact-form recurrence
 foundation refreshed 2026-08-02; semantic standards, annotation-tool, and
-fresh-paper currentness refreshed 2026-08-08
+fresh-paper plus software/model-stack currentness refreshed 2026-08-08
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -349,6 +349,13 @@ counterpoint. Both should export into ToS claim packets; neither owns canon.
 
 ## Layer III — freshest relevant evidence and current software
 
+`SOFTWARE_MODEL_STACK_CURRENTNESS_REFRESH_2026-08-08.md` owns the broad
+version-by-version refresh for source forensics, OCR/document intelligence,
+language runtimes, embeddings, stores, local inference, and model families.
+It records current official surfaces without retroactively changing exact
+historical experiment identities and admits no download, installation, run,
+upgrade, or human task.
+
 ### Fresh papers that change the method
 
 The following 2026 results are especially consequential:
@@ -367,6 +374,18 @@ The following 2026 results are especially consequential:
   historically dangerous VLM OCR behavior: language priors can hallucinate
   plausible text and introduce semantic drift. Visual grounding cannot be
   optional.
+- [HIPE-OCRepair 2026](https://arxiv.org/abs/2607.08143) shows that LLM
+  post-correction varies by language, dataset, and noise and can over-correct
+  low-noise historical OCR; its retrieval-oriented objective is deliberately
+  distinct from diplomatic fidelity.
+- [When Good OCR Is Not Enough](https://aclanthology.org/2026.acl-industry.60/)
+  finds that low CER/WER can coexist with structural and semantic failures in
+  downstream retrieval. ToS must therefore evaluate transcription/structure
+  and task-level retrieval independently.
+- [Graded relevance thresholds in multilingual dense retrieval](https://aclanthology.org/2026.findings-acl.382/)
+  finds that an effective binary threshold varies by language and task. ToS
+  must preserve graded reason-bearing judgments rather than tune one global
+  German/Russian cutoff from machine labels.
 - [Beyond Literal Mapping](https://aclanthology.org/2026.acl-long.205/) shows
   inconsistent evaluation of non-literal translation by metrics and LLM
   judges.
@@ -426,16 +445,18 @@ At the snapshot date:
   Lightning 2.6.1 after compromised 2.6.2/2.6.3 packages. The laboratory must
   resolve that exact safe dependency rather than accept an unconstrained
   newest version.
-- [OCRmyPDF 17.8.1](https://github.com/ocrmypdf/OCRmyPDF/releases/tag/v17.8.1)
+- [OCRmyPDF 17.10.0](https://github.com/ocrmypdf/OCRmyPDF/releases/tag/v17.10.0)
   may package a winning OCR stream into a searchable derivative. It is not a
   recognition contestant or rasterizer, and a derived PDF must never replace
-  the source item.
-- [Docling 2.114.0](https://github.com/docling-project/docling/releases/tag/v2.114.0)
-  was released 2026-07-20. Versions before 2.91 are excluded because of
+  the source item. Its watcher hardening also reinforces strict separation of
+  code, input, output, and archive paths.
+- [Docling 2.118.1](https://github.com/docling-project/docling/releases/tag/v2.118.1)
+  was released 2026-08-07. Versions before 2.91 are excluded because of
   [CVE-2026-44022](https://nvd.nist.gov/vuln/detail/CVE-2026-44022).
   [Docling pipeline guidance](https://docling-project.github.io/docling/examples/agent_skill/docling-document-intelligence/pipelines/)
   supports standard, hybrid, and VLM paths; forcing available backend text is
-  safer than gratuitous OCR.
+  safer than gratuitous OCR. The new release does not retroactively alter the
+  exact version or evidence of a completed structure run.
 
 ### Current local-model and runtime direction
 
@@ -480,13 +501,25 @@ At the snapshot date:
 - [TranslateGemma 4B](https://huggingface.co/google/translategemma-4b-it) is a
   specialized, license-gated translation candidate with a short input limit;
   it belongs after the license and baseline gates, not in the default path.
-- [OpenVINO 2026.2](https://docs.openvino.ai/2026/about-openvino/release-notes-openvino.html)
-  supports current Intel CPU/GPU/NPU inference families. The
+- [OpenVINO 2026.3](https://docs.openvino.ai/2026/about-openvino/release-notes-openvino.html)
+  is current upstream, while the host and its completed receipts remain on
+  exact version 2026.2. The current release's Qwen3 NPU load/context and Gemma
+  4 template known issues require route-specific preflight rather than an
+  automatic upgrade. The
   [NPU guide](https://docs.openvino.ai/2026/openvino-workflow-generative/inference-with-genai/inference-with-genai-on-npu.html)
   requires compatible low-bit conversion and model-specific constraints.
 - [llama.cpp SYCL](https://github.com/ggml-org/llama.cpp/blob/master/docs/backend/SYCL.md)
   supports Intel GPU, while [llama.cpp](https://github.com/ggml-org/llama.cpp)
-  also exposes Vulkan and an evolving OpenVINO backend.
+  also exposes Vulkan and an evolving OpenVINO backend. Its rolling daily
+  build tags make exact commit/build/backend identity more important than the
+  word `latest`.
+
+[Stanza 1.14.0](https://github.com/stanfordnlp/stanza/releases/tag/v1.14.0)
+adds security fixes and an incompatible lemmatizer-model boundary;
+[CTranslate2 4.8.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.8.1)
+hardens checkpoint/model loading. Both remain conditional future runtimes.
+Neither was installed or used in this refresh, and any later route must pin
+code and compatible model-data artifacts without implicit downloads.
 
 Fresh model availability does not displace existing resident models. A new
 artifact enters only after the resident route has produced a concrete result
@@ -528,12 +561,15 @@ promotion, and winner evidence remain absent.
   optimized, so the successful 13-claim pilot cannot establish large-corpus
   maturity.
 - [Neo4j operations documentation](https://neo4j.com/docs/operations-manual/current/)
-  governs the service route. The laboratory actually used the resident Neo4j
-  5.26.26 Community service; that makes it a useful property-graph trial but
-  does not provide isolated store costing or the multi-user authorization
-  posture needed for a canon authority.
-- [Qdrant releases](https://github.com/qdrant/qdrant/releases) make it a
-  current vector-index candidate. It remains a retrieval projection only.
+  now identifies 2026.06 under calendar versioning and governs the current
+  service route. The laboratory actually used the resident Neo4j 5.26.26 LTS
+  Community service; that exact evidence remains useful but does not provide
+  isolated store costing or the multi-user authorization posture needed for a
+  canon authority. No migration is implied.
+- [Qdrant 1.19.0](https://github.com/qdrant/qdrant/releases/tag/v1.19.0)
+  adds explicit component-memory strategies, 4-bit primary vector storage,
+  and per-query sparse IDF. It remains a conditional retrieval projection
+  only; new features and release fixes do not establish adoption or truth.
 
 RDF-star 1.2 is not adopted as the authoritative claim model while its
 specification and quoted-triple semantics remain less stable than explicit

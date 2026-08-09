@@ -4,7 +4,8 @@ Status: live-host research snapshot plus bounded graph, retrieval, and OCR A/B/C
 
 Observed: 2026-07-23; live model/device/storage facts refreshed 2026-07-26;
 direct-visual runtime, admission, and execution refreshed 2026-07-30;
-Russian-surface Qwen GEC admission and execution refreshed 2026-08-08
+Russian-surface Qwen GEC admission and execution plus non-executing software
+watch facts refreshed 2026-08-08
 
 Host owner: `/etc/abyss-machine/AGENTS.md` and storage policy
 
@@ -109,17 +110,17 @@ requires it.
 | --- | --- | --- | --- |
 | Poppler utilities | resident | PDF forensics/render/native extraction | capture exact version in run receipt |
 | Tesseract 5.5.2 | isolated `tesseract-5.5.2-fc44` runtime materialized; exact runtime-manifest SHA-256 `83b73ba91c49e53dbe75bd458e4ecc0c0558f2288ec43ff758fc6d51b22f5ca9` | OCR A completed twice on all 36 pages | human diplomatic gold and source-visible human review |
-| OCRmyPDF 17.8.1 | packaging candidate, not installed for this lab | optional searchable derivative after OCR retention | isolated Python 3.12 runtime; never owns rendering or recognition |
+| OCRmyPDF 17.10.0 current watch | packaging candidate, not installed for this lab | optional searchable derivative after OCR retention | isolated Python 3.12 runtime; strict code/input/output/archive separation; never owns rendering or recognition |
 | Kraken 7.0.2 + Party v4 | isolated `kraken-7.0.2-party-c2589b1` runtime materialized; manifest SHA-256 `304bd3c3aee20a83ae5f2c1a28ae3ea466d8d5d5808bfd8eb9b99d07c53ad110` | B stopped at 27/36 after decoder saturation and source-visible failures | unchanged configuration rejected; any new Party route needs a new hypothesis and experiment identity |
-| OpenVINO 2026.2 | CPU/GPU/NPU visible | embeddings, Qwen3, OCR candidate | per-model device compatibility proof |
+| OpenVINO 2026.2 resident; 2026.3 current upstream | CPU/GPU/NPU visible | embeddings, Qwen3, OCR candidate | per-model device compatibility proof; no currentness-driven upgrade |
 | llama.cpp Vulkan | host-managed build available | Gemma 4 trials | prompt and sampling receipt contract |
 | llama.cpp SYCL | oneAPI present; command not ready on PATH | optional Intel GPU comparison | build/version/dependency justification |
 | PaddleOCR 3.7.0 + PaddleX 3.7.2 + PaddlePaddle CPU 3.3.1 | isolated runtime and exact server detector plus Latin/East-Slavic recognizers materialized; manifest SHA-256 `6ade62666178becc448e412421ce5a6f511c84ed45856bb07bbb68eb71bb51e9` | C one-page exact repeat and 36/36 full-packet execution | second full-packet repeat, human diplomatic gold, correction cost, and source-visible human review |
-| Docling | candidate, version must be >=2.91 | layout/structure challenger | isolated environment, exact 2.114.x or reviewed later version |
+| Docling 2.118.1 current watch | candidate, not installed for this lab; version must be >=2.91 | layout/structure challenger | isolated environment and exact task-local version; no rerun from recency alone |
 | INCEpTION | not installed for this lab | annotation challenger | Java/service storage and reversible trial route |
 | CATMA | not installed for this lab | qualitative annotation challenger | deployment/export/reversibility review |
 | PyOxigraph 0.5.9 | isolated host runtime installed under `/srv/abyss-machine/runtimes/tree-of-sophia-foundation-lab/pyoxigraph-0.5.9`; named-graph/SPARQL smoke and Graph C run passed | RDF projection challenger | exact wheel, source revision, runtime manifest, license, delete/rebuild, and Store bytes captured |
-| Neo4j 5.26.26 Community | resident `abyss_neo4j_1` service used by Graph B through a credential-contained bridge | property-graph challenger | shared-store cost is not exactly isolatable; namespace cleanup and community authorization boundary remain required |
+| Neo4j 5.26.26 LTS Community; 2026.06 current upstream | resident `abyss_neo4j_1` service used by Graph B through a credential-contained bridge | property-graph challenger | shared-store cost is not exactly isolatable; namespace cleanup and community authorization boundary remain required; no currentness-driven migration |
 | Granite R2 tokenizer + OpenVINO IR | exact revision installed under host cache/runtime roots; Tokenizers 0.23.1 isolated; OpenVINO 2026.2 inherited read-only | independent Retrieval C | exact 11-file digests, failed `AFFINITY` attempt, corrected CPU smoke, owner-receipted repeat, and deletion route retained; human quality gate remains |
 
 Installing all candidates up front is explicitly rejected. Each setup follows
@@ -129,7 +130,7 @@ the experiment that needs it and has a rollback receipt.
 
 | Route | Frozen software/model surface | Known acquisition floor | Admission state |
 | --- | --- | ---: | --- |
-| A | Fedora 44 Tesseract `5.5.2-1.fc44`; `deu`/`rus` language packs `4.1.0-12.fc44`; optional OCRmyPDF 17.8.1 | 8,927,653-byte isolated runtime tree | retained deterministic comparator after exact R1/R2 recognition repeat; about 126.6-126.7 MB child peak RSS |
+| A | Fedora 44 Tesseract `5.5.2-1.fc44`; `deu`/`rus` language packs `4.1.0-12.fc44`; optional future OCRmyPDF 17.10.0 packaging | 8,927,653-byte isolated recognition runtime tree | retained deterministic comparator after exact R1/R2 recognition repeat; about 126.6-126.7 MB child peak RSS |
 | B | Kraken 7.0.2; Party commit `c2589b1b515ed690f883c6afaef6c01ce29bf72d`; Party v4 DOI `10.5281/zenodo.20642057`, 518,329,816-byte model | 1,816,411,644-byte isolated runtime tree | R1 stopped at 27/36; 3.7 GB RAM and 809 MB swap peaks; unchanged configuration rejected |
 | C | PaddleOCR 3.7.0; PaddleX 3.7.2; PaddlePaddle CPU 3.3.1; `PP-OCRv5_server_det`; `latin_PP-OCRv5_mobile_rec`; `eslav_PP-OCRv5_mobile_rec` | 1,268,461,715-byte isolated runtime tree; artifact-set SHA-256 `b8d239f91b99d1b8dd427ba453c71d638bd204792a00697d250f08742de191ee` | one-page exact repeat at 3.6-3.7 GB RAM and zero swap; full 36-page run at 4 GB RAM plus 136.8 MB swap; awaits human review |
 

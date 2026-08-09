@@ -691,13 +691,24 @@ contracts intentionally reject simulated human evidence.
 
 ## Research and software freshness
 
-The broad research snapshot is dated 2026-07-23. The next local software/LLM
-choice was separately refreshed on 2026-07-26 in
-`LOCAL_LLM_ADMISSION.md`; it admitted resident E2B/E4B/Qwen3-4B only after
-the corresponding content gate and admitted no download or run. Semantic
-annotation assurance was then refreshed on 2026-07-29 in `RESEARCH.md`, in
-the same official-docs -> established-research -> freshest-peer-reviewed order.
-That pass changed scheduling and assurance law but materialized no task.
+The broad research baseline began on 2026-07-23. The next local software/LLM
+choice was separately refreshed on 2026-07-26 in `LOCAL_LLM_ADMISSION.md`;
+it admitted resident E2B/E4B/Qwen3-4B only after the corresponding content
+gate and admitted no download or run. The remaining source-forensics, OCR,
+document, language, runtime, embedding, retrieval, graph, and model surfaces
+were then rechecked through 2026-08-08 in
+`SOFTWARE_MODEL_STACK_CURRENTNESS_REFRESH_2026-08-08.md`, in the required
+official/current -> established -> freshest-primary order. That pass records
+OCRmyPDF 17.10.0, Docling 2.118.1, OpenVINO 2026.3 upstream versus resident
+2026.2, Stanza 1.14.0, CTranslate2 4.8.1, Qdrant 1.19.0, Neo4j 2026.06 versus
+resident 5.26.26 LTS, rolling `llama.cpp` build pressure, and an unresolved
+ExifTool current endpoint. It changes future exact-version/security preflight
+only: no software/model acquisition, upgrade, rerun, result supersession,
+winner, semantic effect, or human task follows.
+Semantic annotation assurance was separately refreshed on 2026-07-29 and
+2026-08-08 in `RESEARCH.md`, in the same official-docs ->
+established-research -> freshest-peer-reviewed order. Those passes changed
+scheduling and assurance law but materialized no task.
 The exact eKGWB rights/transport route was separately refreshed on 2026-07-30
 in `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md`; it corrected the local-use boundary
 and then added institutional WARC-backed byte corroboration without claiming

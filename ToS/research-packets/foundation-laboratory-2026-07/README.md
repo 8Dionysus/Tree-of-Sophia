@@ -33,7 +33,8 @@ challenger plus the deterministic Russian-surface pre-human quality floor,
 pinned offline LanguageTool B, and source-free Qwen3.5-0.8B GEC C,
 plus the exact-address, rights-aware etymology evidence route and open Kluge
 1889 candidate, plus semantic standards, annotation-tool, and fresh-paper
-currentness refreshed 2026-08-08
+currentness plus the broad source-forensics/OCR/language/runtime/model/
+retrieval/graph software-stack currentness refreshed 2026-08-08
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -82,6 +83,7 @@ and what must be tested manually.
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
+| `SOFTWARE_MODEL_STACK_CURRENTNESS_REFRESH_2026-08-08.md` | Which source-forensics, OCR/document, language, embedding, retrieval, graph, inference, and model surfaces actually changed by 2026-08-08; what remains stable or unresolved; and why those changes strengthen exact preflight without authorizing a download, upgrade, rerun, winner, or human task? |
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md` | Which exact resident translation successor is justified after current official -> established -> freshest research, and why it remains one private capacity probe outside the closed historical A/B/C? |
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_RESULT_2026-08-08.md` | What did the resident E4B probe actually cost and produce; why is the first failure retained as infrastructure evidence, the candidate rejected before human review, and the reusable method kept without translation or semantic promotion? |
 | `LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md` | Why the already-local official Qwen3-8B INT4 artifact enters only as a separately isolated CPU challenger after both Gemma surface rejections, with a source-free smoke, no live-service mutation, no GPU re-entry, and no content authority? |

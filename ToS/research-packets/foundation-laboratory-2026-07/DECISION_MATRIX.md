@@ -4,10 +4,13 @@ Status: research decision scaffold updated with bounded graph, retrieval, struct
 
 Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
 direct-visual retrieval and historical-German morphology routes refreshed
-2026-07-30
+2026-07-30; broad software/model-stack currentness refreshed 2026-08-08
 
 The exact freshness decision and next experiment contract are recorded in
-`LOCAL_LLM_ADMISSION.md`. That refresh admits no download and no content run.
+`LOCAL_LLM_ADMISSION.md` and the non-executing superseding currentness record
+`SOFTWARE_MODEL_STACK_CURRENTNESS_REFRESH_2026-08-08.md`. The latter updates
+watch and preflight facts without changing any exact historical result,
+admitting a download, upgrade, run, winner, or human task.
 
 ## Decision vocabulary
 
@@ -62,7 +65,7 @@ evaluated later only with an explicit data-egress and rights decision.
 | Docling hybrid with backend text forced | preserve native text while adding layout | challenger | CPU preferred | must be >=2.91 because of CVE-2026-44022 | 1996 PDF and EPUB-derived comparison |
 | Docling VLM pipeline | hard-page structure/OCR proposal | conditional | Intel GPU, narrow pages only | hallucinated text and semantic drift | C on adversarial gold pages |
 | PaddleOCR-VL 0.9B | compact VLM OCR/layout | conditional structure route | OpenVINO/Intel GPU feasibility first | historical-text hallucination and setup cost | hard-page structure test only, not OCR C |
-| OCRmyPDF 17.8.1 | searchable-PDF packaging | conditional secondary route | CPU | derived PDF can be mistaken for source | package only after an OCR route is retained |
+| OCRmyPDF 17.10.0 | searchable-PDF packaging | conditional secondary route | CPU | derived PDF can be mistaken for source; watcher boundaries must separate code/input/output/archive | package only after an OCR route is retained |
 | eScriptorium | trainable transcription/HTR and review | defer | service footprint not yet justified | operational/database ownership | use if printed OCR cannot reach gold threshold |
 | OCR4all | historical OCR workflow | defer | CPU/service fit to be measured | training and workflow overhead | second-phase specialist comparison |
 | LLM-only transcription | OCR replacement | exclude | technically runnable | plausible hallucination without visual fidelity | may only propose correction to anchored OCR |
@@ -200,7 +203,7 @@ packet exists. A metric-only translation route is excluded.
 | Qwen3 dense index | semantic B | baseline | rebuildable | implicit parallels and cross-language queries |
 | Granite R2 dense index | independent multilingual C | selected, method frozen before output | rebuildable isolated local projection | independent-family cross-language behavior on the identical query set |
 | lexical+dense rank fusion | later derived experiment | conditional | rebuildable but not an independent A/B/C method | recall gain can only be tested after component results are preserved |
-| Qdrant | vector-store implementation | conditional | projection only | filters, reproducibility, operational cost |
+| Qdrant 1.19.0 | vector-store implementation | conditional | projection only | filters, reproducibility, consistency, quantization, and operational cost |
 | Qwen3-VL direct page-image retrieval | visual challenger C in separate experiment | r9 executed audit-complete; r8 retained audit-incomplete; narrow review unscheduled | projection only | OCR-independent candidate return over the frozen 20-query/36-image packet; measured mechanics and cost, no human relevance or winner |
 | LLM answer without retrieval trace | exclude | none | no source-return path | unacceptable for corpus truth |
 
@@ -239,9 +242,9 @@ not installed permanently before workflow value is demonstrated.
 | --- | --- | --- | --- | --- |
 | tracked explicit claims + generated JSON graph | authority/source | baseline | transparent, portable, diffable | custom projection code |
 | tracked explicit claims queried directly | graph A | baseline, executed | zero-database reference semantics; transparent and diffable | custom bounded query code; no multi-user service |
-| Neo4j Community 5.26.26 (resident) | graph B | challenger, executed | mature property graph; claim-first typed relationships; existing service | shared-store cost is not isolatable; community authorization and resident-service burden |
+| Neo4j Community 5.26.26 LTS (resident; current upstream 2026.06) | graph B | challenger, executed | mature property graph; claim-first typed relationships; existing service | shared-store cost is not isolatable; community authorization and resident-service burden; no currentness-driven migration |
 | PyOxigraph 0.5.9 | graph C | challenger, executed | compact RDF/SPARQL; claim-specific named graphs; canonical N-Quads; exact isolated Store bytes | active development; tiny pilot does not prove large-query maturity |
-| Qdrant | retrieval adjunct | conditional | vector filtering/search | not a knowledge graph |
+| Qdrant 1.19.0 | retrieval adjunct | conditional | vector filtering/search | not a knowledge graph; release recency is not adoption evidence |
 | any graph DB as only copy of claims | exclude | none | deletes provenance and review authority | prohibited |
 
 The graph comparison asks whether each projection makes source-return,
