@@ -571,6 +571,19 @@ check. No testimony or tracked metadata was created, and no human task was
 scheduled. This closes the missing **form and route**, not the still-voluntary
 future act of authoring lived witness or any later interpretive promotion.
 
+## Semantic currentness refresh — 2026-08-08
+
+The semantic/content research now returns to current official release
+authority before relying on generated documentation pages: TEI P5 is 4.12.0
+from 2026-07-28, INCEpTION is 41.3 from 2026-08-04, and CATMA is 7.3.0. The
+audit preserves observed lag where individual TEI reference pages still
+identify themselves as 4.11.0 instead of silently treating them as release
+authority. July 2026 ACL evidence further supports atomic claim-to-evidence
+binding, deterministic citation closure, rationale preservation, and the rule
+that model variation is not human perspectival evidence. No schema, source,
+experiment, human task, sign, interpretation, graph truth, or promotion was
+created by this currentness pass.
+
 ## Thirty-one required artifacts
 
 The 2026-08-01 Antonovsky Agent continuation is independent of the earlier

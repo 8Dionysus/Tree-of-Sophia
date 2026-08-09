@@ -5,7 +5,8 @@ Snapshot: 2026-07-22; semantic-annotation method and direct-visual execution
 route refreshed 2026-07-29; exact standalone Nietzsche source-route research
 and the *Ecce Homo* / *Zarathustra* / *Jenseits von Gut und Böse*
 authorial-witness routes refreshed 2026-07-30; exact-form recurrence
-foundation refreshed 2026-08-02
+foundation refreshed 2026-08-02; semantic standards, annotation-tool, and
+fresh-paper currentness refreshed 2026-08-08
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -576,17 +577,19 @@ July 2026 date of a paper substitute for methodological weight.
   comprehension. It is useful as an interoperability projection for
   evidence-bearing arguments. ToS claim packets remain the owner record.
 - The current official
-  [INCEpTION documentation](https://inception-project.github.io/documentation/)
-  identifies 41.2 as the latest release. Its curation, agreement,
-  recommenders, and active-learning suggestions are useful experimental
-  surfaces, but accepting a suggestion remains an annotation action rather
-  than semantic proof.
-- [CATMA 7](https://catma.de/documentation/technology-and-versions/) remains
-  the current qualitative-literary counterpoint. It attaches typed key-value
-  annotations to passages, exports stand-off TEI, and stores CATMA 7 projects
-  in one Git repository with per-user branches and an integrated main state.
-  These are valuable interchange and inspection properties, not canon
-  ownership.
+  [INCEpTION download surface](https://inception-project.github.io/downloads/)
+  identifies 41.3, released 2026-08-04, as the latest release. Its curation,
+  agreement, recommenders, and active-learning suggestions are useful
+  experimental surfaces, but accepting a suggestion remains an annotation
+  action rather than semantic proof.
+- [CATMA 7.3.0](https://catma.de/documentation/technology-and-versions/)
+  remains the current qualitative-literary counterpoint. It attaches typed
+  key-value annotations to passages, exports stand-off TEI, and stores CATMA
+  7 projects in one Git repository with per-user branches and an integrated
+  main state. The 7.3 release also repairs a distribution-visualization error
+  in which empty bins could appear non-empty, a useful warning against
+  treating a visualization as the underlying count. These are valuable
+  interchange and inspection properties, not canon ownership.
 
 ### II. Established annotation research
 
@@ -628,6 +631,17 @@ July 2026 date of a paper substitute for methodological weight.
   cases where labels disagree although explanations are semantically similar.
   ToS must preserve bounded rationale separately from the selected label and
   compare both.
+- [Kulmizev et al. 2026](https://aclanthology.org/2026.acl-long.752/) show
+  that ensembles of model generations can resemble human label distributions
+  while retaining idiosyncratic disagreement and substantially less stylistic
+  diversity in their explanations. This strengthens the existing rule that
+  multiple models or samples are not multiple human perspectives.
+- [Xu, Li, and Sheng 2026](https://aclanthology.org/2026.findings-acl.1789/)
+  require atomic subclaims to bind explicit evidence units and then validate
+  cited identifiers and spans deterministically. Their fact-checking results
+  support ToS's claim-to-anchor closure and a separate mechanical citation
+  audit. They do not show that a multi-agent debate can establish a literary
+  sign, philosophical interpretation, or canon judgment.
 - [Hossain et al. 2026](https://aclanthology.org/2026.law-main.18/) show in
   a restricted-access human-in-the-loop audit that declared uncertainty
   strongly identifies difficult cases. The paper uses expert adjudication;
@@ -670,6 +684,13 @@ The current packet therefore freezes only a content-free 20-task shape:
 five tasks in each of four families, balanced 10 random and 10 hard. It
 materializes zero tasks, schedules zero human work, runs no model or
 annotation tool, and creates no semantic result.
+
+The 2026-08-08 currentness pass changes no owner contract or stage order. It
+corrects TEI, INCEpTION, and CATMA version authority; preserves the separation
+between a label and its rationale; retains model variation as model evidence;
+and keeps deterministic identifier/span validation below human semantic
+judgment. No software installation, source acquisition, task materialization,
+model run, human task, or sign promotion follows from the refresh.
 
 ## Exact-form recurrence foundation refresh — 2026-08-02
 

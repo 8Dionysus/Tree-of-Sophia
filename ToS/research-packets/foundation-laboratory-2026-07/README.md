@@ -32,7 +32,8 @@ permission, revision, and the zero-model-download Qwen3-8B CPU translation
 challenger plus the deterministic Russian-surface pre-human quality floor,
 pinned offline LanguageTool B, and source-free Qwen3.5-0.8B GEC C,
 plus the exact-address, rights-aware etymology evidence route and open Kluge
-1889 candidate refreshed 2026-08-08
+1889 candidate, plus semantic standards, annotation-tool, and fresh-paper
+currentness refreshed 2026-08-08
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
