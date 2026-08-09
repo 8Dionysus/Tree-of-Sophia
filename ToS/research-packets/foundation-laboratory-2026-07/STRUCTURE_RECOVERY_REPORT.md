@@ -321,6 +321,30 @@ textual identity is asserted. The result creates no diplomatic or accepted
 German, source-target passage or translation alignment, eligibility, gold,
 human task, semantic or canon effect, rights clearance, or publication route.
 
+### Later forensic boundary closure
+
+The historical pass above correctly retained three unresolved routes at its
+own checkpoint. A later append-only forensic return, recorded in
+`TRANSFER_SOURCE_BOUNDARY_FORENSIC_RETURN.md`, resolved those exact gaps from
+source-visible markers without rewriting that earlier evidence:
+
+- *Jenseits* §32 begins after an embedded same-PDF image-mask marker and at the
+  first following Poppler bbox record;
+- *Jenseits* §201 uses direct same-PDF Poppler bbox boundaries;
+- *Genealogie* I:10 ends before I:11 through an embedded same-PDF image-mask
+  marker and the first following Poppler bbox record.
+
+The current source candidate set therefore contains 35 of 35 private
+mode-0600 layer-exact candidates and zero unresolved boundaries. The separate
+tracked-only readiness projection joins those source candidates to the 35
+target candidates without reading either private text layer: it preserves 32
+frozen-page intersections, three target nonintersections, and at least one
+dual mechanically available intersecting route for every one of the twenty
+frozen pages. This closure remains address mechanics only; it accepts no
+German or Russian passage and creates no bilingual pair, source-target
+alignment, eligibility, gold, human task, semantic claim, publication route,
+or canon effect.
+
 ## Decisions
 
 1. Preserve the contaminated A revision, failed B language route, and all

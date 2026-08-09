@@ -3,7 +3,7 @@
 Status: active requirement-by-requirement audit; the corpus mechanics are
 substantial, but the full foundation goal is not complete
 
-Audit snapshot: 2026-08-08
+Audit snapshot: 2026-08-09
 
 ## Purpose
 
@@ -25,8 +25,9 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia source/contract base through `c9b6eb11` (`Reconcile Qwen CPU
-  translation evidence`), followed by the current staged audit continuation;
+- Tree of Sophia reviewed checkpoint `1cb6d34e` (`Close transfer source
+  boundary readiness`), followed only by the current audit-currentness
+  continuation;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -90,11 +91,15 @@ all twenty frozen pages are now structurally source-routable through 35
 possibilities. At that structural-route stage, accepted target or German-source
 passage ends, accepted German/Russian, passage or translation alignment,
 eligibility, target gold, human work, semantics, and canon effects remained
-zero. The current repository closure, including the target/source passage
-continuations below, passes 311 tests with one declared skip. The portable KAG
-family closes at 570 shards, 1,806 source records, 18,640 anchors, 445 events,
-and 20,898 canonical records; full and incremental rebuild checks match the
-staged source snapshot. These are mechanical and navigational proofs only.
+zero. The current repository closure, including the target/source passage and
+readiness continuations below, passes 319 tests with one declared skip. The
+portable KAG family at the reviewed checkpoint has digest
+`6594e811325e4ed002c4634c19e8dd89956a44239f94e02ee96c86b933776b88` and
+closes at 571 shards, 1,812 source records, 18,712 anchors, 328 events, 3,319
+assertions, 7,462 relations, 3,891 entities, and 20,866 canonical records.
+Full and incremental rebuild checks match the workflow-pinned PR-base history
+semantics and the checkpoint source snapshot. These are mechanical and
+navigational proofs only.
 
 The next target-only continuation returned all thirty-five conservative routes
 to the exact ignored Mysl PDF without changing the frozen page frame. It
@@ -737,7 +742,7 @@ transfer, human review, legal advice, or publication authority.
 | golden-kernel benefit and danger are tested | blocked; twenty pre-output target candidates are prepared but ineligible; the deferred §22 witness route is outside the plan | deliberately activate and execute the target-content transfer plan only after both gold routes exist; never substitute witness stages for transfer variants |
 | no completeness claim is made for philosophy | proven | keep catalog scope explicit |
 | remaining uncertainty is explicit | proven by this audit and limitations packet | update the audit after every authority-bearing pass |
-| a later agent can resume without chat reconstruction | partial | reconcile the three pressures below in owner contracts and tracked handoffs |
+| a later agent can resume without chat reconstruction | proven for the current checkpoint: the requirement matrix, four reconciled contract pressures, exact owner refs, dependency-ordered route, stop line, and transfer-readiness projection are tracked together | refresh this audit after every authority-bearing pass; chat or generated KAG may help navigation but is not required to reconstruct the route |
 
 ## Resolved and open contract pressures
 
