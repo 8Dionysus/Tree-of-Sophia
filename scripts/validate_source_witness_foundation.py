@@ -93,6 +93,9 @@ GRAPH_QUERY_SCHEMA = CONTRACT_ROOT / "graph-query-plan.schema.json"
 PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
     CONTRACT_ROOT / "private-laboratory-evidence-handoff.schema.json"
 )
+PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA = (
+    CONTRACT_ROOT / "public-laboratory-evidence-derivative.schema.json"
+)
 GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "german-assisted-source-review.schema.json"
 )
@@ -494,6 +497,75 @@ def _private_evidence_handoff_issues(
             issues.append(
                 "contract-only private-evidence handoff already has a materialized derivative"
             )
+    return issues
+
+
+def _public_evidence_derivative_issues(
+    derivative: object,
+    *,
+    handoff: object,
+) -> list[str]:
+    if not isinstance(derivative, dict):
+        return ["public evidence derivative is not an object"]
+    if not isinstance(handoff, dict):
+        return ["public evidence derivative has no handoff object"]
+    issues: list[str] = []
+    for value in _string_values(derivative):
+        if value.startswith(("/", "~/")) or "/home/" in value or "/srv/" in value:
+            issues.append("public evidence derivative contains an absolute local path")
+            break
+
+    source_boundary = handoff.get("source_boundary", {})
+    derivative_boundary = derivative.get("source_boundary", {})
+    comparisons = (
+        ("handoff_id", derivative.get("handoff_id"), handoff.get("handoff_id")),
+        (
+            "evidence_set_id",
+            derivative_boundary.get("evidence_set_id"),
+            source_boundary.get("evidence_set_id"),
+        ),
+        (
+            "public_return_handle",
+            derivative_boundary.get("public_return_handle"),
+            source_boundary.get("public_return_handle"),
+        ),
+    )
+    for label, actual, expected in comparisons:
+        if actual != expected:
+            issues.append(
+                f"public evidence derivative {label} does not match its handoff"
+            )
+
+    policy = handoff.get("disclosure_policy", {})
+    disclosed = set(derivative.get("disclosed_classes", []))
+    allowed = set(policy.get("allowed_classes", []))
+    unexpected = sorted(disclosed - allowed)
+    if unexpected:
+        issues.append(
+            f"public evidence derivative discloses non-allowed classes: {unexpected}"
+        )
+    aggregation = derivative.get("aggregation", {})
+    derivative_floor = aggregation.get("minimum_group_size_applied")
+    handoff_floor = policy.get("minimum_aggregation_group_size")
+    if (
+        isinstance(derivative_floor, int)
+        and isinstance(handoff_floor, int)
+        and derivative_floor < handoff_floor
+    ):
+        issues.append(
+            "public evidence derivative aggregation floor is below its handoff"
+        )
+    forbidden = set(policy.get("forbidden_classes", []))
+    leaked_forbidden_labels = sorted(
+        value
+        for value in _string_values(derivative)
+        if value in forbidden
+    )
+    if leaked_forbidden_labels:
+        issues.append(
+            "public evidence derivative names forbidden disclosure classes: "
+            f"{leaked_forbidden_labels}"
+        )
     return issues
 
 
@@ -1121,6 +1193,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             PRIVATE_EVIDENCE_HANDOFF_SCHEMA,
             repo_root,
         )
+        public_evidence_derivative_validator, _ = _schema_validator(
+            PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA,
+            repo_root,
+        )
         german_assisted_review_validator, _ = _schema_validator(
             GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
             repo_root,
@@ -1168,6 +1244,24 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             repo_root=repo_root,
         ):
             issues.append((private_handoff_location, message))
+        destination_ref = private_handoff.get("destination", {}).get("artifact_path")
+        if isinstance(destination_ref, str):
+            derivative_path = repo_root / destination_ref
+            if derivative_path.exists():
+                derivative = _load_json(derivative_path, repo_root, issues)
+                if derivative is not None:
+                    derivative_location = _relative(derivative_path, repo_root)
+                    _validate_payload(
+                        derivative,
+                        public_evidence_derivative_validator,
+                        derivative_location,
+                        issues,
+                    )
+                    for message in _public_evidence_derivative_issues(
+                        derivative,
+                        handoff=private_handoff,
+                    ):
+                        issues.append((derivative_location, message))
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}

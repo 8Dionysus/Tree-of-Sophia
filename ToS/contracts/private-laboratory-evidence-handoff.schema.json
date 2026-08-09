@@ -97,6 +97,7 @@
       "required": [
         "owner",
         "artifact_path",
+        "artifact_schema",
         "artifact_write_authority",
         "publication_authority",
         "source_authority"
@@ -106,6 +107,9 @@
         "artifact_path": {
           "type": "string",
           "pattern": "^ToS/research-packets/foundation-laboratory-2026-07/public-evidence-derivatives/[a-z0-9][a-z0-9.-]*\\.json$"
+        },
+        "artifact_schema": {
+          "const": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json"
         },
         "artifact_write_authority": {
           "enum": ["contract_only", "human_approved_derivative"]

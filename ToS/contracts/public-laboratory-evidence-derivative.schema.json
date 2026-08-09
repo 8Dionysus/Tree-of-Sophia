@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+  "title": "Tree of Sophia public-safe aggregate laboratory evidence derivative",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "derivative_id",
+    "status",
+    "handoff_id",
+    "source_boundary",
+    "public_experiment_id",
+    "disclosed_classes",
+    "method_family",
+    "aggregation",
+    "aggregate_outcome_counts",
+    "aggregate_error_taxonomy",
+    "aggregate_machine_cost",
+    "aggregate_human_time_with_confounds",
+    "evidence_posture",
+    "public_source_refs",
+    "limitations",
+    "review_gate",
+    "effects",
+    "claim_limit"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_public_laboratory_evidence_derivative_v1"
+    },
+    "derivative_id": {
+      "type": "string",
+      "pattern": "^tos\\.public-evidence-derivative\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {
+      "enum": [
+        "prepared_local_publication_blocked",
+        "human_reviewed_publication_blocked",
+        "publication_approved",
+        "published",
+        "superseded"
+      ]
+    },
+    "handoff_id": {
+      "type": "string",
+      "pattern": "^tos\\.evidence-handoff\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "source_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_set_id",
+        "public_return_handle",
+        "raw_evidence_embedded",
+        "source_content_embedded",
+        "private_locator_embedded",
+        "unit_level_judgments_embedded"
+      ],
+      "properties": {
+        "evidence_set_id": {
+          "type": "string",
+          "pattern": "^tos\\.private-evidence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "public_return_handle": {
+          "type": "string",
+          "pattern": "^tos\\.private-return\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "raw_evidence_embedded": {"const": false},
+        "source_content_embedded": {"const": false},
+        "private_locator_embedded": {"const": false},
+        "unit_level_judgments_embedded": {"const": false}
+      }
+    },
+    "public_experiment_id": {
+      "type": "string",
+      "pattern": "^tos-[a-z0-9]+(?:-[a-z0-9]+)*-v[0-9]+$"
+    },
+    "disclosed_classes": {
+      "const": [
+        "public_experiment_id",
+        "method_family",
+        "aggregate_outcome_counts",
+        "aggregate_error_taxonomy",
+        "aggregate_machine_cost",
+        "aggregate_human_time_with_confounds",
+        "evidence_posture",
+        "limitations",
+        "public_source_refs",
+        "opaque_private_return_handle"
+      ]
+    },
+    "method_family": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["method_id", "role"],
+        "properties": {
+          "method_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "role": {
+            "enum": ["baseline", "challenger", "comparator", "non-comparative"]
+          }
+        }
+      }
+    },
+    "aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_unit_count",
+        "candidate_observation_count",
+        "minimum_group_size_applied",
+        "suppressed_small_cell_count"
+      ],
+      "properties": {
+        "source_unit_count": {"type": "integer", "minimum": 3},
+        "candidate_observation_count": {"type": "integer", "minimum": 3},
+        "minimum_group_size_applied": {"type": "integer", "minimum": 3},
+        "suppressed_small_cell_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "aggregate_outcome_counts": {
+      "$ref": "#/$defs/aggregateCountRows"
+    },
+    "aggregate_error_taxonomy": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/aggregateCountRow"}
+    },
+    "aggregate_machine_cost": {
+      "$ref": "#/$defs/aggregateMeasurement"
+    },
+    "aggregate_human_time_with_confounds": {
+      "$ref": "#/$defs/aggregateMeasurement"
+    },
+    "evidence_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_preserved",
+        "negative_results_preserved",
+        "human_source_visible_review_observed",
+        "independent_human_gold",
+        "general_method_winner",
+        "content_authority"
+      ],
+      "properties": {
+        "raw_preserved": {"const": true},
+        "negative_results_preserved": {"const": true},
+        "human_source_visible_review_observed": {"type": "boolean"},
+        "independent_human_gold": {"const": false},
+        "general_method_winner": {"const": false},
+        "content_authority": {"const": false}
+      }
+    },
+    "public_source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/repoPath"}
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 20}
+    },
+    "review_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_publication_approval",
+        "rights_review",
+        "correlation_review"
+      ],
+      "properties": {
+        "human_publication_approval": {"type": "boolean"},
+        "rights_review": {
+          "enum": ["not_performed", "passed", "failed", "uncertain"]
+        },
+        "correlation_review": {
+          "enum": ["not_performed", "passed", "failed", "uncertain"]
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tracked_derivative_created",
+        "repository_publication",
+        "source_text_accepted",
+        "translation_accepted",
+        "semantic_claim_accepted",
+        "rights_cleared",
+        "canon_promoted"
+      ],
+      "properties": {
+        "tracked_derivative_created": {"const": true},
+        "repository_publication": {"type": "boolean"},
+        "source_text_accepted": {"const": false},
+        "translation_accepted": {"const": false},
+        "semantic_claim_accepted": {"const": false},
+        "rights_cleared": {"const": false},
+        "canon_promoted": {"const": false}
+      }
+    },
+    "claim_limit": {
+      "const": "aggregate derivative reports bounded laboratory evidence only; it does not establish source text, translation, semantics, rights, canon, or a method winner"
+    }
+  },
+  "$defs": {
+    "repoPath": {
+      "type": "string",
+      "pattern": "^(ToS|scripts)/[A-Za-z0-9._/-]+$"
+    },
+    "aggregateCountRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "count"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "count": {"type": "integer", "minimum": 3}
+      }
+    },
+    "aggregateCountRows": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/aggregateCountRow"}
+    },
+    "aggregateMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_status", "value", "unit", "confounds"],
+      "properties": {
+        "measurement_status": {
+          "enum": ["measured", "partial", "not_measured"]
+        },
+        "value": {"type": ["number", "null"], "minimum": 0},
+        "unit": {
+          "enum": ["seconds", "bytes", "count", "not_applicable"]
+        },
+        "confounds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 12}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "measurement_status": {"const": "not_measured"}
+            },
+            "required": ["measurement_status"]
+          },
+          "then": {
+            "properties": {
+              "value": {"const": null},
+              "unit": {"const": "not_applicable"}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "prepared_local_publication_blocked"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "review_gate": {
+            "properties": {
+              "human_publication_approval": {"const": false},
+              "rights_review": {"const": "not_performed"},
+              "correlation_review": {"const": "not_performed"}
+            }
+          },
+          "effects": {
+            "properties": {
+              "repository_publication": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"enum": ["publication_approved", "published"]}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "review_gate": {
+            "properties": {
+              "human_publication_approval": {"const": true},
+              "rights_review": {"const": "passed"},
+              "correlation_review": {"const": "passed"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "published"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "effects": {
+            "properties": {
+              "repository_publication": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

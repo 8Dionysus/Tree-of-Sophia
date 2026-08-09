@@ -7382,6 +7382,105 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
+    def test_public_evidence_derivative_has_payload_and_cross_closes_to_handoff(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA,
+            REPO_ROOT,
+        )
+        handoff = json.loads(PRIVATE_HANDOFF_PATH.read_text(encoding="utf-8"))
+        derivative = {
+            "$schema": "https://tree-of-sophia.local/ToS/contracts/public-laboratory-evidence-derivative.schema.json",
+            "schema_version": "tos_public_laboratory_evidence_derivative_v1",
+            "derivative_id": "tos.public-evidence-derivative.synthetic-v1",
+            "status": "prepared_local_publication_blocked",
+            "handoff_id": handoff["handoff_id"],
+            "source_boundary": {
+                "evidence_set_id": handoff["source_boundary"]["evidence_set_id"],
+                "public_return_handle": handoff["source_boundary"]["public_return_handle"],
+                "raw_evidence_embedded": False,
+                "source_content_embedded": False,
+                "private_locator_embedded": False,
+                "unit_level_judgments_embedded": False,
+            },
+            "public_experiment_id": "tos-ocr-candidate-review-v1",
+            "disclosed_classes": handoff["disclosure_policy"]["allowed_classes"],
+            "method_family": [
+                {"method_id": "synthetic-a", "role": "baseline"}
+            ],
+            "aggregation": {
+                "source_unit_count": 3,
+                "candidate_observation_count": 3,
+                "minimum_group_size_applied": 3,
+                "suppressed_small_cell_count": 0,
+            },
+            "aggregate_outcome_counts": [
+                {"code": "reviewed", "count": 3}
+            ],
+            "aggregate_error_taxonomy": [],
+            "aggregate_machine_cost": {
+                "measurement_status": "not_measured",
+                "value": None,
+                "unit": "not_applicable",
+                "confounds": [],
+            },
+            "aggregate_human_time_with_confounds": {
+                "measurement_status": "not_measured",
+                "value": None,
+                "unit": "not_applicable",
+                "confounds": [],
+            },
+            "evidence_posture": {
+                "raw_preserved": True,
+                "negative_results_preserved": True,
+                "human_source_visible_review_observed": True,
+                "independent_human_gold": False,
+                "general_method_winner": False,
+                "content_authority": False,
+            },
+            "public_source_refs": [
+                "ToS/research-packets/foundation-laboratory-2026-07/HUMAN_GOLD_REVIEW_PACKET.md"
+            ],
+            "limitations": [
+                "Synthetic fixture contains no source or unit-level evidence.",
+                "Synthetic fixture establishes no method quality conclusion.",
+                "Synthetic fixture grants no publication or content authority.",
+            ],
+            "review_gate": {
+                "human_publication_approval": False,
+                "rights_review": "not_performed",
+                "correlation_review": "not_performed",
+            },
+            "effects": {
+                "tracked_derivative_created": True,
+                "repository_publication": False,
+                "source_text_accepted": False,
+                "translation_accepted": False,
+                "semantic_claim_accepted": False,
+                "rights_cleared": False,
+                "canon_promoted": False,
+            },
+            "claim_limit": "aggregate derivative reports bounded laboratory evidence only; it does not establish source text, translation, semantics, rights, canon, or a method winner",
+        }
+        self.assertEqual([], list(validator.iter_errors(derivative)))
+        self.assertEqual(
+            [],
+            foundation._public_evidence_derivative_issues(
+                derivative,
+                handoff=handoff,
+            ),
+        )
+
+        leaked_path = copy.deepcopy(derivative)
+        leaked_path["limitations"].append("private locator /srv/example")
+        self.assertTrue(
+            foundation._public_evidence_derivative_issues(
+                leaked_path,
+                handoff=handoff,
+            )
+        )
+
     def test_german_assisted_review_opens_only_bounded_experiment_lanes(
         self,
     ) -> None:
