@@ -487,6 +487,33 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_morphology_context_packet.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-receipt.v1.json",
+        "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+        "ToS/contracts/morphology-contextual-episode-row.schema.json",
+        "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+        "ToS/contracts/provenance-event.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md"
+      ],
+      "reads": [
+        "one exact private DWDSmor A stream, the frozen selected-form recurrence plan and receipt, the complete private recurrence bundle, and three fixity-bound local TEI payloads"
+      ],
+      "writes": [
+        "one ignored mode-0600 three-row raw-TEI context packet plus a tracked text/position-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "output-blind first/median/last context freeze for one concrete B-only machine proposal; no B acquisition or output, C admission, accepted German, morphology, lemma, lexeme, sign, semantics, publication, or human backlog",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_lexical_index.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/record_zarathustra_visual_retrieval_result.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

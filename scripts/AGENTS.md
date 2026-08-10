@@ -134,6 +134,17 @@ reference. Mechanical residue is not reviewed residue: the recorder cannot
 accept German, morphology, a lemma or lexeme, open B/C or a human task, clear
 rights, authorize publication, or create semantic and graph authority.
 
+`build_zarathustra_morphology_context_packet.py` is the additive bridge from
+one already frozen A ambiguity and the complete selected-form recurrence to a
+bounded B question. It selects recurrence ranks 1, inclusive-median, and last
+without seeing B/C output, returns those occurrences to exact raw TEI
+paragraph or verse-group character data, and writes the three source-bearing
+rows only under ignored mode-0600 `local-content/`. Its tracked receipt and
+provenance retain digests, rank roles, counts, variant state, and zero-effect
+gates. The builder acquires or runs no model, admits no C normalization for an
+unrelated POS question, and creates no accepted German, morphology, lemma,
+lexeme, sign, semantic claim, publication route, or human backlog.
+
 `record_zarathustra_visual_retrieval_result.py` is the return route from one
 exact owner-local direct-page-image retrieval C run. It independently
 reconstructs frozen-input and artifact fixity, normalization evidence,

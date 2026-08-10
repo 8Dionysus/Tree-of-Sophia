@@ -1682,15 +1682,18 @@ schedules no routine review.
    four-part row and all 145 occurrences return to exact raw-TEI offsets across
    96 pages and 59 sections. Source values and positions remain private, packet
    v5 is unchanged, and recurrence stages remain blocked because exact-form
-   identity is not yet a competence-supported lemma or lexeme. The next owner
-   step is therefore a contract decision, not automatic stage promotion:
-   specify how complete exact-form recurrence may attach as source-observed
-   evidence while morphology and lemma stay blocked, or explicitly retain the
-   exact-form branch as a purely observational sidecar until
-   competence-appropriate evidence can justify packet consumption. Record the
-   required competence and assurance evidence before changing any stage; do
-   not infer lemma, sense, motif, signhood, or philosophical importance from
-   recurrence.
+   identity is not yet a competence-supported lemma or lexeme. The owner
+   contract now retains recurrence as source-observed evidence while
+   morphology and lemma remain blocked. One concrete A ambiguity has frozen a
+   separate B-only contextual episode at output-blind recurrence ranks 1, 73,
+   and 145 across parts 1, 3, and 4. Its private mode-0600 packet contains two
+   raw-TEI paragraphs and one verse group with exact target return; tracked
+   evidence remains text- and position-free. B is still unacquired and
+   unexecuted. C is question-inapplicable because exact and normalized form
+   identity do not differ in this episode. No semantic-ladder stage, German
+   competence, human task, or acceptance state changes. Do not infer lemma,
+   sense, motif, signhood, or philosophical importance from recurrence or
+   machine proposals.
    When one accepted German occurrence creates a real etymology question, use
    the selected source route in `ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md`: exact
    lemma/homograph resolution, point citation, competing evidence, and an
@@ -1698,12 +1701,12 @@ schedules no routine review.
    word origin, and do not convert DWDS or the undocumented Wörterbuchnetz API
    into an unrestricted agent backend.
 3. Materialize no morphology task merely because the method research exists.
-   When an edition-reading-attested source/translation/sign/retrieval question
-   actually needs morphology, freeze its source-local occurrences first, then
-   create the matching `abyss-stack` profile, audit B/C artifact rights and
-   dependencies,
-   and run current host preflight. Acquire A first; B and C remain sequential
-   evidence-gated challengers. Machine agreement does not create accepted
+   The first concrete A ambiguity now has a source-local, output-blind,
+   three-context B packet and a matching execution boundary. Audit the exact B
+   artifact and dependency rights, run current storage/resource/thermal
+   preflight, then acquire and execute B only. C remains unacquired and blocked
+   as question-inapplicable; it may open only for a distinct normalization
+   question. Machine agreement or disagreement does not create accepted
    German, a lemma, or `lexeme_id`.
 4. Preserve the completed blind resident A/B/C translation-method calibration
    over the single ignored admitted source string. Do not rerun it to replace

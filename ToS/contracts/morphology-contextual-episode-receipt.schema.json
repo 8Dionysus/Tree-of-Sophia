@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+  "title": "Tree of Sophia morphology contextual episode receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "receipt_id",
+    "status",
+    "plan",
+    "generator",
+    "trigger_closure",
+    "source_recurrence",
+    "selection",
+    "local_packet",
+    "context_summary",
+    "variant_state",
+    "content_exposure",
+    "rights_and_visibility",
+    "competence_boundary",
+    "semantic_boundary",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-receipt.schema.json"},
+    "schema_version": {"const": "tos_morphology_contextual_episode_receipt_v1"},
+    "receipt_id": {"const": "morphology-contextual-episode-receipt:zarathustra-selected-form-b-v1"},
+    "status": {"const": "context-packet-materialized-b-unacquired"},
+    "plan": {"$ref": "#/$defs/refDigest"},
+    "generator": {"$ref": "#/$defs/refDigest"},
+    "trigger_closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_receipt", "private_raw_output_sha256", "selected_row_sha256", "selected_row_match_count", "input_preserved", "lemma_analysis_count", "provider_pos_categories", "separable_candidate_count"],
+      "properties": {
+        "result_receipt": {"$ref": "#/$defs/refDigest"},
+        "private_raw_output_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_row_sha256": {"$ref": "#/$defs/sha256"},
+        "selected_row_match_count": {"const": 1},
+        "input_preserved": {"const": true},
+        "lemma_analysis_count": {"const": 2},
+        "provider_pos_categories": {"const": ["ADV", "V"]},
+        "separable_candidate_count": {"const": 1}
+      }
+    },
+    "source_recurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan", "receipt", "local_bundle_sha256", "complete_occurrence_count", "source_payload_fixity_match_count"],
+      "properties": {
+        "plan": {"$ref": "#/$defs/refDigest"},
+        "receipt": {"$ref": "#/$defs/refDigest"},
+        "local_bundle_sha256": {"$ref": "#/$defs/sha256"},
+        "complete_occurrence_count": {"const": 145},
+        "source_payload_fixity_match_count": {"const": 3}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "recurrence_ranks", "rank_roles", "row_count", "part_counts", "b_output_visible_during_selection", "semantic_labels_used"],
+      "properties": {
+        "method": {"const": "ordered-recurrence-first-inclusive-median-last"},
+        "recurrence_ranks": {"const": [1, 73, 145]},
+        "rank_roles": {"const": ["first", "inclusive-median", "last"]},
+        "row_count": {"const": 3},
+        "part_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["1", "3", "4"],
+          "properties": {
+            "1": {"const": 1},
+            "3": {"const": 1},
+            "4": {"const": 1}
+          }
+        },
+        "b_output_visible_during_selection": {"const": false},
+        "semantic_labels_used": {"const": false}
+      }
+    },
+    "local_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "format", "schema_ref", "schema_version", "sha256", "bytes", "mode", "row_count", "source_bearing"],
+      "properties": {
+        "relative_path": {"pattern": "^ToS/.*/local-content/.*\\.jsonl$"},
+        "format": {"const": "jsonl"},
+        "schema_ref": {"const": "ToS/contracts/morphology-contextual-episode-row.schema.json"},
+        "schema_version": {"const": "tos_morphology_contextual_episode_row_v1"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "mode": {"const": "0600"},
+        "row_count": {"const": 3},
+        "source_bearing": {"const": true}
+      }
+    },
+    "context_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_return_verified_count", "context_unit_kind_counts", "total_context_codepoints", "minimum_context_codepoints", "maximum_context_codepoints", "sentence_boundary_claimed", "exact_surface_mutated"],
+      "properties": {
+        "target_return_verified_count": {"const": 3},
+        "context_unit_kind_counts": {
+          "type": "object",
+          "propertyNames": {"enum": ["paragraph", "verse-group"]},
+          "additionalProperties": {"type": "integer", "minimum": 1}
+        },
+        "total_context_codepoints": {"type": "integer", "minimum": 3},
+        "minimum_context_codepoints": {"type": "integer", "minimum": 1},
+        "maximum_context_codepoints": {"type": "integer", "minimum": 1},
+        "sentence_boundary_claimed": {"const": false},
+        "exact_surface_mutated": {"const": false}
+      }
+    },
+    "variant_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["a", "b", "c", "b_acquisition_requires_artifact_audit", "b_execution_requires_fresh_host_preflight", "human_work_scheduled"],
+      "properties": {
+        "a": {"const": "existing-context-free-candidate-set"},
+        "b": {"const": "admitted-unacquired"},
+        "c": {"const": "blocked-question-inapplicable"},
+        "b_acquisition_requires_artifact_audit": {"const": true},
+        "b_execution_requires_fresh_host_preflight": {"const": true},
+        "human_work_scheduled": {"const": false}
+      }
+    },
+    "content_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_exact_strings", "local_context", "local_occurrence_positions", "tracked_exact_strings", "tracked_context", "tracked_occurrence_positions", "tracked_form_hashes"],
+      "properties": {
+        "local_exact_strings": {"const": true},
+        "local_context": {"const": true},
+        "local_occurrence_positions": {"const": true},
+        "tracked_exact_strings": {"const": false},
+        "tracked_context": {"const": false},
+        "tracked_occurrence_positions": {"const": false},
+        "tracked_form_hashes": {"const": true}
+      }
+    },
+    "rights_and_visibility": {"type": "object"},
+    "competence_boundary": {"type": "object"},
+    "semantic_boundary": {"type": "object"},
+    "provenance_event_ref": {"const": "tos.event.annotation.zarathustra-morphology-context-b-v1.2026-08-10"},
+    "authority_boundary": {"type": "string", "minLength": 120}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1, "not": {"pattern": "^/|(^|/)\\.\\.(/|$)"}},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

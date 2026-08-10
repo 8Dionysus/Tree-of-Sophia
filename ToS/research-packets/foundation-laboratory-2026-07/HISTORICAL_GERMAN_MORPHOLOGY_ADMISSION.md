@@ -1,9 +1,10 @@
 # Historical German Morphology and Lemmatization Admission
 
-Status: ordered research, source-gated A census executed, contextual B/C
-unacquired and blocked; no German linguistic analysis accepted
+Status: ordered research, source-gated A census executed, one output-blind
+three-context B packet materialized but B not acquired or executed; C remains
+unacquired and question-inapplicable; no German linguistic analysis accepted
 
-Research snapshot: 2026-07-29
+Research snapshot: 2026-08-10
 
 ## Decision
 
@@ -660,7 +661,7 @@ it.
 
 | Requirement | State |
 | --- | --- |
-| ordered research | complete through 2026-07-29 |
+| ordered research | complete through 2026-07-29; targeted B/C artifact and trigger refresh completed 2026-08-10 |
 | exact A/B/C identities | frozen as admission candidates |
 | exact current package/model revisions | frozen for A, B, and C research |
 | license review | A clear for local GPL experiment; B dataset/model terms need artifact-level review; C research-only rights ambiguity open |
@@ -669,22 +670,75 @@ it.
 | host preflight | exact A plan, input, runtime, storage, memory, load, thermal, CPU, license, and offline gates returned `ready` |
 | package/model acquisition | A acquired as a seven-wheel exact closure; principal DWDSmor wheel 4,803,531 bytes; B/C zero |
 | runtime | exact offline Python 3.12 runtime; 23,451,336 bytes; 1,043 artifacts; artifact-set SHA-256 `6fa42ae80572f582a2dbcab49dbcaa42012279458a106b0ba6717262fa0c260d` |
-| morphology tasks | one exhaustive private A census over all exact form types; contextual task packet zero |
+| morphology tasks | one exhaustive private A census over all exact form types; one three-occurrence output-blind contextual packet materialized from raw TEI with exact target return |
 | machine outputs | A raw 54,495,917 bytes, mode 0600, retained owner-locally; two byte-identical passes; tracked receipt contains no source or provider-lemma strings |
 | A mechanical coverage | 6,610 / 11,352 form types (0.5822762508809021); 75,872 / 86,287 token weight (0.8792981561533023); 4,742 mechanically unknown types with weight 10,415 |
 | A measured execution | pass 1: 3.137308178 s; pass 2: 3.111671021 s; 3,618.3886 forms/s on pass 1; process peak RSS 44,339,200 bytes; host cgroup peak 118,292,480 bytes; swap peak 0 |
 | A accuracy / residue review | unmeasured; coverage is not accuracy; unknown and ambiguity aggregates remain unreviewed |
-| contextual B/C | unacquired, unmaterialized, and unexecuted; mechanical A residue alone does not satisfy the review trigger |
+| contextual B/C | one concrete A ambiguity now has a three-context B-only packet; B remains unacquired and unexecuted; C remains question-inapplicable and unacquired |
 | human work | zero scheduled; no routine backlog created |
 | competent German gold | zero |
 | accepted lemmas / lexemes | zero |
 | sign, semantic, translation, graph effects | zero |
 
-The next legitimate action is not a B or C download and not a review of 4,742
-forms merely because they are unknown to A. First inspect only text-free
-aggregate residue and wait for either reviewed A residue or a concrete
-source/translation/sign/retrieval question. Then freeze the same contextual
-occurrences before any B/C output, review artifact rights, and obtain a new
-host preflight. Until that trigger exists, the exhaustive A mechanics are
-closed while contextual comparison, competent quality, acceptance, and all
-semantic effects remain blocked.
+### 10.1 Targeted freshness and trigger refresh — 2026-08-10
+
+The trigger state changed without changing any accepted linguistic state.
+The exact form already selected independently by the initial source-observation
+route and returned across the whole Work has one direct-A row with two
+competing provider categories: `ADV` and a separable verbal component
+(`V`/`SEP`). The A row is preserved in the private run, while the tracked
+episode may retain only its digest, category shape, and source-free counts.
+This is a concrete contextual POS-disambiguation question rather than an
+invitation to review the whole mechanical residue.
+
+The existing complete source-return bundle contains 145 occurrences in frozen
+part/token order. Before any B output, the first episode selects exactly three
+rows by recurrence rank `1`, `73`, and `145`: first, inclusive median, and
+last. The rule uses only the already frozen source order and A ambiguity; it
+does not inspect B, C, a translation, a dictionary, a semantic label, or
+philosophical importance. The private packet retains the exact raw-TEI context,
+target offsets, and composite source selectors. Git receives only digests,
+counts, rank roles, part distribution, and the no-authority boundary.
+
+A live primary-source refresh found no pin drift:
+
+- the official ZDL GitLab package registry still exposes only
+  `de_zdl_lg` 4.0.0, created 2025-12-11, at 627,548,130 bytes with SHA-256
+  `9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a`;
+  tag `v4.0.0` still resolves to
+  `7eabc17097a3ea39f5cc9c030a605ff7edc20ae4`;
+- the official DTAEC model API still resolves the ungated public repository to
+  revision `bf13bc367ff08a91983eeb44002f48a2e713b28b`, last modified
+  2024-08-08; its 31,741,808-byte weight retains SHA-256
+  `002146d5baf5a9676c0748993d7ec275f0e991ca6bd4664ff8c7644d902f77fd`;
+- `hybrid_textnorm` `main` still resolves to
+  `8619fd8961caac5d5f961df0e689f6a9ad3948cd`.
+
+The refresh also narrows the route. The selected exact-form and normalized-form
+hashes are identical, while the actual question is occurrence-level POS and
+separable-verb disambiguation. Type normalization therefore supplies no
+decision-relevant distinction for this episode. B is the only justified new
+challenger. C stays blocked until a separate historical-normalization question
+or an observed A/B disagreement makes its information-loss, rights, runtime,
+and storage cost relevant.
+
+Primary refresh surfaces:
+
+- [ZDL GitLab project API](https://gitup.uni-potsdam.de/api/v4/projects/21461)
+- [ZDL official package index](https://gitup.uni-potsdam.de/api/v4/projects/21461/packages/pypi/simple/de-zdl-lg/)
+- [DTAEC model card](https://huggingface.co/aehrm/dtaec-type-normalizer)
+- [DTAEC model API](https://huggingface.co/api/models/aehrm/dtaec-type-normalizer)
+- [hybrid_textnorm repository](https://github.com/aehrm/hybrid_textnorm)
+
+The three-row private context packet is now materialized and independently
+reverified: ranks `1`, `73`, and `145` return to parts 1, 3, and 4; two context
+units are TEI paragraphs and one is a verse group; all three target slices
+match the selected exact-form hash; exact strings and positions remain ignored
+mode-`0600`; the tracked receipt exposes no context or occurrence locator.
+
+The next legitimate action is B's artifact-level license/dependency audit,
+fresh storage/resource/thermal admission, and only then acquisition and a
+bounded exact-B run over this frozen packet. No C acquisition, routine human
+review, accepted lemma, lexeme, sign, semantic effect, or publication route is
+opened by the packet.

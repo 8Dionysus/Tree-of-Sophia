@@ -205,11 +205,19 @@ Zarathustra golden kernel. It is not a completed gold set.
   of 11,352 form types and 75,872 of 86,287 token-weighted occurrences
   received at least one provider analysis; 4,742 types with weight 10,415
   remain mechanically unknown. Coverage is not accuracy, the residue has not
-  been reviewed, and German-competent gold remains zero. A contextual A/B/C
-  sample therefore remains unmaterialized until reviewed A residue or a
-  concrete source/translation/sign/retrieval question triggers it; B and C
-  remain unacquired, and no accepted morphology, lemma, lexeme, semantic
-  effect, or human backlog is created.
+  been reviewed, and German-competent gold remains zero.
+- `morphology-contextual-episode.selected-form-b.v1.json` freezes the first
+  concrete context-specific challenger question before any B output is seen.
+  One exact-form A row returns competing adverb and separable-verb-component
+  analyses. Output-blind recurrence ranks 1, 73, and 145 select the first,
+  inclusive-median, and last occurrences across parts 1, 3, and 4. The private
+  mode-`0600` packet returns each exact target slice inside two source
+  paragraphs and one verse group; the tracked receipt and provenance expose
+  only fixity, structure, counts, selection closure, and execution posture.
+  Variant B is admitted but remains unacquired and unexecuted. Variant C is
+  blocked as question-inapplicable because exact and normalized form identity
+  do not differ in this episode. This creates no German-competent gold,
+  morphology acceptance, lemma, lexeme, semantic effect, or human backlog.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic
@@ -424,6 +432,12 @@ Restricted transcriptions, crops, prompts, drafts, and comparator text belong
 under `local-content/`, which is ignored by Git except for its route card.
 Tracked files carry metadata, anchors, digests, method, rights posture, and
 review status only.
+
+The selected-form contextual morphology payload is stored at
+`local-content/morphology/contextual-episodes/exact-form-0007489c-b-v1.jsonl`.
+It is private, ignored, mode `0600`, and contains the three exact source
+contexts needed for a B-only run. The repository tracks only its text-free
+receipt, plan, and provenance; none authorizes source publication.
 
 ## Cross-repository execution
 

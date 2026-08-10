@@ -1,0 +1,150 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-episode-plan.schema.json",
+  "schema_version": "tos_morphology_contextual_episode_plan_v1",
+  "plan_id": "morphology-contextual-episode-plan:zarathustra-selected-form-b-v1",
+  "experiment_id": "tos-historical-german-morphology-v1",
+  "episode_id": "zarathustra-selected-form-context-b-v1",
+  "status": "ready-to-materialize-context-packet",
+  "frozen_before_b_output": true,
+  "research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md",
+    "sha256": "a302a806ae6549062afd448d049943870f6e44b8eb977b3f223eca96c7ac6aba"
+  },
+  "parent_morphology_plan": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+    "sha256": "6075b2926b49c4b79b0a186e5338eaa7dd33e847ea1b38b322ef3403dcfcd4c5"
+  },
+  "a_trigger": {
+    "trigger_kind": "concrete-contextual-pos-and-separable-component-disambiguation",
+    "result_receipt": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
+      "sha256": "9dbf0733e48164e25c19aceb26cf678a006fa376fd1c828f848352080482301f"
+    },
+    "private_raw_output": {
+      "ref": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/zarathustra-dwdsmor-a-20260730t0009z/variant-A/raw-output/dwdsmor-census.jsonl",
+      "sha256": "a6579e4db4cb5aafaadb69db2529d08d0df6827c4a13ad09a49630060a1bcc4c",
+      "bytes": 54495917,
+      "visibility": "owner-local-only"
+    },
+    "selected_row_sha256": "803a0ea7bdcfaee82c1633ad5f4c071966d140daa199272a53488c219144def6",
+    "form_key": "lexical-form:sha256:0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37",
+    "exact_form_sha256": "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37",
+    "normalized_form_sha256": "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37",
+    "input_preserved": true,
+    "unknown": false,
+    "lemma_analysis_count": 2,
+    "provider_pos_categories": ["ADV", "V"],
+    "separable_candidate_count": 1,
+    "source_values_tracked": false
+  },
+  "source_recurrence": {
+    "plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-plan.v1.json",
+      "sha256": "fdf60ad0469da5f9ecb94782bd2446d79cfe75169e4d0dbceb925991eeaf7669"
+    },
+    "receipt": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-receipt.v1.json",
+      "sha256": "b50417321708d85ee6ec1dfc2225fe6e2206cd590fd043516a7d894843da438f"
+    },
+    "local_bundle": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/semantic-source-observation/initial-v1/work-recurrence-bundle.json",
+      "sha256": "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763",
+      "bytes": 119035,
+      "mode": "0600",
+      "visibility": "gitignored-local-only"
+    },
+    "occurrence_count": 145
+  },
+  "selection": {
+    "method": "ordered-recurrence-first-inclusive-median-last",
+    "ordered_by": ["part_order", "token_ordinal", "occurrence_id"],
+    "recurrence_ranks": [1, 73, 145],
+    "rank_roles": ["first", "inclusive-median", "last"],
+    "selection_count": 3,
+    "b_output_visible_during_selection": false,
+    "c_output_visible_during_selection": false,
+    "semantic_labels_used": false,
+    "human_work_scheduled": false
+  },
+  "context_policy": {
+    "text_source": "fixity-bound-raw-tei-character-data",
+    "unit_rules": ["nearest-ancestor-p", "nearest-ancestor-lg-containing-target-line"],
+    "sentence_boundary_claimed": false,
+    "exact_surface_mutated": false,
+    "target_offset_unit": "unicode-codepoint",
+    "serialization": "lxml-itertext-source-order-no-network",
+    "network_allowed": false
+  },
+  "variants": [
+    {
+      "label": "A",
+      "method": "dwdsmor-open-0.18.0-direct-surface",
+      "status": "existing-context-free-candidate-set",
+      "acquired": true,
+      "executed": true,
+      "role": "preserved-ambiguity-trigger"
+    },
+    {
+      "label": "B",
+      "method": "de-zdl-lg-4.0.0-direct-unchanged-context",
+      "status": "admitted-unacquired",
+      "acquired": false,
+      "executed": false,
+      "version": "4.0.0",
+      "source_commit": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4",
+      "wheel_sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a",
+      "wheel_bytes": 627548130,
+      "license_status": "artifact-level-review-required-before-execution",
+      "role": "contextual-pos-and-separable-component-challenger"
+    },
+    {
+      "label": "C",
+      "method": "dtaec-type-normalizer-then-exact-b",
+      "status": "blocked-question-inapplicable",
+      "acquired": false,
+      "executed": false,
+      "reason": "selected exact-form and normalized-form hashes are identical; this episode asks contextual POS and separable-component disambiguation rather than historical normalization",
+      "role": "reserved-for-separate-normalization-question"
+    }
+  ],
+  "local_packet": {
+    "relative_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/morphology/contextual-episodes/exact-form-0007489c-b-v1.jsonl",
+    "format": "jsonl",
+    "schema_ref": "ToS/contracts/morphology-contextual-episode-row.schema.json",
+    "schema_version": "tos_morphology_contextual_episode_row_v1",
+    "mode": "0600",
+    "source_bearing": true,
+    "visibility": "gitignored-local-only",
+    "expected_row_count": 3
+  },
+  "tracked_receipt_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.v1.jsonl",
+  "rights_and_visibility": {
+    "source_content": "local-only-not-publication-cleared",
+    "tracked_derivative": "text-and-position-free-not-publication-cleared",
+    "b_artifact": "local-research-only-pending-artifact-level-license-inventory",
+    "c_artifact": "not-admitted-for-this-question",
+    "future_site_route": "blocked"
+  },
+  "competence_boundary": {
+    "machine_output_authority": "proposal-only",
+    "german_competent_gold_count": 0,
+    "accepted_morphology_count": 0,
+    "accepted_lemma_count": 0,
+    "human_work_scheduled": false
+  },
+  "semantic_boundary": {
+    "creates_accepted_source": false,
+    "creates_morphology": false,
+    "creates_lemma": false,
+    "creates_lexeme": false,
+    "creates_sign_candidate": false,
+    "creates_sign": false,
+    "creates_semantic_claim": false,
+    "creates_translation": false,
+    "creates_graph_fact": false,
+    "opens_human_backlog": false,
+    "changes_initial_sign_packet": false
+  },
+  "authority_boundary": "one output-blind private raw-TEI context packet for a concrete machine-only B disambiguation proposal; no accepted German, sentence, tokenization, morphology, lemma, lexeme, normalization, sign, translation, semantic claim, graph fact, canon effect, public route, or human backlog"
+}

@@ -159,7 +159,7 @@ or publication route.
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
 | retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual r9 executed audit-complete with 20/20 stable rankings, 200 resolved anchors, one A/B-missed route recovery, four hard-negative outranks, and two ambiguous cross-language cases; five trigger queries open but unscheduled; human judgments 0 | advisory model targets, route recovery, and hard negatives are not gold; exact execution and independent mechanical reconstruction still cannot supply relevance, nDCG, adoption, or promotion |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
-| historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
+| historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` A profile; DWDSmor Open 0.18.0 A runtime and retained private result; one output-blind three-context ZDL `de_zdl_lg 4.0.0` B episode frozen for a concrete A ambiguity; rights-gated DTAEC-assisted C retained only for a distinct normalization question | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; B: private exact-return contexts frozen at recurrence ranks 1/73/145 across parts 1/3/4, artifact unacquired and output absent; C: question-inapplicable and unacquired; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; execute only frozen B after artifact-rights, dependency, and fresh host admission; preserve C's block; machine disagreement or agreement still cannot supply German competence or acceptance |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
 | golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; all twenty pages are structurally source-routable through thirty-five conservative routes; a target exact-layer pass materializes thirty-five private numbered-unit slices while retaining three spill routes as explicit nonintersection negatives; a German pass materializes all thirty-five private source candidates through exact automatic, bounded JP2/scandata, or same-PDF image-mask/Poppler marker boundaries; a text-free readiness projection preserves 32 dual intersecting routes, three target nonintersections, and at least one dual intersecting route for every frozen page; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible pages; target 35 candidates / 32 page intersections / 3 rejected nonintersections; source 35 candidates / 0 unresolved boundaries; readiness 35 dual candidate routes / 20 of 20 frozen pages mechanically covered; 0 accepted source or target passages; 0 source-target alignments; 0 eligible target passages; §22 is outside the sampling frame; human debt 0 | automatic or source-visible-marker boundaries are not diplomatic or accepted text; co-availability is not a bilingual passage pair or alignment; the separate Antichrist navigation Item has no textual-identity claim; local JP2/scandata payloads are not publication objects; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
 | *Jenseits* §187 source-visible overlay | one private model-source-visible source/target packet; four reproducible 180-DPI page renders; separate exact eKGWB critical selector; text-free tracked receipt; automatic German and Russian candidates preserved as negative evidence | source-visible candidate 1; source/critical alphabetic-token agreement 156/156; one complete Russian target line omitted by the automatic layer; accepted source/target passages 0; alignments 0; eligible units 0; gold 0; human reviews and debt 0 | model-visible agreement is not human evidence or German competence; the critical and historical Items are not identified; aggregate token diagnostics are not CER/WER or quality; source text remains local; the route cannot enter A/B/C until the task-specific acceptance and alignment gates actually open |
@@ -681,8 +681,12 @@ contracts intentionally reject simulated human evidence.
   and a distinct Tree recorder recomputes all tracked aggregates from the
   private raw rows. This still creates zero accepted morphology, lemmas,
   lexemes, translation correspondences, sign candidates, or semantic packets.
-  The residue has not been reviewed, B/C remain unacquired, and no human work
-  is scheduled.
+  The residue has not been reviewed and no human work is scheduled. One
+  concrete A ambiguity has now triggered an output-blind contextual B packet:
+  recurrence ranks 1, 73, and 145 return to exact raw-TEI source contexts
+  across parts 1, 3, and 4. B remains unacquired and unexecuted. C is
+  question-inapplicable because exact and normalized identity do not differ
+  for this episode; it remains unacquired.
 - A separate 5,530,732-byte tracked recurrence projection now materializes the
   same 11,352 rows as exact-form hash plus frequency, part/division/page range,
   part-size-aware `DP`, maximum part concentration, and explicit residue. Its
@@ -1089,12 +1093,13 @@ quality.
    the executed packet.
 6. Preserve the completed whole-vocabulary morphology A census and its private
    raw evidence. Do not turn 4,742 machine-unknown forms into a review queue:
-   mechanical residue is not reviewed residue. Freeze a contextual comparison
-   packet only after reviewed A residue or a concrete
-   source/translation/sign/retrieval question triggers it. B/C still require
-   rights review, sequential acquisition, and a fresh host preflight; machine
-   coverage does not create accepted German, morphology, a lemma, or
-   `lexeme_id`.
+   mechanical residue is not reviewed residue. The first concrete A ambiguity
+   has already frozen one output-blind three-context B episode. Audit the exact
+   B artifact and dependency rights, perform fresh storage/resource/thermal
+   admission, and execute only that packet. Keep C blocked as
+   question-inapplicable until a distinct normalization question exists.
+   Machine coverage, agreement, or disagreement does not create accepted
+   German, morphology, a lemma, or `lexeme_id`.
 7. Preserve the recurrence tuple as a queryable observation surface, not as a
    sampling leaderboard. Any use of frequency, range, or `DP` must first name
    the exact question and freeze its selection law; no threshold creates a
@@ -1421,7 +1426,7 @@ from the calibration-only route in section 2b.
 | --- | --- |
 | safe repository preparation and preserved user work | satisfied on local owner branches; commits and validation complete, no external push/merge performed |
 | speaking topology, source storage, manifests, fixity, provenance, rights | prepared and validated |
-| research, decision matrix, machine fit, A/B/C specifications | prepared; morphology A mechanics executed reproducibly, while its contextual B/C and all time-sensitive future runs require fresh admission |
+| research, decision matrix, machine fit, A/B/C specifications | prepared; morphology A mechanics executed reproducibly; one exact three-context B-only episode is frozen before output and awaits artifact/runtime/host admission; C is explicitly question-inapplicable for that episode |
 | real pages and text manually checked | incomplete |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
@@ -1430,7 +1435,7 @@ from the calibration-only route in section 2b.
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
 | quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; monetary, energy, real-human correction time, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
-| A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes, but contextual B/C are unmaterialized and Structure B/C have one corrected full-scope run each under different frozen scopes |
+| A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes and the contextual B input is reproducibly materialized, but B has no output and C is question-inapplicable; Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |
 | limitations and continuation route explicit | satisfied by this document and the promotion ledger |

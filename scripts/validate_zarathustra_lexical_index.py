@@ -43,6 +43,24 @@ USAGE_CONTEXT_PROVENANCE_REF = (
 USAGE_CONTEXT_GENERATOR_REF = (
     "scripts/build_zarathustra_usage_context_bundle.py"
 )
+MORPHOLOGY_CONTEXT_PLAN_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "morphology-contextual-episode.selected-form-b.v1.json"
+)
+MORPHOLOGY_CONTEXT_RECEIPT_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "morphology-contextual-episode.selected-form-b.receipt.v1.json"
+)
+MORPHOLOGY_CONTEXT_PROVENANCE_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "provenance.morphology-contextual-episode.selected-form-b.v1.jsonl"
+)
+MORPHOLOGY_CONTEXT_GENERATOR_REF = (
+    "scripts/build_zarathustra_morphology_context_packet.py"
+)
 BASE_PROVENANCE_EVENT_REF = (
     "tos.event.export.zarathustra-lexical-index-v1.2026-07-29"
 )
@@ -57,6 +75,13 @@ USAGE_CONTEXT_AUTHORITY_BOUNDARY = (
     "no accepted German, sentence boundary, morphology, lemma, lexeme, "
     "translation correspondence, sign candidate, sign, concept, claim, "
     "relation, graph, canon, public route, or human backlog"
+)
+MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY = (
+    "one output-blind private raw-TEI context packet for a concrete "
+    "machine-only B disambiguation proposal; no accepted German, sentence, "
+    "tokenization, morphology, lemma, lexeme, normalization, sign, "
+    "translation, semantic claim, graph fact, canon effect, public route, or "
+    "human backlog"
 )
 
 
@@ -556,6 +581,275 @@ def _validate_usage_context_layer() -> dict[str, Any]:
         "summary": summary,
         "authority_boundary": USAGE_CONTEXT_AUTHORITY_BOUNDARY,
     }
+
+
+def _validate_morphology_context_layer() -> dict[str, Any]:
+    plan_path = REPO_ROOT / MORPHOLOGY_CONTEXT_PLAN_REF
+    receipt_path = REPO_ROOT / MORPHOLOGY_CONTEXT_RECEIPT_REF
+    provenance_path = REPO_ROOT / MORPHOLOGY_CONTEXT_PROVENANCE_REF
+    plan = _load_json(plan_path)
+    receipt = _load_json(receipt_path)
+    _validate_schema(
+        plan,
+        REPO_ROOT / "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+        label="morphology contextual episode plan",
+    )
+    _validate_schema(
+        receipt,
+        REPO_ROOT
+        / "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+        label="morphology contextual episode receipt",
+    )
+    provenance_events = _load_provenance(provenance_path)
+    if len(provenance_events) != 1:
+        raise LexicalIndexValidationError(
+            "morphology context provenance must contain exactly one event"
+        )
+    provenance = provenance_events[0]
+    _validate_schema(
+        provenance,
+        REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
+        label="morphology contextual episode provenance",
+    )
+
+    prohibited_private_keys = {
+        "context_text",
+        "target_exact_form",
+        "occurrence_id",
+        "text_node_path",
+        "context_node_path",
+        "source_node_start_offset",
+        "source_node_end_offset",
+        "target_start_offset",
+        "target_end_offset",
+    }
+    leaked = prohibited_private_keys.intersection(
+        _nested_keys(receipt) | _nested_keys(provenance)
+    )
+    if leaked:
+        raise LexicalIndexValidationError(
+            "morphology context private row data leaked through keys: "
+            + ", ".join(sorted(leaked))
+        )
+    if plan["status"] != "ready-to-materialize-context-packet" or not plan[
+        "frozen_before_b_output"
+    ]:
+        raise LexicalIndexValidationError(
+            "morphology context plan was not frozen before B output"
+        )
+    if plan["authority_boundary"] != MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY:
+        raise LexicalIndexValidationError("morphology context plan authority drift")
+    if receipt["authority_boundary"] != MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY:
+        raise LexicalIndexValidationError(
+            "morphology context receipt authority drift"
+        )
+
+    plan_digest = _sha256_file(plan_path)
+    generator_digest = _sha256_file(REPO_ROOT / MORPHOLOGY_CONTEXT_GENERATOR_REF)
+    if receipt["plan"] != {
+        "ref": MORPHOLOGY_CONTEXT_PLAN_REF,
+        "sha256": plan_digest,
+    }:
+        raise LexicalIndexValidationError("morphology context plan receipt drift")
+    if receipt["generator"] != {
+        "ref": MORPHOLOGY_CONTEXT_GENERATOR_REF,
+        "sha256": generator_digest,
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context generator receipt drift"
+        )
+    if plan["tracked_receipt_ref"] != MORPHOLOGY_CONTEXT_RECEIPT_REF:
+        raise LexicalIndexValidationError(
+            "morphology context receipt route drift"
+        )
+    if plan["provenance_ref"] != MORPHOLOGY_CONTEXT_PROVENANCE_REF:
+        raise LexicalIndexValidationError(
+            "morphology context provenance route drift"
+        )
+
+    ref_bindings = [
+        ("research", plan["research"]),
+        ("parent morphology plan", plan["parent_morphology_plan"]),
+        ("A result receipt", plan["a_trigger"]["result_receipt"]),
+        ("recurrence plan", plan["source_recurrence"]["plan"]),
+        ("recurrence receipt", plan["source_recurrence"]["receipt"]),
+    ]
+    for label, binding in ref_bindings:
+        if _sha256_file(REPO_ROOT / binding["ref"]) != binding["sha256"]:
+            raise LexicalIndexValidationError(
+                f"morphology context {label} digest drift"
+            )
+    trigger = plan["a_trigger"]
+    trigger_receipt = receipt["trigger_closure"]
+    if trigger_receipt["result_receipt"] != trigger["result_receipt"]:
+        raise LexicalIndexValidationError(
+            "morphology context A result binding drift"
+        )
+    for field in (
+        "selected_row_sha256",
+        "input_preserved",
+        "lemma_analysis_count",
+        "provider_pos_categories",
+        "separable_candidate_count",
+    ):
+        if trigger_receipt[field] != trigger[field]:
+            raise LexicalIndexValidationError(
+                f"morphology context trigger {field} drift"
+            )
+    if (
+        trigger_receipt["private_raw_output_sha256"]
+        != trigger["private_raw_output"]["sha256"]
+        or trigger_receipt["selected_row_match_count"] != 1
+        or trigger["source_values_tracked"]
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context private A trigger closure drift"
+        )
+
+    recurrence = plan["source_recurrence"]
+    observed_recurrence = receipt["source_recurrence"]
+    expected_recurrence = {
+        "plan": recurrence["plan"],
+        "receipt": recurrence["receipt"],
+        "local_bundle_sha256": recurrence["local_bundle"]["sha256"],
+        "complete_occurrence_count": recurrence["occurrence_count"],
+        "source_payload_fixity_match_count": 3,
+    }
+    if observed_recurrence != expected_recurrence:
+        raise LexicalIndexValidationError(
+            "morphology context recurrence closure drift"
+        )
+    selection = receipt["selection"]
+    for field in ("method", "recurrence_ranks", "rank_roles"):
+        if selection[field] != plan["selection"][field]:
+            raise LexicalIndexValidationError(
+                f"morphology context selection {field} drift"
+            )
+    if (
+        selection["row_count"] != 3
+        or selection["part_counts"] != {"1": 1, "3": 1, "4": 1}
+        or selection["b_output_visible_during_selection"]
+        or selection["semantic_labels_used"]
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context output-blind selection drift"
+        )
+
+    local_plan = plan["local_packet"]
+    local_receipt = receipt["local_packet"]
+    for field in (
+        "relative_path",
+        "format",
+        "schema_ref",
+        "schema_version",
+        "mode",
+    ):
+        if local_receipt[field] != local_plan[field]:
+            raise LexicalIndexValidationError(
+                f"morphology context local packet {field} drift"
+            )
+    if (
+        local_receipt["row_count"] != local_plan["expected_row_count"]
+        or not local_receipt["source_bearing"]
+        or local_plan["visibility"] != "gitignored-local-only"
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context local packet posture drift"
+        )
+    if not receipt["content_exposure"]["local_context"]:
+        raise LexicalIndexValidationError(
+            "morphology context local source-bearing posture drift"
+        )
+    for field in (
+        "tracked_exact_strings",
+        "tracked_context",
+        "tracked_occurrence_positions",
+    ):
+        if receipt["content_exposure"][field]:
+            raise LexicalIndexValidationError(
+                f"morphology context tracked exposure opened: {field}"
+            )
+    if receipt["rights_and_visibility"] != plan["rights_and_visibility"]:
+        raise LexicalIndexValidationError(
+            "morphology context rights posture drift"
+        )
+    if receipt["competence_boundary"] != plan["competence_boundary"]:
+        raise LexicalIndexValidationError(
+            "morphology context competence posture drift"
+        )
+    if receipt["semantic_boundary"] != plan["semantic_boundary"]:
+        raise LexicalIndexValidationError(
+            "morphology context semantic boundary drift"
+        )
+    if any(receipt["semantic_boundary"].values()):
+        raise LexicalIndexValidationError(
+            "morphology context semantic authority opened"
+        )
+    if receipt["variant_state"] != {
+        "a": "existing-context-free-candidate-set",
+        "b": "admitted-unacquired",
+        "c": "blocked-question-inapplicable",
+        "b_acquisition_requires_artifact_audit": True,
+        "b_execution_requires_fresh_host_preflight": True,
+        "human_work_scheduled": False,
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context variant state drift"
+        )
+
+    if provenance["event_id"] != receipt["provenance_event_ref"]:
+        raise LexicalIndexValidationError(
+            "morphology context provenance identity drift"
+        )
+    if (
+        provenance["event_type"] != "annotation"
+        or provenance["status"] != "completed_with_warnings"
+        or provenance["method"]["artifact_digest"] != generator_digest
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context provenance method/status drift"
+        )
+    configuration = provenance["method"]["configuration"]
+    if (
+        configuration.get("selection") != plan["selection"]["method"]
+        or configuration.get("recurrence_ranks")
+        != plan["selection"]["recurrence_ranks"]
+        or configuration.get("b_output_visible_during_selection") is not False
+        or configuration.get("c_admitted_for_question") is not False
+        or configuration.get("human_work_scheduled") is not False
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context provenance configuration drift"
+        )
+    receipt_digest = _sha256_file(receipt_path)
+    output_pairs = {
+        (entry.get("ref"), entry.get("sha256"))
+        for entry in provenance["outputs"]
+    }
+    if output_pairs != {
+        (local_plan["relative_path"], local_receipt["sha256"]),
+        (MORPHOLOGY_CONTEXT_RECEIPT_REF, receipt_digest),
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context provenance output drift"
+        )
+    if provenance["rights_basis_ref"] is not None:
+        raise LexicalIndexValidationError(
+            "morphology context provenance unexpectedly claims rights basis"
+        )
+
+    return {
+        "plan_ref": MORPHOLOGY_CONTEXT_PLAN_REF,
+        "plan_sha256": plan_digest,
+        "receipt_ref": MORPHOLOGY_CONTEXT_RECEIPT_REF,
+        "receipt_sha256": receipt_digest,
+        "local_packet_sha256": local_receipt["sha256"],
+        "local_packet_verified": False,
+        "selection": selection,
+        "context_summary": receipt["context_summary"],
+        "variant_state": receipt["variant_state"],
+        "authority_boundary": MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY,
+    }
     if "local-content" not in database_path.parts:
         raise LexicalIndexValidationError("local database is outside local-content")
     if not database_path.is_file():
@@ -885,6 +1179,7 @@ def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
     if local_output_root is not None:
         _validate_local_database(local_output_root.resolve(), projection)
     usage_context = _validate_usage_context_layer()
+    morphology_context = _validate_morphology_context_layer()
     return {
         "status": "ok",
         "projection_ref": PROJECTION_REF,
@@ -895,6 +1190,7 @@ def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
         "local_database_verified": local_output_root is not None,
         "summary": summary,
         "usage_context": usage_context,
+        "morphology_context": morphology_context,
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
 

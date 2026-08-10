@@ -33,6 +33,15 @@ MORPHOLOGY_RECEIPT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
 MORPHOLOGY_RESULT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
     "morphology-census-result.a-dwdsmor-open-0.18.0.v1.json"
 )
+MORPHOLOGY_CONTEXT_PLAN_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "morphology-contextual-episode.selected-form-b.v1.json"
+)
+MORPHOLOGY_CONTEXT_RECEIPT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "morphology-contextual-episode.selected-form-b.receipt.v1.json"
+)
+MORPHOLOGY_CONTEXT_PROVENANCE_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "provenance.morphology-contextual-episode.selected-form-b.v1.jsonl"
+)
 RECURRENCE_PLAN_PATH = PLAN_PATH.with_name("recurrence-plan.v1.json")
 RECURRENCE_PROJECTION_PATH = (
     ROOT / "ToS/derived-exports/lexical-search/"
@@ -70,6 +79,10 @@ MORPHOLOGY_RESULT_RECORDER = _load_module(
     "tos_zarathustra_morphology_result_recorder",
     "scripts/record_zarathustra_morphology_census_result.py",
 )
+MORPHOLOGY_CONTEXT_BUILDER = _load_module(
+    "tos_zarathustra_morphology_context_builder",
+    "scripts/build_zarathustra_morphology_context_packet.py",
+)
 RECURRENCE_BUILDER = _load_module(
     "tos_zarathustra_recurrence_projection_builder",
     "scripts/build_zarathustra_recurrence_projection.py",
@@ -93,6 +106,15 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.morphology_result = json.loads(
             MORPHOLOGY_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_plan = json.loads(
+            MORPHOLOGY_CONTEXT_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_receipt = json.loads(
+            MORPHOLOGY_CONTEXT_RECEIPT_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_provenance = json.loads(
+            MORPHOLOGY_CONTEXT_PROVENANCE_PATH.read_text(encoding="utf-8")
         )
         cls.recurrence_plan = json.loads(
             RECURRENCE_PLAN_PATH.read_text(encoding="utf-8")
@@ -905,6 +927,117 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         self.assertEqual(2, summary["exact_form_row_count"])
         self.assertEqual(3, summary["token_occurrence_count"])
         self.assertEqual(1, summary["joiner_form_count"])
+
+    def test_morphology_context_episode_is_output_blind_and_b_only(self) -> None:
+        schemas = [
+            (
+                "plan",
+                "morphology-contextual-episode-plan.schema.json",
+                self.morphology_context_plan,
+            ),
+            (
+                "receipt",
+                "morphology-contextual-episode-receipt.schema.json",
+                self.morphology_context_receipt,
+            ),
+            (
+                "provenance",
+                "provenance-event.schema.json",
+                self.morphology_context_provenance,
+            ),
+        ]
+        for label, schema_name, payload in schemas:
+            with self.subTest(label=label):
+                schema = json.loads(
+                    (ROOT / "ToS/contracts" / schema_name).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(
+                    [], list(Draft202012Validator(schema).iter_errors(payload))
+                )
+        plan = self.morphology_context_plan
+        receipt = self.morphology_context_receipt
+        self.assertTrue(plan["frozen_before_b_output"])
+        self.assertEqual([1, 73, 145], plan["selection"]["recurrence_ranks"])
+        self.assertFalse(plan["selection"]["b_output_visible_during_selection"])
+        self.assertFalse(plan["selection"]["semantic_labels_used"])
+        self.assertEqual(
+            "admitted-unacquired", receipt["variant_state"]["b"]
+        )
+        self.assertEqual(
+            "blocked-question-inapplicable", receipt["variant_state"]["c"]
+        )
+        self.assertFalse(receipt["variant_state"]["human_work_scheduled"])
+        self.assertTrue(
+            all(value is False for value in receipt["semantic_boundary"].values())
+        )
+        self.assertEqual(
+            self.validation["morphology_context"]["receipt_sha256"],
+            hashlib.sha256(MORPHOLOGY_CONTEXT_RECEIPT_PATH.read_bytes()).hexdigest(),
+        )
+
+    def test_morphology_context_tracked_files_withhold_private_rows(self) -> None:
+        plan = self.morphology_context_plan
+        private_row_withholding_payload = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (
+                MORPHOLOGY_CONTEXT_RECEIPT_PATH,
+                MORPHOLOGY_CONTEXT_PROVENANCE_PATH,
+            )
+        )
+        for prohibited in (
+            '"context_text"',
+            '"target_exact_form"',
+            '"occurrence_id"',
+            '"text_node_path"',
+            '"target_start_offset"',
+        ):
+            self.assertNotIn(prohibited, private_row_withholding_payload)
+        tracked_payload = (
+            MORPHOLOGY_CONTEXT_PLAN_PATH.read_text(encoding="utf-8")
+            + private_row_withholding_payload
+        )
+        self.assertNotIn("wieder", tracked_payload)
+        self.assertFalse(
+            self.morphology_context_receipt["content_exposure"][
+                "tracked_context"
+            ]
+        )
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", plan["local_packet"]["relative_path"]],
+            cwd=ROOT,
+            check=False,
+        )
+        self.assertEqual(0, result.returncode)
+
+    def test_morphology_context_raw_tei_tail_offset_is_exact(self) -> None:
+        xml = (
+            b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div>'
+            b'<p>alpha <lb/>wieder omega</p></div></body></text></TEI>'
+        )
+        tree = MORPHOLOGY_CONTEXT_BUILDER.etree.ElementTree(
+            MORPHOLOGY_CONTEXT_BUILDER.etree.fromstring(xml)
+        )
+        target_path = "TEI/text[1]/body[1]/div[1]/p[1]/lb[1]/tail()[1]"
+        owner_path, owner_kind = MORPHOLOGY_CONTEXT_BUILDER.target_owner(
+            target_path
+        )
+        owner = MORPHOLOGY_CONTEXT_BUILDER.one_element(
+            tree, owner_path, "synthetic owner"
+        )
+        context_path, context_kind = MORPHOLOGY_CONTEXT_BUILDER.context_unit(
+            target_path
+        )
+        context = MORPHOLOGY_CONTEXT_BUILDER.one_element(
+            tree, context_path, "synthetic context"
+        )
+        text, target_base = MORPHOLOGY_CONTEXT_BUILDER.flatten_with_target_base(
+            context, owner, owner_kind
+        )
+        self.assertEqual("paragraph", context_kind)
+        self.assertEqual("alpha wieder omega", text)
+        self.assertEqual("wieder", text[target_base : target_base + 6])
 
 
 if __name__ == "__main__":
