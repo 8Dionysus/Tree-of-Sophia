@@ -144,6 +144,21 @@ question-scoped diagnostic challenger, not an exact historical Item, critical
 text, accepted German, alignment, or transfer input. No payload, Item, rights
 record, human task, semantic effect, or experiment run was retained or opened.
 
+The next bounded continuation selects one short, exact route—*Jenseits* §187—
+from the thirty-five-route readiness projection. Direct source-visible model
+inspection of the exact Naumann 1886 and Polilov/Mysl page pairs reproduces
+four 180-DPI render hashes and finds one complete Russian line omitted by the
+otherwise mechanically valid automatic target candidate. The private German
+candidate independently matches the selected eKGWB critical section across
+all 156 alphabetic tokens, while the earlier German OCR slice retains material
+fused-word, glyph, and layout defects. A deterministic recorder rechecks the
+private bundle schema, all payload/candidate/critical fixity, the exact HTML
+selector, and all four render hashes, then emits a tracked text-free aggregate
+receipt. This is `machine-triangulated-candidate-not-admitted`: it creates no
+human evidence or debt, German competence, historical-critical identity,
+accepted German/Russian, alignment, eligibility, gold, semantic object, graph
+edge, canon effect, rights clearance, or publication authority.
+
 A subsequent ordered research pass—classical and official Russian rules and
 corpora, established Russian GEC work, then current 2025--2026 diagnostic and
 judge research—materialized an asymmetric deterministic Russian-surface
@@ -1187,6 +1202,25 @@ normalized-corpus challenger for a later exact discrepancy question, not a
 new source Item or a stronger transfer witness. The frozen readiness state,
 accepted-text/alignment counts, human debt, semantic state, and publication
 state do not change.
+
+## *Jenseits* §187 source-visible transfer objective — 2026-08-10
+
+`JENSEITS_187_TRANSFER_SOURCE_VISIBLE_REVIEW.md` returns first to the two exact
+local Items and official eKGWB documentation, then preserves the established
+editorial and transport boundaries, and only then records the fresh exact
+selector and render checks. The source-bearing review bundle and current eKGWB
+response remain ignored, local-only, and mode 0600. The tracked receipt stores
+only identities, fixity, page-render hashes, aggregate token-difference
+topology, finding classes, and closed authority gates.
+
+This slice demonstrates a concrete reason not to trust green validators as a
+substitute for reality: the automatic Russian candidate passes its structural
+mechanics yet loses a whole visible line at a page boundary. It also
+demonstrates the opposite restraint: exact German alpha-token agreement with a
+critical layer is useful triangulation, but cannot manufacture the operator's
+German competence or collapse a historical print into a critical edition.
+The result prepares one meaningful future question-triggered checkpoint and
+schedules no routine review.
 
 ## Dependency-ordered next owner work
 

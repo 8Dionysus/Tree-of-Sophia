@@ -162,6 +162,7 @@ or publication route.
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` profile; DWDSmor Open 0.18.0 A runtime and retained private result; ZDL `de_zdl_lg 4.0.0` B and rights-gated DTAEC-assisted C remain frozen challengers | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown; accuracy, competent gold, accepted morphology, lemmas, and lexemes 0; B/C acquired 0; human debt 0 | coverage and unreviewed mechanical residue are not quality or a review trigger; only reviewed A residue or a concrete source/translation/sign/retrieval question may freeze a contextual packet, after which B/C rights, acquisition, fresh preflight, and declared German competence still precede any quality or acceptance claim |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
 | golden-kernel transfer | fail-closed A/B/C plan plus twenty private pre-output page candidates and proposed anchors; all twenty pages are structurally source-routable through thirty-five conservative routes; a target exact-layer pass materializes thirty-five private numbered-unit slices while retaining three spill routes as explicit nonintersection negatives; a German pass materializes all thirty-five private source candidates through exact automatic, bounded JP2/scandata, or same-PDF image-mask/Poppler marker boundaries; a text-free readiness projection preserves 32 dual intersecting routes, three target nonintersections, and at least one dual intersecting route for every frozen page; separate deferred §22 textual-genetic route | 0 runs; 20 prepared/ineligible pages; target 35 candidates / 32 page intersections / 3 rejected nonintersections; source 35 candidates / 0 unresolved boundaries; readiness 35 dual candidate routes / 20 of 20 frozen pages mechanically covered; 0 accepted source or target passages; 0 source-target alignments; 0 eligible target passages; §22 is outside the sampling frame; human debt 0 | automatic or source-visible-marker boundaries are not diplomatic or accepted text; co-availability is not a bilingual passage pair or alignment; the separate Antichrist navigation Item has no textual-identity claim; local JP2/scandata payloads are not publication objects; C has no reviewed kernel packet and target-text gold is absent; the §22 witness route cannot satisfy either gate |
+| *Jenseits* §187 source-visible overlay | one private model-source-visible source/target packet; four reproducible 180-DPI page renders; separate exact eKGWB critical selector; text-free tracked receipt; automatic German and Russian candidates preserved as negative evidence | source-visible candidate 1; source/critical alphabetic-token agreement 156/156; one complete Russian target line omitted by the automatic layer; accepted source/target passages 0; alignments 0; eligible units 0; gold 0; human reviews and debt 0 | model-visible agreement is not human evidence or German competence; the critical and historical Items are not identified; aggregate token diagnostics are not CER/WER or quality; source text remains local; the route cannot enter A/B/C until the task-specific acceptance and alignment gates actually open |
 
 No automated process should “help” by filling these human fields. The prepared
 contracts intentionally reject simulated human evidence.
@@ -1305,11 +1306,14 @@ from the calibration-only route in section 2b.
    register, align, or review them by default.
 3. If the user deliberately activates the transfer experiment, begin from the
    thirty-two intersecting layer-exact target candidates and the three retained
-   nonintersection negatives. Verify or correct target boundaries, admit the
-   target text, establish the German source passages and alignments, then freeze
-   target gold without viewing variant outputs. Introduce hard negatives only
-   after an accepted kernel sign exists; preparation itself schedules no human
-   backlog.
+   nonintersection negatives. Use the §187 overlay as the first prepared
+   source-visible discrepancy packet, not as accepted text: its whole-line
+   Russian omission proves why automatic boundaries still need direct content
+   inspection, while its critical-layer agreement does not supply German
+   competence. Verify or correct target boundaries, admit the target text,
+   establish the German source passages and alignments, then freeze target gold
+   without viewing variant outputs. Introduce hard negatives only after an
+   accepted kernel sign exists; preparation itself schedules no human backlog.
 4. Run A without the kernel, B with general contracts only, and C with
    human-accepted *Zarathustra* packets under identical runtime conditions.
 5. Measure speed, accuracy, correction, traceability, hallucinated relations,

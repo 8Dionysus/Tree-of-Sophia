@@ -108,6 +108,12 @@ TARGET_STRUCTURAL_CROSSWALK_SCHEMA = (
 GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA = (
     CONTRACT_ROOT / "german-assisted-source-review.schema.json"
 )
+PRIVATE_TRANSFER_SOURCE_VISIBLE_REVIEW_BUNDLE_SCHEMA = (
+    CONTRACT_ROOT / "private-transfer-source-visible-review-bundle.schema.json"
+)
+TRANSFER_SOURCE_VISIBLE_REVIEW_RECEIPT_SCHEMA = (
+    CONTRACT_ROOT / "transfer-source-visible-review-receipt.schema.json"
+)
 CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
     CONTRACT_ROOT / "critical-edition-witness-admission.schema.json"
 )
@@ -1683,6 +1689,14 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             GERMAN_ASSISTED_SOURCE_REVIEW_SCHEMA,
             repo_root,
         )
+        _schema_validator(
+            PRIVATE_TRANSFER_SOURCE_VISIBLE_REVIEW_BUNDLE_SCHEMA,
+            repo_root,
+        )
+        transfer_source_visible_review_receipt_validator, _ = _schema_validator(
+            TRANSFER_SOURCE_VISIBLE_REVIEW_RECEIPT_SCHEMA,
+            repo_root,
+        )
         critical_edition_witness_validator, _ = _schema_validator(
             CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA,
             repo_root,
@@ -2174,6 +2188,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         german_assisted_review_path = (
             gold_root / "german-assisted-source-review.v1.json"
         )
+        transfer_source_visible_review_receipt_path = (
+            gold_root
+            / "transfer-source-visible-review.jenseits-187.v1.json"
+        )
+        transfer_route_readiness_path = (
+            gold_root / "transfer-route-readiness.v1.json"
+        )
         critical_edition_witness_paths = sorted(
             gold_root.glob("critical-edition-witness.*.json")
         )
@@ -2261,6 +2282,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             if german_assisted_review_path.is_file()
             else None
         )
+        transfer_source_visible_review_receipt = (
+            _load_json(
+                transfer_source_visible_review_receipt_path,
+                repo_root,
+                issues,
+            )
+            if transfer_source_visible_review_receipt_path.is_file()
+            else None
+        )
         critical_edition_witnesses = [
             (path, payload)
             for path in critical_edition_witness_paths
@@ -2322,6 +2352,124 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             else None
         )
         graph_query_plan = _load_json(graph_queries_path, repo_root, issues)
+        if transfer_source_visible_review_receipt is not None:
+            receipt_location = _relative(
+                transfer_source_visible_review_receipt_path,
+                repo_root,
+            )
+            _validate_payload(
+                transfer_source_visible_review_receipt,
+                transfer_source_visible_review_receipt_validator,
+                receipt_location,
+                issues,
+            )
+            generator = transfer_source_visible_review_receipt.get(
+                "generator",
+                {},
+            )
+            generator_ref = generator.get("ref")
+            generator_path = repo_root / str(generator_ref or "")
+            if (
+                not isinstance(generator_ref, str)
+                or not generator_path.is_file()
+                or generator.get("sha256") != _sha256(generator_path)
+            ):
+                issues.append(
+                    (
+                        receipt_location,
+                        "source-visible review generator reference or digest drifted",
+                    )
+                )
+            evidence_inputs = transfer_source_visible_review_receipt.get(
+                "evidence_inputs",
+                {},
+            )
+            for side in ("source", "target"):
+                witness = evidence_inputs.get(side, {})
+                rights_ref = witness.get("rights_ref")
+                rights_path = repo_root / str(rights_ref or "")
+                if (
+                    not isinstance(rights_ref, str)
+                    or not rights_path.is_file()
+                    or witness.get("rights_sha256") != _sha256(rights_path)
+                ):
+                    issues.append(
+                        (
+                            receipt_location,
+                            f"source-visible review {side} rights reference or digest drifted",
+                        )
+                    )
+            readiness = (
+                _load_json(transfer_route_readiness_path, repo_root, issues)
+                if transfer_route_readiness_path.is_file()
+                else None
+            )
+            matching_routes = [
+                route
+                for route in (readiness or {}).get("routes", [])
+                if isinstance(route, dict)
+                and route.get("route_readiness_id")
+                == transfer_source_visible_review_receipt.get(
+                    "route_readiness_id"
+                )
+            ]
+            if len(matching_routes) != 1:
+                issues.append(
+                    (
+                        receipt_location,
+                        "source-visible review route does not resolve exactly once in readiness projection",
+                    )
+                )
+            else:
+                route = matching_routes[0]
+                for field in ("work_ref", "qualified_unit_key"):
+                    if route.get(field) != transfer_source_visible_review_receipt.get(
+                        field
+                    ):
+                        issues.append(
+                            (
+                                receipt_location,
+                                f"source-visible review {field} drifted from readiness route",
+                            )
+                        )
+                if any(
+                    route.get(field) is not False
+                    for field in (
+                        "accepted_source_or_target_text",
+                        "source_to_target_passage_alignment",
+                        "eligible_for_variant_execution",
+                        "target_gold",
+                        "human_review_performed",
+                    )
+                ):
+                    issues.append(
+                        (
+                            receipt_location,
+                            "source-visible review readiness route has an open authority gate",
+                        )
+                    )
+            encoded_receipt = json.dumps(
+                transfer_source_visible_review_receipt,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            if any(
+                forbidden in encoded_receipt
+                for forbidden in (
+                    "/srv/",
+                    "/home/",
+                    '"automatic_candidate_text"',
+                    '"diplomatic_lines"',
+                    '"text"',
+                    '"finding"',
+                )
+            ):
+                issues.append(
+                    (
+                        receipt_location,
+                        "tracked source-visible review leaks text or an absolute private path",
+                    )
+                )
         if sample_plan is not None:
             _validate_payload(sample_plan, sample_plan_validator, _relative(sample_path, repo_root), issues)
         if ocr_sample_plan is not None:

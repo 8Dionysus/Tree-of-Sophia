@@ -213,6 +213,16 @@ Zarathustra golden kernel. It is not a completed gold set.
   is a text-free navigation/readiness projection, not a bilingual passage pair,
   alignment, accepted text, eligibility, gold, human task, semantic opening,
   publication grant, or canon effect.
+- `transfer-source-visible-review.jenseits-187.v1.json` is the first additive
+  source-visible overlay over one of those routes. Four 180-DPI page renders
+  reproduce exactly. The private model transcript and the separately selected
+  eKGWB critical section share all 156 alphabetic tokens, while the automatic
+  German slice retains material OCR defects. On the Russian side, direct page
+  inspection catches one complete line omitted at the page-307 boundary by the
+  otherwise mechanically valid candidate. All source-bearing strings remain
+  mode 0600 and ignored. This is a machine-triangulated candidate, not human
+  evidence, historical-critical identity, accepted German/Russian, alignment,
+  eligibility, gold, scheduled human work, semantics, publication, or canon.
 - `semantic-samples.json` uses the task-specific semantic v2 contract while
   retaining the universal 30-source/15-gold gate only as a digest-bound
   historical snapshot without scheduling or execution authority.

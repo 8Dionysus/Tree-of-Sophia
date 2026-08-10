@@ -459,6 +459,32 @@ creates zero accepted German or Russian passages, zero source-to-target
 passage or translation alignments, zero eligible units or gold, and zero
 human, semantic, publication, or canon effects.
 
+### First source-visible route overlay: *Jenseits* §187
+
+One short route was then selected from the frozen readiness projection without
+changing the page frame or looking at any variant output. The exact Naumann
+1886 pages 111–112 and Polilov/Mysl pages 307–308 were rendered at 180 DPI;
+all four hashes reproduced. A private mode-0600 model transcript was compared
+independently with the frozen automatic source slice, the frozen automatic
+target slice, and the exact `eKGWB/JGB-187` critical section. The tracked
+receipt contains no source or target strings.
+
+The source-visible model candidate and the critical comparison layer have an
+identical 156-token alphabetic sequence, while the automatic German slice has
+material fused-word, glyph, and layout/OCR discrepancies. That agreement is
+machine triangulation only: the historical print and critical edition remain
+separate, and no German-competent human has accepted the passage.
+
+The target comparison exposes a more consequential mechanical failure: one
+complete visible Russian line at the bottom of page 307 is absent from the
+automatic target candidate. The existing structural validators were green
+because they proved boundary and record mechanics, not page-visible content
+completeness. The additive receipt therefore retains the defect as negative
+evidence while keeping accepted source/target passages, alignment,
+eligibility, target gold, human debt, semantics, publication, and canon at
+zero. `JENSEITS_187_TRANSFER_SOURCE_VISIBLE_REVIEW.md` records the ordered
+evidence and exact limits.
+
 The executed retrieval baseline found literal other-work title pages at rank
 1. Its own report states the limit directly: it supplied no work-membership or
 relation reasoning. That observation proves only that an exact title can be

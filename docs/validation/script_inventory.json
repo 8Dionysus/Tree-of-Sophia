@@ -2020,6 +2020,30 @@
       "ci_inclusion": "release",
       "test_target": "tests/test_validation_lanes.py",
       "disposition": "keep"
+    },
+    {
+      "path": "scripts/record_golden_kernel_transfer_source_visible_review.py",
+      "family": "private_evidence_recorder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "source_truth": [
+        "ToS/contracts/private-transfer-source-visible-review-bundle.schema.json",
+        "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-route-readiness.v1.json",
+        "ToS/source-witnesses/**/rights.json",
+        "operator-local Tree of Sophia payloads and ignored source-visible review bundle"
+      ],
+      "reads": [
+        "one mode-0600 private model source-visible bundle, exact German and Russian PDFs, frozen private automatic candidates, one local eKGWB HTML response, and tracked rights records"
+      ],
+      "writes": [
+        "one deterministic tracked text-free fixity, render-reproduction, and aggregate token-diagnostic receipt unless --check is used"
+      ],
+      "side_effects": "creates no accepted source or target passage, alignment, eligibility, gold, human debt, semantic object, publication authority, or canon effect; temporary renders are deleted",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
+      "disposition": "keep"
     }
   ]
 }

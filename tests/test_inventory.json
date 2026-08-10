@@ -645,6 +645,21 @@
       "focused_target": "tests/test_validation_lanes.py",
       "failure_route": "Fix validation lane authority or release_check delegation before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_golden_kernel_transfer_source_visible_review.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "source_witness_private_evidence_receipt",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/transfer-source-visible-review-receipt.schema.json",
+      "protects": "private bundle and tracked receipt schema validity, source-aware line joining, aggregate-only token diagnostics, text-free output, generator fixity, and closed authority and human-debt gates",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_golden_kernel_transfer_source_visible_review.py",
+      "failure_route": "Fix the private review contract, recorder, tracked receipt, or authority boundary before changing test expectations.",
+      "disposition": "keep"
     }
   ]
 }
