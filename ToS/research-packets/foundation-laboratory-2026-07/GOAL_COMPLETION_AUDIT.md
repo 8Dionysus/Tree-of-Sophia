@@ -25,8 +25,8 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `8cfe63c8` (`Correct Antonovsky
-  source-country endpoints`), including the source-challenger, source-visible transfer
+- Tree of Sophia reviewed checkpoint `67fc9bdf` (`Correct Antichrist
+  restored-work subsection`), including the source-challenger, source-visible transfer
   review, current Antonovsky 1900/1903/1907 catalogue continuations, the exact
   1911 RSL/RuNEB layered-rights continuation, the corrected 1913 Commons
   foreign-work assessment, the four corrected DTA foreign-work routes, and the
@@ -34,7 +34,10 @@ The owner snapshots used for the latest mechanical reconciliation are:
   *Antichrist* 1906 Commons plus separate Internet Archive navigation-Item
   foreign-work routes, and the corrected separation of the Russian
   reviewed-jurisdiction endpoint from the German original-Work source-country
-  endpoint in both Antonovsky Items;
+  endpoint in both Antonovsky Items, plus the citation-only correction of the
+  *Antichrist* restored-work source-country-expiration condition from
+  §104A(g)(6)(B) to §104A(h)(6)(B) without changing an aggregate, endpoint,
+  gate, source address, candidate, or readiness outcome;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -109,6 +112,29 @@ with 573 shards, 1,833 source records, 19,137 anchors, 330 events, 3,363
 assertions, 7,565 relations, 3,963 entities, and 21,314 canonical records.
 This proves corrected model-authored term representation and mechanical
 closure only; it creates no human legal clearance, source-text acceptance,
+public payload, semantic truth, publication authority, or operator approval.
+
+The following reviewed correction makes the *Antichrist* restored-work
+subsection exact. Current official 17 U.S.C. §104A places the cumulative
+restored-work definition, including the source-country-expiration condition,
+in §104A(h)(6)(B); §104A(g) separately governs Presidential proclamation.
+Commons and navigation-Item rights records and server plans advance to v4
+without changing either aggregate, the 1970/1976 term endpoints, distinct-Item
+posture, local-only and blocked-transfer boundary, or the eight prohibited and
+three conditional server gates. Superseding Item and server provenance records
+the citation-only correction, unchanged aggregate and endpoints, and
+`payload_read: false`. With digest strings masked, the propagated cascade is
+exact across all ten dependent tracked artifacts; no private payload or source
+text was read. At reviewed checkpoint `67fc9bdf`, the focused regressions,
+source-witness and corpus-index validators, full and incremental portable-
+family checks, exact seven-file compatibility assembly, manual layer/digest/
+no-payload/closed-gate review, and complete 325-test release lane all pass with
+one declared skip. The KAG family closes at digest
+`3a9bf5c6580af5ca83b1ab829fd4619601137cea432a00be946b1625c33e9958`
+with 573 shards, 1,833 source records, 19,137 anchors, 330 events, 3,363
+assertions, 7,565 relations, 3,963 entities, and 21,314 canonical records.
+This proves corrected current model-authored representation and mechanical
+closure only; it creates no human legal or textual review, German competence,
 public payload, semantic truth, publication authority, or operator approval.
 
 The first eKGWB citation-witness decision is now closed at
@@ -410,7 +436,8 @@ term ended at 1970-12-31. The conservative anonymous-presentation route ended
 at 1976-12-31, and the assessed scientific-edition or first-posthumous-
 publication alternatives ended earlier. Those layers were therefore public
 domain in their source country on 1996-01-01 and fail the cumulative restored-
-work condition in 17 U.S.C. §104A(g)(6)(B). Even if a distinct 1906
+work condition in 17 U.S.C. §104A(h)(6)(B); §104A(g) instead governs
+Presidential proclamation. Even if a distinct 1906
 contribution had qualified for restoration, only the remainder of the
 ninety-five-year United States publication term would have survived, ending
 at 2001-12-31. The provider's pre-1931 statement remains exact-object evidence,
@@ -461,7 +488,7 @@ Navigation rights v3 now records four layers. The Nietzsche Work and automatic
 historical OCR text remain `public_domain_reviewed`; OCR coordinates/layout
 and the derivative package/archive matter remain
 `copyright_undetermined`. The independent United States Work basis now
-applies §104A(g)(6)(B): Nietzsche's German term ended at 1970-12-31, the Work
+applies §104A(h)(6)(B): Nietzsche's German term ended at 1970-12-31, the Work
 was outside source-country protection on 1996-01-01, and any contrary-to-fact
 qualifying restored 1906 term would have ended at 2001-12-31. Internet
 Archive's `NOT_IN_COPYRIGHT` and `copyright-region` fields remain provider
@@ -1009,6 +1036,7 @@ or publication authority.
 | 1g | corrected *Antichrist* 1906 United States rights route | `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` now treats the represented German Work, historical presentation, and unresolved archive contributions through 17 U.S.C. §104A rather than treating the provider's pre-1931 statement as ToS's independent conclusion. Nietzsche's 1970 and the conservative presentation's 1976 German endpoints precede possible 1996 restoration; any qualifying restored 1906 United States term ended at 2001-12-31. Exact current Commons and Internet Archive checks preserve the same file identity and provider signals while rejecting the contaminated archive record as identity authority or an exact substitute. Rights v3, superseding provenance, and server-plan v3 retain eleven layers, aggregate `conflicting_evidence`, local-only custody, blocked transfer, eight prohibited content derivatives, three conditional metadata projections, and the human/operator gate. The new rights digest is propagated through the existing source map, structural pairs/routes, target/source passage candidates, and readiness projection without reading private text or changing addresses, candidates, or authority effects | proven as corrected current model-authored reasoning at reviewed checkpoint `e17a5d66`; focused regression, complete 324-test release lane with one declared skip, full/incremental KAG parity, exact seven-file compatibility assembly, digest-only downstream equivalence, and manual eleven-layer/no-transfer/closed-gate review pass; aggregate decision unchanged and no human legal clearance | fresh independently acquired exact upstream object plus complete archive-contributor and source-country review, human rights/source and German-quality review, and explicit operator approval before any content-bearing public route; an expired possible United States term alone does not clear unresolved layers or authorize the local payload |
 | 1h | corrected separate *Antichrist* navigation-Item rights and custody route | The exact locally registered Internet Archive Google/Stanford DjVuXML, 525-member JP2 ZIP, and 525-leaf scandata are now described as a separate fixity-closed navigation Item rather than as unacquired material. Rights v3 applies §104A's source-country condition and the conditional 2001-12-31 restored-term endpoint to the Work while keeping provider `NOT_IN_COPYRIGHT` fields evidentiary only. Two historical/mechanical layers remain `public_domain_reviewed`; coordinates/layout and package/archive layers remain unresolved; aggregate `conflicting_evidence`, distinct-Item/no-textual-identity, local-only, no-upload, eight-prohibited/three-conditional server boundaries remain unchanged. The digest cascade changes no source address, structural route, candidate identity, readiness outcome, authority effect, or private content | proven as corrected current model-authored custody and rights reasoning at reviewed checkpoint `ae8d3877`; focused regression, complete 325-test release lane with one declared skip, full/incremental KAG parity, exact seven-file compatibility assembly, digest-only downstream equivalence, and manual four-layer/no-payload/closed-gate review pass; aggregate decision unchanged and no human legal clearance | independently reacquire any future public object from its exact then-current route and separately establish package permission, textual identity where needed, accepted German, human rights/source and quality review, and explicit operator approval before any content-bearing public route |
 | 1i | corrected Antonovsky original-Work source-country endpoint | Both Antonovsky rights records now represent §104A(h)(8)(C)(i) without conflating jurisdictions: Germany is Nietzsche's first-publication source country and `1970-12-31` is the single tracked original-Work source-country endpoint; Russia's `1950-12-31` fifty-year result remains separately stated in the basis. The 1911 rights/plan advance to v3 and retain aggregate `copyright_undetermined`; the 1913 rights/plan advance to v4 and retain aggregate `public_domain_reviewed`. Superseding Item and server provenance record `aggregate_*_changed: false`; all payload, source-text, human, operator, and content-bearing server gates remain closed | proven as corrected current model-authored representation at reviewed checkpoint `8cfe63c8`; both focused regressions, complete 325-test release lane with one declared skip, full/incremental KAG parity, exact seven-file compatibility assembly, current digest bindings, and manual layer/no-payload/closed-gate review pass; aggregate decisions unchanged and no human legal clearance | human rights/source review and explicit operator approval remain required before any content-bearing public route; the positive historical Work result does not clear the unresolved 1911 digital package or accept either Item's text |
+| 1j | corrected *Antichrist* restored-work subsection citation | Both exact *Antichrist* rights records now locate the restored-work source-country-expiration condition in §104A(h)(6)(B) and keep §104A(g) distinct as the Presidential-proclamation subsection. Commons and navigation rights/plans advance to v4; aggregate `conflicting_evidence`, 1970/1976 endpoints, distinct-Item posture, eight-prohibited/three-conditional server gates, local-only custody, no transfer, no human/operator approval, and all addresses, candidates, and readiness outcomes remain unchanged. Superseding Item/server provenance records the citation-only change, unchanged aggregates/endpoints, and `payload_read: false`; digest bindings propagate without reading private content | proven as corrected current model-authored representation at reviewed checkpoint `67fc9bdf`; focused regressions, complete 325-test release lane with one declared skip, full/incremental KAG parity, exact seven-file compatibility assembly, digest-only equivalence across ten dependent artifacts, and manual layer/no-payload/closed-gate review pass; aggregate decisions unchanged and no human legal clearance | human legal/source and German-quality review plus explicit operator approval remain required before any content-bearing public route; the citation correction itself authorizes nothing |
 | 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, historical-German morphology, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the morphology refresh selected a sequential identity/DWDSmor/ZDL/DTAEC comparison, after which only the source-gated exhaustive DWDSmor A census was acquired and executed; B/C remain unacquired | proven and refreshed 2026-07-29; A mechanics executed | artifact-level B/C rights and dependency audit plus reviewed A residue or an exact contextual task trigger before any further acquisition |
 | 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
