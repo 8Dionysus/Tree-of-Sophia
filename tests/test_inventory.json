@@ -278,7 +278,7 @@
       "family": "validator_behavior",
       "validation_lane": "source_witness_foundation",
       "owner_surface": "ToS/source-witnesses/README.md",
-      "protects": "source-witness schemas, exact record-to-topology-claim closure, exact Work-to-authorship-claim closure, digest-bound relation and responsibility provenance, catalog parity, optional local-payload posture, and byte fixity",
+      "protects": "source-witness schemas, exact record-to-topology-claim closure, exact Work-to-authorship-claim closure, digest-bound relation and responsibility provenance, catalog parity, bounded aggregate manual-review ledger/handoff/derivative/provenance closure without source or unit disclosure, optional local-payload posture, and byte fixity",
       "coverage_authority": "tests/AGENTS.md root unittest discovery",
       "mode": "blocking",
       "runtime_cost": "medium",

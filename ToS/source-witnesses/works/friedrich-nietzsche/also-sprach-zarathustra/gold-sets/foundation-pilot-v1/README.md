@@ -331,6 +331,16 @@ human-work schedule preserves one Russian calibration observation, leaves
 fourteen packet units unscheduled, reports zero human debt, and keeps the five
 German units `language_competence_blocked`.
 
+`manual-error-ledger.jsonl` preserves its earlier empty-state record and then
+adds the completed 2026-07-26 source-visible, method-blind, solo-human review
+as one aggregate episode: 10 Russian pages, 30 candidate dispositions, the
+observed outcome/error counts, and 8,334 seconds of confounded human time. The
+episode returns only through the governed handoff and public-safe aggregate
+derivative; its companion provenance binds all three digests. It embeds no
+source text, unit judgment, reviewer identity, or private locator and accepts
+no transcription, independent gold, method winner, content authority, or
+routine human backlog.
+
 When a real Russian review trigger exists, the human evaluates page identity,
 legibility, visible structure, reading order, fidelity, completeness, and
 errors against the visible source. Full diplomatic transcription is a small,

@@ -25,6 +25,12 @@ PRIVATE_HANDOFF_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
 )
+MANUAL_ERROR_LEDGER_PATH = GOLD_ROOT / "manual-error-ledger.jsonl"
+MANUAL_ERROR_LEDGER_PROVENANCE_PATH = (
+    GOLD_ROOT
+    / "provenance.manual-error-ledger."
+    "ocr-candidate-review-foundation-v1.jsonl"
+)
 TRANSFER_CANDIDATE_CROSSWALK_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -8800,6 +8806,92 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 handoff=handoff,
             )
         )
+
+    def test_manual_error_ledger_preserves_bounded_aggregate_review_episode(
+        self,
+    ) -> None:
+        ledger_validator, _ = foundation._schema_validator(
+            foundation.MANUAL_ERROR_LEDGER_SCHEMA,
+            REPO_ROOT,
+        )
+        provenance_validator, _ = foundation._schema_validator(
+            foundation.PROVENANCE_SCHEMA,
+            REPO_ROOT,
+        )
+        records = [
+            json.loads(line)
+            for line in MANUAL_ERROR_LEDGER_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        events = [
+            json.loads(line)
+            for line in MANUAL_ERROR_LEDGER_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        ]
+        for record in records:
+            self.assertEqual([], list(ledger_validator.iter_errors(record)))
+        for event in events:
+            self.assertEqual([], list(provenance_validator.iter_errors(event)))
+
+        self.assertEqual(
+            ["ledger_state", "review_episode"],
+            [record["record_type"] for record in records],
+        )
+        episode = records[1]
+        scope = episode["review_scope"]
+        self.assertEqual(10, scope["source_unit_count"])
+        self.assertEqual(30, scope["candidate_observation_count"])
+        self.assertEqual(1, scope["independent_pass_count"])
+        self.assertTrue(scope["real_human_review_observed"])
+        self.assertTrue(scope["solo_reviewer"])
+        self.assertTrue(scope["source_visible"])
+        self.assertTrue(scope["method_blind"])
+
+        handoff = json.loads(PRIVATE_HANDOFF_PATH.read_text(encoding="utf-8"))
+        derivative_path = REPO_ROOT / handoff["destination"]["artifact_path"]
+        derivative = json.loads(derivative_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            derivative["aggregate_outcome_counts"],
+            episode["aggregate_outcome_counts"],
+        )
+        self.assertEqual(
+            derivative["aggregate_error_taxonomy"],
+            episode["aggregate_error_taxonomy"],
+        )
+        self.assertEqual(
+            derivative["aggregate_human_time_with_confounds"],
+            episode["human_time"],
+        )
+        self.assertEqual(
+            [],
+            foundation._manual_error_ledger_issues(
+                records,
+                handoff=handoff,
+                derivative=derivative,
+                provenance_events=events,
+                repo_root=REPO_ROOT,
+            ),
+        )
+
+        serialized = json.dumps([episode, events], ensure_ascii=False)
+        self.assertNotIn("/srv/", serialized)
+        self.assertNotIn("/home/", serialized)
+        self.assertNotIn("local-content", serialized)
+        self.assertFalse(episode["evidence_boundary"]["source_content_embedded"])
+        self.assertFalse(
+            episode["evidence_boundary"]["unit_level_judgments_embedded"]
+        )
+        self.assertEqual(0, episode["adjudication"]["source_transcriptions_accepted"])
+        self.assertEqual(0, episode["adjudication"]["independent_gold_units"])
+        self.assertFalse(episode["adjudication"]["general_method_winner"])
+        self.assertFalse(episode["adjudication"]["content_authority"])
+        self.assertFalse(episode["adjudication"]["routine_human_backlog_created"])
+
+        false_promotion = copy.deepcopy(episode)
+        false_promotion["adjudication"]["source_transcriptions_accepted"] = 1
+        self.assertTrue(list(ledger_validator.iter_errors(false_promotion)))
 
     def test_transfer_candidate_crosswalk_closes_to_frozen_structural_inputs(
         self,

@@ -96,6 +96,9 @@ PRIVATE_EVIDENCE_HANDOFF_SCHEMA = (
 PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA = (
     CONTRACT_ROOT / "public-laboratory-evidence-derivative.schema.json"
 )
+MANUAL_ERROR_LEDGER_SCHEMA = (
+    CONTRACT_ROOT / "manual-error-ledger-record.schema.json"
+)
 TRANSFER_CANDIDATE_CROSSWALK_SCHEMA = (
     CONTRACT_ROOT / "transfer-candidate-structural-crosswalk.schema.json"
 )
@@ -138,6 +141,20 @@ EXPERIMENTAL_TRANSLATION_EPISODE_SCHEMA = (
 PRIVATE_EVIDENCE_HANDOFF_PROFILE = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
     "private-evidence-handoff.v1.json"
+)
+MANUAL_ERROR_LEDGER_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "manual-error-ledger.jsonl"
+)
+MANUAL_ERROR_LEDGER_PROVENANCE_PATH = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "provenance.manual-error-ledger."
+    "ocr-candidate-review-foundation-v1.jsonl"
+)
+PRIOR_EMPTY_MANUAL_ERROR_LEDGER_SHA256 = (
+    "b33a8b535e65f1e431c6324607c395a69c90e56c22be6b2f402f88bcc54bf761"
 )
 TRANSFER_CANDIDATE_CROSSWALK_PATH = Path(
     "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -602,6 +619,199 @@ def _public_evidence_derivative_issues(
             "public evidence derivative names forbidden disclosure classes: "
             f"{leaked_forbidden_labels}"
         )
+    return issues
+
+
+def _manual_error_ledger_issues(
+    records: object,
+    *,
+    handoff: object,
+    derivative: object,
+    provenance_events: object,
+    repo_root: Path,
+) -> list[str]:
+    """Cross-close the bounded aggregate human-review episode.
+
+    These checks preserve declared evidence and reference closure. They do not
+    independently prove who performed the review or that any source text is
+    correct.
+    """
+
+    if not isinstance(records, list):
+        return ["manual error ledger records are not a list"]
+    if not isinstance(handoff, dict) or not isinstance(derivative, dict):
+        return ["manual error ledger has no handoff or derivative object"]
+    if not isinstance(provenance_events, list):
+        return ["manual error ledger provenance events are not a list"]
+
+    issues: list[str] = []
+    if len(records) != 2:
+        issues.append("manual error ledger must preserve one state and one review episode")
+        return issues
+    if records[0].get("record_type") != "ledger_state":
+        issues.append("manual error ledger first record is not the historical state")
+    if records[1].get("record_type") != "review_episode":
+        issues.append("manual error ledger second record is not the review episode")
+        return issues
+
+    episode = records[1]
+    for value in _string_values([episode, provenance_events]):
+        if value.startswith(("/", "~/")) or "/home/" in value or "/srv/" in value:
+            issues.append("manual error ledger evidence contains an absolute local path")
+            break
+
+    handoff_ref = PRIVATE_EVIDENCE_HANDOFF_PROFILE.as_posix()
+    derivative_ref = handoff.get("destination", {}).get("artifact_path")
+    evidence_boundary = episode.get("evidence_boundary", {})
+    expected_refs = (
+        (
+            "handoff",
+            evidence_boundary.get("handoff"),
+            handoff_ref,
+            _sha256(repo_root / PRIVATE_EVIDENCE_HANDOFF_PROFILE),
+        ),
+        (
+            "aggregate derivative",
+            evidence_boundary.get("aggregate_derivative"),
+            derivative_ref,
+            _sha256(repo_root / derivative_ref)
+            if isinstance(derivative_ref, str)
+            else None,
+        ),
+    )
+    for label, digest_ref, expected_ref, expected_sha in expected_refs:
+        if not isinstance(digest_ref, dict):
+            issues.append(f"manual error ledger {label} reference is missing")
+            continue
+        if digest_ref.get("ref") != expected_ref or digest_ref.get("sha256") != expected_sha:
+            issues.append(f"manual error ledger {label} reference or digest drifted")
+
+    source_boundary = handoff.get("source_boundary", {})
+    boundary_pairs = (
+        (
+            "private evidence set",
+            evidence_boundary.get("private_evidence_set_id"),
+            source_boundary.get("evidence_set_id"),
+        ),
+        (
+            "private return handle",
+            evidence_boundary.get("private_return_handle"),
+            source_boundary.get("public_return_handle"),
+        ),
+    )
+    for label, actual, expected in boundary_pairs:
+        if actual != expected:
+            issues.append(f"manual error ledger {label} does not match handoff")
+
+    review_scope = episode.get("review_scope", {})
+    aggregation = derivative.get("aggregation", {})
+    if review_scope.get("source_unit_count") != aggregation.get("source_unit_count"):
+        issues.append("manual error ledger source-unit count does not match derivative")
+    if review_scope.get("candidate_observation_count") != aggregation.get(
+        "candidate_observation_count"
+    ):
+        issues.append(
+            "manual error ledger candidate-observation count does not match derivative"
+        )
+    if review_scope.get("source_visible") != derivative.get("evidence_posture", {}).get(
+        "human_source_visible_review_observed"
+    ):
+        issues.append("manual error ledger source-visible posture does not match derivative")
+    if episode.get("experiment_id") != derivative.get("public_experiment_id"):
+        issues.append("manual error ledger experiment does not match derivative")
+    if episode.get("aggregate_outcome_counts") != derivative.get(
+        "aggregate_outcome_counts"
+    ):
+        issues.append("manual error ledger aggregate outcomes do not match derivative")
+    if episode.get("aggregate_error_taxonomy") != derivative.get(
+        "aggregate_error_taxonomy"
+    ):
+        issues.append("manual error ledger error taxonomy does not match derivative")
+    if episode.get("human_time") != derivative.get(
+        "aggregate_human_time_with_confounds"
+    ):
+        issues.append("manual error ledger human time does not match derivative")
+
+    decision_total = sum(
+        row.get("count", 0)
+        for row in episode.get("aggregate_outcome_counts", [])
+        if isinstance(row, dict)
+        and isinstance(row.get("code"), str)
+        and row["code"].startswith("decision-")
+        and isinstance(row.get("count"), int)
+    )
+    if decision_total != review_scope.get("candidate_observation_count"):
+        issues.append("manual error ledger decision counts do not close to observations")
+
+    adjudication = episode.get("adjudication", {})
+    if adjudication.get("candidate_dispositions_recorded") != review_scope.get(
+        "candidate_observation_count"
+    ):
+        issues.append("manual error ledger dispositions do not close to observations")
+    closed_adjudication = {
+        "source_transcriptions_accepted": 0,
+        "independent_gold_units": 0,
+        "general_method_winner": False,
+        "content_authority": False,
+        "routine_human_backlog_created": False,
+    }
+    for field, expected in closed_adjudication.items():
+        if adjudication.get(field) != expected:
+            issues.append(f"manual error ledger improperly opens {field}")
+
+    if len(provenance_events) != 1:
+        issues.append("manual error ledger must have exactly one provenance event")
+        return issues
+    event = provenance_events[0]
+    if event.get("event_id") != episode.get("provenance_event_ref"):
+        issues.append("manual error ledger provenance event reference drifted")
+    if event.get("event_type") != "export":
+        issues.append("manual error ledger provenance event is not an export")
+    if event.get("status") != "completed_with_warnings":
+        issues.append("manual error ledger provenance must retain warnings")
+    if event.get("rights_basis_ref") is not None:
+        issues.append("manual error ledger provenance claims a rights basis")
+
+    input_pairs = {
+        (item.get("ref"), item.get("sha256"))
+        for item in event.get("inputs", [])
+        if isinstance(item, dict)
+    }
+    expected_input_pairs = {
+        (handoff_ref, _sha256(repo_root / PRIVATE_EVIDENCE_HANDOFF_PROFILE)),
+        (derivative_ref, _sha256(repo_root / derivative_ref))
+        if isinstance(derivative_ref, str)
+        else (None, None),
+        (MANUAL_ERROR_LEDGER_PATH.as_posix(), PRIOR_EMPTY_MANUAL_ERROR_LEDGER_SHA256),
+    }
+    if input_pairs != expected_input_pairs:
+        issues.append("manual error ledger provenance inputs or digests drifted")
+
+    output_pairs = {
+        (item.get("ref"), item.get("sha256"))
+        for item in event.get("outputs", [])
+        if isinstance(item, dict)
+    }
+    expected_output_pairs = {
+        (
+            MANUAL_ERROR_LEDGER_PATH.as_posix(),
+            _sha256(repo_root / MANUAL_ERROR_LEDGER_PATH),
+        )
+    }
+    if output_pairs != expected_output_pairs:
+        issues.append("manual error ledger provenance output digest drifted")
+
+    configuration = event.get("method", {}).get("configuration", {})
+    expected_configuration = {
+        "aggregate_only": True,
+        "candidate_observation_count": 30,
+        "human_review_pass_count": 1,
+        "private_raw_reopened": False,
+        "source_unit_count": 10,
+        "unit_level_judgments_embedded": False,
+    }
+    if configuration != expected_configuration:
+        issues.append("manual error ledger provenance configuration drifted")
     return issues
 
 
@@ -1676,6 +1886,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             PUBLIC_EVIDENCE_DERIVATIVE_SCHEMA,
             repo_root,
         )
+        manual_error_ledger_validator, _ = _schema_validator(
+            MANUAL_ERROR_LEDGER_SCHEMA,
+            repo_root,
+        )
         transfer_candidate_crosswalk_validator, _ = _schema_validator(
             TRANSFER_CANDIDATE_CROSSWALK_SCHEMA,
             repo_root,
@@ -1765,6 +1979,47 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         handoff=private_handoff,
                     ):
                         issues.append((derivative_location, message))
+
+                    ledger_path = repo_root / MANUAL_ERROR_LEDGER_PATH
+                    ledger_location = _relative(ledger_path, repo_root)
+                    ledger_records = _load_jsonl(ledger_path, repo_root, issues)
+                    for number, record in enumerate(ledger_records, start=1):
+                        _validate_payload(
+                            record,
+                            manual_error_ledger_validator,
+                            f"{ledger_location}:{number}",
+                            issues,
+                        )
+                    ledger_provenance_path = (
+                        repo_root / MANUAL_ERROR_LEDGER_PROVENANCE_PATH
+                    )
+                    ledger_provenance_location = _relative(
+                        ledger_provenance_path,
+                        repo_root,
+                    )
+                    ledger_provenance_events = _load_jsonl(
+                        ledger_provenance_path,
+                        repo_root,
+                        issues,
+                    )
+                    for number, event in enumerate(
+                        ledger_provenance_events,
+                        start=1,
+                    ):
+                        _validate_payload(
+                            event,
+                            provenance_validator,
+                            f"{ledger_provenance_location}:{number}",
+                            issues,
+                        )
+                    for message in _manual_error_ledger_issues(
+                        ledger_records,
+                        handoff=private_handoff,
+                        derivative=derivative,
+                        provenance_events=ledger_provenance_events,
+                        repo_root=repo_root,
+                    ):
+                        issues.append((ledger_location, message))
 
     transfer_crosswalk_path = repo_root / TRANSFER_CANDIDATE_CROSSWALK_PATH
     transfer_crosswalk = _load_json(transfer_crosswalk_path, repo_root, issues)

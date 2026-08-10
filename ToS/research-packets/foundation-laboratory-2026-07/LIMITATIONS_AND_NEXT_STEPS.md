@@ -684,7 +684,9 @@ contracts intentionally reject simulated human evidence.
   The residue has not been reviewed and no human work is scheduled. One
   concrete A ambiguity has now triggered an output-blind contextual B packet:
   recurrence ranks 1, 73, and 145 return to exact raw-TEI source contexts
-  across parts 1, 3, and 4. B remains unacquired and unexecuted. C is
+  across parts 1, 3, and 4. The exact ZDL B wheel and its 41-wheel dependency
+  closure were acquired privately, but the artifact gate denied runtime
+  admission before build, source-packet consumption, or output. C is
   question-inapplicable because exact and normalized identity do not differ
   for this episode; it remains unacquired.
 - A separate 5,530,732-byte tracked recurrence projection now materializes the
@@ -1426,15 +1428,15 @@ from the calibration-only route in section 2b.
 | --- | --- |
 | safe repository preparation and preserved user work | satisfied on local owner branches; commits and validation complete, no external push/merge performed |
 | speaking topology, source storage, manifests, fixity, provenance, rights | prepared and validated |
-| research, decision matrix, machine fit, A/B/C specifications | prepared; morphology A mechanics executed reproducibly; one exact three-context B-only episode is frozen before output and awaits artifact/runtime/host admission; C is explicitly question-inapplicable for that episode |
-| real pages and text manually checked | incomplete |
+| research, decision matrix, machine fit, A/B/C specifications | prepared; morphology A mechanics executed reproducibly; one exact three-context B-only episode is frozen before output; the exact B artifact closure was acquired privately but trust admission failed closed before runtime or source consumption; C is explicitly question-inapplicable for that episode |
+| real pages and text manually checked | partial: one source-visible, method-blind solo-human candidate-review pass covered 10 Russian pages and 30 candidate observations; it is not diplomatic gold or accepted text |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
 | translation decisions with alternatives and etymology | accepted lifecycle contract and exact-address etymology A/B/C evidence route prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; monetary, energy, real-human correction time, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the contextual ZDL B acquisition took 356.746 s with a 2.1 GiB peak and zero swap but produced no runtime or model-quality evidence; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; one real-human OCR candidate-review pass recorded 8,334 seconds, but display position, page difficulty, and the single pass confound method comparison; monetary, energy, stable correction cost, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes and the contextual B input is reproducibly materialized, but B has no output and C is question-inapplicable; Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |

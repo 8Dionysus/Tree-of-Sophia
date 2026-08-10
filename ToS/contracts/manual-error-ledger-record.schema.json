@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/manual-error-ledger-record.schema.json",
+  "title": "Tree of Sophia manual error ledger record",
+  "oneOf": [
+    {"$ref": "#/$defs/legacyState"},
+    {"$ref": "#/$defs/reviewEpisode"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repoRefDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"pattern": "^/|(^|/)\\.\\.(/|$)"}
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "aggregateCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "count"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "legacyState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_type",
+        "recorded_at",
+        "status",
+        "entries",
+        "truth_boundary"
+      ],
+      "properties": {
+        "record_type": {"const": "ledger_state"},
+        "recorded_at": {"type": "string", "format": "date-time"},
+        "status": {"const": "no_manual_reviews_recorded"},
+        "entries": {"const": 0},
+        "truth_boundary": {"type": "string", "minLength": 40}
+      }
+    },
+    "reviewEpisode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "$schema",
+        "schema_version",
+        "record_type",
+        "recorded_on",
+        "episode_id",
+        "experiment_id",
+        "review_scope",
+        "evidence_boundary",
+        "aggregate_outcome_counts",
+        "aggregate_error_taxonomy",
+        "human_time",
+        "adjudication",
+        "provenance_event_ref",
+        "authority_boundary"
+      ],
+      "properties": {
+        "$schema": {
+          "const": "https://tree-of-sophia.local/ToS/contracts/manual-error-ledger-record.schema.json"
+        },
+        "schema_version": {"const": "tos_manual_error_ledger_record_v1"},
+        "record_type": {"const": "review_episode"},
+        "recorded_on": {"type": "string", "format": "date"},
+        "episode_id": {
+          "const": "tos.manual-review.ocr-candidate-review-foundation-v1.pass-1"
+        },
+        "experiment_id": {"const": "tos-ocr-candidate-review-v1"},
+        "review_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "real_human_review_observed",
+            "solo_reviewer",
+            "source_visible",
+            "method_blind",
+            "independent_pass_count",
+            "source_unit_count",
+            "candidate_observation_count"
+          ],
+          "properties": {
+            "real_human_review_observed": {"const": true},
+            "solo_reviewer": {"const": true},
+            "source_visible": {"const": true},
+            "method_blind": {"const": true},
+            "independent_pass_count": {"const": 1},
+            "source_unit_count": {"const": 10},
+            "candidate_observation_count": {"const": 30}
+          }
+        },
+        "evidence_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "handoff",
+            "aggregate_derivative",
+            "private_evidence_set_id",
+            "private_return_handle",
+            "raw_evidence_preserved",
+            "raw_evidence_embedded",
+            "source_content_embedded",
+            "unit_level_judgments_embedded",
+            "reviewer_identity_tracked"
+          ],
+          "properties": {
+            "handoff": {"$ref": "#/$defs/repoRefDigest"},
+            "aggregate_derivative": {"$ref": "#/$defs/repoRefDigest"},
+            "private_evidence_set_id": {
+              "const": "tos.private-evidence.ocr-candidate-review-foundation-v1"
+            },
+            "private_return_handle": {
+              "const": "tos.private-return.ocr-candidate-review-foundation-v1"
+            },
+            "raw_evidence_preserved": {"const": true},
+            "raw_evidence_embedded": {"const": false},
+            "source_content_embedded": {"const": false},
+            "unit_level_judgments_embedded": {"const": false},
+            "reviewer_identity_tracked": {"const": false}
+          }
+        },
+        "aggregate_outcome_counts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/aggregateCount"}
+        },
+        "aggregate_error_taxonomy": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/aggregateCount"}
+        },
+        "human_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["measurement_status", "value", "unit", "confounds"],
+          "properties": {
+            "measurement_status": {"const": "partial"},
+            "value": {"const": 8334},
+            "unit": {"const": "seconds"},
+            "confounds": {
+              "type": "array",
+              "minItems": 3,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 20}
+            }
+          }
+        },
+        "adjudication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_dispositions_recorded",
+            "source_transcriptions_accepted",
+            "independent_gold_units",
+            "general_method_winner",
+            "content_authority",
+            "routine_human_backlog_created"
+          ],
+          "properties": {
+            "candidate_dispositions_recorded": {"const": 30},
+            "source_transcriptions_accepted": {"const": 0},
+            "independent_gold_units": {"const": 0},
+            "general_method_winner": {"const": false},
+            "content_authority": {"const": false},
+            "routine_human_backlog_created": {"const": false}
+          }
+        },
+        "provenance_event_ref": {
+          "const": "tos.event.export.ocr-candidate-review-manual-error-ledger.2026-08-10"
+        },
+        "authority_boundary": {"type": "string", "minLength": 160}
+      }
+    }
+  }
+}

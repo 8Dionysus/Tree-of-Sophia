@@ -920,10 +920,11 @@
         "ToS/contracts/hierarchical-target-numbered-unit-page-map.schema.json",
         "ToS/contracts/transfer-candidate-target-structural-crosswalk.schema.json",
         "ToS/contracts/source-gated-evaluation-plan.schema.json",
-        "ToS/contracts/source-gated-llm-evaluation-plan.schema.json"
+        "ToS/contracts/source-gated-llm-evaluation-plan.schema.json",
+        "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
       "side_effects": "validation output only",

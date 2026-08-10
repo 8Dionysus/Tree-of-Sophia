@@ -9,6 +9,14 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Preserved the already completed 2026-07-26 source-visible, method-blind,
+  solo-human OCR candidate-review pass as one append-only aggregate manual
+  error-ledger episode. It closes 10 source pages, 30 candidate dispositions,
+  aggregate outcome/error counts, and 8,334 seconds of explicitly confounded
+  human time to the governed private handoff, public-safe derivative, and
+  provenance digests. No source text, unit judgment, reviewer identity,
+  private locator, accepted transcription, independent gold, method winner,
+  content authority, routine human backlog, or publication authority is added.
 - Preserved the first contextual morphology B artifact attempt as an additive,
   text- and path-free denial receipt without rewriting its digest-bound
   pre-output plan. The exact ZDL `de_zdl_lg 4.0.0` wheel and 41-wheel CPython
