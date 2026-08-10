@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Resolved the current RNL holding route for Antonovsky's exact 1907 third
+  *Zarathustra* Edition. RNL Primo record `07NLR_LMS004843723`, system number
+  `004843723`, tagged RUSMARC, the locations tab, and public ALEPH item rows
+  expose three Russian Book Fund shelfmarks and `В хранении` states. The
+  catalogue's `Web заказ` code is not promoted to actual 1907 online-order
+  eligibility, and the exact scan form remains recommendation-only. The RNL
+  request is revised but unsent; remote holdings remain outside the ToS Item
+  ladder, and no source page, payload, exemplar claim, right, human task,
+  accepted text, semantic object, publication, or canon state was added.
 - Executed one separately admitted resident Gemma E4B successor capacity probe
   without reopening the closed historical translation A/B/C. A first
   no-candidate runner-contract failure is retained independently; the corrected

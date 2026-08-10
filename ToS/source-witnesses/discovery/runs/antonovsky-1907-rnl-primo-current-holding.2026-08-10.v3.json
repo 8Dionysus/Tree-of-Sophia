@@ -1,0 +1,262 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1907-rnl-primo-current-holding.2026-08-10",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third"
+    ],
+    "description": "Current RNL record, physical-copy coordinates, service state, digital-object state, and lawful source-access route for the exact 1907 Antonovsky third Edition without manufacturing a ToS Item or rights conclusion",
+    "required_properties": [
+      "current institutional record identifier",
+      "current physical holding coordinates",
+      "copy and service state",
+      "digital object state",
+      "record-specific lawful access route",
+      "source-specific rights and transformation terms"
+    ],
+    "acceptable_substitutions": [
+      "institution-certified bibliographic and holding response",
+      "institution-supplied bibliographic pages before a complete research reproduction",
+      "separately licensed or public-domain exact digital object"
+    ],
+    "languages": ["ru"],
+    "formats": ["catalogue metadata", "MARC", "physical holding", "PDF", "TIFF", "JPEG"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_PRIMO_CURRENT_HOLDING_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-rnl-primo-official-documentation",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library electronic-catalogue guide",
+      "endpoint_url": "https://primo.nlr.ru/primo_library/libweb/locale/ru_RU/help/help_for_priomo_nui.pdf",
+      "interface_type": "web",
+      "interface_version": "52-page official guide response checked 2026-08-10",
+      "exact_query": "Read current official RNL guidance for catalogue scope, shelfmarks, system numbers, holdings, document-order rules, and the boundary between catalogue availability and actual service eligibility",
+      "queried_at": "2026-08-10T04:39:00-06:00",
+      "elapsed_seconds": 8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-primo-official-method",
+          "rank": 1,
+          "title_as_displayed": "Помощь по использованию электронного каталога РНБ",
+          "result_url": "https://primo.nlr.ru/primo_library/libweb/locale/ru_RU/help/help_for_priomo_nui.pdf",
+          "originating_record_url": "https://primo.nlr.ru/",
+          "identifiers": [],
+          "available_formats": ["official PDF documentation", "electronic catalogue"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "RNL documents catalogue-held material, detailed shelfmark and system-number fields, and service rules. It also states that online ordering in the Russian Book Fund is limited to post-1957 editions, so the exact 1907 record's Web-order code cannot by itself prove order eligibility.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient 3,167,456-byte official PDF response had SHA-256 19555aaecae6b19731fef9faead663022a2426cb379f0c1a0e2640e6c5d84496; method evidence was recorded without tracking the mutable documentation payload."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-primo-exact-current-record",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library Primo and RUSMARC exact record",
+      "endpoint_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+      "interface_type": "web",
+      "interface_version": "RNL Primo classic, official record-format service, and NLR01 metadata checked 2026-08-10",
+      "exact_query": "Search exact title plus Antonovsky plus 1907, preserve the single current RNL result, then reconcile its full display, tagged RUSMARC, and machine MARC return by Primo ID and system number",
+      "queried_at": "2026-08-10T04:20:00-06:00",
+      "elapsed_seconds": 19,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-primo-record-004843723",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : Книга для всех и ни для кого",
+          "result_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+          "originating_record_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+          "identifiers": [
+            {"scheme": "RNL Primo record", "value": "07NLR_LMS004843723"},
+            {"scheme": "RNL system number", "value": "004843723"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1а"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1 Б"}
+          ],
+          "available_formats": ["HTML full record", "tagged RUSMARC", "named-element RUSMARC", "MARC21 download"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact current official record independently identifies Antonovsky, third Edition, Saint Petersburg typography string, 1907, VIII plus 363 pages, 16 cm, system number 004843723, and three current shelfmarks. Field 899 also exposes V 106/216 as nonconventional data, which is not equated to the overwritten GAK handwriting or promoted as a current holding identifier.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Transient current-record responses were inspected and hashed: tagged RUSMARC b80e9ac98527f520e9b6ea4ca726fff06a0dc218e68f4b22b8d73b1cf3b8b4ce and 1,302-byte MARC 866f8bb03f416d99e8e1a32b960225b9086691f89d8039de1a145ec8502bd986. No catalogue response or book payload is tracked."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-primo-current-holdings",
+      "sequence": 3,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library Primo locations and ALEPH item rows",
+      "endpoint_url": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "interface_type": "web",
+      "interface_version": "RNL Primo locations tab and ALEPH 5.20 item-global checked 2026-08-10",
+      "exact_query": "Open the locations tab and public item-global response for system number 004843723 without login or order submission; compare every returned shelfmark, barcode, status code, and holding state",
+      "queried_at": "2026-08-10T04:33:00-06:00",
+      "elapsed_seconds": 5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-three-current-holding-rows",
+          "rank": 1,
+          "title_as_displayed": "Русский книжный фонд (пл. Островского) — три экземпляра",
+          "result_url": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+          "identifiers": [
+            {"scheme": "RNL system number", "value": "004843723"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1а"},
+            {"scheme": "RNL shelfmark", "value": "17.145.5.1 Б"}
+          ],
+          "available_formats": ["HTML locations table", "HTML item rows"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Three current item rows report barcodes 4843723-10, 4843723-20, and 4843723-40; shelfmarks 17.145.5.1, 17.145.5.1а, and 17.145.5.1 Б; material Книги; catalogue code Web заказ; and state В хранении. This proves catalogue holdings as observed, not physical inspection, completeness, immediate service availability, successful order, copying, rights, or ToS Item custody.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient Primo locations response had SHA-256 67a5796dd1b09b3ef131a8cfb5fd7359577716438f5657aa76528dfbf8bb3f35 and the ALEPH item response dbc7f1553878af5335fc13834ac5b2ba0c03a2280c61d00b1afb41bac0276115. Their public-safe results are recorded without retaining mutable pages."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-primo-source-established-fresh-control",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Exact Antonovsky edition history, established Blok evidence, and fresh 2025 translation comparison",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "retained exact-source, established, and fresh control rebound to current RNL record 2026-08-10",
+      "exact_query": "Return from current holding metadata to the exact 1911 edition-history statement, established 1991 holding scholarship, and fresh 2025 direct-comparison method without substituting custody metadata for the missing 1907 source witness",
+      "queried_at": "2026-08-10T04:40:00-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-primo-source-established-fresh-boundary",
+          "rank": 1,
+          "title_as_displayed": "Exact edition-history, established holding context, and fresh exact-witness control",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["exact local source anchor", "PDF scholarship", "article metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The prior ordered evidence remains the authority for reported revision identity and exact-witness separation. Current RNL custody strengthens Edition identity only; it supplies no 1907 pages, collation, equivalence, accepted text, translation quality, or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The exact source anchor and retained scholarship are already tracked or cited; this result records only their bounded relation to the current holding."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-primo-record-specific-access",
+      "sequence": 5,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Russian National Library record-specific request and digitization-recommendation surfaces",
+      "endpoint_url": "https://webservices.nlr.ru/forms/scanrequest/nui/004843723",
+      "interface_type": "web",
+      "interface_version": "record-specific GET and unauthenticated Primo request tab checked 2026-08-10",
+      "exact_query": "Inspect without submission the exact record's locations, request, scan-recommendation, and catalogue-error routes; distinguish holding discovery, authenticated service, digitization recommendation, copying terms, and rights permission",
+      "queried_at": "2026-08-10T04:36:00-06:00",
+      "elapsed_seconds": 6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-digitization-recommendation-route",
+          "rank": 1,
+          "title_as_displayed": "Рекомендовать к оцифровке — Так говорил Заратустра",
+          "result_url": "https://webservices.nlr.ru/forms/scanrequest/nui/004843723",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+          "identifiers": [{"scheme": "RNL system number", "value": "004843723"}],
+          "available_formats": ["HTML recommendation form", "authenticated catalogue request tab", "institutional feedback form"],
+          "declared_rights": {"statement": "RNL says the recommendation may be considered by the expert commission for a future digitization plan; it states no record-specific permission or guaranteed digitization.", "scope": "unknown", "evidence_url": "https://webservices.nlr.ru/forms/scanrequest/nui/004843723", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The exact scan form is a recommendation channel only. The catalogue request tab requires authentication, and official ordering guidance conflicts with treating the 1907 Web-order code as actual online eligibility. The revised unsent access request therefore keeps copying conditions, digital-object state, digitization recommendation, research transformations, and rights permission separate.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The 4,845-byte transient GET response had SHA-256 77e92ca648597d4a120294cf1f85868de0ac6f272b29c18dca2944382618ace6. No form, login, request, order, payment, message, or personal data was submitted."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-primo-general-web-last",
+      "sequence": 6,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Prior exact-title general-web-last control",
+      "endpoint_url": "https://www.google.com/search?q=%22%D0%A2%D0%B0%D0%BA+%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB+%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22+%22%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%22+1907",
+      "interface_type": "web",
+      "interface_version": "prior bounded current search retained after exact official RNL reconciliation",
+      "exact_query": "Retain the earlier general-web-last result only as a negative control; do not let marketplace or mirror metadata outrank the newly reconciled exact RNL record and holdings",
+      "queried_at": "2026-08-10T04:41:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-primo-general-web-no-authority",
+          "rank": 1,
+          "title_as_displayed": "No general-web result outranks the exact current RNL record",
+          "result_url": "https://www.antiqueauction.ru/lot/niczshe-f-tak-govoril-zaratustra-kniga-dlya-vseh-i-ni-dlya-kogo-per-s-nem-yu-m-antonovskogo-3-e-izd",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["prior search results", "marketplace metadata", "scholarship leads"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The exact current RNL record and item rows supersede the earlier current-catalogue negative and outrank marketplace metadata. No general-web result supplies source pages, a lawful exact digital Item, rights, accepted text, or a stronger holding record.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The earlier bounded general-web-last query is preserved by the superseded v2 discovery; no mutable search page was reacquired or retained for this exact official-record correction."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-rnl-primo-official-documentation", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 8, "machine_seconds": 8, "notes": "Defines catalogue and service semantics and prevents Web-order metadata from being overread as actual 1907 eligibility or rights."},
+    {"channel_id": "channel-rnl-primo-exact-current-record", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 16, "machine_seconds": 19, "notes": "Best current bibliographic identity route; closes record, system number, extent, dimension, and shelfmarks but not the source Item."},
+    {"channel_id": "channel-rnl-primo-current-holdings", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 10, "machine_seconds": 5, "notes": "Independently exposes three current item rows and in-storage state without creating local custody, completeness, or successful-service evidence."},
+    {"channel_id": "channel-rnl-primo-source-established-fresh-control", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 2, "machine_seconds": 1, "notes": "Preserves source-reported lineage and exact-witness method without allowing holding metadata to become text authority."},
+    {"channel_id": "channel-rnl-primo-record-specific-access", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 8, "machine_seconds": 6, "notes": "Provides an exact recommendation route and authenticated service surfaces but no copy, permission, or guaranteed digitization."},
+    {"channel_id": "channel-rnl-primo-general-web-last", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 1, "machine_seconds": 0, "notes": "Retained as a negative control only; no result outranks the exact current RNL record."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-rnl-primo-official-method",
+    "tos-discovery-result.antonovsky-1907-rnl-primo-record-004843723",
+    "tos-discovery-result.antonovsky-1907-rnl-three-current-holding-rows",
+    "tos-discovery-result.antonovsky-1907-rnl-primo-source-established-fresh-boundary",
+    "tos-discovery-result.antonovsky-1907-rnl-digitization-recommendation-route"
+  ],
+  "rejected_result_ids": ["tos-discovery-result.antonovsky-1907-rnl-primo-general-web-no-authority"],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-10T04:20:00-06:00",
+  "ended_at": "2026-08-10T04:44:54-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": ["tos.event.discovery.antonovsky-1907-rnl-primo-current-holding.2026-08-10"],
+  "record_version": 3,
+  "supersedes_discovery_ref": "tos.discovery.antonovsky-1907-rnl-gak-holding.2026-08-10"
+}

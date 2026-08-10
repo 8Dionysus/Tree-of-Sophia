@@ -304,6 +304,18 @@ remains incomplete and creates no current holding, Item, source payload,
 publisher or provision claim, rights conclusion, accepted text, human task,
 message, form submission, order, or payment.
 
+`antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json` corrects the
+remaining current-catalogue negative without rewriting the historical GAK
+checkpoint. The exact current RNL record `07NLR_LMS004843723`, system number
+`004843723`, tagged RUSMARC, Primo locations, and ALEPH item rows independently
+expose three Russian Book Fund shelfmarks and `В хранении` states. The run
+keeps the record's `Web заказ` code separate from actual 1907 order eligibility
+because current official guidance limits normal online ordering to later
+material. It also keeps the record-specific digitization form as a
+recommendation route rather than a copy order or permission. No remote holding
+becomes a ToS Item; no page, payload, text, right, message, form, order, human
+task, semantic object, or canon state is created.
+
 `zarathustra-etymology-evidence-route.2026-08-08.v1.json` applies the ordered
 official -> established -> fresh/current -> general-web-last method to the
 lexical foundation. It selects exact TEI orientation, DWDS/Pfeifer point

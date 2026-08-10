@@ -103,7 +103,11 @@ endpoints for 1900, 1903, and 1907. The Lithuanian National Library identifies
 the 1900 first counted Edition; the Russian State Library identifies the 1903
 `2-е изд., испр.` and four holdings; and the current RuNEB card identifies
 the 1907 third Edition while reporting that the card was removed or replaced.
-None is a ToS Item: no exact source bytes were acquired. `[s.n.]` remains
+The current RNL Primo record now independently resolves that 1907 endpoint to
+record `07NLR_LMS004843723`, system number `004843723`, and three Russian Book
+Fund shelfmarks: `17.145.5.1`, `17.145.5.1а`, and `17.145.5.1 Б`. These remain
+remote holdings rather than ToS Items: no exact source bytes were acquired.
+`[s.n.]` remains
 unknown in 1900, while `тип. Альтшулера` and
 `тип. Ф. Вайсберга и П. Гершунина` remain typography evidence rather than
 inferred publishers. All three Expressions stay provisional and uncollated;

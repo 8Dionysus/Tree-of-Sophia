@@ -469,7 +469,7 @@ ANTONOVSKY_1907_REQUEST_PATH = (
 ANTONOVSKY_1907_RNL_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
-    "antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json"
+    "antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json"
 )
 ANTONOVSKY_1907_RNL_REQUEST_PATH = (
     REPO_ROOT
@@ -3466,12 +3466,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 and identifier["status"] == "verified"
             },
         )
-        self.assertFalse(
-            any(
-                identifier["scheme"] == "RNL call number"
+        self.assertEqual(
+            {"17.145.5.1", "17.145.5.1а", "17.145.5.1 Б"},
+            {
+                identifier["value"]
                 for identifier in edition_1907["external_identifiers"]
-            )
+                if identifier["scheme"] == "RNL shelfmark"
+                and identifier["status"] == "verified"
+            },
         )
+        self.assertIn("07NLR_LMS004843723", edition_1907["notes"])
+        self.assertIn("not ToS Items", edition_1907["notes"])
+        self.assertIn("V 106/216", edition_1907["notes"])
 
         exact_discovery = json.loads(
             ANTONOVSKY_1900_DISCOVERY_PATH.read_text(encoding="utf-8")
@@ -3519,11 +3525,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual("incomplete", rnl_1907_discovery["status"])
         self.assertEqual(
-            "tos.discovery.antonovsky-1907-runeb-edition.2026-08-01",
+            "tos.discovery.antonovsky-1907-rnl-gak-holding.2026-08-10",
             rnl_1907_discovery["supersedes_discovery_ref"],
         )
         self.assertEqual(
-            [1, 2, 3, 4, 5],
+            [1, 2, 3, 4, 5, 6],
             [channel["sequence"] for channel in rnl_1907_discovery["channels"]],
         )
         self.assertEqual(
@@ -3531,11 +3537,27 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             rnl_1907_discovery["channels"][-1]["channel_type"],
         )
         self.assertFalse(rnl_1907_discovery["technical_access_bypass_used"])
-        gak_result = rnl_1907_discovery["channels"][1]["results"][0]
-        self.assertEqual("select", gak_result["decision"])
-        self.assertEqual("metadata-only", gak_result["availability"])
-        self.assertIn("VIII, 363 с.", gak_result["rationale"])
-        self.assertIn("not transcribed", gak_result["rationale"])
+        current_record = rnl_1907_discovery["channels"][1]["results"][0]
+        self.assertEqual("select", current_record["decision"])
+        self.assertEqual("metadata-only", current_record["availability"])
+        self.assertEqual(
+            {"07NLR_LMS004843723", "004843723"},
+            {
+                identifier["value"]
+                for identifier in current_record["identifiers"]
+                if identifier["scheme"]
+                in {"RNL Primo record", "RNL system number"}
+            },
+        )
+        current_holdings = rnl_1907_discovery["channels"][2]["results"][0]
+        self.assertIn("Three current item rows", current_holdings["rationale"])
+        self.assertIn("В хранении", current_holdings["rationale"])
+        self.assertIn("or ToS Item custody", current_holdings["rationale"])
+        access_result = rnl_1907_discovery["channels"][4]["results"][0]
+        self.assertIn("recommendation channel only", access_result["rationale"])
+        self.assertIn(
+            "rights permission separate", access_result["rationale"]
+        )
         self.assertTrue(
             all(
                 not result["acquisition"]["downloaded"]
@@ -3602,9 +3624,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIsNone(rnl_1907_request["sent_at"])
         self.assertEqual("none", rnl_1907_request["response"]["state"])
         self.assertIn(
-            "намеренно не расшифровывается",
+            "три экземпляра",
             rnl_1907_request["material"]["requested_portion"],
         )
+        self.assertIn(
+            "только как отдельная рекомендация",
+            rnl_1907_request["material"]["requested_portion"],
+        )
+        self.assertEqual(2, rnl_1907_request["record_version"])
         for permission in (
             "source_redistribution",
             "derivative_publication",

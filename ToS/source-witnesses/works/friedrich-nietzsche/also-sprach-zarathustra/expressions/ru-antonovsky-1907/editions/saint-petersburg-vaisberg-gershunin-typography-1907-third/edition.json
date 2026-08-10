@@ -10,8 +10,12 @@
     "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md",
     "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json",
     "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_PRIMO_CURRENT_HOLDING_RESEARCH.md",
     "https://rusneb.ru/catalog/000199_000009_003693382/",
     "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
+    "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+    "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
     "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf"
   ],
   "external_identifiers": [
@@ -32,6 +36,36 @@
       "value": "67133/82",
       "source_ref": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
       "status": "verified"
+    },
+    {
+      "scheme": "RNL Primo record",
+      "value": "07NLR_LMS004843723",
+      "source_ref": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL system number",
+      "value": "004843723",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843723&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1а",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "17.145.5.1 Б",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843723",
+      "status": "verified"
     }
   ],
   "same_as_posture": "no_equivalence_claim",
@@ -41,7 +75,7 @@
   "edition_statement": "3-е изд.",
   "publication_claim_refs": [],
   "exemplar_claim_refs": [],
-  "notes": "The prior removed or replaced RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. RNL GAK divider 67133 card 82 independently confirms the third Edition and institutionally reports extent VIII, 363 с., so that extent no longer rests on marketplace metadata. The handwritten shelfmark on the GAK card is overwritten or crossed out and is deliberately not transcribed or promoted. The RuNEB route is currently inaccessible from this network, the tested RSL route remains a 404, and no current holding coordinate, source pages, digital object, or book bytes were acquired. The typography string is not converted into a publisher, printer Organization, or provision-activity claim. No ToS Item, responsibility claim, textual equivalence, new derivation, rights conclusion, semantic claim, or human bibliography is materialized.",
-  "record_version": 2,
+  "notes": "The prior removed or replaced RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. RNL GAK divider 67133 card 82 independently confirms the third Edition and institutionally reports extent VIII, 363 с. The current RNL Primo record 07NLR_LMS004843723 and system number 004843723 independently confirm that description, report catalogue dimension 16 cm, and expose three physical holdings in the Russian Book Fund at пл. Островского under shelfmarks 17.145.5.1, 17.145.5.1а, and 17.145.5.1 Б. Their item rows report В хранении and catalogue code Web заказ, but official RNL guidance does not establish actual online eligibility for a 1907 edition. The remote holdings are not ToS Items; no source pages, digital object, or book bytes were acquired. The overwritten GAK handwriting is not transcribed and V 106/216 remains uninterpreted nonconventional catalogue data. The typography string is not converted into a publisher, printer Organization, or provision-activity claim. No exemplar claim, responsibility claim, textual equivalence, new derivation, rights conclusion, semantic claim, or human bibliography is materialized.",
+  "record_version": 3,
   "supersedes_ref": null
 }

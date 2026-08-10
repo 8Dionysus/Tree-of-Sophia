@@ -234,6 +234,15 @@ contracts intentionally reject simulated human evidence.
   typography and is not converted into a publisher or provision-activity
   claim. Responsibility beyond the catalog statement, source text, rights,
   collation, equivalence, and every additional derivation edge remain absent.
+- A following current RNL Primo pass resolves the remaining 1907 holding gap
+  through record `07NLR_LMS004843723`, system number `004843723`, tagged
+  RUSMARC, and three public item rows under `17.145.5.1`, `17.145.5.1а`, and
+  `17.145.5.1 Б`. The rows report `В хранении` and catalogue code `Web заказ`,
+  but current official guidance does not establish actual online ordering for
+  a 1907 edition. The record-specific scan form is only a recommendation for a
+  future digitization plan. Remote holdings remain outside the Item ladder;
+  no physical inspection, condition, source page, digital object, payload,
+  rights permission, exemplar claim, or human bibliography is created.
 - Seven Work-owned chronology packets add one bounded
   `first_publication_chronology` profile per current Nietzsche Work. They keep
   sequence stages, precision, public/private availability, and posthumous
@@ -540,12 +549,15 @@ contracts intentionally reject simulated human evidence.
   reacquisition, human rights review, and operator transfer approval.
 - The Nietzsche-Wörterbuch access request is a public-safe draft only. It has
   not been approved by a human, sent, answered, or granted.
-- The Antonovsky 1907 Blok-library request and the newer RuNEB/RSL replacement
-  request are likewise public-safe and `draft-not-sent`. The exact RuNEB card
-  establishes the third Edition but is removed or replaced; the current
-  replacement identifier, shelfmark, and Item remain unresolved. Both
-  institutional routes are time-sensitive, and no message, access permission,
-  payload, or redistribution authority exists.
+- The Antonovsky 1907 Blok-library, RuNEB/RSL replacement, and RNL requests are
+  likewise public-safe and `draft-not-sent`. The current RNL record now closes
+  the replacement identifier and shelfmark questions but not the source Item,
+  copying terms, digital object, or rights. The revised RNL draft uses system
+  number `004843723` and three exact shelfmarks, keeps the digitization form
+  recommendation-only, and asks separately about local OCR/transcription,
+  indexing, embeddings, quotation, and metadata publication. No message,
+  recommendation, order, access permission, payload, or redistribution
+  authority exists.
 - The Antonovsky 1900 Lithuanian National Library request is also public-safe
   and `draft-not-sent`. It asks first for holding/condition/copying terms, then
   for title and preliminary-page evidence, and only then for a research copy if
@@ -968,9 +980,11 @@ not reintroduce a false 90 °C gate.
   1903 RSL second corrected Edition, and the removed-or-replaced RuNEB 1907
   third Edition, one Expression→Edition packet for each, and separate unsent
   request drafts. A later RNL GAK pass independently confirms the 1907 third
-  Edition and extent `VIII, 363 с.` on divider `67133`, card `82`, but refuses
-  to guess the overwritten shelfmark and therefore still adds no current
-  holding, Item, payload, publisher, rights clearance, or derivation edge. The
+  Edition and extent `VIII, 363 с.` on divider `67133`, card `82`, and refuses
+  to guess the overwritten shelfmark. A following current RNL Primo pass then
+  resolves three shelfmarks and holdings without promoting any remote copy to
+  a ToS Item or adding a payload, publisher, rights clearance, exemplar claim,
+  or derivation edge. The
   following Reader 1899 slice adds a separate uncredited
   Expression, exact Edition, fragmentary three-part PDF Item, provisional
   Moscow Place and Reader editorial-office Organization, two provision claims,
