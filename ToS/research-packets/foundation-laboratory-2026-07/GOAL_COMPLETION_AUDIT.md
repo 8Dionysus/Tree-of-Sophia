@@ -25,19 +25,11 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `67fc9bdf` (`Correct Antichrist
-  restored-work subsection`), including the source-challenger, source-visible transfer
-  review, current Antonovsky 1900/1903/1907 catalogue continuations, the exact
-  1911 RSL/RuNEB layered-rights continuation, the corrected 1913 Commons
-  foreign-work assessment, the four corrected DTA foreign-work routes, and the
-  corrected Naumann 1893 PDF/EPUB, MDZ 1888/1889, *Ecce Homo* 1908, and
-  *Antichrist* 1906 Commons plus separate Internet Archive navigation-Item
-  foreign-work routes, and the corrected separation of the Russian
-  reviewed-jurisdiction endpoint from the German original-Work source-country
-  endpoint in both Antonovsky Items, plus the citation-only correction of the
-  *Antichrist* restored-work source-country-expiration condition from
-  §104A(g)(6)(B) to §104A(h)(6)(B) without changing an aggregate, endpoint,
-  gate, source address, candidate, or readiness outcome;
+- Tree of Sophia reviewed checkpoint `045f841b` (`Admit edition-local German
+  source reading`), including the exact DTA/eKGWB edition-reading admission,
+  its ordered research and zero-authority provenance, plus every earlier
+  source-challenger, source-visible transfer, catalogue, layered-rights, and
+  restored-work correction retained by checkpoint `67fc9bdf`;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -136,6 +128,35 @@ assertions, 7,565 relations, 3,963 entities, and 21,314 canonical records.
 This proves corrected current model-authored representation and mechanical
 closure only; it creates no human legal or textual review, German competence,
 public payload, semantic truth, publication authority, or operator approval.
+
+The following source-reading continuation resolves a different conflated
+gate. Official TEI and DTA documentation establishes how an exact Edition and
+Item transcription records what that witness reads; established scholarly-
+edition criteria and fresh 2026 digital-philology work preserve the separation
+between edition evidence and linguistic or interpretive truth. The new
+`tos_edition_reading_admission_v1` packet therefore admits exactly one
+`edition_reading_attested` unit for DTA selector
+`TEI/text[1]/body[1]/div[1]/div[1]`, independently corroborated by eKGWB
+locator `Za-I-Vorrede-1`: 12/12 paragraph sequences and 261/261 normalized
+tokens agree under the already frozen source-aware comparison. This is an
+attested edition-local reading, not accepted German, linguistic correctness,
+Edition identity, author-final text, morphology, lemma, translation, sign,
+semantic claim, graph truth, canon authority, rights clearance, transfer, or
+publication permission. It opens only payload-local source-observational
+semantic materialization and creates no sign candidate or human task.
+
+At reviewed checkpoint `045f841b`, the focused admission tests, source-witness
+and corpus-index validators, local-provider and family validators, full and
+incremental workflow-pinned portable-family checks, exact seven-file
+compatibility assembly, manual digest/no-payload/zero-authority review, and the
+complete 326-test release lane all pass with one declared skip. The KAG family
+closes at digest
+`b79a5fa568c7e88cdb1782bc428ebab4ef277332009fe5dd3758eeb7d974d267`
+with 573 shards, 1,837 source records, 19,197 anchors, 330 events, 3,371
+assertions, 7,577 relations, 3,971 entities, and 21,378 canonical records.
+This proves source-return, contract, and generated-family closure only; every
+language, translation, sign, semantic-truth, graph-truth, human-review,
+transfer, publication, and canon gate remains closed.
 
 The first eKGWB citation-witness decision is now closed at
 `human_admitted_with_limits`. A 2026-08-08 official -> established ->
@@ -1026,6 +1047,7 @@ or publication authority.
 
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
+| 1k | exact edition-local German reading admission | `GERMAN_EDITION_READING_ADMISSION_RESEARCH_2026-08-10.md` follows official TEI/DTA documentation -> established scholarly-digital-edition criteria -> fresh 2026 digital-philology work and separates witness transcription from linguistic truth. `edition-reading-admission.schema.json`, the exact DTA/eKGWB packet, and model provenance bind one `edition_reading_attested` unit to the exact Work/Expression/Edition/Item/file and selector, preserve the frozen 12-paragraph/261-token sequence evidence, and expose no source string. The packet permits only local source-observational semantic materialization | proven for one exact Edition/Item reading at `Za-I-Vorrede-1`; accepted German, translation, signs, semantic claims, graph effects, human tasks, promotion, transfer, and publication all remain zero | evolve the semantic ladder so source-reading posture and language-competence posture remain independent; any accepted morphology, lemma, translation, sign, interpretation, relation, or canon claim still requires its own evidence and assurance |
 | 1 | ordered research packet | `ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md` returns first to the exact fixity-verified page-7 witness and current official Commons/National Electronic Library/Russian State Library records, then established editorial reuse, then fresh/general-web-last checks; it admits only the displayed responsibility and leaves expanded person identity and cross-Expression equivalence unresolved; `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` applies the required official DNB/GND and exact DTA record -> established HAdW/e-rara -> fresh/current corroboration -> general-web-last order to the first-part provision identity, separating the historical Schmeitzner Corporate Body from the Person; `ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md` repeats that order independently for parts II and III through their own exact DTA records, the e-rara holding route and current control searches, admitting two distinct Edition-owned claims while rejecting title-label propagation, Person substitution, physical-title-page transcription, release chronology, equivalence, text, rights, human review, semantics and canon; `ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md` separately preserves the exact 1891 authority statement from private-print, printing, delivery, and release chronology; `ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md` returns to the exact pages 5, 7, and 8 before current GND/RSL/NEL records, established translation and journal context, fresh exact-record reconciliation, and general web last, admitting separate publisher-imprint and printer roles while rejecting title-page-only inference and Vladimir Posse substitution; `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` returns to exact pages 46 and 47 before current GND authorities, established publication history, fresh reconciliation, and general web last, separating Edition statement, publication, manufacture, publisher, printer, statement year, release, textual state, and historical rights; `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` returns to the exact 1886 Item before official DNB/GND authorities, independent e-rara corroboration, established genetics, fresh 2025 research, and general web last, separating the shared imprint, two provision roles, historical rights, release, textual state, and current law; `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` returns to the exact fixity-verified Item and its two distant statement surfaces before official DNB/GND authorities, the Nietzsche Documentation Center collection record, established commentary and genetics, fresh 2025-2026 documentary work, and general web last, separating Edition year, publication, manufacture, printing completion, release, and current rights; `ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md` returns first to the exact fixity-verified official RSL/NEL scan and its title, printer, translator-note, and opening-text surfaces, then current RSL/NEL records, established translation history, fresh 2025–2026 comparison and publishing evidence, and general web last; it admits a distinct revision-lineage Expression/Edition/Item route, translator responsibility, split publisher/printer roles, and local-only rights posture while rejecting cross-edition equivalence, accepted text, redistribution, semantics, human review, and canon; `READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` returns to the exact official RNL/RuNEB fragment before contemporary attribution evidence, current provider terms, established and fresh witness-comparison method, and general web last; it admits a separate uncredited Expression, exact Edition, fragmentary Item, and local-only source evidence while rejecting translator identity, completeness, derivation, equivalence, redistribution, semantics, review, and canon; `NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` repeats the exact RSL/RuNEB -> established scholarship -> current specialist/copy evidence -> general-web-last order for the parallel 1899 Nani witness, admitting only the local Item and printed responsibility/manufacture statements while withholding full Agent identity, completeness, German Expression identity, text, equivalence, translation quality, redistribution, semantics, review, and canon; `READER_1899_LAYERED_RIGHTS_ASSESSMENT.md`, `NANI_1899_LAYERED_RIGHTS_ASSESSMENT.md`, and `ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md` apply the same order to three deliberately contrasting rights routes: positive historical layers inside unresolved exact Items, then an exact Commons object with positive RU/US layer results that still cannot cross the operator-local-payload, human-review, or server-transfer gates; `DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md` applies current DTA terms and exact TEI headers -> German and U.S. law -> established TEI/corpus scholarship -> fresh 2025-2026 guidance -> general web last, separating Work, historical Edition, annotated TEI, metadata, plain text, facsimiles, German quality, local custody, and server transfer; `RESEARCH.md` preserves the broad foundation order and records the 2026-07-30 exact-source refresh as DNB/MDZ/B3Kat identity -> HAdW historical-critical production history -> current DTA/TextGrid/Google/MDZ service evidence; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice; `BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` repeats the order for the provider-transcription-to-local-calibration boundary; `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` repeats it through exact 2026-07-29 release/artifact evidence for the next linguistic layer; `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` applies official documentation/law -> established scholarship -> fresh transport evidence, followed by a protocol-native owner -> author-deposit -> institutional archive -> repository/identifier -> general-web pass; `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` repeats official GSA/DFGA/eKGWB/Kalliope -> established HAdW -> 2024-2025 philology -> general web last and corrects a false 2026-freshness label; `ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/DFGA/eKGWB/official correction evidence -> KSA/HAdW and published fragment baseline -> 2025-2026 scholarship and forthcoming translation -> general web last; `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> DFGA/eKGWB -> e-rara -> established genesis/commentary -> 2024-2025 textual genetics -> general web last and preserves the current Nietzsche Source timeout; `GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> Basel D 20/K 11/E 40 edition -> DFGA/eKGWB -> established HAdW/genetic study -> 2024-2026 correspondence, chronology, edition, and method work -> general web last while preserving the current timeout; `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` returns to the exact Commons/Stanford DjVu and current provider expression before current DE/US law, established cases and institutional practice, fresh Commons/Internet Archive/Stanford reconciliation, and general web last, separating represented Work, historical presentation, archive editorial matter, faithful scan, Stanford furniture, 490 undecoded `TXTz` chunks, OCR layout, DjVu package, provider metadata, local custody, and the unreviewed pages 228-329 member map | proven and refreshed through the exact 2026-08-02 Antonovsky 1913, four-part DTA, Genealogie 1892, and Antichrist 1906 layered-rights checks | repeat the same ordered check before any later acquisition |
 | 1a | exact 1911 layered-rights continuation | `ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md` follows current official law, exact institutional records and terms -> established digitization scholarship -> fresh 2026 guidance -> general web last. It separately records four historical `public_domain_reviewed` RU/US layers and two unresolved recent digital layers, uses the foreign-work URAA source-country test, and binds the result into rights v3 and a still-blocked metadata-only server-plan v3 without copying or publishing the payload | proven as a current model-authored RU/US layer assessment and fail-closed transfer contract; source-country endpoint corrected at reviewed checkpoint `8cfe63c8`; no human legal clearance | exact-object reuse statement or independently permitted public source, then human rights/source review and operator approval before any content-bearing public route |
 | 1b | corrected 1913 United States rights route | `ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md` now distinguishes Commons' exact-object provider statement from the independent foreign-work analysis. It applies the 17 U.S.C. §104A source-country condition to the historical Work, translation, preface, and presentation, while keeping the scan and mechanical ABBYY layers on the exact provider-plus-originality route. Rights v4, superseding provenance, and server-plan v4 retain the same six positive RU/US layers and the same local-only, no-transfer, metadata-only operator boundary | proven as corrected current model-authored reasoning through reviewed checkpoint `8cfe63c8`; aggregate decision unchanged and no human legal clearance | fresh exact-object recheck plus human rights/source review and explicit operator approval before any content-bearing public route |
@@ -1083,7 +1105,7 @@ or publication authority.
 | every derived text resolves to a witness | proven for current laboratory mechanics; the full-work lexical database binds every local occurrence to exact file, page resource, structural resource, and opaque local locator while its tracked companion exposes only aggregate resource return | require the same closure for every future layer; lexical observation still does not accept the bound text |
 | every accepted sign resolves to occurrences | vacuously unviolated; no accepted laboratory signs exist | task-specific occurrence closure and a real-human promotion checkpoint only when a concrete sign moves to a stronger layer |
 | every graph edge resolves to claim and evidence | proven mechanically for the pilot projections; claim truth unreviewed | human claim/trace review |
-| translation preserves original, alternatives, etymology, and comparison | accepted lifecycle contract only; bounded A/B/C machine-method evidence is frozen and no accepted translation packet exists | begin the independent accepted-translation lifecycle only after source acceptance |
+| translation preserves original, alternatives, etymology, and comparison | accepted lifecycle contract only; bounded A/B/C machine-method evidence is frozen, one exact edition-local reading is attested, and no accepted German or translation packet exists | begin the independent accepted-translation lifecycle only after packet-local philological admission; edition-reading attestation alone is insufficient |
 | recognized translation is a witness, not truth | proven in method law | preserve the seal/reveal order in actual runs |
 | human-only, AI-only, and AI+human lanes stay separate | contract only | execute genuine independent lanes without simulated human evidence |
 | real pages and texts are checked manually | partial | one private Russian candidate-review pass exists; diplomatic gold, German review, and other families remain open |
@@ -1562,7 +1584,8 @@ schedules no routine review.
    assisted protocol only for a specific source/translation question and
    retain the competence block on orthography, grammar, semantics, etymology,
    and translation fidelity. Treat the structure-compatible
-   `Za-I-Vorrede-1` triangulation as a machine candidate for German truth. The
+   `Za-I-Vorrede-1` triangulation as one exact
+   `edition_reading_attested` source unit, not as German truth. The
    2026-08-08 decision is closed: one edition-typed citation witness is
    admitted only for private AI-only and AI+human experiments. It does not
    authenticate publisher transport, establish German competence, open
@@ -1572,7 +1595,10 @@ schedules no routine review.
    later candidate must pass it before scarce human attention, but a clean
    result remains `uncertain` rather than accepted. The Arquivo.pt WARC-backed
    snapshot strengthens historical fixity but explicitly does not validate
-   source origin.
+   source origin. The next semantic-contract step may use the attested Edition
+   reading for exact-form, frequency, and context observation, while keeping
+   morphology, lemma, translation, sign, interpretation, relation, graph, and
+   canon authority independently closed.
    When one accepted German occurrence creates a real etymology question, use
    the selected source route in `ETYMOLOGY_EVIDENCE_ROUTE_RESEARCH.md`: exact
    lemma/homograph resolution, point citation, competing evidence, and an
@@ -1580,9 +1606,10 @@ schedules no routine review.
    word origin, and do not convert DWDS or the undocumented Wörterbuchnetz API
    into an unrestricted agent backend.
 3. Materialize no morphology task merely because the method research exists.
-   When an admitted source/translation/sign/retrieval question actually needs
-   morphology, freeze its source-local occurrences first, then create the
-   matching `abyss-stack` profile, audit B/C artifact rights and dependencies,
+   When an edition-reading-attested source/translation/sign/retrieval question
+   actually needs morphology, freeze its source-local occurrences first, then
+   create the matching `abyss-stack` profile, audit B/C artifact rights and
+   dependencies,
    and run current host preflight. Acquire A first; B and C remain sequential
    evidence-gated challengers. Machine agreement does not create accepted
    German, a lemma, or `lexeme_id`.
