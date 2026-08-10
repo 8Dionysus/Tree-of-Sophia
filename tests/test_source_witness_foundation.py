@@ -2702,7 +2702,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("unreviewed", rights["review_status"])
-        self.assertEqual(2, rights["record_version"])
+        self.assertEqual(3, rights["record_version"])
 
         layers_by_role = {
             layer["layer_role"]: layer
@@ -2730,6 +2730,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual(
                 "expired",
                 layers_by_role[role]["term"]["calculation_status"],
+            )
+            self.assertIn(
+                "§104A",
+                " ".join(
+                    (
+                        layers_by_role[role]["term"]["basis"],
+                        layers_by_role[role]["rationale"],
+                    )
+                ),
             )
         self.assertEqual(
             "1983-12-31",
@@ -2769,7 +2778,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("metadata-only", server_plan["publication_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
-        self.assertEqual(2, server_plan["contract_version"])
+        self.assertEqual(3, server_plan["contract_version"])
         self.assertTrue(
             all(
                 row["state"] == "prohibited"
@@ -2788,6 +2797,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("Rights status, source-text quality", research)
         self.assertIn("separate Wikisource transcription", research)
         self.assertIn("no operator transfer approval", research)
+        self.assertIn("17 U.S.C. §104A", research)
+        self.assertIn("cannot rest on the domestic pre-1931 shorthand", research)
+        self.assertIn(
+            "https://www.copyright.gov/title17/92chap1.html",
+            server_plan["rights_policy"]["permission_or_license_refs"],
+        )
 
     def test_antonovsky_1911_is_exact_local_revision_lineage_witness(
         self,

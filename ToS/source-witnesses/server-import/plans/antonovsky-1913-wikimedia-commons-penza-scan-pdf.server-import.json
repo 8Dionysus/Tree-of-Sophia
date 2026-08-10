@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/rights.json",
-    "rights_record_sha256": "676ac1a8118e9eebb29d50af5761a2d3f083ee1dfa50f4ae2c855f4c244ed257",
+    "rights_record_sha256": "47c579c8bcb01627fda7fd4d9142d6103536119cfde3d59d55a3d556f8878875",
     "assessment_status": "public-domain-reviewed",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": ["RU", "US"],
@@ -29,7 +29,10 @@
       "https://commons.wikimedia.org/w/index.php?title=File:%D0%9D%D0%B8%D1%86%D1%88%D0%B5_%D0%A2%D0%B0%D0%BA_%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB_%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0_1913.pdf&oldid=904617076",
       "https://commons.wikimedia.org/wiki/Template:PD-RusEmpire",
       "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia",
-      "https://www.copyright.gov/comp3/"
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
+      "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/gatt.html",
+      "https://www.copyright.gov/comp3/docs/compendium.pdf"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -118,13 +121,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T01:03:11-06:00"
+    "last_reviewed_at": "2026-08-10T08:00:03-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": null
 }

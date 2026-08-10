@@ -500,10 +500,14 @@ republishing this package.
 
 The 1913 scan likewise preserves the source provider's public-domain
 declaration as positive rights evidence rather than flattening it into either
-“authorized” or “closed.” Its local copy remains off the future public site by
-operator policy. The Wikisource transcription is an independent CC BY-SA
-candidate layer and remains deferred: its index reports incomplete
-proofreading, so open licensing does not make it accepted text or gold.
+“authorized” or “closed.” Because the publication is foreign, the independent
+United States assessment now uses the URAA source-country condition in 17
+U.S.C. §104A rather than the domestic pre-1931 shorthand: the historical
+layers' source-country terms ended before possible restoration. Its local copy
+remains off the future public site by operator policy. The Wikisource
+transcription is an independent CC BY-SA candidate layer and remains deferred:
+its index reports incomplete proofreading, so open licensing does not make it
+accepted text or gold.
 
 The 1911 RuNEB witness now preserves a deliberately mixed layered assessment.
 Nietzsche's Work, Antonovsky's independently assessed 1911 translation and

@@ -4,7 +4,8 @@ Status: current model-authored research assessment; Russian and United States
 jurisdictions reviewed; no legal advice, human legal clearance, public payload,
 accepted text, or future-site publication decision
 
-Research snapshot: 2026-08-02
+Research snapshot: 2026-08-02; United States foreign-work route corrected and
+exact Commons state rechecked 2026-08-10
 
 Machine-readable assessment:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/rights.json`
@@ -22,10 +23,14 @@ and Reader Items. The exact Commons object, not merely a similar old book, is
 currently declared `Public domain`; the live API still reports the same file
 identity, byte size, SHA-1, and public-domain status as the tracked snapshot.
 Current Russian term and public-domain rules support the historical work,
-translation, preface, and 1913 presentation. Current United States official
-guidance treats mere scanning or digitization of a literary work as
-noncopyrightable, and the exact Commons page separately classifies the file as
-United States public domain because it was published before 1931.
+translation, preface, and 1913 presentation. The United States conclusion
+cannot rest on the domestic pre-1931 shorthand alone because this is a foreign
+publication. Its independent basis is 17 U.S.C. §104A: the relevant historical
+layers had already expired in their source-country routes before the possible
+restoration date and therefore fail the restored-work condition. Current
+United States official guidance separately treats mere scanning or
+digitization of a literary work as noncopyrightable, while the exact Commons
+page remains positive provider evidence for the complete digital object.
 
 That positive rights result does **not** authorize ToS to publish the acquired
 local bytes. Rights status, source-text quality, ToS acceptance, and operator
@@ -68,7 +73,10 @@ states that the covered work was published before 7 November 1917 in the
 Russian Empire or Russian Republic, outside the named excluded territories,
 and not republished in the listed territories within 30 days. It separately
 states United States public-domain status for works published before 1 January
-1931. The exact file page applies that declaration to this object.
+1931. The exact file page applies that declaration to this object. ToS records
+that provider statement but does not use it as the complete United States
+legal analysis: foreign works can follow the §104A restoration route, so the
+source-country term condition must be checked separately.
 
 Commons' current [reuse guidance](https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia)
 says that public-domain content may be reused and recommends preserving source
@@ -112,7 +120,30 @@ designer or compositor and does not authorize a later digital addition; it
 supports the historical 1913 presentation layer in the reviewed
 jurisdictions.
 
-### 1.3 Creative threshold for scan and embedded text
+### 1.3 United States foreign-work restoration route
+
+The 1913 Saint Petersburg publication is not a United States publication, so
+its historical layers cannot be classified merely by applying the current
+domestic pre-1931 line. Under
+[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html), a restored
+work must still be protected in its source country through an unexpired term.
+The Copyright Office's current
+[restored-copyright overview](https://www.copyright.gov/gatt.html) confirms
+that restoration applied in 1996 to qualifying foreign works that were still
+protected in the source country.
+
+Nietzsche's underlying German Work is independently outside restoration: the
+official German [UrhG §64](https://www.gesetze-im-internet.de/urhg/__64.html)
+uses a life-plus-seventy term, which ended no later than the close of 1970 for
+Nietzsche's 1900 death. The Russian Antonovsky translation and preface ended
+at the close of 1963 under the transition calculation above, and even the
+conservative 1913 presentation calculation ended at the close of 1983. Every
+historical layer was therefore public domain in its relevant source-country
+route before the possible 1996 restoration date and fails §104A's
+source-country-protection condition. This is the positive United States basis
+for the historical layers; age or the Commons template alone is not.
+
+### 1.4 Creative threshold for scan and embedded text
 
 The official [Supreme Court Plenum Resolution No. 10 of 23 April
 2019](https://www.vsrf.ru/files/27771/) distinguishes results containing human
@@ -134,15 +165,17 @@ For this exact object, ToS has more than appearance alone:
 The United States Copyright Office's current [Compendium, Third Edition](https://www.copyright.gov/comp3/)
 section 313.4(A) lists photocopying, scanning, and digitizing a literary work
 among examples of mere copies that lack human authorship. The exact Commons
-page also independently marks the file as United States public domain because
-of its pre-1931 publication.
+page also independently marks the complete file public domain. For the recent
+digital layers, that exact provider statement and the originality threshold
+are the relevant evidence; the historical foreign-work term analysis remains
+the separate §104A route above.
 
 Taken together, the evidence supports a reviewed public-domain posture for the
 exact scan and embedded mechanical text in RU and US, with an explicit
 uncertainty note about undocumented correction choices. It does not make the
 ABBYY layer accepted text. Textual quality and authority remain unresolved.
 
-### 1.4 Jurisdiction and object boundary
+### 1.5 Jurisdiction and object boundary
 
 Berne Convention Article 5(2), in the official [WIPO Lex treaty
 text](https://www.wipo.int/wipolex/en/text/283698), makes the law of the country
@@ -202,6 +235,14 @@ Fresh bounded retrieval on 2026-08-02 returned:
 These are volatile retrieval digests, not tracked copies of external legal or
 policy texts. No external payload was added to Git.
 
+A bounded live API recheck on 2026-08-10 again returned revision `904617076`,
+12,244,179 bytes, SHA-1
+`93b088e496dd6e60ff1558022c402ef94807da6b`, and `Public domain` usage fields
+for the exact object. The current PD-RusEmpire template still exposes the
+pre-1931 United States sentence. The object evidence is unchanged; only ToS's
+independent United States reasoning is corrected to the §104A source-country
+test. No file was reacquired, uploaded, or published.
+
 The latest [WIPO SCCR/48/5 toolkit, dated 27 April
 2026](https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf),
 remains expressly non-normative work in progress. It is nevertheless useful as
@@ -246,10 +287,10 @@ Commons object, current law, or official identity records.
 
 | Layer | RU/US result | Current ToS route |
 | --- | --- | --- |
-| Nietzsche's underlying German work | `public_domain_reviewed`; Russian transition term expired before 1993; US exact publication route is pre-1931 | authorship, name, integrity, and exact textual-state boundaries remain |
-| Antonovsky's 1913 Russian translation | `public_domain_reviewed`; translation assessed independently, ordinary Russian transition term expired before 1993; exact-file US route is pre-1931 | no equivalence to 1911, 1996, 2007, or later expressions; no quality acceptance |
-| Antonovsky's translator preface | same term and exact-object result | retained as a separate authored layer, not folded into Nietzsche or the translation |
-| 1913 edition presentation | `public_domain_reviewed`; exact provider declaration plus conservative publication-term calculation | does not identify every compositor or claim aesthetic equivalence |
+| Nietzsche's underlying German work | `public_domain_reviewed`; German life-plus-seventy source-country term ended no later than 1970, before the possible 1996 US restoration date | authorship, name, integrity, and exact textual-state boundaries remain |
+| Antonovsky's 1913 Russian translation | `public_domain_reviewed`; assessed independently; Russian transition term ended in 1963, so the US restoration condition is not met | no equivalence to 1911, 1996, 2007, or later expressions; no quality acceptance |
+| Antonovsky's translator preface | same source-country term and §104A result as the credited translation | retained as a separate authored layer, not folded into Nietzsche or the translation |
+| 1913 edition presentation | `public_domain_reviewed`; conservative source-country publication-term calculation ended in 1983, before possible US restoration; exact provider declaration corroborates | does not identify every compositor or claim aesthetic equivalence |
 | exact Penza/Commons digital scan | `public_domain_reviewed` from exact provider statement plus RU/US originality threshold | local acquisition remains off the future site by operator policy |
 | embedded ABBYY text | `public_domain_reviewed` for the exact mechanically produced layer, with correction-history uncertainty | local navigation/research only; severe OCR errors; not accepted or published text |
 | separate Wikisource transcription | outside this Item; CC BY-SA page-text route | separate acquisition, quality, provenance, and rights decision required |

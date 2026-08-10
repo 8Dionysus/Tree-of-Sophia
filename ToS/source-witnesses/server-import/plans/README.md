@@ -7,8 +7,10 @@ authorized for transfer, not deployment configuration.
 
 The Antonovsky 1913 Commons plan preserves a stronger positive source-rights
 candidate without bypassing the operator's local-payload rule. The Commons
-public-domain statement is retained for later exact rights review; the current
-plan still exposes metadata/provenance only and transfers no local file.
+public-domain statement remains exact-object provider evidence. The independent
+United States historical-layer result uses the 17 U.S.C. §104A source-country
+condition rather than the domestic pre-1931 shorthand. The current plan still
+exposes metadata/provenance only and transfers no local file.
 
 The two Naumann 1893 plans preserve a deliberate item-level fork inside one
 scan family. The exact image-container PDF records a positive DE/US
