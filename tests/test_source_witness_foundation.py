@@ -6004,7 +6004,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("local_only", rights["visibility"])
-        self.assertEqual(2, rights["record_version"])
+        self.assertEqual(3, rights["record_version"])
 
         layers = {
             layer["layer_id"].rsplit(".layer.", 1)[1]: layer
@@ -6024,6 +6024,38 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             "conflicting_evidence",
             layers["archive-editorial-and-added-matter"]["assessment_status"],
+        )
+        self.assertIn(
+            "§104A(g)(6)(B)",
+            layers["original-work"]["term"]["basis"],
+        )
+        self.assertIn(
+            "provider's pre-1931 statement is evidence",
+            layers["original-work"]["term"]["basis"],
+        )
+        self.assertIn(
+            "2001-12-31",
+            layers["original-work"]["term"]["basis"],
+        )
+        self.assertIn(
+            "§104A(g)(6)(B)",
+            layers["edition-presentation"]["term"]["basis"],
+        )
+        self.assertIn(
+            "2001-12-31",
+            layers["edition-presentation"]["term"]["basis"],
+        )
+        self.assertIn(
+            "2001-12-31",
+            layers["archive-editorial-and-added-matter"]["term"]["basis"],
+        )
+        self.assertNotIn(
+            "inside the current United States pre-1931 public-domain boundary",
+            layers["original-work"]["term"]["basis"],
+        )
+        self.assertNotIn(
+            "inside the current United States pre-1931 public-domain boundary",
+            layers["edition-presentation"]["term"]["basis"],
         )
         for layer_id in (
             "stanford-binding-and-holding-furniture",
@@ -6136,7 +6168,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ["DE", "US"],
             server_plan["rights_policy"]["jurisdictions_reviewed"],
         )
-        self.assertEqual(2, server_plan["contract_version"])
+        self.assertEqual(3, server_plan["contract_version"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
         self.assertEqual(
@@ -6161,6 +6193,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("conflicting_evidence", rights_research)
         self.assertIn("490 `TXTz`", rights_research)
         self.assertIn("pages 228-329", rights_research)
+        self.assertIn("§104A(g)(6)(B)", rights_research)
+        self.assertIn("ending at 2001-12-31", rights_research)
+        self.assertIn("provider assertion", rights_research)
+        self.assertIn(
+            "independent United States foreign-work term conclusion",
+            rights_research,
+        )
 
         provenance_events = [
             json.loads(line)
@@ -6189,6 +6228,37 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(
             layered_event["method"]["configuration"][
                 "partial_member_boundary_changed"
+            ]
+        )
+        correction_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"]
+            == "tos.event.rights-assessment.antichrist-naumann-1906."
+            "wikimedia-commons-stanford-scan-djvu."
+            "uraa-correction.2026-08-10"
+        )
+        self.assertEqual(3, correction_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-source-country-term-and-restored-remainder",
+            correction_event["method"]["configuration"][
+                "united_states_historical_route"
+            ],
+        )
+        self.assertEqual(
+            "2001-12-31",
+            correction_event["method"]["configuration"][
+                "possible_restored_1906_term_ends_on"
+            ],
+        )
+        self.assertFalse(
+            correction_event["method"]["configuration"][
+                "provider_pre_1931_statement_used_as_independent_legal_conclusion"
+            ]
+        )
+        self.assertFalse(
+            correction_event["method"]["configuration"][
+                "payload_read_during_correction"
             ]
         )
 

@@ -79,6 +79,11 @@ description CC BY-SA 4.0. Archive editorial matter remains conflicting, while
 Stanford binding and holding furniture, OCR layout, the DjVu package, and
 contaminated Internet Archive metadata remain unresolved. The exact aggregate
 therefore stays rights-unknown, metadata-only, blocked, and operator-unapproved.
+The corrected United States route does not adopt Commons' pre-1931 sentence as
+an independent ToS conclusion: the Work and assessed presentation routes fail
+§104A's source-country-protection condition, and any qualifying restored term
+for a distinct contribution actually published in 1906 ended at 2001-12-31.
+This changes neither the aggregate result nor the closed server boundary.
 The plan keeps the operator-held DjVu local, all source-bearing derivatives
 prohibited, the model-only pages 228-329 boundary visibly unreviewed, and
 server consumption limited to public-safe metadata until a separately

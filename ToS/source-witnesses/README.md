@@ -456,7 +456,12 @@ collection containing it. The seed deliberately includes:
 - an exact Wikimedia Commons/Stanford DjVu of the 1906 Naumann
   *Nietzsche's Werke*, Band VIII aggregate, with a text-free 523-page bundled
   DjVu inventory and an explicitly partial proposed boundary for *Der
-  Antichrist*;
+  Antichrist*. Its corrected United States historical route treats Commons'
+  pre-1931 sentence as provider evidence rather than an independent ToS
+  conclusion: Nietzsche's term and the assessed presentation alternatives
+  expired in Germany before possible §104A restoration, while any qualifying
+  restored term for a distinct contribution actually published in 1906 ended
+  at 2001-12-31. The eleven-layer aggregate remains `conflicting_evidence`;
 - a separate exact Internet Archive automatic DjVuXML derivative from the
   Google/Stanford scan lineage, with provider SHA-1 plus local SHA-256 closure,
   a text-free 525-page/5,434-paragraph/16,467-line/105,803-word inventory, and

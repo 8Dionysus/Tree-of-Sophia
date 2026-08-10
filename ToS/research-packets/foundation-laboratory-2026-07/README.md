@@ -38,7 +38,10 @@ plus the exact-address, rights-aware etymology evidence route and open Kluge
 1889 candidate, plus semantic standards, annotation-tool, and fresh-paper
 currentness plus the broad source-forensics/OCR/language/runtime/model/
 retrieval/graph software-stack currentness and the fixity-bound German
-*Genealogie*/*Antichrist* source-structure continuation refreshed 2026-08-08
+*Genealogie*/*Antichrist* source-structure continuation refreshed 2026-08-08;
+the exact *Antichrist* 1906 Commons/Stanford foreign-work reasoning, current
+provider responses, and conditional 2001-12-31 restored-term endpoint were
+corrected and refreshed 2026-08-10
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
