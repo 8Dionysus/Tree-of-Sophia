@@ -25,11 +25,12 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `6f4d7346` (`Correct DTA Zarathustra US
+- Tree of Sophia reviewed checkpoint `be8fc746` (`Correct Naumann 1893 US
   rights routes`), including the source-challenger, source-visible transfer
   review, current Antonovsky 1900/1903/1907 catalogue continuations, the exact
   1911 RSL/RuNEB layered-rights continuation, the corrected 1913 Commons
-  foreign-work assessment, and the four corrected DTA foreign-work routes;
+  foreign-work assessment, the four corrected DTA foreign-work routes, and the
+  corrected Naumann 1893 PDF/EPUB foreign-work routes;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -128,10 +129,10 @@ passage ends, accepted German/Russian, passage or translation alignment,
 eligibility, target gold, human work, semantics, and canon effects remained
 zero. The current repository closure, including the target/source passage and
 readiness and catalogue continuations below, passes 324 tests with one
-declared skip. The portable KAG family at reviewed checkpoint `6f4d7346` has
-digest `ca9fef48f28b954ee063e5b4cce0df8bf160cb1100b62cb5bae88e44d1cb31c3`
-and closes at 573 shards, 1,833 source records, 19,129 anchors, 330 events,
-3,363 assertions, 7,564 relations, 3,962 entities, and 21,306 canonical
+declared skip. The portable KAG family at reviewed checkpoint `be8fc746` has
+digest `f9991b111dc4e5e45f5311c8891f54a1a61b7386ec8d5fd93008623a208eb3a4`
+and closes at 574 shards, 1,833 source records, 19,131 anchors, 329 events,
+3,363 assertions, 7,564 relations, 3,962 entities, and 21,307 canonical
 records.
 Full and incremental rebuild checks match the workflow-pinned PR-base history
 semantics and the checkpoint source snapshot. These are mechanical and
@@ -290,7 +291,12 @@ preface, Edition presentation, portrait, letter facsimile, and faithful mass
 scan layers. The automatic EPUB preserves positive historical, OCR, and image
 evidence but remains aggregate `conflicting_evidence`: a later 2023 Internet
 Archive notice has no reuse license, and the package, navigation, style, and
-metadata layers remain unresolved. Both operator-held files stay local-only,
+metadata layers remain unresolved. The corrected independent United States
+route treats the historical layers as foreign works under 17 U.S.C. §104A:
+Nietzsche's 1970, Köselitz's 1988, and the conservative anonymous-
+presentation and portrait 1963 German term endpoints all precede possible
+1996 restoration. The faithful scan and automatic OCR still require their
+separate no-new-authorship analysis. Both operator-held files stay local-only,
 not authorized for redistribution, limited to local research derivatives,
 and blocked from server transfer. The server route requires either an
 independently reacquired and reviewed PDF or a newly built EPUB from an
@@ -298,17 +304,18 @@ accepted rights-positive source; deleting conflicting members from the local
 EPUB is not treated as clearance. No source bytes or source text were added to
 Git.
 
-For this exact staged Naumann 1893 rights continuation, the focused
-source-witness suite passed 59 tests with one declared skip, and the complete
-Tree release lane passed 272 tests with the same declared skip. Direct review
-also confirmed the seven PDF layers, the eight EPUB layers, both blocked
-metadata-only server plans, unchanged triangulation/content gate results,
-zero accepted German units, zero opened translation lanes, no staged payload,
-and no source text in the tracked research packet. The portable KAG family
-reconciled 566 shards and all seven compatibility projections. These results
-prove mechanical closure of this slice only; they do not supply human legal
-review, German acceptance, translation quality, semantic truth, publication
-authority, or operator transfer approval.
+For this reviewed Naumann 1893 correction, the focused source-witness suite
+passes 65 tests with one declared skip, and the complete Tree release lane
+passes 324 tests with the same declared skip. Direct review also confirms the
+seven PDF layers, the eight EPUB layers, both blocked metadata-only server
+plans, unchanged triangulation/content-gate results, zero accepted German
+units, zero opened translation lanes, no staged payload, and no source text in
+the tracked research packet. The portable KAG family reconciles 574 shards
+and all seven compatibility projections at digest
+`f9991b111dc4e5e45f5311c8891f54a1a61b7386ec8d5fd93008623a208eb3a4`.
+These results prove mechanical closure of this slice only; they do not supply
+human legal review, German acceptance, translation quality, semantic truth,
+publication authority, or operator transfer approval.
 
 At `03b5f35`, the complete Tree release lane passed 199 tests with one
 declared skip. Separate source-visible integrity checks reconciled three
@@ -817,6 +824,7 @@ transfer, human review, legal advice, or publication authority.
 | 1a | exact 1911 layered-rights continuation | `ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md` follows current official law, exact institutional records and terms -> established digitization scholarship -> fresh 2026 guidance -> general web last. It separately records four historical `public_domain_reviewed` RU/US layers and two unresolved recent digital layers, uses the foreign-work URAA source-country test, and binds the result into rights v2 and a still-blocked metadata-only server plan without copying or publishing the payload | proven as a current model-authored RU/US layer assessment and fail-closed transfer contract; no human legal clearance | exact-object reuse statement or independently permitted public source, then human rights/source review and operator approval before any content-bearing public route |
 | 1b | corrected 1913 United States rights route | `ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md` now distinguishes Commons' exact-object provider statement from the independent foreign-work analysis. It applies the 17 U.S.C. §104A source-country condition to the historical Work, translation, preface, and presentation, while keeping the scan and mechanical ABBYY layers on the exact provider-plus-originality route. Rights v3, superseding provenance, and server-plan v3 retain the same six positive RU/US layers and the same local-only, no-transfer, metadata-only operator boundary | proven as corrected current model-authored reasoning at reviewed checkpoint `0bf91a17`; aggregate decision unchanged and no human legal clearance | fresh exact-object recheck plus human rights/source review and explicit operator approval before any content-bearing public route |
 | 1c | corrected DTA Zarathustra United States rights routes | `DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md` now treats all four German Editions as foreign works for the independent United States analysis. It uses 17 U.S.C. §104A's source-country-term condition rather than the domestic pre-1931 shortcut, while the exact current DTA TEI headers continue to support CC BY-SA 4.0 for the annotated digital layers. Four rights-v3 records, superseding provenance, and four server-plan-v3 records retain the same positive aggregate `licensed` result and the same local-only, operator-unapproved, metadata-only boundary. Digest closure is propagated through the text-free triangulation, bounded translation input, preserved human citation decision, and retained negative experiment receipts without source reprocessing, model rerun, result change, or new human decision | proven as corrected current model-authored reasoning at reviewed checkpoint `6f4d7346`; full release lane passes 324 tests with one declared skip, aggregate decisions unchanged, and no human legal clearance | fresh independently acquired exact upstream objects plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route |
+| 1d | corrected Naumann 1893 United States rights routes | `NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md` now treats the historical Work, Peter Gast preface, Edition presentation, portrait, and letter as foreign layers under 17 U.S.C. §104A's source-country-protection condition. Their conservative German term endpoints precede possible 1996 restoration; faithful scan and automatic OCR layers retain a separate no-new-authorship basis. PDF rights v4 remains aggregate `public_domain_reviewed`; mixed EPUB rights v4 remains `conflicting_evidence` because the later notice, package, navigation, style, arrangement, and metadata are not cleared. Superseding provenance, both server-plan-v3 records, and downstream digest bindings preserve the prior experiment and human-decision outcomes without source reprocessing, model rerun, or new human decision | proven as corrected current model-authored reasoning at reviewed checkpoint `be8fc746`; full release lane passes 324 tests with one declared skip, aggregate decisions unchanged, and no human legal clearance | fresh independently acquired exact upstream object plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route |
 | 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, historical-German morphology, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the morphology refresh selected a sequential identity/DWDSmor/ZDL/DTAEC comparison, after which only the source-gated exhaustive DWDSmor A census was acquired and executed; B/C remain unacquired | proven and refreshed 2026-07-29; A mechanics executed | artifact-level B/C rights and dependency audit plus reviewed A residue or an exact contextual task trigger before any further acquisition |
 | 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
