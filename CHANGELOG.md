@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Reconciled Antonovsky's exact 1900 *Zarathustra* Edition across current RSL,
+  RNL, and LNB records. RSL and RNL share the `rc\\1717107` control core,
+  transaction value, and bibliography; the crosswalk resolves RSL
+  `01003693380`, RNL Primo `07NLR_LMS004843721`, system number `004843721`,
+  and three Russian remote holdings alongside LNB `1.40686`. LNB's `[s.n.]`,
+  `[3], XI` description remains explicitly discrepant from RSL/RNL's
+  `тип. Б.М. Вольфа`, `[4], XII` until source pages can adjudicate it. The LNB
+  request is refocused but unsent. No source page, digital object, ToS Item,
+  exemplar claim, publisher, right, human task, accepted text, semantic object,
+  publication, or canon state was added.
 - Reconciled Antonovsky's exact 1903 second corrected *Zarathustra* Edition
   across current RSL and RNL records. The shared `rc\\1717108` control core,
   identical transaction value, and matching bibliography resolve RNL Primo

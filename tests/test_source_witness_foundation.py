@@ -421,7 +421,7 @@ ANTONOVSKY_1900_EDITION_ROOT = (
 ANTONOVSKY_1900_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
-    "antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json"
+    "antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10.v2.json"
 )
 ANTONOVSKY_1900_REQUEST_PATH = (
     REPO_ROOT
@@ -3415,6 +3415,34 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIsNone(edition["edition_statement"])
         self.assertFalse((ANTONOVSKY_1900_EDITION_ROOT / "items").exists())
         self.assertIn("[s.n.]", edition["notes"])
+        self.assertEqual(2, edition["record_version"])
+        self.assertEqual(
+            {
+                "01003693380",
+                "003693380",
+                "07NLR_LMS004843721",
+                "004843721",
+                "128/318",
+            },
+            {
+                identifier["value"]
+                for identifier in edition["external_identifiers"]
+                if identifier["scheme"]
+                in {
+                    "RSL public record",
+                    "RSL MARC 001",
+                    "RNL Primo record",
+                    "RNL system number",
+                    "RNL shelfmark",
+                }
+                and identifier["status"] == "verified"
+            },
+        )
+        self.assertIn("rc\\1717107", edition["notes"])
+        self.assertIn("not ToS Items", edition["notes"])
+        self.assertIn("[3], XI", edition["notes"])
+        self.assertIn("[4], XII", edition["notes"])
+        self.assertIn("remain unresolved", edition["notes"])
 
         edition_1903 = json.loads(
             (ANTONOVSKY_1903_EDITION_ROOT / "edition.json").read_text(
@@ -3501,9 +3529,71 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual("incomplete", exact_discovery["status"])
         self.assertEqual(
+            "tos.discovery.antonovsky-1900-lnb-physical-holding.2026-08-01",
+            exact_discovery["supersedes_discovery_ref"],
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6, 7, 8],
+            [channel["sequence"] for channel in exact_discovery["channels"]],
+        )
+        self.assertEqual(
             "general-web-search", exact_discovery["channels"][-1]["channel_type"]
         )
         self.assertFalse(exact_discovery["technical_access_bypass_used"])
+        exact_1900_crosswalk = exact_discovery["channels"][1]["results"][0]
+        self.assertEqual(
+            {
+                "01003693380",
+                "003693380",
+                "07NLR_LMS004843721",
+                "004843721",
+            },
+            {
+                identifier["value"]
+                for identifier in exact_1900_crosswalk["identifiers"]
+                if identifier["scheme"]
+                in {
+                    "RSL public record",
+                    "RSL MARC 001",
+                    "RNL Primo record",
+                    "RNL system number",
+                }
+            },
+        )
+        exact_1900_holdings = exact_discovery["channels"][2]["results"][0]
+        self.assertEqual(
+            {
+                "FB Рб 18/414",
+                "OMF 810-83/174-7 (1900, ч. 1-4)",
+                "128/318",
+                "1.40686",
+            },
+            {
+                identifier["value"]
+                for identifier in exact_1900_holdings["identifiers"]
+            },
+        )
+        exact_1900_discrepancy = exact_discovery["channels"][2]["results"][1]
+        self.assertEqual("defer", exact_1900_discrepancy["decision"])
+        self.assertIn("[3] XI", exact_1900_discrepancy["rationale"])
+        self.assertIn("[4], XII", exact_1900_discrepancy["rationale"])
+        for rejected_result_id in (
+            "tos-discovery-result.antonovsky-1900-rnl-free-text-first-page-false-negative",
+            "tos-discovery-result.antonovsky-1900-rsl-generic-read-modal-false-positive",
+            "tos-discovery-result.antonovsky-1900-open-libraries-no-exact-item-v2",
+            "tos-discovery-result.antonovsky-1900-cinii-1981-not-target",
+        ):
+            self.assertIn(
+                rejected_result_id,
+                exact_discovery["rejected_result_ids"],
+            )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                for channel in exact_discovery["channels"]
+                for result in channel["results"]
+            )
+        )
 
         exact_1903_discovery = json.loads(
             ANTONOVSKY_1903_DISCOVERY_PATH.read_text(encoding="utf-8")
@@ -3641,6 +3731,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ANTONOVSKY_1900_REQUEST_PATH.read_text(encoding="utf-8")
         )
         self.assertEqual("draft-not-sent", exact_request["request_status"])
+        self.assertEqual(2, exact_request["record_version"])
         self.assertFalse(exact_request["human_send_approval"])
         self.assertIsNone(exact_request["sent_at"])
         self.assertEqual("none", exact_request["response"]["state"])
@@ -3651,6 +3742,19 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             "not-requested",
             exact_request["requested_permissions"]["derivative_publication"],
+        )
+        self.assertIn(
+            "[3], XI",
+            exact_request["material"]["requested_portion"],
+        )
+        self.assertIn(
+            "[4], XII",
+            exact_request["material"]["requested_portion"],
+        )
+        self.assertIn(
+            "tos.event.access-request-scope-reconciliation."
+            "antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10",
+            exact_request["provenance_event_refs"],
         )
 
         exact_1903_request = json.loads(

@@ -5,8 +5,8 @@
   "material": {
     "title": "Фридрих Ницше, Так говорил Заратустра: книга для всех и ни для кого",
     "responsibility": "перевод с немецкого Ю. М. Антоновского",
-    "edition_or_resource": "Санкт-Петербург, 1900, [3], XI, 624 p.; iBiblioteka C10000469160 / record 4970734; LNB call number 1.40686",
-    "requested_portion": "Сначала подтверждение шифра, подразделения, физического состояния, права на копирование, стоимости и условий; затем титульный лист, оборот титула, все предварительные страницы, оглавление и выходные сведения; если разрешено и осуществимо, полная исследовательская цифровая копия для постраничной колляции без публикации исходных файлов.",
+    "edition_or_resource": "Санкт-Петербург, 1900, 624 p.; iBiblioteka C10000469160 / record 4970734; LNB call number 1.40686; RSL 01003693380; RNL 004843721",
+    "requested_portion": "Сначала подтверждение шифра, подразделения, физического состояния, права на копирование, стоимости и условий; затем цветные изображения титульного листа, оборота титула, всех предварительных страниц, оглавления и выходных сведений, достаточные для проверки расхождения между описанием LNB ([s.n.], [3], XI, 624 p.) и описаниями RSL/RNL (тип. Б.М. Вольфа, [4], XII, 624 с.; 16); если разрешено и осуществимо, полная исследовательская цифровая копия для постраничной колляции без публикации исходных файлов.",
     "identifiers": [
       {
         "scheme": "iBiblioteka code",
@@ -19,6 +19,18 @@
       {
         "scheme": "LNB call number",
         "value": "1.40686"
+      },
+      {
+        "scheme": "RSL public record",
+        "value": "01003693380"
+      },
+      {
+        "scheme": "RNL system number",
+        "value": "004843721"
+      },
+      {
+        "scheme": "RNL shelfmark",
+        "value": "128/318"
       }
     ],
     "tos_refs": [
@@ -27,7 +39,8 @@
       "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-unknown-publisher-1900"
     ],
     "discovery_refs": [
-      "ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json"
+      "ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json",
+      "ToS/source-witnesses/discovery/runs/antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10.v2.json"
     ]
   },
   "rights_holder_or_institution": {
@@ -43,11 +56,11 @@
   "contact_route": {
     "channel_type": "library-request",
     "public_institutional_url": "https://lnb.lt/en/services/for-visitor/ordering-and-collecting-orders",
-    "refreshed_at": "2026-08-01T11:34:40-06:00",
+    "refreshed_at": "2026-08-10T06:05:00-06:00",
     "personal_contact_committed": false
   },
   "project_description_ref": "README.md",
-  "research_purpose": "Получить точное источник-видимое свидетельство первого издания в собственной редакционной последовательности Антоновского, установить напечатанные сведения об издании и провести локальную постраничную OCR/структурную/текстологическую колляцию без публикации исходного файла.",
+  "research_purpose": "Получить точное источник-видимое свидетельство первого издания в собственной редакционной последовательности Антоновского, установить напечатанные сведения об издании, выяснить причину расхождения LNB с текущими описаниями RSL/RNL по предварительным страницам и типографии и провести локальную постраничную OCR/структурную/текстологическую колляцию без публикации исходного файла.",
   "requested_format": "Предпочтительно полный PDF либо TIFF/JPEG в исходном порядке и разрешении; допустим поэтапный заказ: сначала цветные изображения титульного листа, оборота, предварительных страниц, оглавления и выходных сведений, затем полный объём после подтверждения цены и условий.",
   "requested_permissions": {
     "local_access": "requested",
@@ -85,7 +98,8 @@
   "personal_or_confidential_data_committed": false,
   "rights_record_refs": [],
   "provenance_event_refs": [
-    "tos.event.access-request-draft.antonovsky-1900-lnb-research-copy.2026-08-01"
+    "tos.event.access-request-draft.antonovsky-1900-lnb-research-copy.2026-08-01",
+    "tos.event.access-request-scope-reconciliation.antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10"
   ],
-  "record_version": 1
+  "record_version": 2
 }

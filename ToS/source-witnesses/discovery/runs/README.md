@@ -274,6 +274,20 @@ flattened into false predicates; no source payload, accepted translation,
 quality verdict, rights clearance, semantics, human review, publication, or
 canon is created.
 
+`antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10.v2.json` supersedes
+the LNB-only pass with current official RSL, RNL, and LNB documentation, an
+exact RSL/RNL control-record crosswalk, public holding rows, established and
+freshest witness controls, record-specific service routes, open-library
+negatives, and general web last. It resolves RSL `01003693380`, RNL Primo
+`07NLR_LMS004843721`, system number `004843721`, two RSL holdings, RNL
+`128/318`, and LNB `1.40686`. The LNB `[s.n.]`, `[3] XI` description conflicts
+with RSL/RNL `тип. Б.М. Вольфа`, `[4], XII`; the discrepancy is retained for
+source-page adjudication rather than normalized. A broad RNL free-text miss,
+a generic RSL read modal, open-library negatives, and a 1981 CiNii false match
+remain rejected evidence. No remote holding becomes a ToS Item; no source
+payload, digital object, publisher, right, request transmission, order,
+accepted text, semantics, human task, publication, or canon is created.
+
 `antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json` resolves the exact
 RSL `01003693381` record, `2-е изд., испр.` statement, four shelfmarks, and
 current lawful fragment-copy route before established and fresh translation

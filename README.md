@@ -100,9 +100,14 @@ equivalence.
 
 The Antonovsky revision lineage now also has exact institutional Edition
 endpoints for 1900, 1903, and 1907. The Lithuanian National Library identifies
-the 1900 first counted Edition; the Russian State Library identifies the 1903
-`2-е изд., испр.` and four holdings. A current RNL crosswalk now resolves that
-same 1903 bibliographic endpoint to Primo record `07NLR_LMS004843722`, system
+the 1900 first counted Edition and one holding. A current RSL/RNL crosswalk
+now resolves that 1900 endpoint to RSL `01003693380`, RNL Primo
+`07NLR_LMS004843721`, system number `004843721`, and three additional remote
+holdings. It preserves the unresolved LNB `[s.n.]`, `[3], XI` versus RSL/RNL
+`тип. Б.М. Вольфа`, `[4], XII` discrepancy for source-page adjudication. The
+Russian State Library identifies the 1903 `2-е изд., испр.` and four holdings.
+A current RNL crosswalk resolves that same 1903 bibliographic endpoint to Primo
+record `07NLR_LMS004843722`, system
 number `004843722`, and two additional remote shelfmarks, `129/5943` and
 `38.35.6.32`, while rejecting one undefined `TEMP` row and a generic RSL
 online-reading modal as false Item/digital-object evidence. The current RuNEB
@@ -112,8 +117,8 @@ The current RNL Primo record now independently resolves that 1907 endpoint to
 record `07NLR_LMS004843723`, system number `004843723`, and three Russian Book
 Fund shelfmarks: `17.145.5.1`, `17.145.5.1а`, and `17.145.5.1 Б`. These remain
 remote holdings rather than ToS Items: no exact source bytes were acquired.
-`[s.n.]` remains
-unknown in 1900, while `тип. Альтшулера` and
+`[s.n.]` and `тип. Б.М. Вольфа` remain unresolved catalogue statements in
+1900, while `тип. Альтшулера` and
 `тип. Ф. Вайсберга и П. Гершунина` remain typography evidence rather than
 inferred publishers. All three Expressions stay provisional and uncollated;
 the existing 1903→1900 and 1907→1903 derivation claims do not become

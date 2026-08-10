@@ -175,13 +175,19 @@ PDF remains ignored and local-only; the tracked layer admits no embedded OCR,
 equivalence, redistribution permission, or future-site payload.
 
 The provisional 1900 Antonovsky Expression now closes over one exact
-institutionally identified Edition. The Lithuanian National Library record
-reports Saint Petersburg, year 1900, `[s.n.]`, extent `[3], XI, 624 p.`, and
-one physical holding under call number `1.40686`. That remote holding is not a
-ToS Item: no source copy or bytes were acquired, `exemplar_claim_refs` remains
-empty, and no File, anchor, publisher identity, source text, rights clearance,
-collation, equivalence, or new derivation edge is admitted. A separate tiered
-research-copy request remains public-safe, optional, and `draft-not-sent`.
+institutionally identified Edition. Current RSL and RNL records reconcile one
+exact route through the shared `rc\\1717107` core, matching transaction value,
+and bibliography. They report Saint Petersburg, year 1900,
+`тип. Б.М. Вольфа`, extent `[4], XII, 624 с.; 16`, two RSL holdings, and RNL
+holding `128/318`. The current LNB record agrees on title, responsibility,
+place, year, and 624-page main extent and reports holding `1.40686`, but gives
+`[s.n.]` and `[3], XI`. That discrepancy remains unresolved pending
+source-visible pages. All four remote holdings are outside the ToS Item ladder:
+no source copy or bytes were acquired, `exemplar_claim_refs` remains empty,
+and no File, anchor, publisher identity, provision activity, source text,
+rights clearance, collation, equivalence, or new derivation edge is admitted.
+The tiered LNB request is refocused on the discrepancy but remains public-safe,
+optional, and `draft-not-sent`.
 
 The provisional 1903 Antonovsky Expression now likewise closes over one exact
 institutionally identified Edition. The Russian State Library record reports

@@ -8,11 +8,58 @@
   "source_refs": [
     "ToS/source-witnesses/discovery/runs/antonovsky-1900-lnb-physical-holding.2026-08-01.v1.json",
     "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1900-rsl-rnl-lnb-current-holdings.2026-08-10.v2.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1900_RSL_RNL_LNB_CURRENT_HOLDINGS_RESEARCH.md",
+    "https://search.rsl.ru/ru/record/01003693380",
+    "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843721",
+    "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843721&format=001&base=NLR01",
     "https://ibiblioteka.lt/metis/publication/C10000469160",
     "https://ibiblioteka.lt/metis-api/bibliographic-records/public/4970734?language=en",
     "https://lnb.lt/media/public/naujienos/F._Ny%C4%8D%C4%97._Literat%C5%ABros_s%C4%85ra%C5%A1as_2024_10.pdf"
   ],
   "external_identifiers": [
+    {
+      "scheme": "RSL public record",
+      "value": "01003693380",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693380",
+      "status": "verified"
+    },
+    {
+      "scheme": "RSL MARC 001",
+      "value": "003693380",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693380",
+      "status": "verified"
+    },
+    {
+      "scheme": "NLR source identifier reported by RSL",
+      "value": "(NLR)rc\\1717107",
+      "source_ref": "https://search.rsl.ru/ru/record/01003693380",
+      "status": "unverified"
+    },
+    {
+      "scheme": "RNL Primo record",
+      "value": "07NLR_LMS004843721",
+      "source_ref": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843721",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL system number",
+      "value": "004843721",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843721&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL RUSMARC 001",
+      "value": "v19\\rc\\1717107",
+      "source_ref": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843721&format=001&base=NLR01",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL shelfmark",
+      "value": "128/318",
+      "source_ref": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843721",
+      "status": "verified"
+    },
     {
       "scheme": "iBiblioteka code",
       "value": "C10000469160",
@@ -33,7 +80,7 @@
   "edition_statement": null,
   "publication_claim_refs": [],
   "exemplar_claim_refs": [],
-  "notes": "The current Lithuanian National Library record identifies a printed Russian Antonovsky Edition at Saint Petersburg in 1900 with extent [3], XI, 624 pages and records the publisher as unknown ([s.n.]). One physical holding is reported under call number 1.40686, but no source pages or bytes were acquired. The record remains provisional pending source-visible title and provision pages. The holding is not materialized as a ToS Item, [s.n.] is not a publisher name, and no textual equivalence or derivation is claimed.",
-  "record_version": 1,
+  "notes": "The current RSL and RNL records reconcile one exact Russian Antonovsky Edition at Saint Petersburg in 1900 through the shared rc\\1717107 control core, identical 20061002170739.0 transaction value, and matching title, responsibility, year, and 624-page main extent while preserving their distinct literal identifier wrappers. RSL records FB Рб 18/414 and OMF 810-83/174-7 (1900, ч. 1-4); RNL records one current holding, 128/318. The current Lithuanian National Library record identifies the same title, responsibility, place, year, and 624-page main extent under call number 1.40686, but reports [s.n.] and [3], XI rather than RSL/RNL's тип. Б.М. Вольфа and [4], XII. The exact copy/issue relationship, source-visible title and provision wording, and cause of the preliminary-page discrepancy therefore remain unresolved. All four remote holdings are not ToS Items. No record-specific digital object, source pages, or bytes were acquired. Neither [s.n.] nor the literal typography string is converted into a publisher or provision-activity claim. No exemplar identity, responsibility, textual equivalence, derivation, rights, or semantic claim is created.",
+  "record_version": 2,
   "supersedes_ref": null
 }

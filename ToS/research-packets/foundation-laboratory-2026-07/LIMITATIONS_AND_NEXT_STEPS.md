@@ -204,6 +204,15 @@ contracts intentionally reject simulated human evidence.
   acquired. The catalog reports `[s.n.]`, so no publisher is inferred. Rights,
   source text, responsibility beyond the catalog statement, collation,
   equivalence, and any 1900→1898/1899 derivation remain unresolved.
+- A current RSL–RNL–LNB reconciliation resolves the 1900 route to RSL
+  `01003693380`, RNL Primo `07NLR_LMS004843721`, system number `004843721`,
+  two RSL coordinates, RNL `128/318`, and LNB `1.40686`. The RSL/RNL shared
+  control core and bibliography reconcile records, not physical copies or
+  texts. LNB's `[s.n.]`, `[3], XI` remains discrepant from RSL/RNL
+  `тип. Б.М. Вольфа`, `[4], XII`; source-visible title, provision, and
+  preliminary pages are still required. No remote holding is a ToS Item, and
+  no source bytes, exemplar identity, publisher, rights, collation, semantics,
+  or canon follows.
 - A later exact 1899 source-witness pass lawfully acquires the official RuNEB
   ZIP once and registers its three byte-exact PDF members as one local-only,
   fragmentary Item. The title page establishes the Moscow *Reader* Edition,
@@ -568,8 +577,9 @@ contracts intentionally reject simulated human evidence.
   authority exists.
 - The Antonovsky 1900 Lithuanian National Library request is also public-safe
   and `draft-not-sent`. It asks first for holding/condition/copying terms, then
-  for title and preliminary-page evidence, and only then for a research copy if
-  permitted. The exact bibliographic Edition and physical call number are
+  for source-visible pages that can adjudicate LNB `[s.n.]`, `[3], XI` against
+  RSL/RNL `тип. Б.М. Вольфа`, `[4], XII`, and only then for a research copy if
+  permitted. The exact bibliographic routes and four physical coordinates are
   known, but no ToS Item, payload, permission, or redistribution authority
   exists; sending remains a separate human-approved action, not routine review
   debt.
@@ -1005,7 +1015,12 @@ not reintroduce a false 90 °C gate.
   rejecting one undefined `TEMP` row and a generic RSL read-modal false
   positive; it adds no Item, source payload, exemplar identity, right,
   semantic object, or human task and prepares only an unsent RNL-specific
-  request. The following Reader 1899 slice adds a separate uncredited
+  request. A separate current RSL–RNL–LNB 1900 crosswalk resolves the shared
+  `rc\\1717107` record route and four remote coordinates while preserving the
+  LNB preliminary-page and typography discrepancy for source adjudication; it
+  adds no Item, source payload, publisher, exemplar identity, right, semantic
+  object, or human task and only refocuses the unsent LNB request. The following
+  Reader 1899 slice adds a separate uncredited
   Expression, exact Edition, fragmentary three-part PDF Item, provisional
   Moscow Place and Reader editorial-office Organization, two provision claims,
   three identity-ladder claims, an unsent complete-copy request, and a

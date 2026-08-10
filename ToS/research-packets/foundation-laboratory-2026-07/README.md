@@ -16,9 +16,10 @@ and Jenseits 1886 plus Genealogie 1892 exact-Edition provision identity
 plus Cultural Revolution 2007 translation responsibility, the exact
 Antonovsky–Prometey 1911 source witness, the bounded Antonovsky
 Expression-derivation contract/discovery route, the exact Lithuanian National
-Library 1900 Edition/holding route, and the exact RSL/RNL 1903
-second-corrected Edition/current-holdings route plus the removed-or-replaced RuNEB 1907
-third-Edition route, Reader and Nani 1899 layered rights, and the exact
+Library 1900 Edition/holding route plus its current RSL/RNL/LNB reconciliation,
+and the exact RSL/RNL 1903 second-corrected Edition/current-holdings route plus
+the removed-or-replaced RuNEB 1907 third-Edition route, Reader and Nani 1899
+layered rights, and the exact
 Antonovsky 1913 RU/US positive-rights versus operator-local-payload boundary
 and all four exact DTA annotated-TEI CC BY-SA versus local-custody boundaries
 plus the Naumann 1893 PDF/EPUB fork, the Jenseits 1886 mixed-package boundary,
@@ -79,6 +80,7 @@ and what must be tested manually.
 | `EXPRESSION_DERIVATION_RELATION_RESEARCH.md` | Which directed Expression-to-Expression revision relations the exact Antonovsky preface actually supports; how LRMoo R76, established version scholarship, current graph failures, and material discovery shape a non-transitive no-equivalence contract; and why 1911-to-1907 plus 2007-to-1911 remain deliberately absent? |
 | `ANTONOVSKY_1898_1900_BIBLIOGRAPHIC_IDENTITY_RESEARCH.md` | How the 1898 Bulgakov journal/supplement state, the uncredited 1899 *Reader* Edition, and Antonovsky's self-counted 1900 first Edition remain distinct; why the 2007 “first published in 1898” statement is compatible with the 1911 edition count; and why no 1898/1899/1900 equivalence or derivation edge is admitted without an exact institutional witness and collation? |
 | `ANTONOVSKY_1900_LNB_HOLDING_RESEARCH.md` | How the exact Lithuanian National Library record and holding materialize one provisional Saint Petersburg 1900 Edition without manufacturing a ToS Item; why `[s.n.]`, call number `1.40686`, missing bytes, and absent rights remain explicit; and how a public-safe, unsent research-copy request preserves the Edition/holding/acquisition boundary? |
+| `ANTONOVSKY_1900_RSL_RNL_LNB_CURRENT_HOLDINGS_RESEARCH.md` | How current RSL/RNL control identifiers and bibliography reconcile one exact 1900 record route while LNB agrees on the main identity but disagrees on preliminary extent and typography; why identifier crosswalks outrank relevance-ranked free-text failure in this case; and why four remote holdings, access services, and an unsent refocused request create no Item, source page, publisher, right, equivalence, semantics, or human task? |
 | `ANTONOVSKY_1903_RSL_EDITION_RESEARCH.md` | How the exact Russian State Library record materializes one provisional 1903 second corrected Edition and four external holdings without manufacturing a ToS Item; why `тип. Альтшулера` is not silently promoted to publisher identity; and how a public-safe, unsent fragment/research-copy request preserves the Edition/holding/acquisition boundary? |
 | `ANTONOVSKY_1903_RSL_RNL_CURRENT_HOLDINGS_RESEARCH.md` | How matching RSL/RNL control cores, transaction values, and bibliography reconcile the exact 1903 Edition without equating physical copies; how two current RNL holdings join four RSL coordinates while one undefined `TEMP` row and one generic read-modal false positive are rejected; and why separate unsent institutional routes create no Item, payload, permission, accepted text, semantics, or human task? |
 | `ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md` | How the exact RuNEB record, Antonovsky's source-visible revision history, and established Blok scholarship materialize one provisional 1907 third Edition without manufacturing a ToS Item; why a removed-or-replaced card and typography string do not prove a digital object, publisher, rights, or access; and how two unsent institutional routes preserve the Edition/Item/acquisition boundary? |
