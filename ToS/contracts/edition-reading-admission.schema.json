@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/edition-reading-admission.schema.json",
+  "title": "Tree of Sophia edition-reading admission packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "status",
+    "work_ref",
+    "source_identity",
+    "target",
+    "evidence",
+    "editorial_method",
+    "reading_evidence",
+    "rights_and_visibility",
+    "gate_effects",
+    "provenance_event_ref",
+    "authority_boundary",
+    "packet_version"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/edition-reading-admission.schema.json"
+    },
+    "schema_version": {"const": "tos_edition_reading_admission_v1"},
+    "packet_id": {
+      "type": "string",
+      "pattern": "^tos\\.edition-reading-admission\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {"enum": ["edition_reading_attested", "superseded"]},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "digital_publisher",
+        "historical_source",
+        "holding_institution",
+        "shelfmark"
+      ],
+      "properties": {
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "edition_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "file_ref": {"$ref": "#/$defs/tosId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "digital_publisher": {"type": "string", "minLength": 1},
+        "historical_source": {"type": "string", "minLength": 1},
+        "holding_institution": {"type": "string", "minLength": 1},
+        "shelfmark": {"type": "string", "minLength": 1}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "context_anchor_ref",
+        "source_selector",
+        "critical_locator_siglum",
+        "section_scope"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "type": "string",
+          "pattern": "^tos-translation-source-review-v2-[0-9]{3}$"
+        },
+        "context_anchor_ref": {"$ref": "#/$defs/tosId"},
+        "source_selector": {"type": "string", "minLength": 1},
+        "critical_locator_siglum": {"type": "string", "minLength": 1},
+        "section_scope": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_manifest",
+        "source_metadata_snapshot",
+        "rights_record",
+        "triangulation_packet",
+        "critical_witness_decision",
+        "ordered_research"
+      ],
+      "properties": {
+        "item_manifest": {"$ref": "#/$defs/digestBoundRef"},
+        "source_metadata_snapshot": {"$ref": "#/$defs/digestBoundRef"},
+        "rights_record": {"$ref": "#/$defs/digestBoundRef"},
+        "triangulation_packet": {"$ref": "#/$defs/digestBoundRef"},
+        "critical_witness_decision": {"$ref": "#/$defs/digestBoundRef"},
+        "ordered_research": {"$ref": "#/$defs/digestBoundRef"}
+      }
+    },
+    "editorial_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tei_header_publication_date",
+        "capture_method",
+        "manual_recheck_declared",
+        "manual_recheck_competence",
+        "transcription_policy",
+        "basisformat",
+        "source_returnable",
+        "critical_edition_claimed",
+        "universal_reading_claimed"
+      ],
+      "properties": {
+        "tei_header_publication_date": {"type": "string", "format": "date-time"},
+        "capture_method": {"const": "ocr-then-manual-recheck"},
+        "manual_recheck_declared": {"const": true},
+        "manual_recheck_competence": {"const": "native-speakers-as-declared-by-provider-header"},
+        "transcription_policy": {"const": "preserve-historical-language-state-minimize-silent-normalization"},
+        "basisformat": {"const": "TEI-P5-DTABf"},
+        "source_returnable": {"const": true},
+        "critical_edition_claimed": {"const": false},
+        "universal_reading_claimed": {"const": false}
+      }
+    },
+    "reading_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reading_posture",
+        "source_file_sha256",
+        "source_selector",
+        "paragraph_count",
+        "normalized_token_count",
+        "normalized_sequence_sha256",
+        "ekgwb_critical_witness_corroborates",
+        "exact_after_source_aware_normalization",
+        "normalization_failure_control_retained",
+        "tracked_packet_contains_source_text"
+      ],
+      "properties": {
+        "reading_posture": {"const": "edition_reading_attested"},
+        "source_file_sha256": {"$ref": "#/$defs/sha256"},
+        "source_selector": {"type": "string", "minLength": 1},
+        "paragraph_count": {"type": "integer", "minimum": 1},
+        "normalized_token_count": {"type": "integer", "minimum": 1},
+        "normalized_sequence_sha256": {"$ref": "#/$defs/sha256"},
+        "ekgwb_critical_witness_corroborates": {"const": true},
+        "exact_after_source_aware_normalization": {"const": true},
+        "normalization_failure_control_retained": {"const": true},
+        "tracked_packet_contains_source_text": {"const": false}
+      }
+    },
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rights_ref",
+        "rights_assessment_status",
+        "local_payload_visibility",
+        "payload_tracked",
+        "payload_publication_authorized",
+        "public_derivative_authorized",
+        "human_rights_review_performed",
+        "operator_transfer_approved"
+      ],
+      "properties": {
+        "rights_ref": {"$ref": "#/$defs/tosId"},
+        "rights_assessment_status": {"const": "licensed"},
+        "local_payload_visibility": {"const": "local-only"},
+        "payload_tracked": {"const": false},
+        "payload_publication_authorized": {"const": false},
+        "public_derivative_authorized": {"const": false},
+        "human_rights_review_performed": {"const": false},
+        "operator_transfer_approved": {"const": false}
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edition_reading_units_attested",
+        "accepted_german_units",
+        "german_linguistic_correctness_established",
+        "accepted_translation_units",
+        "observational_semantic_materialization_allowed",
+        "sign_candidates_created",
+        "signs_accepted",
+        "semantic_claims_created",
+        "graph_effects_created",
+        "human_tasks_created",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "edition_reading_units_attested": {"const": 1},
+        "accepted_german_units": {"const": 0},
+        "german_linguistic_correctness_established": {"const": false},
+        "accepted_translation_units": {"const": 0},
+        "observational_semantic_materialization_allowed": {"const": true},
+        "sign_candidates_created": {"const": 0},
+        "signs_accepted": {"const": 0},
+        "semantic_claims_created": {"const": 0},
+        "graph_effects_created": {"const": 0},
+        "human_tasks_created": {"const": 0},
+        "promotion_authorized": {"const": false}
+      }
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "authority_boundary": {
+      "const": "edition-local source-reading admission only: the exact DTA transcription and selector are source-returnable and independently corroborated by the edition-typed eKGWB sequence; not accepted German, linguistic correctness, Edition identity, author-final text, accepted morphology, lemma, lexeme, translation, sign, semantics, graph truth, canon authority, rights clearance, transfer approval, or publication permission"
+    },
+    "packet_version": {"type": "integer", "minimum": 1},
+    "supersedes_packet_ref": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^tos\\.edition-reading-admission\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        {"type": "null"}
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|lexeme|annotation|sign|concept|claim|relation|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

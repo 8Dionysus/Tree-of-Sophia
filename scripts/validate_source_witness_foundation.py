@@ -120,6 +120,9 @@ CRITICAL_EDITION_WITNESS_ADMISSION_SCHEMA = (
 CRITICAL_EDITION_CITATION_WITNESS_DECISION_SCHEMA = (
     CONTRACT_ROOT / "critical-edition-citation-witness-decision.schema.json"
 )
+EDITION_READING_ADMISSION_SCHEMA = (
+    CONTRACT_ROOT / "edition-reading-admission.schema.json"
+)
 GERMAN_SOURCE_TRIANGULATION_SCHEMA = (
     CONTRACT_ROOT / "german-source-triangulation.schema.json"
 )
@@ -1705,6 +1708,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             CRITICAL_EDITION_CITATION_WITNESS_DECISION_SCHEMA,
             repo_root,
         )
+        edition_reading_admission_validator, _ = _schema_validator(
+            EDITION_READING_ADMISSION_SCHEMA,
+            repo_root,
+        )
         german_source_triangulation_validator, _ = _schema_validator(
             GERMAN_SOURCE_TRIANGULATION_SCHEMA,
             repo_root,
@@ -2203,6 +2210,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             / "critical-edition-citation-witness-decision."
             "ekgwb.za-i-vorrede-1.v1.json"
         )
+        edition_reading_admission_path = (
+            gold_root
+            / "edition-reading-admission."
+            "dta-ekgwb.za-i-vorrede-1.v1.json"
+        )
         german_source_triangulation_path = (
             gold_root
             / "german-source-triangulation."
@@ -2243,6 +2255,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         critical_edition_citation_decision_provenance_path = (
             gold_root
             / "provenance.critical-edition-citation-decision.jsonl"
+        )
+        edition_reading_admission_provenance_path = (
+            gold_root / "provenance.edition-reading-admission.jsonl"
         )
         experimental_translation_episode_provenance_paths = sorted(
             gold_root.glob("provenance.experimental-translation-episodes*.jsonl")
@@ -2303,6 +2318,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 issues,
             )
             if critical_edition_citation_decision_path.is_file()
+            else None
+        )
+        edition_reading_admission = (
+            _load_json(
+                edition_reading_admission_path,
+                repo_root,
+                issues,
+            )
+            if edition_reading_admission_path.is_file()
             else None
         )
         german_source_triangulation = (
@@ -3539,6 +3563,201 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "citation-witness decision and assisted-review translation lanes disagree",
                         )
                     )
+        if edition_reading_admission is not None:
+            admission_location = _relative(
+                edition_reading_admission_path,
+                repo_root,
+            )
+            _validate_payload(
+                edition_reading_admission,
+                edition_reading_admission_validator,
+                admission_location,
+                issues,
+            )
+            dta_item_root = (
+                repo_root
+                / SOURCE_ROOT
+                / "works/friedrich-nietzsche/also-sprach-zarathustra/"
+                "expressions/de-schmeitzner-1883-part-1/"
+                "editions/chemnitz-schmeitzner-1883-part-1/"
+                "items/dta-sbb-corrected-tei-p5"
+            )
+            admission_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "GERMAN_EDITION_READING_ADMISSION_RESEARCH_2026-08-10.md"
+            )
+            expected_evidence = (
+                ("item_manifest", dta_item_root / "item.manifest.json"),
+                (
+                    "source_metadata_snapshot",
+                    dta_item_root / "source-metadata-snapshot.json",
+                ),
+                ("rights_record", dta_item_root / "rights.json"),
+                ("triangulation_packet", german_source_triangulation_path),
+                (
+                    "critical_witness_decision",
+                    critical_edition_citation_decision_path,
+                ),
+                ("ordered_research", admission_research_path),
+            )
+            for field, expected_path in expected_evidence:
+                if not expected_path.is_file():
+                    issues.append(
+                        (
+                            admission_location,
+                            f"evidence.{field} has no current owner artifact",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    edition_reading_admission.get("evidence", {}).get(field),
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=f"evidence.{field}",
+                )
+                if digest_issue is not None:
+                    issues.append((admission_location, digest_issue))
+
+            item_manifest = _load_json(
+                dta_item_root / "item.manifest.json",
+                repo_root,
+                issues,
+            )
+            source_identity = edition_reading_admission.get("source_identity", {})
+            if isinstance(item_manifest, dict):
+                if source_identity.get("item_ref") != item_manifest.get("item_id"):
+                    issues.append(
+                        (
+                            admission_location,
+                            "edition-reading Item identity drifted from the DTA manifest",
+                        )
+                    )
+                if source_identity.get("edition_ref") != item_manifest.get(
+                    "embodiment_ref"
+                ):
+                    issues.append(
+                        (
+                            admission_location,
+                            "edition-reading Edition identity drifted from the DTA manifest",
+                        )
+                    )
+                payload_files = item_manifest.get("payload_files", [])
+                payload = payload_files[0] if len(payload_files) == 1 else {}
+                for field, manifest_field in (
+                    ("file_ref", "file_id"),
+                    ("file_sha256", "sha256"),
+                ):
+                    if source_identity.get(field) != payload.get(manifest_field):
+                        issues.append(
+                            (
+                                admission_location,
+                                f"edition-reading {field} drifted from the DTA manifest",
+                            )
+                        )
+
+            triangulation_target = (
+                german_source_triangulation.get("target", {})
+                if isinstance(german_source_triangulation, dict)
+                else {}
+            )
+            admission_target = edition_reading_admission.get("target", {})
+            for field in (
+                "review_unit_id",
+                "context_anchor_ref",
+                "critical_locator_siglum",
+            ):
+                if admission_target.get(field) != triangulation_target.get(field):
+                    issues.append(
+                        (
+                            admission_location,
+                            f"edition-reading target {field} drifted from triangulation",
+                        )
+                    )
+            dta_result = (
+                german_source_triangulation.get("results", {}).get(
+                    "dta_exact_comparison",
+                    {},
+                )
+                if isinstance(german_source_triangulation, dict)
+                else {}
+            )
+            reading_evidence = edition_reading_admission.get(
+                "reading_evidence",
+                {},
+            )
+            expected_reading_fields = {
+                "source_selector": dta_result.get("section_selector"),
+                "paragraph_count": dta_result.get("paragraphs"),
+                "normalized_token_count": dta_result.get("normalized_tokens"),
+                "normalized_sequence_sha256": dta_result.get(
+                    "normalized_sequence_sha256"
+                ),
+                "exact_after_source_aware_normalization": dta_result.get(
+                    "exact_after_source_aware_normalization"
+                ),
+            }
+            for field, expected in expected_reading_fields.items():
+                if reading_evidence.get(field) != expected:
+                    issues.append(
+                        (
+                            admission_location,
+                            f"edition-reading {field} drifted from exact DTA comparison",
+                        )
+                    )
+            if admission_target.get("source_selector") != reading_evidence.get(
+                "source_selector"
+            ):
+                issues.append(
+                    (
+                        admission_location,
+                        "edition-reading target selector and reading selector disagree",
+                    )
+                )
+            decision_digest = (
+                critical_edition_citation_decision.get(
+                    "transport_and_fixity",
+                    {},
+                ).get("normalized_sequence_sha256")
+                if isinstance(critical_edition_citation_decision, dict)
+                else None
+            )
+            if reading_evidence.get("normalized_sequence_sha256") != decision_digest:
+                issues.append(
+                    (
+                        admission_location,
+                        "edition-reading sequence is not closed by the admitted critical witness",
+                    )
+                )
+
+            rights_record = _load_json(
+                dta_item_root / "rights.json",
+                repo_root,
+                issues,
+            )
+            rights_and_visibility = edition_reading_admission.get(
+                "rights_and_visibility",
+                {},
+            )
+            if isinstance(rights_record, dict):
+                if rights_and_visibility.get("rights_ref") != rights_record.get(
+                    "rights_id"
+                ):
+                    issues.append(
+                        (
+                            admission_location,
+                            "edition-reading rights identity drifted from the DTA record",
+                        )
+                    )
+                if rights_and_visibility.get(
+                    "rights_assessment_status"
+                ) != rights_record.get("assessment_status"):
+                    issues.append(
+                        (
+                            admission_location,
+                            "edition-reading rights posture drifted from the DTA record",
+                        )
+                    )
         if experimental_translation_candidate is not None:
             candidate_location = _relative(
                 experimental_translation_candidate_path,
@@ -3999,6 +4218,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 critical_edition_citation_decision_provenance_path
             )
+        if edition_reading_admission_provenance_path.is_file():
+            local_provenance_paths.append(
+                edition_reading_admission_provenance_path
+            )
         local_provenance_paths.extend(
             experimental_translation_episode_provenance_paths
         )
@@ -4050,6 +4273,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             repo_root,
                         ),
                         "citation-witness decision provenance event is absent from gold-set provenance",
+                    )
+                )
+        if edition_reading_admission is not None:
+            admission_event_ref = edition_reading_admission.get(
+                "provenance_event_ref"
+            )
+            if admission_event_ref not in local_event_ids:
+                issues.append(
+                    (
+                        _relative(
+                            edition_reading_admission_path,
+                            repo_root,
+                        ),
+                        "edition-reading admission provenance event is absent from gold-set provenance",
                     )
                 )
         if experimental_translation_candidate is not None:

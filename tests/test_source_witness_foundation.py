@@ -53,6 +53,11 @@ CRITICAL_EDITION_CITATION_DECISION_PATH = (
     / "critical-edition-citation-witness-decision."
     "ekgwb.za-i-vorrede-1.v1.json"
 )
+EDITION_READING_ADMISSION_PATH = (
+    GOLD_ROOT
+    / "edition-reading-admission."
+    "dta-ekgwb.za-i-vorrede-1.v1.json"
+)
 GERMAN_SOURCE_TRIANGULATION_PATH = (
     GOLD_ROOT
     / "german-source-triangulation."
@@ -9234,6 +9239,94 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 field="evidence.ordered_research_refresh",
             ),
         )
+
+    def test_edition_reading_admission_separates_source_from_language_truth(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.EDITION_READING_ADMISSION_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = json.loads(
+            EDITION_READING_ADMISSION_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(packet)))
+        self.assertEqual("edition_reading_attested", packet["status"])
+        self.assertEqual(
+            "edition_reading_attested",
+            packet["reading_evidence"]["reading_posture"],
+        )
+        self.assertEqual(
+            "TEI/text[1]/body[1]/div[1]/div[1]",
+            packet["reading_evidence"]["source_selector"],
+        )
+        self.assertEqual(12, packet["reading_evidence"]["paragraph_count"])
+        self.assertEqual(
+            261,
+            packet["reading_evidence"]["normalized_token_count"],
+        )
+        self.assertTrue(
+            packet["reading_evidence"][
+                "exact_after_source_aware_normalization"
+            ]
+        )
+        self.assertFalse(
+            packet["reading_evidence"]["tracked_packet_contains_source_text"]
+        )
+        self.assertEqual(
+            1,
+            packet["gate_effects"]["edition_reading_units_attested"],
+        )
+        self.assertEqual(0, packet["gate_effects"]["accepted_german_units"])
+        self.assertFalse(
+            packet["gate_effects"][
+                "german_linguistic_correctness_established"
+            ]
+        )
+        self.assertEqual(
+            0,
+            packet["gate_effects"]["accepted_translation_units"],
+        )
+        self.assertTrue(
+            packet["gate_effects"][
+                "observational_semantic_materialization_allowed"
+            ]
+        )
+        self.assertEqual(0, packet["gate_effects"]["sign_candidates_created"])
+        self.assertEqual(0, packet["gate_effects"]["semantic_claims_created"])
+        self.assertEqual(0, packet["gate_effects"]["human_tasks_created"])
+        self.assertFalse(packet["gate_effects"]["promotion_authorized"])
+
+        for field, binding in packet["evidence"].items():
+            expected_path = REPO_ROOT / binding["ref"]
+            self.assertIsNone(
+                foundation._digest_bound_ref_issue(
+                    binding,
+                    expected_path=expected_path,
+                    repo_root=REPO_ROOT,
+                    field=f"evidence.{field}",
+                )
+            )
+
+        false_language_acceptance = copy.deepcopy(packet)
+        false_language_acceptance["gate_effects"]["accepted_german_units"] = 1
+        self.assertTrue(list(validator.iter_errors(false_language_acceptance)))
+
+        tracked_source = copy.deepcopy(packet)
+        tracked_source["reading_evidence"][
+            "tracked_packet_contains_source_text"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(tracked_source)))
+
+        false_publication = copy.deepcopy(packet)
+        false_publication["rights_and_visibility"][
+            "payload_publication_authorized"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_publication)))
+
+        false_promotion = copy.deepcopy(packet)
+        false_promotion["gate_effects"]["promotion_authorized"] = True
+        self.assertTrue(list(validator.iter_errors(false_promotion)))
 
     def test_experimental_translation_candidate_reuses_run_without_promotion(
         self,

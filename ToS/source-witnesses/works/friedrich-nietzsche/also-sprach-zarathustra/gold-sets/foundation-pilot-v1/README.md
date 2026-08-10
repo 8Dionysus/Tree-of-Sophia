@@ -68,6 +68,19 @@ Zarathustra golden kernel. It is not a completed gold set.
   experiments. Accepted German, accepted translation, publisher
   authentication, German linguistic correctness, publication, semantics,
   graph truth, canon effects, and the `human_only` lane remain false.
+- `edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json` makes the next
+  source boundary exact. It admits only that the fixity-bound DTA Part I TEI,
+  at its declared section selector and under its provider-documented
+  OCR-plus-native-speaker-recheck method, supplies one edition-local reading;
+  the distinct eKGWB critical witness independently corroborates the same 12
+  paragraphs and 261 normalized tokens. The text-free packet creates one
+  `edition_reading_attested` unit and permits a later v4 semantic contract to
+  materialize source-observational work. Accepted German, linguistic
+  correctness, Edition identity, author-finality, accepted translation,
+  signs, semantics, graph truth, human tasks, transfer, and publication all
+  remain zero or false. The companion
+  `provenance.edition-reading-admission.jsonl` records that the local TEI
+  header, not its source body, was inspected during admission.
 - `experimental-translation-candidate.admitted-ekgwb.za-i-vorrede-1-opening.variant-a.v1.json`
   binds the first admitted experimental `ai_only` candidate to that decision,
   the current source-return overlay, and the exact private frozen A run without
