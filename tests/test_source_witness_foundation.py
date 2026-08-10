@@ -7443,7 +7443,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(["DE", "US"], rights["jurisdictions_reviewed"])
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
-        self.assertEqual(2, rights["record_version"])
+        self.assertEqual(3, rights["record_version"])
         self.assertIn(
             "https://commons.wikimedia.org/wiki/Template:PD-US-expired",
             rights["rights_statement_uri"],
@@ -7482,6 +7482,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "public_domain_reviewed",
                 rights_layers[layer_id]["assessment_status"],
             )
+        for layer_id in (
+            "original-work",
+            "richter-editing",
+            "richter-afterword",
+        ):
+            term_basis = rights_layers[layer_id]["term"]["basis"]
+            self.assertIn("17 U.S.C. Section 104A", term_basis)
+            self.assertNotIn("pre-1931", term_basis)
         self.assertEqual(
             "in_copyright",
             rights_layers["van-de-velde-applied-art"]["assessment_status"],
@@ -7490,9 +7498,21 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "2027-12-31",
             rights_layers["van-de-velde-applied-art"]["term"]["ends_on"],
         )
+        self.assertIn(
+            "2003-12-31",
+            rights_layers["van-de-velde-applied-art"]["term"]["basis"],
+        )
+        self.assertIn(
+            "Section 104A",
+            rights_layers["van-de-velde-applied-art"]["term"]["basis"],
+        )
         self.assertEqual(
             "in_copyright",
             rights_layers["exact-commons-digital-object"]["assessment_status"],
+        )
+        self.assertIn(
+            "2003-12-31",
+            rights_layers["exact-commons-digital-object"]["term"]["basis"],
         )
         self.assertEqual(
             "https://creativecommons.org/publicdomain/zero/1.0/",
@@ -7603,7 +7623,28 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             ["DE", "US"], server_plan["rights_policy"]["jurisdictions_reviewed"]
         )
-        self.assertEqual(2, server_plan["contract_version"])
+        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(
+            hashlib.sha256(
+                (ECCE_HOMO_1908_ITEM_ROOT / "rights.json").read_bytes()
+            ).hexdigest(),
+            server_plan["rights_policy"]["rights_record_sha256"],
+        )
+        self.assertIn(
+            "https://www.copyright.gov/title17/92chap1.html#104a",
+            server_plan["rights_policy"]["permission_or_license_refs"],
+        )
+        self.assertIn(
+            "https://www.copyright.gov/circs/circ38b.pdf",
+            server_plan["rights_policy"]["permission_or_license_refs"],
+        )
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.ecce-homo-insel-1908."
+                "uraa-correction.2026-08-10"
+            ],
+            server_plan["provenance_event_refs"],
+        )
         for derivative in (
             "ocr",
             "transcription",
@@ -7666,7 +7707,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         rights_event = provenance_events[-1]
         self.assertEqual(
             "tos.event.rights-assessment.ecce-homo."
-            "insel-1908.layered-rights.2026-08-02",
+            "insel-1908.uraa-correction.2026-08-10",
             rights_event["event_id"],
         )
         self.assertEqual(
@@ -7680,6 +7721,45 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertFalse(
             rights_event["method"]["configuration"]["source_text_admitted"]
+        )
+        self.assertFalse(
+            rights_event["method"]["configuration"][
+                "aggregate_rights_status_changed"
+            ]
+        )
+        self.assertFalse(
+            rights_event["method"]["configuration"][
+                "provider_pre_1931_statement_used_as_independent_legal_conclusion"
+            ]
+        )
+
+        server_provenance_events = {
+            event["event_id"]: event
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+            for event in (json.loads(line),)
+        }
+        server_event = server_provenance_events[
+            "tos.event.server-import-plan.ecce-homo-insel-1908."
+            "uraa-correction.2026-08-10"
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                (
+                    REPO_ROOT
+                    / "ToS/source-witnesses/server-import/plans/"
+                    "ecce-homo-insel-1908-wikimedia-commons-getty-scan-pdf."
+                    "server-import.json"
+                ).read_bytes()
+            ).hexdigest(),
+            server_event["outputs"][0]["sha256"],
+        )
+        self.assertFalse(
+            server_event["method"]["configuration"][
+                "aggregate_rights_status_changed"
+            ]
         )
 
         rights_research = ECCE_HOMO_1908_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
@@ -7695,6 +7775,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(sorted(positions), positions)
         self.assertIn("eleven-layer rights model", rights_research)
         self.assertIn("2027-12-31", rights_research)
+        self.assertIn("2003-12-31", rights_research)
+        self.assertIn("17 U.S.C.\n§104A", rights_research)
+        self.assertIn("Golan v. Holder", rights_research)
+        self.assertIn("bytes drifted", rights_research)
         self.assertIn("operator-held PDF is never", rights_research)
 
         responsibility_route = (

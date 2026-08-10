@@ -126,10 +126,14 @@ human-review, and operator gates.
 The fifteenth plan covers permanent Commons revision `1074063624` of the
 Getty/Internet Archive scan of the posthumous 1908 Insel *Ecce homo*, copy
 965. Commons' `PD-US-expired` statement is retained as positive but explicitly
-US-scoped evidence. Richter's editorial layer, van de Velde's binding and
-ornaments, the Getty scan, the Commons derivative, and every content-bearing
-derivative remain separately reviewable. The operator-held PDF stays local;
-only public-safe metadata may be projected.
+US-scoped provider evidence. The independent route now applies 17 U.S.C.
+§104A: Nietzsche and Richter's German terms ended before possible 1996
+restoration, while any possible restored 1908 van de Velde term ended at
+2003-12-31. Van de Velde's binding and ornaments remain active in Germany
+through 2027-12-31; the Getty scan, Commons derivative, and every content-
+bearing derivative remain separately reviewable. The aggregate plan therefore
+stays restricted, blocked, metadata-only, and operator-unapproved. The
+operator-held PDF stays local; only public-safe metadata may be projected.
 
 The sixteenth plan covers the exact RSL/RuNEB PDF of Antonovsky's 1911 fourth
 edition. The historical Work, 1911 translation and preface, and presentation

@@ -479,6 +479,9 @@ responsibility boundary, and the DNB 155-page versus IA/Open Library
 public-domain Nietzsche and Richter strata from van de Velde's German design
 term through 2027-12-31, the exact mixed Commons object, Getty furniture,
 licensed Commons metadata surfaces, and unresolved Internet Archive package.
+The independent United States route follows 17 U.S.C. §104A: Nietzsche and
+Richter's source-country terms ended before possible 1996 restoration, while
+any possible restored 1908 van de Velde term ended at 2003-12-31.
 
 The EPUB and image-container PDF are distinct acquired items descended from
 the same scan family. The PDF supplies source-visible pages for independent
@@ -639,15 +642,20 @@ the posthumous Richter/Köselitz expression is Nietzsche's lost author-final
 state or a modern critical reconstruction. The visible book itself separates
 Nietzsche's text through printed page 130 from Richter's separately titled
 afterword beginning at printed page 133. Commons' `PD-US-expired` statement is
-positive but US-scoped evidence. Current DE/US research now assesses
-Nietzsche's Work and Richter's editing and afterword as public domain, while
-the source-visible title, binding, lettering, and ornaments attributed to van
-de Velde remain in copyright in Germany through 2027-12-31. Commons carries no
-German source-country tag, Getty exposes no exact CC0 record for this scanned
-book, and the exact aggregate is therefore `in_copyright`, `local_only`, and
-`not_authorized`. The local PDF is never a future-site upload source; a
-post-2027 candidate must be independently reacquired and pass fresh rights,
-fixity, quality, human-review, and operator gates.
+positive but US-scoped provider evidence. The independent United States
+analysis does not apply the domestic pre-1931 shorthand to this German work:
+under 17 U.S.C. §104A, Nietzsche and Richter's German terms expired before
+possible 1996 restoration, while any qualifying restored term for van de
+Velde's 1908 design ended at 2003-12-31. Current DE/US research therefore
+assesses Nietzsche's Work and Richter's editing and afterword as public domain
+in both routes and the design as public domain in the United States today,
+while the source-visible title, binding, lettering, and ornaments remain in
+copyright in Germany through 2027-12-31. Commons carries no German source-
+country tag, Getty exposes no exact CC0 record for this scanned book, and the
+exact aggregate remains `in_copyright`, `local_only`, and `not_authorized`.
+The local PDF is never a future-site upload source; a post-2027 candidate must
+be independently reacquired and pass fresh rights, fixity, quality, human-
+review, and operator gates.
 
 The same route now exercises multi-role responsibility claims without
 flattening the book into one creator. The Work points to Nietzsche through

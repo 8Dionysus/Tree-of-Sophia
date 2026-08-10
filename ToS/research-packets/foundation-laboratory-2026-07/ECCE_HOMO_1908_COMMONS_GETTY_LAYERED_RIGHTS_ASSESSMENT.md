@@ -5,7 +5,8 @@ current provider state, contributor terms, and source-visible design checked;
 no legal advice, human legal review, source-text acceptance, operator transfer
 approval, or publication decision
 
-Research snapshot: 2026-08-02
+Research snapshot: 2026-08-02; United States foreign-work route corrected and
+exact current provider and official-law routes rechecked 2026-08-10
 
 ## Question
 
@@ -41,8 +42,11 @@ Nietzsche's Work is `public_domain_reviewed` in the bounded German and United
 States routes. Richter died in 1912, so both his independently authored
 afterword and any copyright-capable creative editorial contribution are also
 outside the reviewed German and United States terms. A qualifying German
-scientific-edition right would have expired still earlier. These positive
-results do not make the 1908 text author-final or philologically accepted.
+scientific-edition right would have expired still earlier. For the independent
+United States route, these German layers fail 17 U.S.C. §104A's source-country-
+protection condition because their German terms ended before possible 1996
+restoration. These positive results do not make the 1908 text author-final or
+philologically accepted.
 
 The exact Edition also contains a different and still active German layer.
 The source-visible colophon credits the title, binding, and ornaments to Henry
@@ -51,8 +55,15 @@ than mechanically typeset, and the colophon extends that credit to ornaments
 through the Edition. Van de Velde died on 25 October 1957. Under the current
 German ordinary life-plus-seventy rule and calendar-year calculation, the
 conservative ToS term for those applied-art contributions remains active
-through 2027-12-31. The same 1908 publication is public domain under the
-current United States pre-1931 boundary.
+through 2027-12-31. That active source-country term makes §104A restoration a
+necessary United States question rather than allowing a domestic pre-1931
+shortcut. If the cumulative restoration conditions were met, however, the
+restored United States term was only the remainder of the term otherwise
+granted and the ordinary ninety-five-year publication term ended at
+2003-12-31. If they were not met, the layer was already public domain there.
+The bounded United States result is therefore public domain today on either
+branch without inventing notice, renewal, nationality, or simultaneous-
+publication facts.
 
 Current European Union law does not permit ToS to dismiss the design merely
 because it is applied art. The Court of Justice's December 2025 joined-cases
@@ -64,9 +75,11 @@ composition and current active term require fail-closed `in_copyright`
 treatment in Germany in the absence of an exact license or permission.
 
 The current Commons wikitext still uses only `PD-US-expired`. That template is
-positive United States evidence and explicitly warns that a non-United-States
-work needs a source-country basis. It does not clear the active German design
-layer. Commons' current extmetadata reports `Public domain` and
+positive United States provider evidence and explicitly warns that a non-
+United-States work needs a source-country basis. The independent United States
+conclusion comes from §104A and the applicable term rather than that domestic
+shorthand. The template does not clear the active German design layer.
+Commons' current extmetadata reports `Public domain` and
 `Copyrighted=False`, but those provider fields do not erase the missing German
 basis or create a warranty.
 
@@ -91,22 +104,31 @@ and operator-approval gates. The operator-held PDF is never the upload source.
 | Object or response | Fixity / observation |
 | --- | --- |
 | exact locally held Commons file revision | 9,703,400 bytes; SHA-256 `f3058ff02611cc961de1f7c4fbf0ebc0e4427a913da718189b33a0dde11339bc`; Commons SHA-1 `c8d7cd1891e1d32a878e93694db5fff0d473bdf6`; 166 PDF pages |
-| exact current Commons API response | 3,832 bytes; SHA-256 `c37fabf775540d03f1f9449fe9ed64e237d6b31d2adb60ae76a5df9b7bb88b37`; captured 2026-08-02 |
+| exact current Commons API response | 3,909 bytes; SHA-256 `c1624ccaa32498c6833d9386bc94e178716870e88e9a1783f1c9a75e66cb83fc`; captured 2026-08-10; serialization bytes drifted while exact identity and declared rights fields remained stable |
 | exact Commons file revision | timestamp `2020-10-12T21:31:51Z`; 9,703,400 bytes; SHA-1 `c8d7cd1891e1d32a878e93694db5fff0d473bdf6`; uploader `Fae` |
 | current Commons description revision | revision `1074063624`; timestamp `2025-08-18T05:32:29Z`; SHA-1 `e6520bef12b22bff17c2f14806be5c29c30cd4f3`; wikitext uses only `{{PD-US-expired}}` |
-| current Internet Archive metadata response | 38,038 bytes; response-specific SHA-256 `2404e57d21ac408a74cf1bc4c2d4c7aa68e5033f5871191b8bafa435ed0818f4` |
+| current Internet Archive metadata response | 38,109 bytes; response-specific SHA-256 `37a738b0be444328116ed35659ce6306a913ee0bb9f8f10b69d4ed86c02b45ee`; bytes drifted while identifier, contributor, sponsor, absent rights fields, and PDF identity remained stable |
 | current Internet Archive PDF | 9,726,827 bytes; SHA-1 `1cf12032bdcba84d8cddd1da8074cb9c62cd9c4c`; this is not the acquired Commons byte revision |
-| current Raoul Richter GND response | GND `116512857`; born `1871-01-16`; died `1912-05-14`; response SHA-256 `a65f029971d974a19cfbd344983a2752e964db1fc5f10b014fd3f9ec606fe301` |
-| current Henry van de Velde GND response | GND `118626442`; born `1863-04-03`; died `1957-10-25`; response SHA-256 `ffa439008fbfb3829118fa2c1f2e7252b87517e010760b9f6d35cfe0e8769002` |
+| current Raoul Richter GND response | GND `116512857`; born `1871-01-16`; died `1912-05-14`; 7,687 bytes; response SHA-256 `8f25116359421b253e22ab600e4744908574c359cfaaf05264c8195e01e8a184` |
+| current Henry van de Velde GND response | GND `118626442`; born `1863-04-03`; died `1957-10-25`; 16,486 bytes; response SHA-256 `9eedc596aadad9ea73c87a1ef761a298138539411ac60f3da18680e49dc31d46` |
 
 The exact Commons API route is:
 
 `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo%7Crevisions&titles=File%3AEcce+homo+%28IA+eccehomo00niet_0%29.pdf&iiprop=timestamp%7Cuser%7Curl%7Csize%7Csha1%7Cmime%7Cmediatype%7Cextmetadata&rvprop=ids%7Ctimestamp%7Csha1%7Ccontent&rvslots=main`
 
 The current API reports `LicenseShortName=Public domain`, `UsageTerms=Public
-domain`, `Copyrighted=False`, and no restriction or license URL. Those values
-record the provider's current assertion; they do not supply the absent German
-source-country analysis.
+domain`, `Copyrighted=False`, and no restriction or license URL. The response
+bytes changed since 2026-08-02, but page ID, exact file timestamp, size, SHA-1,
+description revision, and declared rights values did not. Those values record
+the provider's current assertion; they do not supply the German source-country
+analysis. No transient response body was retained.
+
+The permanent Commons revision response returned 103,828 bytes, SHA-256
+`e5de4daa99b7e7d483321116d3566e00ba17223e1b68068abdebfcdcb665dd8e`;
+the current `PD-US-expired` template response returned 83,884 bytes, SHA-256
+`d7822bd334cb014a49cc8f755ec1caabb98b6b176c5e8363be268b0e192b7d4e`.
+The template still requires a source-country public-domain tag for a non-
+United-States work. These were transient checks; no response body was retained.
 
 Current Internet Archive metadata identifies Item
 [`eccehomo00niet_0`](https://archive.org/details/eccehomo00niet_0),
@@ -166,7 +188,11 @@ Use](https://www.getty.edu/legal/terms-of-use/) and [Open Content Program
 FAQ](https://www.getty.edu/projects/open-content-program/faqs/) require an
 exact record to carry the Open Content or CC0 indication. The general program
 does not license every object ever contributed by Getty to Internet Archive.
-No exact marked Getty record for this book was located.
+No exact marked Getty record for this book was located. The current Terms and
+FAQ responses returned respectively 3,083,016 and 3,069,260 bytes, SHA-256
+`0ed78250da0c14d40d0d7eb848227d5d771fe6a89c9e4af95505d2760cd74cd2`
+and `d72f914767ecf773aa1b16939db209a13d08107091ad54b52f87441ea2dc5a56`;
+no response body was retained.
 
 ### Germany
 
@@ -214,10 +240,47 @@ adds no right. That is the correct model for this mixed Item.
 
 ### United States
 
-The United States Copyright Office's current [Circular
-15A](https://www.copyright.gov/circs/circ15a.pdf) states that works published
-before 1 January 1931 are in the United States public domain. The 1908 Work,
-Edition, afterword, and design fall inside that current boundary.
+The United States Copyright Office's April 2026 [Circular
+15A](https://www.copyright.gov/circs/circ15a.pdf) places domestic publications
+from before 1931 in the public domain. This Edition was first published in
+Germany, so that line is context rather than the independent foreign-work
+route.
+
+[17 U.S.C.
+§104A](https://www.copyright.gov/title17/92chap1.html#104a) defines restored
+works cumulatively and excludes a work already in the public domain in its
+source country through expiration of term. The Copyright Office's current
+[URAA/GATT overview](https://www.copyright.gov/gatt.html) confirms the possible
+1996 restoration date for eligible countries. Nietzsche's German term ended
+at 1970-12-31, Richter's ordinary term at 1982-12-31, and any qualifying
+scientific-edition right at 1933-12-31. Those layers therefore fail the source-
+country-protection condition and are public domain in the reviewed United
+States route without any notice, renewal, nationality, or simultaneous-
+publication assumption.
+
+Van de Velde's design term was still active in Germany on the possible
+restoration date, so that shortcut is unavailable for his layer. Section
+104A(a)(1)(B) grants only the remainder of the term the work otherwise would
+have had. Current [Circular
+38B](https://www.copyright.gov/circs/circ38b.pdf) and [17 U.S.C.
+§304](https://www.copyright.gov/title17/92chap3.html#304) state the generally
+applicable ninety-five-year publication term for pre-1978 works. A qualifying
+restored 1908 design term therefore ended at 2003-12-31. If the other
+restoration conditions were not met, the layer was already public domain in
+the United States. The bounded present result is the same on either branch;
+ToS does not pretend to have resolved facts unnecessary to that result.
+
+The 2026-08-10 official responses were rechecked without retaining their
+bodies: §104A returned 675,161 bytes, SHA-256
+`97999d678e2877c8142da81a0dce819b210e9f92aa5a405d130bf2f2e50c7d75`;
+Chapter 3/§304 returned 72,370 bytes, SHA-256
+`121ed92e20b6fc9325e22a2f0f33cadabc56fda923b06902e8f8372292d0db6d`;
+the URAA/GATT page returned 36,750 bytes, SHA-256
+`521b79434713074095a59d2cba609ea4cdbacd182b4fb77537b0cea72e8e4d5a`;
+Circular 38B returned 484,230 bytes, SHA-256
+`8fa4bea09add40392b090a5816ca328fd5e1d232c4d49bf73df6230e2dbe9947`;
+and Circular 15A returned 273,867 bytes, SHA-256
+`6ff3c5612e1cd56469b3eb7d35eba7fd3374843d82744c63ab909225f53b7aef`.
 
 The Copyright Office's [Compendium, Third
 Edition](https://www.copyright.gov/comp3/) requires human authorship and does
@@ -244,6 +307,16 @@ The established authorities reject a single blanket status:
   found no United States originality in exact photographic copies of
   public-domain two-dimensional works. It does not clear an image of a work
   that remains protected in Germany.
+- The United States Supreme Court's established [*Golan v. Holder*, 565 U.S.
+  302 (2012)](https://www.govinfo.gov/content/pkg/USREPORTS-565/pdf/USREPORTS-565-302.pdf)
+  confirms that the URAA can restore protection to qualifying foreign works
+  formerly in the United States public domain. The official United States
+  Reports copy also preserves §104A's source-country-term exclusion and
+  prevents ToS from treating domestic age or prior United States public-domain
+  status alone as dispositive. The current official PDF returned 352,392
+  bytes, SHA-256
+  `5a03252861ef6b7d3bc893e458733fcfeb45ca5d3638723e32b2b06cdab63d69`;
+  no response body was retained.
 - DDB, Commons, Getty, and Europeana all use exact-layer or exact-record
   practice. Their policies do not allow one object's status to be inherited
   from an institution's general openness.
@@ -254,7 +327,8 @@ The August 2026 snapshot does not rely on the age of the book, the 2020 file
 timestamp, or an early-2026 rights assumption:
 
 1. The exact Commons file bytes remain available with the same size and SHA-1
-   as the local payload.
+   as the local payload. API response bytes drifted, but the exact Item,
+   revision, and declared rights fields remained stable.
 2. The current description revision is from 18 August 2025 and still invokes
    only `PD-US-expired`, with no German source-country tag.
 3. Current Commons extmetadata still says public domain and
@@ -267,12 +341,15 @@ timestamp, or an early-2026 rights assumption:
    ECLI:EU:C:2026:213, confirms that a critical edition may be a separately
    protected work when it expresses free and creative choices. That does not
    revive Richter's expired layer or change Nietzsche's underlying text.
-6. The April 2026 Copyright Office Circular 15A still places the 1908
-   publication inside the United States public-domain boundary.
+6. Current §104A, §304, the Copyright Office URAA/GATT page, Circular 38B, and
+   April 2026 Circular 15A still preserve the foreign-work restoration and
+   remainder-of-term route. They place any restored 1908 United States term
+   beyond expiry at 2003-12-31 without substituting the domestic pre-1931
+   shorthand.
 7. Current DNB authority responses still identify Richter's death in 1912 and
    van de Velde's death in 1957.
-8. The current Internet Archive PDF remains byte-different and its Item still
-   exposes no rights or license URL.
+8. The Internet Archive metadata response bytes drifted; the current PDF
+   remains byte-different and its Item still exposes no rights or license URL.
 9. Getty's current Open Content policy remains exact-record gated; no exact
    CC0 record was found for this scanned book.
 10. Europeana's current [2025 Public Domain
@@ -289,14 +366,16 @@ fresh checks were completed, general searches were run for the exact filename,
 Internet Archive identifier, Getty control number, OCLC, title, publisher,
 editor, designer, and year.
 
-The search found the same Commons and Open Library identities, current
-WorldCat attribution of Nietzsche as author, Richter as editor, and van de
-Velde as book designer, plus rare-book records describing the double title,
-binding, typography, and ornaments. These sources corroborate identity and
-visible responsibility but supply no stronger exact-file permission. Auction
-and bookseller pages were not treated as rights authority. No result supplied
-an exact Getty CC0 record, German permission, or a contradiction of the
-source-visible colophon.
+The exact-identifier, title, contributor, Getty Open Content, and United States
+term searches were repeated on 2026-08-10 and returned no stronger or
+contradictory exact-object route. The search found the same Commons and Open
+Library identities, current WorldCat attribution of Nietzsche as author,
+Richter as editor, and van de Velde as book designer, plus rare-book records
+describing the double title, binding, typography, and ornaments. These sources
+corroborate identity and visible responsibility but supply no stronger exact-
+file permission. Auction and bookseller pages were not treated as rights
+authority. No result supplied an exact Getty CC0 record, German permission, or
+a contradiction of the source-visible colophon.
 
 ## Layer decisions
 
@@ -305,7 +384,7 @@ source-visible colophon.
 | Nietzsche Work | `public_domain_reviewed` in DE/US | historical Work is reusable; no accepted German text is selected |
 | Richter creative editing | `public_domain_reviewed` in DE/US | any ordinary author term ended at 1982-12-31; a qualifying Section 70 term ended earlier |
 | Richter afterword | `public_domain_reviewed` in DE/US | independently authored prose is outside the reviewed terms but remains a distinct responsibility layer |
-| van de Velde binding, double title, lettering, and ornaments | `in_copyright` in DE and public domain in US | fail closed through 2027-12-31 in Germany absent exact permission; do not flatten into Edition typography |
+| van de Velde binding, double title, lettering, and ornaments | `in_copyright` in DE and public domain in US | fail closed through 2027-12-31 in Germany absent exact permission; the possible restored US term ended at 2003-12-31; do not flatten into Edition typography |
 | faithful mechanical capture | `public_domain_reviewed` as no-new-right process in DE/US | scanning adds no separate right, but it transmits the active German design layer |
 | embedded historical OCR text | `public_domain_reviewed` in DE/US | mechanical text recognition adds no literary authorship; correctness and acceptance remain open |
 | exact Commons PDF digital object | `in_copyright` aggregate | current US provider statement does not clear the German design or unresolved package layers |

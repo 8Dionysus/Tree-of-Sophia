@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/rights.json",
-    "rights_record_sha256": "2d4e4b37be7085c460d7325385bafcbe5daf7ce9bea937084f0df8ecd138276f",
+    "rights_record_sha256": "cfedabb460ee5478be7255f4d0eb540bdf765e6c0cf79abedeb705c323e95660",
     "assessment_status": "restricted",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -40,6 +40,11 @@
       "https://www.gesetze-im-internet.de/urhg/__69.html",
       "https://juris.curia.europa.eu/juris/document/document.jsf?docid=306835&doclang=en",
       "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/title17/92chap3.html#304",
+      "https://www.copyright.gov/gatt.html",
+      "https://www.govinfo.gov/content/pkg/USREPORTS-565/pdf/USREPORTS-565-302.pdf",
       "https://www.getty.edu/legal/terms-of-use/"
     ],
     "expires_at": null,
@@ -110,7 +115,7 @@
     "graph_projection": {
       "state": "conditional",
       "conditions": [
-        "Public-safe work, posthumous expression, edition, item, contributor, provenance, catalog-conflict, source-route, eleven-layer rights-status, German term-expiry, and future-reacquisition metadata only."
+        "Public-safe work, posthumous expression, edition, item, contributor, provenance, catalog-conflict, source-route, eleven-layer rights-status, German term-expiry, bounded United States 2003 restored-term endpoint, and future-reacquisition metadata only."
       ]
     }
   },
@@ -129,13 +134,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T07:19:46-06:00"
+    "last_reviewed_at": "2026-08-10T10:30:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.ecce-homo-insel-1908.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.ecce-homo-insel-1908.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": "tos.server-import.ecce-homo-insel-1908-wikimedia-commons-getty-scan-pdf"
 }

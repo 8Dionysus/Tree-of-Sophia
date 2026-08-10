@@ -27,7 +27,8 @@ plus the Naumann 1893 PDF/EPUB fork, the Jenseits 1886 mixed-package boundary,
 the Genealogie 1892 Commons/UNC and Antichrist 1906 Commons/Stanford
 eleven-layer boundaries, and the contrasting five-layer MDZ permission versus
 license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889, plus the
-exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary
+exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary with
+its corrected §104A foreign-work and restored-term route
 and the exact-form recurrence plus question-scoped usage-context foundations
 refreshed 2026-08-02; lived-witness authorship, privacy, provenance, AI-role,
 permission, revision, and the zero-model-download Qwen3-8B CPU translation
