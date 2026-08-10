@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Preserved the first contextual morphology B artifact attempt as an additive,
+  text- and path-free denial receipt without rewriting its digest-bound
+  pre-output plan. The exact ZDL `de_zdl_lg 4.0.0` wheel and 41-wheel CPython
+  3.12 closure were acquired privately under the owner resource gate, but the
+  required signature, model-license evidence, non-local trust root, release
+  lifecycle, full verification, and subject closure did not exist. The exact
+  runtime trust gate denied admission; no runtime was built, no source packet
+  was consumed, and no model output, German judgment, morphology, lemma,
+  lexeme, semantic effect, human task, publication route, or canon effect was
+  created.
 - Reconciled Antonovsky's exact 1900 *Zarathustra* Edition across current RSL,
   RNL, and LNB records. RSL and RNL share the `rc\\1717107` control core,
   transaction value, and bibliography; the crosswalk resolves RSL

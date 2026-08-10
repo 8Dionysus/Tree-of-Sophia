@@ -214,10 +214,16 @@ Zarathustra golden kernel. It is not a completed gold set.
   mode-`0600` packet returns each exact target slice inside two source
   paragraphs and one verse group; the tracked receipt and provenance expose
   only fixity, structure, counts, selection closure, and execution posture.
-  Variant B is admitted but remains unacquired and unexecuted. Variant C is
-  blocked as question-inapplicable because exact and normalized form identity
-  do not differ in this episode. This creates no German-competent gold,
-  morphology acceptance, lemma, lexeme, semantic effect, or human backlog.
+  The later artifact-admission overlay records what happened without rewriting
+  that pre-output freeze: the exact B wheel and its 41-wheel CPython 3.12
+  closure were acquired into private owner cache, but required Cosign evidence,
+  release lifecycle, non-local trust root, verification, and subject-store
+  closure were absent. The exact runtime trust gate therefore denied
+  admission. No runtime was built, no context packet was consumed, and no B
+  output exists. Variant C remains blocked as question-inapplicable because
+  exact and normalized form identity do not differ in this episode. This
+  creates no German-competent gold, morphology acceptance, lemma, lexeme,
+  semantic effect, or human backlog.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic

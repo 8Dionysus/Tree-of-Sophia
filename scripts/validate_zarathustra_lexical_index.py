@@ -58,6 +58,17 @@ MORPHOLOGY_CONTEXT_PROVENANCE_REF = (
     "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
     "provenance.morphology-contextual-episode.selected-form-b.v1.jsonl"
 )
+MORPHOLOGY_CONTEXT_ADMISSION_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "morphology-contextual-episode.selected-form-b.artifact-admission.v1.json"
+)
+MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "provenance.morphology-contextual-episode.selected-form-b."
+    "artifact-admission.v1.jsonl"
+)
 MORPHOLOGY_CONTEXT_GENERATOR_REF = (
     "scripts/build_zarathustra_morphology_context_packet.py"
 )
@@ -82,6 +93,13 @@ MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY = (
     "tokenization, morphology, lemma, lexeme, normalization, sign, "
     "translation, semantic claim, graph fact, canon effect, public route, or "
     "human backlog"
+)
+MORPHOLOGY_CONTEXT_ADMISSION_AUTHORITY_BOUNDARY = (
+    "private artifact acquisition and a fail-closed runtime admission refusal "
+    "only; no ZDL runtime was built, no source-bearing context packet was "
+    "consumed, and no German, morphology, lemma, lexeme, sign, semantic, "
+    "graph, canon, publication, redistribution, or human-review authority is "
+    "created"
 )
 
 
@@ -589,6 +607,11 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
     provenance_path = REPO_ROOT / MORPHOLOGY_CONTEXT_PROVENANCE_REF
     plan = _load_json(plan_path)
     receipt = _load_json(receipt_path)
+    admission_path = REPO_ROOT / MORPHOLOGY_CONTEXT_ADMISSION_REF
+    admission_provenance_path = (
+        REPO_ROOT / MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_REF
+    )
+    admission = _load_json(admission_path)
     _validate_schema(
         plan,
         REPO_ROOT / "ToS/contracts/morphology-contextual-episode-plan.schema.json",
@@ -600,6 +623,12 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         / "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
         label="morphology contextual episode receipt",
     )
+    _validate_schema(
+        admission,
+        REPO_ROOT
+        / "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+        label="morphology contextual artifact admission",
+    )
     provenance_events = _load_provenance(provenance_path)
     if len(provenance_events) != 1:
         raise LexicalIndexValidationError(
@@ -610,6 +639,18 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         provenance,
         REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
         label="morphology contextual episode provenance",
+    )
+    admission_provenance_events = _load_provenance(admission_provenance_path)
+    if len(admission_provenance_events) != 1:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission provenance must contain "
+            "exactly one event"
+        )
+    admission_provenance = admission_provenance_events[0]
+    _validate_schema(
+        admission_provenance,
+        REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
+        label="morphology contextual artifact admission provenance",
     )
 
     prohibited_private_keys = {
@@ -838,6 +879,144 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
             "morphology context provenance unexpectedly claims rights basis"
         )
 
+    admission_question = admission["question"]
+    if admission_question["plan"] != {
+        "ref": MORPHOLOGY_CONTEXT_PLAN_REF,
+        "sha256": plan_digest,
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission plan drift"
+        )
+    if admission_question["context_receipt"] != {
+        "ref": MORPHOLOGY_CONTEXT_RECEIPT_REF,
+        "sha256": receipt_digest,
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission receipt drift"
+        )
+    if (
+        admission_question["private_packet_sha256"] != local_receipt["sha256"]
+        or admission_question["private_packet_bytes"] != local_receipt["bytes"]
+        or admission_question["private_packet_row_count"]
+        != local_receipt["row_count"]
+        or not admission_question["frozen_before_b_output"]
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission packet closure drift"
+        )
+    if (
+        admission["status"]
+        != "artifact-acquired-admission-denied-b-not-run"
+        or admission["variant"] != "B"
+        or admission["authority_boundary"]
+        != MORPHOLOGY_CONTEXT_ADMISSION_AUTHORITY_BOUNDARY
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission status/authority drift"
+        )
+    artifact = admission["artifact_candidate"]
+    if (
+        artifact["principal_wheel"]["sha256"]
+        != "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a"
+        or artifact["principal_wheel"]["bytes"] != 627548130
+        or artifact["principal_wheel_license_status"] != "absent"
+        or artifact["model_metadata_license_status"] != "absent"
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context exact artifact or license posture drift"
+        )
+    acquisition = admission["acquisition"]
+    if (
+        acquisition["status"] != "private-cache-complete"
+        or acquisition["wheel_count"] != 41
+        or acquisition["target_runtime"] != "CPython-3.12-x86_64-linux"
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context private acquisition closure drift"
+        )
+    trust = admission["trust_admission"]
+    expected_deny_reasons = {
+        "no_latest_record",
+        "verification_not_ok",
+        "verification_errors_present",
+        "verification_missing_required_sidecars",
+        "required_controls_not_verified:abi_signature,ml_bom,sbom,"
+        "sigstore_cosign,slsa_in_toto",
+        "production_consumer_requires_non_local_trust_root",
+        "production_consumer_requires_release_lifecycle",
+    }
+    if (
+        trust["trust_gate_verdict"] != "deny"
+        or trust["verification_ok"]
+        or trust["latest_eligible"]
+        or trust["verified_controls"]
+        or trust["signature_status"] != "missing_backend"
+        or set(trust["deny_reasons"]) != expected_deny_reasons
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context fail-closed artifact verdict drift"
+        )
+    if any(admission["execution_effects"].values()):
+        raise LexicalIndexValidationError(
+            "morphology context B execution was claimed after denied admission"
+        )
+    if any(admission["content_boundary"].values()):
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission exposed private content"
+        )
+    if any(
+        value != 0 and value is not False
+        for value in admission["gate_effects"].values()
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context artifact refusal opened a downstream gate"
+        )
+    serialized_admission = json.dumps(
+        admission, ensure_ascii=False, sort_keys=True
+    )
+    if "/srv/" in serialized_admission or "local-content/" in serialized_admission:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission leaked a private path"
+        )
+
+    admission_digest = _sha256_file(admission_path)
+    if admission_provenance["event_id"] != admission["provenance_event_ref"]:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission provenance identity drift"
+        )
+    if (
+        admission_provenance["event_type"] != "rejection"
+        or admission_provenance["status"] != "completed_with_warnings"
+        or admission_provenance["method"]["artifact_digest"]
+        != artifact["principal_wheel"]["sha256"]
+        or admission_provenance["rights_basis_ref"] is not None
+    ):
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission provenance posture drift"
+        )
+    admission_input_pairs = {
+        (entry.get("ref"), entry.get("sha256"))
+        for entry in admission_provenance["inputs"]
+    }
+    required_admission_inputs = {
+        (MORPHOLOGY_CONTEXT_PLAN_REF, plan_digest),
+        (MORPHOLOGY_CONTEXT_RECEIPT_REF, receipt_digest),
+    }
+    if not required_admission_inputs.issubset(admission_input_pairs):
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission provenance input drift"
+        )
+    admission_output_pairs = {
+        (entry.get("ref"), entry.get("sha256"))
+        for entry in admission_provenance["outputs"]
+    }
+    if admission_output_pairs != {
+        (MORPHOLOGY_CONTEXT_ADMISSION_REF, admission_digest)
+    }:
+        raise LexicalIndexValidationError(
+            "morphology context artifact admission provenance output drift"
+        )
+
     return {
         "plan_ref": MORPHOLOGY_CONTEXT_PLAN_REF,
         "plan_sha256": plan_digest,
@@ -848,6 +1027,16 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         "selection": selection,
         "context_summary": receipt["context_summary"],
         "variant_state": receipt["variant_state"],
+        "b_artifact_admission": {
+            "ref": MORPHOLOGY_CONTEXT_ADMISSION_REF,
+            "sha256": admission_digest,
+            "status": admission["status"],
+            "trust_gate_verdict": trust["trust_gate_verdict"],
+            "runtime_built": admission["execution_effects"]["runtime_built"],
+            "model_output_present": admission["execution_effects"][
+                "model_output_present"
+            ],
+        },
         "authority_boundary": MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY,
     }
     if "local-content" not in database_path.parts:

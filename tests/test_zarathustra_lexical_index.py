@@ -42,6 +42,13 @@ MORPHOLOGY_CONTEXT_RECEIPT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
 MORPHOLOGY_CONTEXT_PROVENANCE_PATH = MORPHOLOGY_PLAN_PATH.with_name(
     "provenance.morphology-contextual-episode.selected-form-b.v1.jsonl"
 )
+MORPHOLOGY_CONTEXT_ADMISSION_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "morphology-contextual-episode.selected-form-b.artifact-admission.v1.json"
+)
+MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "provenance.morphology-contextual-episode.selected-form-b."
+    "artifact-admission.v1.jsonl"
+)
 RECURRENCE_PLAN_PATH = PLAN_PATH.with_name("recurrence-plan.v1.json")
 RECURRENCE_PROJECTION_PATH = (
     ROOT / "ToS/derived-exports/lexical-search/"
@@ -115,6 +122,14 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.morphology_context_provenance = json.loads(
             MORPHOLOGY_CONTEXT_PROVENANCE_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_admission = json.loads(
+            MORPHOLOGY_CONTEXT_ADMISSION_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_admission_provenance = json.loads(
+            MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            )
         )
         cls.recurrence_plan = json.loads(
             RECURRENCE_PLAN_PATH.read_text(encoding="utf-8")
@@ -976,6 +991,59 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             self.validation["morphology_context"]["receipt_sha256"],
             hashlib.sha256(MORPHOLOGY_CONTEXT_RECEIPT_PATH.read_bytes()).hexdigest(),
         )
+
+    def test_morphology_context_b_artifact_denial_is_retained_without_run(self) -> None:
+        schema = json.loads(
+            (
+                ROOT
+                / "ToS/contracts/"
+                "morphology-contextual-artifact-admission.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        provenance_schema = json.loads(
+            (ROOT / "ToS/contracts/provenance-event.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        admission = self.morphology_context_admission
+        self.assertEqual(
+            [], list(Draft202012Validator(schema).iter_errors(admission))
+        )
+        self.assertEqual(
+            [],
+            list(
+                Draft202012Validator(provenance_schema).iter_errors(
+                    self.morphology_context_admission_provenance
+                )
+            ),
+        )
+        self.assertEqual(
+            "artifact-acquired-admission-denied-b-not-run",
+            admission["status"],
+        )
+        self.assertEqual("private-cache-complete", admission["acquisition"]["status"])
+        self.assertEqual("deny", admission["trust_admission"]["trust_gate_verdict"])
+        self.assertFalse(admission["trust_admission"]["verification_ok"])
+        self.assertEqual([], admission["trust_admission"]["verified_controls"])
+        self.assertTrue(
+            all(value is False for value in admission["execution_effects"].values())
+        )
+        self.assertTrue(
+            all(value is False for value in admission["content_boundary"].values())
+        )
+        self.assertEqual(
+            hashlib.sha256(MORPHOLOGY_CONTEXT_ADMISSION_PATH.read_bytes()).hexdigest(),
+            self.validation["morphology_context"]["b_artifact_admission"]["sha256"],
+        )
+        tracked = (
+            MORPHOLOGY_CONTEXT_ADMISSION_PATH.read_text(encoding="utf-8")
+            + MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertNotIn("/srv/", tracked)
+        self.assertNotIn("local-content/", tracked)
+        self.assertNotIn("wieder", tracked)
 
     def test_morphology_context_tracked_files_withhold_private_rows(self) -> None:
         plan = self.morphology_context_plan

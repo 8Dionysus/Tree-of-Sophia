@@ -1,0 +1,131 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+  "schema_version": "tos_morphology_contextual_artifact_admission_v1",
+  "generated_or_authored": "authored_from_owner_local_receipts",
+  "receipt_id": "morphology-contextual-artifact-admission:zarathustra-selected-form-b.zdl-de-zdl-lg-4.0.0.v1",
+  "recorded_at_utc": "2026-08-10T23:04:21Z",
+  "status": "artifact-acquired-admission-denied-b-not-run",
+  "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+  "experiment_id": "tos-historical-german-morphology-v1",
+  "variant": "B",
+  "question": {
+    "plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+      "sha256": "73a88433cda008de222f288027d4ac2fc1a97357a47a5a0e99d9e67f95a34785"
+    },
+    "context_receipt": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+      "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+    },
+    "private_packet_sha256": "d82a2d81b370f3131fb56e0b1328866120cb3313903ffdf115debb4f0e34aa66",
+    "private_packet_bytes": 5203,
+    "private_packet_row_count": 3,
+    "frozen_before_b_output": true
+  },
+  "runtime_owner": {
+    "owner": "abyss-stack",
+    "implementation_commit": "c7e7f179b9ad962223a4113168420e5a582531db",
+    "admission_record_commit": "b79548348f0b515a6e2145103bc9a0c0524adadb",
+    "runtime_profile_id": "tos-zdl-contextual-morphology-b-v1"
+  },
+  "artifact_candidate": {
+    "model_id": "de_zdl_lg",
+    "version": "4.0.0",
+    "source_commit": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4",
+    "principal_wheel": {
+      "filename": "de_zdl_lg-4.0.0-py3-none-any.whl",
+      "bytes": 627548130,
+      "sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a"
+    },
+    "spacy_version": "3.8.11",
+    "source_code_license": "GPL-3.0-only",
+    "principal_wheel_license_status": "absent",
+    "model_metadata_license_status": "absent",
+    "training_source_metadata_status": "heterogeneous-upstream-terms-not-embedded-as-one-wheel-license"
+  },
+  "acquisition": {
+    "status": "private-cache-complete",
+    "captured_at_utc": "2026-08-10T23:00:49.376430+00:00",
+    "target_runtime": "CPython-3.12-x86_64-linux",
+    "wheel_count": 41,
+    "wheel_set_sha256": "f299891b1aeb1836cc32167486cea72baaf8235ab749413518d495480eba5246",
+    "requirements_lock_sha256": "31ddb32e4db6148faffff79c0e0843bbaf34c34a193be641ce88fa01687a8064",
+    "resource_plan": "medium/indexing",
+    "elapsed_seconds": 356.746,
+    "memory_peak_reported": "2.1G",
+    "swap_peak_reported": "0B",
+    "failed_attempt_count": 1,
+    "acquisition_receipt_sha256": "b20c44528cccc8d4ad9d4f371b32681022d7d9885d9303c94517267edc505412"
+  },
+  "trust_admission": {
+    "artifact_class": "ai_model_or_runtime_bundle",
+    "consumer_intent": "runtime",
+    "lifecycle_state": "candidate",
+    "latest_eligible": false,
+    "trust_root_mode": "local_dev",
+    "record_id": "sha256:831a652a19516d594c22e91ee9f6aa814dd9dea732ae07eb269d4239d7de31a4",
+    "record_sha256": "7b66098baab69d6d328931dce8c724f2200d4d7b0c4379c426f1b7a15a3b8728",
+    "subject_digest": "sha256:10311df82c9e896f444d3de50b3d8a94c091e9a582f8025dbe2374c9490a4601",
+    "required_controls": [
+      "abi_signature",
+      "sbom",
+      "ml_bom",
+      "slsa_in_toto",
+      "sigstore_cosign"
+    ],
+    "present_controls": [
+      "abi_signature",
+      "sbom",
+      "ml_bom",
+      "slsa_in_toto"
+    ],
+    "verified_controls": [],
+    "signature_status": "missing_backend",
+    "verification_ok": false,
+    "verification_receipt_sha256": "dfd4050626fc0a2e3b8e29170759a19ab11d88190ef7c0f5c9ff1d4691de3474",
+    "bundle_manifest_owner_tracked": false,
+    "subject_store_complete": false,
+    "trust_gate_verdict": "deny",
+    "deny_reasons": [
+      "no_latest_record",
+      "verification_not_ok",
+      "verification_errors_present",
+      "verification_missing_required_sidecars",
+      "required_controls_not_verified:abi_signature,ml_bom,sbom,sigstore_cosign,slsa_in_toto",
+      "production_consumer_requires_non_local_trust_root",
+      "production_consumer_requires_release_lifecycle"
+    ]
+  },
+  "execution_effects": {
+    "runtime_built": false,
+    "private_packet_consumed": false,
+    "model_invoked": false,
+    "model_output_present": false,
+    "quality_measured": false,
+    "cost_speed_execution_measured": false
+  },
+  "content_boundary": {
+    "source_text_tracked": false,
+    "context_tracked": false,
+    "model_output_tracked": false,
+    "private_paths_tracked": false
+  },
+  "rights_and_visibility": {
+    "environment": "owner-local-only",
+    "use": "private-non-commercial-research",
+    "artifact_redistribution_authorized": false,
+    "public_serving_authorized": false,
+    "manual_license_review_required": true
+  },
+  "gate_effects": {
+    "accepted_german_units": 0,
+    "accepted_morphology_count": 0,
+    "accepted_lemma_count": 0,
+    "accepted_lexeme_count": 0,
+    "human_tasks_created": 0,
+    "semantic_effects_created": 0,
+    "graph_or_canon_promotion_authorized": false
+  },
+  "provenance_event_ref": "tos.event.rejection.zarathustra-morphology-context-b-zdl-artifact.2026-08-10",
+  "authority_boundary": "private artifact acquisition and a fail-closed runtime admission refusal only; no ZDL runtime was built, no source-bearing context packet was consumed, and no German, morphology, lemma, lexeme, sign, semantic, graph, canon, publication, redistribution, or human-review authority is created"
+}

@@ -23,6 +23,7 @@ judgment true.
 | `morphology-contextual-episode-plan.schema.json` | additive one-question morphology follow-up that binds a concrete A ambiguity, complete source recurrence, output-blind first/median/last selection, B-only relevance, local context route, rights and competence gates, and zero semantic or human-backlog effect |
 | `morphology-contextual-episode-row.schema.json` | private exact raw-TEI context row with one selected occurrence, composite source selectors, exact target offsets, unchanged historical input, and no accepted linguistic authority |
 | `morphology-contextual-episode-receipt.schema.json` | tracked text- and position-free receipt for the private contextual packet, proving trigger, selection, source-return and variant-state closure while B remains unacquired and C question-inapplicable |
+| `morphology-contextual-artifact-admission.schema.json` | additive source- and path-free record of exact private artifact acquisition, rights metadata gaps, owner resource cost, required/present/verified trust controls, fail-closed runtime admission, and zero execution or linguistic/semantic effect without rewriting the frozen pre-output plan |
 | `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
 | `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
 | `numbered-unit-page-map.schema.json` | text-free source-only numbered-unit start-page candidates bound to one exact scan package, its PDF/DjVu/ABBYY inventories, proposed whole-page anchors, explicit review basis, and no textual or critical-edition acceptance |
@@ -272,6 +273,11 @@ A schema validator can establish that:
 - a morphology input receipt can bind a private JSONL packet to the exact
   local lexical database and tracked source-withholding projection while
   exposing only aggregate counts and digests in Git.
+- a later morphology artifact-admission receipt must remain additive: it may
+  prove exact private acquisition and preserve a denied trust verdict, but it
+  cannot rewrite the pre-output plan, turn an unverified candidate into a
+  runtime, consume source content after denial, or claim quality from download
+  cost.
 
 It cannot establish that:
 

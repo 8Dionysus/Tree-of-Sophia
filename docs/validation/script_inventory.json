@@ -973,15 +973,23 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-plan.v1.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-receipt.v1.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/usage-context-provenance.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.v1.jsonl",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.artifact-admission.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.morphology-contextual-episode.selected-form-b.artifact-admission.v1.jsonl",
         "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json",
         "ToS/contracts/lexical-index-plan.schema.json",
         "ToS/contracts/lexical-index-projection.schema.json",
         "ToS/contracts/lexical-usage-context-plan.schema.json",
         "ToS/contracts/lexical-usage-context-receipt.schema.json",
+        "ToS/contracts/morphology-contextual-episode-plan.schema.json",
+        "ToS/contracts/morphology-contextual-episode-receipt.schema.json",
+        "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
         "ToS/contracts/provenance-event.schema.json"
       ],
       "reads": [
-        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, resource inventories, and the question-scoped usage-context plan/receipt/provenance; optional explicit local SQLite root"
+        "tracked lexical plan, hash/count/resource projection, provenance, source manifests, rights records, resource inventories, question-scoped usage-context evidence, the output-blind morphology-context freeze, and the later source-free artifact admission refusal; optional explicit local SQLite root"
       ],
       "writes": [],
       "side_effects": "validation output only",

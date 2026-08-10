@@ -105,21 +105,26 @@ confounded with the primary OCR question.
 
 `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` owns the exact research,
 artifact evidence, layer contract, and future experiment law. The shared
-identity control makes no lexical claim.
+identity control makes no lexical claim. Its digest-bound pre-output state is
+immutable; `HISTORICAL_GERMAN_MORPHOLOGY_B_ARTIFACT_ADMISSION_2026-08-10.md`
+records the later private acquisition and denied runtime admission additively.
 
 | Route | Exact candidate | State | First question | Principal boundary |
 | --- | --- | --- | --- | --- |
 | control | exact historical surface, unchanged | baseline | how much did a method change and was the change necessary? | no lemma or normalization claim |
 | A | DWDSmor Open `0.18.0` | exhaustive source-gated census executed twice with byte-identical streams; retained private raw output and text-free aggregate receipt | which candidate analyses can an explainable FST recover directly? | 6,610 / 11,352 type coverage and 75,872 / 86,287 token-weighted coverage are mechanics, not accuracy; preserve all analyses and unknowns; no contextual winner |
-| B | ZDL `de_zdl_lg 4.0.0` CPU | conditional | does modern contextual analysis resolve ambiguity on unchanged historical text? | artifact/data-license audit and domain-shift test first |
+| B | ZDL `de_zdl_lg 4.0.0` CPU | exact artifact privately acquired; runtime admission denied; not run | does modern contextual analysis resolve ambiguity on unchanged historical text? | principal wheel/model license metadata absent; required signature, non-local trust root, release lifecycle, full verification, and subject closure remain unsatisfied |
 | C | DTAEC type normalizer revision `bf13bc367ff08a91983eeb44002f48a2e713b28b` -> exact B | research-only conditional | does historical normalization improve B enough to justify information loss and cost? | weights/data derivative-rights ambiguity; every edit and original surface retained |
 | DTA-CAB / RNNTagger | reference/watchlist | defer | later historical-system control if A/B/C expose a distinct gap | license, 3.6 GB package, and earlier-language-stage mismatch |
 | LLM-only lemma | fluent-proposal watchlist | exclude first wave | none | missing/hallucinated tokens and persuasive forced answers |
 
-Only A has been acquired and executed, in an isolated owner runtime over the
-frozen whole-vocabulary packet. B and C remain unacquired and unmaterialized.
-No German-competent gold, accepted morphology, lemma, `lexeme_id`, sign,
-semantic claim, translation decision, or graph effect exists. Machine
+Only A has been admitted and executed, in an isolated owner runtime over the
+frozen whole-vocabulary packet. B's exact dependency closure is now acquired
+privately, but its fail-closed artifact gate denied runtime admission before a
+runtime was built or a source-bearing packet was consumed. C remains
+unacquired and question-inapplicable to the frozen B episode. No
+German-competent gold, accepted morphology, lemma, `lexeme_id`, sign, semantic
+claim, translation decision, or graph effect exists. Machine
 coverage and agreement remain proposals, not linguistic acceptance.
 
 ## Alignment of editions and translations

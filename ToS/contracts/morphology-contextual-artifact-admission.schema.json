@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-artifact-admission.schema.json",
+  "title": "Tree of Sophia contextual morphology artifact admission receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "recorded_at_utc",
+    "status",
+    "work_ref",
+    "experiment_id",
+    "variant",
+    "question",
+    "runtime_owner",
+    "artifact_candidate",
+    "acquisition",
+    "trust_admission",
+    "execution_effects",
+    "content_boundary",
+    "rights_and_visibility",
+    "gate_effects",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-artifact-admission.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_morphology_contextual_artifact_admission_v1"
+    },
+    "generated_or_authored": {
+      "const": "authored_from_owner_local_receipts"
+    },
+    "receipt_id": {
+      "const": "morphology-contextual-artifact-admission:zarathustra-selected-form-b.zdl-de-zdl-lg-4.0.0.v1"
+    },
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "status": {"const": "artifact-acquired-admission-denied-b-not-run"},
+    "work_ref": {
+      "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    "experiment_id": {"const": "tos-historical-german-morphology-v1"},
+    "variant": {"const": "B"},
+    "question": {"$ref": "#/$defs/question"},
+    "runtime_owner": {"$ref": "#/$defs/runtimeOwner"},
+    "artifact_candidate": {"$ref": "#/$defs/artifactCandidate"},
+    "acquisition": {"$ref": "#/$defs/acquisition"},
+    "trust_admission": {"$ref": "#/$defs/trustAdmission"},
+    "execution_effects": {"$ref": "#/$defs/executionEffects"},
+    "content_boundary": {"$ref": "#/$defs/contentBoundary"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "gate_effects": {"$ref": "#/$defs/gateEffects"},
+    "provenance_event_ref": {
+      "const": "tos.event.rejection.zarathustra-morphology-context-b-zdl-artifact.2026-08-10"
+    },
+    "authority_boundary": {"type": "string", "minLength": 160}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sha256Id": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"pattern": "^/|(^|/)\\.\\.(/|$)"}
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan",
+        "context_receipt",
+        "private_packet_sha256",
+        "private_packet_bytes",
+        "private_packet_row_count",
+        "frozen_before_b_output"
+      ],
+      "properties": {
+        "plan": {"$ref": "#/$defs/refDigest"},
+        "context_receipt": {"$ref": "#/$defs/refDigest"},
+        "private_packet_sha256": {"$ref": "#/$defs/sha256"},
+        "private_packet_bytes": {"const": 5203},
+        "private_packet_row_count": {"const": 3},
+        "frozen_before_b_output": {"const": true}
+      }
+    },
+    "runtimeOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "implementation_commit",
+        "admission_record_commit",
+        "runtime_profile_id"
+      ],
+      "properties": {
+        "owner": {"const": "abyss-stack"},
+        "implementation_commit": {"$ref": "#/$defs/commit"},
+        "admission_record_commit": {"$ref": "#/$defs/commit"},
+        "runtime_profile_id": {"const": "tos-zdl-contextual-morphology-b-v1"}
+      }
+    },
+    "artifactCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "version",
+        "source_commit",
+        "principal_wheel",
+        "spacy_version",
+        "source_code_license",
+        "principal_wheel_license_status",
+        "model_metadata_license_status",
+        "training_source_metadata_status"
+      ],
+      "properties": {
+        "model_id": {"const": "de_zdl_lg"},
+        "version": {"const": "4.0.0"},
+        "source_commit": {"$ref": "#/$defs/commit"},
+        "principal_wheel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["filename", "bytes", "sha256"],
+          "properties": {
+            "filename": {"const": "de_zdl_lg-4.0.0-py3-none-any.whl"},
+            "bytes": {"const": 627548130},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "spacy_version": {"const": "3.8.11"},
+        "source_code_license": {"const": "GPL-3.0-only"},
+        "principal_wheel_license_status": {"const": "absent"},
+        "model_metadata_license_status": {"const": "absent"},
+        "training_source_metadata_status": {
+          "const": "heterogeneous-upstream-terms-not-embedded-as-one-wheel-license"
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "captured_at_utc",
+        "target_runtime",
+        "wheel_count",
+        "wheel_set_sha256",
+        "requirements_lock_sha256",
+        "resource_plan",
+        "elapsed_seconds",
+        "memory_peak_reported",
+        "swap_peak_reported",
+        "failed_attempt_count",
+        "acquisition_receipt_sha256"
+      ],
+      "properties": {
+        "status": {"const": "private-cache-complete"},
+        "captured_at_utc": {"type": "string", "format": "date-time"},
+        "target_runtime": {"const": "CPython-3.12-x86_64-linux"},
+        "wheel_count": {"const": 41},
+        "wheel_set_sha256": {"$ref": "#/$defs/sha256"},
+        "requirements_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "resource_plan": {"const": "medium/indexing"},
+        "elapsed_seconds": {"type": "number", "minimum": 0},
+        "memory_peak_reported": {"const": "2.1G"},
+        "swap_peak_reported": {"const": "0B"},
+        "failed_attempt_count": {"const": 1},
+        "acquisition_receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "trustAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_class",
+        "consumer_intent",
+        "lifecycle_state",
+        "latest_eligible",
+        "trust_root_mode",
+        "record_id",
+        "record_sha256",
+        "subject_digest",
+        "required_controls",
+        "present_controls",
+        "verified_controls",
+        "signature_status",
+        "verification_ok",
+        "verification_receipt_sha256",
+        "bundle_manifest_owner_tracked",
+        "subject_store_complete",
+        "trust_gate_verdict",
+        "deny_reasons"
+      ],
+      "properties": {
+        "artifact_class": {"const": "ai_model_or_runtime_bundle"},
+        "consumer_intent": {"const": "runtime"},
+        "lifecycle_state": {"const": "candidate"},
+        "latest_eligible": {"const": false},
+        "trust_root_mode": {"const": "local_dev"},
+        "record_id": {"$ref": "#/$defs/sha256Id"},
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "subject_digest": {"$ref": "#/$defs/sha256Id"},
+        "required_controls": {
+          "const": [
+            "abi_signature",
+            "sbom",
+            "ml_bom",
+            "slsa_in_toto",
+            "sigstore_cosign"
+          ]
+        },
+        "present_controls": {
+          "const": ["abi_signature", "sbom", "ml_bom", "slsa_in_toto"]
+        },
+        "verified_controls": {"const": []},
+        "signature_status": {"const": "missing_backend"},
+        "verification_ok": {"const": false},
+        "verification_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "bundle_manifest_owner_tracked": {"const": false},
+        "subject_store_complete": {"const": false},
+        "trust_gate_verdict": {"const": "deny"},
+        "deny_reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "executionEffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_built",
+        "private_packet_consumed",
+        "model_invoked",
+        "model_output_present",
+        "quality_measured",
+        "cost_speed_execution_measured"
+      ],
+      "properties": {
+        "runtime_built": {"const": false},
+        "private_packet_consumed": {"const": false},
+        "model_invoked": {"const": false},
+        "model_output_present": {"const": false},
+        "quality_measured": {"const": false},
+        "cost_speed_execution_measured": {"const": false}
+      }
+    },
+    "contentBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_text_tracked",
+        "context_tracked",
+        "model_output_tracked",
+        "private_paths_tracked"
+      ],
+      "properties": {
+        "source_text_tracked": {"const": false},
+        "context_tracked": {"const": false},
+        "model_output_tracked": {"const": false},
+        "private_paths_tracked": {"const": false}
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "use",
+        "artifact_redistribution_authorized",
+        "public_serving_authorized",
+        "manual_license_review_required"
+      ],
+      "properties": {
+        "environment": {"const": "owner-local-only"},
+        "use": {"const": "private-non-commercial-research"},
+        "artifact_redistribution_authorized": {"const": false},
+        "public_serving_authorized": {"const": false},
+        "manual_license_review_required": {"const": true}
+      }
+    },
+    "gateEffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted_german_units",
+        "accepted_morphology_count",
+        "accepted_lemma_count",
+        "accepted_lexeme_count",
+        "human_tasks_created",
+        "semantic_effects_created",
+        "graph_or_canon_promotion_authorized"
+      ],
+      "properties": {
+        "accepted_german_units": {"const": 0},
+        "accepted_morphology_count": {"const": 0},
+        "accepted_lemma_count": {"const": 0},
+        "accepted_lexeme_count": {"const": 0},
+        "human_tasks_created": {"const": 0},
+        "semantic_effects_created": {"const": 0},
+        "graph_or_canon_promotion_authorized": {"const": false}
+      }
+    }
+  }
+}
