@@ -383,6 +383,11 @@ NAUMANN_1893_PROVISION_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md"
 )
+NAUMANN_1893_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 NAUMANN_1893_PUBLISHER_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/organizations/"
@@ -2252,7 +2257,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "local_research_only", item_rights["derivative_posture"]
             )
             self.assertEqual("unreviewed", item_rights["review_status"])
-            self.assertEqual(3, item_rights["record_version"])
+            self.assertEqual(4, item_rights["record_version"])
+            self.assertIn(
+                "https://www.copyright.gov/title17/92chap1.html#104a",
+                item_rights["source_refs"],
+            )
 
         pdf_layers = {
             layer["layer_id"].rsplit(".layer.", 1)[1]: layer
@@ -2278,6 +2287,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             "copyright_undetermined", pdf_layers["metadata"]["assessment_status"]
         )
+        for layer_name in {
+            "original-work",
+            "peter-gast-preface",
+            "edition-presentation",
+            "portrait",
+            "letter-facsimile",
+        }:
+            self.assertIn("§104A", pdf_layers[layer_name]["rationale"])
 
         epub_layers = {
             layer["layer_id"].rsplit(".layer.", 1)[1]: layer
@@ -2295,6 +2312,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "copyright_undetermined",
             epub_layers["package-navigation-style"]["assessment_status"],
         )
+        for layer_name in {
+            "original-work",
+            "peter-gast-preface",
+            "edition-presentation",
+            "automatic-ocr-text",
+        }:
+            self.assertIn("§104A", epub_layers[layer_name]["rationale"])
         self.assertTrue(
             any(
                 "Uebersetzungsrecht vorbehalten" in row
@@ -2305,6 +2329,51 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         research = NAUMANN_1893_PROVISION_RESEARCH_PATH.read_text(encoding="utf-8")
         self.assertIn("one universal", research)
         self.assertIn("historical rights statement", research)
+        rights_research = NAUMANN_1893_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("domestic pre-1931", rights_research)
+        self.assertIn("17 U.S.C. §104A", rights_research)
+        self.assertIn("only a JavaScript shell", rights_research)
+
+        pdf_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "naumann-1893-image-pdf.server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+        epub_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "naumann-1893-auto-epub.server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+        for plan, rights_path in (
+            (
+                pdf_plan,
+                NAUMANN_1893_EDITION_ROOT
+                / "items/internet-archive-image-container-pdf/rights.json",
+            ),
+            (
+                epub_plan,
+                NAUMANN_1893_EDITION_ROOT
+                / "items/internet-archive-cornell-auto-epub/rights.json",
+            ),
+        ):
+            self.assertEqual(3, plan["contract_version"])
+            self.assertEqual("metadata-only", plan["publication_status"])
+            self.assertFalse(plan["payload_transfer_authorized"])
+            self.assertFalse(plan["operator_transfer_approval"]["approved"])
+            self.assertEqual(
+                hashlib.sha256(rights_path.read_bytes()).hexdigest(),
+                plan["rights_policy"]["rights_record_sha256"],
+            )
+            self.assertIn(
+                "https://www.copyright.gov/title17/92chap1.html#104a",
+                plan["rights_policy"]["permission_or_license_refs"],
+            )
 
     def test_jenseits_1886_provision_separates_publisher_and_printer(
         self,

@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/rights.json",
-    "rights_record_sha256": "87fc928d4509e88bac9fedc1f3a640d0ece4145a18e186a6c489ee7992e746b5",
+    "rights_record_sha256": "c722effe1f89005fec7152a5c3bce7c640e1eb9bd93e3e1322fd76368a4f2aec",
     "assessment_status": "public-domain-reviewed",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -33,6 +33,8 @@
       "http://creativecommons.org/publicdomain/mark/1.0/",
       "https://archive.org/about/terms",
       "https://www.copyright.gov/comp3/",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html",
       "https://blog.sbb.berlin/wp-content/uploads/LiD25_Bildrechte.pdf",
       "https://pro.deutsche-digitale-bibliothek.de/daten-liefern/teilnahmekriterien/rechtliches/das-urheberrecht-digitalen-abbildungen"
     ],
@@ -123,13 +125,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T03:31:13-06:00"
+    "last_reviewed_at": "2026-08-10T09:20:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.naumann-1893-image-pdf.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.naumann-1893-image-pdf.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": null
 }

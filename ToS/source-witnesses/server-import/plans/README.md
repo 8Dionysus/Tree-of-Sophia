@@ -19,10 +19,16 @@ operator-held bytes remain local and the plan stays blocked, metadata-only,
 and unapproved. The automatic EPUB remains rights-unknown at plan level: its
 historical and mechanical layers are positive, while the later Internet
 Archive notice and born-digital package layers prevent an aggregate clearance.
-Neither plan permits uploading the local file. A future PDF must be separately
-reacquired and reviewed; a future EPUB must be newly built from an accepted
-rights-positive source, not treated as cleared by removing the conflicting
-package material.
+The independent United States historical-layer route uses 17 U.S.C. §104A's
+source-country-term condition rather than the domestic pre-1931 shorthand.
+All reviewed historical German terms ended before possible 1996 restoration,
+but this correction changes neither plan's aggregate result. The exact PDM
+remained current on 2026-08-10; the live Internet Archive terms route returned
+only a JavaScript shell, so the substantive 2026-08-02 terms capture remains
+historical evidence and the human rights gate stays closed. Neither plan
+permits uploading the local file. A future PDF must be separately reacquired
+and reviewed; a future EPUB must be newly built from an accepted rights-positive
+source, not treated as cleared by removing the conflicting package material.
 
 The four DTA TEIs bring the plan set to nine. Current DTA terms and all four
 live TEI headers provide positive CC BY-SA evidence. Their layer-specific

@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/rights.json",
-    "rights_record_sha256": "36e50cec75c092d79de0a4b3f0bfe65414fca3b1fb47bc260a7f19f13fe5212b",
+    "rights_record_sha256": "2eefad7531e4d872ad9f1c92909d7eff5c82064f11bd25a044bd28965c5ea4fd",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -33,6 +33,8 @@
       "http://creativecommons.org/publicdomain/mark/1.0/",
       "https://archive.org/about/terms",
       "https://www.copyright.gov/comp3/",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html",
       "https://creativecommons.org/2025/07/09/recommended-licenses-and-tools-for-cultural-heritage-content/"
     ],
     "expires_at": null,
@@ -122,13 +124,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T03:31:13-06:00"
+    "last_reviewed_at": "2026-08-10T09:20:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.naumann-1893-auto-epub.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.naumann-1893-auto-epub.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": null
 }

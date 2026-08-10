@@ -491,12 +491,19 @@ reported catalog metadata is not folded into that result. The automatic EPUB
 retains positive historical, OCR, and extracted-image evidence but also
 contains a later 2023 Internet Archive notice with no reuse license, plus
 unresolved package, navigation, style, and metadata layers, so its aggregate
-status is `conflicting_evidence`. Both operator-held files remain `local_only`,
-redistribution `not_authorized`, derivatives `local_research_only`, and
-unapproved for server transfer. A future public PDF candidate must be
-independently reacquired and reviewed; a future EPUB must be newly built from
-an accepted rights-positive source rather than obtained by stripping or
-republishing this package.
+status is `conflicting_evidence`. Because the Edition is a German foreign
+work, the independent United States historical-layer result now follows 17
+U.S.C. §104A's source-country-term condition rather than the domestic pre-1931
+shortcut; every reviewed historical German term ended before possible 1996
+restoration. This correction changes neither aggregate Item result. The exact
+PDM was reconfirmed on 2026-08-10, while the current Internet Archive terms
+route yielded only a JavaScript shell, so the substantive 2026-08-02 capture
+remains historical evidence and all human/server gates stay closed. Both
+operator-held files remain `local_only`, redistribution `not_authorized`,
+derivatives `local_research_only`, and unapproved for server transfer. A
+future public PDF candidate must be independently reacquired and reviewed; a
+future EPUB must be newly built from an accepted rights-positive source rather
+than obtained by stripping or republishing this package.
 
 The 1913 scan likewise preserves the source provider's public-domain
 declaration as positive rights evidence rather than flattening it into either

@@ -4,7 +4,8 @@ Status: model-authored rights research; exact upstream objects and local
 fixity reconciled; no legal advice, human rights review, source-text
 acceptance, operator transfer approval, or publication decision
 
-Research snapshot: 2026-08-02
+Research snapshot: 2026-08-02; United States foreign-work route corrected and
+exact live provider/law surfaces rechecked 2026-08-10
 
 ## Question
 
@@ -50,6 +51,17 @@ the operator's rule that local research files are never uploaded to the site.
 It also does not satisfy the server protocol's human rights-review and explicit
 operator-approval gates.
 
+The aggregate outcomes are unchanged by the 2026-08-10 correction, but the
+independent United States reasoning is now explicit. This German publication
+cannot be cleared merely by applying the domestic pre-1931 shorthand. Under
+17 U.S.C. §104A, a foreign work whose protection had already expired in its
+source country before the possible 1996 restoration date fails the restored-
+work source-country condition. The reviewed German terms for Nietzsche's Work,
+Köselitz's preface, and the conservative historical Edition, portrait, and
+letter routes all ended before 1996. The scan and automatic-OCR conclusions
+still require the separate no-new-authorship analysis; §104A does not itself
+clear a modern digital contribution.
+
 ## Exact objects and current response evidence
 
 | Object or response | Fixity / observation |
@@ -61,6 +73,11 @@ operator-approval gates.
 | exact `EPUB/notice.html` member | 1,986 bytes; SHA-256 `bb6edf2e822014f89bca58820da41d2b2d0e5dd28fe155a8a355f7c1b028b783`; normalized content fingerprint `cec5fe4adc9e1c7f645fad978c343f57a4027f6d6f6c4db4fda988c49bd503cb` |
 | current U.S. Circular 15A | April 2026; 273,867 bytes; SHA-256 `6ff3c5612e1cd56469b3eb7d35eba7fd3374843d82744c63ab909225f53b7aef` |
 | current governing U.S. Compendium chapter 300 | January 2021 governing version, still current in 2026; 641,671 bytes; SHA-256 `363f7898364800c62b7a8457133955df3884cf5950510abaffecf656bd39c37d` |
+| exact Internet Archive metadata response, current recheck | 9,019 bytes; SHA-256 `456fdfe5fbd735cc406eeeba465b102b25a5dfaba9f3748b22de7a56a59d7e3d`; captured 2026-08-10; `metadata.licenseurl` still reports PDM 1.0; no response body retained |
+| exact Internet Archive details response, current recheck | 213,100 bytes; SHA-256 `3306623122e2d642f67e9ca2749ec15ce9b0f49e3f26c0e7cc22ed58f5289cea`; captured 2026-08-10; still exposes Public Domain Mark; no response body retained |
+| current Internet Archive terms route, access-limited recheck | 1,872-byte JavaScript shell; SHA-256 `61553217f5c24b566b04b2b27b9a90dc313f623d87a9ca11b2310ade3e1b5eac`; captured 2026-08-10; the substantive 2026-08-02 capture remains historical evidence rather than being falsely reconfirmed |
+| current U.S. Copyright Act chapter 1 response | SHA-256 `97999d678e2877c8142da81a0dce819b210e9f92aa5a405d130bf2f2e50c7d75`; captured 2026-08-10; §104A source-country condition rechecked; no response body retained |
+| current Copyright Office URAA/GATT response | SHA-256 `521b79434713074095a59d2cba609ea4cdbacd182b4fb77537b0cea72e8e4d5a`; captured 2026-08-10; 1996 restoration route rechecked; no response body retained |
 
 The exact upstream Item is
 [`NietzscheAlsoSprachZarathustra1893`](https://archive.org/details/NietzscheAlsoSprachZarathustra1893),
@@ -146,8 +163,27 @@ PDM, not on an overbroad reading of Article 14.
 
 The Copyright Office's April 2026
 [Circular 15A](https://www.copyright.gov/circs/circ15a.pdf) places all works
-published in the United States before 1931 in the public domain. That cutoff
-comfortably includes every historical 1893 layer in the reviewed U.S. route.
+published in the United States before 1931 in the public domain. This Edition
+was first published in Germany, however, so that domestic cutoff is context,
+not an independent foreign-work conclusion.
+
+[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html#104a) defines
+the restored-work route and excludes a work already in the public domain in
+its source country through expiration of term. The Copyright Office's current
+[URAA/GATT overview](https://www.copyright.gov/gatt.html) identifies January 1,
+1996 as the restoration date for works from then-eligible Berne/WTO countries.
+Germany is the source country for this first-published German Edition. By then:
+
+- Nietzsche's ordinary German Work and letter term had ended in 1970;
+- Köselitz's preface term had ended in 1988;
+- even the deliberately conservative anonymous historical-presentation and
+  portrait route had ended in 1963, while any applicable photographic or
+  scientific-edition term stated above ended no later.
+
+Each reviewed historical layer therefore fails §104A's source-country-
+protection condition. This source-country analysis—not the domestic pre-1931
+shorthand—is the independent United States basis. It does not determine
+whether the modern scan or OCR contains new authorship.
 
 The Copyright Office's [Compendium, Third
 Edition](https://www.copyright.gov/comp3/) remains the governing administrative
@@ -192,12 +228,17 @@ and align with the exact Item's PDM and the U.S. mere-copy rule.
 The current snapshot adds several signals that were not safely replaceable by
 older assumptions:
 
-1. Internet Archive's exact metadata still exposes the PDM in August 2026 and
-   still identifies the PDF as original and the EPUB as derivative.
-2. The current terms surface still gives no blanket Internet Archive license
-   or warranty for uploaded or generated content.
-3. The current U.S. public-domain cutoff is 1931 following the April 2026
-   Circular 15A revision.
+1. Internet Archive's exact metadata still exposes the PDM through
+   `metadata.licenseurl` in August 2026 and still identifies the PDF as original
+   and the EPUB as a derivative of ABBYY output.
+2. The current details page still exposes the PDM, but the 2026-08-10 terms
+   route yielded only a JavaScript shell. The substantive 2026-08-02 terms
+   capture remains historical evidence and is not represented as freshly
+   reconfirmed; this access limitation reinforces the closed human/server
+   gates without changing either aggregate Item decision.
+3. Current 17 U.S.C. §104A and the Copyright Office URAA/GATT overview retain
+   the source-country-protection condition and 1996 restoration route. The
+   April 2026 Circular 15A domestic cutoff is not substituted for that route.
 4. Creative Commons' 2025
    [cultural-heritage guidance](https://creativecommons.org/2025/07/09/recommended-licenses-and-tools-for-cultural-heritage-content/)
    explicitly separates public-domain originals, faithful reproductions,
