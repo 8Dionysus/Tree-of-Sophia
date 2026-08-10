@@ -542,7 +542,9 @@ quality evidence, not as its own linguistic acceptance. The current DTA terms
 and TEI headers report CC BY-SA 4.0. Object-specific records now classify the
 exact annotated TEIs as `licensed`, while every live official Dublin Core
 field still reports the former CC BY-NC 3.0 and the distinct plain-text and
-facsimile routes remain separate. The exact operator-held TEIs therefore stay
+facsimile routes remain separate. Their independent United States historical
+assessment follows 17 U.S.C. §104A's source-country-term condition rather than
+a domestic pre-1931 shortcut. The exact operator-held TEIs therefore stay
 local, gitignored, and metadata-only for future server routing even though a
 fresh, independently acquired upstream object has a positive licensed route.
 

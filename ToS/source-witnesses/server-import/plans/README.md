@@ -29,7 +29,9 @@ live TEI headers provide positive CC BY-SA evidence. Their layer-specific
 records therefore classify the exact annotated TEIs as `licensed`, while
 retaining the former CC BY-NC value still emitted through Dublin Core, the
 separate unrestricted plain-text claim, and distinct holding-library
-facsimile postures. Each plan records that open upstream route but remains
+facsimile postures. The independent United States historical assessment uses
+17 U.S.C. §104A's source-country-term condition, not a domestic pre-1931
+shortcut. Each plan records that open upstream route but remains
 `blocked-rights` and metadata-only: human rights review, German acceptance,
 fresh public-object acquisition, and explicit operator transfer approval have
 not occurred, and the operator-held TEIs are not future-site upload sources.

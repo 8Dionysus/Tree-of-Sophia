@@ -4,7 +4,8 @@ Status: model-authored rights research; exact upstream route positively
 identified; no legal advice, human rights review, source-text acceptance,
 operator transfer approval, or publication decision
 
-Research snapshot: 2026-08-02
+Research snapshot: 2026-08-02; United States foreign-work route corrected and
+exact DTA license state rechecked 2026-08-10
 
 ## Question
 
@@ -41,6 +42,13 @@ payloads stay local. A future public route must reacquire a then-current,
 explicitly licensed upstream object, give it its own fixity and provenance,
 recheck the license, and receive human rights plus operator transfer approval.
 
+The positive historical-layer result is unchanged, but its independent United
+States basis is corrected. These are German publications, so the domestic
+pre-1931 cutoff is context rather than a complete analysis. Under 17 U.S.C.
+§104A, the Nietzsche Work and conservative historical-presentation terms had
+already expired in Germany before the possible 1996 restoration date and fail
+the restored-work source-country condition.
+
 ## Exact objects and current response evidence
 
 | Part | DTA identifier | Local payload SHA-256 | Current TEI-header SHA-256 | Current OAI-DC SHA-256 |
@@ -58,6 +66,21 @@ The shared live DTA terms response was 17,139 bytes with SHA-256
 `ea02c2b636b5b04c3c5d5c4641149053405daa08fc3ff4b9293c21c67c1f9029`.
 The current responses were captured directly over HTTPS on 2026-08-02; no
 facsimile or new source-text payload was downloaded.
+
+A bounded live recheck on 2026-08-10 again found CC BY-SA 4.0 in all four
+exact generated TEI headers. The current response digests were:
+
+| Surface | Current response SHA-256 |
+| --- | --- |
+| DTA terms | `8496e2837066ead8e2d462a438763bc912e74b4be27f828a7e459fa626eab857` |
+| Part I TEI header | `5e9aa38746a00b5156e8d75a6517facb6a6034505c89f083c4e5e72ec8706361` |
+| Part II TEI header | `6af19d55138a2008d49ff9c3af8e90eb21647e1b44d5f6ab33009855a5809d5c` |
+| Part III TEI header | `739f2329bac338800c9015fcfd6138fb59cf51c2a80cd0bc901048b30f8f9ca7` |
+| Part IV TEI header | `8af486974b593e6ad89d9c8e3366e8639442d9361ec142e68986d4ea66520f0d` |
+
+The generated-header digests changed with the generated response state; the
+license expression did not. No response, facsimile, or source-text payload was
+retained in Git.
 
 ## Classical and official documentation
 
@@ -123,10 +146,23 @@ scientific editions; even a conservative analogous publication-date check
 would have ended in 1908, 1909, or 1916.
 
 The U.S. Copyright Office's April 2026 revision of [Circular
-15A](https://www.copyright.gov/circs/circ15a.pdf) states that all works
-published in the United States before 1931 are now public domain. That is the
-current U.S. term boundary used for these 1883, 1884, and 1891 publications;
-it does not turn a later DTA annotation into public domain.
+15A](https://www.copyright.gov/circs/circ15a.pdf) states that works published
+in the United States before 1931 are now public domain. These four Editions
+were published in Germany, however, so that domestic line is not an
+independent foreign-work conclusion. [17 U.S.C.
+§104A](https://www.copyright.gov/title17/92chap1.html#104a) defines a restored
+work to exclude a work already in the public domain in its source country
+through term expiration. The Copyright Office's current
+[URAA/GATT overview](https://www.copyright.gov/gatt.html) confirms that the
+relevant restoration date for then-eligible countries was 1996-01-01.
+
+Nietzsche's German Work term ended in 1970. Even the deliberately conservative
+section-70 analogy for the historical presentation ended in 1908, 1909, or
+1916. Both historical layers were therefore outside German protection before
+possible United States restoration. This §104A source-country condition—not
+the domestic pre-1931 shorthand—is the independent United States basis. It
+does not turn DTA's later annotation into public domain; that exact digital
+layer remains governed by CC BY-SA 4.0.
 
 ## Established scholarship and practice
 
@@ -155,8 +191,9 @@ The current snapshot adds four freshness signals:
 1. All four DTA headers generated on 2026-08-02 still carry CC BY-SA 4.0.
 2. All four OAI records still carry the pre-2020 BY-NC 3.0 field, proving the
    metadata drift is current rather than historical conjecture.
-3. The U.S. Copyright Office revised Circular 15A in April 2026 and now uses
-   1931 as the current public-domain cutoff.
+3. Current 17 U.S.C. §104A and the Copyright Office URAA/GATT overview retain
+   the source-country-protection condition and 1996 restoration date; the
+   April 2026 Circular 15A domestic cutoff is not substituted for that route.
 4. Creative Commons' 2025 [cultural-heritage license
    guidance](https://creativecommons.org/2025/07/09/recommended-licenses-and-tools-for-cultural-heritage-content/)
    recommends separating public-domain originals, faithful reproductions,

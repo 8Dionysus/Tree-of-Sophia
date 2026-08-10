@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/rights.json",
-    "rights_record_sha256": "7e787762ada28f5719ec5b6ba346d3a0d903c4253d622ea30fd99036457300af",
+    "rights_record_sha256": "fda88c9fe9ed6290a7ea1f37e36caecac98a0edd0f28519a6af9c59dd94154e3",
     "assessment_status": "open-licensed",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -32,7 +32,9 @@
       "https://www.deutschestextarchiv.de/doku/nutzungsbedingungen",
       "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
       "https://www.deutschestextarchiv.de/api/oai_dc/nietzsche_zarathustra02_1883",
-      "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en"
+      "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -121,13 +123,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T02:07:34-06:00"
+    "last_reviewed_at": "2026-08-10T08:22:20-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.dta-zarathustra-part-2-tei.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.dta-zarathustra-part-2-tei.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": null
 }

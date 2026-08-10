@@ -22,7 +22,9 @@
     "https://www.gesetze-im-internet.de/urhg/__64.html",
     "https://www.gesetze-im-internet.de/urhg/__69.html",
     "https://www.gesetze-im-internet.de/urhg/__70.html",
-    "https://www.copyright.gov/circs/circ15a.pdf"
+    "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/gatt.html"
   ],
   "layer_assessments": [
     {
@@ -43,7 +45,9 @@
         "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
         "https://www.gesetze-im-internet.de/urhg/__64.html",
         "https://www.gesetze-im-internet.de/urhg/__69.html",
-        "https://www.copyright.gov/circs/circ15a.pdf"
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html"
       ],
       "rights_holder_refs": [],
       "permissions": [
@@ -60,15 +64,15 @@
       "server_processing_posture": "authorized_with_conditions",
       "term": {
         "calculation_status": "expired",
-        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, and current United States guidance places pre-1931 publications in the public domain",
+        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, before the possible 1996 United States restoration date, so the Work fails 17 U.S.C. §104A's source-country-protection condition",
         "starts_on": null,
         "ends_on": "1970-12-31",
         "uncertainty": "The calculation is limited to the historical Work and the reviewed DE/US route; no later textual state is included."
       },
       "uncertainty": "Work-level public domain does not identify an accepted German source or authorize a later editorial layer.",
-      "assessed_at": "2026-08-02T02:07:34-06:00",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
       "review_status": "unreviewed",
-      "rationale": "The current German and United States term rules are expired for Nietzsche's published Work; the result is kept separate from every later digital contribution."
+      "rationale": "The German source-country term ended before possible United States restoration under 17 U.S.C. §104A; the historical result is kept separate from every later digital contribution."
     },
     {
       "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.edition-presentation",
@@ -87,7 +91,9 @@
       "source_refs": [
         "ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md",
         "https://www.gesetze-im-internet.de/urhg/__70.html",
-        "https://www.copyright.gov/circs/circ15a.pdf"
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html"
       ],
       "rights_holder_refs": [],
       "permissions": [
@@ -104,15 +110,15 @@
       "server_processing_posture": "authorized_with_conditions",
       "term": {
         "calculation_status": "expired",
-        "basis": "the Edition was published in 1883; even a conservative twenty-five-year scientific-edition analogy would have ended at 1908-12-31, and the publication is pre-1931 in the United States",
+        "basis": "the Edition was published in 1883; even a conservative German twenty-five-year scientific-edition analogy ended at 1908-12-31, before the possible 1996 United States restoration date, so the historical presentation fails §104A's source-country-protection condition",
         "starts_on": null,
         "ends_on": "1908-12-31",
         "uncertainty": "No modern scientific-edition status is asserted; the calculation only shows that no such historical presentation term could remain active."
       },
       "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights by this record.",
-      "assessed_at": "2026-08-02T02:07:34-06:00",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
       "review_status": "unreviewed",
-      "rationale": "The exact historical presentation is far outside any reviewed term while the DTA digital layers remain separately licensed."
+      "rationale": "The exact historical presentation was outside its German source-country term before possible United States restoration under §104A, while the DTA digital layers remain separately licensed."
     },
     {
       "layer_id": "tos.rights.zarathustra-chemnitz-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5.layer.annotated-tei",
@@ -162,7 +168,7 @@
         "uncertainty": "The public license is current and non-expiring while conditions are met; response content and provider availability still require recheck before use."
       },
       "uncertainty": "The stale OAI field and broader DTA prose are preserved, but the current exact header and dated terms support the positive licensed route.",
-      "assessed_at": "2026-08-02T02:07:34-06:00",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
       "review_status": "unreviewed",
       "rationale": "The exact generated header and current provider terms agree on CC BY-SA 4.0 and explain the older OAI label as the pre-2020 license."
     },
@@ -209,7 +215,7 @@
         "uncertainty": "Not every external authority fact in the header is owned by DTA, and no blanket database-right conclusion is made."
       },
       "uncertainty": "The record permits bounded public-safe facts, not an unrestricted copy of every external metadata dataset.",
-      "assessed_at": "2026-08-02T02:07:34-06:00",
+      "assessed_at": "2026-08-10T08:22:20-06:00",
       "review_status": "unreviewed",
       "rationale": "The metadata layer remains useful and source-visible without being collapsed into the licensed source text or external authority ownership."
     }
@@ -236,11 +242,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-08-02T02:07:34-06:00",
-  "rationale": "Current exact-object evidence supports a positive CC BY-SA 4.0 assessment for DTA's annotated TEI, while German and United States term rules are expired for the historical Work and Edition. The pre-2020 OAI label, DTA's additional prose, the separate plain-text and facsimile layers, German quality, and operator transfer remain explicit independent boundaries.",
+  "assessed_at": "2026-08-10T08:22:20-06:00",
+  "rationale": "Current exact-object evidence supports a positive CC BY-SA 4.0 assessment for DTA's annotated TEI. The historical Work and Edition were already outside their German source-country terms before possible United States restoration under 17 U.S.C. §104A. The pre-2020 OAI label, DTA's additional prose, the separate plain-text and facsimile layers, German quality, and operator transfer remain explicit independent boundaries.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 2,
+  "record_version": 3,
   "supersedes_rights_ref": null
 }

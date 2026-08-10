@@ -5171,7 +5171,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual("not_authorized", rights["redistribution_posture"])
             self.assertEqual("local_research_only", rights["derivative_posture"])
             self.assertEqual("unreviewed", rights["review_status"])
-            self.assertEqual(2, rights["record_version"])
+            self.assertEqual(3, rights["record_version"])
 
             layers = {
                 layer["layer_role"]: layer
@@ -5189,6 +5189,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "public_domain_reviewed",
                 layers["edition_presentation"]["assessment_status"],
             )
+            self.assertIn("§104A", layers["original_work"]["rationale"])
+            self.assertIn("§104A", layers["edition_presentation"]["rationale"])
             self.assertEqual("licensed", layers["annotation"]["assessment_status"])
             self.assertEqual("licensed", layers["metadata"]["assessment_status"])
             self.assertTrue(
@@ -5206,7 +5208,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual("metadata-only", plan["publication_status"])
             self.assertFalse(plan["payload_transfer_authorized"])
             self.assertFalse(plan["operator_transfer_approval"]["approved"])
-            self.assertEqual(2, plan["contract_version"])
+            self.assertEqual(3, plan["contract_version"])
+            self.assertIn(
+                "https://www.copyright.gov/title17/92chap1.html#104a",
+                plan["rights_policy"]["permission_or_license_refs"],
+            )
             for derivative in prohibited_derivatives:
                 self.assertEqual(
                     "prohibited",
@@ -5228,6 +5234,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(sorted(positions), positions)
         self.assertIn("distinct plain-text form", research)
         self.assertIn("facsimiles are separate", research)
+        self.assertIn("domestic pre-1931", research)
+        self.assertIn("17 U.S.C. §104A", research)
         self.assertIn(
             "local research payloads stay local",
             " ".join(research.split()),
