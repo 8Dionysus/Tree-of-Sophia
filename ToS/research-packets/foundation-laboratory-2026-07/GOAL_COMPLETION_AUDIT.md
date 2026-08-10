@@ -25,12 +25,13 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `aa281009` (`Correct MDZ foreign-work US
-  rights routes`), including the source-challenger, source-visible transfer
+- Tree of Sophia reviewed checkpoint `54df2ceb` (`Correct Ecce Homo 1908 US
+  rights route`), including the source-challenger, source-visible transfer
   review, current Antonovsky 1900/1903/1907 catalogue continuations, the exact
   1911 RSL/RuNEB layered-rights continuation, the corrected 1913 Commons
   foreign-work assessment, the four corrected DTA foreign-work routes, and the
-  corrected Naumann 1893 PDF/EPUB and MDZ 1888/1889 foreign-work routes;
+  corrected Naumann 1893 PDF/EPUB, MDZ 1888/1889, and *Ecce Homo* 1908
+  foreign-work routes;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -129,10 +130,10 @@ passage ends, accepted German/Russian, passage or translation alignment,
 eligibility, target gold, human work, semantics, and canon effects remained
 zero. The current repository closure, including the target/source passage and
 readiness and catalogue continuations below, passes 324 tests with one
-declared skip. The portable KAG family at reviewed checkpoint `aa281009` has
-digest `17aadb35a4f082167c1088fc1aa44307c794236786f09331e7451ba073610ece`
-and closes at 573 shards, 1,833 source records, 19,132 anchors, 330 events,
-3,363 assertions, 7,564 relations, 3,962 entities, and 21,309 canonical
+declared skip. The portable KAG family at reviewed checkpoint `54df2ceb` has
+digest `81d282cd1844e473f4ab34fa5dbe43c2374a338e2d590c138f9967da53babb67`
+and closes at 573 shards, 1,833 source records, 19,133 anchors, 330 events,
+3,363 assertions, 7,564 relations, 3,962 entities, and 21,310 canonical
 records.
 Full and incremental rebuild checks match the workflow-pinned PR-base history
 semantics and the checkpoint source snapshot. These are mechanical and
@@ -343,6 +344,37 @@ The KAG family closes at digest
 These are source-returnable mechanical and current-route proofs only; they
 create no human legal clearance, accepted German, public payload, semantic
 truth, publication authority, or operator approval.
+
+The following *Ecce Homo* 1908 correction removes the same domestic-age
+shortcut from a mixed Item whose source-country layers do not all share one
+restoration result. Nietzsche's German term ended at 1970-12-31, Richter's
+ordinary term at 1982-12-31, and any qualifying scientific-edition right at
+1933-12-31; all precede possible 1996 restoration and therefore fail 17 U.S.C.
+§104A's source-country-protection condition. Van de Velde's applied-art term
+was still active in Germany on the possible restoration date, but any
+qualifying restored United States right was only the remainder of the
+ninety-five-year publication term and ended at 2003-12-31. No notice, renewal,
+nationality, simultaneous-publication, or historical restoration-eligibility
+fact is invented because either branch yields the same present United States
+result. The German design term remains active through 2027-12-31, so rights v3
+and server-plan v3 retain the exact aggregate `in_copyright`, `local_only`,
+`not_authorized`, metadata-only, blocked, no-transfer, and operator-unapproved
+postures. Getty furniture and Internet Archive package layers remain
+unresolved. Current Commons, Internet Archive, Getty, DNB, United States, and
+German responses were rechecked without retaining their bodies; response-byte
+drift did not become identity or rights drift.
+
+At reviewed checkpoint `54df2ceb`, the focused *Ecce Homo* regression,
+source-witness and corpus-index validators, full and incremental portable-
+family checks, exact seven-file compatibility assembly, manual eleven-layer,
+digest, no-payload and closed-gate review, and complete 324-test release lane
+all pass with one declared skip. The KAG family closes at digest
+`81d282cd1844e473f4ab34fa5dbe43c2374a338e2d590c138f9967da53babb67`
+with 573 shards, 1,833 source records, 19,133 anchors, 330 events, 3,363
+assertions, 7,564 relations, 3,962 entities, and 21,310 canonical records.
+This proves the corrected model-authored route and its mechanical closure, not
+human legal clearance, German acceptance, public payload, semantic truth,
+publication authority, or operator approval.
 
 At `03b5f35`, the complete Tree release lane passed 199 tests with one
 declared skip. Separate source-visible integrity checks reconciled three
@@ -838,12 +870,16 @@ derivative.
 the exact Commons revision and source-visible binding, double title, colophon,
 and Getty furniture before current DE/US law, established applied-art and
 faithful-reproduction authority, December-2025 and March-2026 Court of Justice
-decisions, current provider checks, and general web last. Its eleven decisions
-keep Nietzsche and Richter public-domain layers distinct from van de Velde's
-German design term through 2027-12-31, licensed Commons metadata, and
-unresolved Getty and Internet Archive layers. The exact aggregate and its
-artifact-30 plan fail closed without creating source-text acceptance, payload
-transfer, human review, legal advice, or publication authority.
+decisions, current provider checks, and general web last. Its corrected
+independent United States route now applies 17 U.S.C. §104A instead of the
+domestic pre-1931 shorthand: Nietzsche and Richter's German terms ended before
+possible 1996 restoration, while any possible restored 1908 van de Velde term
+ended at 2003-12-31. Its eleven decisions keep those present United States
+results distinct from van de Velde's German design term through 2027-12-31,
+licensed Commons metadata, and unresolved Getty and Internet Archive layers.
+The exact aggregate and its artifact-30 plan remain fail closed without
+creating source-text acceptance, payload transfer, human review, legal advice,
+or publication authority.
 
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
@@ -853,6 +889,7 @@ transfer, human review, legal advice, or publication authority.
 | 1c | corrected DTA Zarathustra United States rights routes | `DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md` now treats all four German Editions as foreign works for the independent United States analysis. It uses 17 U.S.C. §104A's source-country-term condition rather than the domestic pre-1931 shortcut, while the exact current DTA TEI headers continue to support CC BY-SA 4.0 for the annotated digital layers. Four rights-v3 records, superseding provenance, and four server-plan-v3 records retain the same positive aggregate `licensed` result and the same local-only, operator-unapproved, metadata-only boundary. Digest closure is propagated through the text-free triangulation, bounded translation input, preserved human citation decision, and retained negative experiment receipts without source reprocessing, model rerun, result change, or new human decision | proven as corrected current model-authored reasoning at reviewed checkpoint `6f4d7346`; full release lane passes 324 tests with one declared skip, aggregate decisions unchanged, and no human legal clearance | fresh independently acquired exact upstream objects plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route |
 | 1d | corrected Naumann 1893 United States rights routes | `NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md` now treats the historical Work, Peter Gast preface, Edition presentation, portrait, and letter as foreign layers under 17 U.S.C. §104A's source-country-protection condition. Their conservative German term endpoints precede possible 1996 restoration; faithful scan and automatic OCR layers retain a separate no-new-authorship basis. PDF rights v4 remains aggregate `public_domain_reviewed`; mixed EPUB rights v4 remains `conflicting_evidence` because the later notice, package, navigation, style, arrangement, and metadata are not cleared. Superseding provenance, both server-plan-v3 records, and downstream digest bindings preserve the prior experiment and human-decision outcomes without source reprocessing, model rerun, or new human decision | proven as corrected current model-authored reasoning at reviewed checkpoint `be8fc746`; full release lane passes 324 tests with one declared skip, aggregate decisions unchanged, and no human legal clearance | fresh independently acquired exact upstream object plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route |
 | 1e | corrected MDZ 1888/1889 United States rights routes | `MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md` now treats both German historical routes through 17 U.S.C. §104A's source-country-protection condition rather than the domestic pre-1931 shorthand while retaining a separate faithful-scan originality analysis. Current response bytes drifted but exact identities, rights values, canvas counts, and attributions remained stable. Rights v3 preserves distinct aggregate outcomes: *Der Fall Wagner* remains `permission_granted` under the non-license `NoC-NC 1.0` statement; *Götzen-Dämmerung* remains `licensed` under CC BY-NC-SA 4.0; BSB/BDR metadata remains separately CC0 and no OCR layer is invented. Superseding provenance and both server-plan-v3 records preserve local-only custody, blocked transfer, prohibited content derivatives, and the operator gate | proven as corrected current model-authored reasoning at reviewed checkpoint `aa281009`; focused regression, full release lane, full/incremental KAG parity, exact compatibility assembly, and manual boundary review pass; aggregate decisions unchanged and no human legal clearance | fresh independently acquired exact upstream objects plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route |
+| 1f | corrected *Ecce Homo* 1908 United States rights route | `ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md` now treats the German Work, Richter editing/afterword, and van de Velde applied art through 17 U.S.C. §104A rather than the domestic pre-1931 shorthand. Nietzsche's 1970, Richter's 1982, and possible scientific-edition 1933 German endpoints precede possible 1996 restoration; van de Velde's German term was active then, but any qualifying restored 1908 United States term ended at 2003-12-31. Current provider and official response bytes are recorded without retaining bodies; Commons and Internet Archive serialization drift did not change exact identity or declared rights. Rights v3, superseding provenance, and server-plan v3 preserve the eleven layers, aggregate `in_copyright`, German 2027-12-31 ceiling, local-only custody, blocked transfer, prohibited content derivatives, and operator gate | proven as corrected current model-authored reasoning at reviewed checkpoint `54df2ceb`; focused regression, full 324-test release lane with one declared skip, full/incremental KAG parity, exact seven-file compatibility assembly, digest closure, and manual eleven-layer/no-payload/closed-gate review pass; aggregate decision unchanged and no human legal clearance | fresh independently acquired exact upstream object after then-current term, contract, furniture, package, and jurisdiction review plus human rights/source and German-quality review and explicit operator approval before any content-bearing public route; 2027 term expiry alone is not authorization |
 | 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, historical-German morphology, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the morphology refresh selected a sequential identity/DWDSmor/ZDL/DTAEC comparison, after which only the source-gated exhaustive DWDSmor A census was acquired and executed; B/C remain unacquired | proven and refreshed 2026-07-29; A mechanics executed | artifact-level B/C rights and dependency audit plus reviewed A residue or an exact contextual task trigger before any further acquisition |
 | 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
