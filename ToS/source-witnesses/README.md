@@ -505,11 +505,18 @@ operator policy. The Wikisource transcription is an independent CC BY-SA
 candidate layer and remains deferred: its index reports incomplete
 proofreading, so open licensing does not make it accepted text or gold.
 
-The 1911 RuNEB witness has a narrower rights posture. Current institutional
-terms support bounded local research but expose no resource-specific
-redistribution license. Its exact payload remains local-only and unpublished;
-only public metadata, fixity, provenance, text-free resource geometry, and
-proposed source-return anchors are tracked.
+The 1911 RuNEB witness now preserves a deliberately mixed layered assessment.
+Nietzsche's Work, Antonovsky's independently assessed 1911 translation and
+preface, and the historical presentation are `public_domain_reviewed` for
+RU/US; the United States result uses the foreign-work URAA source-country
+condition rather than blindly applying the domestic pre-1931 rule. The exact
+RSL/RuNEB scan and embedded text remain `copyright_undetermined`: current
+institutional terms support bounded local research but expose no
+resource-specific redistribution license, and the digital production and
+correction history is absent. The aggregate Item stays `local_only`,
+redistribution `not_authorized`, derivatives `local_research_only`, and
+blocked from the future site. Only public-safe metadata, fixity, provenance,
+text-free resource geometry, and proposed source-return anchors are tracked.
 
 The Nani 1899 parallel witness now exercises the required per-layer rights
 model. The exact record is freely downloadable and the current RuNEB FAQ says

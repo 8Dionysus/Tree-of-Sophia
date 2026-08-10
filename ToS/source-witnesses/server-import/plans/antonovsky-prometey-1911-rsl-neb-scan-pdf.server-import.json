@@ -19,13 +19,22 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
-    "rights_record_sha256": "e853b6c80cb97a11d15212c7c1132277e4e10a5d00809ab76aee588bda3a76bc",
+    "rights_record_sha256": "3b9283393d56258142c7218ffcef5221c8d5e5ab07741c075537774e523cd3de",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
+    "jurisdictions_reviewed": [
+      "RU",
+      "US"
+    ],
     "permission_or_license_refs": [
       "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/source-metadata-snapshot.json",
-      "https://rusneb.ru/user-agreement/"
+      "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+      "https://rusneb.ru/user-agreement/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+      "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/comp3/docs/compendium.pdf"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -114,13 +123,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-01T08:45:00-06:00"
+    "last_reviewed_at": "2026-08-10T07:27:35-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-scan-pdf.2026-08-01"
+    "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-scan-pdf.layered-rights.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1,
+  "contract_version": 2,
   "supersedes_server_import_ref": null
 }

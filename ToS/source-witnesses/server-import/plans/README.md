@@ -111,9 +111,14 @@ derivative remain separately reviewable. The operator-held PDF stays local;
 only public-safe metadata may be projected.
 
 The sixteenth plan covers the exact RSL/RuNEB PDF of Antonovsky's 1911 fourth
-edition. RuNEB's current terms support bounded local research but expose no
-resource-specific redistribution license. The 62,952,283-byte operator-held
-PDF, embedded text, page images, transcriptions, translations, embeddings,
-and content-bearing annotations remain prohibited for server transfer. Only
-public-safe bibliographic metadata, fixity, provenance, and source-return
-addresses may be projected.
+edition. The historical Work, 1911 translation and preface, and presentation
+are public-domain-reviewed for RU/US, including the foreign-work URAA
+source-country boundary. That positive result does not clear the exact digital
+package: RuNEB's current terms support bounded local research but expose no
+resource-specific redistribution license, and the scan and embedded-text
+production history remains unresolved. The aggregate plan therefore stays
+rights-unknown, metadata-only, blocked, and operator-unapproved. The
+62,952,283-byte operator-held PDF, embedded text, page images, transcriptions,
+translations, embeddings, and content-bearing annotations remain prohibited
+for server transfer. Only public-safe bibliographic metadata, fixity,
+provenance, and source-return addresses may be projected.

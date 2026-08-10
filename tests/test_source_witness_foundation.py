@@ -518,6 +518,11 @@ ANTONOVSKY_1911_RESEARCH_PATH = (
     / "ToS/research-packets/foundation-laboratory-2026-07/"
     "ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md"
 )
+ANTONOVSKY_1911_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md"
+)
 ANTONOVSKY_1911_SERVER_PLAN_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/server-import/plans/"
@@ -2830,9 +2835,69 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(153, inventory["files"][0]["summary"]["page_count"])
         self.assertFalse(inventory["source_text_included"])
         self.assertEqual("copyright_undetermined", rights["assessment_status"])
+        self.assertEqual(["RU", "US"], rights["jurisdictions_reviewed"])
         self.assertEqual("local_only", rights["visibility"])
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertIsNone(rights["rights_statement_uri"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual(2, rights["record_version"])
+
+        layers_by_role = {
+            layer["layer_role"]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original_work",
+                "translation",
+                "preface",
+                "edition_presentation",
+                "digital_scan",
+                "embedded_text",
+            },
+            set(layers_by_role),
+        )
+        for role in (
+            "original_work",
+            "translation",
+            "preface",
+            "edition_presentation",
+        ):
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "authorized_with_conditions",
+                layers_by_role[role]["redistribution_posture"],
+            )
+        for role in ("digital_scan", "embedded_text"):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers_by_role[role]["assessment_status"],
+            )
+            self.assertEqual(
+                "not_authorized",
+                layers_by_role[role]["redistribution_posture"],
+            )
+            self.assertEqual(
+                "local_research_only",
+                layers_by_role[role]["server_processing_posture"],
+            )
+        self.assertEqual(
+            "1950-12-31",
+            layers_by_role["original_work"]["term"]["ends_on"],
+        )
+        for role in ("translation", "preface"):
+            self.assertEqual(
+                "1963-12-31",
+                layers_by_role[role]["term"]["ends_on"],
+            )
+        self.assertEqual(
+            "1981-12-31",
+            layers_by_role["edition_presentation"]["term"]["ends_on"],
+        )
 
         responsibility = json.loads(
             ANTONOVSKY_1911_RESPONSIBILITY_CLAIMS_PATH.read_text(
@@ -2912,7 +2977,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual("metadata-only", server_plan["access_class"])
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual(
+            "rights-unknown",
+            server_plan["rights_policy"]["assessment_status"],
+        )
+        self.assertEqual(
+            ["RU", "US"],
+            server_plan["rights_policy"]["jurisdictions_reviewed"],
+        )
         self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        self.assertEqual(2, server_plan["contract_version"])
 
         register = json.loads(
             (GOLD_ROOT / "translation-reference-register.v1.json").read_text(
@@ -2930,6 +3005,16 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         research_text = ANTONOVSKY_1911_RESEARCH_PATH.read_text(encoding="utf-8")
         self.assertIn("three previous editions", research_text)
         self.assertIn("exact direct derivation of 1911 remains", research_text)
+        rights_research = ANTONOVSKY_1911_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Classical and official documentation", rights_research)
+        self.assertIn("Established scholarship and practice", rights_research)
+        self.assertIn("Fresh and currently relevant checks", rights_research)
+        self.assertIn("General web search, last", rights_research)
+        self.assertIn("17 U.S.C. §104A", rights_research)
+        self.assertIn("public-domain text", rights_research)
+        self.assertIn("publishable PDF", rights_research)
 
     def test_reader_1899_is_an_exact_but_fragmentary_uncredited_witness(
         self,

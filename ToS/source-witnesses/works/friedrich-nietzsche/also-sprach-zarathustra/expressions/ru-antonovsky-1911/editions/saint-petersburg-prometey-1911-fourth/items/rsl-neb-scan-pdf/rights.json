@@ -6,24 +6,333 @@
     "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"
   ],
   "assessment_status": "copyright_undetermined",
-  "rights_statement_uri": "https://rusneb.ru/user-agreement/",
+  "rights_statement_uri": null,
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "RU",
+    "US"
+  ],
   "source_refs": [
     "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/source-metadata-snapshot.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
     "https://rusneb.ru/catalog/000199_000009_003693383/",
-    "https://rusneb.ru/user-agreement/"
+    "https://search.rsl.ru/ru/record/01003693383",
+    "https://rusneb.ru/user-agreement/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+    "https://www.wipo.int/wipolex/en/legislation/details/6787",
+    "https://www.vsrf.ru/files/27771/",
+    "https://www.copyright.gov/title17/92chap1.html",
+    "https://www.copyright.gov/gatt.html",
+    "https://www.copyright.gov/comp3/docs/compendium.pdf",
+    "https://www.wipo.int/wipolex/en/text/283698"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.original-german-work",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the underlying Nietzsche work may be used in Russia and the United States without consent or remuneration under the reviewed public-domain route"
+      ],
+      "restrictions": [
+        "authorship, the author's name, and integrity remain protected where applicable",
+        "this assessment does not select or clear a particular modern critical, editorial, or digital German text",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize transfer of the operator-held RSL/RuNEB file"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900; the earlier Russian fifty-year term ended before the 1993 transition, and the work was already public domain in its source-country route before the United States 1996 restoration boundary",
+        "starts_on": null,
+        "ends_on": "1950-12-31",
+        "uncertainty": "The result covers the historical Work, not a modern edition or a claimed common text across witnesses."
+      },
+      "uncertainty": "The public-domain result is jurisdiction- and Work-layer-specific and does not admit any source text.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The ordinary Russian transition term expired before 1993. Because the work was already public domain in its source-country route before 1996, it does not satisfy the United States source-country-protection condition for URAA restoration."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.russian-translation",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible 1911 Antonovsky translation may be used in the reviewed RU and US public-domain route subject to authorship, name, and integrity rules"
+      ],
+      "restrictions": [
+        "the translation must not be collapsed into Nietzsche's original work",
+        "no textual equivalence to the 1900, 1903, 1907, 1913, 1996, 2007, or later Antonovsky expressions is asserted",
+        "public-domain status is not a translation-quality, correctness, or source-text acceptance verdict",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize transfer of the operator-held RSL/RuNEB file"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Antonovsky died in 1913; the earlier Russian fifty-year term ended before the 1993 transition, so the translation was already public domain in its source country before the United States 1996 restoration boundary",
+        "starts_on": null,
+        "ends_on": "1963-12-31",
+        "uncertainty": "The verified authority route supplies the 1913 death year; no evidence of rehabilitation or another special extension affecting the bounded calculation was found."
+      },
+      "uncertainty": "The result covers the source-visible 1911 Expression and not an inferred invariant Antonovsky text across editions.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "Russian law treats the translation as independent. Its ordinary transition term expired in 1963, and an already source-country-public-domain work does not satisfy the United States URAA restoration condition."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.translator-preface",
+      "layer_role": "preface",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Antonovsky's source-visible 1911 translator preface may be used in the reviewed RU and US public-domain route subject to authorship, name, and integrity rules"
+      ],
+      "restrictions": [
+        "the preface remains distinct from Nietzsche's work and the translated Zarathustra text",
+        "its revision-history statements are evidence, not a complete collation or an equivalence claim",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize transfer of the operator-held RSL/RuNEB file"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Antonovsky's 1913 death places the earlier Russian fifty-year term before the 1993 transition and the source-country term before the United States restoration boundary",
+        "starts_on": null,
+        "ends_on": "1963-12-31",
+        "uncertainty": "The calculation applies to the source-visible credited preface; no separate later revision is inferred."
+      },
+      "uncertainty": "The result covers the preface in this exact historical publication and does not resolve all prior-edition relationships.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact Item contains Antonovsky's preface. Its author term expired before the Russian transition and the United States restoration boundary."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/edition.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the source-visible 1911 historical edition presentation may be reproduced in the reviewed RU and US public-domain route"
+      ],
+      "restrictions": [
+        "the result does not assign authorship to Prometey, Energiya, a compositor, or an unidentified designer",
+        "publication, manufacture, release, and textual-state claims remain separate",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize transfer of the recent RSL/RuNEB package"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "the exact presentation was published in 1911; even a conservative seventy-year publication-based or pre-1993 legal-entity calculation ended by the close of 1981",
+        "starts_on": null,
+        "ends_on": "1981-12-31",
+        "uncertainty": "Individual presentation contributors and their creative scope are not identified; the conservative calculation does not pretend that the publisher or printer was necessarily the author."
+      },
+      "uncertainty": "Creator identity and the copyrightable scope of typesetting or design are unknown, but no ordinary historical publication-based term remains in the reviewed route.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The source-visible presentation dates to 1911. A conservative historical publication calculation is expired while creator identity, bibliographic interpretation, and the recent digital package remain separate."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.rsl-runeb-digital-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/source-metadata-snapshot.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/catalog/000199_000009_003693383/",
+        "https://rusneb.ru/user-agreement/",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/comp3/docs/compendium.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "one exact copy may remain preserved for bounded local research under the current provider terms and applicable law",
+        "public-safe identity, fixity, provenance, and source-return metadata may remain tracked"
+      ],
+      "restrictions": [
+        "free viewing and download do not establish a reusable-content license or exact-file redistribution permission",
+        "the capture, selection, processing, and correction workflow is undocumented",
+        "the operator-held local file remains off the future ToS site",
+        "a future public digital object requires an independently permitted route or written clarification plus fresh exact-object review"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "Russian and United States originality guidance weighs against copyright in a purely technical faithful scan, but the exact production history and any human creative additions are not documented and the provider gives no object-specific rights statement",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The file appearance and legal threshold do not prove the absence of all human creative choices, contractual restrictions, or separately protected additions."
+      },
+      "uncertainty": "The scan may be a purely technical reproduction, but ToS lacks the exact workflow and a provider reuse statement; the result therefore remains unresolved rather than presumptively closed or open.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact card permits access and download, while current RU/US originality rules support faithful copying as noncreative. Because no exact rights statement or production record exists, the recent digital object remains copyright-undetermined and local-only."
+    },
+    {
+      "layer_id": "tos.rights.zarathustra-antonovsky-1911.rsl-neb-scan-pdf.layer.embedded-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://rusneb.ru/user-agreement/",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/comp3/docs/compendium.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the embedded layer may be inspected as a machine candidate during bounded local research"
+      ],
+      "restrictions": [
+        "rights status is not evidence of OCR correctness, completeness, or textual authority",
+        "the generation software, operator, manual correction history, and possible creative editorial choices are undocumented",
+        "the embedded text is not accepted ToS text and must not be published, transferred, or treated as gold",
+        "a future transcription requires its own provenance, correction, quality, rights, and operator-admission record"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "local_research_only",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "mechanical OCR without human creativity would not add copyright under the reviewed RU/US guidance, but the exact extraction and correction history is not available",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No correction log or provider rights statement proves that the layer is entirely mechanical or reusable."
+      },
+      "uncertainty": "The historical source text is public-domain-reviewed, but the exact embedded digital expression and its production history are not cleared.",
+      "assessed_at": "2026-08-10T07:27:35-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The large embedded layer is likely machine-derived, but neither its workflow nor correction history is documented. It remains copyright-undetermined, unaccepted, and local-research-only."
+    }
   ],
   "permissions": [
-    "local preservation and bounded personal, informational, scientific, educational, and cultural research use under the current RuNEB user agreement and applicable law",
-    "public bibliographic metadata, provenance, fixity identifiers, and non-content-bearing source-return addresses may remain tracked"
+    "local preservation and bounded personal, informational, scientific, educational, and cultural research use under the current RuNEB agreement and applicable law",
+    "public bibliographic facts, provenance, fixity identifiers, and non-content-bearing source-return addresses may remain tracked",
+    "the historical Work, 1911 translation, translator preface, and historical presentation have a positive public-domain assessment for the reviewed RU and US route",
+    "a separately acquired or created future text route may be assessed independently after exact provenance, quality, rights, and operator gates"
   ],
   "restrictions": [
-    "the acquired payload remains local and must not be uploaded to the future ToS site",
-    "open viewing and download do not establish a reusable-content license or redistribution permission",
-    "redistribution of the exact file is not authorized by this assessment",
-    "derivative or transformed content remains restricted to bounded local research until a separate rights and jurisdiction review",
-    "mass automated download, access-control bypass, and source-service circumvention are prohibited"
+    "the acquired RSL/RuNEB payload remains local and must not be uploaded to the future ToS site",
+    "open viewing and download do not establish a reusable-content license or redistribution permission for the exact file",
+    "the exact scan and embedded text remain copyright-undetermined because the production and correction history is absent",
+    "no source text, page image, OCR, embedding, alignment, translation, or other content-bearing derivative is authorized for server transfer by this record",
+    "human legal review and explicit operator transfer approval have not occurred",
+    "jurisdictions other than RU and US remain unreviewed",
+    "mass automated download, access-control bypass, and source-service circumvention remain prohibited"
   ],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
@@ -32,11 +341,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-08-01T08:30:38-06:00",
-  "rationale": "The exact RuNEB record exposes free viewing and an official PDF route, and the current user agreement permits bounded personal and research-oriented access under law. Neither surface supplies a resource-specific reusable-content license. The file is therefore admitted only as a local research witness; public metadata and provenance may be tracked, but file redistribution and future-site upload remain unauthorized.",
+  "assessed_at": "2026-08-10T07:27:35-06:00",
+  "rationale": "Current RU/US law supports positive public-domain results for the historical Work, Antonovsky translation and preface, and 1911 presentation. The exact RSL/RuNEB scan and embedded text have no object-specific reuse statement and incomplete production history, so the aggregate Item remains copyright-undetermined, local-only, and unauthorized for redistribution or future-site transfer.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
+  "record_version": 2,
   "supersedes_rights_ref": null
 }
