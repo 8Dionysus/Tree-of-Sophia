@@ -214,9 +214,11 @@ have not been established.
 The current [Circular
 38B](https://www.copyright.gov/circs/circ38b.pdf) and [17 U.S.C.
 §104A](https://www.copyright.gov/title17/92chap1.html#104a) preserve the
-foreign-work restoration question. Nietzsche's Work was already public domain
+foreign-work restoration question. Subsection (g) governs Presidential
+proclamation; the restored-work definition and its source-country-expiration
+condition are in §104A(h)(6)(B). Nietzsche's Work was already public domain
 through expiration in Germany on 1 January 1996 and therefore fails the
-cumulative source-country-protection condition in §104A(g)(6)(B). The same is
+cumulative source-country-protection condition in §104A(h)(6)(B). The same is
 true for the source-visible historical presentation under the assessed German
 anonymous-publication and publication-based related-right alternatives, which
 ended by 1976-12-31. If a distinct 1906 contribution nevertheless satisfied

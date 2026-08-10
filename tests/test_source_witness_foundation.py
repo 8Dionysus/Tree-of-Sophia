@@ -6131,7 +6131,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("local_only", rights["visibility"])
-        self.assertEqual(3, rights["record_version"])
+        self.assertEqual(4, rights["record_version"])
 
         layers = {
             layer["layer_id"].rsplit(".layer.", 1)[1]: layer
@@ -6153,7 +6153,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             layers["archive-editorial-and-added-matter"]["assessment_status"],
         )
         self.assertIn(
-            "§104A(g)(6)(B)",
+            "§104A(h)(6)(B)",
             layers["original-work"]["term"]["basis"],
         )
         self.assertIn(
@@ -6165,7 +6165,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             layers["original-work"]["term"]["basis"],
         )
         self.assertIn(
-            "§104A(g)(6)(B)",
+            "§104A(h)(6)(B)",
             layers["edition-presentation"]["term"]["basis"],
         )
         self.assertIn(
@@ -6295,7 +6295,14 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ["DE", "US"],
             server_plan["rights_policy"]["jurisdictions_reviewed"],
         )
-        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(4, server_plan["contract_version"])
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.der-antichrist-naumann-1906."
+                "subsection-correction.2026-08-10"
+            ],
+            server_plan["provenance_event_refs"],
+        )
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
         self.assertEqual(
@@ -6320,7 +6327,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("conflicting_evidence", rights_research)
         self.assertIn("490 `TXTz`", rights_research)
         self.assertIn("pages 228-329", rights_research)
-        self.assertIn("§104A(g)(6)(B)", rights_research)
+        self.assertIn("§104A(h)(6)(B)", rights_research)
         self.assertIn("ending at 2001-12-31", rights_research)
         self.assertIn("provider assertion", rights_research)
         self.assertIn(
@@ -6361,32 +6368,54 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             event
             for event in provenance_events
             if event["event_id"]
-            == "tos.event.rights-assessment.antichrist-naumann-1906."
-            "wikimedia-commons-stanford-scan-djvu."
-            "uraa-correction.2026-08-10"
+            == "tos.event.rights-assessment.nietzsches-werke-band-8."
+            "naumann-1906.wikimedia-commons-stanford-scan-djvu."
+            "subsection-correction.2026-08-10"
         )
-        self.assertEqual(3, correction_event["event_version"])
+        self.assertEqual(4, correction_event["event_version"])
+        self.assertEqual(
+            "tos.event.rights-assessment.antichrist-naumann-1906."
+            "wikimedia-commons-stanford-scan-djvu."
+            "uraa-correction.2026-08-10",
+            correction_event["supersedes_event_ref"],
+        )
+        correction_configuration = correction_event["method"]["configuration"]
+        self.assertEqual(
+            "17-usc-104a-h-6-b",
+            correction_configuration["restored_work_definition_ref"],
+        )
+        self.assertEqual(
+            "17-usc-104a-g",
+            correction_configuration["proclamation_subsection_ref"],
+        )
+        self.assertEqual(
+            "17-usc-104a-g-6-b",
+            correction_configuration["citation_corrected_from"],
+        )
+        self.assertEqual(
+            "17-usc-104a-h-6-b",
+            correction_configuration["citation_corrected_to"],
+        )
+        self.assertFalse(
+            correction_configuration["aggregate_assessment_status_changed"]
+        )
+        self.assertFalse(correction_configuration["term_endpoints_changed"])
+        self.assertFalse(correction_configuration["payload_read"])
         self.assertEqual(
             "17-usc-104a-source-country-term-and-restored-remainder",
-            correction_event["method"]["configuration"][
-                "united_states_historical_route"
-            ],
+            correction_configuration["united_states_historical_route"],
         )
         self.assertEqual(
             "2001-12-31",
-            correction_event["method"]["configuration"][
-                "possible_restored_1906_term_ends_on"
-            ],
+            correction_configuration["possible_restored_1906_term_ends_on"],
         )
         self.assertFalse(
-            correction_event["method"]["configuration"][
+            correction_configuration[
                 "provider_pre_1931_statement_used_as_independent_legal_conclusion"
             ]
         )
         self.assertFalse(
-            correction_event["method"]["configuration"][
-                "payload_read_during_correction"
-            ]
+            correction_configuration["payload_read_during_correction"]
         )
 
         catalog_root = REPO_ROOT / "ToS/source-witnesses/catalog"
@@ -6442,7 +6471,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
 
-        self.assertEqual(3, rights["record_version"])
+        self.assertEqual(4, rights["record_version"])
         self.assertEqual("conflicting_evidence", rights["assessment_status"])
         self.assertEqual("local_only", rights["visibility"])
         self.assertEqual("not_authorized", rights["redistribution_posture"])
@@ -6455,7 +6484,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "public_domain_reviewed",
             work_layer["assessment_status"],
         )
-        self.assertIn("§104A(g)(6)(B)", work_layer["term"]["basis"])
+        self.assertIn("§104A(h)(6)(B)", work_layer["term"]["basis"])
         self.assertIn("2001-12-31", work_layer["term"]["basis"])
         self.assertIn(
             "provider evidence",
@@ -6486,7 +6515,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             },
         )
 
-        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(4, server_plan["contract_version"])
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.der-antichrist-naumann-1906."
+                "internet-archive-google-stanford-djvu-xml."
+                "subsection-correction.2026-08-10"
+            ],
+            server_plan["provenance_event_refs"],
+        )
         self.assertEqual("metadata-only", server_plan["access_class"])
         self.assertEqual("blocked-rights", server_plan["server_import_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
@@ -6521,11 +6558,36 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             event
             for event in provenance_events
             if event["event_id"].endswith(
-                "navigation-derivatives.uraa-correction.2026-08-10"
+                "internet-archive-google-stanford-djvu-xml."
+                "subsection-correction.2026-08-10"
             )
         )
         configuration = correction_event["method"]["configuration"]
-        self.assertEqual(3, correction_event["event_version"])
+        self.assertEqual(4, correction_event["event_version"])
+        self.assertTrue(
+            correction_event["supersedes_event_ref"].endswith(
+                "navigation-derivatives.uraa-correction.2026-08-10"
+            )
+        )
+        self.assertEqual(
+            "17-usc-104a-h-6-b",
+            configuration["restored_work_definition_ref"],
+        )
+        self.assertEqual(
+            "17-usc-104a-g",
+            configuration["proclamation_subsection_ref"],
+        )
+        self.assertEqual(
+            "17-usc-104a-g-6-b",
+            configuration["citation_corrected_from"],
+        )
+        self.assertEqual(
+            "17-usc-104a-h-6-b",
+            configuration["citation_corrected_to"],
+        )
+        self.assertFalse(configuration["aggregate_assessment_status_changed"])
+        self.assertFalse(configuration["term_endpoints_changed"])
+        self.assertFalse(configuration["payload_read"])
         self.assertEqual(
             "17-usc-104a-source-country-term-and-restored-remainder",
             configuration["united_states_historical_route"],

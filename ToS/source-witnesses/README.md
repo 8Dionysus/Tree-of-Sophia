@@ -458,7 +458,9 @@ collection containing it. The seed deliberately includes:
   DjVu inventory and an explicitly partial proposed boundary for *Der
   Antichrist*. Its corrected United States historical route treats Commons'
   pre-1931 sentence as provider evidence rather than an independent ToS
-  conclusion: Nietzsche's term and the assessed presentation alternatives
+  conclusion. In the statute, §104A(g) is the Presidential-proclamation
+  subsection; the restored-work definition's source-country-expiration
+  condition is §104A(h)(6)(B). Nietzsche's term and the assessed presentation alternatives
   expired in Germany before possible §104A restoration, while any qualifying
   restored term for a distinct contribution actually published in 1906 ended
   at 2001-12-31. The eleven-layer aggregate remains `conflicting_evidence`;
@@ -467,7 +469,8 @@ collection containing it. The seed deliberately includes:
   a text-free 525-page/5,434-paragraph/16,467-line/105,803-word inventory, and
   local-only navigation posture. Its corrected historical-Work route applies
   §104A's source-country condition and records 2001-12-31 as the conditional
-  endpoint for any qualifying restored 1906 term; Internet Archive
+  endpoint only after locating that condition in §104A(h)(6)(B), not the
+  Presidential-proclamation subsection §104A(g); Internet Archive
   `NOT_IN_COPYRIGHT` fields remain provider evidence, not an independent ToS
   legal conclusion. The exact DjVuXML, 525-member JP2 ZIP, and 525-leaf
   scandata package remain a separate local Item: contaminated descriptive

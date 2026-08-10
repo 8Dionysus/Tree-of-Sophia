@@ -84,8 +84,10 @@ Stanford binding and holding furniture, OCR layout, the DjVu package, and
 contaminated Internet Archive metadata remain unresolved. The exact aggregate
 therefore stays rights-unknown, metadata-only, blocked, and operator-unapproved.
 The corrected United States route does not adopt Commons' pre-1931 sentence as
-an independent ToS conclusion: the Work and assessed presentation routes fail
-§104A's source-country-protection condition, and any qualifying restored term
+an independent ToS conclusion: §104A(g) is the Presidential-proclamation
+subsection, while the Work and assessed presentation routes fail the
+restored-work definition's source-country-expiration condition in
+§104A(h)(6)(B); any qualifying restored term
 for a distinct contribution actually published in 1906 ended at 2001-12-31.
 This changes neither the aggregate result nor the closed server boundary.
 The plan keeps the operator-held DjVu local, all source-bearing derivatives
@@ -97,7 +99,8 @@ text-admission, and operator-approval gates.
 A companion metadata-only plan covers the separately registered exact local
 Internet Archive Google/Stanford navigation Item: DjVuXML, a 525-member JP2
 ZIP, and 525-leaf scandata. Its corrected Work-layer route likewise applies
-§104A's source-country condition and records 2001-12-31 only as the
+§104A(h)(6)(B), not the Presidential-proclamation subsection §104A(g), and
+records 2001-12-31 only as the
 conditional endpoint of any qualifying restored 1906 term; the provider's
 `NOT_IN_COPYRIGHT` fields are evidence, not an independent ToS legal
 conclusion. Exact local fixity does not establish textual identity with the
