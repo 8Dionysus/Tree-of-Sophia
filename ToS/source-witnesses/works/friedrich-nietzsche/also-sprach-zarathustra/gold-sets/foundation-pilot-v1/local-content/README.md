@@ -27,6 +27,12 @@ lexical-search/
 
 morphology/
 └── zarathustra-dta-exact-form-census-v1.jsonl
+
+semantic-source-observation/
+└── initial-v1/
+    ├── diplomatic-form.txt
+    ├── normalized-form.txt
+    └── context-bundle.json
 ```
 
 This private SQLite/FTS5 file may contain exact forms, page-local token order,
@@ -40,6 +46,15 @@ that database. It keeps exact strings local, preserves the historical surface,
 and supplies only the admitted DWDSmor A census. It contains no provider
 output, accepted lemma, lexeme, German judgment, context sample, or scheduled
 human work. Its tracked companion carries only digests and aggregate counts.
+
+The semantic source-observation branch contains the first packet-local
+exact-form selection and its complete context census inside the admitted
+Edition section. It is narrower than the whole-work lexical database and does
+not reuse the Work-identity context control as a sign. Exact source values stay
+mode `0600`; the tracked packet carries only hashes, counts, opaque occurrence
+IDs and text-free TEI source-return selectors. This branch creates no accepted
+German, morphology, lemma, translation, sign candidate, semantic claim or
+human backlog.
 
 Translation work uses this speaking local topology:
 

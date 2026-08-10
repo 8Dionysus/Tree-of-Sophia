@@ -1,10 +1,16 @@
 # Initial Sign Packet Route
 
-The tracked `initial-sign-packet.v4.json` is the first Zarathustra sign packet.
-It is deliberately `preparing`: one exact Edition/Item reading is attested,
-but no source form, occurrence, lexeme, sign candidate, human task or decision,
-relation, concept, claim, or graph projection has been invented merely to
-populate the ladder.
+The tracked `initial-sign-packet.v5.json` is the first Zarathustra sign packet.
+It is deliberately `observational-analysis`: one exact Edition/Item reading
+is attested and one exact form has been selected by the frozen mechanical rule
+in `initial-semantic-source-observation-plan.v1.json`. All four occurrences
+inside the admitted section now return to exact TEI character-data offsets and
+two source pages. The source form and twelve-token contexts remain in ignored
+mode-`0600` local files; Git contains only hashes, counts, occurrence IDs and
+text-free selectors.
+
+This is source observation, not a lexeme, sign candidate, human task or
+decision, relation, concept, claim, or graph projection.
 
 The historical 0-of-30 source packet remains exact evidence but has no
 scheduling or execution authority here. Readiness is local to the one concrete
@@ -56,12 +62,16 @@ The packet follows exactly:
 14. competing readings;
 15. graph projection.
 
-All fifteen stages are currently empty. Stages 1–3 are `not-started` because
-the Edition reading is admitted but no exact form has been selected; stages
-4–15 remain blocked. After source observation, stages 12–15 stay empty and
-blocked until stage 11 records a competence-appropriate real-human `accept`
-or `accept-with-limits` over an unassisted baseline frozen before model
-suggestions. Rejection, ambiguity, or deferral preserves the candidate and
+Stages 1–3 are now `source-observed` and unreviewed. They contain one
+complete, section-bounded exact-form occurrence census, its count, a private
+page-and-section-bounded context bundle, and four text-free source-return
+anchors. Stages 4–15 remain blocked. Morphology and lemma cannot be reviewed
+without competence-appropriate evidence; recurrence, translation, sign, human
+decision, interpretation, relation, and graph work retain their own gates.
+Stages 12–15 stay empty and blocked until stage 11 records a
+competence-appropriate real-human `accept` or `accept-with-limits` over an
+unassisted baseline frozen before model suggestions. Rejection, ambiguity, or
+deferral preserves the candidate and
 evidence but does not open interpretation or graphing.
 
 ## Candidate review questions

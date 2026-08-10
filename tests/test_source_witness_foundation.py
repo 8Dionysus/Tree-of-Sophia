@@ -5165,7 +5165,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authoritative_projection["stages"][14]["body"]["projection_is_authority"] = True
         self.assertTrue(list(validator.iter_errors(authoritative_projection)))
 
-    def test_initial_sign_packet_separates_edition_reading_from_language_truth(
+    def test_initial_sign_packet_observes_source_without_language_truth(
         self,
     ) -> None:
         validator, _ = foundation._schema_validator(
@@ -5173,13 +5173,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             REPO_ROOT,
         )
         packet = json.loads(
-            (GOLD_ROOT / "initial-sign-packet.v4.json").read_text(
+            (GOLD_ROOT / "initial-sign-packet.v5.json").read_text(
                 encoding="utf-8"
             )
         )
 
         self.assertEqual([], list(validator.iter_errors(packet)))
-        self.assertEqual("preparing", packet["packet_status"])
+        self.assertEqual("observational-analysis", packet["packet_status"])
         self.assertEqual("satisfied", packet["task_specific_source_gate"]["gate_status"])
         self.assertEqual(
             "edition-attested",
@@ -5195,18 +5195,39 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(
             packet["task_specific_source_gate"]["linguistic_claim_review_allowed"]
         )
-        self.assertIsNone(packet["source_forms"])
+        self.assertFalse(packet["source_forms"]["source_values_tracked"])
         self.assertIsNone(packet["candidate_ref"])
         self.assertIsNone(packet["accepted_sign_ref"])
         self.assertFalse(packet["assurance_policy"]["human_work_scheduled"])
         self.assertEqual(
-            ["not-started", "not-started", "not-started"],
+            ["source-observed", "source-observed", "source-observed"],
             [stage["status"] for stage in packet["stages"][:3]],
         )
         self.assertTrue(
             all(stage["status"] == "blocked" for stage in packet["stages"][3:])
         )
-        self.assertTrue(all(stage["body"] == {} for stage in packet["stages"]))
+        self.assertTrue(
+            all(stage["source_return_verified"] for stage in packet["stages"][:3])
+        )
+        self.assertEqual(
+            4,
+            packet["stages"][1]["body"]["count"],
+        )
+        self.assertEqual(
+            packet["stages"][0]["body"]["occurrence_refs"],
+            packet["stages"][1]["body"]["occurrence_refs"],
+        )
+        self.assertEqual(
+            packet["stages"][0]["body"]["occurrence_refs"],
+            packet["stages"][2]["body"]["occurrence_refs"],
+        )
+        self.assertEqual(
+            4,
+            len(packet["stages"][0]["body"]["occurrence_refs"]),
+        )
+        self.assertTrue(
+            all(stage["body"] == {} for stage in packet["stages"][3:])
+        )
         self.assertFalse(packet["result"]["promotion_authorized"])
 
         tracked_source_form = copy.deepcopy(packet)

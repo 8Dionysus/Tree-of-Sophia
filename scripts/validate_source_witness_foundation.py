@@ -2233,7 +2233,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         experimental_translation_episode_paths = sorted(
             gold_root.glob("experimental-translation-episode.*.json")
         )
-        initial_sign_packet_path = gold_root / "initial-sign-packet.v4.json"
+        initial_sign_packet_path = gold_root / "initial-sign-packet.v5.json"
+        initial_semantic_source_observation_plan_path = (
+            gold_root / "initial-semantic-source-observation-plan.v1.json"
+        )
+        semantic_source_observation_anchor_path = (
+            gold_root / "semantic-source-observation-anchors.v1.jsonl"
+        )
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -2262,6 +2268,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         semantic_ladder_v4_provenance_path = (
             gold_root / "provenance.semantic-ladder-v4.jsonl"
         )
+        semantic_source_observation_provenance_path = (
+            gold_root / "provenance.semantic-source-observation-v1.jsonl"
+        )
         experimental_translation_episode_provenance_paths = sorted(
             gold_root.glob("provenance.experimental-translation-episodes*.jsonl")
         )
@@ -2270,6 +2279,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             anchor_paths.append(ocr_anchor_path)
         if transfer_target_anchor_path.is_file():
             anchor_paths.append(transfer_target_anchor_path)
+        if semantic_source_observation_anchor_path.is_file():
+            anchor_paths.append(semantic_source_observation_anchor_path)
 
         sample_plan = _load_json(sample_path, repo_root, issues)
         ocr_sample_plan = (
@@ -2366,6 +2377,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         ]
         initial_sign_packet = _load_json(
             initial_sign_packet_path,
+            repo_root,
+            issues,
+        )
+        initial_semantic_source_observation_plan = _load_json(
+            initial_semantic_source_observation_plan_path,
             repo_root,
             issues,
         )
@@ -2553,13 +2569,33 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     initial_sign_packet
                 )
             )
-            if initial_sign_packet.get("packet_status") != "preparing":
+            if initial_sign_packet.get("packet_status") != "observational-analysis":
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet must remain source-reading-ready without materialized content",
+                        "initial sign packet must remain observational without semantic promotion",
                     )
                 )
+            observation_event_ref = (
+                "tos.event.annotation."
+                "zarathustra-semantic-source-observation-v1.2026-08-10"
+            )
+            observation_anchor_refs = [
+                "tos.anchor.zarathustra-semantic-source-observation-v1.o001",
+                "tos.anchor.zarathustra-semantic-source-observation-v1.o002",
+                "tos.anchor.zarathustra-semantic-source-observation-v1.o003",
+                "tos.anchor.zarathustra-semantic-source-observation-v1.o004",
+            ]
+            observation_occurrence_refs = [
+                "tos.occurrence.lexical-zarathustra-dta-v1."
+                "edad72babd2957782d70834e42cf5cd8baa861ace4ee183a4a0d8c779c087c01",
+                "tos.occurrence.lexical-zarathustra-dta-v1."
+                "6e1e0006ee44752bf6c33bc00af3cc48ffdcd30771f1ca0da49edb67ffb772b4",
+                "tos.occurrence.lexical-zarathustra-dta-v1."
+                "3395c4e11df51cfe5ccd7633e2f05077dcdf9f03fc1d94bdb84df79fbb3ff794",
+                "tos.occurrence.lexical-zarathustra-dta-v1."
+                "06fe0ae445facb6351810717570d11c83131d2f22a710b571bd09c03cb738cc6",
+            ]
             source_gate = initial_sign_packet.get(
                 "task_specific_source_gate",
                 {},
@@ -2569,6 +2605,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 if isinstance(edition_reading_admission, dict)
                 else {}
             )
+            expected_source_anchor_refs = [
+                edition_admission.get("target", {}).get("context_anchor_ref")
+            ] + observation_anchor_refs
             if (
                 source_gate.get("gate_status") != "satisfied"
                 or source_gate.get("source_reading_status") != "edition-attested"
@@ -2580,7 +2619,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 or source_gate.get("source_review_event_ref")
                 != edition_admission.get("provenance_event_ref")
                 or source_gate.get("source_anchor_refs")
-                != [edition_admission.get("target", {}).get("context_anchor_ref")]
+                != expected_source_anchor_refs
                 or source_gate.get("local_source_sha256")
                 != edition_admission.get("source_identity", {}).get("file_sha256")
                 or source_gate.get("local_source_tracked") is not False
@@ -2595,36 +2634,134 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
             if (
-                initial_sign_packet.get("source_forms") is not None
-                or initial_sign_packet.get("candidate_ref") is not None
+                initial_sign_packet.get("candidate_ref") is not None
                 or initial_sign_packet.get("accepted_sign_ref") is not None
                 or initial_sign_packet.get("translation_evidence") != []
             ):
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet manufactured source or semantic content",
+                        "initial sign packet manufactured semantic or translation content",
+                    )
+                )
+            source_forms = initial_sign_packet.get("source_forms", {})
+            expected_local_root = (
+                "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+                "local-content/semantic-source-observation/initial-v1/"
+            )
+            if source_forms != {
+                "diplomatic_local_ref": (
+                    expected_local_root + "diplomatic-form.txt"
+                ),
+                "diplomatic_sha256": (
+                    "7524ff4cef9ab57270250af698a31e2c50f5d6de92e3aaa"
+                    "1377f7ca3659c1ec1"
+                ),
+                "normalized_local_ref": (
+                    expected_local_root + "normalized-form.txt"
+                ),
+                "normalized_sha256": (
+                    "7524ff4cef9ab57270250af698a31e2c50f5d6de92e3aaa"
+                    "1377f7ca3659c1ec1"
+                ),
+                "source_values_tracked": False,
+            }:
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial sign packet source-withholding form binding drifted",
                     )
                 )
             stages = initial_sign_packet.get("stages", [])
+            active_stages = stages[:3]
             if (
                 len(stages) != 15
                 or any(
                     not isinstance(stage, dict)
-                    or stage.get("status") != (
-                        "not-started" if index < 3 else "blocked"
-                    )
+                    or stage.get("status") != "source-observed"
+                    or stage.get("source_anchor_refs") != observation_anchor_refs
+                    or stage.get("source_return_verified") is not True
+                    or stage.get("provenance_event_ref") != observation_event_ref
+                    or stage.get("review_status") != "unreviewed"
+                    or stage.get("blocker_refs") != []
+                    or stage.get("maker", {}).get("performed_by_real_human")
+                    is not False
+                    for stage in active_stages
+                )
+                or any(
+                    not isinstance(stage, dict)
+                    or stage.get("status") != "blocked"
                     or stage.get("source_anchor_refs") != []
                     or stage.get("body") != {}
                     or stage.get("maker") is not None
                     or stage.get("provenance_event_ref") is not None
-                    for index, stage in enumerate(stages)
+                    for stage in stages[3:]
                 )
             ):
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet must keep only the first three observational stages ready and content-free",
+                        "initial sign packet observational and blocked stage boundary drifted",
+                    )
+                )
+            elif (
+                active_stages[0].get("body", {}).get("occurrence_refs")
+                != observation_occurrence_refs
+                or active_stages[1].get("body", {}).get("occurrence_refs")
+                != observation_occurrence_refs
+                or active_stages[2].get("body", {}).get("occurrence_refs")
+                != observation_occurrence_refs
+                or active_stages[0].get("body", {}).get("exact_form_sha256")
+                != (
+                    "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069"
+                    "dbf5a4e994f6ef37"
+                )
+                or active_stages[1].get("body", {}).get("count") != 4
+                or active_stages[1].get("body", {}).get(
+                    "frequency_only_basis"
+                )
+                is not False
+                or active_stages[2].get("body", {}).get("context_sha256")
+                != (
+                    "fe1cd840554ab13e2fed5fea9f46b6e5f5e730cd1d100b4a"
+                    "57b010894d16c7a1"
+                )
+            ):
+                issues.append(
+                    (
+                        initial_sign_location,
+                        "initial exact-form, frequency, or context observation drifted",
+                    )
+                )
+            plan = initial_semantic_source_observation_plan
+            if (
+                not isinstance(plan, dict)
+                or plan.get("status") != "frozen-before-selection"
+                or plan.get("source_scope", {}).get("section_resource_id")
+                != "tei-div-0003"
+                or plan.get("selection_policy", {}).get("ordering")
+                != [
+                    "section-occurrence-count-descending",
+                    "first-source-token-ordinal-ascending",
+                    "exact-form-utf8-bytes-ascending",
+                ]
+                or plan.get("selection_policy", {}).get(
+                    "semantic_filter_used"
+                )
+                is not False
+                or plan.get("selection_policy", {}).get(
+                    "selection_is_sign_nomination"
+                )
+                is not False
+            ):
+                issues.append(
+                    (
+                        _relative(
+                            initial_semantic_source_observation_plan_path,
+                            repo_root,
+                        ),
+                        "initial semantic source-observation selection plan drifted",
                     )
                 )
             result = initial_sign_packet.get("result", {})
@@ -4249,6 +4386,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 semantic_ladder_v4_provenance_path
             )
+        if semantic_source_observation_provenance_path.is_file():
+            local_provenance_paths.append(
+                semantic_source_observation_provenance_path
+            )
         local_provenance_paths.extend(
             experimental_translation_episode_provenance_paths
         )
@@ -4446,9 +4587,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 "provenance_event_refs",
                 [],
             )
-            if initial_sign_event_refs != [
-                "tos.event.annotation.zarathustra-initial-sign-packet-v4.2026-08-10"
-            ]:
+            expected_initial_sign_event_refs = [
+                "tos.event.annotation."
+                "zarathustra-initial-sign-packet-v4.2026-08-10",
+                "tos.event.annotation."
+                "zarathustra-semantic-source-observation-v1.2026-08-10",
+            ]
+            if initial_sign_event_refs != expected_initial_sign_event_refs:
                 issues.append(
                     (
                         initial_sign_location,
@@ -4457,11 +4602,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
             else:
                 initial_sign_event = local_events_by_id.get(
-                    initial_sign_event_refs[0]
+                    initial_sign_event_refs[1]
                 )
                 expected_output = {
                     "ref": initial_sign_location,
-                    "role": "edition-reading-ready-content-free-initial-sign-packet",
+                    "role": "source-observed-no-promotion-semantic-ladder-packet",
                     "sha256": _sha256(initial_sign_packet_path),
                 }
                 if initial_sign_event is None:
@@ -4476,6 +4621,27 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         (
                             initial_sign_location,
                             "initial sign packet provenance output drifted",
+                        )
+                    )
+                expected_anchor_output = {
+                    "ref": _relative(
+                        semantic_source_observation_anchor_path,
+                        repo_root,
+                    ),
+                    "role": "text-free-exact-occurrence-source-return-anchors",
+                    "sha256": _sha256(
+                        semantic_source_observation_anchor_path
+                    ),
+                }
+                if (
+                    initial_sign_event is not None
+                    and expected_anchor_output
+                    not in initial_sign_event.get("outputs", [])
+                ):
+                    issues.append(
+                        (
+                            initial_sign_location,
+                            "initial source-observation anchor provenance drifted",
                         )
                     )
 
@@ -6192,6 +6358,22 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             | ocr_plan_anchor_ids
             | retrieval_anchor_ids
             | graph_anchor_ids
+            | {
+                anchor_ref
+                for anchor_ref in (
+                    (initial_sign_packet or {})
+                    .get("task_specific_source_gate", {})
+                    .get("source_anchor_refs", [])
+                )
+                if isinstance(anchor_ref, str)
+            }
+            | {
+                anchor_ref
+                for stage in (initial_sign_packet or {}).get("stages", [])
+                if isinstance(stage, dict)
+                for anchor_ref in stage.get("source_anchor_refs", [])
+                if isinstance(anchor_ref, str)
+            }
             | {
                 fragment.get("source_anchor_ref")
                 for fragment in (translation_plan or {}).get("fragments", [])

@@ -141,12 +141,18 @@ Zarathustra golden kernel. It is not a completed gold set.
   future real-human-only morphology-to-interlinear pass. It forbids AI aids,
   other-lane analysis, comparator exposure, and premature drafting; it does
   not claim that any human work has occurred.
-- `INITIAL_SIGN_PACKET_ROUTE.md` and `initial-sign-packet.v4.json` preserve the
-  fifteen-stage form-to-graph route as a tracked `preparing` packet. One exact
-  DTA Edition/Item reading is attested, so exact-form, frequency, and context
-  observation may begin after a concrete form is selected. No source form,
-  occurrence, morphology, lemma, translation, sign candidate, human task,
-  relation, concept, claim, or graph projection exists yet. German competence
+- `INITIAL_SIGN_PACKET_ROUTE.md`, the frozen
+  `initial-semantic-source-observation-plan.v1.json`, and
+  `initial-sign-packet.v5.json` preserve the fifteen-stage form-to-graph route.
+  A deterministic source-observational rule selected one exact form inside the
+  admitted DTA section without using stopwords, lemmas, semantics, or
+  philosophical importance. All four section occurrences, two pages, exact TEI
+  character-data offsets, and twelve-token page-and-section-bounded contexts
+  are now materialized. Source values remain only in ignored mode-`0600`
+  files; tracked evidence is hash/count/selector-only. The packet is
+  `observational-analysis`, not a sign proposal: morphology, lemma,
+  translation, sign candidate, human task, relation, concept, claim, graph,
+  canon, transfer, and publication remain absent or blocked. German competence
   remains independently blocked and the historical 0-of-30 packet does not
   schedule this work.
 - the separate DTA parts 1–4 lexical observation route materializes 86,287
@@ -156,16 +162,18 @@ Zarathustra golden kernel. It is not a completed gold set.
   tracked 11,352-row companion carries only form hashes, aggregate counts, and
   resource refs; it carries no source strings, sequence, context, or
   occurrence positions. Lemma, translation, sign candidate, sign, source
-  acceptance, rights clearance, and public routing remain zero or blocked,
-  and the initial sign packet stays unchanged.
+  acceptance, rights clearance, and public routing remain zero or blocked.
+  The later v5 packet consumes one exact section-bounded observation without
+  changing those authority limits.
 - the tracked recurrence layer now derives one deterministic observation tuple
   for each of those 11,352 exact-form hashes without reading local payloads or
   the private SQLite database. It keeps A frequency, B part/division/page
   range, and C frequency+range+part-size-aware `DP`+maximum concentration as
   separate dimensions. It creates no leaderboard or importance score, exposes
   no source string, and has zero morphology, lemma, lexeme, sign-candidate,
-  semantic, publication, or human-backlog effect. This is queryable soil below
-  the semantic ladder, not a materialized stage of `initial-sign-packet.v4.json`.
+  semantic, publication, or human-backlog effect. This remains queryable soil
+  below the semantic ladder; the later v5 packet consumes only one
+  independently selected, section-bounded observation from it.
 - the question-scoped usage-context control materializes all 527 occurrences
   of one preselected Work-identity exact-form hash as a deterministic
   24-token-per-side, same-page KWIC bundle. The 875,930 source-bearing bytes

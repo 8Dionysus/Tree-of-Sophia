@@ -1,0 +1,78 @@
+{
+  "schema_version": "tos_initial_semantic_source_observation_plan_v1",
+  "plan_id": "semantic-source-observation-plan:zarathustra-initial-v1",
+  "status": "frozen-before-selection",
+  "question": "Which one exact form in the already attested Za-I-Vorrede-1 Edition reading is selected by a deterministic source-observational rule, and what are all of its exact occurrences and page-and-section-bounded contexts inside that unit?",
+  "source_scope": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "file_id": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "section_resource_id": "tei-div-0003",
+    "section_tei_path": "TEI/text[1]/body[1]/div[1]/div[1]",
+    "critical_locator_siglum": "Za-I-Vorrede-1",
+    "edition_reading_admission_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json",
+    "edition_reading_admission_sha256": "8c43f11e0824cc6acdd8a7b321fde3089c63020c7af20145ceb359339cbe6980"
+  },
+  "source_index": {
+    "index_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/lexical-indexes/dta-first-editions-parts-1-4-v1/index-plan.v1.json",
+    "index_plan_sha256": "cd942ad6d08407b014acff95ddf1e2e466e7147eaa5d7f099809fe1d06aa0112",
+    "local_database_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.sqlite3",
+    "local_database_sha256": "c2912a9f481205f0de9a1a0242b26a3419e3d82d44163ab91a2a2ab16ced5736",
+    "tokenization_profile": "tos_unicode_letter_mark_joiner_v1",
+    "exact_form_mutated": false
+  },
+  "selection_policy": {
+    "candidate_unit": "exact-unchanged-source-form",
+    "required_editorial_status": "witness-text",
+    "minimum_section_occurrence_count": 2,
+    "minimum_unicode_codepoint_count": 4,
+    "ordering": [
+      "section-occurrence-count-descending",
+      "first-source-token-ordinal-ascending",
+      "exact-form-utf8-bytes-ascending"
+    ],
+    "selection_count": 1,
+    "stopword_filter_used": false,
+    "proper_name_filter_used": false,
+    "lemma_filter_used": false,
+    "semantic_filter_used": false,
+    "philosophical_importance_filter_used": false,
+    "selection_is_sign_nomination": false
+  },
+  "observation_policy": {
+    "occurrence_scope": "complete-selected-section-census",
+    "context_scope": "same-item-and-page-and-section-only",
+    "context_window_tokens_each_side": 12,
+    "context_sampling": "none",
+    "sentence_boundary_claimed": false,
+    "source_return": "exact-TEI-character-data-node-offset-plus-tracked-page-resource",
+    "diplomatic_and_normalized_values_local_only": true,
+    "tracked_source_values": false
+  },
+  "local_outputs": {
+    "diplomatic_form_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/semantic-source-observation/initial-v1/diplomatic-form.txt",
+    "normalized_form_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/semantic-source-observation/initial-v1/normalized-form.txt",
+    "context_bundle_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/semantic-source-observation/initial-v1/context-bundle.json"
+  },
+  "tracked_outputs": {
+    "anchor_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-observation-anchors.v1.jsonl",
+    "packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json",
+    "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.semantic-source-observation-v1.jsonl"
+  },
+  "authority_boundary": {
+    "source_observation_only": true,
+    "accepted_german": false,
+    "morphology": false,
+    "lemma": false,
+    "translation": false,
+    "sign_candidate": false,
+    "human_task": false,
+    "semantic_claim": false,
+    "graph_effect": false,
+    "canon_effect": false,
+    "transfer": false,
+    "publication": false
+  }
+}
