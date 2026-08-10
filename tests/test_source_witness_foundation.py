@@ -476,6 +476,11 @@ ANTONOVSKY_1907_RNL_DISCOVERY_PATH = (
     / "ToS/source-witnesses/discovery/runs/"
     "antonovsky-1907-rnl-primo-current-holding.2026-08-10.v3.json"
 )
+ANTONOVSKY_1907_RNL_REPORTED_RSL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-1907-rnl-reported-rsl-holding.2026-08-10.v4.json"
+)
 ANTONOVSKY_1907_RNL_REQUEST_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/access-requests/public-ledger/"
@@ -3523,6 +3528,30 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("07NLR_LMS004843723", edition_1907["notes"])
         self.assertIn("not ToS Items", edition_1907["notes"])
         self.assertIn("V 106/216", edition_1907["notes"])
+        self.assertEqual(4, edition_1907["record_version"])
+        self.assertEqual(
+            {
+                ("RNL RUSMARC 001", "v19\\rc\\1717109"),
+                ("RSL shelfmark reported by RNL", "V 106/216"),
+            },
+            {
+                (identifier["scheme"], identifier["value"])
+                for identifier in edition_1907["external_identifiers"]
+                if identifier["scheme"]
+                in {"RNL RUSMARC 001", "RSL shelfmark reported by RNL"}
+                and identifier["status"] == "verified"
+            },
+        )
+        self.assertNotIn(
+            "01003693382",
+            {
+                identifier["value"]
+                for identifier in edition_1907["external_identifiers"]
+            },
+        )
+        self.assertIn("RNL-reported RSL shelfmark", edition_1907["notes"])
+        self.assertIn("not a current RSL public record", edition_1907["notes"])
+        self.assertIn("БАН row has no call number", edition_1907["notes"])
 
         exact_discovery = json.loads(
             ANTONOVSKY_1900_DISCOVERY_PATH.read_text(encoding="utf-8")
@@ -3727,6 +3756,66 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             )
         )
 
+        reported_rsl_discovery = json.loads(
+            ANTONOVSKY_1907_RNL_REPORTED_RSL_DISCOVERY_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("incomplete", reported_rsl_discovery["status"])
+        self.assertEqual(
+            "tos.discovery.antonovsky-1907-rnl-primo-current-holding.2026-08-10",
+            reported_rsl_discovery["supersedes_discovery_ref"],
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6, 7],
+            [channel["sequence"] for channel in reported_rsl_discovery["channels"]],
+        )
+        self.assertEqual(
+            "general-web-search",
+            reported_rsl_discovery["channels"][-1]["channel_type"],
+        )
+        self.assertFalse(reported_rsl_discovery["technical_access_bypass_used"])
+        format_results = reported_rsl_discovery["channels"][0]["results"]
+        self.assertEqual(
+            {"select"},
+            {result["decision"] for result in format_results},
+        )
+        current_cross_agency_record = reported_rsl_discovery["channels"][1][
+            "results"
+        ][0]
+        self.assertEqual(
+            {
+                ("RNL RUSMARC 001", "v19\\rc\\1717109"),
+                ("RSL shelfmark reported by RNL", "V 106/216"),
+            },
+            {
+                (identifier["scheme"], identifier["value"])
+                for identifier in current_cross_agency_record["identifiers"]
+                if identifier["scheme"]
+                in {"RNL RUSMARC 001", "RSL shelfmark reported by RNL"}
+            },
+        )
+        self.assertIn(
+            "not an RSL record or physically inspected Item",
+            current_cross_agency_record["rationale"],
+        )
+        ban_row = reported_rsl_discovery["channels"][1]["results"][1]
+        self.assertEqual("defer", ban_row["decision"])
+        self.assertEqual([], ban_row["identifiers"])
+        rsl_404 = reported_rsl_discovery["channels"][4]["results"][0]
+        self.assertEqual("reject", rsl_404["decision"])
+        self.assertIn("HTTP 404", rsl_404["rationale"])
+        self.assertIn(
+            rsl_404["result_id"], reported_rsl_discovery["rejected_result_ids"]
+        )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                for channel in reported_rsl_discovery["channels"]
+                for result in channel["results"]
+            )
+        )
+
         exact_request = json.loads(
             ANTONOVSKY_1900_REQUEST_PATH.read_text(encoding="utf-8")
         )
@@ -3806,6 +3895,23 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(exact_1907_request["human_send_approval"])
         self.assertIsNone(exact_1907_request["sent_at"])
         self.assertEqual("none", exact_1907_request["response"]["state"])
+        self.assertEqual(2, exact_1907_request["record_version"])
+        self.assertIn(
+            "V 106/216 действующим шифром именно этого издания",
+            exact_1907_request["material"]["requested_portion"],
+        )
+        self.assertIn(
+            ("RSL shelfmark reported by RNL", "V 106/216"),
+            {
+                (identifier["scheme"], identifier["value"])
+                for identifier in exact_1907_request["material"]["identifiers"]
+            },
+        )
+        self.assertIn(
+            "tos.event.access-request-scope-reconciliation."
+            "antonovsky-1907-rnl-reported-rsl-holding.2026-08-10",
+            exact_1907_request["provenance_event_refs"],
+        )
         for permission in (
             "source_redistribution",
             "derivative_publication",

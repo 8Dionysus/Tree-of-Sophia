@@ -217,6 +217,15 @@ reported `В хранении`. The catalogue code `Web заказ` is preserved
 official RNL guidance does not establish actual online ordering for a 1907
 edition, and the record-specific scan form is recommendation-only. The remote
 holdings are not ToS Items, and no source pages or bytes were acquired. The
+same exact RUSMARC response exposes `001` `v19\rc\1717109` and field
+`899 |a RuMoRGB |j V 106/216`. Official RUSMARC and MARC organization-code
+documentation support the narrow statement that RNL reports an RSL call
+number; they do not confirm the current RSL copy. `V 106/216` is therefore
+tracked as `RSL shelfmark reported by RNL`, while predicted RSL record
+`01003693382` stays rejected at HTTP `404` and the separate `БАН` row without
+a call number stays unresolved. The refocused RSL/RuNEB request asks for
+institutional confirmation before any source-copy question and remains
+`draft-not-sent`. The
 typography string is not inferred to be a publisher and opens no provision
 claim. No Item, File, exemplar claim, responsibility claim, collation,
 equivalence, changed derivation, rights conclusion, accepted text, or semantic

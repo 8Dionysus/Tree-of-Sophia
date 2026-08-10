@@ -117,6 +117,12 @@ The current RNL Primo record now independently resolves that 1907 endpoint to
 record `07NLR_LMS004843723`, system number `004843723`, and three Russian Book
 Fund shelfmarks: `17.145.5.1`, `17.145.5.1а`, and `17.145.5.1 Б`. These remain
 remote holdings rather than ToS Items: no exact source bytes were acquired.
+An identifier-first RUSMARC return now also preserves control value
+`v19\rc\1717109` and interprets `899 |a RuMoRGB |j V 106/216` as an
+RNL-reported RSL shelfmark using official field and organization-code
+documentation. The attribution is part of the identifier scheme: the
+predicted RSL route `01003693382` remains HTTP `404`, so no current RSL public
+record, physical Item, availability, or custody claim is manufactured.
 `[s.n.]` and `тип. Б.М. Вольфа` remain unresolved catalogue statements in
 1900, while `тип. Альтшулера` and
 `тип. Ф. Вайсберга и П. Гершунина` remain typography evidence rather than

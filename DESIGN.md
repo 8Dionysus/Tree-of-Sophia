@@ -82,6 +82,13 @@ translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
 content infallible.
 
+Institutional catalogue metadata follows the same attribution law. A control
+number keeps its native scheme; a holding statement keeps both the reporting
+catalogue and the reported holding institution. Thus an RNL field may verify
+that RNL reports an RSL call number without verifying an RSL public record,
+physical copy, service state, or ToS Item. Cross-catalogue sequence shape is a
+discovery lead, never an identity bridge by itself.
+
 Time follows the same law. A Work has no single self-evident year: composition,
 manuscript fixation, printing, title-page dating, private circulation, public
 release, reception, and later preservation are separate claim facets. The

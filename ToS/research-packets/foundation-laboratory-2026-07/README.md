@@ -18,7 +18,8 @@ Antonovsky–Prometey 1911 source witness, the bounded Antonovsky
 Expression-derivation contract/discovery route, the exact Lithuanian National
 Library 1900 Edition/holding route plus its current RSL/RNL/LNB reconciliation,
 and the exact RSL/RNL 1903 second-corrected Edition/current-holdings route plus
-the removed-or-replaced RuNEB 1907 third-Edition route, Reader and Nani 1899
+the removed-or-replaced RuNEB 1907 third-Edition route and its current
+RNL-reported RSL holding reconciliation, Reader and Nani 1899
 layered rights, and the exact
 Antonovsky 1913 RU/US positive-rights versus operator-local-payload boundary
 and all four exact DTA annotated-TEI CC BY-SA versus local-custody boundaries
@@ -86,6 +87,7 @@ and what must be tested manually.
 | `ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md` | How the exact RuNEB record, Antonovsky's source-visible revision history, and established Blok scholarship materialize one provisional 1907 third Edition without manufacturing a ToS Item; why a removed-or-replaced card and typography string do not prove a digital object, publisher, rights, or access; and how two unsent institutional routes preserve the Edition/Item/acquisition boundary? |
 | `ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md` | How official RNL GAK divider 67133 card 82 independently confirms the 1907 third Edition and extent `VIII, 363 с.`; why its overwritten shelfmark is not guessed or promoted; and how a reproducible catalogue route plus one unsent institutional enquiry advance provenance without manufacturing a current holding, Item, rights, accepted text, or human authority? |
 | `ANTONOVSKY_1907_RNL_PRIMO_CURRENT_HOLDING_RESEARCH.md` | How current RNL Primo record `07NLR_LMS004843723`, system number `004843723`, tagged RUSMARC, and public item rows resolve three current shelfmarks and `В хранении` states; why `Web заказ`, digitization recommendation, copy service, rights, and ToS Item custody remain separate; and how the exact request is revised without sending anything? |
+| `ANTONOVSKY_1907_RNL_REPORTED_RSL_HOLDING_RESEARCH.md` | How official RUSMARC field semantics, exact current field `899`, and official MARC organization-code evidence resolve `V 106/216` only as an RNL-reported RSL shelfmark; why RNL `001` `v19\rc\1717109`, a predicted RSL route still returning `404`, a `БАН` row without a call number, physical Item identity, and rights remain separate; and how the RSL/RuNEB request becomes confirmation-first without being sent? |
 | `DECISION_MATRIX.md` | Which tools and methods enter A/B/C trials, and which are deferred? |
 | `MACHINE_FIT.md` | What can this machine test safely, at what resource class and with what stop conditions? |
 | `LOCAL_LLM_ADMISSION.md` | Which current local software/LLM routes are admissible after an official-docs -> established-work -> freshest-work refresh, and why no new download or run is yet justified? |
