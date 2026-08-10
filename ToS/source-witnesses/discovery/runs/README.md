@@ -282,6 +282,18 @@ one bibliographic topology packet. No holding becomes a ToS Item; no source
 page, payload, publisher, provision activity, rights conclusion, collation,
 equivalence, semantic claim, human task, message, order, or payment is created.
 
+`antonovsky-1903-rsl-rnl-current-holdings.2026-08-10.v2.json` follows that
+RSL-only pass with current official RSL/RNL documentation, an exact
+control-record crosswalk, public holding rows, established and freshest
+witness-comparison controls, record-specific access routes, open-library
+negatives, and general web last. It resolves RNL Primo
+`07NLR_LMS004843722`, system number `004843722`, and shelfmarks `129/5943`
+and `38.35.6.32` while preserving four distinct RSL holdings. One undefined
+`TEMP` row and the RSL page template's generic hidden online-reading modal are
+rejected. No remote holding becomes a ToS Item; no source payload, digital
+object, right, request transmission, order, accepted text, semantics, human
+task, publication, or canon is created.
+
 `antonovsky-1907-runeb-edition.2026-08-01.v1.json` resolves one exact 1907
 third Edition from the official RuNEB card, Antonovsky's exact 1911
 revision-history preface, and established Blok scholarship, then checks the

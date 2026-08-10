@@ -186,12 +186,18 @@ research-copy request remains public-safe, optional, and `draft-not-sent`.
 The provisional 1903 Antonovsky Expression now likewise closes over one exact
 institutionally identified Edition. The Russian State Library record reports
 `2-е изд., испр.`, Saint Petersburg, `тип. Альтшулера`, year 1903, extent
-`[2], III, [3], 432, [2], V`, and four physical holdings. Those shelfmarks are
-external coordinates, not ToS Items: no bytes or source pages were acquired.
+`[2], III, [3], 432, [2], V`, and four physical holdings. A current RNL
+crosswalk resolves the same bibliographic control core to Primo
+`07NLR_LMS004843722`, system number `004843722`, and two additional holdings
+under `129/5943` and `38.35.6.32`. The distinct identifier wrappers are not
+collapsed, the six shelfmarks remain external coordinates rather than ToS
+Items, and one undefined `TEMP` row is rejected. No record-specific digital
+object, bytes, or source pages were acquired.
 The typography string is not inferred to be a publisher and opens no
 provision-activity claim. No responsibility claim, collation, equivalence,
 new derivation edge, rights conclusion, accepted text, or semantic object is
-created. Its tiered RSL copy request is also public-safe and `draft-not-sent`.
+created. Separate tiered RSL and RNL copy requests are public-safe and
+`draft-not-sent`; the RNL digitization route remains recommendation-only.
 
 The provisional 1907 Antonovsky Expression now closes over one exact
 institutionally identified third Edition. The current RuNEB record reports

@@ -234,6 +234,14 @@ contracts intentionally reject simulated human evidence.
   typography and is not converted into a publisher or provision-activity
   claim. Responsibility beyond the catalog statement, source text, rights,
   collation, equivalence, and every additional derivation edge remain absent.
+- A current RSL–RNL reconciliation resolves that 1903 record to RNL Primo
+  `07NLR_LMS004843722`, system number `004843722`, and two additional remote
+  shelfmarks, `129/5943` and `38.35.6.32`. The shared control core and matching
+  bibliography reconcile institutional records, not physical copies or text.
+  One undefined `TEMP` row is rejected, and a generic hidden RSL read modal is
+  not treated as a digital object. The six actionable shelfmarks remain
+  outside the ToS Item ladder; no source bytes, completeness, condition,
+  exemplar identity, rights, human bibliography, semantics, or canon follows.
 - A following current RNL Primo pass resolves the remaining 1907 holding gap
   through record `07NLR_LMS004843723`, system number `004843723`, tagged
   RUSMARC, and three public item rows under `17.145.5.1`, `17.145.5.1а`, and
@@ -570,6 +578,14 @@ contracts intentionally reject simulated human evidence.
   first asks for copying eligibility, condition, price, and terms before page
   evidence or a complete research reproduction. No message, order, payment,
   payload, permission, redistribution authority, or standing human task exists.
+- A separate Antonovsky 1903 Russian National Library request is also
+  `draft-not-sent`. It uses Primo `07NLR_LMS004843722`, system number
+  `004843722`, and the two exact RNL shelfmarks; it keeps the catalogue's
+  `Web заказ` label distinct from actual 1903 fulfillment and the
+  record-specific digitization form distinct from copying or rights
+  permission. It asks first for service and copying terms, then bibliographic
+  pages, then a complete local research copy only if permitted. No form,
+  recommendation, order, payment, permission, payload, or human task exists.
 - The Reader 1899 RNL/RuNEB complete-copy request is likewise public-safe and
   `draft-not-sent`. It asks first for the current shelfmark and an explanation
   of the fragmentary object, then for a lawful complete or missing-page
@@ -984,8 +1000,12 @@ not reintroduce a false 90 °C gate.
   to guess the overwritten shelfmark. A following current RNL Primo pass then
   resolves three shelfmarks and holdings without promoting any remote copy to
   a ToS Item or adding a payload, publisher, rights clearance, exemplar claim,
-  or derivation edge. The
-  following Reader 1899 slice adds a separate uncredited
+  or derivation edge. The separate current RSL–RNL 1903 crosswalk resolves Primo
+  `07NLR_LMS004843722`, system number `004843722`, and two RNL holdings while
+  rejecting one undefined `TEMP` row and a generic RSL read-modal false
+  positive; it adds no Item, source payload, exemplar identity, right,
+  semantic object, or human task and prepares only an unsent RNL-specific
+  request. The following Reader 1899 slice adds a separate uncredited
   Expression, exact Edition, fragmentary three-part PDF Item, provisional
   Moscow Place and Reader editorial-office Organization, two provision claims,
   three identity-ladder claims, an unsent complete-copy request, and a

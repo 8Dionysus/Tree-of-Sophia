@@ -101,8 +101,13 @@ equivalence.
 The Antonovsky revision lineage now also has exact institutional Edition
 endpoints for 1900, 1903, and 1907. The Lithuanian National Library identifies
 the 1900 first counted Edition; the Russian State Library identifies the 1903
-`2-е изд., испр.` and four holdings; and the current RuNEB card identifies
-the 1907 third Edition while reporting that the card was removed or replaced.
+`2-е изд., испр.` and four holdings. A current RNL crosswalk now resolves that
+same 1903 bibliographic endpoint to Primo record `07NLR_LMS004843722`, system
+number `004843722`, and two additional remote shelfmarks, `129/5943` and
+`38.35.6.32`, while rejecting one undefined `TEMP` row and a generic RSL
+online-reading modal as false Item/digital-object evidence. The current RuNEB
+card identifies the 1907 third Edition while reporting that the card was
+removed or replaced.
 The current RNL Primo record now independently resolves that 1907 endpoint to
 record `07NLR_LMS004843723`, system number `004843723`, and three Russian Book
 Fund shelfmarks: `17.145.5.1`, `17.145.5.1а`, and `17.145.5.1 Б`. These remain

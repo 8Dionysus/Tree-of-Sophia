@@ -1,0 +1,385 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1903-rsl-rnl-current-holdings.2026-08-10",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected"
+    ],
+    "description": "Current RSL-RNL control-record crosswalk, physical-copy coordinates, digital-object state, and lawful access routes for the exact 1903 Antonovsky second corrected Edition without manufacturing a ToS Item, source text, or rights conclusion",
+    "required_properties": [
+      "current institutional control identifiers",
+      "cross-institution record reconciliation",
+      "current physical holding coordinates",
+      "record-specific digital object state",
+      "copy and service state",
+      "source-specific rights and transformation terms"
+    ],
+    "acceptable_substitutions": [
+      "institution-certified bibliographic and holding response",
+      "institution-supplied bibliographic pages before a complete research reproduction",
+      "separately licensed or public-domain exact digital object"
+    ],
+    "languages": ["ru"],
+    "formats": ["catalogue metadata", "MARC", "physical holding", "PDF", "TIFF", "JPEG"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1903_RSL_RNL_CURRENT_HOLDINGS_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-antonovsky-1903-rsl-rnl-official-documentation",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Current RSL and RNL electronic-catalogue guidance",
+      "endpoint_url": "https://search.rsl.ru/ru/faq/36",
+      "interface_type": "web",
+      "interface_version": "current RSL FAQ and RNL 52-page electronic-catalogue guide checked 2026-08-10",
+      "exact_query": "Read current official RSL and RNL guidance for electronic-copy indicators, record detail, shelfmarks, reading-room order, fragment-copy service, online-order boundaries, and the distinction between catalogue status and actual source access",
+      "queried_at": "2026-08-10T05:10:00-06:00",
+      "elapsed_seconds": 5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-rnl-official-service-semantics",
+          "rank": 1,
+          "title_as_displayed": "RSL record and order help plus RNL electronic-catalogue guide",
+          "result_url": "https://search.rsl.ru/ru/faq/36",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/locale/ru_RU/help/help_for_priomo_nui.pdf",
+          "identifiers": [],
+          "available_formats": ["HTML official help", "official PDF guide"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "RSL distinguishes a real interactive electronic copy from generic record furniture and documents reading-room plus paid fragment ordering. RNL documents held materials, shelfmarks, system numbers, and a post-1957 ordinary online-order boundary for Russian Book Fund material. Neither guide proves a record-specific digital object, copy eligibility, or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Transient official documentation was inspected and hashed without retaining mutable service pages in Git."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-rsl-rnl-exact-control-crosswalk",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Exact RSL record and RNL Primo/RUSMARC record",
+      "endpoint_url": "https://search.rsl.ru/ru/record/01003693381",
+      "interface_type": "web",
+      "interface_version": "RSL public catalog, RNL Primo classic, tagged RUSMARC, and MARC responses checked 2026-08-10",
+      "exact_query": "Refresh RSL record 01003693381, then search exact title plus Antonovsky plus 1903 in RNL; reconcile control identifiers, transaction value, title, responsibility, Edition statement, imprint, extent, and institutional holdings without equating physical copies",
+      "queried_at": "2026-08-10T05:10:20-06:00",
+      "elapsed_seconds": 9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-rnl-control-crosswalk",
+          "rank": 1,
+          "title_as_displayed": "Так говорил Заратустра : Книга для всех и ни для кого — 2-е изд., испр., 1903",
+          "result_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843722",
+          "originating_record_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+          "identifiers": [
+            {"scheme": "RSL public record", "value": "01003693381"},
+            {"scheme": "RSL MARC 001", "value": "003693381"},
+            {"scheme": "NLR source identifier reported by RSL", "value": "(NLR)rc\\1717108"},
+            {"scheme": "RNL Primo record", "value": "07NLR_LMS004843722"},
+            {"scheme": "RNL system number", "value": "004843722"},
+            {"scheme": "RNL RUSMARC 001", "value": "v19\\rc\\1717108"}
+          ],
+          "available_formats": ["RSL HTML and MARC21", "RNL Primo HTML", "tagged RUSMARC", "MARC download"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The RSL and RNL records share the rc\\1717108 control core, transaction value 20061002170739.2, and exact bibliographic description. The wrapper syntaxes remain distinct literals, and the crosswalk does not equate any physical copies or texts.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Transient exact-record responses were inspected and hashed: RSL HTML 6c82a0ea9721690a4203c97897cd839c783f3d7cc559a7f86562ddb3a6dc8134, RNL classic search 502ff0a183826253f8e2f2185f3e62853e056661ff48aff347e5bf314e36922e, tagged RUSMARC 55e6f374cad0daed012233dfb37ff96bd03cc9f15f55f903f82df4e7ddd576a5, and MARC bb50a7852799a4f770bb8ca0d31005902694c73e7f7a96ffa83a7c5849025fec. No response or source book is tracked."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-rsl-rnl-current-holdings",
+      "sequence": 3,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Current RSL holdings plus RNL RUSMARC and ALEPH item rows",
+      "endpoint_url": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+      "interface_type": "web",
+      "interface_version": "RSL record, RNL RUSMARC, and ALEPH 5.20 item-global checked 2026-08-10",
+      "exact_query": "Compare all RSL and RNL shelfmarks, then inspect every public RNL item row, status, fund, holding state, and barcode without login, order, or normalization of the undefined TEMP row",
+      "queried_at": "2026-08-10T05:11:00-06:00",
+      "elapsed_seconds": 4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-six-actionable-remote-holdings",
+          "rank": 1,
+          "title_as_displayed": "Four RSL holdings and two current RNL Russian Book Fund holdings",
+          "result_url": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693381",
+          "identifiers": [
+            {"scheme": "RSL call number", "value": "FB L 31/57"},
+            {"scheme": "RSL call number", "value": "FB Рб 33/442"},
+            {"scheme": "RSL call number", "value": "FB T 97/44"},
+            {"scheme": "RSL call number", "value": "OMF 801-85/11097-8"},
+            {"scheme": "RNL shelfmark", "value": "129/5943"},
+            {"scheme": "RNL shelfmark", "value": "38.35.6.32"}
+          ],
+          "available_formats": ["HTML catalog record", "tagged RUSMARC", "HTML item rows"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "RSL reports four shelfmarks. Two actionable RNL rows report shelfmarks 129/5943 and 38.35.6.32, barcodes 4843722-10 and 4843722-20, fund РКФ-Главное здан, catalogue code Web заказ, and state В хранении. These are remote catalogue holdings, not ToS Items, same-copy evidence, source text, or permission.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient public ALEPH response had SHA-256 c92a38360dd091750edbdd2e2cb0d851583afdd922d340fc83644638856d1def; public-safe holding metadata is recorded without retaining the page."}
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rnl-undefined-temp-row",
+          "rank": 2,
+          "title_as_displayed": "Undefined TEMP item row without shelfmark",
+          "result_url": "http://aleph23.nlr.ru/F?func=item-global&doc_library=NLR01&local_base=NLR01&doc_number=004843722",
+          "originating_record_url": "https://webservices.nlr.ru/util/?method=recordFormat&vid=07NLR_VU1&sysid=004843722&format=001&base=NLR01",
+          "identifiers": [{"scheme": "RNL item barcode", "value": "4843722-70"}],
+          "available_formats": ["HTML item row"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The row reports TEMP, undefined status and fund, in-storage text, no shelfmark, and barcode 4843722-70. It is not silently normalized, counted as an actionable holding, or promoted as a ToS identifier or Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The bounded negative observation is preserved inside the same transient item response."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-established-witness-control",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Established peer-reviewed Russian Zarathustra translation research",
+      "endpoint_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+      "interface_type": "web",
+      "interface_version": null,
+      "exact_query": "Retain the established control that translator, title, and Edition sequence do not substitute for comparison of exact witnesses when philosophical meaning, rhythm, style, or strategy is at issue",
+      "queried_at": "2026-08-10T05:12:00-06:00",
+      "elapsed_seconds": 0,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-pertsev-established-control-v2",
+          "rank": 1,
+          "title_as_displayed": "Русские переводы Так говорил Заратустра Ф. Ницше: проблемы адекватности",
+          "result_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "originating_record_url": "https://doi.org/10.17072/2078-7898/2015-3-24-31",
+          "identifiers": [{"scheme": "DOI", "value": "10.17072/2078-7898/2015-3-24-31"}],
+          "available_formats": ["HTML", "PDF"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established scholarship remains the witness-separation control; it does not identify or license a physical 1903 copy.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The DOI and bounded methodological conclusion are already retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-fresh-witness-control",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Fresh Antonovsky translation comparison and current 2026 search",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "fresh scholarly and 2026 exact-topic searches checked 2026-08-10",
+      "exact_query": "Check the freshest inspectable direct Antonovsky comparison, then search 2026 work for a newer exact-witness study that would change the 1903 identity or source-access conclusion",
+      "queried_at": "2026-08-10T05:12:20-06:00",
+      "elapsed_seconds": 3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-ermakova-fresh-control-v2",
+          "rank": 1,
+          "title_as_displayed": "Стилистические особенности русских переводов книги Ф. Ницше Так говорил Заратустра",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://publications.hse.ru/articles/984166485",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["HTML", "article metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The 2025 direct comparison remains the freshest inspectable Antonovsky-specific control found. Current 2026 results surfaced a forthcoming English translation, a commercial Antonovsky reprint, and unrelated translation studies, but no newer exact-witness result that changes this Edition endpoint.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "No article payload was ingested; exact bibliographic and bounded methodological evidence is sufficient."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-record-specific-access",
+      "sequence": 6,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "RSL fragment service and RNL digitization-recommendation route",
+      "endpoint_url": "https://search.rsl.ru/ru/fragment-eorder/rsl01003693381",
+      "interface_type": "web",
+      "interface_version": "exact RSL record and fragment page plus exact RNL recommendation GET checked 2026-08-10",
+      "exact_query": "Inspect without authentication or submission the exact RSL reading-room and fragment routes, the populated record-specific read-link state, and the exact RNL recommendation form; keep service, digitization, copying, and rights separate",
+      "queried_at": "2026-08-10T05:12:50-06:00",
+      "elapsed_seconds": 5,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-fragment-route-current",
+          "rank": 1,
+          "title_as_displayed": "Заказать копию фрагмента — РГБ 01003693381",
+          "result_url": "https://search.rsl.ru/ru/fragment-eorder/rsl01003693381",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693381",
+          "identifiers": [{"scheme": "RSL public record", "value": "01003693381"}],
+          "available_formats": ["HTML fragment-order interface", "reading-room order"],
+          "declared_rights": {"statement": "Fulfillment depends on library service review, law, preservation, requested range, and payment.", "scope": "content", "evidence_url": "https://www.rsl.ru/international-services/document-copying", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The exact RSL record offers reading-room and paid fragment routes. No order or payment was initiated, and the route does not establish complete-copy eligibility, source custody, or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient fragment page had SHA-256 6392ea7076be12b080852257495e5b1b50abfaaecd8096af5d47e33510760ba9; no form was submitted."}
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rsl-generic-read-modal-false-positive",
+          "rank": 2,
+          "title_as_displayed": "Generic hidden free-access modal without a record-specific link",
+          "result_url": "https://search.rsl.ru/ru/record/01003693381",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["generic HTML template furniture"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The record-specific read-link section is empty. The page template still contains a hidden generic modal saying Читать онлайн with href #. Keyword presence is not evidence that this record has a digital object or free access.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The negative is bound to the same current RSL record response."}
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-rnl-digitization-recommendation-route",
+          "rank": 3,
+          "title_as_displayed": "Рекомендовать к оцифровке — Так говорил Заратустра",
+          "result_url": "https://webservices.nlr.ru/forms/scanrequest/nui/004843722",
+          "originating_record_url": "https://primo.nlr.ru/primo_library/libweb/action/dlDisplay.do?vid=07NLR_VU1&docId=07NLR_LMS004843722",
+          "identifiers": [{"scheme": "RNL system number", "value": "004843722"}],
+          "available_formats": ["HTML recommendation form", "institutional feedback route"],
+          "declared_rights": {"statement": "RNL says a recommendation may be considered for a future digitization plan; it states no permission or guaranteed digitization.", "scope": "unknown", "evidence_url": "https://webservices.nlr.ru/forms/scanrequest/nui/004843722", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The exact form is recommendation-only and remains separate from copy service and rights. A separate RNL draft is prepared but no recommendation, request, login, order, payment, or message was submitted.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient 4,845-byte GET response had SHA-256 2dcbc25b73b578b1c550cbd282a8430d616c1c709e9911b55197c931a80e7b9d. No form was submitted."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-open-library-negative",
+      "sequence": 7,
+      "channel_type": "open-library",
+      "role": "digital-object-record",
+      "source_name": "Internet Archive and Open Library exact-edition searches",
+      "endpoint_url": "https://archive.org/advancedsearch.php?q=%28title%3A%22%D0%A2%D0%B0%D0%BA+%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB+%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22+OR+title%3A%22Tak+govoril+Zaratustra%22%29+AND+year%3A1903&output=json",
+      "interface_type": "api",
+      "interface_version": "public APIs queried 2026-08-10",
+      "exact_query": "Search exact Russian and transliterated titles, Antonovsky variants, and year 1903 in Internet Archive and Open Library; preserve zero results as time-bounded negatives only",
+      "queried_at": "2026-08-10T05:13:20-06:00",
+      "elapsed_seconds": 4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-open-libraries-no-exact-item-v2",
+          "rank": 1,
+          "title_as_displayed": "No exact 1903 Antonovsky item in current Internet Archive or Open Library queries",
+          "result_url": "https://archive.org/advancedsearch.php?q=%28title%3A%22%D0%A2%D0%B0%D0%BA+%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB+%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22+OR+title%3A%22Tak+govoril+Zaratustra%22%29+AND+year%3A1903&output=json",
+          "originating_record_url": "https://openlibrary.org/search.json?title=%D0%A2%D0%B0%D0%BA%20%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB%20%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0&publish_year=1903",
+          "identifiers": [],
+          "available_formats": ["JSON search responses"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "api",
+          "decision": "reject",
+          "rationale": "Two Internet Archive variants and one Open Library exact query each returned zero. The result is time-sensitive and does not prove universal source absence.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Transient response SHA-256 values were e2f477aa2dc6c575fc37c49370893f36b70feec97a3abcd8d55427e10c7913b0, cdf4b1e0bf81c245194c114891484d50d0e50113fcf457300b5e6c37648a5268, and a68a51a345fbaef76433e2dc9c3af3f7f73ee9f366a07aa6e9eec27944a0f069. No search response is tracked."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-antonovsky-1903-general-web-last",
+      "sequence": 8,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General-web exact physical-copy and typography controls",
+      "endpoint_url": "https://www.litfund.ru/auction/445/52/",
+      "interface_type": "web",
+      "interface_version": "current searchable pages checked 2026-08-10 after official and scholarly passes",
+      "exact_query": "Search exact title, Antonovsky, second corrected Edition, Altshuler typography, year, RNL system number, and both RNL shelfmarks; use physical-copy listings only as weaker corroboration",
+      "queried_at": "2026-08-10T05:13:50-06:00",
+      "elapsed_seconds": 2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1903-general-web-physical-copy-control-v2",
+          "rank": 1,
+          "title_as_displayed": "Ницше, Ф. Так говорил Заратустра — 2-е, испр. изд., 1903",
+          "result_url": "https://www.litfund.ru/auction/445/52/",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["auction description", "marketplace listings", "crowd-sourced typography note"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "Litfund is now readable and corroborates Edition description plus one copy's condition; Alib exposes other current physical-copy listings. Neither supplies a complete digital source, institutional custody evidence, rights, or publisher identity. The crowd-sourced typography note is insufficient for Organization or provision normalization.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Only bounded public metadata and the negative authority conclusion are retained."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-antonovsky-1903-rsl-rnl-official-documentation", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 6, "machine_seconds": 5, "notes": "Defines service semantics and prevents generic UI furniture or Web-order status from becoming a false digital-object or permission claim."},
+    {"channel_id": "channel-antonovsky-1903-rsl-rnl-exact-control-crosswalk", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 14, "machine_seconds": 9, "notes": "Closes the institutional record bridge while preserving wrapper and physical-copy distinctions."},
+    {"channel_id": "channel-antonovsky-1903-rsl-rnl-current-holdings", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 9, "machine_seconds": 4, "notes": "Adds two actionable RNL holdings, preserves four RSL holdings, and rejects one undefined TEMP row."},
+    {"channel_id": "channel-antonovsky-1903-established-witness-control", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 2, "machine_seconds": 0, "notes": "Established exact-witness method control, not a source Item."},
+    {"channel_id": "channel-antonovsky-1903-fresh-witness-control", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 4, "machine_seconds": 3, "notes": "Freshest inspectable Antonovsky-specific comparison retained; no 2026 exact-witness successor found."},
+    {"channel_id": "channel-antonovsky-1903-record-specific-access", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 10, "machine_seconds": 5, "notes": "Separates RSL fragment service, false generic read modal, RNL recommendation route, and rights."},
+    {"channel_id": "channel-antonovsky-1903-open-library-negative", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "unknown", "machine_interface_quality": "strong", "human_minutes": 3, "machine_seconds": 4, "notes": "Three current zero-result queries are negative availability evidence only."},
+    {"channel_id": "channel-antonovsky-1903-general-web-last", "completeness": "limited", "metadata_precision": "adequate", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 2, "machine_seconds": 2, "notes": "Physical-copy corroboration only; no stronger source or rights result."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1903-rsl-rnl-official-service-semantics",
+    "tos-discovery-result.antonovsky-1903-rsl-rnl-control-crosswalk",
+    "tos-discovery-result.antonovsky-1903-six-actionable-remote-holdings",
+    "tos-discovery-result.antonovsky-1903-pertsev-established-control-v2",
+    "tos-discovery-result.antonovsky-1903-ermakova-fresh-control-v2",
+    "tos-discovery-result.antonovsky-1903-rsl-fragment-route-current",
+    "tos-discovery-result.antonovsky-1903-rnl-digitization-recommendation-route"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.antonovsky-1903-rnl-undefined-temp-row",
+    "tos-discovery-result.antonovsky-1903-rsl-generic-read-modal-false-positive",
+    "tos-discovery-result.antonovsky-1903-open-libraries-no-exact-item-v2"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-10T05:10:00-06:00",
+  "ended_at": "2026-08-10T05:14:51-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": ["tos.event.discovery.antonovsky-1903-rsl-rnl-current-holdings.2026-08-10"],
+  "record_version": 2,
+  "supersedes_discovery_ref": "tos.discovery.antonovsky-1903-rsl-edition-holdings.2026-08-01"
+}

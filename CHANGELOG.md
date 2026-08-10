@@ -9,6 +9,16 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Reconciled Antonovsky's exact 1903 second corrected *Zarathustra* Edition
+  across current RSL and RNL records. The shared `rc\\1717108` control core,
+  identical transaction value, and matching bibliography resolve RNL Primo
+  record `07NLR_LMS004843722` and system number `004843722` without equating
+  physical copies or texts. Two current RNL shelfmarks join the four RSL
+  remote holdings; one undefined `TEMP` row and a generic RSL online-reading
+  modal are retained as rejected evidence. A separate RNL request is prepared
+  but unsent. No source page, digital object, ToS Item, exemplar claim, right,
+  human task, accepted text, semantic object, publication, or canon state was
+  added.
 - Resolved the current RNL holding route for Antonovsky's exact 1907 third
   *Zarathustra* Edition. RNL Primo record `07NLR_LMS004843723`, system number
   `004843723`, tagged RUSMARC, the locations tab, and public ALEPH item rows

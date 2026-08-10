@@ -440,12 +440,17 @@ ANTONOVSKY_1903_EDITION_ROOT = (
 ANTONOVSKY_1903_DISCOVERY_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/discovery/runs/"
-    "antonovsky-1903-rsl-edition-holdings.2026-08-01.v1.json"
+    "antonovsky-1903-rsl-rnl-current-holdings.2026-08-10.v2.json"
 )
 ANTONOVSKY_1903_REQUEST_PATH = (
     REPO_ROOT
     / "ToS/source-witnesses/access-requests/public-ledger/"
     "antonovsky-1903-rsl-research-copy.access-request.json"
+)
+ANTONOVSKY_1903_RNL_REQUEST_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/access-requests/public-ledger/"
+    "antonovsky-1903-rnl-research-copy.access-request.json"
 )
 ANTONOVSKY_1907_EXPRESSION_ROOT = (
     REPO_ROOT
@@ -3426,6 +3431,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse((ANTONOVSKY_1903_EDITION_ROOT / "items").exists())
         self.assertIn("тип. Альтшулера", edition_1903["notes"])
         self.assertIn("not converted into a publisher", edition_1903["notes"])
+        self.assertEqual(
+            {"129/5943", "38.35.6.32"},
+            {
+                identifier["value"]
+                for identifier in edition_1903["external_identifiers"]
+                if identifier["scheme"] == "RNL shelfmark"
+                and identifier["status"] == "verified"
+            },
+        )
+        self.assertIn("07NLR_LMS004843722", edition_1903["notes"])
+        self.assertIn("not ToS Items", edition_1903["notes"])
+        self.assertIn("TEMP", edition_1903["notes"])
 
         edition_1907 = json.loads(
             (ANTONOVSKY_1907_EDITION_ROOT / "edition.json").read_text(
@@ -3493,7 +3510,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual("incomplete", exact_1903_discovery["status"])
         self.assertEqual(
-            [1, 2, 3, 4, 5, 6],
+            "tos.discovery.antonovsky-1903-rsl-edition-holdings.2026-08-01",
+            exact_1903_discovery["supersedes_discovery_ref"],
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5, 6, 7, 8],
             [channel["sequence"] for channel in exact_1903_discovery["channels"]],
         )
         self.assertEqual(
@@ -3501,6 +3522,56 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             exact_1903_discovery["channels"][-1]["channel_type"],
         )
         self.assertFalse(exact_1903_discovery["technical_access_bypass_used"])
+        exact_1903_crosswalk = exact_1903_discovery["channels"][1]["results"][0]
+        self.assertEqual(
+            {
+                "01003693381",
+                "003693381",
+                "07NLR_LMS004843722",
+                "004843722",
+            },
+            {
+                identifier["value"]
+                for identifier in exact_1903_crosswalk["identifiers"]
+                if identifier["scheme"]
+                in {
+                    "RSL public record",
+                    "RSL MARC 001",
+                    "RNL Primo record",
+                    "RNL system number",
+                }
+            },
+        )
+        exact_1903_holdings = exact_1903_discovery["channels"][2]["results"][0]
+        self.assertEqual(
+            {
+                "FB L 31/57",
+                "FB Рб 33/442",
+                "FB T 97/44",
+                "OMF 801-85/11097-8",
+                "129/5943",
+                "38.35.6.32",
+            },
+            {
+                identifier["value"]
+                for identifier in exact_1903_holdings["identifiers"]
+            },
+        )
+        self.assertIn(
+            "tos-discovery-result.antonovsky-1903-rnl-undefined-temp-row",
+            exact_1903_discovery["rejected_result_ids"],
+        )
+        self.assertIn(
+            "tos-discovery-result.antonovsky-1903-rsl-generic-read-modal-false-positive",
+            exact_1903_discovery["rejected_result_ids"],
+        )
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                for channel in exact_1903_discovery["channels"]
+                for result in channel["results"]
+            )
+        )
 
         exact_1907_discovery = json.loads(
             ANTONOVSKY_1907_DISCOVERY_PATH.read_text(encoding="utf-8")
@@ -3597,6 +3668,31 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual(
                 "not-requested",
                 exact_1903_request["requested_permissions"][permission],
+            )
+
+        rnl_1903_request = json.loads(
+            ANTONOVSKY_1903_RNL_REQUEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("draft-not-sent", rnl_1903_request["request_status"])
+        self.assertFalse(rnl_1903_request["human_send_approval"])
+        self.assertIsNone(rnl_1903_request["sent_at"])
+        self.assertEqual("none", rnl_1903_request["response"]["state"])
+        self.assertIn(
+            "два экземпляра",
+            rnl_1903_request["material"]["requested_portion"],
+        )
+        self.assertIn(
+            "только как отдельная рекомендация",
+            rnl_1903_request["material"]["requested_portion"],
+        )
+        for permission in (
+            "source_redistribution",
+            "derivative_publication",
+            "server_processing",
+        ):
+            self.assertEqual(
+                "not-requested",
+                rnl_1903_request["requested_permissions"][permission],
             )
 
         exact_1907_request = json.loads(
