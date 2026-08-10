@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/rights.json",
-    "rights_record_sha256": "b68065c1af317ea8717f6cffc383b074669b57720d9bb2a191bcd398f1c59c03",
+    "rights_record_sha256": "e598d35ed2d140de160c07d329eee63ae9919e1facc7150ac794c479ba81d333",
     "assessment_status": "open-licensed",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -37,6 +37,9 @@
       "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode",
       "https://www.gesetze-im-internet.de/urhg/__64.html",
       "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html",
+      "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf",
       "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository"
     ],
     "expires_at": null,
@@ -129,13 +132,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T06:34:13-06:00"
+    "last_reviewed_at": "2026-08-10T09:40:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.goetzen-daemmerung-naumann-1889-mdz.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.goetzen-daemmerung-naumann-1889-mdz.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": "tos.server-import.goetzen-daemmerung-naumann-1889-mdz-bsb-scan-pdf"
 }

@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/rights.json",
-    "rights_record_sha256": "2846643ed0ab81a1c781c1b56f6ca79523fbf7df8c9b953549179ce2b0ab9825",
+    "rights_record_sha256": "358615051d5f07049ffc525ee1c065619678ae9e020708e23cd848b7de26c299",
     "assessment_status": "permission-granted",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -37,6 +37,9 @@
       "https://rightsstatements.org/en/documentation/",
       "https://www.gesetze-im-internet.de/urhg/__64.html",
       "https://www.copyright.gov/circs/circ15a.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/gatt.html",
+      "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf",
       "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository"
     ],
     "expires_at": null,
@@ -129,13 +132,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-02T06:34:13-06:00"
+    "last_reviewed_at": "2026-08-10T09:40:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.der-fall-wagner-naumann-1888-mdz.layered-rights.2026-08-02"
+    "tos.event.server-import-plan.der-fall-wagner-naumann-1888-mdz.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes_server_import_ref": "tos.server-import.der-fall-wagner-naumann-1888-mdz-bamberg-scan-pdf"
 }

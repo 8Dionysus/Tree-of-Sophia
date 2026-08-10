@@ -732,7 +732,14 @@ transfer unit, semantic object, or human queue.
 Its current layered-rights pass now separates Nietzsche's public-domain Work,
 the public-domain 1888 presentation, faithful historical printed-page capture,
 the exact MDZ/Google digital object, and BSB/BDR bibliographic metadata. The
-digital object is `permission_granted` under `NoC-NC 1.0`, which permits
+independent United States result for the German historical layers now follows
+17 U.S.C. §104A's source-country-term condition rather than the domestic
+pre-1931 shorthand: Nietzsche's term ended in Germany on 1970-12-31, and even
+the conservative anonymous-presentation route ended on 1958-12-31, both before
+possible 1996 restoration. Current MDZ response bytes drifted, but the exact
+object identity, `NoC-NC 1.0` value, 74-canvas count, and attribution remained
+stable; no transient response body was retained. The digital object is
+`permission_granted` under `NoC-NC 1.0`, which permits
 non-commercial Item reuse but is a Rights Statement rather than a standard
 license; the metadata is separately CC0. The PDF contains no embedded book
 OCR. These positive results do not change local custody: the operator-held
@@ -767,8 +774,14 @@ transfer unit, semantic object, or human queue.
 
 Its current layered-rights pass uses the same five-layer topology without
 copying the *Fall Wagner* result. The historical Work, 1889 presentation, and
-faithful printed-page capture are public-domain-reviewed for DE/US; the exact
-MDZ digital object is `licensed` under CC BY-NC-SA 4.0; and BSB/BDR
+faithful printed-page capture are public-domain-reviewed for DE/US. The
+independent United States historical route is 17 U.S.C. §104A's
+source-country-term condition, not the domestic pre-1931 shorthand: the German
+Work term ended on 1970-12-31 and the conservative anonymous-presentation term
+on 1959-12-31, both before possible 1996 restoration. Current MDZ response
+bytes drifted, while exact identity, `CC BY-NC-SA 4.0`, the 164-canvas count,
+and attribution remained stable; no transient response body was retained. The
+exact MDZ digital object is `licensed` under CC BY-NC-SA 4.0; BSB/BDR
 bibliographic metadata is separately CC0. The PDF contains no embedded book
 OCR. Attribution, non-commercial use, source/license and modification notices,
 and ShareAlike for shared adapted material remain exact-object duties. The

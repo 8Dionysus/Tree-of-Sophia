@@ -91,8 +91,14 @@ The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
 `permission_granted`: the statement permits non-commercial Item reuse but is
 a descriptive contractual Rights Statement, not a free-culture license.
 Nietzsche's Work, the 1888 presentation, and the faithful printed-page scan
-are separately public-domain-reviewed for DE/US; BSB/BDR bibliographic
-metadata is separately CC0. The exact PDF contains no embedded book OCR.
+are separately public-domain-reviewed for DE/US. The United States historical
+result is now explicitly grounded in 17 U.S.C. §104A's source-country-term
+condition rather than the domestic pre-1931 shorthand; the corrected route
+changes neither the aggregate status nor the closed transfer boundary.
+Current provider response bytes drifted while identity, rights value, canvas
+count, and attribution stayed stable, and no response body was retained.
+BSB/BDR bibliographic metadata is separately CC0. The exact PDF contains no
+embedded book OCR.
 These positive layers do not authorize transfer under this plan: the
 operator-held PDF and all source-bearing derivatives remain prohibited, and
 only public-safe identity, holding, provenance, attribution-duty, issue-risk,
@@ -103,8 +109,13 @@ The fourteenth plan covers the exact MDZ PDF generated for the BSB
 *Götzen-Dämmerung*. Its `CC BY-NC-SA 4.0` declaration is retained as concrete
 exact-object license evidence. Nietzsche's Work, the 1889 presentation, and
 the faithful printed-page scan are separately public-domain-reviewed for
-DE/US; BSB/BDR bibliographic metadata is separately CC0, and the exact PDF
-contains no embedded book OCR. Attribution, non-commercial use, license/source
+DE/US through 17 U.S.C. §104A's source-country-term condition, not through a
+domestic pre-1931 shortcut. The correction changes neither the licensed
+aggregate result nor the closed transfer boundary. Current provider response
+bytes drifted while identity, license value, canvas count, and attribution
+stayed stable, and no response body was retained. BSB/BDR bibliographic
+metadata is separately CC0, and the exact PDF contains no embedded book OCR.
+Attribution, non-commercial use, license/source
 notice, modification notice, and ShareAlike for shared adapted material remain
 exact-scope duties. The current plan nevertheless transfers no local file and
 authorizes no OCR, transcription, translation, critical edition, snippet,

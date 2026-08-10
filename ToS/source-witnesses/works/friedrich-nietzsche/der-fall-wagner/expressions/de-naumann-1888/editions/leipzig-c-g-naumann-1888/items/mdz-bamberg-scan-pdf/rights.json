@@ -23,6 +23,9 @@
     "https://rightsstatements.org/en/documentation/",
     "https://www.gesetze-im-internet.de/urhg/__64.html",
     "https://www.copyright.gov/circs/circ15a.pdf",
+    "https://www.copyright.gov/title17/92chap1.html#104a",
+    "https://www.copyright.gov/gatt.html",
+    "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf",
     "https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf",
     "https://oai.bsb-muenchen.de/doc/en/bavarian-digital-repository"
   ],
@@ -46,7 +49,9 @@
         "https://www.gesetze-im-internet.de/urhg/__64.html",
         "https://www.copyright.gov/circs/circ15a.pdf",
         "https://www.copyright.gov/circs/circ38b.pdf",
-        "https://www.copyright.gov/title17/92chap1.html#104a"
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html",
+        "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf"
       ],
       "rights_holder_refs": [],
       "permissions": [
@@ -60,15 +65,15 @@
       "server_processing_posture": "authorized_with_conditions",
       "term": {
         "calculation_status": "expired",
-        "basis": "Nietzsche died in 1900 and the ordinary German life-plus-seventy term ended at 1970-12-31; the 1888 published Work is also inside the current United States pre-1931 public-domain boundary",
+        "basis": "Nietzsche died in 1900; the ordinary German life-plus-seventy term ended at 1970-12-31, before the possible 1996 United States restoration date, so the Work fails 17 U.S.C. §104A's source-country-protection condition",
         "starts_on": null,
         "ends_on": "1970-12-31",
         "uncertainty": "The calculation is limited to Nietzsche's historical Work in the reviewed DE and US routes and includes no later textual, editorial, or digital contribution."
       },
       "uncertainty": "Work-level public domain does not prove source correctness, author-final status, edition authority, or permission for later layers.",
-      "assessed_at": "2026-08-02T06:34:13-06:00",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
       "review_status": "unreviewed",
-      "rationale": "The reviewed German and United States terms are expired for Nietzsche's published Work."
+      "rationale": "The German source-country term ended before possible United States restoration under 17 U.S.C. §104A; the historical result remains separate from every later textual, editorial, scan, and provider layer."
     },
     {
       "layer_id": "tos.rights.der-fall-wagner.naumann-1888.mdz-bamberg-scan-pdf.layer.edition-presentation",
@@ -89,7 +94,10 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/source-metadata-snapshot.json",
         "https://www.gesetze-im-internet.de/urhg/__66.html",
         "https://www.gesetze-im-internet.de/urhg/__70.html",
-        "https://www.copyright.gov/circs/circ15a.pdf"
+        "https://www.copyright.gov/circs/circ15a.pdf",
+        "https://www.copyright.gov/title17/92chap1.html#104a",
+        "https://www.copyright.gov/gatt.html",
+        "https://tile.loc.gov/storage-services/service/ll/usrep/usrep565/usrep565302/usrep565302.pdf"
       ],
       "rights_holder_refs": [],
       "permissions": [
@@ -104,15 +112,15 @@
       "server_processing_posture": "authorized_with_conditions",
       "term": {
         "calculation_status": "expired",
-        "basis": "the Edition was published in Germany in 1888 and even a conservative seventy-year anonymous-publication boundary ended at 1958-12-31; the presentation is also inside the current United States pre-1931 public-domain boundary",
+        "basis": "the Edition was published in Germany in 1888; even the conservative German anonymous-publication route ended at 1958-12-31, before the possible 1996 United States restoration date, so the historical presentation fails §104A's source-country-protection condition",
         "starts_on": null,
         "ends_on": "1958-12-31",
         "uncertainty": "No anonymous status or separately protected presentation contributor is asserted; the conservative boundary only shows that no reviewed historical-presentation term remains active."
       },
       "uncertainty": "Unknown historical presentation contributors are not identified or assigned rights, and no textual collation is performed by this layer.",
-      "assessed_at": "2026-08-02T06:34:13-06:00",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
       "review_status": "unreviewed",
-      "rationale": "The exact 1888 presentation is outside the reviewed terms while later physical, digital, editorial, and textual layers remain separate."
+      "rationale": "The historical presentation was outside its German source-country term before possible United States restoration under §104A, while later physical, digital, editorial, and textual layers remain separate."
     },
     {
       "layer_id": "tos.rights.der-fall-wagner.naumann-1888.mdz-bamberg-scan-pdf.layer.faithful-historical-page-scan",
@@ -155,7 +163,7 @@
         "uncertainty": "The result is limited to faithful historical printed-page capture in DE and US and does not clear contracts, creative enhancement, holding furniture, database rights, marks, or other jurisdictions."
       },
       "uncertainty": "The exact MDZ object remains subject to a separate NoC-NC permission layer even though faithful printed-page capture has an independent positive copyright basis.",
-      "assessed_at": "2026-08-02T06:34:13-06:00",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
       "review_status": "unreviewed",
       "rationale": "German institutional guidance and the United States mere-copy rule converge for faithful historical printed-page scans only."
     },
@@ -210,7 +218,7 @@
         "uncertainty": "The current statement can change, applies only to the exact Item, and does not prove provider authority over every possible third-party right or future use."
       },
       "uncertainty": "The exact current non-commercial permission is positive; commercial scenarios, other jurisdictions, later provider changes, and non-copyright controls remain outside this model review.",
-      "assessed_at": "2026-08-02T06:34:13-06:00",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
       "review_status": "unreviewed",
       "rationale": "The exact IIIF manifest and generated-PDF gate converge on NoC-NC 1.0, and the official statement grants non-commercial Item reuse while preserving provider conditions and other-rights ceilings."
     },
@@ -256,7 +264,7 @@
         "uncertainty": "Field boundaries, third-party linked content, descriptive prose, and non-copyright rights remain separately scoped."
       },
       "uncertainty": "The metadata route does not convert the NoC-NC digital object into CC0 material.",
-      "assessed_at": "2026-08-02T06:34:13-06:00",
+      "assessed_at": "2026-08-10T09:32:00-06:00",
       "review_status": "unreviewed",
       "rationale": "Current BSB and BDR open-data documentation supplies a distinct CC0 route for bibliographic metadata."
     }
@@ -282,11 +290,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-08-02T06:34:13-06:00",
-  "rationale": "The underlying historical and faithful-scan layers are positive in DE and US, the exact MDZ object grants non-commercial Item reuse through NoC-NC 1.0, and BSB bibliographic metadata is separately CC0. The aggregate operator-held payload nevertheless remains local-only and non-transferable until the independent future-publication gates are satisfied.",
+  "assessed_at": "2026-08-10T09:32:00-06:00",
+  "rationale": "The historical Work and presentation were outside their German source-country terms before possible United States restoration under 17 U.S.C. §104A, and the faithful scan separately adds no reviewed human authorship. The exact MDZ object grants non-commercial Item reuse through NoC-NC 1.0, and BSB bibliographic metadata is separately CC0. The corrected United States route changes no aggregate status; the operator-held payload remains local-only and non-transferable until the independent future-publication gates are satisfied.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 2,
+  "record_version": 3,
   "supersedes_rights_ref": "tos.rights.der-fall-wagner.naumann-1888.mdz-bamberg-scan-pdf"
 }

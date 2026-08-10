@@ -4,7 +4,8 @@ Status: model-authored, source-specific research; not legal advice, human
 rights review, source-text acceptance, transfer authorization, or publication
 approval
 
-Research snapshot: 2026-08-02
+Research snapshot: 2026-08-02; United States foreign-work route corrected and
+exact current provider route rechecked 2026-08-10
 
 ## Result
 
@@ -21,8 +22,11 @@ because their outcomes differ while their historical soil is similar.
   ShareAlike for shared adapted material.
 - In both cases Nietzsche's historical Work and the source-visible 1888/1889
   Edition presentation are public domain in the reviewed German and United
-  States routes. A faithful, non-creative scan of those historical printed
-  pages has an independent positive DE/US basis.
+  States routes. The independent United States result follows 17 U.S.C.
+  §104A's source-country-protection condition rather than treating the
+  domestic pre-1931 line as a complete foreign-work analysis. A faithful,
+  non-creative scan of those historical printed pages has a separate positive
+  DE/US basis.
 - BSB/BDR title metadata is a separate CC0 layer. Neither the Rights Statement
   nor the Creative Commons license is projected from the digital object onto
   unrelated metadata, later editorial work, a future ToS transcription, or an
@@ -44,15 +48,29 @@ payload boundary.
 
 | Object | Exact identity | Local payload | Current provider evidence |
 | --- | --- | --- | --- |
-| *Der Fall Wagner* | MDZ `bsb11827837`; URN `urn:nbn:de:bvb:12-bsb11827837-1`; Bamberg Staatsbibliothek `30.1972`; 74 IIIF canvases | 31,518,299-byte PDF; SHA-256 `37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed`; 75 PDF pages; page 1 provider cover, pages 2-75 map to canvases 1-74 | IIIF `license` array contains `https://rightsstatements.org/vocab/NoC-NC/1.0/`; current manifest 66,332 bytes, SHA-256 `0e16c8152ff92a18c223191bde452f08334c547ad2126af8da5b756fffdef681` |
-| *Götzen-Dämmerung* | MDZ `bsb00069119`; URN `urn:nbn:de:bvb:12-bsb00069119-0`; BSB `Ph.pr. 881 kc`; 164 IIIF canvases | 68,398,920-byte PDF; SHA-256 `f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086`; 165 PDF pages; page 1 provider cover, pages 2-165 map to canvases 1-164 | IIIF `license` array contains `https://creativecommons.org/licenses/by-nc-sa/4.0/`; current manifest 153,314 bytes, SHA-256 `78592308c82efec100af888c496a145436e7b0ef06da6685ce084896ff04151f` |
+| *Der Fall Wagner* | MDZ `bsb11827837`; URN `urn:nbn:de:bvb:12-bsb11827837-1`; Bamberg Staatsbibliothek `30.1972`; 74 IIIF canvases | 31,518,299-byte PDF; SHA-256 `37fc9eb2d26886be936efe06c7fbeaf9f6dab231b3a81bc2cb5e824e98f984ed`; 75 PDF pages; page 1 provider cover, pages 2-75 map to canvases 1-74 | IIIF `license` array contains `https://rightsstatements.org/vocab/NoC-NC/1.0/`; 2026-08-10 manifest 74,015 bytes, SHA-256 `58d9a057eeea897ee89617b75e3b85d8ab9799c57d2dd04b39f38ad195974662` |
+| *Götzen-Dämmerung* | MDZ `bsb00069119`; URN `urn:nbn:de:bvb:12-bsb00069119-0`; BSB `Ph.pr. 881 kc`; 164 IIIF canvases | 68,398,920-byte PDF; SHA-256 `f41a1dee091edd895d1f18a510dc73b48949257e882d3390c6c8f72beeb8d086`; 165 PDF pages; page 1 provider cover, pages 2-165 map to canvases 1-164 | IIIF `license` array contains `https://creativecommons.org/licenses/by-nc-sa/4.0/`; 2026-08-10 manifest 130,204 bytes, SHA-256 `59efa1fc1bb833339c733687497f1c73cdc69f246735c7a863e299df58bac3cc` |
 
-The two manifests were fetched again on 2026-08-02 and were byte-identical to
-the tracked 2026-07-30 provider snapshots. The current exact detail responses
-were also rechecked: *Fall Wagner* was 51,164 bytes with response SHA-256
-`ab2854d68e3eb28b1667a56eb0dd61b5c02135dde668075f325f0ac6b6e59f3c`;
-*Götzen-Dämmerung* was 51,301 bytes with response SHA-256
-`c1777b19d48e2fab46fd7a13d259da33ff0ef3a6e8886bb8a8002fa65e3fc047`.
+The two manifests were fetched again on 2026-08-10. Their response bodies are
+not byte-identical to the retained 2026-07-30 snapshots or the 2026-08-02
+checks, so ToS does not call the provider serialization immutable. The exact
+identity, title, 74/164 canvas counts, holding attribution, and rights values
+remain unchanged: *Fall Wagner* returned 74,015 bytes, SHA-256
+`58d9a057eeea897ee89617b75e3b85d8ab9799c57d2dd04b39f38ad195974662`,
+with `NoC-NC 1.0`; *Götzen-Dämmerung* returned 130,204 bytes, SHA-256
+`59efa1fc1bb833339c733687497f1c73cdc69f246735c7a863e299df58bac3cc`,
+with `CC BY-NC-SA 4.0`. The current exact detail responses were 51,164 bytes,
+SHA-256 `a87a2e8e411fb433655f52260d420d0c8d3b022b0edeeeb4280c3dd52222c3d0`,
+and 51,301 bytes, SHA-256
+`3cfd38cb081a300b1d9c14d99e7c28b51637ae1049170b099f639bd38d4ac2c3`.
+No transient response body was retained.
+
+The generated-PDF gates, download-options page, and FAQ were byte-identical to
+their 2026-08-02 checks. Their response digests remain respectively
+`8926c95ac90441b60831c17ebc316d4df858a71df84a89d0759a9df8e9f73898`,
+`ce13e9357bb32bf99bcc22fd093c59946a244ae277b46e987a8d36dad18654b4`,
+`66f4391e6fa1a76224bce9f6e196962a07ed63d8af13655ee9aa9957ecfb9059`,
+and `f44712eefc2664d166e9055884b1639fca8363306318c9359241d1c158f2b554`.
 These transient response digests prove a bounded current check, not future
 immutability.
 
@@ -169,13 +187,27 @@ blanket book rule. [UrhG §87a](https://www.gesetze-im-internet.de/urhg/__87a.ht
 keeps database rights separate.
 
 The United States Copyright Office's April 2026 [Circular
-15A](https://www.copyright.gov/circs/circ15a.pdf) places publications from
-before 1931 in the public domain. The Office's [Compendium chapter
+15A](https://www.copyright.gov/circs/circ15a.pdf) places domestic publications
+from before 1931 in the public domain, but these Editions were first published
+in Germany, so that cutoff is context rather than the independent foreign-work
+route. [17 U.S.C.
+§104A](https://www.copyright.gov/title17/92chap1.html#104a) defines a restored
+work cumulatively and excludes a work already in the public domain in its
+source country through expiration of term. The Copyright Office's current
+[URAA/GATT overview](https://www.copyright.gov/gatt.html) confirms the
+1996 restoration date for eligible countries. Nietzsche's ordinary German
+term ended on 1970-12-31; even the conservative anonymous-presentation terms
+ended on 1958-12-31 and 1959-12-31. All three endpoints precede possible
+restoration, so the historical layers fail §104A's source-country-protection
+condition. This is the independent United States basis; no exact first-
+publication or notice assumption is silently supplied.
+
+The Office's [Compendium chapter
 300](https://www.copyright.gov/comp3/chap300/ch300-copyrightable-authorship.pdf)
-explains that mere photocopying, scanning, or digitizing of a literary work
-does not add copyrightable authorship. These sources support the historical
-Work, Edition-presentation, and faithful-scan layers in DE/US; they do not
-override MDZ's separately applicable license or contractual reuse terms.
+separately explains that mere photocopying, scanning, or digitizing of a
+literary work does not add copyrightable authorship. That rule supports only
+the faithful-scan layer and does not override MDZ's separately applicable
+license or contractual reuse terms.
 
 ### Metadata is separately CC0
 
@@ -198,6 +230,16 @@ guidance](https://pro.europeana.eu/page/available-rights-statements) distinguish
 `NoC-NC` from Creative Commons licenses. The former communicates a
 non-commercial constraint on an otherwise public-domain Item; the latter is a
 license whose exact conditions travel with the licensed material.
+
+The United States Supreme Court's established *Golan v. Holder*, 565 U.S. 302
+(2012), confirms that the URAA can restore protection to qualifying foreign
+works formerly in the United States public domain. The official United States
+Reports copy also preserves §104A's exclusion for a work already public domain
+in its source country through expiration of term. This prevents ToS from
+treating either domestic age or prior United States public-domain status alone
+as dispositive. The current official PDF returned 352,392 bytes, SHA-256
+`5a03252861ef6b7d3bc893e458733fcfeb45ca5d3638723e32b2b06cdab63d69`;
+no response body was retained.
 
 Andrea Wallace and Ellen Euler's 2020 study, [*Revisiting Access to Cultural
 Heritage in the Public Domain*](https://doi.org/10.5334/jcms.195), separates
@@ -251,17 +293,22 @@ exhaust ethical, contextual, and cultural-heritage questions. For ToS this
 supports provenance-rich access decisions and purpose-specific gates rather
 than a single Boolean `open` field.
 
-The 2026-08-02 exact manifest checks found both rights declarations, canvas
-counts, and institutional attributions unchanged. The current BSB/BDR policy
-still supplies a distinct CC0 route for bibliographic metadata. No fresh
-source supported collapsing the two objects, replacing one declaration with
-the other, or treating local custody as public-transfer authority.
+The 2026-08-10 exact checks found both rights declarations, canvas counts, and
+institutional attributions unchanged even though the IIIF and HTML response
+bytes drifted. Current 17 U.S.C. §104A and the Copyright Office URAA/GATT
+overview still preserve the source-country-protection condition and possible
+1996 restoration date; the April 2026 domestic cutoff is not substituted for
+that route. The current BSB/BDR policy still supplies a distinct CC0 route for
+bibliographic metadata. No fresh source supported collapsing the two objects,
+replacing one declaration with the other, treating response-byte drift as
+identity drift, or treating local custody as public-transfer authority.
 
 ## General web search, last
 
 Only after the official, established, and current routes were resolved were
 general searches run for both MDZ IDs, URNs, full titles, call numbers, and
-rights phrases.
+rights phrases. The exact-ID and exact-rights searches were repeated on
+2026-08-10; they supplied no stronger or contradictory route.
 
 - [Deutsche Digitale Bibliothek's exact `bsb11827837`
   record](https://www.deutsche-digitale-bibliothek.de/item/EBDPVLLJHZTHETQ6NH7YU2N5GYZMP4DX)

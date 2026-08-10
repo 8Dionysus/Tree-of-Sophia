@@ -6947,7 +6947,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "server_rights_status": "permission-granted",
                 "rights_event_id": (
                     "tos.event.rights-assessment.der-fall-wagner-naumann-"
-                    "1888.mdz-bamberg-scan-pdf.layered.2026-08-02"
+                    "1888.mdz-bamberg-scan-pdf.uraa-correction.2026-08-10"
+                ),
+                "server_event_id": (
+                    "tos.event.server-import-plan.der-fall-wagner-naumann-"
+                    "1888-mdz.uraa-correction.2026-08-10"
                 ),
                 "channels": [
                     "channel-dnb-der-fall-wagner-work-authority",
@@ -6998,7 +7002,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "server_rights_status": "open-licensed",
                 "rights_event_id": (
                     "tos.event.rights-assessment.goetzen-daemmerung-naumann-"
-                    "1889.mdz-bsb-scan-pdf.layered.2026-08-02"
+                    "1889.mdz-bsb-scan-pdf.uraa-correction.2026-08-10"
+                ),
+                "server_event_id": (
+                    "tos.event.server-import-plan.goetzen-daemmerung-naumann-"
+                    "1889-mdz.uraa-correction.2026-08-10"
                 ),
                 "channels": [
                     "channel-dnb-goetzen-daemmerung-work-authority",
@@ -7039,6 +7047,16 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             .splitlines()
             if line
             for record in (json.loads(line),)
+        }
+        server_provenance_events = {
+            event["event_id"]: event
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+            for event in (json.loads(line),)
         }
 
         for case in cases:
@@ -7111,13 +7129,27 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     rights["derivative_posture"],
                 )
                 self.assertEqual("local_only", rights["visibility"])
-                self.assertEqual(2, rights["record_version"])
+                self.assertEqual(3, rights["record_version"])
 
                 layers = {
                     layer["layer_id"].rsplit(".layer.", 1)[1]: layer
                     for layer in rights["layer_assessments"]
                 }
                 self.assertEqual(5, len(layers))
+                for historical_layer_id in (
+                    "original-work",
+                    "edition-presentation",
+                ):
+                    historical_layer = layers[historical_layer_id]
+                    self.assertIn("§104A", historical_layer["term"]["basis"])
+                    self.assertNotIn(
+                        "pre-1931",
+                        historical_layer["term"]["basis"],
+                    )
+                    self.assertIn(
+                        "https://www.copyright.gov/gatt.html",
+                        historical_layer["source_refs"],
+                    )
                 for layer_id in (
                     "original-work",
                     "edition-presentation",
@@ -7214,7 +7246,21 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     ["DE", "US"],
                     server_plan["rights_policy"]["jurisdictions_reviewed"],
                 )
-                self.assertEqual(2, server_plan["contract_version"])
+                self.assertEqual(3, server_plan["contract_version"])
+                self.assertEqual(
+                    hashlib.sha256(
+                        (item_root / "rights.json").read_bytes()
+                    ).hexdigest(),
+                    server_plan["rights_policy"]["rights_record_sha256"],
+                )
+                self.assertIn(
+                    "https://www.copyright.gov/gatt.html",
+                    server_plan["rights_policy"]["permission_or_license_refs"],
+                )
+                self.assertEqual(
+                    [case["server_event_id"]],
+                    server_plan["provenance_event_refs"],
+                )
                 self.assertFalse(server_plan["payload_transfer_authorized"])
                 self.assertFalse(
                     server_plan["operator_transfer_approval"]["approved"]
@@ -7243,19 +7289,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     for event in provenance_events
                     if event["event_id"] == case["rights_event_id"]
                 )
-                self.assertEqual(
-                    5,
-                    rights_event["method"]["configuration"]["layers_assessed"],
-                )
-                self.assertEqual(
-                    0,
-                    rights_event["method"]["configuration"][
-                        "embedded_book_ocr_layers"
-                    ],
-                )
                 self.assertFalse(
                     rights_event["method"]["configuration"][
                         "operator_local_payload_site_upload"
+                    ]
+                )
+                self.assertEqual(
+                    "17 U.S.C. 104A source-country-protection condition",
+                    rights_event["method"]["configuration"][
+                        "united_states_historical_route"
+                    ],
+                )
+                server_event = server_provenance_events[case["server_event_id"]]
+                self.assertFalse(
+                    server_event["method"]["configuration"][
+                        "aggregate_rights_status_changed"
+                    ]
+                )
+                self.assertFalse(
+                    server_event["method"]["configuration"][
+                        "payload_transfer_authorized"
                     ]
                 )
 
@@ -7273,6 +7326,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("CC BY-NC-SA 4.0", rights_research)
         self.assertIn("five layers", rights_research.lower())
         self.assertIn("No OCR layer is invented", rights_research)
+        self.assertIn("17 U.S.C.\n§104A", rights_research)
+        self.assertIn("domestic pre-1931", rights_research)
+        self.assertIn("Golan v. Holder", rights_research)
+        self.assertIn("bytes drifted", rights_research)
 
     def test_ecce_homo_1908_witness_preserves_editorial_and_rights_boundaries(
         self,
