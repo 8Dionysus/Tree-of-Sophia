@@ -967,8 +967,11 @@ not reintroduce a false 90 °C gate.
   draft. Later exact-institutional passes add only the 1900 LNB Edition and the
   1903 RSL second corrected Edition, and the removed-or-replaced RuNEB 1907
   third Edition, one Expression→Edition packet for each, and separate unsent
-  request drafts; they add no Item, payload, publisher, rights clearance, or
-  derivation edge. The following Reader 1899 slice adds a separate uncredited
+  request drafts. A later RNL GAK pass independently confirms the 1907 third
+  Edition and extent `VIII, 363 с.` on divider `67133`, card `82`, but refuses
+  to guess the overwritten shelfmark and therefore still adds no current
+  holding, Item, payload, publisher, rights clearance, or derivation edge. The
+  following Reader 1899 slice adds a separate uncredited
   Expression, exact Edition, fragmentary three-part PDF Item, provisional
   Moscow Place and Reader editorial-office Organization, two provision claims,
   three identity-ladder claims, an unsent complete-copy request, and a

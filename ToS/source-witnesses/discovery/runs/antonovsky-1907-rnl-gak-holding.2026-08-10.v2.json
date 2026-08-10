@@ -1,0 +1,240 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.antonovsky-1907-rnl-gak-holding.2026-08-10",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "item",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+      "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+      "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third"
+    ],
+    "description": "An exact institution-controlled physical or digital witness of the Saint Petersburg 1907 third Antonovsky Zarathustra Edition, beginning with reconciliation of RNL GAK divider 67133 card 82 to a current shelfmark and lawful source-return route.",
+    "required_properties": [
+      "exact institutional Edition identity",
+      "current holding institution, department, and unambiguous shelfmark",
+      "current physical-copy or digital-object availability",
+      "complete page-level source return",
+      "file fixity for any acquired reproduction",
+      "source-specific local-use and redistribution conditions"
+    ],
+    "acceptable_substitutions": [
+      "an institution-authenticated current holding record plus a lawful tiered research reproduction",
+      "a bibliographer-confirmed current shelfmark followed by title, verso, preliminary, contents, and terminal pages"
+    ],
+    "languages": ["ru", "de", "en"],
+    "formats": ["printed book", "PDF", "TIFF", "JPEG", "IIIF", "MARC21", "catalog metadata"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-official-catalog-documentation-and-prior-identity-refresh",
+      "sequence": 1,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "RNL catalogue documentation with current RuNEB and RSL identity refresh",
+      "endpoint_url": "https://nlr.ru/nlr_visit/RA1812/elektronnyie-katalogi-rnb",
+      "interface_type": "web",
+      "interface_version": "RNL, RuNEB, and RSL public routes checked 2026-08-10",
+      "exact_query": "Read the official RNL catalogue guide and FAQ, then refresh exact RuNEB 000199_000009_003693382 and predicted RSL 01003693382 without bypassing transport or access controls",
+      "queried_at": "2026-08-10T02:40:00-06:00",
+      "elapsed_seconds": 14,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-gak-official-search-method",
+          "rank": 1,
+          "title_as_displayed": "Электронные каталоги Российской национальной библиотеки",
+          "result_url": "https://nlr.ru/nlr_visit/RA1812/elektronnyie-katalogi-rnb",
+          "originating_record_url": "https://nlr.ru/nlr_visit/RA1804/faq",
+          "identifiers": [],
+          "available_formats": ["HTML official documentation", "GAK card catalogue"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "RNL documents the GAK as the official card catalogue for Russian books from 1725 through 1998 and routes unresolved electronic-catalogue searches to bibliographers. Generic copy-service language creates no record-specific permission.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Official mutable documentation was inspected and its bounded method recorded; no tracked web snapshot was needed."}
+        },
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-runeb-rsl-current-negative-refresh",
+          "rank": 2,
+          "title_as_displayed": "RuNEB 000199_000009_003693382 and RSL 01003693382 current route refresh",
+          "result_url": "https://rusneb.ru/catalog/000199_000009_003693382/",
+          "originating_record_url": "https://search.rsl.ru/ru/record/01003693382",
+          "identifiers": [
+            {"scheme": "RuNEB record", "value": "000199_000009_003693382"},
+            {"scheme": "predicted RSL route", "value": "01003693382"}
+          ],
+          "available_formats": ["HTTP responses", "HTML catalogue search"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "From the current network location RuNEB returned HTTP 403 and no bypass was used; the RSL route remained 404. Four reproducible RSL searches and one exact combined year query exposed no exact target in inspected results. These are current transport/search negatives, not source absence and not grounds to withdraw the previously verified RuNEB identifier.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient RSL 404 body was 44,048 bytes with SHA-256 34e3b0dfc48b8576b5228b863b12d00c518b8a73bdad99488de481cdbd071529; it was not retained because it is a mutable negative response."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-gak-exact-card",
+      "sequence": 2,
+      "channel_type": "national-catalog",
+      "role": "originating-record",
+      "source_name": "Russian National Library General Alphabetical Catalogue exact Nietzsche card",
+      "endpoint_url": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
+      "interface_type": "web",
+      "interface_version": "RNL GAK public selector and card image checked 2026-08-10",
+      "exact_query": "Search official GAK for Ницше, select author divider 67133, inspect all 96 ordered cards, and return exact card 82 for the 1903, 1907, and 1911 Antonovsky edition sequence",
+      "queried_at": "2026-08-10T03:00:00-06:00",
+      "elapsed_seconds": 24,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-gak-divider-67133-card-82",
+          "rank": 1,
+          "title_as_displayed": "Ницше Фридрих 1844 - 1900 Философ — Так говорил Заратустра, карточка 82",
+          "result_url": "https://nlr.ru/e-case3/sc2.php/web_gak/gc/67133/82",
+          "originating_record_url": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
+          "identifiers": [
+            {"scheme": "RNL GAK divider", "value": "67133"},
+            {"scheme": "RNL GAK card", "value": "67133/82"}
+          ],
+          "available_formats": ["HTML card selector", "PNG catalogue card"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact official card independently identifies the 1907 third Edition, Saint Petersburg, typography of F. Vaisberg and P. Gershunin, and extent VIII, 363 с. within the 1903/1907/1911 sequence. The handwritten shelfmark is overwritten or crossed out and is deliberately not transcribed; the card proves neither current availability nor an acquired Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The transient 7,114-byte card PNG was visually inspected and had SHA-256 7a0d1a1b3eb1ec5ea2d2d492b2725f2a015d6f634c7aec9daf26a3e622022ef3; no image or target source payload is tracked."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-source-established-and-fresh-witness-control",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Exact 1911 translator preface, established Blok scholarship, and fresh 2025 translation comparison",
+      "endpoint_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+      "interface_type": "web",
+      "interface_version": "existing exact source anchor and retained established/fresh evidence rebound 2026-08-10",
+      "exact_query": "Bind the exact GAK endpoint to Antonovsky's source-visible 1911 edition history, established Blok-library citation, and the freshest inspectable direct comparison without substituting scholarship for the 1907 source object",
+      "queried_at": "2026-08-10T03:30:00-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-source-established-fresh-boundary",
+          "rank": 1,
+          "title_as_displayed": "Exact edition-history, established holding citation, and fresh exact-witness methodological control",
+          "result_url": "https://doi.org/10.17588/2076-9210.2025.2.161-169",
+          "originating_record_url": "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf",
+          "identifiers": [{"scheme": "DOI", "value": "10.17588/2076-9210.2025.2.161-169"}],
+          "available_formats": ["exact local source anchor", "PDF scholarship", "article metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The sources independently preserve third-edition identity, reported revision lineage, and the need for exact-witness comparison. They do not supply the missing 1907 pages, current holding, collation, equivalence, or rights.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The exact source anchor and prior research are already tracked; only their bounded relation to the newly found institutional card is recorded here."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-rnl-current-reconciliation-route",
+      "sequence": 4,
+      "channel_type": "national-catalog",
+      "role": "lead-only",
+      "source_name": "Russian National Library current reference and feedback route",
+      "endpoint_url": "https://nlr.ru/nlr_visit/RA1860/obratnaya-svyaz",
+      "interface_type": "web",
+      "interface_version": "RNL FAQ and feedback route checked 2026-08-10",
+      "exact_query": "Identify the lawful public route for asking RNL bibliographers to reconcile GAK divider 67133 card 82 to a current shelfmark, department, copy state, digital object, and tiered research reproduction without guessing the overwritten call number",
+      "queried_at": "2026-08-10T03:40:00-06:00",
+      "elapsed_seconds": 7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-rnl-bibliographic-enquiry-route",
+          "rank": 1,
+          "title_as_displayed": "Обратная связь — Российская национальная библиотека",
+          "result_url": "https://nlr.ru/nlr_visit/RA1860/obratnaya-svyaz",
+          "originating_record_url": "https://nlr.ru/nlr_visit/RA1804/faq",
+          "identifiers": [{"scheme": "RNL GAK card", "value": "67133/82"}],
+          "available_formats": ["HTML institutional form", "bibliographic enquiry", "electronic document delivery enquiry"],
+          "declared_rights": {"statement": "RNL describes bibliographic enquiries and remote copy ordering in general; exact availability and terms require a record-specific response.", "scope": "unknown", "evidence_url": "https://nlr.ru/nlr_visit/RA1804/faq", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "permission-required",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "This is the current public institutional route to resolve the ambiguous historical shelfmark and ask separately about metadata, a digital object, a tiered local research reproduction, and permitted transformations. It authorizes no send or use.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The live route and generic conditions are recorded without submitting a form or committing personal data."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-rnl-gak-1907-last",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-title and imprint search after official and scholarly routes",
+      "endpoint_url": "https://www.google.com/search?q=%22%D0%A2%D0%B0%D0%BA+%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B8%D0%BB+%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0%22+%22%D0%90%D0%BD%D1%82%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%22+1907",
+      "interface_type": "web",
+      "interface_version": "bounded current search checked 2026-08-10",
+      "exact_query": "Only after official documentation, exact GAK, established, fresh, and current institutional routes, search exact title, Antonovsky, 1907, third edition, Vaisberg, Gershunin, VIII, and 363 pages for a stronger institutional or open digital Item",
+      "queried_at": "2026-08-10T03:50:00-06:00",
+      "elapsed_seconds": 9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.antonovsky-1907-general-web-no-stronger-item-2026-08-10",
+          "rank": 1,
+          "title_as_displayed": "Exact general-web searches returned known scholarship and marketplace corroboration but no stronger digital Item",
+          "result_url": "https://www.antiqueauction.ru/lot/niczshe-f-tak-govoril-zaratustra-kniga-dlya-vseh-i-ni-dlya-kogo-per-s-nem-yu-m-antonovskogo-3-e-izd",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["search results", "marketplace description", "scholarship leads"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "unavailable",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "No result outranked the exact official GAK card or supplied a freely inspectable exact 1907 digital object. This current negative does not prove global absence; marketplace metadata creates no holding, rights, or Item authority.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The negative query and bounded conclusion are reproducible and do not justify retaining mutable search pages."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-official-catalog-documentation-and-prior-identity-refresh", "completeness": "limited", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 12, "machine_seconds": 14, "notes": "Defines the authoritative catalogue method and preserves current RuNEB/RSL negatives without converting them into absence."},
+    {"channel_id": "channel-rnl-gak-exact-card", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 22, "machine_seconds": 24, "notes": "Best exact institutional bibliographic endpoint; closes extent and historical catalogue trace but not current shelfmark, Item, or rights."},
+    {"channel_id": "channel-source-established-and-fresh-witness-control", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "unknown", "machine_interface_quality": "adequate", "human_minutes": 3, "machine_seconds": 1, "notes": "Preserves edition sequence and exact-witness method without substituting scholarship for source custody."},
+    {"channel_id": "channel-rnl-current-reconciliation-route", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "limited", "human_minutes": 5, "machine_seconds": 7, "notes": "Best lawful next route for a current shelfmark and tiered access terms; no communication occurred."},
+    {"channel_id": "channel-general-web-rnl-gak-1907-last", "completeness": "limited", "metadata_precision": "limited", "rights_clarity": "poor", "machine_interface_quality": "adequate", "human_minutes": 5, "machine_seconds": 9, "notes": "No stronger source object; retained only as a time-sensitive last-resort negative."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-rnl-gak-official-search-method",
+    "tos-discovery-result.antonovsky-1907-rnl-gak-divider-67133-card-82",
+    "tos-discovery-result.antonovsky-1907-source-established-fresh-boundary",
+    "tos-discovery-result.antonovsky-1907-rnl-bibliographic-enquiry-route"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.antonovsky-1907-general-web-no-stronger-item-2026-08-10"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-10T02:40:00-06:00",
+  "ended_at": "2026-08-10T04:10:13-06:00",
+  "status": "incomplete",
+  "provenance_event_refs": ["tos.event.discovery.antonovsky-1907-rnl-gak-holding.2026-08-10"],
+  "record_version": 2,
+  "supersedes_discovery_ref": "tos.discovery.antonovsky-1907-runeb-edition.2026-08-01"
+}

@@ -293,6 +293,17 @@ found. The pass therefore adds only a provisional Edition and one
 rights conclusion, changed derivation, equivalence, semantic claim, message,
 form submission, order, or payment.
 
+`antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json` supersedes that discovery
+state without erasing it. It follows official RNL catalogue documentation to
+GAK divider `67133`, visually returns exact card `82`, and independently
+confirms the 1907 third Edition plus extent `VIII, 363 с.` before rebinding the
+established/fresh witness controls and running general web last. The card's
+handwritten shelfmark is overwritten or crossed out and is not transcribed;
+current RSL/RuNEB negatives are not converted into absence. The run therefore
+remains incomplete and creates no current holding, Item, source payload,
+publisher or provision claim, rights conclusion, accepted text, human task,
+message, form submission, order, or payment.
+
 `zarathustra-etymology-evidence-route.2026-08-08.v1.json` applies the ordered
 official -> established -> fresh/current -> general-web-last method to the
 lexical foundation. It selects exact TEI orientation, DWDS/Pfeifer point

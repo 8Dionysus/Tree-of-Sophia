@@ -8,7 +8,10 @@
   "source_refs": [
     "ToS/source-witnesses/discovery/runs/antonovsky-1907-runeb-edition.2026-08-01.v1.json",
     "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RUNEB_EDITION_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1907_RNL_GAK_HOLDING_RESEARCH.md",
     "https://rusneb.ru/catalog/000199_000009_003693382/",
+    "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
     "https://imwerden.de/pdf/blok_issledovaniya_i_materialy_1991__ocr.pdf"
   ],
   "external_identifiers": [
@@ -16,6 +19,18 @@
       "scheme": "RuNEB record",
       "value": "000199_000009_003693382",
       "source_ref": "https://rusneb.ru/catalog/000199_000009_003693382/",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL GAK divider",
+      "value": "67133",
+      "source_ref": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/1",
+      "status": "verified"
+    },
+    {
+      "scheme": "RNL GAK card",
+      "value": "67133/82",
+      "source_ref": "https://nlr.ru/e-case3/sc2.php/web_gak/lc/67133/82",
       "status": "verified"
     }
   ],
@@ -26,7 +41,7 @@
   "edition_statement": "3-е изд.",
   "publication_claim_refs": [],
   "exemplar_claim_refs": [],
-  "notes": "The current RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. The RuNEB card is currently removed or replaced, the tested RSL route is a 404, and no source pages, shelfmark, digital object, or bytes were acquired. The literal typography string is not converted into a publisher, printer Organization, or provision-activity claim. No ToS Item, responsibility claim, textual equivalence, new derivation, rights conclusion, semantic claim, or marketplace-reported extent is materialized.",
-  "record_version": 1,
+  "notes": "The prior removed or replaced RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. RNL GAK divider 67133 card 82 independently confirms the third Edition and institutionally reports extent VIII, 363 с., so that extent no longer rests on marketplace metadata. The handwritten shelfmark on the GAK card is overwritten or crossed out and is deliberately not transcribed or promoted. The RuNEB route is currently inaccessible from this network, the tested RSL route remains a 404, and no current holding coordinate, source pages, digital object, or book bytes were acquired. The typography string is not converted into a publisher, printer Organization, or provision-activity claim. No ToS Item, responsibility claim, textual equivalence, new derivation, rights conclusion, semantic claim, or human bibliography is materialized.",
+  "record_version": 2,
   "supersedes_ref": null
 }

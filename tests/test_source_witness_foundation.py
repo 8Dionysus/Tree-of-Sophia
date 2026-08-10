@@ -466,6 +466,16 @@ ANTONOVSKY_1907_REQUEST_PATH = (
     / "ToS/source-witnesses/access-requests/public-ledger/"
     "antonovsky-1907-rsl-neb-replacement.access-request.json"
 )
+ANTONOVSKY_1907_RNL_DISCOVERY_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/discovery/runs/"
+    "antonovsky-1907-rnl-gak-holding.2026-08-10.v2.json"
+)
+ANTONOVSKY_1907_RNL_REQUEST_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/access-requests/public-ledger/"
+    "antonovsky-1907-rnl-gak-holding.access-request.json"
+)
 ANTONOVSKY_1911_EXPRESSION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -3445,6 +3455,23 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn("removed or replaced", edition_1907["notes"])
         self.assertIn("not converted into a publisher", edition_1907["notes"])
+        self.assertIn("VIII, 363 с.", edition_1907["notes"])
+        self.assertIn("not transcribed", edition_1907["notes"])
+        self.assertEqual(
+            {"67133", "67133/82"},
+            {
+                identifier["value"]
+                for identifier in edition_1907["external_identifiers"]
+                if identifier["scheme"] in {"RNL GAK divider", "RNL GAK card"}
+                and identifier["status"] == "verified"
+            },
+        )
+        self.assertFalse(
+            any(
+                identifier["scheme"] == "RNL call number"
+                for identifier in edition_1907["external_identifiers"]
+            )
+        )
 
         exact_discovery = json.loads(
             ANTONOVSKY_1900_DISCOVERY_PATH.read_text(encoding="utf-8")
@@ -3485,6 +3512,36 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             "metadata-only",
             exact_1907_discovery["channels"][0]["results"][0]["availability"],
+        )
+
+        rnl_1907_discovery = json.loads(
+            ANTONOVSKY_1907_RNL_DISCOVERY_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("incomplete", rnl_1907_discovery["status"])
+        self.assertEqual(
+            "tos.discovery.antonovsky-1907-runeb-edition.2026-08-01",
+            rnl_1907_discovery["supersedes_discovery_ref"],
+        )
+        self.assertEqual(
+            [1, 2, 3, 4, 5],
+            [channel["sequence"] for channel in rnl_1907_discovery["channels"]],
+        )
+        self.assertEqual(
+            "general-web-search",
+            rnl_1907_discovery["channels"][-1]["channel_type"],
+        )
+        self.assertFalse(rnl_1907_discovery["technical_access_bypass_used"])
+        gak_result = rnl_1907_discovery["channels"][1]["results"][0]
+        self.assertEqual("select", gak_result["decision"])
+        self.assertEqual("metadata-only", gak_result["availability"])
+        self.assertIn("VIII, 363 с.", gak_result["rationale"])
+        self.assertIn("not transcribed", gak_result["rationale"])
+        self.assertTrue(
+            all(
+                not result["acquisition"]["downloaded"]
+                for channel in rnl_1907_discovery["channels"]
+                for result in channel["results"]
+            )
         )
 
         exact_request = json.loads(
@@ -3535,6 +3592,27 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual(
                 "not-requested",
                 exact_1907_request["requested_permissions"][permission],
+            )
+
+        rnl_1907_request = json.loads(
+            ANTONOVSKY_1907_RNL_REQUEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("draft-not-sent", rnl_1907_request["request_status"])
+        self.assertFalse(rnl_1907_request["human_send_approval"])
+        self.assertIsNone(rnl_1907_request["sent_at"])
+        self.assertEqual("none", rnl_1907_request["response"]["state"])
+        self.assertIn(
+            "намеренно не расшифровывается",
+            rnl_1907_request["material"]["requested_portion"],
+        )
+        for permission in (
+            "source_redistribution",
+            "derivative_publication",
+            "server_processing",
+        ):
+            self.assertEqual(
+                "not-requested",
+                rnl_1907_request["requested_permissions"][permission],
             )
 
         claim_path = (
