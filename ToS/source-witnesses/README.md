@@ -523,8 +523,11 @@ declaration as positive rights evidence rather than flattening it into either
 “authorized” or “closed.” Because the publication is foreign, the independent
 United States assessment now uses the URAA source-country condition in 17
 U.S.C. §104A rather than the domestic pre-1931 shorthand: the historical
-layers' source-country terms ended before possible restoration. Its local copy
-remains off the future public site by operator policy. The Wikisource
+layers' source-country terms ended before possible restoration. In particular,
+§104A(h)(8)(C)(i) makes Germany the first-publication source country for
+Nietzsche's original Work, so its tracked source-country endpoint is 1970;
+Russia's 1950 reviewed-jurisdiction result is preserved separately. Its local
+copy remains off the future public site by operator policy. The Wikisource
 transcription is an independent CC BY-SA candidate layer and remains deferred:
 its index reports incomplete proofreading, so open licensing does not make it
 accepted text or gold.
@@ -533,7 +536,10 @@ The 1911 RuNEB witness now preserves a deliberately mixed layered assessment.
 Nietzsche's Work, Antonovsky's independently assessed 1911 translation and
 preface, and the historical presentation are `public_domain_reviewed` for
 RU/US; the United States result uses the foreign-work URAA source-country
-condition rather than blindly applying the domestic pre-1931 rule. The exact
+condition rather than blindly applying the domestic pre-1931 rule. Under
+§104A(h)(8)(C)(i), Germany is the original Work's first-publication source
+country and its tracked endpoint is 1970, while the Russian
+reviewed-jurisdiction endpoint remains separately recorded as 1950. The exact
 RSL/RuNEB scan and embedded text remain `copyright_undetermined`: current
 institutional terms support bounded local research but expose no
 resource-specific redistribution license, and the digital production and

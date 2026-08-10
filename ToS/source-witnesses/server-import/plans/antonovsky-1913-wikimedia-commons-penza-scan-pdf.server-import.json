@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/rights.json",
-    "rights_record_sha256": "47c579c8bcb01627fda7fd4d9142d6103536119cfde3d59d55a3d556f8878875",
+    "rights_record_sha256": "4e7bb76702557d5f7379f186959dbfd03c9318695d3008ab8529197e83707c5b",
     "assessment_status": "public-domain-reviewed",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": ["RU", "US"],
@@ -31,6 +31,8 @@
       "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia",
       "https://www.gesetze-im-internet.de/urhg/__64.html",
       "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/circs/circ38b.pdf",
       "https://www.copyright.gov/gatt.html",
       "https://www.copyright.gov/comp3/docs/compendium.pdf"
     ],
@@ -121,13 +123,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-10T08:00:03-06:00"
+    "last_reviewed_at": "2026-08-10T12:02:55-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons.uraa-correction.2026-08-10"
+    "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons.source-country-endpoint-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 3,
-  "supersedes_server_import_ref": null
+  "contract_version": 4,
+  "supersedes_server_import_ref": "tos.server-import.antonovsky-1913-wikimedia-commons-penza-scan-pdf"
 }

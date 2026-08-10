@@ -124,19 +124,27 @@ license is not rewritten as either a copyright claim or a public-domain grant.
 The 1911 Russian publication cannot be classified in the United States merely
 by applying the current pre-1931 rule for works published in the United States.
 Foreign works require the restoration test in
-[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html).
+[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html#104a).
 An eligible restored work must not already have been in the public domain in
-its source country through expiration of term. The Copyright Office's current
-[restored-copyright overview](https://www.copyright.gov/gatt.html) describes
+its source country through expiration of term. Section 104A(h)(8)(C)(i)
+defines the source country of a published work as the eligible country in
+which it was first published. The Copyright Office's current
+[Circular 38B](https://www.copyright.gov/circs/circ38b.pdf) and
+[restored-copyright overview](https://www.copyright.gov/gatt.html) preserve
 the same boundary and the 1 January 1996 restoration date for then-eligible
 countries.
 
-Nietzsche's German work had already completed its source-country author term,
-and Antonovsky's Russian translation and preface had completed their Russian
-term by the end of 1963. They were therefore already public domain in their
-respective source-country routes before the possible 1996 restoration date and
-do not satisfy the source-country-protection condition for restoration. This is
-the positive United States basis for those historical layers; age alone is not.
+That definition requires two dates to remain separate. Russia's reviewed
+jurisdictional route for Nietzsche's Work reached the earlier fifty-year term
+endpoint at the close of 1950. But the §104A source-country operand for the
+published original German Work is Germany, not Russia. Official German
+[UrhG §64](https://www.gesetze-im-internet.de/urhg/__64.html) places the
+life-plus-seventy endpoint at the close of 1970 for Nietzsche's 1900 death.
+Antonovsky's Russian translation and preface separately completed their
+Russian source-country terms by the end of 1963. All of those endpoints still
+precede the possible 1996 restoration date, so the positive results do not
+change. The correction prevents the Russian 1950 calculation from being
+misrepresented as the German original Work's §104A source-country endpoint.
 
 For a recent digital reproduction, the Copyright Office's current
 [Compendium, Third Edition](https://www.copyright.gov/comp3/docs/compendium.pdf)
@@ -223,7 +231,7 @@ evidence only; none was used as rights authority.
 
 | Layer | RU/US result | Current ToS route |
 | --- | --- | --- |
-| Nietzsche's underlying German work | `public_domain_reviewed`; source-country term expired before the 1996 US restoration boundary | authorship, name, integrity, and exact textual-state boundaries remain |
+| Nietzsche's underlying German work | `public_domain_reviewed`; Russian reviewed-jurisdiction term ended in 1950, while the German first-publication source-country term used by §104A ended in 1970; both precede the 1996 US restoration boundary | authorship, name, integrity, and exact textual-state boundaries remain |
 | Antonovsky's 1911 Russian translation | `public_domain_reviewed`; assessed independently; Russian prior term ended in 1963 and the US restoration condition is not met | no equivalence to 1900, 1903, 1907, 1913, 1996, 2007, or later expressions; no quality acceptance |
 | Antonovsky's translator preface | same term result as the credited translation | kept separate from Nietzsche's work and the translated Zarathustra text |
 | 1911 edition presentation | `public_domain_reviewed` under a conservative publication-based calculation ending no later than 1981 | no creator identity, aesthetic equivalence, or manufacture-date claim |

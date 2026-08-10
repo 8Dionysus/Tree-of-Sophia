@@ -2771,7 +2771,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("not_authorized", rights["redistribution_posture"])
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertEqual("unreviewed", rights["review_status"])
-        self.assertEqual(3, rights["record_version"])
+        self.assertEqual(4, rights["record_version"])
 
         layers_by_role = {
             layer["layer_role"]: layer
@@ -2809,6 +2809,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                     )
                 ),
             )
+        original_work = layers_by_role["original_work"]
+        self.assertEqual("1970-12-31", original_work["term"]["ends_on"])
+        self.assertIn("§104A(h)(8)(C)(i)", original_work["term"]["basis"])
+        self.assertIn("Germany", original_work["term"]["basis"])
+        self.assertIn("1950", original_work["term"]["basis"])
+        self.assertIn(
+            "https://www.copyright.gov/circs/circ38b.pdf",
+            original_work["source_refs"],
+        )
         self.assertEqual(
             "1983-12-31",
             layers_by_role["edition_presentation"]["term"]["ends_on"],
@@ -2847,7 +2856,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("metadata-only", server_plan["publication_status"])
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
-        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(4, server_plan["contract_version"])
+        self.assertEqual(
+            "4e7bb76702557d5f7379f186959dbfd03c9318695d3008ab8529197e83707c5b",
+            server_plan["rights_policy"]["rights_record_sha256"],
+        )
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.antonovsky-1913-wikimedia-commons."
+                "source-country-endpoint-correction.2026-08-10"
+            ],
+            server_plan["provenance_event_refs"],
+        )
         self.assertTrue(
             all(
                 row["state"] == "prohibited"
@@ -2871,6 +2891,50 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn(
             "https://www.copyright.gov/title17/92chap1.html",
             server_plan["rights_policy"]["permission_or_license_refs"],
+        )
+        item_events = [
+            json.loads(line)
+            for line in (ANTONOVSKY_1913_ITEM_ROOT / "provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        item_event = item_events[-1]
+        self.assertEqual(4, item_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-h-8-c-i-first-publication-country",
+            item_event["method"]["configuration"]["source_country_definition"],
+        )
+        self.assertEqual(
+            "1970-12-31",
+            item_event["method"]["configuration"][
+                "original_work_source_country_term_ends_on"
+            ],
+        )
+        self.assertFalse(
+            item_event["method"]["configuration"]["aggregate_assessment_status_changed"]
+        )
+        server_events = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        server_event = next(
+            event
+            for event in reversed(server_events)
+            if event["event_id"] == server_plan["provenance_event_refs"][0]
+        )
+        self.assertEqual(4, server_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-h-8-c-i-first-publication-country",
+            server_event["method"]["configuration"]["source_country_definition"],
+        )
+        self.assertFalse(
+            server_event["method"]["configuration"]["aggregate_rights_status_changed"]
         )
 
     def test_antonovsky_1911_is_exact_local_revision_lineage_witness(
@@ -2925,7 +2989,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual("local_research_only", rights["derivative_posture"])
         self.assertIsNone(rights["rights_statement_uri"])
         self.assertEqual("unreviewed", rights["review_status"])
-        self.assertEqual(2, rights["record_version"])
+        self.assertEqual(3, rights["record_version"])
 
         layers_by_role = {
             layer["layer_role"]: layer
@@ -2970,8 +3034,16 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 layers_by_role[role]["server_processing_posture"],
             )
         self.assertEqual(
-            "1950-12-31",
+            "1970-12-31",
             layers_by_role["original_work"]["term"]["ends_on"],
+        )
+        original_work = layers_by_role["original_work"]
+        self.assertIn("§104A(h)(8)(C)(i)", original_work["term"]["basis"])
+        self.assertIn("Germany", original_work["term"]["basis"])
+        self.assertIn("1950", original_work["term"]["basis"])
+        self.assertIn(
+            "https://www.copyright.gov/circs/circ38b.pdf",
+            original_work["source_refs"],
         )
         for role in ("translation", "preface"):
             self.assertEqual(
@@ -3071,7 +3143,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertFalse(server_plan["payload_transfer_authorized"])
         self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
-        self.assertEqual(2, server_plan["contract_version"])
+        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual(
+            "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4",
+            server_plan["rights_policy"]["rights_record_sha256"],
+        )
+        self.assertEqual(
+            [
+                "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-"
+                "scan-pdf.source-country-endpoint-correction.2026-08-10"
+            ],
+            server_plan["provenance_event_refs"],
+        )
 
         register = json.loads(
             (GOLD_ROOT / "translation-reference-register.v1.json").read_text(
@@ -3099,6 +3182,50 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn("17 U.S.C. §104A", rights_research)
         self.assertIn("public-domain text", rights_research)
         self.assertIn("publishable PDF", rights_research)
+        item_events = [
+            json.loads(line)
+            for line in (ANTONOVSKY_1911_ITEM_ROOT / "provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        item_event = item_events[-1]
+        self.assertEqual(3, item_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-h-8-c-i-first-publication-country",
+            item_event["method"]["configuration"]["source_country_definition"],
+        )
+        self.assertEqual(
+            "1970-12-31",
+            item_event["method"]["configuration"][
+                "original_work_source_country_term_ends_on"
+            ],
+        )
+        self.assertFalse(
+            item_event["method"]["configuration"]["aggregate_assessment_status_changed"]
+        )
+        server_events = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        server_event = next(
+            event
+            for event in reversed(server_events)
+            if event["event_id"] == server_plan["provenance_event_refs"][0]
+        )
+        self.assertEqual(3, server_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-h-8-c-i-first-publication-country",
+            server_event["method"]["configuration"]["source_country_definition"],
+        )
+        self.assertFalse(
+            server_event["method"]["configuration"]["aggregate_rights_status_changed"]
+        )
 
     def test_reader_1899_is_an_exact_but_fragmentary_uncredited_witness(
         self,

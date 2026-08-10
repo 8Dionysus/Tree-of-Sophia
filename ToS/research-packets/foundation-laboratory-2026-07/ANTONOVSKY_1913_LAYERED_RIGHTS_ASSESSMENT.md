@@ -125,12 +125,13 @@ jurisdictions.
 The 1913 Saint Petersburg publication is not a United States publication, so
 its historical layers cannot be classified merely by applying the current
 domestic pre-1931 line. Under
-[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html), a restored
-work must still be protected in its source country through an unexpired term.
-The Copyright Office's current
-[restored-copyright overview](https://www.copyright.gov/gatt.html) confirms
-that restoration applied in 1996 to qualifying foreign works that were still
-protected in the source country.
+[17 U.S.C. §104A](https://www.copyright.gov/title17/92chap1.html#104a), a
+restored work must still be protected in its source country through an
+unexpired term. Section 104A(h)(8)(C)(i) defines the source country of a
+published work as the eligible country in which it was first published. The
+Copyright Office's current [Circular 38B](https://www.copyright.gov/circs/circ38b.pdf)
+and [restored-copyright overview](https://www.copyright.gov/gatt.html) confirm
+the source-country boundary and the 1996 restoration route.
 
 Nietzsche's underlying German Work is independently outside restoration: the
 official German [UrhG §64](https://www.gesetze-im-internet.de/urhg/__64.html)
@@ -142,6 +143,13 @@ historical layer was therefore public domain in its relevant source-country
 route before the possible 1996 restoration date and fails §104A's
 source-country-protection condition. This is the positive United States basis
 for the historical layers; age or the Commons template alone is not.
+
+The rights record's single `term.ends_on` value for the original Work must
+therefore track Germany's 1970 endpoint when it represents the §104A
+source-country operand. The Russian 1950 endpoint remains a separate result
+for the reviewed Russian jurisdiction; it is not the first-publication
+source-country endpoint of Nietzsche's German Work. This data-model correction
+does not change any layer status, aggregate decision, or transfer gate.
 
 ### 1.4 Creative threshold for scan and embedded text
 

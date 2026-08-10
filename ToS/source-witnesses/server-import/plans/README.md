@@ -9,8 +9,12 @@ The Antonovsky 1913 Commons plan preserves a stronger positive source-rights
 candidate without bypassing the operator's local-payload rule. The Commons
 public-domain statement remains exact-object provider evidence. The independent
 United States historical-layer result uses the 17 U.S.C. §104A source-country
-condition rather than the domestic pre-1931 shorthand. The current plan still
-exposes metadata/provenance only and transfers no local file.
+condition rather than the domestic pre-1931 shorthand. Under
+§104A(h)(8)(C)(i), Germany is the first-publication source country for
+Nietzsche's original Work, so the tracked source-country endpoint is 1970;
+Russia's 1950 reviewed-jurisdiction endpoint remains a distinct fact. The
+current plan still exposes metadata/provenance only and transfers no local
+file.
 
 The two Naumann 1893 plans preserve a deliberate item-level fork inside one
 scan family. The exact image-container PDF records a positive DE/US
@@ -156,11 +160,15 @@ operator-held PDF stays local; only public-safe metadata may be projected.
 The sixteenth plan covers the exact RSL/RuNEB PDF of Antonovsky's 1911 fourth
 edition. The historical Work, 1911 translation and preface, and presentation
 are public-domain-reviewed for RU/US, including the foreign-work URAA
-source-country boundary. That positive result does not clear the exact digital
-package: RuNEB's current terms support bounded local research but expose no
-resource-specific redistribution license, and the scan and embedded-text
-production history remains unresolved. The aggregate plan therefore stays
-rights-unknown, metadata-only, blocked, and operator-unapproved. The
+source-country boundary. For Nietzsche's published original Work,
+§104A(h)(8)(C)(i) makes Germany the source country and the tracked endpoint is
+1970; the Russian reviewed-jurisdiction calculation ending in 1950 is kept
+separate. That correction changes no aggregate result and does not clear the
+exact digital package: RuNEB's current terms support bounded local research
+but expose no resource-specific redistribution license, and the scan and
+embedded-text production history remains unresolved. The aggregate plan
+therefore stays rights-unknown, metadata-only, blocked, and
+operator-unapproved. The
 62,952,283-byte operator-held PDF, embedded text, page images, transcriptions,
 translations, embeddings, and content-bearing annotations remain prohibited
 for server transfer. Only public-safe bibliographic metadata, fixity,

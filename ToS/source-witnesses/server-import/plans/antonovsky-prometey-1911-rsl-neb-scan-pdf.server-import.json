@@ -19,7 +19,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
-    "rights_record_sha256": "3b9283393d56258142c7218ffcef5221c8d5e5ab07741c075537774e523cd3de",
+    "rights_record_sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": [
@@ -34,6 +34,9 @@
       "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
       "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
       "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.gesetze-im-internet.de/urhg/__64.html",
       "https://www.copyright.gov/comp3/docs/compendium.pdf"
     ],
     "expires_at": null,
@@ -123,13 +126,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-10T07:27:35-06:00"
+    "last_reviewed_at": "2026-08-10T12:02:55-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-scan-pdf.layered-rights.2026-08-10"
+    "tos.event.server-import-plan.antonovsky-prometey-1911-rsl-neb-scan-pdf.source-country-endpoint-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
-  "supersedes_server_import_ref": null
+  "contract_version": 3,
+  "supersedes_server_import_ref": "tos.server-import.antonovsky-prometey-1911-rsl-neb-scan-pdf"
 }
