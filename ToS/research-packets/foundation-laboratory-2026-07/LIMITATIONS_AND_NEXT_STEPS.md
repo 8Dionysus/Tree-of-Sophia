@@ -1295,6 +1295,14 @@ from the calibration-only route in section 2b.
    aggregate route, and proposed structural source starts. It still needs
    admitted German and question-bounded exact passage anchors; the separate
    DjVuXML navigation Item is not textual identity or an accepted witness text.
+   The 2026-08-09 TextGrid/Kolimo+ refresh adds no missing exact witness:
+   `textgrid:4k1kd.0` is a silently normalized transcription based on a 1922
+   Kröner *Antichrist*, while `textgrid:4k212.0` is a *Genealogie* text with a
+   collapsed *Jenseits/Genealogie* title and incoherent source bibliography.
+   Aggregate CC BY 4.0 metadata and the nested transcriptions' separate
+   noncommercial statements remain unresolved across layers. Keep both only
+   as deferred question-scoped discrepancy challengers; do not acquire,
+   register, align, or review them by default.
 3. If the user deliberately activates the transfer experiment, begin from the
    thirty-two intersecting layer-exact target candidates and the three retained
    nonintersection negatives. Verify or correct target boundaries, admit the

@@ -301,3 +301,16 @@ Kluge 1889 candidate. It rejects the fuzzy DWB convenience result, the failed
 remote EtymWb API route, and contaminated Internet Archive metadata. No
 dictionary article, standard body, scan, OCR corpus, etymology, translation
 judgment, semantic claim, or human task was admitted.
+
+`textgrid-transfer-source-challenger.2026-08-09.v1.json` refreshes the exact
+TextGrid/Kolimo+ objects relevant to the frozen cross-work transfer soil. It
+returns first to current repository and TG-crud documentation, then probes
+the revision-level *Antichrist* and *Genealogie* data/metadata objects,
+compares them with the existing exact historical and eKGWB controls, and uses
+general web only for the remaining *Jenseits* ambiguity. The two TEI response
+digests are reproduced but deleted after bounded header inspection. A 1922
+source basis, collapsed/incoherent *Genealogie/Jenseits* metadata, silent
+normalization, and aggregate-CC-BY versus transcription-noncommercial rights
+conflict keep both texts deferred as question-scoped diagnostic challengers.
+No Item, retained payload, accepted German, alignment, human task, semantic
+effect, or experiment admission is created.

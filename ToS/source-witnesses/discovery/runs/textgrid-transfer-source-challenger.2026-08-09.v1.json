@@ -1,0 +1,558 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.textgrid-transfer-source-challenger.2026-08-09",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "edition",
+    "known_tos_refs": [
+      "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+      "tos.work.friedrich-nietzsche.der-antichrist"
+    ],
+    "description": "An exact, machine-readable, rights-reconciled German comparison witness that could add independent evidence to the frozen Jenseits, Genealogie, or Antichrist transfer-source routes without being confused with a historical Item or critical text.",
+    "required_properties": [
+      "exact revision-level object identity",
+      "source bibliography coherent enough to distinguish work, edition, item, and corpus transcription",
+      "machine-readable text with source-returnable structure",
+      "object- and layer-specific rights evidence",
+      "an evidential role not already supplied by the exact historical source route",
+      "no inference from title similarity, aggregate membership, public access, or repository license badge"
+    ],
+    "acceptable_substitutions": [
+      "a normalized corpus transcription used only for one predeclared discrepancy diagnostic",
+      "a separately identified exact historical edition transcription with explicit layer rights",
+      "a critical-edition passage route with stable scholarly addresses"
+    ],
+    "languages": [
+      "de"
+    ],
+    "formats": [
+      "TEI XML",
+      "TextGrid metadata XML",
+      "ORE aggregation XML",
+      "HTML documentation"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/TEXTGRID_TRANSFER_SOURCE_CHALLENGER_REFRESH_2026-08-09.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-textgrid-current-documentation",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "TextGrid Repository current official documentation",
+      "endpoint_url": "https://doc.textgridlab.org/services/resolver.html",
+      "interface_type": "web",
+      "interface_version": "TextGrid Repository 2026-04 documentation as served 2026-08-09",
+      "exact_query": "GET https://doc.textgridlab.org/services/resolver.html; GET https://doc.textgridlab.org/submodules/tg-crud/tgcrud-webapp/docs/; GET https://www.textgridrep.org/docs/download",
+      "queried_at": "2026-08-09T01:56:30-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-resolver-documentation",
+          "rank": 1,
+          "title_as_displayed": "The TextGrid Repository Documentation",
+          "result_url": "https://doc.textgridlab.org/services/resolver.html",
+          "originating_record_url": "https://doc.textgridlab.org/services/resolver.html",
+          "identifiers": [
+            {
+              "scheme": "documentation release",
+              "value": "2026-04"
+            }
+          ],
+          "available_formats": [
+            "official HTML documentation"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current official orientation for the repository's citable object, API, resolving, and revision-addressing model; selected as transport and identity documentation, not content authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current documentation was consulted without retaining a body snapshot."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-tgcrud-read-documentation",
+          "rank": 2,
+          "title_as_displayed": "TG-crud — TextGrid Repository documentation",
+          "result_url": "https://doc.textgridlab.org/submodules/tg-crud/tgcrud-webapp/docs/",
+          "originating_record_url": "https://doc.textgridlab.org/submodules/tg-crud/tgcrud-webapp/docs/",
+          "identifiers": [
+            {
+              "scheme": "documented service",
+              "value": "TG-crud public READ and READMETADATA"
+            }
+          ],
+          "available_formats": [
+            "official HTML documentation",
+            "REST API documentation"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Documents that an object has separate data and metadata components and that public resources can be read by revision URI or Handle PID; it does not merge their bibliographic or rights layers.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current API documentation was consulted without retaining a body snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-existing-exact-and-critical-controls",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "Existing exact historical and critical witness controls",
+      "endpoint_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+      "interface_type": "web",
+      "interface_version": "current e-rara and Nietzsche Source documentation as checked 2026-08-09; exact ToS source runs remain the local authority",
+      "exact_query": "GET https://www.e-rara.ch/zuz/content/titleinfo/20295083; GET https://doc.nietzschesource.org/de/ekgwb; compare with the exact retained ToS 1886 Jenseits, 1892 Genealogie, and 1906 Antichrist source-witness receipts",
+      "queried_at": "2026-08-09T01:56:45-06:00",
+      "elapsed_seconds": 1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.erara-jenseits-1886-control",
+          "rank": 1,
+          "title_as_displayed": "Jenseits von Gut und Böse: Vorspiel einer Philosophie der Zukunft",
+          "result_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "originating_record_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+          "identifiers": [
+            {
+              "scheme": "e-rara object",
+              "value": "20295083"
+            }
+          ],
+          "available_formats": [
+            "page images",
+            "OCR text",
+            "ALTO XML",
+            "metadata"
+          ],
+          "declared_rights": {
+            "statement": "The exact e-rara object route reports Public Domain Mark evidence; ToS object/layer review and operator publication approval remain separate.",
+            "scope": "digital-object",
+            "evidence_url": "https://www.e-rara.ch/zuz/content/titleinfo/20295083",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Independent exact 1886 historical-edition control already represented by the source-first ToS route; it is stronger historical identity evidence than the collapsed TextGrid result and was not reacquired.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No duplicate object acquisition or page snapshot was needed for this comparison refresh."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ekgwb-transfer-critical-control",
+          "rank": 2,
+          "title_as_displayed": "Digitale Kritische Gesamtausgabe Werke und Briefe",
+          "result_url": "https://doc.nietzschesource.org/de/ekgwb",
+          "originating_record_url": "https://doc.nietzschesource.org/de/ekgwb",
+          "identifiers": [
+            {
+              "scheme": "project siglum",
+              "value": "eKGWB"
+            }
+          ],
+          "available_formats": [
+            "critical-edition HTML",
+            "TEI-oriented scholarly edition documentation",
+            "stable work and section addresses"
+          ],
+          "declared_rights": {
+            "statement": "The current eKGWB route is governed by CC BY-NC-ND 4.0 and the separately recorded ToS transport/rights limits.",
+            "scope": "content",
+            "evidence_url": "https://doc.nietzschesource.org/de/rights",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Critical-edition comparison control with stable scholarly addressing. It remains a different evidential layer from both historical scans and normalized Kolimo+ corpus transcriptions.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No critical-edition body was retained in this refresh."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-textgrid-kolimo-exact-objects",
+      "sequence": 3,
+      "channel_type": "university-catalog",
+      "role": "mixed",
+      "source_name": "TextGrid Repository TG-crud public exact revision endpoints",
+      "endpoint_url": "https://textgridlab.org/1.0/tgcrud-public/rest/",
+      "interface_type": "api",
+      "interface_version": "public TG-crud responses as served 2026-08-09; metadata reports crud-base 12.2.11 for aggregate fixity",
+      "exact_query": "GET textgrid:4k1kd.0/data and /metadata; GET textgrid:4k28z.0/metadata; GET textgrid:4k212.0/data and /metadata; GET textgrid:4k1p6.0/data and /metadata",
+      "queried_at": "2026-08-09T01:57:55-06:00",
+      "elapsed_seconds": 2.024,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-antichrist-text-4k1kd-0",
+          "rank": 1,
+          "title_as_displayed": "Der Antichrist",
+          "result_url": "https://www.textgridrep.org/browse/4k1kd.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1kd.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid revision URI",
+              "value": "textgrid:4k1kd.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k1kd.0"
+            },
+            {
+              "scheme": "Kolimo identifier",
+              "value": "kid26273"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "The TEI transcription layer states 'nicht-kommerzielle Nutzung frei' and points to the Project Gutenberg DE information route.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1kd.0/data",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "Stable machine-readable normalized corpus transcription based on a named 1922 Kröner volume. It is not the existing 1906 Naumann Item, the 1895 first print, a manuscript, or a critical text, so it adds no exact transfer-witness identity and remains only a future question-scoped diagnostic challenger.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-09T01:57:56-06:00",
+            "byte_size": 213431,
+            "sha256": "34b5b9d2e4770c03f6be735148a9828a5c53e05383d5000fcd9d6ce0416c39b2",
+            "event_ref": "tos.event.discovery.textgrid-transfer-source-challenger.2026-08-09"
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The response was downloaded only into a mode-0700 host temporary directory for fixity and bounded TEI-header inspection, then deleted; no ToS payload or snapshot was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-antichrist-aggregate-4k28z-0",
+          "rank": 2,
+          "title_as_displayed": "Der Antichrist",
+          "result_url": "https://www.textgridrep.org/browse/4k28z.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k28z.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k28z.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k28z.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k1zp.0"
+            }
+          ],
+          "available_formats": [
+            "ORE aggregation XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "The aggregate Edition metadata reports CC BY 4.0.",
+            "scope": "digital-object",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k28z.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The aggregate's CC BY 4.0 statement is positive evidence for that object but does not silently replace the contained transcription's separate noncommercial-use statement or establish historical-edition identity.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Metadata was inspected transiently and not retained as a tracked or local snapshot."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-genealogie-text-4k212-0",
+          "rank": 3,
+          "title_as_displayed": "Zur Genealogie der Moral Jenseits von Gut und Böse. Zur Genealogie der Moral",
+          "result_url": "https://www.textgridrep.org/browse/4k212.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k212.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid revision URI",
+              "value": "textgrid:4k212.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k212.0"
+            },
+            {
+              "scheme": "Kolimo identifier",
+              "value": "kid40921"
+            }
+          ],
+          "available_formats": [
+            "TEI XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "The TEI transcription layer states 'nicht-kommerzielle Nutzung frei' and points to the Project Gutenberg DE information route.",
+            "scope": "content",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k212.0/data",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The source path identifies Genealogie, not a separate Jenseits text; the combined title and Deutscher Taschenbuch Verlag/de Gruyter plus 1887 source statement are not a coherent exact identity for the existing 1892 Item or an exact first print. Retain only as a possible normalized diagnostic comparator.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-08-09T01:57:56-06:00",
+            "byte_size": 336306,
+            "sha256": "30122935647a3ea581e004c048d5c41e4b2ea5bb37d410b9a627a65c6f1347ad",
+            "event_ref": "tos.event.discovery.textgrid-transfer-source-challenger.2026-08-09"
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The response was downloaded only into a mode-0700 host temporary directory for fixity and bounded TEI-header inspection, then deleted; no ToS payload or snapshot was retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.textgrid-kolimo-genealogie-aggregate-4k1p6-0",
+          "rank": 4,
+          "title_as_displayed": "Zur Genealogie der Moral Jenseits von Gut und Böse. Zur Genealogie der Moral",
+          "result_url": "https://www.textgridrep.org/browse/4k1p6.0",
+          "originating_record_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+          "identifiers": [
+            {
+              "scheme": "TextGrid edition URI",
+              "value": "textgrid:4k1p6.0"
+            },
+            {
+              "scheme": "Handle",
+              "value": "hdl:21.11113/4k1p6.0"
+            },
+            {
+              "scheme": "TextGrid work URI",
+              "value": "textgrid:4k1k0.0"
+            }
+          ],
+          "available_formats": [
+            "ORE aggregation XML",
+            "TextGrid metadata XML"
+          ],
+          "declared_rights": {
+            "statement": "The aggregate Edition metadata reports CC BY 4.0.",
+            "scope": "digital-object",
+            "evidence_url": "https://textgridlab.org/1.0/tgcrud-public/rest/textgrid:4k1p6.0/metadata",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "api",
+          "decision": "defer",
+          "rationale": "The aggregate provides stable public identity and a CC BY 4.0 statement for its own layer, but its collapsed title and nested transcription's separate noncommercial statement prevent license or identity propagation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The 446-byte aggregate and metadata were inspected transiently and deleted; no ToS payload or snapshot was retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-general-web-jenseits-exact-object-check",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web exact-domain search",
+      "endpoint_url": "https://www.google.com/search?q=site%3Atextgridrep.org+%22Jenseits+von+Gut+und+B%C3%B6se%22+Nietzsche+TextGrid",
+      "interface_type": "web",
+      "interface_version": "search results as served 2026-08-09",
+      "exact_query": "site:textgridrep.org \"Jenseits von Gut und Böse\" Nietzsche TextGrid; site:textgridrep.org \"textgrid:4k212.0\"; site:textgridrep.org \"textgrid:4k1kd.0\"",
+      "queried_at": "2026-08-09T01:58:30-06:00",
+      "elapsed_seconds": 1.3,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.web-textgrid-nietzsche-author-listing",
+          "rank": 1,
+          "title_as_displayed": "TextGrid Repository",
+          "result_url": "https://www.textgridrep.org/search?filter=edition.agents.author.value%3ANietzsche%2C+Friedrich&filter=edition.language%3Adeu&limit=50&mode=list&order=asc%3Aissued&query=",
+          "originating_record_url": "https://www.textgridrep.org/search?filter=edition.agents.author.value%3ANietzsche%2C+Friedrich&filter=edition.language%3Adeu&limit=50&mode=list&order=asc%3Aissued&query=",
+          "identifiers": [],
+          "available_formats": [
+            "HTML search result listing"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The result returns the same repository author listing and malformed Genealogie/Jenseits title. It does not establish a separate Nietzsche Jenseits text object or a stronger exact historical witness.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The general-web result added no originating record or exact object beyond the already inspected repository routes."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-textgrid-current-documentation",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 2,
+      "machine_seconds": 1,
+      "notes": "Strong current object/API/revision model; intentionally does not resolve rights or historical identity for a particular corpus text."
+    },
+    {
+      "channel_id": "channel-existing-exact-and-critical-controls",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 4,
+      "machine_seconds": 1,
+      "notes": "The existing ToS historical Items and eKGWB route already separate exact print identity from critical-edition authority; no duplicate acquisition was justified."
+    },
+    {
+      "channel_id": "channel-textgrid-kolimo-exact-objects",
+      "completeness": "adequate",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "strong",
+      "human_minutes": 10,
+      "machine_seconds": 2.024,
+      "notes": "Excellent revision-level transport and reproducible bytes; weak exact historical-edition identity, silent normalization, and conflicting aggregate-versus-transcription rights evidence."
+    },
+    {
+      "channel_id": "channel-general-web-jenseits-exact-object-check",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "unknown",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 1,
+      "machine_seconds": 1.3,
+      "notes": "Useful only as a bounded negative check: it returned the same repository listing and no separately identified Nietzsche Jenseits object."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.textgrid-resolver-documentation",
+    "tos-discovery-result.textgrid-tgcrud-read-documentation",
+    "tos-discovery-result.erara-jenseits-1886-control",
+    "tos-discovery-result.ekgwb-transfer-critical-control"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.web-textgrid-nietzsche-author-listing"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-09T01:56:30-06:00",
+  "ended_at": "2026-08-09T01:59:11-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.textgrid-transfer-source-challenger.2026-08-09"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
