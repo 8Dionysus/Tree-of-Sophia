@@ -1,9 +1,10 @@
 # Initial Sign Packet Route
 
-The tracked `initial-sign-packet.v3.json` is the first Zarathustra sign packet.
-It is deliberately `blocked-not-materialized`: no source form, occurrence,
-lexeme, sign candidate, human decision, relation, concept, claim, or graph
-projection has been invented merely to populate the ladder.
+The tracked `initial-sign-packet.v4.json` is the first Zarathustra sign packet.
+It is deliberately `preparing`: one exact Edition/Item reading is attested,
+but no source form, occurrence, lexeme, sign candidate, human task or decision,
+relation, concept, claim, or graph projection has been invented merely to
+populate the ladder.
 
 The historical 0-of-30 source packet remains exact evidence but has no
 scheduling or execution authority here. Readiness is local to the one concrete
@@ -11,13 +12,19 @@ sign question carried by this packet.
 
 ## Entry conditions
 
-Materializing the packet requires:
+Source observation requires:
 
-- one exact German form tied to a packet-local accepted source SHA-256;
-- exact local-content fixity and a source-review event for that form;
+- one exact form selected inside the admitted Edition reading;
+- exact ignored local-content fixity and source return for that form;
 - page-returnable anchors for the form and every later stage;
-- attested language competence for the claims being made; absent competence
-  leaves the packet unresolved rather than creating routine review debt;
+
+The attested reading permits exact-form, frequency, and bounded-context
+observation without claiming that the German is linguistically correct.
+Morphology, lemma, translation, or a sign candidate may only be explicit
+machine proposals until competence-appropriate review exists. Absent
+competence leaves those claims unresolved rather than creating routine human
+review debt. Promotion additionally requires:
+
 - translation evidence with review and rights posture, never an unnamed model
   recollection or a recognized translation treated as truth;
 - stable `occurrence_id` and `lexeme_id` records before sign interpretation;
@@ -49,12 +56,13 @@ The packet follows exactly:
 14. competing readings;
 15. graph projection.
 
-All fifteen stages are currently empty and blocked because the task-specific
-source bundle is absent. After source admission, stages 12–15 stay empty and
-blocked until stage 11 records a real-human `accept` or `accept-with-limits`
-over an unassisted baseline frozen before model suggestions. Rejection,
-ambiguity, or deferral preserves the candidate and evidence but does not open
-interpretation or graphing.
+All fifteen stages are currently empty. Stages 1–3 are `not-started` because
+the Edition reading is admitted but no exact form has been selected; stages
+4–15 remain blocked. After source observation, stages 12–15 stay empty and
+blocked until stage 11 records a competence-appropriate real-human `accept`
+or `accept-with-limits` over an unassisted baseline frozen before model
+suggestions. Rejection, ambiguity, or deferral preserves the candidate and
+evidence but does not open interpretation or graphing.
 
 ## Candidate review questions
 

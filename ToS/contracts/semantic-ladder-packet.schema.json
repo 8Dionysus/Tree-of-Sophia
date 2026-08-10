@@ -32,7 +32,7 @@
     "$schema": {
       "const": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json"
     },
-    "schema_version": {"const": "tos_semantic_ladder_packet_v3"},
+    "schema_version": {"const": "tos_semantic_ladder_packet_v4"},
     "packet_id": {
       "type": "string",
       "pattern": "^tos\\.semantic-ladder-packet\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
@@ -45,39 +45,50 @@
       "required": [
         "gate_kind",
         "source_anchor_refs",
-        "accepted_source_sha256",
+        "edition_reading_admission_ref",
+        "edition_reading_admission_sha256",
+        "source_reading_status",
         "source_review_event_ref",
-        "local_content_ref",
-        "local_content_sha256",
-        "accepted_source_is_packet_local",
+        "local_source_ref",
+        "local_source_sha256",
+        "local_source_tracked",
+        "source_observation_allowed",
         "universal_packet_completion_required",
         "language_competence_status",
         "language_competence_evidence_refs",
+        "linguistic_claim_review_allowed",
         "missing_competence_effect",
         "gate_status"
       ],
       "properties": {
         "gate_kind": {
-          "const": "task-specific-promotion-candidate-source-bundle"
+          "const": "task-specific-edition-reading-source-bundle"
         },
         "source_anchor_refs": {
           "type": "array",
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/anchorId"}
         },
-        "accepted_source_sha256": {
+        "edition_reading_admission_ref": {
+          "oneOf": [{"$ref": "#/$defs/repoRelativePath"}, {"type": "null"}]
+        },
+        "edition_reading_admission_sha256": {
           "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "source_reading_status": {
+          "enum": ["blocked", "edition-attested"]
         },
         "source_review_event_ref": {
           "oneOf": [{"$ref": "#/$defs/eventId"}, {"type": "null"}]
         },
-        "local_content_ref": {
+        "local_source_ref": {
           "oneOf": [{"$ref": "#/$defs/repoRelativePath"}, {"type": "null"}]
         },
-        "local_content_sha256": {
+        "local_source_sha256": {
           "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
         },
-        "accepted_source_is_packet_local": {"const": true},
+        "local_source_tracked": {"const": false},
+        "source_observation_allowed": {"type": "boolean"},
         "universal_packet_completion_required": {"const": false},
         "language_competence_status": {
           "enum": ["blocked", "evidence-attested"]
@@ -87,6 +98,7 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/evidenceRef"}
         },
+        "linguistic_claim_review_allowed": {"type": "boolean"},
         "missing_competence_effect": {
           "const": "leave-unresolved-never-infer-acceptance"
         },
@@ -101,23 +113,43 @@
           "then": {
             "properties": {
               "source_anchor_refs": {"maxItems": 0},
-              "accepted_source_sha256": {"type": "null"},
+              "edition_reading_admission_ref": {"type": "null"},
+              "edition_reading_admission_sha256": {"type": "null"},
+              "source_reading_status": {"const": "blocked"},
               "source_review_event_ref": {"type": "null"},
-              "local_content_ref": {"type": "null"},
-              "local_content_sha256": {"type": "null"},
-              "language_competence_status": {"const": "blocked"},
-              "language_competence_evidence_refs": {"maxItems": 0}
+              "local_source_ref": {"type": "null"},
+              "local_source_sha256": {"type": "null"},
+              "source_observation_allowed": {"const": false}
             }
           },
           "else": {
             "properties": {
               "source_anchor_refs": {"minItems": 1},
-              "accepted_source_sha256": {"$ref": "#/$defs/sha256"},
+              "edition_reading_admission_ref": {"$ref": "#/$defs/repoRelativePath"},
+              "edition_reading_admission_sha256": {"$ref": "#/$defs/sha256"},
+              "source_reading_status": {"const": "edition-attested"},
               "source_review_event_ref": {"$ref": "#/$defs/eventId"},
-              "local_content_ref": {"$ref": "#/$defs/repoRelativePath"},
-              "local_content_sha256": {"$ref": "#/$defs/sha256"},
-              "language_competence_status": {"const": "evidence-attested"},
-              "language_competence_evidence_refs": {"minItems": 1}
+              "local_source_ref": {"$ref": "#/$defs/repoRelativePath"},
+              "local_source_sha256": {"$ref": "#/$defs/sha256"},
+              "source_observation_allowed": {"const": true}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"language_competence_status": {"const": "blocked"}},
+            "required": ["language_competence_status"]
+          },
+          "then": {
+            "properties": {
+              "language_competence_evidence_refs": {"maxItems": 0},
+              "linguistic_claim_review_allowed": {"const": false}
+            }
+          },
+          "else": {
+            "properties": {
+              "language_competence_evidence_refs": {"minItems": 1},
+              "linguistic_claim_review_allowed": {"const": true}
             }
           }
         }
@@ -128,12 +160,19 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["diplomatic", "diplomatic_sha256", "normalized", "normalized_sha256"],
+          "required": [
+            "diplomatic_local_ref",
+            "diplomatic_sha256",
+            "normalized_local_ref",
+            "normalized_sha256",
+            "source_values_tracked"
+          ],
           "properties": {
-            "diplomatic": {"type": "string", "minLength": 1},
+            "diplomatic_local_ref": {"$ref": "#/$defs/repoRelativePath"},
             "diplomatic_sha256": {"$ref": "#/$defs/sha256"},
-            "normalized": {"type": "string", "minLength": 1},
-            "normalized_sha256": {"$ref": "#/$defs/sha256"}
+            "normalized_local_ref": {"$ref": "#/$defs/repoRelativePath"},
+            "normalized_sha256": {"$ref": "#/$defs/sha256"},
+            "source_values_tracked": {"const": false}
           }
         },
         {"type": "null"}
@@ -303,7 +342,7 @@
       "items": {"$ref": "#/$defs/eventId"}
     },
     "authority_boundary": {
-      "const": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision"
+      "const": "this packet keeps edition-reading evidence independent from language competence: exact-form, frequency, context, and explicitly typed model proposals may return to an attested Edition reading, but no linguistic claim becomes reviewed and no sign, interpretation, relation, concept, claim, graph, canon, transfer, or publication authority follows without its own competence-appropriate and real-human evidence"
     },
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
@@ -350,10 +389,57 @@
     },
     {
       "if": {
+        "properties": {"packet_status": {"const": "preparing"}},
+        "required": ["packet_status"]
+      },
+      "then": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {"gate_status": {"const": "satisfied"}}
+          },
+          "candidate_ref": {"type": "null"},
+          "accepted_sign_ref": {"type": "null"},
+          "translation_evidence": {"maxItems": 0},
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": false}}
+          },
+          "stages": {
+            "prefixItems": [
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}}
+            ]
+          },
+          "result": {
+            "properties": {
+              "human_decision_refs": {"maxItems": 0},
+              "relation_refs": {"maxItems": 0},
+              "concept_refs": {"maxItems": 0},
+              "claim_refs": {"maxItems": 0},
+              "graph_projection_refs": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": {
           "packet_status": {
             "enum": [
-              "preparing",
               "observational-analysis",
               "awaiting-manual-sign-decision",
               "manual-sign-rejected",
@@ -556,6 +642,62 @@
               {"properties": {"status": {"$ref": "#/$defs/activeInterpretiveStatus"}}},
               {"properties": {"status": {"const": "projected"}}}
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_specific_source_gate": {
+            "properties": {"language_competence_status": {"const": "blocked"}},
+            "required": ["language_competence_status"]
+          }
+        },
+        "required": ["task_specific_source_gate"]
+      },
+      "then": {
+        "properties": {
+          "packet_status": {
+            "enum": [
+              "blocked-not-materialized",
+              "preparing",
+              "observational-analysis",
+              "superseded"
+            ]
+          },
+          "accepted_sign_ref": {"type": "null"},
+          "assurance_policy": {
+            "properties": {"human_work_scheduled": {"const": false}}
+          },
+          "stages": {
+            "prefixItems": [
+              {},
+              {},
+              {},
+              {"properties": {"status": {"enum": ["not-started", "blocked", "proposed", "ambiguous", "deferred", "superseded"]}, "review_status": {"enum": ["not-started", "unreviewed", "ambiguous", "deferred", "superseded"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked", "proposed", "ambiguous", "deferred", "superseded"]}, "review_status": {"enum": ["not-started", "unreviewed", "ambiguous", "deferred", "superseded"]}}},
+              {},
+              {},
+              {},
+              {"properties": {"status": {"enum": ["not-started", "blocked", "proposed", "ambiguous", "deferred", "superseded"]}, "review_status": {"enum": ["not-started", "unreviewed", "ambiguous", "deferred", "superseded"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked", "proposed", "ambiguous", "deferred", "superseded"]}, "review_status": {"enum": ["not-started", "unreviewed", "ambiguous", "deferred", "superseded"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked", "ambiguous", "deferred", "superseded"]}, "review_status": {"enum": ["not-started", "unreviewed", "ambiguous", "deferred", "superseded"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}},
+              {"properties": {"status": {"enum": ["not-started", "blocked"]}}}
+            ]
+          },
+          "result": {
+            "properties": {
+              "human_decision_refs": {"maxItems": 0},
+              "relation_refs": {"maxItems": 0},
+              "concept_refs": {"maxItems": 0},
+              "claim_refs": {"maxItems": 0},
+              "graph_projection_refs": {"maxItems": 0},
+              "promotion_authorized": {"const": false}
+            }
           }
         }
       }
@@ -841,7 +983,7 @@
       "required": [
         "occurrence_refs",
         "declared_set_ref",
-        "claim_refs",
+        "observation_refs",
         "membership_method_ref"
       ],
       "properties": {
@@ -852,11 +994,11 @@
           "items": {"$ref": "#/$defs/occurrenceId"}
         },
         "declared_set_ref": {"type": "string", "minLength": 1},
-        "claim_refs": {
+        "observation_refs": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/claimId"}
+          "items": {"$ref": "#/$defs/evidenceRef"}
         },
         "membership_method_ref": {"type": "string", "minLength": 1}
       }
@@ -871,13 +1013,14 @@
             "properties": {
               "body": {
                 "required": [
-                  "exact_form",
+                  "exact_form_local_ref",
                   "exact_form_sha256",
                   "occurrence_refs",
-                  "page_return_verified"
+                  "page_return_verified",
+                  "source_value_tracked"
                 ],
                 "properties": {
-                  "exact_form": {"type": "string", "minLength": 1},
+                  "exact_form_local_ref": {"$ref": "#/$defs/repoRelativePath"},
                   "exact_form_sha256": {"$ref": "#/$defs/sha256"},
                   "occurrence_refs": {
                     "type": "array",
@@ -885,7 +1028,8 @@
                     "uniqueItems": true,
                     "items": {"$ref": "#/$defs/occurrenceId"}
                   },
-                  "page_return_verified": {"const": true}
+                  "page_return_verified": {"const": true},
+                  "source_value_tracked": {"const": false}
                 }
               }
             }
@@ -906,7 +1050,7 @@
                   "count",
                   "occurrence_refs",
                   "concordance_refs",
-                  "claim_refs",
+                  "observation_refs",
                   "counting_method_ref",
                   "frequency_only_basis"
                 ],
@@ -923,11 +1067,11 @@
                     "minItems": 1,
                     "items": {"type": "string", "minLength": 1}
                   },
-                  "claim_refs": {
+                  "observation_refs": {
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {"$ref": "#/$defs/claimId"}
+                    "items": {"$ref": "#/$defs/evidenceRef"}
                   },
                   "counting_method_ref": {"type": "string", "minLength": 1},
                   "frequency_only_basis": {"const": false}
@@ -947,7 +1091,13 @@
           "then": {
             "properties": {
               "body": {
-                "required": ["occurrence_refs", "claim_refs", "bounded_context_note"],
+                "required": [
+                  "occurrence_refs",
+                  "observation_refs",
+                  "context_local_ref",
+                  "context_sha256",
+                  "source_values_tracked"
+                ],
                 "properties": {
                   "occurrence_refs": {
                     "type": "array",
@@ -955,13 +1105,15 @@
                     "uniqueItems": true,
                     "items": {"$ref": "#/$defs/occurrenceId"}
                   },
-                  "claim_refs": {
+                  "observation_refs": {
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {"$ref": "#/$defs/claimId"}
+                    "items": {"$ref": "#/$defs/evidenceRef"}
                   },
-                  "bounded_context_note": {"type": "string", "minLength": 1}
+                  "context_local_ref": {"$ref": "#/$defs/repoRelativePath"},
+                  "context_sha256": {"$ref": "#/$defs/sha256"},
+                  "source_values_tracked": {"const": false}
                 }
               }
             }

@@ -1270,23 +1270,26 @@ def _synthetic_semantic_packet() -> dict:
     maker = _synthetic_semantic_maker()
     bodies = {
         "exact_form": {
-            "exact_form": "Synthetic exact form",
+            "exact_form_local_ref": "ToS/local-content/semantic/synthetic-form.txt",
             "exact_form_sha256": "a" * 64,
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "page_return_verified": True,
+            "source_value_tracked": False,
         },
         "frequency_and_concordance": {
             "count": 3,
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "concordance_refs": ["synthetic-concordance"],
-            "claim_refs": ["tos.claim.synthetic-frequency"],
+            "observation_refs": ["tos.event.synthetic-frequency-observation"],
             "counting_method_ref": "synthetic-counting-method",
             "frequency_only_basis": False,
         },
         "context": {
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
-            "claim_refs": ["tos.claim.synthetic-context"],
-            "bounded_context_note": "Synthetic bounded context.",
+            "observation_refs": ["tos.event.synthetic-context-observation"],
+            "context_local_ref": "ToS/local-content/semantic/synthetic-context.txt",
+            "context_sha256": "c" * 64,
+            "source_values_tracked": False,
         },
         "morphology": {
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
@@ -1302,19 +1305,19 @@ def _synthetic_semantic_packet() -> dict:
         "recurrence_within_section": {
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "declared_set_ref": "synthetic-section-set",
-            "claim_refs": ["tos.claim.synthetic-section-recurrence"],
+            "observation_refs": ["tos.event.synthetic-section-recurrence"],
             "membership_method_ref": "synthetic-membership-method",
         },
         "recurrence_within_work": {
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "declared_set_ref": "synthetic-work-set",
-            "claim_refs": ["tos.claim.synthetic-work-recurrence"],
+            "observation_refs": ["tos.event.synthetic-work-recurrence"],
             "membership_method_ref": "synthetic-membership-method",
         },
         "recurrence_within_author_corpus": {
             "occurrence_refs": ["tos.occurrence.synthetic-form"],
             "declared_set_ref": "synthetic-author-set",
-            "claim_refs": ["tos.claim.synthetic-author-recurrence"],
+            "observation_refs": ["tos.event.synthetic-author-recurrence"],
             "membership_method_ref": "synthetic-membership-method",
         },
         "translation_correspondences": {
@@ -1368,31 +1371,36 @@ def _synthetic_semantic_packet() -> dict:
             )
     return {
         "$schema": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json",
-        "schema_version": "tos_semantic_ladder_packet_v3",
+        "schema_version": "tos_semantic_ladder_packet_v4",
         "packet_id": "tos.semantic-ladder-packet.synthetic-foundation",
         "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
         "source_expression_ref": "tos.expression.synthetic-german",
         "task_specific_source_gate": {
-            "gate_kind": "task-specific-promotion-candidate-source-bundle",
+            "gate_kind": "task-specific-edition-reading-source-bundle",
             "source_anchor_refs": ["tos.anchor.synthetic-source"],
-            "accepted_source_sha256": "a" * 64,
+            "edition_reading_admission_ref": "ToS/evidence/synthetic-edition-reading.json",
+            "edition_reading_admission_sha256": "a" * 64,
+            "source_reading_status": "edition-attested",
             "source_review_event_ref": "tos.event.synthetic-source-review",
-            "local_content_ref": "ToS/local-content/semantic/synthetic-source.txt",
-            "local_content_sha256": "a" * 64,
-            "accepted_source_is_packet_local": True,
+            "local_source_ref": "ToS/local-content/semantic/synthetic-source.txt",
+            "local_source_sha256": "a" * 64,
+            "local_source_tracked": False,
+            "source_observation_allowed": True,
             "universal_packet_completion_required": False,
             "language_competence_status": "evidence-attested",
             "language_competence_evidence_refs": [
                 "tos.review.synthetic-language-competence"
             ],
+            "linguistic_claim_review_allowed": True,
             "missing_competence_effect": "leave-unresolved-never-infer-acceptance",
             "gate_status": "satisfied",
         },
         "source_forms": {
-            "diplomatic": "Synthetic exact form",
+            "diplomatic_local_ref": "ToS/local-content/semantic/synthetic-diplomatic.txt",
             "diplomatic_sha256": "a" * 64,
-            "normalized": "Synthetic exact form",
+            "normalized_local_ref": "ToS/local-content/semantic/synthetic-normalized.txt",
             "normalized_sha256": "a" * 64,
+            "source_values_tracked": False,
         },
         "candidate_ref": "tos.annotation.synthetic-sign-candidate",
         "accepted_sign_ref": None,
@@ -1444,7 +1452,7 @@ def _synthetic_semantic_packet() -> dict:
             "conclusion": "Synthetic candidate awaits a real-human decision.",
         },
         "provenance_event_refs": ["tos.event.synthetic-semantic-packet"],
-        "authority_boundary": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision",
+        "authority_boundary": "this packet keeps edition-reading evidence independent from language competence: exact-form, frequency, context, and explicitly typed model proposals may return to an attested Edition reading, but no linguistic claim becomes reviewed and no sign, interpretation, relation, concept, claim, graph, canon, transfer, or publication authority follows without its own competence-appropriate and real-human evidence",
         "packet_version": 1,
     }
 
@@ -5157,7 +5165,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authoritative_projection["stages"][14]["body"]["projection_is_authority"] = True
         self.assertTrue(list(validator.iter_errors(authoritative_projection)))
 
-    def test_initial_sign_packet_is_tracked_without_invented_content_or_human_debt(
+    def test_initial_sign_packet_separates_edition_reading_from_language_truth(
         self,
     ) -> None:
         validator, _ = foundation._schema_validator(
@@ -5165,35 +5173,91 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             REPO_ROOT,
         )
         packet = json.loads(
-            (GOLD_ROOT / "initial-sign-packet.v3.json").read_text(
+            (GOLD_ROOT / "initial-sign-packet.v4.json").read_text(
                 encoding="utf-8"
             )
         )
 
         self.assertEqual([], list(validator.iter_errors(packet)))
-        self.assertEqual("blocked-not-materialized", packet["packet_status"])
-        self.assertEqual("blocked", packet["task_specific_source_gate"]["gate_status"])
-        self.assertEqual([], packet["task_specific_source_gate"]["source_anchor_refs"])
+        self.assertEqual("preparing", packet["packet_status"])
+        self.assertEqual("satisfied", packet["task_specific_source_gate"]["gate_status"])
+        self.assertEqual(
+            "edition-attested",
+            packet["task_specific_source_gate"]["source_reading_status"],
+        )
+        self.assertTrue(
+            packet["task_specific_source_gate"]["source_observation_allowed"]
+        )
+        self.assertEqual(
+            "blocked",
+            packet["task_specific_source_gate"]["language_competence_status"],
+        )
+        self.assertFalse(
+            packet["task_specific_source_gate"]["linguistic_claim_review_allowed"]
+        )
         self.assertIsNone(packet["source_forms"])
         self.assertIsNone(packet["candidate_ref"])
         self.assertIsNone(packet["accepted_sign_ref"])
         self.assertFalse(packet["assurance_policy"]["human_work_scheduled"])
-        self.assertTrue(all(stage["status"] == "blocked" for stage in packet["stages"]))
+        self.assertEqual(
+            ["not-started", "not-started", "not-started"],
+            [stage["status"] for stage in packet["stages"][:3]],
+        )
+        self.assertTrue(
+            all(stage["status"] == "blocked" for stage in packet["stages"][3:])
+        )
         self.assertTrue(all(stage["body"] == {} for stage in packet["stages"]))
         self.assertFalse(packet["result"]["promotion_authorized"])
 
-        fabricated_form = copy.deepcopy(packet)
-        fabricated_form["source_forms"] = {
-            "diplomatic": "fabricated",
+        tracked_source_form = copy.deepcopy(packet)
+        tracked_source_form["source_forms"] = {
+            "diplomatic_local_ref": "ToS/local-content/semantic/fabricated.txt",
             "diplomatic_sha256": "a" * 64,
-            "normalized": "fabricated",
+            "normalized_local_ref": "ToS/local-content/semantic/fabricated.txt",
             "normalized_sha256": "a" * 64,
+            "source_values_tracked": True,
         }
-        self.assertTrue(list(validator.iter_errors(fabricated_form)))
+        self.assertTrue(list(validator.iter_errors(tracked_source_form)))
 
         fabricated_human_debt = copy.deepcopy(packet)
         fabricated_human_debt["assurance_policy"]["human_work_scheduled"] = True
         self.assertTrue(list(validator.iter_errors(fabricated_human_debt)))
+
+        fabricated_language_review = copy.deepcopy(packet)
+        fabricated_language_review["task_specific_source_gate"][
+            "linguistic_claim_review_allowed"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(fabricated_language_review)))
+
+        fabricated_promotion = copy.deepcopy(packet)
+        fabricated_promotion["packet_status"] = "manual-sign-accepted"
+        fabricated_promotion["accepted_sign_ref"] = "tos.sign.fabricated"
+        fabricated_promotion["result"]["promotion_authorized"] = True
+        self.assertTrue(list(validator.iter_errors(fabricated_promotion)))
+
+    def test_semantic_ladder_allows_proposals_without_fake_language_review(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.SEMANTIC_LADDER_PACKET_SCHEMA,
+            REPO_ROOT,
+        )
+        packet = _synthetic_semantic_packet()
+        gate = packet["task_specific_source_gate"]
+        gate["language_competence_status"] = "blocked"
+        gate["language_competence_evidence_refs"] = []
+        gate["linguistic_claim_review_allowed"] = False
+        packet["packet_status"] = "observational-analysis"
+        packet["assurance_policy"]["human_work_scheduled"] = False
+
+        self.assertEqual([], list(validator.iter_errors(packet)))
+
+        fabricated_review = copy.deepcopy(packet)
+        fabricated_review["stages"][3]["review_status"] = "accepted"
+        self.assertTrue(list(validator.iter_errors(fabricated_review)))
+
+        fabricated_human_acceptance = _accept_synthetic_sign(copy.deepcopy(packet))
+        self.assertTrue(list(validator.iter_errors(fabricated_human_acceptance)))
 
     def test_discovery_access_and_server_boundaries_fail_closed(self) -> None:
         discovery_validator, _ = foundation._schema_validator(

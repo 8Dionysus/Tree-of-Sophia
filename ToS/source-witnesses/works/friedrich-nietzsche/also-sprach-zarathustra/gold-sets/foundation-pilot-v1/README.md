@@ -141,12 +141,13 @@ Zarathustra golden kernel. It is not a completed gold set.
   future real-human-only morphology-to-interlinear pass. It forbids AI aids,
   other-lane analysis, comparator exposure, and premature drafting; it does
   not claim that any human work has occurred.
-- `INITIAL_SIGN_PACKET_ROUTE.md` and `initial-sign-packet.v3.json` preserve the
-  fifteen-stage form-to-graph route as a tracked
-  `blocked-not-materialized` packet. It contains no source form, occurrence,
-  lexeme, sign candidate, human task, relation, concept, claim, or graph
-  projection. Its gate is one packet-local accepted German source bundle plus
-  language-competence evidence; the historical 0-of-30 packet does not
+- `INITIAL_SIGN_PACKET_ROUTE.md` and `initial-sign-packet.v4.json` preserve the
+  fifteen-stage form-to-graph route as a tracked `preparing` packet. One exact
+  DTA Edition/Item reading is attested, so exact-form, frequency, and context
+  observation may begin after a concrete form is selected. No source form,
+  occurrence, morphology, lemma, translation, sign candidate, human task,
+  relation, concept, claim, or graph projection exists yet. German competence
+  remains independently blocked and the historical 0-of-30 packet does not
   schedule this work.
 - the separate DTA parts 1–4 lexical observation route materializes 86,287
   exact token occurrences across 506 body pages and 213 TEI divisions in one
@@ -164,7 +165,7 @@ Zarathustra golden kernel. It is not a completed gold set.
   separate dimensions. It creates no leaderboard or importance score, exposes
   no source string, and has zero morphology, lemma, lexeme, sign-candidate,
   semantic, publication, or human-backlog effect. This is queryable soil below
-  the semantic ladder, not a partial opening of `initial-sign-packet.v3.json`.
+  the semantic ladder, not a materialized stage of `initial-sign-packet.v4.json`.
 - the question-scoped usage-context control materializes all 527 occurrences
   of one preselected Work-identity exact-form hash as a deterministic
   24-token-per-side, same-page KWIC bundle. The 875,930 source-bearing bytes

@@ -53,7 +53,7 @@ judgment true.
 | `translation-laboratory-plan.schema.json` | exact source-first 17-stage translation order, real-human lane law, sealed comparator, model-candidate posture, and source-acceptance gate |
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
-| `semantic-ladder-packet.schema.json` | task-specific form-to-graph sequence for a promotion-capable sign packet, including an honest content-free blocked state, distinct occurrence/lexeme/sign/concept/claim/relation identities, language-competence evidence, a triggered real-human sign checkpoint, competing readings, and a disposable projection boundary; it is not a requirement to review every prepared occurrence |
+| `semantic-ladder-packet.schema.json` | v4 task-specific form-to-graph sequence separating an attested Edition reading from language competence: exact-form, frequency, context, and typed model proposals may advance without becoming reviewed German; promotion still requires competence-appropriate and real-human evidence, distinct occurrence/lexeme/sign/concept/claim/relation identities, competing readings, and a disposable non-authoritative projection; no prepared occurrence creates routine human work |
 | `golden-kernel-transfer-plan.schema.json` | source-gated cross-work A/B/C plan, title-page scouting boundary, separate private/ineligible target-candidate soil, content-bearing target-gold requirements, contamination controls, transfer metrics, and an honest non-run result |
 | `source-gated-evaluation-plan.schema.json` | preserved v1 semantic/LLM readiness law and its historical universal source/gold gate; no current plan uses it for scheduling or execution |
 | `source-gated-semantic-evaluation-plan.schema.json` | task-specific semantic A/B/C readiness: accepted evidence per selected task, unassisted baselines only for materialized interpretive tasks, language-competence routing, separate labels and rationales, and exceptional rather than routine second-human review |
@@ -172,13 +172,14 @@ A schema validator can establish that:
   assistance or machine-authored findings in the human-only lane, rejects
   human editing in model lanes, keeps comparators and other lanes hidden, and
   requires cited external evidence for etymology;
-- a semantic-ladder packet may exist honestly as `blocked-not-materialized`
-  with no source form, anchor, occurrence, lexeme, sign candidate, human task,
-  claim, relation, concept, or projection; materialization requires one
-  packet-local accepted source bundle and language-competence evidence rather
-  than completion of a universal packet; relations, concepts, counterreadings,
-  and graph projection remain blocked until the concrete sign candidate
-  receives an attested real-human decision over a frozen unassisted baseline;
+- a semantic-ladder packet may bind one exact `edition_reading_attested`
+  source unit while still carrying no selected form, occurrence, lexeme, sign
+  candidate, human task, claim, relation, concept, or projection; exact-form,
+  frequency, context, and explicitly typed model proposals may materialize
+  from that Edition reading without asserting accepted German;
+  competence-appropriate review remains independent, and relations, concepts,
+  counterreadings, and graph projection remain blocked until the concrete sign
+  candidate receives an attested real-human decision over a frozen unassisted baseline;
   accepted signs, concepts, claims, and relations use distinct stable IDs, and
   graph projection cannot skip competing readings or claim authority; this is
   a promotion checkpoint for one sign packet, not routine human work for every

@@ -1,22 +1,28 @@
 {
   "$schema": "https://tree-of-sophia.local/ToS/contracts/semantic-ladder-packet.schema.json",
-  "schema_version": "tos_semantic_ladder_packet_v3",
-  "packet_id": "tos.semantic-ladder-packet.zarathustra-foundation-initial",
+  "schema_version": "tos_semantic_ladder_packet_v4",
+  "packet_id": "tos.semantic-ladder-packet.zarathustra-foundation-initial-v4",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
-  "source_expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893",
+  "source_expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
   "task_specific_source_gate": {
-    "gate_kind": "task-specific-promotion-candidate-source-bundle",
-    "source_anchor_refs": [],
-    "accepted_source_sha256": null,
-    "source_review_event_ref": null,
-    "local_content_ref": null,
-    "local_content_sha256": null,
-    "accepted_source_is_packet_local": true,
+    "gate_kind": "task-specific-edition-reading-source-bundle",
+    "source_anchor_refs": [
+      "tos.anchor.zarathustra-translation-pilot-v1.t001"
+    ],
+    "edition_reading_admission_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json",
+    "edition_reading_admission_sha256": "8c43f11e0824cc6acdd8a7b321fde3089c63020c7af20145ceb359339cbe6980",
+    "source_reading_status": "edition-attested",
+    "source_review_event_ref": "tos.event.annotation.zarathustra-edition-reading-admission.za-i-vorrede-1.2026-08-10",
+    "local_source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+    "local_source_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "local_source_tracked": false,
+    "source_observation_allowed": true,
     "universal_packet_completion_required": false,
     "language_competence_status": "blocked",
     "language_competence_evidence_refs": [],
+    "linguistic_claim_review_allowed": false,
     "missing_competence_effect": "leave-unresolved-never-infer-acceptance",
-    "gate_status": "blocked"
+    "gate_status": "satisfied"
   },
   "source_forms": null,
   "candidate_ref": null,
@@ -60,45 +66,36 @@
   "stages": [
     {
       "stage": "exact_form",
-      "status": "blocked",
+      "status": "not-started",
       "source_anchor_refs": [],
       "source_return_verified": false,
       "body": {},
       "maker": null,
       "provenance_event_ref": null,
       "review_status": "not-started",
-      "blocker_refs": [
-        "task-specific-source-gate-not-satisfied",
-        "german-language-competence-not-attested"
-      ]
+      "blocker_refs": []
     },
     {
       "stage": "frequency_and_concordance",
-      "status": "blocked",
+      "status": "not-started",
       "source_anchor_refs": [],
       "source_return_verified": false,
       "body": {},
       "maker": null,
       "provenance_event_ref": null,
       "review_status": "not-started",
-      "blocker_refs": [
-        "task-specific-source-gate-not-satisfied",
-        "exact-form-not-materialized"
-      ]
+      "blocker_refs": []
     },
     {
       "stage": "context",
-      "status": "blocked",
+      "status": "not-started",
       "source_anchor_refs": [],
       "source_return_verified": false,
       "body": {},
       "maker": null,
       "provenance_event_ref": null,
       "review_status": "not-started",
-      "blocker_refs": [
-        "task-specific-source-gate-not-satisfied",
-        "exact-occurrences-not-materialized"
-      ]
+      "blocker_refs": []
     },
     {
       "stage": "morphology",
@@ -110,7 +107,7 @@
       "provenance_event_ref": null,
       "review_status": "not-started",
       "blocker_refs": [
-        "task-specific-source-gate-not-satisfied",
+        "exact-form-not-selected",
         "german-language-competence-not-attested"
       ]
     },
@@ -124,7 +121,7 @@
       "provenance_event_ref": null,
       "review_status": "not-started",
       "blocker_refs": [
-        "task-specific-source-gate-not-satisfied",
+        "exact-form-not-selected",
         "german-language-competence-not-attested"
       ]
     },
@@ -263,7 +260,7 @@
   "every_stage_returns_to_source_page": true,
   "model_may_propose_but_not_confirm": true,
   "manual_sign_decision_required_before_interpretation": true,
-  "packet_status": "blocked-not-materialized",
+  "packet_status": "preparing",
   "result": {
     "human_decision_refs": [],
     "relation_refs": [],
@@ -271,12 +268,12 @@
     "claim_refs": [],
     "graph_projection_refs": [],
     "promotion_authorized": false,
-    "conclusion": "The initial Zarathustra sign packet is structurally present but contains no source form, occurrence, lexeme, sign candidate, human decision, relation, concept, claim, or graph projection. It remains blocked until one concrete packet-local German source bundle is accepted with language-competence evidence."
+    "conclusion": "One exact edition-local DTA reading is attested and makes source observation ready, but no exact form has been selected and no occurrence, morphology, lemma, translation, sign candidate, human task, decision, relation, concept, claim, or graph projection exists. Missing German competence blocks linguistic review and every promotion-capable stage, not source observation."
   },
   "provenance_event_refs": [
-    "tos.event.annotation.zarathustra-initial-sign-packet-v3.2026-07-29"
+    "tos.event.annotation.zarathustra-initial-sign-packet-v4.2026-08-10"
   ],
-  "authority_boundary": "this packet preserves a task-specific source-returnable path from exact form to graph; packet preparation, frequency, model proposals, interpretations, and projections cannot confirm a stable sign without an attested real-human evidence-bearing promotion decision",
-  "packet_version": 3,
-  "supersedes_packet_ref": null
+  "authority_boundary": "this packet keeps edition-reading evidence independent from language competence: exact-form, frequency, context, and explicitly typed model proposals may return to an attested Edition reading, but no linguistic claim becomes reviewed and no sign, interpretation, relation, concept, claim, graph, canon, transfer, or publication authority follows without its own competence-appropriate and real-human evidence",
+  "packet_version": 4,
+  "supersedes_packet_ref": "tos.semantic-ladder-packet.zarathustra-foundation-initial"
 }

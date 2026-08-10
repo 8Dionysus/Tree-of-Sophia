@@ -2233,7 +2233,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         experimental_translation_episode_paths = sorted(
             gold_root.glob("experimental-translation-episode.*.json")
         )
-        initial_sign_packet_path = gold_root / "initial-sign-packet.v3.json"
+        initial_sign_packet_path = gold_root / "initial-sign-packet.v4.json"
         transfer_path = gold_root / "transfer-samples.json"
         semantic_samples_path = gold_root / "semantic-samples.json"
         llm_tasks_path = gold_root / "llm-tasks.json"
@@ -2258,6 +2258,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         edition_reading_admission_provenance_path = (
             gold_root / "provenance.edition-reading-admission.jsonl"
+        )
+        semantic_ladder_v4_provenance_path = (
+            gold_root / "provenance.semantic-ladder-v4.jsonl"
         )
         experimental_translation_episode_provenance_paths = sorted(
             gold_root.glob("provenance.experimental-translation-episodes*.jsonl")
@@ -2550,27 +2553,45 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     initial_sign_packet
                 )
             )
-            if initial_sign_packet.get("packet_status") != "blocked-not-materialized":
+            if initial_sign_packet.get("packet_status") != "preparing":
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet must remain blocked until content is materialized",
+                        "initial sign packet must remain source-reading-ready without materialized content",
                     )
                 )
             source_gate = initial_sign_packet.get(
                 "task_specific_source_gate",
                 {},
             )
+            edition_admission = (
+                edition_reading_admission
+                if isinstance(edition_reading_admission, dict)
+                else {}
+            )
             if (
-                source_gate.get("gate_status") != "blocked"
-                or source_gate.get("source_anchor_refs") != []
+                source_gate.get("gate_status") != "satisfied"
+                or source_gate.get("source_reading_status") != "edition-attested"
+                or source_gate.get("source_observation_allowed") is not True
+                or source_gate.get("edition_reading_admission_ref")
+                != _relative(edition_reading_admission_path, repo_root)
+                or source_gate.get("edition_reading_admission_sha256")
+                != _sha256(edition_reading_admission_path)
+                or source_gate.get("source_review_event_ref")
+                != edition_admission.get("provenance_event_ref")
+                or source_gate.get("source_anchor_refs")
+                != [edition_admission.get("target", {}).get("context_anchor_ref")]
+                or source_gate.get("local_source_sha256")
+                != edition_admission.get("source_identity", {}).get("file_sha256")
+                or source_gate.get("local_source_tracked") is not False
                 or source_gate.get("language_competence_status") != "blocked"
                 or source_gate.get("language_competence_evidence_refs") != []
+                or source_gate.get("linguistic_claim_review_allowed") is not False
             ):
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet source and competence gate drifted",
+                        "initial sign packet edition-reading and competence separation drifted",
                     )
                 )
             if (
@@ -2590,18 +2611,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 len(stages) != 15
                 or any(
                     not isinstance(stage, dict)
-                    or stage.get("status") != "blocked"
+                    or stage.get("status") != (
+                        "not-started" if index < 3 else "blocked"
+                    )
                     or stage.get("source_anchor_refs") != []
                     or stage.get("body") != {}
                     or stage.get("maker") is not None
                     or stage.get("provenance_event_ref") is not None
-                    for stage in stages
+                    for index, stage in enumerate(stages)
                 )
             ):
                 issues.append(
                     (
                         initial_sign_location,
-                        "initial sign packet stages must be content-free and blocked",
+                        "initial sign packet must keep only the first three observational stages ready and content-free",
                     )
                 )
             result = initial_sign_packet.get("result", {})
@@ -4222,6 +4245,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 edition_reading_admission_provenance_path
             )
+        if semantic_ladder_v4_provenance_path.is_file():
+            local_provenance_paths.append(
+                semantic_ladder_v4_provenance_path
+            )
         local_provenance_paths.extend(
             experimental_translation_episode_provenance_paths
         )
@@ -4420,7 +4447,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 [],
             )
             if initial_sign_event_refs != [
-                "tos.event.annotation.zarathustra-initial-sign-packet-v3.2026-07-29"
+                "tos.event.annotation.zarathustra-initial-sign-packet-v4.2026-08-10"
             ]:
                 issues.append(
                     (
@@ -4434,7 +4461,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
                 expected_output = {
                     "ref": initial_sign_location,
-                    "role": "content-free-blocked-initial-sign-packet",
+                    "role": "edition-reading-ready-content-free-initial-sign-packet",
                     "sha256": _sha256(initial_sign_packet_path),
                 }
                 if initial_sign_event is None:
