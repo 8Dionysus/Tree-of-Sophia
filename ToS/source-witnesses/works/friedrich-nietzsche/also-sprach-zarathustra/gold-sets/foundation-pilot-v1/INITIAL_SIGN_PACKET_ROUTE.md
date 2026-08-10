@@ -12,6 +12,15 @@ text-free selectors.
 This is source observation, not a lexeme, sign candidate, human task or
 decision, relation, concept, claim, or graph projection.
 
+The separate `semantic-source-recurrence-plan.v1.json` now binds the selected
+exact-form hash to the existing four-part recurrence row. Its private bundle
+returns all 145 occurrences to exact raw TEI offsets across 96 pages and 59
+sections; the tracked receipt exposes only hashes, aggregate distribution,
+four part summaries, source fixity, and verification counts. This evidence is
+deliberately not consumed as a ladder-stage change: the packet remains v5,
+stages 4–15 remain blocked, and mechanical recurrence establishes neither a
+lemma nor one sense, motif, sign, or philosophical importance.
+
 The historical 0-of-30 source packet remains exact evidence but has no
 scheduling or execution authority here. Readiness is local to the one concrete
 sign question carried by this packet.
@@ -66,8 +75,10 @@ Stages 1–3 are now `source-observed` and unreviewed. They contain one
 complete, section-bounded exact-form occurrence census, its count, a private
 page-and-section-bounded context bundle, and four text-free source-return
 anchors. Stages 4–15 remain blocked. Morphology and lemma cannot be reviewed
-without competence-appropriate evidence; recurrence, translation, sign, human
-decision, interpretation, relation, and graph work retain their own gates.
+without competence-appropriate evidence. The separate four-part recurrence
+receipt is source soil only and does not by itself change stages 6–8;
+translation, sign, human decision, interpretation, relation, and graph work
+retain their own gates.
 Stages 12–15 stay empty and blocked until stage 11 records a
 competence-appropriate real-human `accept` or `accept-with-limits` over an
 unassisted baseline frozen before model suggestions. Rejection, ambiguity, or

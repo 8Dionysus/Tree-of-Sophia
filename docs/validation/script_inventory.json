@@ -387,6 +387,30 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_semantic_source_recurrence_bundle.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json",
+        "ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/*.sqlite3",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-*/**/payload/*.tei.xml"
+      ],
+      "reads": [
+        "one frozen selected-hash recurrence plan, the unchanged semantic packet, tracked recurrence tuple, exact ignored lexical database, and four fixity-bound local TEI payloads"
+      ],
+      "writes": [
+        "one ignored mode-0600 complete raw-witness occurrence-return bundle plus a tracked string/position-free receipt and provenance unless --check is used"
+      ],
+      "side_effects": "private 145-occurrence raw TEI return plus tracked aggregate recurrence closure only; no packet-stage change, German, morphology, lemma, sense, sign, human, semantic, graph, canon, transfer, or publication authority",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_zarathustra_usage_context_bundle.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

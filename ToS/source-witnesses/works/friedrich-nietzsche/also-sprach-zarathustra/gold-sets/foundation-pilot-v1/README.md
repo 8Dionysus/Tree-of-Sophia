@@ -155,6 +155,17 @@ Zarathustra golden kernel. It is not a completed gold set.
   canon, transfer, and publication remain absent or blocked. German competence
   remains independently blocked and the historical 0-of-30 packet does not
   schedule this work.
+- `semantic-source-recurrence-plan.v1.json` and its tracked receipt bind that
+  already selected exact-form hash to exactly one existing four-part
+  recurrence row without reopening selection. A deterministic private bundle
+  returns all 145 occurrences to four fixity-bound raw TEI payloads: 17, 32,
+  45, and 51 occurrences across the four parts, 96 pages, and 59 sections.
+  All 145 Unicode-offset slices match the selected hash under
+  `xmllint --nonet`; exact
+  values and occurrence positions remain ignored and mode `0600`. The v5
+  packet is unchanged, no ladder stage advances, and recurrence creates no
+  German, morphology, lemma, sense, motif, philosophical-importance, sign,
+  human, semantic, graph, canon, transfer, or publication authority.
 - the separate DTA parts 1–4 lexical observation route materializes 86,287
   exact token occurrences across 506 body pages and 213 TEI divisions in one
   deterministic ignored SQLite/FTS5 database. Exact, normalized, prefix,

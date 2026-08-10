@@ -5256,6 +5256,82 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         fabricated_promotion["result"]["promotion_authorized"] = True
         self.assertTrue(list(validator.iter_errors(fabricated_promotion)))
 
+    def test_selected_form_recurrence_stays_source_only(self) -> None:
+        plan_path = GOLD_ROOT / "semantic-source-recurrence-plan.v1.json"
+        receipt_path = GOLD_ROOT / "semantic-source-recurrence-receipt.v1.json"
+        provenance_path = (
+            GOLD_ROOT / "provenance.semantic-source-recurrence-v1.jsonl"
+        )
+        packet_path = GOLD_ROOT / "initial-sign-packet.v5.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+
+        expected_tuple = {
+            "occurrence_count": 145,
+            "part_range": 4,
+            "section_range": 59,
+            "page_range": 96,
+            "part_dp_millionths": 111588,
+            "maximum_part_share_millionths": 351724,
+            "source_editorial_occurrence_count": 0,
+            "unsectioned_occurrence_count": 0,
+        }
+        self.assertEqual("frozen-before-output", plan["status"])
+        self.assertEqual(expected_tuple, plan["expected_tracked_recurrence_tuple"])
+        self.assertEqual(expected_tuple, receipt["observed_tuple"])
+        self.assertEqual(
+            [17, 32, 45, 51],
+            [row["occurrence_count"] for row in receipt["parts"]],
+        )
+        self.assertEqual(145, receipt["verification"]["raw_offset_return_count"])
+        self.assertEqual(
+            145,
+            receipt["verification"]["raw_offset_return_match_count"],
+        )
+        self.assertTrue(receipt["verification"]["complete_occurrence_census"])
+        self.assertTrue(
+            receipt["verification"]["independent_part_size_aware_recalculation"]
+        )
+        self.assertFalse(receipt["content_exposure"]["tracked_exact_strings"])
+        self.assertFalse(
+            receipt["content_exposure"]["tracked_occurrence_positions"]
+        )
+        self.assertFalse(receipt["packet_effect"]["packet_changed"])
+        self.assertFalse(receipt["packet_effect"]["ladder_stage_changed"])
+        self.assertFalse(receipt["packet_effect"]["human_work_scheduled"])
+        self.assertFalse(receipt["packet_effect"]["promotion_authorized"])
+        self.assertEqual("observational-analysis", packet["packet_status"])
+        self.assertTrue(
+            all(stage["status"] == "blocked" for stage in packet["stages"][3:])
+        )
+        self.assertEqual(
+            receipt["provenance_event_ref"],
+            provenance["event_id"],
+        )
+        self.assertIn(
+            {
+                "ref": receipt["local_bundle"]["ref"],
+                "role": "ignored-private-complete-raw-witness-recurrence-bundle",
+                "sha256": receipt["local_bundle"]["sha256"],
+            },
+            provenance["outputs"],
+        )
+        encoded = json.dumps(receipt, ensure_ascii=False, sort_keys=True)
+        for forbidden in (
+            '"exact_form"',
+            '"normalized_form"',
+            '"occurrence_id"',
+            '"text_node_path"',
+            '"token_ordinal"',
+            '"start_offset"',
+            '"end_offset"',
+            "/srv/",
+            "/home/",
+        ):
+            self.assertNotIn(forbidden, encoded)
+
     def test_semantic_ladder_allows_proposals_without_fake_language_review(
         self,
     ) -> None:

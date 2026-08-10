@@ -32,7 +32,8 @@ semantic-source-observation/
 └── initial-v1/
     ├── diplomatic-form.txt
     ├── normalized-form.txt
-    └── context-bundle.json
+    ├── context-bundle.json
+    └── work-recurrence-bundle.json
 ```
 
 This private SQLite/FTS5 file may contain exact forms, page-local token order,
@@ -54,7 +55,11 @@ not reuse the Work-identity context control as a sign. Exact source values stay
 mode `0600`; the tracked packet carries only hashes, counts, opaque occurrence
 IDs and text-free TEI source-return selectors. This branch creates no accepted
 German, morphology, lemma, translation, sign candidate, semantic claim or
-human backlog.
+human backlog. Its later work-recurrence bundle returns the same selected form
+to all 145 exact occurrences across the four admitted DTA Items. Every raw TEI
+offset is checked, but occurrence positions and source values remain private;
+the tracked receipt carries only fixity, aggregate distribution, part counts,
+and an unchanged-packet/no-promotion boundary.
 
 Translation work uses this speaking local topology:
 

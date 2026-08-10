@@ -2237,6 +2237,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         initial_semantic_source_observation_plan_path = (
             gold_root / "initial-semantic-source-observation-plan.v1.json"
         )
+        semantic_source_recurrence_plan_path = (
+            gold_root / "semantic-source-recurrence-plan.v1.json"
+        )
+        semantic_source_recurrence_receipt_path = (
+            gold_root / "semantic-source-recurrence-receipt.v1.json"
+        )
         semantic_source_observation_anchor_path = (
             gold_root / "semantic-source-observation-anchors.v1.jsonl"
         )
@@ -2270,6 +2276,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         semantic_source_observation_provenance_path = (
             gold_root / "provenance.semantic-source-observation-v1.jsonl"
+        )
+        semantic_source_recurrence_provenance_path = (
+            gold_root / "provenance.semantic-source-recurrence-v1.jsonl"
         )
         experimental_translation_episode_provenance_paths = sorted(
             gold_root.glob("provenance.experimental-translation-episodes*.jsonl")
@@ -2382,6 +2391,16 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         )
         initial_semantic_source_observation_plan = _load_json(
             initial_semantic_source_observation_plan_path,
+            repo_root,
+            issues,
+        )
+        semantic_source_recurrence_plan = _load_json(
+            semantic_source_recurrence_plan_path,
+            repo_root,
+            issues,
+        )
+        semantic_source_recurrence_receipt = _load_json(
+            semantic_source_recurrence_receipt_path,
             repo_root,
             issues,
         )
@@ -2781,6 +2800,243 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     (
                         initial_sign_location,
                         "initial sign packet created human debt or promotion output",
+                    )
+                )
+        if (
+            semantic_source_recurrence_plan is not None
+            and semantic_source_recurrence_receipt is not None
+        ):
+            recurrence_location = _relative(
+                semantic_source_recurrence_receipt_path,
+                repo_root,
+            )
+            recurrence_plan_location = _relative(
+                semantic_source_recurrence_plan_path,
+                repo_root,
+            )
+            expected_hash = (
+                "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069"
+                "dbf5a4e994f6ef37"
+            )
+            expected_tuple = {
+                "occurrence_count": 145,
+                "part_range": 4,
+                "section_range": 59,
+                "page_range": 96,
+                "part_dp_millionths": 111588,
+                "maximum_part_share_millionths": 351724,
+                "source_editorial_occurrence_count": 0,
+                "unsectioned_occurrence_count": 0,
+            }
+            expected_parts = [
+                (1, 17, 14, 12),
+                (2, 32, 20, 12),
+                (3, 45, 26, 13),
+                (4, 51, 36, 22),
+            ]
+            plan_selected = semantic_source_recurrence_plan.get(
+                "selected_source_observation",
+                {},
+            )
+            plan_recurrence = semantic_source_recurrence_plan.get(
+                "recurrence_input",
+                {},
+            )
+            expected_local_ref = (
+                "ToS/source-witnesses/works/friedrich-nietzsche/"
+                "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+                "local-content/semantic-source-observation/initial-v1/"
+                "work-recurrence-bundle.json"
+            )
+            if (
+                semantic_source_recurrence_plan.get("status")
+                != "frozen-before-output"
+                or plan_selected.get("exact_form_sha256") != expected_hash
+                or plan_selected.get("packet_ref")
+                != _relative(initial_sign_packet_path, repo_root)
+                or plan_selected.get("packet_sha256")
+                != _sha256(initial_sign_packet_path)
+                or plan_selected.get("selection_reopened") is not False
+                or semantic_source_recurrence_plan.get(
+                    "expected_tracked_recurrence_tuple"
+                )
+                != expected_tuple
+                or semantic_source_recurrence_plan.get("local_output", {}).get(
+                    "ref"
+                )
+                != expected_local_ref
+                or semantic_source_recurrence_plan.get(
+                    "verification_policy",
+                    {},
+                ).get("raw_source_return_sampling")
+                != "none-verify-all-occurrences"
+                or semantic_source_recurrence_plan.get(
+                    "verification_policy",
+                    {},
+                ).get("tracked_occurrence_positions")
+                is not False
+            ):
+                issues.append(
+                    (
+                        recurrence_plan_location,
+                        "selected-form source-recurrence plan drifted",
+                    )
+                )
+            for ref_field, digest_field, label in (
+                (
+                    "recurrence_plan_ref",
+                    "recurrence_plan_sha256",
+                    "recurrence plan",
+                ),
+                (
+                    "recurrence_projection_ref",
+                    "recurrence_projection_sha256",
+                    "recurrence projection",
+                ),
+                (
+                    "lexical_projection_ref",
+                    "lexical_projection_sha256",
+                    "lexical projection",
+                ),
+            ):
+                ref = plan_recurrence.get(ref_field)
+                path = repo_root / str(ref or "")
+                if (
+                    not isinstance(ref, str)
+                    or not path.is_file()
+                    or plan_recurrence.get(digest_field) != _sha256(path)
+                ):
+                    issues.append(
+                        (
+                            recurrence_plan_location,
+                            f"selected-form {label} binding drifted",
+                        )
+                    )
+            if _git_ignored(repo_root, repo_root / expected_local_ref) is not True:
+                issues.append(
+                    (
+                        recurrence_plan_location,
+                        "private source-recurrence bundle is not Git-ignored",
+                    )
+                )
+
+            receipt = semantic_source_recurrence_receipt
+            generator = receipt.get("generator", {})
+            generator_path = repo_root / str(generator.get("ref") or "")
+            receipt_selected = receipt.get("selected_source_observation", {})
+            receipt_recurrence = receipt.get("recurrence_sources", {})
+            if (
+                receipt.get("status")
+                != "completed-source-observation-no-promotion"
+                or receipt.get("plan")
+                != {
+                    "ref": recurrence_plan_location,
+                    "sha256": _sha256(semantic_source_recurrence_plan_path),
+                }
+                or not generator_path.is_file()
+                or generator.get("sha256") != _sha256(generator_path)
+                or receipt_selected.get("exact_form_sha256") != expected_hash
+                or receipt_selected.get("packet_ref")
+                != _relative(initial_sign_packet_path, repo_root)
+                or receipt_selected.get("packet_sha256")
+                != _sha256(initial_sign_packet_path)
+                or receipt_selected.get("selection_reopened") is not False
+                or receipt_selected.get("source_value_tracked") is not False
+                or receipt_recurrence.get("recurrence_projection_ref")
+                != plan_recurrence.get("recurrence_projection_ref")
+                or receipt_recurrence.get("recurrence_projection_sha256")
+                != plan_recurrence.get("recurrence_projection_sha256")
+                or receipt.get("observed_tuple") != expected_tuple
+                or receipt.get("local_bundle", {}).get("ref")
+                != expected_local_ref
+                or receipt.get("local_bundle", {}).get("mode") != "0600"
+                or receipt.get("local_bundle", {}).get("occurrence_count") != 145
+            ):
+                issues.append(
+                    (
+                        recurrence_location,
+                        "selected-form source-recurrence receipt drifted",
+                    )
+                )
+            observed_parts = [
+                (
+                    row.get("part_order"),
+                    row.get("occurrence_count"),
+                    row.get("page_count"),
+                    row.get("section_count"),
+                )
+                for row in receipt.get("parts", [])
+                if isinstance(row, dict)
+            ]
+            verification = receipt.get("verification", {})
+            packet_effect = receipt.get("packet_effect", {})
+            boundary = receipt.get("authority_boundary", {})
+            if (
+                observed_parts != expected_parts
+                or verification.get("complete_occurrence_census") is not True
+                or verification.get("raw_offset_return_count") != 145
+                or verification.get("raw_offset_return_match_count") != 145
+                or verification.get("source_payload_fixity_match_count") != 4
+                or verification.get("tracked_recurrence_tuple_match") is not True
+                or verification.get(
+                    "independent_part_size_aware_recalculation"
+                )
+                is not True
+                or packet_effect.get("packet_changed") is not False
+                or packet_effect.get("ladder_stage_changed") is not False
+                or packet_effect.get("human_work_scheduled") is not False
+                or packet_effect.get("promotion_authorized") is not False
+                or boundary.get("source_observation_only") is not True
+                or boundary.get("packet_stage_change_authorized") is not False
+                or any(
+                    boundary.get(field) is not False
+                    for field in (
+                        "accepted_german",
+                        "morphology",
+                        "lemma",
+                        "sense",
+                        "motif",
+                        "philosophical_importance",
+                        "translation",
+                        "sign_candidate",
+                        "human_task",
+                        "semantic_claim",
+                        "graph_effect",
+                        "canon_effect",
+                        "transfer",
+                        "publication",
+                    )
+                )
+            ):
+                issues.append(
+                    (
+                        recurrence_location,
+                        "selected-form recurrence verification or authority boundary drifted",
+                    )
+                )
+            encoded_receipt = json.dumps(
+                receipt,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            if any(
+                forbidden in encoded_receipt
+                for forbidden in (
+                    "/srv/",
+                    "/home/",
+                    '"exact_form"',
+                    '"normalized_form"',
+                    '"occurrence_id"',
+                    '"text_node_path"',
+                    '"token_ordinal"',
+                    '"start_offset"',
+                    '"end_offset"',
+                )
+            ):
+                issues.append(
+                    (
+                        recurrence_location,
+                        "tracked source-recurrence receipt leaks source values, positions, or an absolute private path",
                     )
                 )
         for evaluation_path, evaluation_plan, evaluation_validator in (
@@ -4390,6 +4646,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 semantic_source_observation_provenance_path
             )
+        if semantic_source_recurrence_provenance_path.is_file():
+            local_provenance_paths.append(
+                semantic_source_recurrence_provenance_path
+            )
         local_provenance_paths.extend(
             experimental_translation_episode_provenance_paths
         )
@@ -4644,6 +4904,52 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             "initial source-observation anchor provenance drifted",
                         )
                     )
+        if semantic_source_recurrence_receipt is not None:
+            recurrence_location = _relative(
+                semantic_source_recurrence_receipt_path,
+                repo_root,
+            )
+            recurrence_event_id = (
+                "tos.event.annotation."
+                "zarathustra-semantic-source-recurrence-v1.2026-08-10"
+            )
+            recurrence_event = local_events_by_id.get(recurrence_event_id)
+            expected_receipt_output = {
+                "ref": recurrence_location,
+                "role": "tracked-source-withholding-recurrence-receipt",
+                "sha256": _sha256(semantic_source_recurrence_receipt_path),
+            }
+            local_bundle = semantic_source_recurrence_receipt.get(
+                "local_bundle",
+                {},
+            )
+            expected_private_output = {
+                "ref": local_bundle.get("ref"),
+                "role": "ignored-private-complete-raw-witness-recurrence-bundle",
+                "sha256": local_bundle.get("sha256"),
+            }
+            if recurrence_event is None:
+                issues.append(
+                    (
+                        recurrence_location,
+                        "selected-form recurrence provenance event is absent",
+                    )
+                )
+            elif (
+                expected_receipt_output not in recurrence_event.get("outputs", [])
+                or expected_private_output
+                not in recurrence_event.get("outputs", [])
+                or semantic_source_recurrence_receipt.get(
+                    "provenance_event_ref"
+                )
+                != recurrence_event_id
+            ):
+                issues.append(
+                    (
+                        recurrence_location,
+                        "selected-form recurrence provenance output drifted",
+                    )
+                )
 
         anchors_by_id: dict[str, dict[str, Any]] = {}
         for anchor_path in anchor_paths:
