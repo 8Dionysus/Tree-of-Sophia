@@ -41,7 +41,10 @@ retrieval/graph software-stack currentness and the fixity-bound German
 *Genealogie*/*Antichrist* source-structure continuation refreshed 2026-08-08;
 the exact *Antichrist* 1906 Commons/Stanford foreign-work reasoning, current
 provider responses, and conditional 2001-12-31 restored-term endpoint were
-corrected and refreshed 2026-08-10
+corrected and refreshed 2026-08-10; the separate exact local Internet Archive
+navigation derivative custody record now identifies its DjVuXML, 525-member
+JP2, and 525-leaf scandata evidence while preserving distinct-Item,
+no-textual-identity, local-only, and no-upload boundaries
 
 Owner route: `ToS/research-packets/AGENTS.md`
 

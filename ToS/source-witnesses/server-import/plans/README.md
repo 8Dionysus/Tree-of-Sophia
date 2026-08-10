@@ -90,6 +90,19 @@ server consumption limited to public-safe metadata until a separately
 reacquired current object passes exact fixity, layer, human-rights, quality,
 text-admission, and operator-approval gates.
 
+A companion metadata-only plan covers the separately registered exact local
+Internet Archive Google/Stanford navigation Item: DjVuXML, a 525-member JP2
+ZIP, and 525-leaf scandata. Its corrected Work-layer route likewise applies
+§104A's source-country condition and records 2001-12-31 only as the
+conditional endpoint of any qualifying restored 1906 term; the provider's
+`NOT_IN_COPYRIGHT` fields are evidence, not an independent ToS legal
+conclusion. Exact local fixity does not establish textual identity with the
+Commons DjVu, clear the derivative package or contaminated metadata, or
+authorize upload. The aggregate remains `conflicting_evidence`; all
+source-bearing derivatives and payload transfer remain prohibited, with only
+public-safe metadata projections conditional and no human or operator
+approval.
+
 The thirteenth plan covers the exact MDZ PDF generated for the Bamberg
 `30.1972` copy of the standalone 1888 Naumann *Der Fall Wagner*. MDZ's
 `NoC-NC 1.0` statement now resolves the exact digital-object layer as

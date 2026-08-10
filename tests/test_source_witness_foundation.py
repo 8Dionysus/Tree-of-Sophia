@@ -6292,6 +6292,143 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             }.issubset(catalog_ids)
         )
 
+    def test_antichrist_navigation_item_rights_correction_stays_local(
+        self,
+    ) -> None:
+        navigation_root = (
+            ANTICHRIST_1906_COLLECTION_ROOT
+            / "editions/leipzig-c-g-naumann-1906/items/"
+            "internet-archive-google-stanford-djvu-xml"
+        )
+        rights = json.loads(
+            (navigation_root / "rights.json").read_text(encoding="utf-8")
+        )
+        manifest = json.loads(
+            (navigation_root / "item.manifest.json").read_text(encoding="utf-8")
+        )
+        server_plan = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/source-witnesses/server-import/plans/"
+                "der-antichrist-naumann-1906-internet-archive-google-"
+                "stanford-djvu-xml.server-import.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(3, rights["record_version"])
+        self.assertEqual("conflicting_evidence", rights["assessment_status"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        work_layer = next(
+            layer
+            for layer in rights["layer_assessments"]
+            if layer["layer_id"].endswith(".original-work")
+        )
+        self.assertEqual(
+            "public_domain_reviewed",
+            work_layer["assessment_status"],
+        )
+        self.assertIn("§104A(g)(6)(B)", work_layer["term"]["basis"])
+        self.assertIn("2001-12-31", work_layer["term"]["basis"])
+        self.assertIn(
+            "provider evidence",
+            work_layer["term"]["basis"],
+        )
+
+        payloads = {
+            payload["relative_path"]: payload for payload in manifest["payload_files"]
+        }
+        self.assertEqual(
+            {
+                "payload/nietzscheswerke00nietgoog_djvu.xml": (
+                    8882082,
+                    "2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7",
+                ),
+                "payload/nietzscheswerke00nietgoog_jp2.zip": (
+                    79087792,
+                    "fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9",
+                ),
+                "payload/nietzscheswerke00nietgoog_scandata.xml": (
+                    157669,
+                    "5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5",
+                ),
+            },
+            {
+                path: (payload["byte_size"], payload["sha256"])
+                for path, payload in payloads.items()
+            },
+        )
+
+        self.assertEqual(3, server_plan["contract_version"])
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(
+            server_plan["operator_transfer_approval"][
+                "approved_by_real_human"
+            ]
+        )
+        self.assertEqual(
+            8,
+            sum(
+                derivative["state"] == "prohibited"
+                for derivative in server_plan["allowed_derivatives"].values()
+            ),
+        )
+        self.assertEqual(
+            3,
+            sum(
+                derivative["state"] == "conditional"
+                for derivative in server_plan["allowed_derivatives"].values()
+            ),
+        )
+
+        provenance_events = [
+            json.loads(line)
+            for line in (navigation_root / "provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        correction_event = next(
+            event
+            for event in provenance_events
+            if event["event_id"].endswith(
+                "navigation-derivatives.uraa-correction.2026-08-10"
+            )
+        )
+        configuration = correction_event["method"]["configuration"]
+        self.assertEqual(3, correction_event["event_version"])
+        self.assertEqual(
+            "17-usc-104a-source-country-term-and-restored-remainder",
+            configuration["united_states_historical_route"],
+        )
+        self.assertEqual(
+            "2001-12-31",
+            configuration["possible_restored_1906_term_ends_on"],
+        )
+        self.assertFalse(
+            configuration[
+                "provider_not_in_copyright_fields_used_as_independent_legal_conclusion"
+            ]
+        )
+        self.assertFalse(
+            configuration["navigation_item_textually_identified_with_commons_item"]
+        )
+        self.assertFalse(configuration["payload_read_during_correction"])
+        self.assertFalse(configuration["human_legal_review"])
+
+        rights_research = ANTICHRIST_1906_LAYERED_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("8,882,082", rights_research)
+        self.assertIn("79,087,792", rights_research)
+        self.assertIn("157,669", rights_research)
+        self.assertIn("525 fixity-bound page members", rights_research)
+        self.assertIn("525 page leaves", rights_research)
+        self.assertIn("separately registered local", rights_research)
+        self.assertIn("navigation Item", rights_research)
+
     def test_antichrist_authorial_route_keeps_regions_and_layers_distinct(
         self,
     ) -> None:

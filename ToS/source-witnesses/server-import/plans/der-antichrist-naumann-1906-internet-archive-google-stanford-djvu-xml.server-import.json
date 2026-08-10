@@ -33,7 +33,7 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/rights.json",
-    "rights_record_sha256": "c0dc3d68aee82515f4c2f800fbdad5ae22258ba93f3d7ffa079be679d53322e1",
+    "rights_record_sha256": "d609d596bd57e20a269d8ff33f834a1b5b99383ae9b41ec48da5957c772af598",
     "assessment_status": "rights-unknown",
     "review_status": "unreviewed",
     "jurisdictions_reviewed": ["DE", "US"],
@@ -41,7 +41,10 @@
       "ToS/research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md",
       "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.json",
       "ToS/source-witnesses/collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/source-metadata-snapshot.jp2-scandata.2026-08-08.json",
-      "https://archive.org/metadata/nietzscheswerke00nietgoog"
+      "https://archive.org/metadata/nietzscheswerke00nietgoog",
+      "https://www.copyright.gov/circs/circ38b.pdf",
+      "https://www.copyright.gov/title17/92chap1.html#104a",
+      "https://www.copyright.gov/title17/92chap3.html#304"
     ],
     "expires_at": null,
     "recheck_before_transfer": true
@@ -108,13 +111,13 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-08-08T20:41:33-06:00"
+    "last_reviewed_at": "2026-08-10T11:50:00-06:00"
   },
   "provenance_event_refs": [
-    "tos.event.server-import-plan.der-antichrist-naumann-1906.internet-archive-google-stanford-djvu-xml.2026-08-08"
+    "tos.event.server-import-plan.der-antichrist-naumann-1906.internet-archive-google-stanford-djvu-xml.uraa-correction.2026-08-10"
   ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 2,
-  "supersedes_server_import_ref": null
+  "contract_version": 3,
+  "supersedes_server_import_ref": "tos.server-import.der-antichrist-naumann-1906-internet-archive-google-stanford-djvu-xml"
 }

@@ -465,9 +465,14 @@ collection containing it. The seed deliberately includes:
 - a separate exact Internet Archive automatic DjVuXML derivative from the
   Google/Stanford scan lineage, with provider SHA-1 plus local SHA-256 closure,
   a text-free 525-page/5,434-paragraph/16,467-line/105,803-word inventory, and
-  local-only navigation posture; contaminated descriptive metadata, OCR
-  correctness, container identity, accepted German, and future-site upload
-  remain explicitly unestablished;
+  local-only navigation posture. Its corrected historical-Work route applies
+  §104A's source-country condition and records 2001-12-31 as the conditional
+  endpoint for any qualifying restored 1906 term; Internet Archive
+  `NOT_IN_COPYRIGHT` fields remain provider evidence, not an independent ToS
+  legal conclusion. The exact DjVuXML, 525-member JP2 ZIP, and 525-leaf
+  scandata package remain a separate local Item: contaminated descriptive
+  metadata, OCR correctness, textual identity with the Commons Item, accepted
+  German, and future-site upload remain explicitly unestablished;
 - an exact official MDZ PDF of the Bamberg Staatsbibliothek `30.1972` copy of
   the standalone 1888 Naumann *Der Fall Wagner*, with 74 ordered IIIF
   canvases, a one-page provider-cover offset, local fixity, and a text-free

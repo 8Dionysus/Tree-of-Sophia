@@ -88,7 +88,9 @@ ToS payload.
 | current Commons description revision | revision `904592562`; timestamp `2024-07-29T09:37:56Z`; wikitext uses `{{PD-old-auto-1923|deathyear=1900}}`; exact oldid HTML response 133,891 bytes, SHA-256 `6ffb4b2c6bfae5294d28bb3941368703a6b5011fb30ad35477ebcb7887500fdc` |
 | current Internet Archive metadata response | 98,412 bytes; response-specific SHA-256 `b74ba9f8e2b19172f1e0620c97f4efeedd028ecc6880d02d0f6ac2db7544b7c6`; the response includes a dynamic creation field |
 | current Internet Archive original PDF | 13,784,419 bytes; SHA-1 `8f4a12d5c97e370c4d2bad7d2fbc6b2d1a47042e`; not the exact acquired Commons DjVu |
-| current Internet Archive DjVu XML | 8,882,082 bytes; SHA-1 `4f4efaafa1a5f849aa97a9282805dd335098ed93`; not locally acquired and not the Commons DjVu package |
+| exact current and locally held Internet Archive DjVu XML | 8,882,082 bytes; provider SHA-1 `4f4efaafa1a5f849aa97a9282805dd335098ed93`; local SHA-256 `2307ace28af92da2b0128a5ef750e995d83a5655359e0debd3adb0cf1044b8c7`; navigation-only and not the Commons DjVu package |
+| exact current and locally held Internet Archive JP2 package | 79,087,792 bytes; provider SHA-1 `118ae03f81c0e82138a56db5eef78a0aecf8813d`; local SHA-256 `fa52999956bb9190e54ef2d52ed03dfbbfd4f1e91c0034319c341d48702d19a9`; 525 fixity-bound page members; local-only and not a publication source |
+| exact current and locally held Internet Archive scandata | 157,669 bytes; provider SHA-1 `432ce3a49315b8d6502ba7d6f6504b9ce6837e7a`; local SHA-256 `5b2c0fe0ec55f1d330a17c066adbc56f2e0bc5b5cd4eb4761fe844601e73a8d5`; 525 page leaves; local-only and not accepted layout authority |
 | exact local DjVu structural check | 523 `Sjbz`, 2,092 `BG44`, and 490 `TXTz` chunk signatures; no OCR body decoded or admitted |
 
 The exact Commons API route is:
@@ -112,7 +114,12 @@ Düsseldorf 1971, even though the source-visible object is the Nietzsche/Naumann
 record exposes `possible-copyright-status=NOT_IN_COPYRIGHT` and
 `copyright-region=US`, but no `rights` or `licenseurl` field. None of its 22
 current file entries matches the Commons DjVu by SHA-1 or byte size. No current
-IA object is silently substituted for the exact Commons revision.
+IA object is silently substituted for the exact Commons revision. The exact
+DjVuXML, JP2 ZIP, and scandata entries do match the separately registered local
+navigation Item and its tracked fixity, but that local custody neither repairs
+the contaminated description nor supplies an exact package license,
+redistribution permission, accepted German, or textual identity with the
+Commons Item.
 
 The 2026-07-30 source-visible inspection remains the bounded physical evidence:
 
