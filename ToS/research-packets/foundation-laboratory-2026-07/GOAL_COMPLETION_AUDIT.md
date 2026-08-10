@@ -25,10 +25,10 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `6bfc1fac` (`Reconcile Antonovsky 1907
-  reported RSL holding`), including the source-challenger, source-visible
-  transfer review, and current Antonovsky 1900/1903/1907 catalogue
-  continuations;
+- Tree of Sophia reviewed checkpoint `f28a8347` (`Assess Antonovsky 1911
+  layered rights`), including the source-challenger, source-visible transfer
+  review, current Antonovsky 1900/1903/1907 catalogue continuations, and the
+  exact 1911 RSL/RuNEB layered-rights continuation;
 - isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
   Russian surface challenger`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
@@ -46,6 +46,21 @@ general-web-last order. Their Work and historical Edition layers are
 text and facsimile layers, unreviewed status, German non-acceptance, local
 payload nonpublication rule, and operator gate remain explicit. No source
 payload was added to Git or authorized for server transfer.
+
+The exact Antonovsky 1911 rights continuation follows the same ordered method
+through current Russian and United States law, the exact RSL/RuNEB records and
+provider terms, established digitization scholarship, fresh 2026 cultural-
+heritage guidance, and general web last. It records Nietzsche's Work,
+Antonovsky's translation and preface, and the historical presentation as
+`public_domain_reviewed` for RU/US. The United States result uses the foreign-
+work URAA source-country-protection condition rather than the domestic
+pre-1931 shortcut. The exact recent scan and embedded text remain
+`copyright_undetermined` because no object-specific reuse statement or
+production/correction history was found. The aggregate Item therefore stays
+`local_only`, redistribution `not_authorized`, derivatives
+`local_research_only`, and future server import blocked; no payload, accepted
+text, human legal review, operator transfer approval, or publication authority
+was created.
 
 The first eKGWB citation-witness decision is now closed at
 `human_admitted_with_limits`. A 2026-08-08 official -> established ->
@@ -94,10 +109,10 @@ passage ends, accepted German/Russian, passage or translation alignment,
 eligibility, target gold, human work, semantics, and canon effects remained
 zero. The current repository closure, including the target/source passage and
 readiness and catalogue continuations below, passes 324 tests with one
-declared skip. The portable KAG family at reviewed checkpoint `6bfc1fac` has
-digest `3bdfb18eb8523c0732f76a2d37ae3bd2f626c67015a3463ca1b86795e9edbca7`
-and closes at 574 shards, 1,832 source records, 19,094 anchors, 330 events,
-3,361 assertions, 7,562 relations, 3,961 entities, and 21,270 canonical
+declared skip. The portable KAG family at reviewed checkpoint `f28a8347` has
+digest `738c7b5116e676861b8ee25c037c75b7df5f48f8f41742e3d381c2fbef355ea3`
+and closes at 573 shards, 1,833 source records, 19,124 anchors, 330 events,
+3,363 assertions, 7,564 relations, 3,962 entities, and 21,301 canonical
 records.
 Full and incremental rebuild checks match the workflow-pinned PR-base history
 semantics and the checkpoint source snapshot. These are mechanical and
@@ -544,10 +559,13 @@ only three provisional 1900/1903/1907 endpoints and the reported uncollated
 remains incomplete and its institutional request remains unsent. The rebuilt
 catalog now contains 82 objects and 126 claims; the graph contains 433 nodes,
 884 claim-centred edges, 126 exact source-return traces, and no direct
-subject-object facts. The official
-payload remains ignored and local-only: neither redistribution permission,
-accepted text, equivalence, human review, semantics, publication, nor canon is
-asserted.
+subject-object facts. The official payload remains ignored and local-only. A
+later exact rights pass separates four positive historical RU/US layers from
+the unresolved recent scan and embedded text, preserves the foreign-work URAA
+source-country route, and keeps the aggregate Item, derivatives, and server
+plan closed. It asserts neither exact-file redistribution permission, accepted
+text, equivalence, human legal or source review, semantics, publication, nor
+canon.
 
 The following 1898–1900 bibliographic-identity pass resolves why the 2007
 statement “first published in 1898” does not conflict with Antonovsky's own
@@ -777,6 +795,7 @@ transfer, human review, legal advice, or publication authority.
 | # | Required artifact | Current evidence | Audit state | Missing proof |
 | ---: | --- | --- | --- | --- |
 | 1 | ordered research packet | `ANTONOVSKY_1913_TRANSLATION_RESPONSIBILITY_RESEARCH.md` returns first to the exact fixity-verified page-7 witness and current official Commons/National Electronic Library/Russian State Library records, then established editorial reuse, then fresh/general-web-last checks; it admits only the displayed responsibility and leaves expanded person identity and cross-Expression equivalence unresolved; `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` applies the required official DNB/GND and exact DTA record -> established HAdW/e-rara -> fresh/current corroboration -> general-web-last order to the first-part provision identity, separating the historical Schmeitzner Corporate Body from the Person; `ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md` repeats that order independently for parts II and III through their own exact DTA records, the e-rara holding route and current control searches, admitting two distinct Edition-owned claims while rejecting title-label propagation, Person substitution, physical-title-page transcription, release chronology, equivalence, text, rights, human review, semantics and canon; `ZARATHUSTRA_PART4_PROVISION_IDENTITY_RESEARCH.md` separately preserves the exact 1891 authority statement from private-print, printing, delivery, and release chronology; `ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md` returns to the exact pages 5, 7, and 8 before current GND/RSL/NEL records, established translation and journal context, fresh exact-record reconciliation, and general web last, admitting separate publisher-imprint and printer roles while rejecting title-page-only inference and Vladimir Posse substitution; `NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md` returns to exact pages 46 and 47 before current GND authorities, established publication history, fresh reconciliation, and general web last, separating Edition statement, publication, manufacture, publisher, printer, statement year, release, textual state, and historical rights; `JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md` returns to the exact 1886 Item before official DNB/GND authorities, independent e-rara corroboration, established genetics, fresh 2025 research, and general web last, separating the shared imprint, two provision roles, historical rights, release, textual state, and current law; `GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md` returns to the exact fixity-verified Item and its two distant statement surfaces before official DNB/GND authorities, the Nietzsche Documentation Center collection record, established commentary and genetics, fresh 2025-2026 documentary work, and general web last, separating Edition year, publication, manufacture, printing completion, release, and current rights; `ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md` returns first to the exact fixity-verified official RSL/NEL scan and its title, printer, translator-note, and opening-text surfaces, then current RSL/NEL records, established translation history, fresh 2025–2026 comparison and publishing evidence, and general web last; it admits a distinct revision-lineage Expression/Edition/Item route, translator responsibility, split publisher/printer roles, and local-only rights posture while rejecting cross-edition equivalence, accepted text, redistribution, semantics, human review, and canon; `READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` returns to the exact official RNL/RuNEB fragment before contemporary attribution evidence, current provider terms, established and fresh witness-comparison method, and general web last; it admits a separate uncredited Expression, exact Edition, fragmentary Item, and local-only source evidence while rejecting translator identity, completeness, derivation, equivalence, redistribution, semantics, review, and canon; `NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md` repeats the exact RSL/RuNEB -> established scholarship -> current specialist/copy evidence -> general-web-last order for the parallel 1899 Nani witness, admitting only the local Item and printed responsibility/manufacture statements while withholding full Agent identity, completeness, German Expression identity, text, equivalence, translation quality, redistribution, semantics, review, and canon; `READER_1899_LAYERED_RIGHTS_ASSESSMENT.md`, `NANI_1899_LAYERED_RIGHTS_ASSESSMENT.md`, and `ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md` apply the same order to three deliberately contrasting rights routes: positive historical layers inside unresolved exact Items, then an exact Commons object with positive RU/US layer results that still cannot cross the operator-local-payload, human-review, or server-transfer gates; `DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md` applies current DTA terms and exact TEI headers -> German and U.S. law -> established TEI/corpus scholarship -> fresh 2025-2026 guidance -> general web last, separating Work, historical Edition, annotated TEI, metadata, plain text, facsimiles, German quality, local custody, and server transfer; `RESEARCH.md` preserves the broad foundation order and records the 2026-07-30 exact-source refresh as DNB/MDZ/B3Kat identity -> HAdW historical-critical production history -> current DTA/TextGrid/Google/MDZ service evidence; `LOCAL_LLM_ADMISSION.md` refreshes official docs, established work, then July 2026 primary work for the next software/LLM choice; `BOUNDED_TRANSLATION_SOURCE_ADMISSION_RESEARCH.md` repeats the order for the provider-transcription-to-local-calibration boundary; `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` repeats it through exact 2026-07-29 release/artifact evidence for the next linguistic layer; `EKGWB_RIGHTS_AND_TRANSPORT_REFRESH.md` applies official documentation/law -> established scholarship -> fresh transport evidence, followed by a protocol-native owner -> author-deposit -> institutional archive -> repository/identifier -> general-web pass; `ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md` repeats official GSA/DFGA/eKGWB/Kalliope -> established HAdW -> 2024-2025 philology -> general web last and corrects a false 2026-freshness label; `ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/DFGA/eKGWB/official correction evidence -> KSA/HAdW and published fragment baseline -> 2025-2026 scholarship and forthcoming translation -> general web last; `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> DFGA/eKGWB -> e-rara -> established genesis/commentary -> 2024-2025 textual genetics -> general web last and preserves the current Nietzsche Source timeout; `GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md` repeats GSA/Kalliope -> HAAB -> Basel D 20/K 11/E 40 edition -> DFGA/eKGWB -> established HAdW/genetic study -> 2024-2026 correspondence, chronology, edition, and method work -> general web last while preserving the current timeout; `ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md` returns to the exact Commons/Stanford DjVu and current provider expression before current DE/US law, established cases and institutional practice, fresh Commons/Internet Archive/Stanford reconciliation, and general web last, separating represented Work, historical presentation, archive editorial matter, faithful scan, Stanford furniture, 490 undecoded `TXTz` chunks, OCR layout, DjVu package, provider metadata, local custody, and the unreviewed pages 228-329 member map | proven and refreshed through the exact 2026-08-02 Antonovsky 1913, four-part DTA, Genealogie 1892, and Antichrist 1906 layered-rights checks | repeat the same ordered check before any later acquisition |
+| 1a | exact 1911 layered-rights continuation | `ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md` follows current official law, exact institutional records and terms -> established digitization scholarship -> fresh 2026 guidance -> general web last. It separately records four historical `public_domain_reviewed` RU/US layers and two unresolved recent digital layers, uses the foreign-work URAA source-country test, and binds the result into rights v2 and a still-blocked metadata-only server plan without copying or publishing the payload | proven as a current model-authored RU/US layer assessment and fail-closed transfer contract; no human legal clearance | exact-object reuse statement or independently permitted public source, then human rights/source review and operator approval before any content-bearing public route |
 | 2 | software/model decision matrix | `DECISION_MATRIX.md` covers OCR, structure, historical-German morphology, alignment, LLM, MT, embeddings, retrieval, annotation, graph, discovery, and access; the morphology refresh selected a sequential identity/DWDSmor/ZDL/DTAEC comparison, after which only the source-gated exhaustive DWDSmor A census was acquired and executed; B/C remain unacquired | proven and refreshed 2026-07-29; A mechanics executed | artifact-level B/C rights and dependency audit plus reviewed A residue or an exact contextual task trigger before any further acquisition |
 | 3 | machine-fit matrix | `MACHINE_FIT.md` records the host, resident runtimes, capacity classes, resource law, measured pilots, and refreshed device/storage/model owner facts | proven and refreshed 2026-07-26 | rerun live storage, service, memory, and thermal admission immediately before heavy work |
 | 4 | DESIGN | root `DESIGN.md` defines the two trunks, evidence spine, golden kernel, translation/semantic layers, projections, and owner boundaries | proven | future changes must keep owner docs and contracts aligned |
