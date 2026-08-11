@@ -9,6 +9,19 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added an explicitly additive `tos_source_anchor_v2` foundation without
+  reinterpreting or migrating current v1 anchors. Ordered W3C Web Annotation,
+  TEI, IIIF, EPUB/IETF, established robust-anchoring, and fresh 2025–2026
+  provenance research now separates immutable target identity, exact
+  representation state, Unicode-code-point half-open text positions, byte
+  positions, selector alternatives, ordered refinement, copied-text
+  publication posture, mechanical resolution, and human review. A public-only
+  synthetic JSON/text/container A/B/C resolved three exact selections; direct
+  `jq`, `rg`, `xmllint`, and Python inspection confirmed the actual material,
+  while six negative controls rejected offset-unit substitution, divergent
+  alternatives, digest drift, reversed refinement, nonpublic quote leakage,
+  and region overflow. No private source, accepted text, translation, semantic
+  claim, graph truth, human task, publication, or canon effect was added.
 - Closed the declared-content gap in future goal-attempt receipts. Reviewed
   `abyss-stack` checkpoint `55e58d0a` adds the strict
   `tos_goal_attempt_run_receipt_v1` contract and binds each exact receipt to

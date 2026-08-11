@@ -231,6 +231,17 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
+- `tos_source_anchor_v2` is an additive, source-free mechanical contract, not
+  a reinterpretation or migration of the historical v1 anchors. Its synthetic
+  A/B/C fixture proves exact representation binding, alternative-versus-
+  refinement semantics, half-open Unicode-code-point selection, container
+  member narrowing, publication-boundary rejection, and direct source-return
+  consistency for invented public bytes only. It does not prove durable
+  resolution across changed Editions, OCR quality, accepted text, rights,
+  German competence, human review, semantics, or suitability for every source
+  format. A real-source v2 anchor is created only when a concrete source
+  question requires one; there is no bulk migration task or routine human
+  backlog.
 - The source-witness catalog now exposes all 96 current objects and all 140
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact

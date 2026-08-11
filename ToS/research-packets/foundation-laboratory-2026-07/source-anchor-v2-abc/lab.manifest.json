@@ -1,0 +1,70 @@
+{
+  "schema_version": "tos_source_anchor_v2_lab_v1",
+  "contract_ref": "ToS/contracts/source-anchor-v2.schema.json",
+  "authority_posture": "synthetic_mechanical_fixture_only",
+  "resources": [
+    {
+      "representation_ref": "fixture:variant-a-structured",
+      "path": "variant-a-structured.json",
+      "sha256": "4bcbd0b264104ccd07e286cd858c30b34d418a4d181ef7e7984de2f7fc1caa2c",
+      "media_type": "application/json"
+    },
+    {
+      "representation_ref": "fixture:variant-b-unicode",
+      "path": "variant-b-unicode.txt",
+      "sha256": "0e80d33931ca968af97942d1a91c82d4ab4c2ed9c417b21a05186ef85493dfce",
+      "media_type": "text/plain"
+    },
+    {
+      "representation_ref": "fixture:variant-c-container",
+      "path": "variant-c-container.json",
+      "sha256": "056f62fe0671c6cd93810f057cc377e5cfec104ab0b5c73d01f075cff897a76b",
+      "media_type": "application/json"
+    },
+    {
+      "representation_ref": "fixture:variant-c-chapter",
+      "path": "chapter.xhtml",
+      "sha256": "25bbb66fc23c16abe25feddc56a9855d3804c9cc6dd17c919f55dc8fc708b7f4",
+      "media_type": "application/xhtml+xml"
+    }
+  ],
+  "variants": [
+    {
+      "variant_id": "A",
+      "question": "Do a structural selector and a text quote independently resolve the same public synthetic passage?",
+      "anchor_ref": "variant-a.anchor.json",
+      "expected_selection": "The source remains the authority.",
+      "expected_selection_sha256": "2a1627793a54328429a0bf73890698252c9fb1634556819e8d5b6c22fe9202dd"
+    },
+    {
+      "variant_id": "B",
+      "question": "Does a half-open Unicode-code-point span survive an astral character and a complete combining sequence?",
+      "anchor_ref": "variant-b.anchor.json",
+      "expected_selection": "café",
+      "expected_selection_sha256": "81ef060bcd98adc7824eb5c1ada83c32491b16018e11e79f00ab9d09e04b015a"
+    },
+    {
+      "variant_id": "C",
+      "question": "Does an ordered container-member to XML-id to text-position refinement chain narrow rather than act as alternatives?",
+      "anchor_ref": "variant-c.anchor.json",
+      "expected_selection": "relations",
+      "expected_selection_sha256": "e2ba41af03120f143f51748f319f1e7a0e647f1bac9c27d63eef38f856f9987e"
+    }
+  ],
+  "negative_controls": [
+    "utf16_offset_mislabeled_as_unicode_code_point",
+    "alternatives_resolve_to_different_passages",
+    "representation_digest_drift",
+    "refinement_steps_reversed",
+    "tracked_nonpublic_text_quote",
+    "normalized_page_region_overflow"
+  ],
+  "authority_limits": {
+    "source_payload_used": false,
+    "human_review_performed": false,
+    "source_text_accepted": false,
+    "translation_created": false,
+    "semantic_claim_created": false,
+    "canon_effect": false
+  }
+}

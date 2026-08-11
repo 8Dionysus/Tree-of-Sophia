@@ -65,6 +65,14 @@ statement year is not a public-release date, a publisher is not a printer or
 modern successor, and neither a green contract nor a normalized authority ID
 accepts the bibliography.
 
+The source-foundation validator also owns the public-synthetic
+`tos_source_anchor_v2` laboratory. `--source-anchor-v2-lab-only` resolves the
+frozen JSON, Unicode-text, and container/XHTML A/B/C and reports the actual
+selected strings plus negative-control outcomes. It reads no corpus payload,
+migrates no v1 anchor, and cannot establish source text, review, translation,
+semantics, rights, graph truth, or canon. The ordinary source-witness lane runs
+the same mechanics as one bounded subcheck.
+
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
 EPUB resource, TEI structure, and provider OCR page inventories from an

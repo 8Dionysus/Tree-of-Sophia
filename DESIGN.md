@@ -82,6 +82,15 @@ translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
 content infallible.
 
+At the address layer, the anchor identity, immutable File target, selected
+representation digest, and selector expression remain distinct. Text
+positions are Unicode-code-point half-open spans; byte positions are another
+type; alternative selectors and ordered refinements are explicit; mechanical
+resolution never becomes human verification. A tracked nonpublic record may
+retain a locator or withheld-selector receipt, but not copied source text.
+`tos_source_anchor_v2` is additive laboratory soil, not a migration of current
+v1 anchors.
+
 Institutional catalogue metadata follows the same attribution law. A control
 number keeps its native scheme; a holding statement keeps both the reporting
 catalogue and the reported holding institution. Thus an RNL field may verify

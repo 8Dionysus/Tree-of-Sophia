@@ -843,6 +843,28 @@ payload + receipt
 
 Do not skip from acquired file to semantic canon.
 
+## Source-anchor v2 laboratory boundary
+
+The additive `ToS/contracts/source-anchor-v2.schema.json` separates stable
+anchor identity, exact Item/File target, digest-bound representation state,
+selector composition, publication posture, mechanical resolution, and human
+review. Text position is explicitly Unicode-code-point, logical-order, and
+half-open; bytes use another selector. `single`, `alternatives`, and ordered
+`refinement_chain` expressions cannot be silently interchanged.
+
+The current A/B/C under
+`ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/`
+uses only invented public resources. Direct JSON, Unicode, and XHTML checks
+confirm three exact selections and six rejected controls, including digest
+drift, UTF-16 offset substitution, divergent alternatives, reversed
+refinement, copied nonpublic quote text, and region overflow. This proves only
+the mechanic. It creates no source witness, accepted text, review, translation,
+semantic claim, graph truth, or canon effect.
+
+All current corpus anchors remain v1. No source-bearing migration is implied.
+A future v2 successor may be created only for one concrete source question,
+with the exact representation and publication boundary visible.
+
 ## Rebuild local resource inventories
 
 The payloads may be absent from a public clone, so the inventory builder is a

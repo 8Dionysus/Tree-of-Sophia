@@ -1164,6 +1164,29 @@ that model variation is not human perspectival evidence. No schema, source,
 experiment, human task, sign, interpretation, graph truth, or promotion was
 created by this currentness pass.
 
+## Source-anchor identity and selector objective — 2026-08-11
+
+The address-layer continuation now follows official standards, established
+annotation/linking work, and fresh 2025–2026 document-provenance research
+before defining an additive `tos_source_anchor_v2`. It leaves every v1 anchor
+unchanged. V2 separates exact Item/file/state identity from selector syntax,
+distinguishes selector alternatives from an ordered refinement chain, fixes
+text positions to half-open Unicode-code-point intervals, keeps byte positions
+separate, binds selector method/configuration and publication posture, and
+separates mechanical resolution from review.
+
+A public synthetic A/B/C laboratory resolves three exact selections through
+independent structural-plus-quote alternatives, a Unicode span containing an
+astral character and complete combining sequence, and a container-member →
+XML-id → text-position refinement chain. Direct `jq`, `rg`, Unicode slicing,
+and `xmllint` inspection agrees with the resolver rather than relying only on
+its green result. Six deliberate counterexamples are rejected: UTF-16 offsets
+misdeclared as code points, divergent alternatives, representation drift,
+reversed refinement, a tracked nonpublic quote, and an overflowing normalized
+region. This proves bounded address mechanics only. It creates no source
+payload, migration, human review, accepted text, translation, semantic claim,
+graph truth, canon effect, public route, or human backlog.
+
 ## Thirty-one required artifacts
 
 The 2026-08-01 Antonovsky Agent continuation is independent of the earlier

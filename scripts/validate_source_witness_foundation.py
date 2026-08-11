@@ -9,16 +9,20 @@ quality, semantic correctness, rights clearance, or human review.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+import unicodedata
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Iterable
 
 from jsonschema import FormatChecker
+from jsonschema.exceptions import SchemaError
 from jsonschema.validators import validator_for
 
 from build_source_witness_catalog import (
@@ -50,6 +54,11 @@ FIRST_PUBLICATION_CHRONOLOGY_SCHEMA = (
 )
 CATALOG_SCHEMA = CONTRACT_ROOT / "source-witness-catalog.schema.json"
 ANCHOR_SCHEMA = CONTRACT_ROOT / "source-anchor.schema.json"
+ANCHOR_V2_SCHEMA = CONTRACT_ROOT / "source-anchor-v2.schema.json"
+ANCHOR_V2_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc"
+)
+ANCHOR_V2_LAB_MANIFEST = ANCHOR_V2_LAB_ROOT / "lab.manifest.json"
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -348,6 +357,598 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _anchor_v2_expression_envelopes(expression: object) -> list[dict[str, Any]]:
+    if not isinstance(expression, dict):
+        return []
+    mode = expression.get("mode")
+    if mode == "single":
+        selector = expression.get("selector")
+        return [selector] if isinstance(selector, dict) else []
+    field = "alternatives" if mode == "alternatives" else "steps"
+    candidates = expression.get(field, [])
+    if not isinstance(candidates, list):
+        return []
+    return [
+        item
+        for item in candidates
+        if isinstance(item, dict)
+    ]
+
+
+def _anchor_v2_semantic_issues(anchor: dict[str, Any]) -> list[str]:
+    """Check semantics JSON Schema cannot express without claiming source truth."""
+
+    messages: list[str] = []
+    if (
+        anchor.get("supersedes_anchor_ref") is not None
+        and anchor.get("supersedes_anchor_ref") == anchor.get("anchor_id")
+    ):
+        messages.append("source anchor cannot supersede itself")
+    selector_payload = anchor.get("selector_payload", {})
+    publication = anchor.get("publication_boundary", {})
+    if not isinstance(selector_payload, dict):
+        return messages
+    if not isinstance(publication, dict):
+        publication = {}
+    if selector_payload.get("kind") == "withheld_selector_receipt":
+        if publication.get("source_text_in_record") is True:
+            messages.append("withheld selector receipt cannot claim source text in record")
+        return messages
+
+    expression = selector_payload.get("expression", {})
+    if not isinstance(expression, dict):
+        return messages
+    envelopes = _anchor_v2_expression_envelopes(expression)
+    selectors = [
+        envelope.get("selector", {})
+        for envelope in envelopes
+        if isinstance(envelope.get("selector"), dict)
+    ]
+    selector_types = {selector.get("type") for selector in selectors}
+
+    target = anchor.get("target", {})
+    target_digest = target.get("file_sha256") if isinstance(target, dict) else None
+    if expression.get("mode") in {"single", "refinement_chain"} and envelopes:
+        first_state = envelopes[0].get("state", {})
+        first_digest = (
+            first_state.get("representation_sha256")
+            if isinstance(first_state, dict)
+            else None
+        )
+        if first_digest != target_digest:
+            messages.append("first selector state is not the exact target file state")
+    if expression.get("mode") == "alternatives":
+        first_digests = {
+            envelope.get("state", {}).get("representation_sha256")
+            for envelope in envelopes
+            if isinstance(envelope.get("state"), dict)
+        }
+        if first_digests != {target_digest}:
+            messages.append("alternatives do not independently begin from the exact target state")
+
+    for envelope in envelopes:
+        selector = envelope.get("selector", {})
+        if not isinstance(selector, dict):
+            continue
+        selector_type = selector.get("type")
+        state = envelope.get("state", {})
+        if not isinstance(state, dict):
+            continue
+        if selector_type in {"text_quote", "text_position"}:
+            if "character_normalization" not in state:
+                messages.append(f"{selector_type} lacks explicit character normalization")
+        if selector_type in {"text_position", "byte_position"}:
+            start = selector.get("start")
+            end = selector.get("end")
+            if isinstance(start, int) and isinstance(end, int) and start >= end:
+                messages.append(f"{selector_type} interval is empty or reversed")
+        if selector_type == "page_region":
+            coordinate_space = selector.get("coordinate_space")
+            if coordinate_space == "normalized_0_1":
+                x = selector.get("x")
+                y = selector.get("y")
+                width = selector.get("width")
+                height = selector.get("height")
+                if all(isinstance(value, (int, float)) for value in (x, y, width, height)):
+                    if x + width > 1 or y + height > 1:
+                        messages.append("normalized page region exceeds the unit square")
+            elif coordinate_space in {"pixels", "points"}:
+                x = selector.get("x")
+                y = selector.get("y")
+                width = selector.get("width")
+                height = selector.get("height")
+                source_width = selector.get("source_width")
+                source_height = selector.get("source_height")
+                if all(
+                    isinstance(value, (int, float))
+                    for value in (x, y, width, height, source_width, source_height)
+                ) and (x + width > source_width or y + height > source_height):
+                    messages.append("page region exceeds the declared representation extent")
+
+    tracked_nonpublic = (
+        publication.get("record_storage") == "tracked"
+        and publication.get("source_content_visibility") != "public"
+    )
+    if tracked_nonpublic and "text_quote" in selector_types:
+        messages.append("tracked nonpublic anchor cannot carry a text quote")
+    if publication.get("source_text_in_record") is False and "text_quote" in selector_types:
+        messages.append("text quote contradicts source_text_in_record=false")
+    if publication.get("source_text_in_record") is True and "text_quote" not in selector_types:
+        messages.append("source_text_in_record=true has no text-bearing selector")
+    if (
+        anchor.get("resolution_status") == "mechanically_resolved"
+        and not envelopes
+    ):
+        messages.append("mechanically resolved anchor has no selector expression")
+    return messages
+
+
+def _anchor_v2_json_pointer(payload: object, pointer: str) -> object:
+    if not pointer.startswith("/"):
+        raise ValueError("JSON Pointer must begin with /")
+    current = payload
+    for raw_part in pointer[1:].split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, list):
+            current = current[int(part)]
+        elif isinstance(current, dict):
+            current = current[part]
+        else:
+            raise ValueError("JSON Pointer traverses a scalar")
+    return current
+
+
+def _anchor_v2_text(scope: dict[str, Any], state: dict[str, Any]) -> str:
+    value = scope.get("value")
+    if isinstance(value, bytes):
+        value = value.decode("utf-8")
+    if not isinstance(value, str):
+        value = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    normalization = state.get("character_normalization", "none")
+    if normalization != "none":
+        value = unicodedata.normalize(normalization, value)
+    return value
+
+
+def _anchor_v2_apply_selector(
+    envelope: dict[str, Any],
+    *,
+    scope: dict[str, Any],
+    resources_by_path: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    state = envelope["state"]
+    selector = envelope["selector"]
+    selector_type = selector["type"]
+
+    if selector_type == "container_member":
+        container_value = scope.get("value")
+        if isinstance(container_value, bytes):
+            container_value = container_value.decode("utf-8")
+        container_payload = (
+            json.loads(container_value)
+            if isinstance(container_value, str)
+            else container_value
+        )
+        declared_members = (
+            container_payload.get("members")
+            if isinstance(container_payload, dict)
+            else None
+        )
+        if (
+            not isinstance(declared_members, list)
+            or selector["member_path"] not in declared_members
+        ):
+            raise ValueError("container member is not declared by the selected container")
+        member = resources_by_path.get(selector["member_path"])
+        if member is None:
+            raise ValueError("container member is absent from the laboratory manifest")
+        if member["sha256"] != selector["member_sha256"]:
+            raise ValueError("container member digest differs from selector")
+        if member["media_type"] != selector["member_media_type"]:
+            raise ValueError("container member media type differs from selector")
+        return {
+            "value": member["absolute_path"].read_bytes(),
+            "representation_ref": member["representation_ref"],
+            "representation_sha256": member["sha256"],
+        }
+
+    if selector_type == "structural":
+        scheme = selector["scheme"]
+        if scheme == "json_pointer":
+            raw = scope["value"]
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8")
+            payload = json.loads(raw) if isinstance(raw, str) else raw
+            selected = _anchor_v2_json_pointer(payload, selector["value"])
+            return {**scope, "value": selected}
+        if scheme == "xml_id":
+            raw = scope["value"]
+            if isinstance(raw, str):
+                raw = raw.encode("utf-8")
+            root = ET.fromstring(raw)
+            matches = [
+                element
+                for element in root.iter()
+                if element.get("id") == selector["value"]
+                or element.get("{http://www.w3.org/XML/1998/namespace}id")
+                == selector["value"]
+            ]
+            if len(matches) != 1:
+                raise ValueError("xml_id selector does not resolve exactly one element")
+            return {**scope, "value": "".join(matches[0].itertext())}
+        raise ValueError(f"unsupported synthetic structural scheme: {scheme}")
+
+    if selector_type == "text_quote":
+        text = _anchor_v2_text(scope, state)
+        exact = selector["exact"]
+        starts: list[int] = []
+        cursor = 0
+        while True:
+            position = text.find(exact, cursor)
+            if position < 0:
+                break
+            prefix = selector.get("prefix")
+            suffix = selector.get("suffix")
+            prefix_ok = prefix is None or text[max(0, position - len(prefix)):position] == prefix
+            end = position + len(exact)
+            suffix_ok = suffix is None or text[end:end + len(suffix)] == suffix
+            if prefix_ok and suffix_ok:
+                starts.append(position)
+            cursor = position + 1
+        if len(starts) != 1:
+            raise ValueError("text quote does not resolve exactly once with its context")
+        start = starts[0]
+        end = start + len(exact)
+        if unicodedata.combining(text[start]):
+            raise ValueError("text quote start splits a combining sequence")
+        if end < len(text) and unicodedata.combining(text[end]):
+            raise ValueError("text quote end splits a combining sequence")
+        return {**scope, "value": exact}
+
+    if selector_type == "text_position":
+        text = _anchor_v2_text(scope, state)
+        start = selector["start"]
+        end = selector["end"]
+        if not 0 <= start < end <= len(text):
+            raise ValueError("text-position interval is outside the selected representation")
+        if unicodedata.combining(text[start]):
+            raise ValueError("text-position start splits a combining sequence")
+        if end < len(text) and unicodedata.combining(text[end]):
+            raise ValueError("text-position end splits a combining sequence")
+        return {**scope, "value": text[start:end]}
+
+    if selector_type == "byte_position":
+        value = scope["value"]
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        if not isinstance(value, bytes):
+            raise ValueError("byte-position selector requires a byte representation")
+        start = selector["start"]
+        end = selector["end"]
+        if not 0 <= start < end <= len(value):
+            raise ValueError("byte-position interval is outside the selected representation")
+        return {**scope, "value": value[start:end]}
+
+    if selector_type == "page_region":
+        return {
+            **scope,
+            "value": {
+                key: selector[key]
+                for key in (
+                    "page_identity",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                    "coordinate_space",
+                )
+            },
+        }
+    if selector_type == "fragment":
+        raise ValueError("synthetic laboratory does not implement arbitrary fragment standards")
+    raise ValueError(f"unsupported selector type: {selector_type}")
+
+
+def _anchor_v2_resolve_expression(
+    anchor: dict[str, Any],
+    *,
+    resources_by_ref: dict[str, dict[str, Any]],
+    resources_by_path: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    expression = anchor["selector_payload"]["expression"]
+    mode = expression["mode"]
+
+    def state_scope(envelope: dict[str, Any]) -> dict[str, Any]:
+        state = envelope["state"]
+        resource = resources_by_ref.get(state["representation_ref"])
+        if resource is None:
+            raise ValueError("selector state representation is absent from the laboratory manifest")
+        if state["representation_sha256"] != resource["sha256"]:
+            raise ValueError("selector state digest differs from the represented bytes")
+        if state["media_type"] != resource["media_type"]:
+            raise ValueError("selector state media type differs from the represented bytes")
+        return {
+            "value": resource["absolute_path"].read_bytes(),
+            "representation_ref": resource["representation_ref"],
+            "representation_sha256": resource["sha256"],
+        }
+
+    if mode == "single":
+        envelope = expression["selector"]
+        result = _anchor_v2_apply_selector(
+            envelope,
+            scope=state_scope(envelope),
+            resources_by_path=resources_by_path,
+        )
+        return {"mode": mode, "result": result["value"], "branch_results": [result["value"]]}
+
+    if mode == "alternatives":
+        results: list[object] = []
+        for envelope in expression["alternatives"]:
+            result = _anchor_v2_apply_selector(
+                envelope,
+                scope=state_scope(envelope),
+                resources_by_path=resources_by_path,
+            )["value"]
+            results.append(result)
+        canonical = [
+            value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
+            for value in results
+        ]
+        if len(set(canonical)) != 1:
+            raise ValueError("alternative selectors resolve to different segments")
+        return {"mode": mode, "result": results[0], "branch_results": results}
+
+    if mode == "refinement_chain":
+        current: dict[str, Any] | None = None
+        step_results: list[object] = []
+        for index, envelope in enumerate(expression["steps"]):
+            state = envelope["state"]
+            base = state_scope(envelope)
+            if current is None:
+                scope = base
+            else:
+                if current.get("representation_sha256") != state["representation_sha256"]:
+                    raise ValueError("refinement step state differs from the prior selected representation")
+                scope = current
+            current = _anchor_v2_apply_selector(
+                envelope,
+                scope=scope,
+                resources_by_path=resources_by_path,
+            )
+            step_results.append(current["value"])
+            if index == 0 and envelope["selector"]["type"] == "container_member":
+                next_state = expression["steps"][1]["state"]
+                if current["representation_sha256"] != next_state["representation_sha256"]:
+                    raise ValueError("container refinement does not bind the selected member state")
+        if current is None:
+            raise ValueError("refinement chain is empty")
+        return {"mode": mode, "result": current["value"], "step_results": step_results}
+    raise ValueError(f"unsupported selector expression mode: {mode}")
+
+
+def validate_source_anchor_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[str, Any]]:
+    """Resolve public synthetic A/B/C and exercise semantic negative controls."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {"variants": [], "negative_controls": {}}
+    try:
+        anchor_validator, _ = _schema_validator(ANCHOR_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [(ANCHOR_V2_SCHEMA.as_posix(), f"cannot load v2 schema: {exc}")], report
+
+    manifest_path = repo_root / ANCHOR_V2_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_source_anchor_v2_lab_v1":
+        issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "unexpected laboratory manifest version"))
+    if manifest.get("contract_ref") != ANCHOR_V2_SCHEMA.as_posix():
+        issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "laboratory contract reference drifted"))
+    if manifest.get("authority_posture") != "synthetic_mechanical_fixture_only":
+        issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "laboratory authority posture widened"))
+    expected_authority_limits = {
+        "source_payload_used": False,
+        "human_review_performed": False,
+        "source_text_accepted": False,
+        "translation_created": False,
+        "semantic_claim_created": False,
+        "canon_effect": False,
+    }
+    if manifest.get("authority_limits") != expected_authority_limits:
+        issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "laboratory authority limits widened"))
+
+    resources_by_ref: dict[str, dict[str, Any]] = {}
+    resources_by_path: dict[str, dict[str, Any]] = {}
+    for index, resource in enumerate(manifest.get("resources", []), start=1):
+        location = f"{ANCHOR_V2_LAB_MANIFEST.as_posix()} resources[{index}]"
+        if not isinstance(resource, dict):
+            issues.append((location, "resource is not an object"))
+            continue
+        relative_path = resource.get("path")
+        if not isinstance(relative_path, str) or Path(relative_path).is_absolute() or ".." in Path(relative_path).parts:
+            issues.append((location, "resource path is not a bounded relative path"))
+            continue
+        absolute_path = repo_root / ANCHOR_V2_LAB_ROOT / relative_path
+        if absolute_path.is_symlink():
+            issues.append((location, f"resource is a symlink: {relative_path}"))
+            continue
+        if not absolute_path.is_file():
+            issues.append((location, f"resource is missing: {relative_path}"))
+            continue
+        actual_digest = _sha256(absolute_path)
+        if actual_digest != resource.get("sha256"):
+            issues.append((location, f"resource digest drifted: {relative_path}"))
+        representation_ref = resource.get("representation_ref")
+        if not isinstance(representation_ref, str) or representation_ref in resources_by_ref:
+            issues.append((location, "representation_ref is missing or duplicated"))
+            continue
+        if relative_path in resources_by_path:
+            issues.append((location, "resource path is duplicated"))
+            continue
+        enriched = {**resource, "absolute_path": absolute_path}
+        resources_by_ref[representation_ref] = enriched
+        resources_by_path[relative_path] = enriched
+
+    anchors_by_variant: dict[str, dict[str, Any]] = {}
+    anchor_ids: set[str] = set()
+    for variant in manifest.get("variants", []):
+        if not isinstance(variant, dict):
+            continue
+        variant_id = variant.get("variant_id")
+        anchor_ref = variant.get("anchor_ref")
+        if not isinstance(variant_id, str) or not isinstance(anchor_ref, str):
+            issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "variant identity or anchor_ref is invalid"))
+            continue
+        anchor_relative = Path(anchor_ref)
+        if anchor_relative.is_absolute() or ".." in anchor_relative.parts:
+            issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "variant anchor_ref leaves the laboratory root"))
+            continue
+        if variant_id in anchors_by_variant:
+            issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), f"variant identity is duplicated: {variant_id}"))
+            continue
+        anchor_path = repo_root / ANCHOR_V2_LAB_ROOT / anchor_ref
+        if anchor_path.is_symlink():
+            issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), f"variant anchor is a symlink: {anchor_ref}"))
+            continue
+        anchor = _load_json(anchor_path, repo_root, issues)
+        if anchor is None:
+            continue
+        location = _relative(anchor_path, repo_root)
+        _validate_payload(anchor, anchor_validator, location, issues)
+        anchor_id = anchor.get("anchor_id")
+        if isinstance(anchor_id, str):
+            if anchor_id in anchor_ids:
+                issues.append((location, f"anchor identity is duplicated: {anchor_id}"))
+            anchor_ids.add(anchor_id)
+        for message in _anchor_v2_semantic_issues(anchor):
+            issues.append((location, message))
+        selector_method = anchor.get("selector_method", {})
+        if selector_method.get("configuration_ref") != ANCHOR_V2_LAB_MANIFEST.as_posix():
+            issues.append((location, "selector method does not cite the laboratory manifest"))
+        if selector_method.get("configuration_digest") != _sha256(manifest_path):
+            issues.append((location, "selector method configuration digest drifted"))
+        try:
+            resolved = _anchor_v2_resolve_expression(
+                anchor,
+                resources_by_ref=resources_by_ref,
+                resources_by_path=resources_by_path,
+            )
+        except (KeyError, TypeError, ValueError, UnicodeError, ET.ParseError, json.JSONDecodeError) as exc:
+            issues.append((location, f"synthetic resolution failed: {exc}"))
+            continue
+        result = resolved["result"]
+        result_text = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, sort_keys=True)
+        result_digest = _sha256_text(result_text)
+        if result_text != variant.get("expected_selection"):
+            issues.append((location, "resolved selection differs from the frozen expected selection"))
+        if result_digest != variant.get("expected_selection_sha256"):
+            issues.append((location, "resolved selection digest differs from the frozen expectation"))
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "mode": resolved["mode"],
+                "selection": result_text,
+                "selection_sha256": result_digest,
+                "resolution_status": anchor.get("resolution_status"),
+                "review_status": anchor.get("review_status"),
+            }
+        )
+        anchors_by_variant[variant_id] = anchor
+
+    def negative_rejected(name: str, action: Any) -> None:
+        try:
+            action()
+        except (KeyError, TypeError, ValueError, UnicodeError, ET.ParseError, json.JSONDecodeError):
+            report["negative_controls"][name] = "rejected"
+        else:
+            issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), f"negative control was not rejected: {name}"))
+            report["negative_controls"][name] = "not_rejected"
+
+    if set(anchors_by_variant) == {"A", "B", "C"}:
+        def utf16_mismatch() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["B"])
+            selector = mutated["selector_payload"]["expression"]["selector"]["selector"]
+            selector["start"] = 5
+            selector["end"] = 10
+            result = _anchor_v2_resolve_expression(
+                mutated,
+                resources_by_ref=resources_by_ref,
+                resources_by_path=resources_by_path,
+            )["result"]
+            expected = next(item["expected_selection"] for item in manifest["variants"] if item["variant_id"] == "B")
+            if result != expected:
+                raise ValueError("UTF-16 offsets do not select the frozen Unicode-code-point span")
+
+        def divergent_alternatives() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["A"])
+            quote = mutated["selector_payload"]["expression"]["alternatives"][1]["selector"]
+            quote["exact"] = "A tree begins in evidence."
+            _anchor_v2_resolve_expression(
+                mutated,
+                resources_by_ref=resources_by_ref,
+                resources_by_path=resources_by_path,
+            )
+
+        def digest_drift() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["B"])
+            mutated["selector_payload"]["expression"]["selector"]["state"]["representation_sha256"] = "0" * 64
+            _anchor_v2_resolve_expression(
+                mutated,
+                resources_by_ref=resources_by_ref,
+                resources_by_path=resources_by_path,
+            )
+
+        def reversed_refinement() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["C"])
+            mutated["selector_payload"]["expression"]["steps"].reverse()
+            _anchor_v2_resolve_expression(
+                mutated,
+                resources_by_ref=resources_by_ref,
+                resources_by_path=resources_by_path,
+            )
+
+        def tracked_nonpublic_quote() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["A"])
+            mutated["publication_boundary"]["source_content_visibility"] = "local_only"
+            messages = _anchor_v2_semantic_issues(mutated)
+            if "tracked nonpublic anchor cannot carry a text quote" in messages:
+                raise ValueError("tracked nonpublic quote rejected")
+
+        def normalized_region_overflow() -> None:
+            mutated = copy.deepcopy(anchors_by_variant["B"])
+            envelope = mutated["selector_payload"]["expression"]["selector"]
+            envelope["selector"] = {
+                "type": "page_region",
+                "page_identity": {"page_number": 1},
+                "x": 0.8,
+                "y": 0.1,
+                "width": 0.4,
+                "height": 0.2,
+                "coordinate_space": "normalized_0_1",
+            }
+            messages = _anchor_v2_semantic_issues(mutated)
+            if "normalized page region exceeds the unit square" in messages:
+                raise ValueError("normalized region overflow rejected")
+
+        negative_rejected("utf16_offset_mislabeled_as_unicode_code_point", utf16_mismatch)
+        negative_rejected("alternatives_resolve_to_different_passages", divergent_alternatives)
+        negative_rejected("representation_digest_drift", digest_drift)
+        negative_rejected("refinement_steps_reversed", reversed_refinement)
+        negative_rejected("tracked_nonpublic_text_quote", tracked_nonpublic_quote)
+        negative_rejected("normalized_page_region_overflow", normalized_region_overflow)
+
+    declared_controls = set(manifest.get("negative_controls", []))
+    if declared_controls != set(report["negative_controls"]):
+        issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "negative-control coverage differs from manifest"))
+    return issues, report
 
 
 def _latest_event_in_supersession_lineage(
@@ -1793,6 +2394,9 @@ def _record_paths(repo_root: Path) -> Iterable[Path]:
 def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
     repo_root = repo_root.resolve()
     issues: list[Issue] = []
+
+    anchor_v2_lab_issues, _ = validate_source_anchor_v2_lab(repo_root)
+    issues.extend(anchor_v2_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -9096,7 +9700,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="fail when local gitignored source bytes are absent",
     )
+    parser.add_argument(
+        "--source-anchor-v2-lab-only",
+        action="store_true",
+        help="resolve and report only the public synthetic source-anchor v2 A/B/C",
+    )
     args = parser.parse_args(argv)
+
+    if args.source_anchor_v2_lab_only:
+        issues, report = validate_source_anchor_v2_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Source-anchor v2 laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] synthetic mechanical resolution only; no source, review, translation, semantic, or canon authority")
+        return 0
 
     issues = validate_foundation(
         args.repo_root,

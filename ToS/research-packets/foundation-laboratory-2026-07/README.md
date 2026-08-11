@@ -51,7 +51,10 @@ preserved admission failures, a source-free no-network smoke, and one exact
 non-forced private-source episode. Its candidate survived the deterministic
 Russian-surface floor but remains `uncertain`, retained only for method
 comparison with three bounded AI risk labels and no human task, accepted text,
-semantic, graph, canon, production, or publication authority
+semantic, graph, canon, production, or publication authority. Source-anchor
+identity, representation-state, selector-composition, Unicode-offset, and
+public/private selector research plus source-free A/B/C were refreshed
+2026-08-11; existing v1 anchors were not migrated
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -72,6 +75,7 @@ and what must be tested manually.
 | Artifact | Question |
 | --- | --- |
 | `RESEARCH.md` | What foundation is defensible, and what does current evidence change? |
+| `SOURCE_ANCHOR_IDENTITY_AND_SELECTOR_RESEARCH_2026-08-11.md` | Why source identity, exact representation state, selector composition, mechanical resolution, human review, and publication posture must remain distinct; what current standards and fresh work require; and what the public-synthetic A/B/C actually resolved or rejected? |
 | `BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md` | How should Edition-level place, publisher and other provision roles, transcribed statements, normalized identities, and date facets remain source-returnable without flattening publication, production, distribution, manufacture, or release? |
 | `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` | Why the first-part Schmeitzner/Chemnitz/1883 provision statement is admitted only from its exact Edition authority record and why the publisher Organization, Person, printing, and release remain distinct? |
 | `ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md` | Why parts II and III require two independently evidenced DTA statements rather than label propagation from part I or one shared shelfmark? |

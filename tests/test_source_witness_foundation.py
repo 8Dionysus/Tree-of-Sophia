@@ -1674,6 +1674,128 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_source_anchor_v2_synthetic_abc_resolves_real_segments(self) -> None:
+        issues, report = foundation.validate_source_anchor_v2_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual(
+            [
+                ("A", "alternatives", "The source remains the authority."),
+                ("B", "single", "café"),
+                ("C", "refinement_chain", "relations"),
+            ],
+            [
+                (row["variant_id"], row["mode"], row["selection"])
+                for row in report["variants"]
+            ],
+        )
+        self.assertTrue(
+            all(
+                row["resolution_status"] == "mechanically_resolved"
+                and row["review_status"] == "unreviewed"
+                for row in report["variants"]
+            )
+        )
+        self.assertEqual(
+            {
+                "alternatives_resolve_to_different_passages": "rejected",
+                "normalized_page_region_overflow": "rejected",
+                "refinement_steps_reversed": "rejected",
+                "representation_digest_drift": "rejected",
+                "tracked_nonpublic_text_quote": "rejected",
+                "utf16_offset_mislabeled_as_unicode_code_point": "rejected",
+            },
+            report["negative_controls"],
+        )
+
+    def test_source_anchor_v2_requires_explicit_position_and_state_semantics(self) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/source-anchor-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        anchor = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "source-anchor-v2-abc/variant-b.anchor.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        missing_unit = copy.deepcopy(anchor)
+        del missing_unit["selector_payload"]["expression"]["selector"]["selector"][
+            "position_unit"
+        ]
+        self.assertTrue(list(validator.iter_errors(missing_unit)))
+
+        wrong_identity_kind = copy.deepcopy(anchor)
+        wrong_identity_kind["target"]["item_id"] = "tos.agent.synthetic"
+        self.assertTrue(list(validator.iter_errors(wrong_identity_kind)))
+
+        unsupported_review_claim = copy.deepcopy(anchor)
+        unsupported_review_claim["review_status"] = "accepted"
+        self.assertTrue(list(validator.iter_errors(unsupported_review_claim)))
+
+        local_configuration_path = copy.deepcopy(anchor)
+        local_configuration_path["selector_method"]["configuration_ref"] = (
+            "C:\\forbidden\\config.json"
+        )
+        self.assertTrue(list(validator.iter_errors(local_configuration_path)))
+
+        unbound_second_version = copy.deepcopy(anchor)
+        unbound_second_version["anchor_version"] = 2
+        self.assertTrue(list(validator.iter_errors(unbound_second_version)))
+
+        self_supersession = copy.deepcopy(anchor)
+        self_supersession["supersedes_anchor_ref"] = self_supersession["anchor_id"]
+        self.assertIn(
+            "source anchor cannot supersede itself",
+            foundation._anchor_v2_semantic_issues(self_supersession),
+        )
+
+        reversed_interval = copy.deepcopy(anchor)
+        position = reversed_interval["selector_payload"]["expression"]["selector"][
+            "selector"
+        ]
+        position["start"] = position["end"]
+        self.assertIn(
+            "text_position interval is empty or reversed",
+            foundation._anchor_v2_semantic_issues(reversed_interval),
+        )
+
+        v1_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/source-anchor.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            "tos_source_anchor_v1",
+            v1_schema["properties"]["schema_version"]["const"],
+        )
+
+        container_anchor = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "source-anchor-v2-abc/variant-c.anchor.json"
+            ).read_text(encoding="utf-8")
+        )
+        container_envelope = container_anchor["selector_payload"]["expression"][
+            "steps"
+        ][0]
+        with self.assertRaisesRegex(
+            ValueError,
+            "container member is not declared",
+        ):
+            foundation._anchor_v2_apply_selector(
+                container_envelope,
+                scope={"value": b'{"members":[]}'},
+                resources_by_path={},
+            )
+
     def test_source_witness_claim_catalog_is_exact_source_returnable_projection(
         self,
     ) -> None:

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "schema_version": "tos_source_anchor_v2",
+  "anchor_id": "tos.anchor.synthetic.source-anchor-v2.variant-a",
+  "passage_id": "tos.passage.synthetic.source-anchor-v2.variant-a",
+  "target": {
+    "item_id": "tos.item.synthetic.source-anchor-v2.variant-a",
+    "file_id": "tos.file.sha256.4bcbd0b264104ccd07e286cd858c30b34d418a4d181ef7e7984de2f7fc1caa2c",
+    "file_sha256": "4bcbd0b264104ccd07e286cd858c30b34d418a4d181ef7e7984de2f7fc1caa2c",
+    "media_type": "application/json"
+  },
+  "selector_payload": {
+    "kind": "selector_expression",
+    "expression": {
+      "mode": "alternatives",
+      "alternatives": [
+        {
+          "state": {
+            "state_type": "digest_state",
+            "representation_ref": "fixture:variant-a-structured",
+            "representation_sha256": "4bcbd0b264104ccd07e286cd858c30b34d418a4d181ef7e7984de2f7fc1caa2c",
+            "media_type": "application/json"
+          },
+          "selector": {
+            "type": "structural",
+            "scheme": "json_pointer",
+            "value": "/sections/0/paragraphs/1/text",
+            "conforms_to": "https://www.rfc-editor.org/rfc/rfc6901"
+          }
+        },
+        {
+          "state": {
+            "state_type": "digest_state",
+            "representation_ref": "fixture:variant-a-structured",
+            "representation_sha256": "4bcbd0b264104ccd07e286cd858c30b34d418a4d181ef7e7984de2f7fc1caa2c",
+            "media_type": "application/json",
+            "character_normalization": "none"
+          },
+          "selector": {
+            "type": "text_quote",
+            "exact": "The source remains the authority.",
+            "prefix": "\"text\":\"",
+            "suffix": "\"}"
+          }
+        }
+      ]
+    }
+  },
+  "publication_boundary": {
+    "record_storage": "tracked",
+    "source_content_visibility": "public",
+    "source_text_in_record": true,
+    "public_payload_expected": true
+  },
+  "selector_method": {
+    "maker_type": "software",
+    "method": "tos-source-anchor-v2-lab-resolver",
+    "version": "1",
+    "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
+    "configuration_digest": "8c5792c69e896e53424c5bb8256e1d0fb082b93422ba06d3efb8430f53ad298d"
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_status": "unreviewed",
+  "provenance_event_ref": "tos.event.annotation.source-anchor-v2-lab.2026-08-11",
+  "anchor_version": 1,
+  "supersedes_anchor_ref": null,
+  "review_ref": null
+}

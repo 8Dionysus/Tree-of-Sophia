@@ -49,6 +49,13 @@ and append-only review history. An occurrence can be stable at that address.
 Its lemma, etymology, translation, sense, motif, concept, and relations remain
 versioned claims that can deepen without losing the source beneath them.
 
+A durable address is not a naked offset. Its persistent anchor ID, immutable
+target file, exact representation state, selector semantics, mechanical
+resolution, human review, and publication posture stay separate. The additive
+source-anchor v2 contract now proves those distinctions on invented public
+JSON, Unicode text, and container/XHTML fixtures only; all current corpus
+anchors remain v1 until one real source question justifies a bounded successor.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review

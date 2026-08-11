@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "title": "Tree of Sophia source anchor v2",
+  "description": "Additive source-anchor contract that separates immutable target identity, exact representation state, selector composition, mechanical resolution, review, and publication posture.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "anchor_id",
+    "target",
+    "selector_payload",
+    "publication_boundary",
+    "selector_method",
+    "resolution_status",
+    "review_status",
+    "provenance_event_ref",
+    "anchor_version",
+    "review_ref"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json"},
+    "schema_version": {"const": "tos_source_anchor_v2"},
+    "anchor_id": {"$ref": "#/$defs/anchorId"},
+    "passage_id": {
+      "anyOf": [
+        {"$ref": "#/$defs/passageId"},
+        {"type": "null"}
+      ]
+    },
+    "target": {"$ref": "#/$defs/target"},
+    "selector_payload": {
+      "oneOf": [
+        {"$ref": "#/$defs/selectorExpressionPayload"},
+        {"$ref": "#/$defs/withheldSelectorReceipt"}
+      ]
+    },
+    "publication_boundary": {"$ref": "#/$defs/publicationBoundary"},
+    "selector_method": {"$ref": "#/$defs/selectorMethod"},
+    "resolution_status": {
+      "enum": [
+        "mechanically_resolved",
+        "locator_only",
+        "unresolved",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "review_status": {
+      "enum": [
+        "unreviewed",
+        "accepted",
+        "accepted_with_limits",
+        "rejected",
+        "ambiguous",
+        "deferred",
+        "superseded"
+      ]
+    },
+    "provenance_event_ref": {"$ref": "#/$defs/eventId"},
+    "anchor_version": {"type": "integer", "minimum": 1},
+    "supersedes_anchor_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/anchorId"},
+        {"type": "null"}
+      ]
+    },
+    "review_ref": {
+      "anyOf": [
+        {"$ref": "#/$defs/reviewId"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "selector_payload": {
+            "properties": {"kind": {"const": "withheld_selector_receipt"}},
+            "required": ["kind"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resolution_status": {"enum": ["locator_only", "unresolved", "superseded"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "publication_boundary": {
+            "properties": {"source_text_in_record": {"const": true}},
+            "required": ["source_text_in_record"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "selector_payload": {
+            "properties": {"kind": {"const": "selector_expression"}},
+            "required": ["kind"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"review_status": {"const": "unreviewed"}},
+        "required": ["review_status"]
+      },
+      "then": {"properties": {"review_ref": {"type": "null"}}},
+      "else": {"properties": {"review_ref": {"$ref": "#/$defs/reviewId"}}}
+    },
+    {
+      "if": {
+        "properties": {"anchor_version": {"minimum": 2}},
+        "required": ["anchor_version"]
+      },
+      "then": {
+        "required": ["supersedes_anchor_ref"],
+        "properties": {
+          "supersedes_anchor_ref": {"$ref": "#/$defs/anchorId"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "anchorId": {
+      "type": "string",
+      "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "itemId": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "fileId": {
+      "type": "string",
+      "pattern": "^tos\\.file\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "passageId": {
+      "type": "string",
+      "pattern": "^tos\\.passage\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "reviewId": {
+      "type": "string",
+      "pattern": "^tos\\.review\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "boundedRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!~[\\\\/])(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "mediaType": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[^\\r\\n]+)?$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "file_id", "file_sha256", "media_type"],
+      "properties": {
+        "item_id": {"$ref": "#/$defs/itemId"},
+        "file_id": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"$ref": "#/$defs/mediaType"}
+      }
+    },
+    "publicationBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_storage",
+        "source_content_visibility",
+        "source_text_in_record",
+        "public_payload_expected"
+      ],
+      "properties": {
+        "record_storage": {"enum": ["tracked", "ignored_local"]},
+        "source_content_visibility": {
+          "enum": ["public", "public_metadata_only", "local_only", "restricted", "unknown"]
+        },
+        "source_text_in_record": {"type": "boolean"},
+        "public_payload_expected": {"type": "boolean"}
+      }
+    },
+    "selectorMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "method", "version", "configuration_digest"],
+      "properties": {
+        "maker_type": {"enum": ["human", "software", "model", "mixed"]},
+        "method": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "configuration_ref": {
+          "anyOf": [
+            {"$ref": "#/$defs/boundedRef"},
+            {"type": "null"}
+          ]
+        },
+        "configuration_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "representationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_type",
+        "representation_ref",
+        "representation_sha256",
+        "media_type"
+      ],
+      "properties": {
+        "state_type": {"const": "digest_state"},
+        "representation_ref": {"$ref": "#/$defs/boundedRef"},
+        "representation_sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"$ref": "#/$defs/mediaType"},
+        "character_normalization": {
+          "enum": ["none", "NFC", "NFD", "NFKC", "NFKD"]
+        },
+        "version_ref": {
+          "anyOf": [
+            {"$ref": "#/$defs/boundedRef"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "selectorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "selector"],
+      "properties": {
+        "state": {"$ref": "#/$defs/representationState"},
+        "selector": {
+          "oneOf": [
+            {"$ref": "#/$defs/structuralSelector"},
+            {"$ref": "#/$defs/textQuoteSelector"},
+            {"$ref": "#/$defs/textPositionSelector"},
+            {"$ref": "#/$defs/bytePositionSelector"},
+            {"$ref": "#/$defs/pageRegionSelector"},
+            {"$ref": "#/$defs/containerMemberSelector"},
+            {"$ref": "#/$defs/fragmentSelector"}
+          ]
+        }
+      }
+    },
+    "singleExpression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "selector"],
+      "properties": {
+        "mode": {"const": "single"},
+        "selector": {"$ref": "#/$defs/selectorEnvelope"}
+      }
+    },
+    "alternativesExpression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "alternatives"],
+      "properties": {
+        "mode": {"const": "alternatives"},
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/selectorEnvelope"}
+        }
+      }
+    },
+    "refinementExpression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "steps"],
+      "properties": {
+        "mode": {"const": "refinement_chain"},
+        "steps": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/selectorEnvelope"}
+        }
+      }
+    },
+    "selectorExpression": {
+      "oneOf": [
+        {"$ref": "#/$defs/singleExpression"},
+        {"$ref": "#/$defs/alternativesExpression"},
+        {"$ref": "#/$defs/refinementExpression"}
+      ]
+    },
+    "selectorExpressionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "expression"],
+      "properties": {
+        "kind": {"const": "selector_expression"},
+        "expression": {"$ref": "#/$defs/selectorExpression"}
+      }
+    },
+    "withheldSelectorReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "selector_digest", "expression_mode", "selector_count"],
+      "properties": {
+        "kind": {"const": "withheld_selector_receipt"},
+        "selector_digest": {"$ref": "#/$defs/sha256"},
+        "expression_mode": {"enum": ["single", "alternatives", "refinement_chain"]},
+        "selector_count": {"type": "integer", "minimum": 1},
+        "private_ref": {
+          "anyOf": [
+            {"$ref": "#/$defs/boundedRef"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "structuralSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "scheme", "value"],
+      "properties": {
+        "type": {"const": "structural"},
+        "scheme": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1},
+        "conforms_to": {"type": "string", "format": "uri"}
+      }
+    },
+    "textQuoteSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "exact"],
+      "properties": {
+        "type": {"const": "text_quote"},
+        "exact": {"type": "string", "minLength": 1},
+        "prefix": {"type": "string"},
+        "suffix": {"type": "string"}
+      }
+    },
+    "textPositionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "start", "end", "position_unit", "interval"],
+      "properties": {
+        "type": {"const": "text_position"},
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "position_unit": {"const": "unicode_code_point"},
+        "interval": {"const": "half_open"}
+      }
+    },
+    "bytePositionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "start", "end", "position_unit", "interval"],
+      "properties": {
+        "type": {"const": "byte_position"},
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "position_unit": {"const": "byte"},
+        "interval": {"const": "half_open"}
+      }
+    },
+    "pageIdentity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["page_number"],
+          "properties": {"page_number": {"type": "integer", "minimum": 1}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["canvas_ref"],
+          "properties": {"canvas_ref": {"$ref": "#/$defs/boundedRef"}}
+        }
+      ]
+    },
+    "pageRegionSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "page_identity",
+        "x",
+        "y",
+        "width",
+        "height",
+        "coordinate_space"
+      ],
+      "properties": {
+        "type": {"const": "page_region"},
+        "page_identity": {"$ref": "#/$defs/pageIdentity"},
+        "x": {"type": "number", "minimum": 0},
+        "y": {"type": "number", "minimum": 0},
+        "width": {"type": "number", "exclusiveMinimum": 0},
+        "height": {"type": "number", "exclusiveMinimum": 0},
+        "coordinate_space": {"enum": ["pixels", "points", "normalized_0_1"]},
+        "source_width": {"type": "number", "exclusiveMinimum": 0},
+        "source_height": {"type": "number", "exclusiveMinimum": 0},
+        "conforms_to": {"type": "string", "format": "uri"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "coordinate_space": {"enum": ["pixels", "points"]}
+            },
+            "required": ["coordinate_space"]
+          },
+          "then": {"required": ["source_width", "source_height"]}
+        },
+        {
+          "if": {
+            "properties": {
+              "coordinate_space": {"const": "normalized_0_1"}
+            },
+            "required": ["coordinate_space"]
+          },
+          "then": {
+            "properties": {
+              "x": {"maximum": 1},
+              "y": {"maximum": 1},
+              "width": {"maximum": 1},
+              "height": {"maximum": 1}
+            }
+          }
+        }
+      ]
+    },
+    "containerMemberSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "member_path", "member_sha256", "member_media_type"],
+      "properties": {
+        "type": {"const": "container_member"},
+        "member_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "member_sha256": {"$ref": "#/$defs/sha256"},
+        "member_media_type": {"$ref": "#/$defs/mediaType"}
+      }
+    },
+    "fragmentSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value", "conforms_to"],
+      "properties": {
+        "type": {"const": "fragment"},
+        "value": {"type": "string", "minLength": 1},
+        "conforms_to": {"type": "string", "format": "uri"}
+      }
+    }
+  }
+}

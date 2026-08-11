@@ -131,6 +131,24 @@ The preferred bundle contains:
 If OCR changes, the visual region and old selector remain. A new text anchor
 may supersede the old one while preserving the relationship.
 
+An anchor's persistent identity, the immutable target file, the exact
+representation state, and the selector are separate. Text offsets count
+Unicode code points in logical order and use a half-open `[start,end)`
+interval; byte offsets use a different selector type. Every text selector
+declares the normalization and digest of the representation it addresses.
+Independent alternatives and an ordered refinement chain are never encoded as
+one ambiguous list. Mechanical resolution and human source-visible review are
+separate states.
+
+Copied quote text follows the rights and visibility of the exact layer it
+reproduces. A tracked nonpublic anchor therefore carries locators or a
+digest-bound receipt for an ignored private selector, not copied source text.
+A digest-only receipt is inspectable provenance but is not itself resolvable.
+The additive `tos_source_anchor_v2` contract exercises this law on public
+synthetic fixtures only. Existing `tos_source_anchor_v1` records retain their
+historical meaning until one concrete source question justifies a bounded
+successor; no bulk reinterpretation is permitted.
+
 ## Text-bearing layers
 
 The following layers never overwrite one another:

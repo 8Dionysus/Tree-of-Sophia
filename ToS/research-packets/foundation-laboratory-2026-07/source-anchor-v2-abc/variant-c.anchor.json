@@ -1,0 +1,84 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json",
+  "schema_version": "tos_source_anchor_v2",
+  "anchor_id": "tos.anchor.synthetic.source-anchor-v2.variant-c",
+  "passage_id": "tos.passage.synthetic.source-anchor-v2.variant-c",
+  "target": {
+    "item_id": "tos.item.synthetic.source-anchor-v2.variant-c",
+    "file_id": "tos.file.sha256.056f62fe0671c6cd93810f057cc377e5cfec104ab0b5c73d01f075cff897a76b",
+    "file_sha256": "056f62fe0671c6cd93810f057cc377e5cfec104ab0b5c73d01f075cff897a76b",
+    "media_type": "application/json"
+  },
+  "selector_payload": {
+    "kind": "selector_expression",
+    "expression": {
+      "mode": "refinement_chain",
+      "steps": [
+        {
+          "state": {
+            "state_type": "digest_state",
+            "representation_ref": "fixture:variant-c-container",
+            "representation_sha256": "056f62fe0671c6cd93810f057cc377e5cfec104ab0b5c73d01f075cff897a76b",
+            "media_type": "application/json"
+          },
+          "selector": {
+            "type": "container_member",
+            "member_path": "chapter.xhtml",
+            "member_sha256": "25bbb66fc23c16abe25feddc56a9855d3804c9cc6dd17c919f55dc8fc708b7f4",
+            "member_media_type": "application/xhtml+xml"
+          }
+        },
+        {
+          "state": {
+            "state_type": "digest_state",
+            "representation_ref": "fixture:variant-c-chapter",
+            "representation_sha256": "25bbb66fc23c16abe25feddc56a9855d3804c9cc6dd17c919f55dc8fc708b7f4",
+            "media_type": "application/xhtml+xml",
+            "character_normalization": "none"
+          },
+          "selector": {
+            "type": "structural",
+            "scheme": "xml_id",
+            "value": "p2",
+            "conforms_to": "https://www.w3.org/TR/xml-id/"
+          }
+        },
+        {
+          "state": {
+            "state_type": "digest_state",
+            "representation_ref": "fixture:variant-c-chapter",
+            "representation_sha256": "25bbb66fc23c16abe25feddc56a9855d3804c9cc6dd17c919f55dc8fc708b7f4",
+            "media_type": "application/xhtml+xml",
+            "character_normalization": "none"
+          },
+          "selector": {
+            "type": "text_position",
+            "start": 14,
+            "end": 23,
+            "position_unit": "unicode_code_point",
+            "interval": "half_open"
+          }
+        }
+      ]
+    }
+  },
+  "publication_boundary": {
+    "record_storage": "tracked",
+    "source_content_visibility": "public",
+    "source_text_in_record": false,
+    "public_payload_expected": true
+  },
+  "selector_method": {
+    "maker_type": "software",
+    "method": "tos-source-anchor-v2-lab-resolver",
+    "version": "1",
+    "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
+    "configuration_digest": "8c5792c69e896e53424c5bb8256e1d0fb082b93422ba06d3efb8430f53ad298d"
+  },
+  "resolution_status": "mechanically_resolved",
+  "review_status": "unreviewed",
+  "provenance_event_ref": "tos.event.annotation.source-anchor-v2-lab.2026-08-11",
+  "anchor_version": 1,
+  "supersedes_anchor_ref": null,
+  "review_ref": null
+}

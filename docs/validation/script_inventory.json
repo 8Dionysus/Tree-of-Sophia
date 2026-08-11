@@ -911,6 +911,8 @@
         "ToS/contracts/provenance-event.schema.json",
         "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
         "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
@@ -924,10 +926,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2 A/B/C, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only",
+      "side_effects": "validation output only; source-anchor v2 lab reports public synthetic selections and no source payload",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",
