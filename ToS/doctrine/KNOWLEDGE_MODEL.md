@@ -372,7 +372,10 @@ This seam stays:
 - non-authoritative in itself
 
 Its job is orientation, not ownership transfer.
-`aoa-kag` and `aoa-routing` may consume this route downstream, and the current public seam is already used that way, but they do not become ToS authority surfaces.
+`aoa-kag` and the `aoa-sdk` routing control plane may consume this route
+downstream. The routing control plane may retain `aoa-routing` as its stable
+compatibility namespace, but neither downstream system becomes a ToS authority
+surface.
 
 See [TINY_ENTRY_ROUTE](../zarathustra/public-entry/TINY_ENTRY_ROUTE.md)
 for the compact route surface.

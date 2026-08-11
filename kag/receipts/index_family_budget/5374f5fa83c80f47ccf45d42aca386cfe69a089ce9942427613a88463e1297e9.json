@@ -1,0 +1,17 @@
+{
+  "allowed_bytes": 1889923,
+  "allowed_tracked_bytes": 12246060,
+  "approved_by": "repository-owner",
+  "base_ref": "54be6f25a2272d02f119a16b1c75e8756decf900",
+  "changed_generated_bytes": 1889923,
+  "changed_generated_files": 58,
+  "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
+  "default_limit_bytes": 1048576,
+  "head_family_digest": "5374f5fa83c80f47ccf45d42aca386cfe69a089ce9942427613a88463e1297e9",
+  "reason": "Refresh the current Tree-of-Sophia tiny-entry downstream owner from the predecessor repository to the aoa-sdk routing control plane while preserving the stable aoa-routing compatibility namespace and historical review records; the already receipt-admitted corpus-foundation family remains above its standing cap and this source-linked refresh adds only 2872 tracked kag bytes.",
+  "repo": "Tree-of-Sophia",
+  "schema_version": "aoa-repo-local-kag-budget-receipt-v1",
+  "scope": "generated_delta_and_tracked_size",
+  "tracked_bytes": 12246060,
+  "tracked_bytes_max": 11534336
+}

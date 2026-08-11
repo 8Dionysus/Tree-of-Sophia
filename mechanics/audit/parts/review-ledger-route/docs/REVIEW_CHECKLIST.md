@@ -104,7 +104,9 @@ Answer each item with `yes`, `no`, or `not-applicable`.
 - If manual corpus-entry gating is present, does it keep bounded active source entry distinct from wider expansion?
 - If a tiny-entry route is present, does `README.md` remain the current public `tos-root` rather than being replaced by a derived surface?
 - If a tiny-entry route is present, do capsule and authority remain distinct rather than collapsing into one interchangeable surface?
-- If a tiny-entry route is present, does fallback stay inside ToS rather than pointing to `aoa-kag`, `aoa-routing`, or another downstream repository?
+- If a tiny-entry route is present, does fallback stay inside ToS rather than
+  pointing to `aoa-kag`, the `aoa-sdk` routing control plane, its
+  `aoa-routing` compatibility namespace, or another downstream repository?
 - If a tiny-entry route is present, does it stay bounded to one real authored node plus one bounded hop?
 - Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
 - If golden-kernel transfer is mentioned, can a new source reject the current
