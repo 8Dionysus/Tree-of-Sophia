@@ -4512,11 +4512,16 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 .get("model", {})
                 .get("model_id")
             )
-            research_refresh_name = (
-                "LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md"
-                if episode_model_id == "OpenVINO/Qwen3-8B-int4-ov"
-                else "LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md"
-            )
+            if episode_model_id == "OpenVINO/Qwen3-8B-int4-ov":
+                research_refresh_name = (
+                    "LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md"
+                )
+            elif episode_model_id == "google/madlad400-3b-mt":
+                research_refresh_name = "LOCAL_LLM_ADMISSION.md"
+            else:
+                research_refresh_name = (
+                    "LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md"
+                )
             expected_bindings = [
                 (
                     "citation_witness_decision",
@@ -4533,6 +4538,15 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     / research_refresh_name,
                 ),
             ]
+            if episode_model_id == "google/madlad400-3b-mt":
+                expected_bindings.append(
+                    (
+                        "specialized_mt_challenger_admission",
+                        repo_root
+                        / "ToS/research-packets/foundation-laboratory-2026-07/"
+                        / "SPECIALIZED_MT_CHALLENGER_ADMISSION_2026-08-10.md",
+                    )
+                )
             for field, expected_path in expected_bindings:
                 binding = admission.get(field)
                 if not isinstance(binding, dict):

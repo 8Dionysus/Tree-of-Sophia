@@ -1,8 +1,9 @@
 # Specialized DE→RU MT challenger admission — 2026-08-10
 
-Status: **research-selected; exact artifact acquisition, locked offline runtime,
-and source-free smoke executed and verified; private source execution and
-content judgment not yet performed**.
+Status: **research-selected and executed once; exact artifact acquisition,
+locked offline runtime, source-free smoke, one private candidate, independent
+surface floor, and bounded AI inspection are fixed; result retained as
+uncertain method evidence, not accepted translation**.
 
 This packet asks one bounded question created by preserved negative evidence:
 after the resident Gemma E2B/E4B and Qwen3 8B general-model candidates all
@@ -266,8 +267,8 @@ semantic meaning, signhood, graph truth, publication rights, or canon.
 
 ## Executed setup outcome — 2026-08-10/11 UTC
 
-The selected setup route has now crossed its mechanical gates without opening
-the private source lane.
+The selected setup route crossed its mechanical gates and then admitted one
+separately commit-bound private source episode.
 
 ### Acquisition
 
@@ -337,8 +338,42 @@ manual evidence-control finding that the original schema alone did not prove.
 
 The measured source-free peak raises the next private execution declaration to
 4,608 MiB. The owner resource gate remains authoritative and may still deny.
-No setup success authorizes source use, model publication, translation
-acceptance, or promotion.
+No setup success by itself authorizes source use, model publication,
+translation acceptance, or promotion.
+
+### One private source candidate
+
+After two unrelated host workloads ended naturally, profile
+`tos-zarathustra-specialized-translation-madlad400-3b-q4-candle-cpu-v1` at
+abyss-stack revision `0afa0517aa847a713681135321ff6a405158bbbf` passed its
+fresh exact-source, ToS commit, model, runtime, smoke, namespace, memory, load,
+and non-forced resource checks. The separate atomic owner launch then proved
+`resource=allow`, `storage=allow`, exact 10,485,760 requested output bytes, and
+`force=false` before starting the worker.
+
+The complete call took 979.291729 seconds. The pre-worker owner gate accounted
+for 901.152729 seconds; the atomic launch after that decision took 78.139
+seconds. The worker took 71.241677 seconds, including 2.651449428 seconds model
+load and 61.390189241 seconds generation for 36 source tokens and 33 generated
+tokens. The owner cgroup measured a 3,330,088,960-byte memory peak and a
+667,648-byte swap peak. This makes centralized storage admission, rather than
+decoding, the dominant observed wall cost of the episode.
+
+The private candidate is nonempty and schema-valid. Its run receipt SHA-256 is
+`4ccf62e1be5924cd4cb519c2261fd696b110491aee4783a6a5b150dcba65da14`;
+its candidate artifact SHA-256 is
+`1e76c0d0d3044fa373c5cdabdaffd1e1afdbc43931bcca8845df5707b08e8ff9`.
+Both artifacts and the source remain owner-only local files. The recognized
+translation was not revealed.
+
+The independent deterministic Russian-surface floor emitted zero findings and
+therefore returned `uncertain / retain-for-method-comparison`, never “passed”
+or “accepted.” A direct AI reading found the Russian surface fluent enough to
+avoid an obvious-defect rejection, while preserving three source-aware risks:
+explicit source repetition is compressed, historical source surface is
+normalized, and source syntax/cadence is smoothed. These are bounded AI risk
+signals, not human German competence or a translation-fidelity verdict. No
+human task was created.
 
 ## State at this research snapshot
 
@@ -348,13 +383,16 @@ acceptance, or promotion.
   retained manifest-admission negatives**;
 - source-free smoke executed: **yes, passed mechanically and independently
   closure/mode-checked**;
-- private source consumed by this method: **no**;
-- specialized candidate created: **no**;
+- private source consumed by this method: **yes, exactly one local-only admitted
+  episode**;
+- specialized candidate created: **1, private and retained as uncertain method
+  evidence**;
 - human task created: **no**;
 - accepted German units: **0**;
 - accepted translation packets: **0**;
 - semantic/graph/canon effects: **0**.
 
-This packet now records exact local model/runtime/smoke setup evidence and its
-failures. It is not a translation result, literary-quality verdict, publication
-decision, or promotion decision.
+This packet now records exact local model/runtime/smoke setup evidence, its
+failures, and one text-free private candidate outcome. It is not an accepted
+translation, literary-quality verdict, publication decision, or promotion
+decision.

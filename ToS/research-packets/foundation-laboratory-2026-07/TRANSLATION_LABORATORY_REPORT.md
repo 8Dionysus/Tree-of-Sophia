@@ -4,10 +4,10 @@ Status: source-review laboratory prepared and mechanically exercised; one
 bounded eKGWB citation witness admitted for private AI experiments; frozen A
 linked as a rejected AI-only candidate; deterministic Russian floor and
 source-free LanguageTool B executed; one specialized MADLAD model/runtime and
-source-free smoke admitted without private source use; accepted translation
-A/B/C not started
+source-free smoke admitted; one exact private MADLAD candidate retained as
+uncertain method evidence; accepted translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
-Report date: 2026-07-29
+Report date: 2026-08-11
 
 ## Result first
 
@@ -103,8 +103,19 @@ invented source-free DE→RU smoke in a new user+network namespace. The smoke
 used no private source, network, comparator, or force. A manual permission
 audit then caught one `0644` worker file inside the enclosing `0700` tree;
 mode was corrected to `0600` without a byte change and future output now fails
-closed on owner-only mode and complete artifact closure. No Nietzsche text was
-fed to MADLAD, so this is setup evidence, not a fourth translation candidate.
+closed on owner-only mode and complete artifact closure. At that checkpoint no
+Nietzsche text had been fed to MADLAD, so the smoke remained setup evidence.
+
+One later commit-bound episode admitted the same ignored German sentence after
+the unrelated host workloads ended. The atomic owner launch proved both
+resource and storage `allow`, exact bytes/target, and `force=false` before the
+worker began. It produced one schema-valid private candidate. The deterministic
+surface floor emitted zero findings and therefore retained the result as
+`uncertain`, not accepted. Bounded AI source-aware reading found a fluent
+Russian surface but recorded compressed lexical repetition, normalized
+historical surface, and smoothed source syntax/cadence. The comparator stayed
+sealed, human review remained zero, and no source or candidate text entered
+the tracked Tree.
 
 A later ordered research pass (classical and official Russian rules and
 corpora, established Russian GEC work, then current 2025--2026 diagnostic and
@@ -311,6 +322,7 @@ Successor episodes are deliberately outside the historical A/B/C comparison:
 | --- | --- | ---: | ---: | --- |
 | resident Gemma E4B, corrected route | schema-valid private candidate; obvious Russian-surface defects; rejected before human review | 288.737642 s / 256.656317 s | 544 / 542 evaluation runs | exact resident llama.cpp route; 11,505,102,848-byte owner cgroup memory peak; no quality or winner inference |
 | Qwen3 8B INT4, OVMS CPU | source-free smoke passed; schema-valid private candidate with exact source echo; obvious Russian-surface defects; rejected before human review | 206.546902 s / 177.709070 s | 496 / 860 | owner wrapper excluded the rootless model process, so model peak memory is explicitly unmeasured; launch thermal 101 C maximum |
+| MADLAD-400 3B q4, Candle CPU | schema-valid private candidate; zero deterministic surface findings; retained as uncertain with three source-aware AI risks | 979.291729 s complete / 71.241677 s worker | 36 / 33 | atomic owner resource/storage `allow`; 901.152729 s pre-worker gate; 3,330,088,960-byte memory and 667,648-byte swap peak; no human or quality authority |
 
 Against A on this single fixed runtime, B took 15.494% more wall time and
 produced completion tokens 9.651% more slowly. The visible partial Russian
@@ -443,6 +455,13 @@ owner service, including 6.293957121 seconds loading MADLAD and
 was 264.620562 seconds because current owner preflight dominated the tiny
 inference. Human translation time remains unmeasured.
 
+The one private MADLAD episode took 979.291729 seconds complete. Its
+pre-worker owner gate consumed 901.152729 seconds; the atomic launch after that
+decision took 78.139 seconds, and the worker took 71.241677 seconds. Model load
+was 2.651449428 seconds and generation was 61.390189241 seconds for 33 output
+tokens. This episode therefore measures owner admission as the dominant wall
+cost rather than hiding it inside model latency.
+
 ### Machine and storage cost
 
 The v2 materialization was admitted by `abyss-machine` as `medium/indexing`.
@@ -468,6 +487,12 @@ The source-free smoke peaked at 3,486.566 MiB with zero swap, so the next
 private execution declares 4,608 MiB before the owner independently decides
 whether it may start. None of these setup measurements is a translation
 quality result.
+
+The later private run was admitted at 4,608 MiB declared demand and measured a
+3,330,088,960-byte owner-cgroup peak plus 667,648 bytes swap. Its exact
+10,485,760-byte artifact request received atomic storage `allow` without force.
+These are method and host-cost observations, not evidence of translation
+quality.
 
 Monetary and energy cost remain unmeasured. Local wall time, token counts,
 artifact fixity, and before/after host snapshots exist; missing cost
@@ -506,10 +531,10 @@ Missing human time is not zero cost.
   effect, or establish translation quality. Keep model-process peak memory
   unmeasured rather than substituting the owner-wrapper cgroup value.
 - Retain the MADLAD acquisition, locked runtime, source-free smoke, permission
-  correction, and every failed setup attempt as one specialized method setup.
-  They authorize at most one future commit-bound private AI-only proposal;
-  they do not constitute a candidate, model winner, translation result, or
-  reason to create human work.
+  correction, every failed setup attempt, and the one private candidate as a
+  specialized method episode. Preserve its finding-free surface uncertainty,
+  source-aware AI risks, and owner-gate cost; do not treat it as a model winner,
+  accepted translation, or reason to create human work.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
 - Retain C as a single failed GPU-execution result whose source-free diagnosis
@@ -545,12 +570,12 @@ its Russian-surface failure prevents operator review. It must not be rerun for
 a greener candidate or treated as evidence that the blocked 4B GPU route is
 healthy.
 
-The specialized MADLAD setup may now proceed only through its separately
-frozen profile and a fresh owner preflight. That run must preserve the earlier
-negative receipts, source/comparator sealing, exact model/runtime/smoke
-digests, one-string output contract, and 4,608-MiB declared demand. It stops at
-the Russian-surface floor unless a genuinely unresolved comparison question
-survives; setup success alone does not justify operator review.
+The specialized MADLAD episode is now closed at one candidate. Its exact
+profile, owner admission, source/comparator sealing, model/runtime/smoke
+digests, one-string contract, surface-floor uncertainty, and AI risk screen are
+retained. It must not be rerun merely to obtain a different wording or a
+greener surface. A future specialized experiment requires a new question and
+fresh evidence; this result does not justify operator review.
 
 In parallel, the next authority-bearing source action remains
 question-triggered: prefer an authenticated or institutionally supplied copy
@@ -568,10 +593,11 @@ translation method capable of preserving source, alternatives, etymological
 evidence, and comparator influence, plus one exact calibration-only input.
 That input has three frozen historical machine outcomes—one poor
 contract-complete candidate, one truncated invalid output, and one GPU runtime
-failure—and three later successor episodes: an E4B pre-candidate
+failure—and three later general-model successor episodes: an E4B pre-candidate
 infrastructure failure, an E4B Russian-surface rejection, and a Qwen3 8B CPU
-Russian-surface rejection. A later specialized MADLAD setup has exact
-model/runtime/smoke evidence but has consumed no private source and produced no
-fourth candidate. The laboratory has yielded three admission-linked negative
-experimental candidates in total. It has not been translated through an
+Russian-surface rejection. The specialized MADLAD route adds exact
+model/runtime/smoke evidence and one fourth private candidate, retained as
+uncertain rather than rejected or accepted. The laboratory has therefore
+yielded three admission-linked rejected experimental candidates and one
+uncertain specialized candidate. It has not been translated through an
 accepted lane or yielded one accepted German or translation unit.

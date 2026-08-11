@@ -87,6 +87,11 @@ EXPERIMENTAL_TRANSLATION_REJECTION_EPISODE_PATH = (
     GOLD_ROOT
     / "experimental-translation-episode.e4b-direct.russian-surface-rejection.v1.json"
 )
+EXPERIMENTAL_TRANSLATION_UNCERTAIN_EPISODE_PATH = (
+    GOLD_ROOT
+    / "experimental-translation-episode."
+    "madlad400-3b-candle-cpu.uncertain-retention.v1.json"
+)
 EKGWB_RIGHTS_PATH = (
     GOLD_ROOT / "rights.ekgwb.za-i-vorrede-1.v1.json"
 )
@@ -9685,9 +9690,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
+        uncertain = json.loads(
+            EXPERIMENTAL_TRANSLATION_UNCERTAIN_EPISODE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
 
         self.assertEqual([], list(validator.iter_errors(failure)))
         self.assertEqual([], list(validator.iter_errors(rejection)))
+        self.assertEqual([], list(validator.iter_errors(uncertain)))
         self.assertEqual("failed-and-retained", failure["status"])
         self.assertIsNone(failure["private_run"]["candidate_artifact"])
         self.assertEqual(
@@ -9708,6 +9719,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             542,
             rejection["measurements"]["generation"]["completion_eval_runs"],
+        )
+        self.assertEqual(
+            "frozen-ai-only-experimental-candidate", uncertain["status"]
+        )
+        self.assertEqual(
+            "retain-for-method-comparison",
+            uncertain["outcome"]["disposition"],
+        )
+        self.assertEqual(
+            "uncertain", uncertain["outcome"]["russian_surface_posture"]
+        )
+        self.assertEqual(0, uncertain["outcome"]["surface_finding_count"])
+        self.assertEqual(3, len(uncertain["outcome"]["source_aware_risk_ids"]))
+        self.assertFalse(uncertain["outcome"]["human_review_created"])
+        self.assertEqual(
+            0, uncertain["gate_effects"]["accepted_translation_packets"]
         )
 
         prospective = copy.deepcopy(rejection)
@@ -9745,6 +9772,26 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         false_promotion = copy.deepcopy(rejection)
         false_promotion["gate_effects"]["accepted_translation_packets"] = 1
         self.assertTrue(list(validator.iter_errors(false_promotion)))
+
+        missing_specialized_admission = copy.deepcopy(uncertain)
+        del missing_specialized_admission["admission"][
+            "specialized_mt_challenger_admission"
+        ]
+        self.assertTrue(list(validator.iter_errors(missing_specialized_admission)))
+
+        missing_source_risk = copy.deepcopy(uncertain)
+        missing_source_risk["outcome"]["source_aware_risk_ids"] = []
+        self.assertTrue(list(validator.iter_errors(missing_source_risk)))
+
+        false_uncertain_promotion = copy.deepcopy(uncertain)
+        false_uncertain_promotion["outcome"]["disposition"] = (
+            "advance-to-human-review"
+        )
+        self.assertTrue(list(validator.iter_errors(false_uncertain_promotion)))
+
+        mixed_runtime_uncertainty = copy.deepcopy(rejection)
+        mixed_runtime_uncertainty["outcome"] = uncertain["outcome"]
+        self.assertTrue(list(validator.iter_errors(mixed_runtime_uncertainty)))
 
     def test_manual_gold_assurance_schedule_partitions_packet_without_promotion(
         self,

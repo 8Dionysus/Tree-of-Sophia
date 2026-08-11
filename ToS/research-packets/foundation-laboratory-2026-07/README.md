@@ -47,8 +47,11 @@ JP2, and 525-leaf scandata evidence while preserving distinct-Item,
 no-textual-identity, local-only, and no-upload boundaries; the specialized
 DE→RU MT continuation then selected MADLAD-400 3B q4 from ordered current
 research and completed exact acquisition, a locked offline Candle runtime,
-preserved admission failures, and a source-free no-network smoke without
-consuming the private source or creating a human task
+preserved admission failures, a source-free no-network smoke, and one exact
+non-forced private-source episode. Its candidate survived the deterministic
+Russian-surface floor but remains `uncertain`, retained only for method
+comparison with three bounded AI risk labels and no human task, accepted text,
+semantic, graph, canon, production, or publication authority
 
 Owner route: `ToS/research-packets/AGENTS.md`
 
@@ -107,7 +110,7 @@ and what must be tested manually.
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_REFRESH_2026-08-08.md` | Which exact resident translation successor is justified after current official -> established -> freshest research, and why it remains one private capacity probe outside the closed historical A/B/C? |
 | `LOCAL_LLM_TRANSLATION_CANDIDATE_RESULT_2026-08-08.md` | What did the resident E4B probe actually cost and produce; why is the first failure retained as infrastructure evidence, the candidate rejected before human review, and the reusable method kept without translation or semantic promotion? |
 | `LOCAL_LLM_TRANSLATION_QWEN3_8B_CPU_REFRESH_2026-08-08.md` | Why the already-local official Qwen3-8B INT4 artifact enters only as a separately isolated CPU challenger after both Gemma surface rejections, with a source-free smoke, no live-service mutation, no GPU re-entry, and no content authority? |
-| `SPECIALIZED_MT_CHALLENGER_ADMISSION_2026-08-10.md` | Why direct DE→RU evidence selects one exact MADLAD-400 3B q4/Candle challenger after three general-model surface rejections; what its exact acquisition, locked offline runtime, retained failures, source-free smoke, resource/mode audit, and provenance ceiling actually prove; and why private source, human attention, translation quality, publication, semantics, graph, and canon remain closed? |
+| `SPECIALIZED_MT_CHALLENGER_ADMISSION_2026-08-10.md` | Why direct DE→RU evidence selected one exact MADLAD-400 3B q4/Candle challenger after three general-model surface rejections; what its acquisition, locked runtime, retained failures, smoke, atomic owner admission, one private candidate, exact measurements, uncertain surface-floor outcome, and AI risk screening prove; and why accepted translation, human attention, publication, semantics, graph, and canon remain closed? |
 | `RUSSIAN_SURFACE_QUALITY_FLOOR_RESEARCH_2026-08-08.md` | Which official, established, and freshest Russian GEC/acceptability evidence supports a source-blind pre-human filter; why its first executable layer is per-rule, asymmetric, deterministic, and text-free; what nine A controls and two private successor receipts proved; what the executed 36-control pinned offline LanguageTool B and Qwen3.5 GEC C added, missed, damaged, cost, and still cannot authorize; why C is rejected as a mandatory or autonomous correction stage; and why a clean result remains uncertain? |
 | `HISTORICAL_GERMAN_MORPHOLOGY_ADMISSION.md` | Which exact surface, normalization, lemma, POS, morphology, and review layers must remain distinct; what the executed exhaustive DWDSmor A census actually measured; and why its reproducible coverage and residue still create no accepted morphology, lexeme, B/C task, or human backlog? |
 | `HISTORICAL_GERMAN_MORPHOLOGY_B_ARTIFACT_ADMISSION_2026-08-10.md` | Why the frozen B research packet remains immutable; what the exact private ZDL acquisition cost and closed; why the artifact trust gate denied runtime admission; and why no runtime, B output, linguistic result, or downstream authority exists? |

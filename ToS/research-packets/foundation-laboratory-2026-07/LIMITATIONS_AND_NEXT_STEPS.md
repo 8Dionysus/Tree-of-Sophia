@@ -60,9 +60,10 @@ source, candidate, and private paths remain untracked, model-process peak
 memory remains unmeasured, and every German, translation, semantic, human,
 graph, publication, and canon effect remains zero.
 
-The next specialized-MT question has reached setup admission, not a translation
-result. The exact Apache-2.0 `google/madlad400-3b-mt` Q4 GGUF revision and its
-tokenizer/config closure were acquired into host-owned cache; a source-locked
+The specialized-MT question has now reached one private candidate, not an
+accepted translation result. The exact Apache-2.0 `google/madlad400-3b-mt` Q4
+GGUF revision and its tokenizer/config closure were acquired into host-owned
+cache; a source-locked
 Candle 0.11.0 CPU runner was built, its failed compile and two failed manifest
 admission attempts were retained, and the corrected 9,667,291-byte runtime
 manifest now verifies independently. One network-disabled, source-free smoke
@@ -72,11 +73,18 @@ and therefore proves only decoding sanity. The owner launch measured
 zero swap, and no force; complete caller wall was 264.620562 seconds. Manual
 post-smoke inspection caught a mode-0644 worker output despite green mechanics;
 the retained artifact was corrected to 0600, and future admission now verifies
-the complete artifact closure and owner-only modes. No private source,
-translation candidate, Russian-surface decision, human task, accepted lane,
-semantic effect, or production/public artifact admission exists. The next
-eligible action is one commit-bound, fresh-gated private candidate with
-4,608 MiB declared memory and an immediate Russian-surface floor.
+the complete artifact closure and owner-only modes.
+
+The later commit-bound private run received exact non-forced atomic resource
+and storage `allow` and produced one schema-valid local-only candidate. Complete
+wall was 979.291729 seconds, dominated by a 901.152729-second pre-worker owner
+gate; the worker took 71.241677 seconds and peaked at 3,330,088,960 bytes RAM
+plus 667,648 bytes swap. The deterministic floor emitted zero findings and
+therefore retained `uncertain`, while bounded AI reading recorded compressed
+source repetition, normalized historical surface, and smoothed syntax/cadence.
+No human task, accepted lane, semantic effect, or production/public artifact
+admission exists. The episode is closed and must not be rerun for a different
+wording.
 
 The next Russian-surface method step has now been executed without touching
 those private candidates. Deterministic A and one pinned offline LanguageTool
@@ -170,8 +178,8 @@ or publication route.
 | --- | --- | --- | --- |
 | 15-page OCR/structure exact-gold option | private 41-page packet, two blind workbooks, preserved Workbench autosave, `HUMAN_GOLD_REVIEW_PACKET.md` | one rare un-attested calibration observation preserved; 14 units unscheduled; human debt 0; accepted gold 0 | exact-gold metrics remain unavailable, but the packet is not an active human backlog |
 | 30-unit German source-acceptance option | private v2 packet, two workbooks, blank JSONL | pass 1: 0; pass 2: 0; accepted: 0; all 30 rows unscheduled; human debt 0; solo reviewer is visual-only | the packet remains reusable evidence, not a backlog; a later task opens only the exact source unit it needs, and the current reviewer cannot establish German fidelity, orthography, grammar, semantics, or translation |
-| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, one digest-bound citation-witness decision packet, one historical text-free experimental-candidate receipt, two candidate-bearing successor episode receipts, one successor infrastructure-failure receipt, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; historical admitted candidates: 1; successor infrastructure episodes: 1; successor candidate episodes: 2; citation decision closed at `human_admitted_with_limits`; routine German backlog: 0; accepted German: 0; admitted critical citation witnesses: 1; open experimental lanes: `ai_only`, `ai_human`; human-only lane: closed | the decision establishes only edition-typed citation use within the declared private limits, not a German-language judgment. Unauthenticated owner transport, archive non-validation, German-competent acceptance, public sharing, publication, and every promotion route remain open |
-| bounded translation-method calibration | one ignored 20-token DTA-derived source string, a tracked text-free admission packet, one historical admission-linked candidate receipt, a reusable successor-episode contract, and one exact specialized-MT setup packet | eligible local inputs: 1; historical A frozen schema-valid but Russian-defective and rejected before human review; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; E4B episode 1 retained as a pre-candidate infrastructure failure; E4B episode 2 and Qwen3 8B CPU are schema-valid but Russian-defective and rejected before human review; experimental AI-only candidates: 3; specialized model acquisitions: 1; specialized runtimes: 1; specialized source-free smokes: 1; specialized private-source candidates: 0; human-review tasks: 0; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, resource use, runtime failures, and Russian-surface rejections still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or either GPU/runtime root cause; specialized setup and invented-text decoding do not add a fourth candidate |
+| German solo+AI assisted route | ordered research, typed five-lane plan, one metadata-only eKGWB locator, one reconciled local-only HTTP acquisition, one text-free eKGWB/DTA/Naumann triangulation packet, one FCT/FCCN WARC-backed historical corroboration receipt, one current private-use rights record, one digest-bound citation-witness decision packet, one historical text-free experimental-candidate receipt, three candidate-bearing successor episode receipts, one successor infrastructure-failure receipt, and four exact DTA source-structured part witnesses | prepared units: 30; selected: 1; machine-triangulated: 1; institutional archive corroborations: 1; exact normalized eKGWB↔DTA paragraph/token comparisons: 1; historical admitted candidates: 1; successor infrastructure episodes: 1; successor candidate episodes: 3, of which two rejected and one uncertain; citation decision closed at `human_admitted_with_limits`; routine German backlog: 0; accepted German: 0; admitted critical citation witnesses: 1; open experimental lanes: `ai_only`, `ai_human`; human-only lane: closed | the decision establishes only edition-typed citation use within the declared private limits, not a German-language judgment. Unauthenticated owner transport, archive non-validation, German-competent acceptance, public sharing, publication, and every promotion route remain open |
+| bounded translation-method calibration | one ignored 20-token DTA-derived source string, a tracked text-free admission packet, one historical admission-linked candidate receipt, a reusable multi-runtime episode contract, and one exact specialized-MT setup/outcome packet | eligible local inputs: 1; historical A frozen schema-valid but Russian-defective and rejected before human review; B frozen invalid output; C frozen after an i915 GPU hang/context reset without candidate; E4B episode 1 retained as a pre-candidate infrastructure failure; E4B episode 2 and Qwen3 8B CPU are schema-valid but Russian-defective and rejected before human review; MADLAD/Candle returned one schema-valid finding-free but uncertain candidate with three source-aware AI risks; experimental AI-only candidates: 4; specialized model acquisitions: 1; specialized runtimes: 1; specialized source-free smokes: 1; specialized private-source candidates: 1; human-review tasks: 0; accepted German: 0; accepted translation lanes: 0 | measured machine method, speed, resource use, runtime failures, surface rejections, and finding-free uncertainty still cannot establish German correctness, translation fidelity, rights clearance, semantics, canon, or either GPU/runtime root cause; the fourth candidate is retained for method comparison only |
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
@@ -1249,18 +1257,18 @@ artifacts without model reruns. None is open for cosmetic reruns.
    and AI-only Russian-surface rejection, do not substitute owner-wrapper
    memory for unmeasured model-process memory, and do not rerun it for human
    interface exercise or a greener output.
-10. Preserve the specialized MADLAD setup as setup evidence only. Retain the
+10. Preserve the specialized MADLAD setup and one private candidate as bounded
+    method evidence only. Retain the
     exact model/config/tokenizer closure, source-locked Candle runner, compile
     failure, invalid-environment manifest, failed authority-boundary repair,
     corrected manifest, source-free smoke, and post-smoke 0644-to-0600 mode
-    finding. Do not call the invented sentence a translation-quality control
-    or production admission. A first private run requires a profile bound to
-    the current Tree commit and exact runner/CLI digests, a fresh owner gate
-    without force, 4,608 MiB declared memory, one source string, and immediate
-    deterministic Russian-surface triage. If it does not survive that floor,
-    retain the negative candidate and create no human task; if it survives,
-    it remains only `uncertain` and still supplies no German competence,
-    fidelity, etymology, semantics, or promotion.
+    finding. Retain the exact non-forced atomic owner admission, 901.152729-
+    second pre-worker gate, schema-valid candidate, finding-free surface floor,
+    and three source-aware AI risks. Do not call the invented sentence a
+    translation-quality control or the private candidate a production or
+    translation admission. The episode is closed at `uncertain`; do not rerun
+    it for another wording or create a human task. It supplies no German
+    competence, fidelity, etymology, semantics, or promotion.
 11. Retain the deterministic Russian-surface floor as an asymmetric early
     rejection method. Its nine invented controls and two digest-bound private
     receipts prove the current high-precision and advisory rules only. A
@@ -1473,11 +1481,11 @@ from the calibration-only route in section 2b.
 | real pages and text manually checked | partial: one source-visible, method-blind solo-human candidate-review pass covered 10 Russian pages and 30 candidate observations; it is not diplomatic gold or accepted text |
 | minimum real-human gold set | incomplete: 0 / 15 |
 | accepted German source | incomplete: 0 / 30 |
-| translation decisions with alternatives and etymology | accepted lifecycle contract and exact-address etymology A/B/C evidence route prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; the specialized MADLAD/Candle route adds one exact acquisition, one repaired runtime, and one invented-text source-free smoke but no private-source candidate or quality decision; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
+| translation decisions with alternatives and etymology | accepted lifecycle contract and exact-address etymology A/B/C evidence route prepared; one calibration-only input admitted, historical machine A/B/C executed, and E4B plus Qwen3 8B CPU successor candidates rejected by AI surface triage; a separate deterministic source-blind floor reproduced both rejections without rerunning the models, and the later 36-control pinned LanguageTool B plus source-free Qwen3.5 GEC C added advisory and quality-negative evidence without changing an A/B disposition or touching private candidates; the specialized MADLAD/Candle route adds exact acquisition, one repaired runtime, one source-free smoke, and one private-source candidate retained as finding-free but uncertain with three source-aware AI risks; none can admit a clean candidate; no accepted source, accepted lane, human adjudication, etymological comparison, or translation decision |
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the contextual ZDL B acquisition took 356.746 s with a 2.1 GiB peak and zero swap but produced no runtime or model-quality evidence; the specialized MADLAD setup adds a 1,654,597,280-byte model, a 9,667,291-byte runtime, 13.377 seconds source-free service time, 264.620562 seconds complete caller wall, 3,486.566 MiB peak memory, zero swap, and no translation-quality or human-cost observation; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; one real-human OCR candidate-review pass recorded 8,334 seconds, but display position, page difficulty, and the single pass confound method comparison; monetary, energy, stable correction cost, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the contextual ZDL B acquisition took 356.746 s with a 2.1 GiB peak and zero swap but produced no runtime or model-quality evidence; the specialized MADLAD route adds a 1,671,227,060-byte three-file model set, a 9,667,291-byte runtime, a 264.620562-second source-free caller episode, and one 979.291729-second private call dominated by a 901.152729-second owner gate; its worker took 71.241677 seconds and peaked at 3,330,088,960 bytes RAM plus 667,648 bytes swap; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; one real-human OCR candidate-review pass recorded 8,334 seconds, but display position, page difficulty, and the single pass confound method comparison; monetary, energy, stable correction cost, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes and the contextual B input is reproducibly materialized, but B has no output and C is question-inapplicable; Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |

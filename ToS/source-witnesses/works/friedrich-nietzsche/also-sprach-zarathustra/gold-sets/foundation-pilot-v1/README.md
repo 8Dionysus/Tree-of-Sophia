@@ -112,6 +112,20 @@ Zarathustra golden kernel. It is not a completed gold set.
   semantic object, graph assertion, publication route, or canon effect enters
   the tracked tree. The owner-wrapper memory number explicitly excludes the
   rootless OVMS model process and is therefore not reported as model peak.
+- `experimental-translation-episode.madlad400-3b-candle-cpu.uncertain-retention.v1.json`
+  records the separately admitted specialized-MT successor after exact
+  model/runtime fixity and fresh non-forced atomic resource and storage
+  admission. One source-locked private candidate survived the deterministic
+  Russian-surface floor with zero findings but remains `uncertain`, retained
+  only for method comparison. Three source-aware AI risk labels preserve
+  possible repetition compression, historical-surface normalization, and
+  syntax/cadence smoothing without claiming German competence or translation
+  fidelity. The companion
+  `provenance.experimental-translation-episodes.madlad400-3b-candle-cpu.jsonl`
+  binds the run, candidate, floor, schema, research, and result only by digest.
+  No private path or text, recognized comparator, human task, accepted German,
+  accepted translation, semantic object, graph assertion, publication route,
+  or canon effect enters the tracked tree.
 - `bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json`
   admits one deterministically selected 20-token DTA sentence to local blind
   machine-method calibration. Its source-bearing companion is gitignored; the

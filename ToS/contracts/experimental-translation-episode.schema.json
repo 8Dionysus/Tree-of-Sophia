@@ -62,7 +62,10 @@
       "properties": {
         "citation_witness_decision": {"$ref": "#/$defs/digestBoundRef"},
         "current_source_return_overlay": {"$ref": "#/$defs/digestBoundRef"},
-        "ordered_research_refresh": {"$ref": "#/$defs/digestBoundRef"}
+        "ordered_research_refresh": {"$ref": "#/$defs/digestBoundRef"},
+        "specialized_mt_challenger_admission": {
+          "$ref": "#/$defs/digestBoundRef"
+        }
       }
     },
     "method_freeze": {
@@ -100,25 +103,22 @@
         "model": {
           "oneOf": [
             {"$ref": "#/$defs/singleFileModel"},
-            {"$ref": "#/$defs/directoryTreeModel"}
+            {"$ref": "#/$defs/directoryTreeModel"},
+            {"$ref": "#/$defs/specializedMtModel"}
           ]
         },
         "runtime": {
           "oneOf": [
             {"$ref": "#/$defs/llamaRuntime"},
-            {"$ref": "#/$defs/ovmsRuntime"}
+            {"$ref": "#/$defs/ovmsRuntime"},
+            {"$ref": "#/$defs/specializedMtRuntime"}
           ]
         },
         "decoding": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["temperature", "top_p", "seed", "max_tokens"],
-          "properties": {
-            "temperature": {"type": "number", "minimum": 0},
-            "top_p": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
-            "seed": {"type": "integer"},
-            "max_tokens": {"type": "integer", "minimum": 1}
-          }
+          "oneOf": [
+            {"$ref": "#/$defs/generativeDecoding"},
+            {"$ref": "#/$defs/specializedMtDecoding"}
+          ]
         }
       }
     },
@@ -167,13 +167,15 @@
     "outcome": {
       "oneOf": [
         {"$ref": "#/$defs/failureOutcome"},
-        {"$ref": "#/$defs/triageOutcome"}
+        {"$ref": "#/$defs/triageOutcome"},
+        {"$ref": "#/$defs/uncertainOutcome"}
       ]
     },
     "measurements": {
       "oneOf": [
         {"$ref": "#/$defs/llamaMeasurements"},
-        {"$ref": "#/$defs/ovmsMeasurements"}
+        {"$ref": "#/$defs/ovmsMeasurements"},
+        {"$ref": "#/$defs/specializedMtMeasurements"}
       ]
     },
     "rights_and_visibility": {
@@ -250,13 +252,73 @@
               "candidate_artifact": {"$ref": "#/$defs/privateDigestRef"}
             }
           },
-          "outcome": {"$ref": "#/$defs/triageOutcome"},
+          "outcome": {
+            "oneOf": [
+              {"$ref": "#/$defs/triageOutcome"},
+              {"$ref": "#/$defs/uncertainOutcome"}
+            ]
+          },
           "gate_effects": {
             "properties": {
               "infrastructure_failures_retained": {"const": 0},
               "ai_only_experimental_candidates_recorded": {"const": 1}
             }
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "method_freeze": {
+            "properties": {
+              "model": {
+                "properties": {
+                  "model_id": {"const": "google/madlad400-3b-mt"}
+                },
+                "required": ["model_id"]
+              }
+            },
+            "required": ["model"]
+          }
+        },
+        "required": ["method_freeze"]
+      },
+      "then": {
+        "properties": {
+          "admission": {
+            "required": ["specialized_mt_challenger_admission"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "properties": {
+              "kind": {
+                "const": "candidate-retained-after-ai-surface-and-source-aware-inspection"
+              }
+            },
+            "required": ["kind"]
+          }
+        },
+        "required": ["outcome"]
+      },
+      "then": {
+        "properties": {
+          "admission": {
+            "required": ["specialized_mt_challenger_admission"]
+          },
+          "method_freeze": {
+            "properties": {
+              "model": {"$ref": "#/$defs/specializedMtModel"},
+              "runtime": {"$ref": "#/$defs/specializedMtRuntime"},
+              "decoding": {"$ref": "#/$defs/specializedMtDecoding"}
+            }
+          },
+          "measurements": {"$ref": "#/$defs/specializedMtMeasurements"}
         }
       }
     }
@@ -361,6 +423,34 @@
         "quantization": {"type": "string", "minLength": 1}
       }
     },
+    "specializedMtModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "upstream_revision",
+        "license",
+        "provenance_posture",
+        "artifact_kind",
+        "artifact_file_count",
+        "artifact_size_bytes",
+        "artifact_set_sha256",
+        "primary_weight_sha256"
+      ],
+      "properties": {
+        "model_id": {"const": "google/madlad400-3b-mt"},
+        "upstream_revision": {"type": "string", "minLength": 1},
+        "license": {"const": "Apache-2.0"},
+        "provenance_posture": {
+          "const": "upstream-namespace-community-conversion-disclosed"
+        },
+        "artifact_kind": {"const": "multi-file-model-set"},
+        "artifact_file_count": {"type": "integer", "minimum": 1},
+        "artifact_size_bytes": {"type": "integer", "minimum": 1},
+        "artifact_set_sha256": {"$ref": "#/$defs/sha256"},
+        "primary_weight_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "llamaRuntime": {
       "type": "object",
       "additionalProperties": false,
@@ -449,6 +539,63 @@
         "generation_schema_mode": {"type": "string", "minLength": 1}
       }
     },
+    "specializedMtRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_mode",
+        "runtime_id",
+        "backend",
+        "device",
+        "runtime_manifest_sha256",
+        "runtime_artifact_set_sha256",
+        "runtime_artifact_file_count",
+        "runtime_size_bytes",
+        "source_free_smoke_sha256",
+        "network_namespace"
+      ],
+      "properties": {
+        "runtime_mode": {"const": "candle-cpu-local"},
+        "runtime_id": {"const": "madlad-candle-0.11.0-cpu"},
+        "backend": {"const": "Candle 0.11.0 GGUF T5"},
+        "device": {"const": "CPU"},
+        "runtime_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_artifact_set_sha256": {"$ref": "#/$defs/sha256"},
+        "runtime_artifact_file_count": {"type": "integer", "minimum": 1},
+        "runtime_size_bytes": {"type": "integer", "minimum": 1},
+        "source_free_smoke_sha256": {"$ref": "#/$defs/sha256"},
+        "network_namespace": {
+          "const": "new-user-and-network-namespace-no-loopback"
+        }
+      }
+    },
+    "generativeDecoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperature", "top_p", "seed", "max_tokens"],
+      "properties": {
+        "temperature": {"type": "number", "minimum": 0},
+        "top_p": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "seed": {"type": "integer"},
+        "max_tokens": {"type": "integer", "minimum": 1}
+      }
+    },
+    "specializedMtDecoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temperature",
+        "repeat_penalty",
+        "max_source_tokens",
+        "max_new_tokens"
+      ],
+      "properties": {
+        "temperature": {"const": 0.0},
+        "repeat_penalty": {"const": 1.0},
+        "max_source_tokens": {"type": "integer", "minimum": 1},
+        "max_new_tokens": {"type": "integer", "minimum": 1}
+      }
+    },
     "failureOutcome": {
       "type": "object",
       "additionalProperties": false,
@@ -513,6 +660,52 @@
         },
         "useful_uncertainty_preserved": {"type": "boolean"},
         "disposition": {"const": "reject-before-human-review"},
+        "human_review_created": {"const": false}
+      }
+    },
+    "uncertainOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "candidate_present",
+        "surface_floor",
+        "scope",
+        "run_integrity_verified",
+        "output_contract_valid",
+        "source_identity_exact",
+        "russian_surface_posture",
+        "surface_finding_count",
+        "source_aware_risk_ids",
+        "useful_uncertainty_preserved",
+        "disposition",
+        "human_review_created"
+      ],
+      "properties": {
+        "kind": {
+          "const": "candidate-retained-after-ai-surface-and-source-aware-inspection"
+        },
+        "candidate_present": {"const": true},
+        "surface_floor": {"$ref": "#/$defs/privateDigestRef"},
+        "scope": {
+          "const": "russian-surface-plus-ai-source-aware-risk-screen-no-human-german-competence"
+        },
+        "run_integrity_verified": {"const": true},
+        "output_contract_valid": {"const": true},
+        "source_identity_exact": {"const": true},
+        "russian_surface_posture": {"const": "uncertain"},
+        "surface_finding_count": {"const": 0},
+        "source_aware_risk_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "useful_uncertainty_preserved": {"const": true},
+        "disposition": {"const": "retain-for-method-comparison"},
         "human_review_created": {"const": false}
       }
     },
@@ -647,6 +840,88 @@
         },
         "model_process_peak_bytes": {"type": "null"},
         "model_memory_measurement_status": {"const": "not-captured-by-owner-wrapper"},
+        "monetary_cost": {"const": "unmeasured-local-execution"},
+        "energy_cost": {"const": "unmeasured"},
+        "human_correction_seconds": {"const": "not-incurred"},
+        "quality_cost_speed_are_separate_dimensions": {"const": true}
+      }
+    },
+    "specializedMtMeasurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_mode",
+        "overall_wall_seconds",
+        "pre_worker_owner_gate_seconds",
+        "atomic_owner_launch_elapsed_seconds",
+        "worker_wall_seconds",
+        "model_load_seconds",
+        "generation_seconds",
+        "owner_systemd",
+        "generation_usage",
+        "atomic_storage",
+        "host_before",
+        "host_after",
+        "monetary_cost",
+        "energy_cost",
+        "human_correction_seconds",
+        "quality_cost_speed_are_separate_dimensions"
+      ],
+      "properties": {
+        "measurement_mode": {
+          "const": "candle-cpu-with-atomic-owner-storage-gate-v1"
+        },
+        "overall_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "pre_worker_owner_gate_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "atomic_owner_launch_elapsed_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "worker_wall_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "model_load_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "generation_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "owner_systemd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "service_runtime",
+            "cpu_time_consumed",
+            "memory_peak_bytes",
+            "memory_swap_peak_bytes"
+          ],
+          "properties": {
+            "result": {"const": "success"},
+            "service_runtime": {"type": "string", "minLength": 1},
+            "cpu_time_consumed": {"type": "string", "minLength": 1},
+            "memory_peak_bytes": {"type": "integer", "minimum": 0},
+            "memory_swap_peak_bytes": {"type": "integer", "minimum": 0}
+          }
+        },
+        "generation_usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_tokens", "generated_tokens"],
+          "properties": {
+            "source_tokens": {"type": "integer", "minimum": 0},
+            "generated_tokens": {"type": "integer", "minimum": 0}
+          }
+        },
+        "atomic_storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decision", "bytes_required", "forced"],
+          "properties": {
+            "decision": {"const": "allow"},
+            "bytes_required": {"type": "integer", "minimum": 1},
+            "forced": {"const": false}
+          }
+        },
+        "host_before": {"$ref": "#/$defs/hostSnapshot"},
+        "host_after": {"$ref": "#/$defs/hostSnapshot"},
         "monetary_cost": {"const": "unmeasured-local-execution"},
         "energy_cost": {"const": "unmeasured"},
         "human_correction_seconds": {"const": "not-incurred"},
