@@ -116,6 +116,19 @@ reviewed, rights-cleared, publishable, semantic, or canonical. Provenance v2 is
 additive; legacy v1 events are migrated only for a concrete return-to-source or
 reproducibility question.
 
+The semantic layer is stand-off and assertion-first. A source occurrence may
+be stable at one exact anchor, while a lexeme, lexical sense, sign, concept,
+translation correspondence, or relation remains a separately identified and
+revisable proposal. Their opaque IDs do not encode the current label or
+translation. Every semantic claim names its maker, time, method, evidence
+direction, source anchors, certainty meaning, alternatives, status, and review
+refs. A sign becomes accepted only through a rare source-visible real-human
+promotion checkpoint with declared competence and an unassisted baseline
+frozen before model suggestions. A graph edge is downstream of an accepted
+relation and accepted supporting claim; it is never a shortcut around them.
+The public synthetic semantic-annotation v2 laboratory proves these closure
+and rejection mechanics without creating any accepted semantic object.
+
 Institutional catalogue metadata follows the same attribution law. A control
 number keeps its native scheme; a holding statement keeps both the reporting
 catalogue and the reported holding institution. Thus an RNL field may verify

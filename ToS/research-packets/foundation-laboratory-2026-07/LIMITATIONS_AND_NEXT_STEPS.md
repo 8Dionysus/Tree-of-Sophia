@@ -51,6 +51,19 @@ text, a translation, a semantic sign, a philosophical relation, a quality
 winner, or a successful golden-kernel transfer. Those are not small missing
 fields. They are the next authority layer.
 
+The semantic identity continuation now closes a narrower engineering gap, not
+that authority gap. Ordered standards, established-work, and fresh 2025–2026
+research support an additive stand-off v2 contract. Its public synthetic A/B/C
+proves exact span return, label-independent higher IDs, two reciprocal
+competing sign proposals, absence of routine review and graph effect, and
+fail-closed rejection of model-shaped acceptance without real-human evidence.
+Direct source-slice/digest inspection agrees with the generated packet, and all
+twelve independent negative controls reject. No model or private source was
+used; no human review, sign, concept, semantic truth, graph truth, or canon
+effect was created. A real sign packet should open only for a new concrete
+source-grounded question and its rare competence-appropriate promotion
+checkpoint, never merely to exercise the contract again.
+
 The dedicated lived-witness route is now prepared from ordered official,
 established, and current-through-2026-08-08 research. It defines a local-only
 default, exact human authorship, separate experience and capture time, visible

@@ -1,0 +1,49 @@
+{
+  "authority_limits": {
+    "canon_effect": false,
+    "concept_established": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "semantic_truth_established": false,
+    "stable_sign_established": false
+  },
+  "input_posture": "public_synthetic_only",
+  "negative_controls": [
+    "label-derived-id",
+    "duplicate-entity-id",
+    "missing-target-anchor",
+    "unresolved-entity-reference",
+    "one-way-competing-claim",
+    "accepted-model-claim-without-review",
+    "sign-promotion-without-baseline-or-competence",
+    "accepted-relation-without-accepted-claim",
+    "graph-projection-of-proposed-claim",
+    "relation-proposition-mismatch",
+    "self-supersession",
+    "publication-boundary-widening"
+  ],
+  "question": "Can ToS keep occurrence, sign proposal, competing reading, review, and graph admission identities separate and fail closed?",
+  "schema_version": "tos_semantic_annotation_v2_lab_plan_v1",
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "Exact source occurrences only",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "Two reciprocal competing sign proposals without review or graph effect",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "purpose": "Invalid model-shaped promotion without a real-human review",
+      "variant_id": "C"
+    }
+  ]
+}

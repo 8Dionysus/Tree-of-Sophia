@@ -1,0 +1,57 @@
+{
+  "authority_limits": {
+    "canon_effect": false,
+    "concept_established": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "semantic_truth_established": false,
+    "stable_sign_established": false
+  },
+  "authority_posture": "public_synthetic_contract_mechanics_only",
+  "builder": {
+    "ref": "scripts/build_semantic_annotation_v2_lab.py",
+    "sha256": "e0f42750f53e4b0679d6346ff5199bd4f7cd7a4442834cba62758ca57f339ffe"
+  },
+  "contract": {
+    "ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+    "sha256": "1a3e8bf71f47c8c655c00cc9b7401cb621b5136ee52567ab3c34c2022c2b65d8"
+  },
+  "input_fixture": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt",
+    "sha256": "7057e4420a5bf7779f384ec722015e4c2cdb2eaad8fea809d3e536b9d6c7acc3"
+  },
+  "plan": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/plan.json",
+    "sha256": "b2b212aab7018891d68f564233f13cf4a49909c1db44ec141485380460486399"
+  },
+  "research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+    "sha256": "32aad968739e35f77841d8bd4954480773533e5ec789bc875e524de3f18fe634"
+  },
+  "schema_version": "tos_semantic_annotation_v2_lab_manifest_v1",
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-a-occurrences-only.json",
+      "packet_sha256": "33846140980864c1cd51bcb5eae739f8ead87fc49508b9f56afd2a8e2f2ffdfe",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json",
+      "packet_sha256": "00a22067da28cd17ab02f2fde2e227b70f5b32ac11c9b68514fcee4133f39003",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-c-invalid-model-promotion.json",
+      "packet_sha256": "c9725be035ac425cd70fd77c620cf9806443bffccdefeaa8b6a2aeda1f4854fc",
+      "variant_id": "C"
+    }
+  ]
+}

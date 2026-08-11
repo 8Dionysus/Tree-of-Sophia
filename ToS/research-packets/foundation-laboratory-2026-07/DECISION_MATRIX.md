@@ -5,7 +5,8 @@ Status: research decision scaffold updated with bounded graph, retrieval, struct
 Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
 direct-visual retrieval and historical-German morphology routes refreshed
 2026-07-30; broad software/model-stack currentness refreshed 2026-08-08;
-specialized DE→RU MT setup evidence refreshed 2026-08-10/11 UTC
+specialized DE→RU MT setup evidence refreshed 2026-08-10/11 UTC; semantic
+identity and annotation contract refreshed 2026-08-11
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md` and the non-executing superseding currentness record
@@ -235,6 +236,7 @@ not installed permanently before workflow value is demonstrated.
 | Candidate | State | Role | Boundary |
 | --- | --- | --- | --- |
 | JSON/JSON-LD explicit claim resources | baseline | tracked canonical packet shape | human-readable fields remain primary |
+| `semantic-annotation-packet-v2` | baseline contract | stand-off occurrence→lexeme/sense→sign→concept entities plus first-class competing claims, human reviews, typed relations, and source-returnable graph admission | public synthetic A/B/C proves mechanics only; no bulk migration or accepted semantic object |
 | PROV-O profile | baseline projection | entity/activity/agent provenance | local terms must be documented |
 | PREMIS-inspired event/rights fields | baseline profile | preservation and fixity history | not full repository certification |
 | JSON Schema | baseline | mechanics/shape validation | no semantic truth claim |

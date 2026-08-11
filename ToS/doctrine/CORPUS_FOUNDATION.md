@@ -254,6 +254,17 @@ Before sign promotion, the stable candidate identity is an `annotation_id` or
 `claim_id`, never a prematurely minted `sign_id`. Labels remain mutable and do
 not determine any of these identities.
 
+The additive `tos_semantic_annotation_packet_v2` contract materializes this
+law as stand-off records. Its opaque stable IDs are issued independently of
+labels and readings; exact anchors bind source-near observations; every
+interpretive assertion remains a maker-, method-, evidence-, uncertainty-,
+alternative-, and review-bearing claim. A relation is not its supporting
+claim, and a graph may project only an accepted claim without becoming its
+authority. The current public-synthetic A/B/C proves these mechanics and
+fail-closed promotion controls only. It adds no accepted sign, concept,
+semantic relation, canon example, source reading, human review, or model act;
+the existing semantic ladder and canon therefore remain unchanged.
+
 ## Assertion layers
 
 Each annotation or claim declares exactly one primary layer:

@@ -1,0 +1,651 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/semantic-annotation-packet-v2.schema.json",
+  "title": "Tree of Sophia semantic identity and annotation packet v2",
+  "description": "Additive stand-off contract separating source occurrences, lexical entities, signs, concepts, claims, reviews, relations, and downstream graph projections.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "annotation_id",
+    "annotation_version",
+    "supersedes_annotation_ref",
+    "content_posture",
+    "source_scope",
+    "entities",
+    "claims",
+    "relations",
+    "reviews",
+    "graph_projection",
+    "rights_and_visibility",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/semantic-annotation-packet-v2.schema.json"},
+    "schema_version": {"const": "tos_semantic_annotation_packet_v2"},
+    "annotation_id": {"$ref": "#/$defs/annotationId"},
+    "annotation_version": {"type": "integer", "minimum": 1},
+    "supersedes_annotation_ref": {
+      "oneOf": [{"$ref": "#/$defs/annotationId"}, {"type": "null"}]
+    },
+    "content_posture": {
+      "enum": ["source_bound", "public_synthetic_contract_exercise"]
+    },
+    "source_scope": {"$ref": "#/$defs/sourceScope"},
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/claim"}
+    },
+    "relations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/relation"}
+    },
+    "reviews": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/review"}
+    },
+    "graph_projection": {"$ref": "#/$defs/graphProjection"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsAndVisibility"},
+    "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"annotation_version": {"minimum": 2}},
+        "required": ["annotation_version"]
+      },
+      "then": {
+        "properties": {"supersedes_annotation_ref": {"$ref": "#/$defs/annotationId"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"content_posture": {"const": "public_synthetic_contract_exercise"}},
+        "required": ["content_posture"]
+      },
+      "then": {
+        "properties": {
+          "rights_and_visibility": {
+            "properties": {
+              "source_content_visibility": {"const": "public_synthetic"},
+              "publication_authorized": {"const": true},
+              "private_source_used": {"const": false}
+            },
+            "required": ["source_content_visibility", "publication_authorized", "private_source_used"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "boundedRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!~[\\\\/])(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|event|rights)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "workId": {"type": "string", "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "expressionId": {"type": "string", "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "itemId": {"type": "string", "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "fileId": {"type": "string", "pattern": "^tos\\.file\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "annotationId": {"type": "string", "pattern": "^tos\\.annotation\\.sid-[a-f0-9]{32}$"},
+    "lexemeId": {"type": "string", "pattern": "^tos\\.lexeme\\.sid-[a-f0-9]{32}$"},
+    "senseId": {"type": "string", "pattern": "^tos\\.sense\\.sid-[a-f0-9]{32}$"},
+    "signId": {"type": "string", "pattern": "^tos\\.sign\\.sid-[a-f0-9]{32}$"},
+    "conceptId": {"type": "string", "pattern": "^tos\\.concept\\.sid-[a-f0-9]{32}$"},
+    "claimId": {"type": "string", "pattern": "^tos\\.claim\\.sid-[a-f0-9]{32}$"},
+    "relationId": {"type": "string", "pattern": "^tos\\.relation\\.sid-[a-f0-9]{32}$"},
+    "reviewId": {"type": "string", "pattern": "^tos\\.review\\.sid-[a-f0-9]{32}$"},
+    "occurrenceId": {
+      "type": "string",
+      "pattern": "^tos\\.occurrence\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "entityId": {
+      "oneOf": [
+        {"$ref": "#/$defs/occurrenceId"},
+        {"$ref": "#/$defs/lexemeId"},
+        {"$ref": "#/$defs/senseId"},
+        {"$ref": "#/$defs/signId"},
+        {"$ref": "#/$defs/conceptId"}
+      ]
+    },
+    "sourceAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_ref",
+        "source_ref",
+        "source_sha256",
+        "selector",
+        "exact_sha256",
+        "page_return"
+      ],
+      "properties": {
+        "anchor_ref": {
+          "type": "string",
+          "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "source_ref": {"$ref": "#/$defs/boundedRef"},
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "start", "end", "position_unit", "interval"],
+          "properties": {
+            "type": {"const": "text_position"},
+            "start": {"type": "integer", "minimum": 0},
+            "end": {"type": "integer", "minimum": 1},
+            "position_unit": {"const": "unicode_code_point"},
+            "interval": {"const": "half_open"}
+          }
+        },
+        "exact_sha256": {"$ref": "#/$defs/sha256"},
+        "page_return": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "locator_ref"],
+          "properties": {
+            "required": {"const": true},
+            "locator_ref": {"$ref": "#/$defs/boundedRef"}
+          }
+        }
+      }
+    },
+    "sourceScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "expression_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "source_text_layer_ref",
+        "source_anchors",
+        "rights_refs"
+      ],
+      "properties": {
+        "work_ref": {"$ref": "#/$defs/workId"},
+        "expression_ref": {"$ref": "#/$defs/expressionId"},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "file_ref": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "source_text_layer_ref": {"$ref": "#/$defs/boundedRef"},
+        "source_anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/sourceAnchor"}
+        },
+        "rights_refs": {
+          "type": "array",
+          "items": {"anyOf": [{"$ref": "#/$defs/tosId"}, {"$ref": "#/$defs/boundedRef"}]}
+        }
+      }
+    },
+    "displayLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "value", "role", "mutable"],
+      "properties": {
+        "language": {"type": "string", "minLength": 2},
+        "value": {"type": "string", "minLength": 1},
+        "role": {"enum": ["display", "lemma", "gloss", "translation", "editorial"]},
+        "mutable": {"const": true}
+      }
+    },
+    "identityBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anchor_refs", "claim_refs", "parent_entity_refs"],
+      "properties": {
+        "anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos\\.anchor\\."}
+        },
+        "claim_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/claimId"}
+        },
+        "parent_entity_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/entityId"}
+        }
+      },
+      "anyOf": [
+        {"properties": {"anchor_refs": {"minItems": 1}}},
+        {"properties": {"claim_refs": {"minItems": 1}}},
+        {"properties": {"parent_entity_refs": {"minItems": 1}}}
+      ]
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "entity_kind",
+        "identity_policy",
+        "admission_status",
+        "identity_basis",
+        "display_labels",
+        "admission_review_refs",
+        "entity_version",
+        "supersedes_entity_ref"
+      ],
+      "properties": {
+        "entity_id": {"$ref": "#/$defs/entityId"},
+        "entity_kind": {"enum": ["occurrence", "lexeme", "lexical_sense", "sign", "concept"]},
+        "identity_policy": {"const": "opaque-id-independent-of-label-gloss-translation-and-current-interpretation"},
+        "admission_status": {"enum": ["observed", "proposed", "accepted", "accepted_with_limits", "rejected", "disputed", "superseded"]},
+        "identity_basis": {"$ref": "#/$defs/identityBasis"},
+        "display_labels": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/displayLabel"}
+        },
+        "admission_review_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/reviewId"}
+        },
+        "entity_version": {"type": "integer", "minimum": 1},
+        "supersedes_entity_ref": {
+          "oneOf": [{"$ref": "#/$defs/entityId"}, {"type": "null"}]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"entity_kind": {"const": "occurrence"}}, "required": ["entity_kind"]},
+          "then": {
+            "properties": {
+              "entity_id": {"$ref": "#/$defs/occurrenceId"},
+              "admission_status": {"const": "observed"},
+              "identity_basis": {"properties": {"anchor_refs": {"minItems": 1}}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"entity_kind": {"const": "lexeme"}}, "required": ["entity_kind"]},
+          "then": {"properties": {"entity_id": {"$ref": "#/$defs/lexemeId"}}}
+        },
+        {
+          "if": {"properties": {"entity_kind": {"const": "lexical_sense"}}, "required": ["entity_kind"]},
+          "then": {"properties": {"entity_id": {"$ref": "#/$defs/senseId"}}}
+        },
+        {
+          "if": {"properties": {"entity_kind": {"const": "sign"}}, "required": ["entity_kind"]},
+          "then": {"properties": {"entity_id": {"$ref": "#/$defs/signId"}}}
+        },
+        {
+          "if": {"properties": {"entity_kind": {"const": "concept"}}, "required": ["entity_kind"]},
+          "then": {"properties": {"entity_id": {"$ref": "#/$defs/conceptId"}}}
+        },
+        {
+          "if": {
+            "properties": {"admission_status": {"enum": ["accepted", "accepted_with_limits", "rejected", "superseded"]}},
+            "required": ["admission_status"]
+          },
+          "then": {"properties": {"admission_review_refs": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"entity_version": {"minimum": 2}}, "required": ["entity_version"]},
+          "then": {"properties": {"supersedes_entity_ref": {"$ref": "#/$defs/entityId"}}}
+        }
+      ]
+    },
+    "propositionObject": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "entity_ref"],
+          "properties": {
+            "kind": {"const": "entity_ref"},
+            "entity_ref": {"$ref": "#/$defs/entityId"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value", "datatype"],
+          "properties": {
+            "kind": {"const": "literal"},
+            "value": {"type": ["string", "number", "boolean"]},
+            "datatype": {"enum": ["string", "number", "boolean", "language_tagged_string"]},
+            "language": {"type": "string", "minLength": 2}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "entity_refs", "description"],
+          "properties": {
+            "kind": {"const": "entity_set"},
+            "entity_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/entityId"}
+            },
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "sha256", "media_type"],
+          "properties": {
+            "kind": {"const": "digest"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "media_type": {"type": "string", "minLength": 3}
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "role", "direction", "anchor_refs", "description"],
+      "properties": {
+        "evidence_ref": {"type": "string", "minLength": 1},
+        "role": {"enum": ["support", "counterevidence", "context", "qualification", "method_input"]},
+        "direction": {"enum": ["supports", "challenges", "contextualizes", "does_not_decide"]},
+        "anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos\\.anchor\\."}
+        },
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_kind", "agent_ref", "made_at", "method", "provenance_event_ref"],
+      "properties": {
+        "maker_kind": {"enum": ["human", "software", "model", "mixed", "imported_source", "synthetic_fixture"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "made_at": {"type": "string", "format": "date-time"},
+        "method": {"type": "string", "minLength": 1},
+        "provenance_event_ref": {"type": "string", "minLength": 1},
+        "software_ref": {"type": "string", "minLength": 1},
+        "software_version": {"type": "string", "minLength": 1},
+        "configuration_sha256": {"$ref": "#/$defs/sha256"},
+        "model_ref": {"type": "string", "minLength": 1},
+        "model_revision": {"type": "string", "minLength": 1},
+        "prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "simulates_kind": {"enum": ["human", "software", "model", "mixed", "imported_source"]},
+        "simulation_notice": {"const": "synthetic fixture only; no corresponding human, software, or model act occurred"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"maker_kind": {"enum": ["model", "mixed"]}}, "required": ["maker_kind"]},
+          "then": {"required": ["model_ref", "model_revision", "prompt_sha256"]}
+        },
+        {
+          "if": {"properties": {"maker_kind": {"enum": ["software", "mixed"]}}, "required": ["maker_kind"]},
+          "then": {"required": ["software_ref", "software_version", "configuration_sha256"]}
+        },
+        {
+          "if": {"properties": {"maker_kind": {"const": "synthetic_fixture"}}, "required": ["maker_kind"]},
+          "then": {"required": ["simulates_kind", "simulation_notice"]}
+        }
+      ]
+    },
+    "certainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "meaning"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0, "maximum": 1},
+        "meaning": {"const": "maker_declared_uncertainty_not_truth_probability"}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_version",
+        "supersedes_claim_ref",
+        "claim_type",
+        "stage",
+        "proposition",
+        "target_anchor_refs",
+        "evidence",
+        "maker",
+        "epistemic_status",
+        "certainty",
+        "claim_status",
+        "status_reason",
+        "competing_claim_refs",
+        "review_refs"
+      ],
+      "properties": {
+        "claim_id": {"$ref": "#/$defs/claimId"},
+        "claim_version": {"type": "integer", "minimum": 1},
+        "supersedes_claim_ref": {"oneOf": [{"$ref": "#/$defs/claimId"}, {"type": "null"}]},
+        "claim_type": {"enum": ["textual_observation", "frequency", "context", "morphology", "lemma", "recurrence", "translation", "sign_identity", "semantic", "relation", "concept", "competing_reading", "graph_admission"]},
+        "stage": {
+          "enum": [
+            "exact_form",
+            "frequency_and_concordance",
+            "context",
+            "morphology",
+            "lemma",
+            "recurrence_within_section",
+            "recurrence_within_work",
+            "recurrence_within_author_corpus",
+            "translation_correspondences",
+            "stable_sign_candidate",
+            "manual_confirmation_or_rejection",
+            "relations_between_signs",
+            "conceptual_interpretations",
+            "competing_readings",
+            "graph_projection"
+          ]
+        },
+        "proposition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["subject_ref", "predicate", "object"],
+          "properties": {
+            "subject_ref": {"$ref": "#/$defs/entityId"},
+            "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
+            "object": {"$ref": "#/$defs/propositionObject"}
+          }
+        },
+        "target_anchor_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^tos\\.anchor\\."}
+        },
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+        "maker": {"$ref": "#/$defs/maker"},
+        "epistemic_status": {"enum": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"]},
+        "certainty": {"$ref": "#/$defs/certainty"},
+        "claim_status": {"enum": ["observed", "proposed", "accepted", "accepted_with_limits", "rejected", "disputed", "superseded"]},
+        "status_reason": {"type": "string", "minLength": 1},
+        "competing_claim_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/claimId"}},
+        "review_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reviewId"}}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"claim_status": {"enum": ["accepted", "accepted_with_limits", "rejected", "superseded"]}},
+            "required": ["claim_status"]
+          },
+          "then": {"properties": {"review_refs": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"claim_version": {"minimum": 2}}, "required": ["claim_version"]},
+          "then": {"properties": {"supersedes_claim_ref": {"$ref": "#/$defs/claimId"}}}
+        }
+      ]
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_id", "relation_type", "subject_ref", "object_ref", "claim_ref", "target_anchor_refs", "relation_status", "review_refs"],
+      "properties": {
+        "relation_id": {"$ref": "#/$defs/relationId"},
+        "relation_type": {"enum": ["same_lexeme_as", "has_sense", "translation_correspondence", "recurs_with", "contrasts_with", "develops_into", "interprets_as", "instantiates_concept", "related_to"]},
+        "subject_ref": {"$ref": "#/$defs/entityId"},
+        "object_ref": {"$ref": "#/$defs/entityId"},
+        "claim_ref": {"$ref": "#/$defs/claimId"},
+        "target_anchor_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^tos\\.anchor\\."}},
+        "relation_status": {"enum": ["proposed", "accepted", "accepted_with_limits", "rejected", "disputed", "superseded"]},
+        "review_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/reviewId"}}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"relation_status": {"enum": ["accepted", "accepted_with_limits", "rejected", "superseded"]}},
+            "required": ["relation_status"]
+          },
+          "then": {"properties": {"review_refs": {"minItems": 1}}}
+        }
+      ]
+    },
+    "competence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "status", "evidence_refs"],
+      "properties": {
+        "scope": {"enum": ["source_reading", "language", "philology", "translation", "semantic_interpretation", "canon", "lived_witness"]},
+        "status": {"enum": ["self_attested", "evidence_attested", "declared_limited", "not_claimed"]},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "reviewer_kind",
+        "reviewer_ref",
+        "review_kind",
+        "competence",
+        "review_mode",
+        "decision",
+        "rationale",
+        "reviewed_at",
+        "unassisted_baseline"
+      ],
+      "properties": {
+        "review_id": {"$ref": "#/$defs/reviewId"},
+        "reviewer_kind": {"const": "human"},
+        "reviewer_ref": {"type": "string", "minLength": 1},
+        "review_kind": {"enum": ["source", "linguistic", "translation", "sign_promotion", "interpretive", "canon", "lived_witness"]},
+        "competence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/competence"}},
+        "review_mode": {"enum": ["source_visible_unassisted", "source_visible_assisted", "evidence_packet_review", "exception_review"]},
+        "decision": {"enum": ["accept", "accept_with_limits", "reject", "disputed", "defer", "supersede"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "reviewed_at": {"type": "string", "format": "date-time"},
+        "unassisted_baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "status", "frozen_before_model_suggestions", "evidence_ref"],
+          "properties": {
+            "required": {"type": "boolean"},
+            "status": {"enum": ["not_applicable", "frozen", "missing"]},
+            "frozen_before_model_suggestions": {"type": "boolean"},
+            "evidence_ref": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"review_kind": {"const": "sign_promotion"}}, "required": ["review_kind"]},
+          "then": {
+            "properties": {
+              "review_mode": {"const": "source_visible_unassisted"},
+              "unassisted_baseline": {
+                "properties": {
+                  "required": {"const": true},
+                  "status": {"const": "frozen"},
+                  "frozen_before_model_suggestions": {"const": true},
+                  "evidence_ref": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "graphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_ref", "claim_ref", "subject_ref", "object_ref", "source_return_anchor_refs"],
+      "properties": {
+        "relation_ref": {"$ref": "#/$defs/relationId"},
+        "claim_ref": {"$ref": "#/$defs/claimId"},
+        "subject_ref": {"$ref": "#/$defs/entityId"},
+        "object_ref": {"$ref": "#/$defs/entityId"},
+        "source_return_anchor_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^tos\\.anchor\\."}}
+      }
+    },
+    "graphProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["posture", "projection_event_refs", "node_refs", "edges", "source_return_required"],
+      "properties": {
+        "posture": {"const": "downstream-derived-projection-only"},
+        "projection_event_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "node_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/entityId"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/graphEdge"}},
+        "source_return_required": {"const": true}
+      }
+    },
+    "rightsAndVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_content_visibility", "record_visibility", "publication_authorized", "private_source_used", "rights_basis_refs"],
+      "properties": {
+        "source_content_visibility": {"enum": ["public_synthetic", "public", "public_metadata_only", "local_only", "restricted", "unknown"]},
+        "record_visibility": {"enum": ["local_only", "research_group", "public_metadata_only", "public"]},
+        "publication_authorized": {"type": "boolean"},
+        "private_source_used": {"type": "boolean"},
+        "rights_basis_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tree_role",
+        "graph_role",
+        "source_role",
+        "validators_prove_mechanics_not_truth",
+        "frequency_is_semantic_evidence_not_semantic_proof",
+        "model_may_propose_but_not_promote_stable_sign",
+        "routine_human_review_per_occurrence",
+        "promotion_review_posture"
+      ],
+      "properties": {
+        "tree_role": {"const": "orientation"},
+        "graph_role": {"const": "relation"},
+        "source_role": {"const": "authority"},
+        "validators_prove_mechanics_not_truth": {"const": true},
+        "frequency_is_semantic_evidence_not_semantic_proof": {"const": true},
+        "model_may_propose_but_not_promote_stable_sign": {"const": true},
+        "routine_human_review_per_occurrence": {"const": false},
+        "promotion_review_posture": {"const": "rare-triggered-source-visible-human-checkpoint"}
+      }
+    }
+  }
+}

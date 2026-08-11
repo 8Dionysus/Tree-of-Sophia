@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added `tos_semantic_annotation_packet_v2` as a source-first, stand-off
+  semantic identity and assertion foundation. Ordered Web Annotation, SKOS,
+  OntoLex-Lemon/VarTrans, TEI, CIDOC/CRMinf, Wikibase, established ontology and
+  nanopublication work, and fresh 2025–2026 historical-language and
+  human-in-the-loop research now keep occurrences, lexemes, senses, proposed
+  annotations, promoted signs, concepts, versioned claims, relations, reviews,
+  and graph projections distinct. A public-synthetic A/B/C preserves exact
+  anchors, two reciprocal competing sign proposals, and one deliberately
+  invalid model-shaped promotion; twelve negative controls fail closed. The
+  fixture creates no real model act, human review, semantic truth, graph edge,
+  publication authority, or canon object, and existing sign ladders remain
+  unchanged.
 - Added `tos_provenance_event_v2` as an additive immutable execution-receipt
   foundation while preserving all legacy v1 records. Ordered W3C PROV, PREMIS,
   in-toto/SLSA, RO-Crate/Croissant, established provenance research, and fresh

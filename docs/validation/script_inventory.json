@@ -898,6 +898,29 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_semantic_annotation_v2_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+      "source_truth": [
+        "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/public-synthetic-source.txt"
+      ],
+      "reads": [
+        "semantic annotation v2 contract, ordered research report, deterministic public-synthetic source and plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic A occurrence packet, B reciprocal competing-sign packet, deliberately invalid C promotion packet, source/plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, model invocation, human evidence, accepted sign or concept, graph effect, publication widening, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_provenance_event_v2_lab.py",
       "family": "source_fixture_builder",
       "organ_lane": "source/topology",
@@ -933,6 +956,8 @@
         "ToS/contracts/provenance-event.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json",
+        "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/lab.manifest.json",
         "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
@@ -952,10 +977,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, and provenance-event-v2 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, provenance-event-v2, and semantic-annotation-v2 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2, source-text-layer, and provenance-event-v2 labs report public synthetic mechanics and no corpus payload or execution truth",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, provenance-event-v2, and semantic-annotation-v2 labs report public synthetic mechanics and no corpus payload, execution truth, human review, or semantic truth",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

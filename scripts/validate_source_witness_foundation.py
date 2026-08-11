@@ -70,6 +70,16 @@ PROVENANCE_V2_LAB_ROOT = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc"
 )
 PROVENANCE_V2_LAB_MANIFEST = PROVENANCE_V2_LAB_ROOT / "lab.manifest.json"
+SEMANTIC_ANNOTATION_V2_SCHEMA = (
+    CONTRACT_ROOT / "semantic-annotation-packet-v2.schema.json"
+)
+SEMANTIC_ANNOTATION_V2_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/"
+    "semantic-annotation-v2-abc"
+)
+SEMANTIC_ANNOTATION_V2_LAB_MANIFEST = (
+    SEMANTIC_ANNOTATION_V2_LAB_ROOT / "lab.manifest.json"
+)
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -1889,6 +1899,548 @@ def validate_provenance_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[str, 
     return issues, report
 
 
+def _semantic_annotation_v2_issues(packet: dict[str, Any]) -> list[str]:
+    """Check cross-record closure and epistemic boundaries beyond JSON shape."""
+
+    messages: list[str] = []
+    entities = [row for row in packet.get("entities", []) if isinstance(row, dict)]
+    claims = [row for row in packet.get("claims", []) if isinstance(row, dict)]
+    relations = [row for row in packet.get("relations", []) if isinstance(row, dict)]
+    reviews = [row for row in packet.get("reviews", []) if isinstance(row, dict)]
+    anchors = [
+        row
+        for row in packet.get("source_scope", {}).get("source_anchors", [])
+        if isinstance(row, dict)
+    ]
+
+    def index_unique(rows: list[dict[str, Any]], key: str, label: str) -> dict[str, dict[str, Any]]:
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            value = row.get(key)
+            if not isinstance(value, str):
+                continue
+            if value in result:
+                messages.append(f"duplicate {label} identity: {value}")
+            result[value] = row
+        return result
+
+    entity_by_id = index_unique(entities, "entity_id", "entity")
+    claim_by_id = index_unique(claims, "claim_id", "claim")
+    relation_by_id = index_unique(relations, "relation_id", "relation")
+    review_by_id = index_unique(reviews, "review_id", "review")
+    anchor_by_id = index_unique(anchors, "anchor_ref", "source anchor")
+
+    annotation_id = packet.get("annotation_id")
+    if annotation_id is not None and annotation_id == packet.get("supersedes_annotation_ref"):
+        messages.append("semantic annotation packet cannot supersede itself")
+
+    kind_prefixes = {
+        "occurrence": "tos.occurrence.",
+        "lexeme": "tos.lexeme.sid-",
+        "lexical_sense": "tos.sense.sid-",
+        "sign": "tos.sign.sid-",
+        "concept": "tos.concept.sid-",
+    }
+    accepted_statuses = {"accepted", "accepted_with_limits"}
+    decided_statuses = accepted_statuses | {"rejected", "superseded"}
+    accepting_decisions = {"accept", "accept_with_limits"}
+
+    def unresolved_refs(refs: Any, known: dict[str, Any], label: str) -> None:
+        for ref in refs if isinstance(refs, list) else []:
+            if ref not in known:
+                messages.append(f"unresolved {label} reference: {ref}")
+
+    for entity in entities:
+        entity_id = entity.get("entity_id")
+        entity_kind = entity.get("entity_kind")
+        expected_prefix = kind_prefixes.get(str(entity_kind))
+        if isinstance(entity_id, str) and expected_prefix and not entity_id.startswith(expected_prefix):
+            messages.append(f"entity identity namespace does not match entity kind: {entity_id}")
+        if entity_id == entity.get("supersedes_entity_ref"):
+            messages.append(f"entity cannot supersede itself: {entity_id}")
+        basis = entity.get("identity_basis", {})
+        unresolved_refs(basis.get("anchor_refs"), anchor_by_id, "entity anchor")
+        unresolved_refs(basis.get("claim_refs"), claim_by_id, "entity claim")
+        unresolved_refs(basis.get("parent_entity_refs"), entity_by_id, "parent entity")
+        unresolved_refs(entity.get("admission_review_refs"), review_by_id, "entity review")
+        if entity.get("admission_status") in decided_statuses:
+            refs = entity.get("admission_review_refs", [])
+            if not refs:
+                messages.append(f"decided entity lacks review: {entity_id}")
+        if entity_kind == "sign" and entity.get("admission_status") in accepted_statuses:
+            promotion_reviews = [
+                review_by_id[ref]
+                for ref in entity.get("admission_review_refs", [])
+                if ref in review_by_id and review_by_id[ref].get("review_kind") == "sign_promotion"
+            ]
+            if not promotion_reviews:
+                messages.append(f"accepted {entity_kind} lacks a sign-promotion review: {entity_id}")
+            for review in promotion_reviews:
+                baseline = review.get("unassisted_baseline", {})
+                if not (
+                    baseline.get("required") is True
+                    and baseline.get("status") == "frozen"
+                    and baseline.get("frozen_before_model_suggestions") is True
+                    and isinstance(baseline.get("evidence_ref"), str)
+                ):
+                    messages.append(f"sign-promotion review lacks a frozen unassisted baseline: {review.get('review_id')}")
+                competence = {
+                    row.get("scope"): row.get("status")
+                    for row in review.get("competence", [])
+                    if isinstance(row, dict)
+                }
+                for required_scope in ("source_reading", "semantic_interpretation"):
+                    if competence.get(required_scope) not in {"self_attested", "evidence_attested"}:
+                        messages.append(
+                            f"sign-promotion review lacks declared competence for {required_scope}: {review.get('review_id')}"
+                        )
+        if entity_kind == "concept" and entity.get("admission_status") in accepted_statuses:
+            interpretive_reviews = [
+                review_by_id[ref]
+                for ref in entity.get("admission_review_refs", [])
+                if ref in review_by_id
+                and review_by_id[ref].get("review_kind") == "interpretive"
+                and review_by_id[ref].get("decision") in accepting_decisions
+            ]
+            if not interpretive_reviews:
+                messages.append(f"accepted concept lacks an accepting interpretive review: {entity_id}")
+            for review in interpretive_reviews:
+                competence = {
+                    row.get("scope"): row.get("status")
+                    for row in review.get("competence", [])
+                    if isinstance(row, dict)
+                }
+                if competence.get("semantic_interpretation") not in {
+                    "self_attested",
+                    "evidence_attested",
+                }:
+                    messages.append(
+                        f"concept review lacks declared semantic competence: {review.get('review_id')}"
+                    )
+
+    for claim in claims:
+        claim_id = claim.get("claim_id")
+        if claim_id == claim.get("supersedes_claim_ref"):
+            messages.append(f"claim cannot supersede itself: {claim_id}")
+        proposition = claim.get("proposition", {})
+        subject_ref = proposition.get("subject_ref")
+        if subject_ref not in entity_by_id:
+            messages.append(f"claim subject is unresolved: {subject_ref}")
+        object_payload = proposition.get("object", {})
+        if isinstance(object_payload, dict):
+            if object_payload.get("kind") == "entity_ref":
+                unresolved_refs([object_payload.get("entity_ref")], entity_by_id, "claim object entity")
+            if object_payload.get("kind") == "entity_set":
+                unresolved_refs(object_payload.get("entity_refs"), entity_by_id, "claim object entity")
+        unresolved_refs(claim.get("target_anchor_refs"), anchor_by_id, "claim target anchor")
+        for evidence in claim.get("evidence", []):
+            if isinstance(evidence, dict):
+                unresolved_refs(evidence.get("anchor_refs"), anchor_by_id, "evidence anchor")
+        unresolved_refs(claim.get("competing_claim_refs"), claim_by_id, "competing claim")
+        unresolved_refs(claim.get("review_refs"), review_by_id, "claim review")
+        for competing_ref in claim.get("competing_claim_refs", []):
+            if competing_ref == claim_id:
+                messages.append(f"claim competes with itself: {claim_id}")
+            elif competing_ref in claim_by_id and claim_id not in claim_by_id[competing_ref].get("competing_claim_refs", []):
+                messages.append(f"competing-claim relation is not reciprocal: {claim_id} -> {competing_ref}")
+        claim_status = claim.get("claim_status")
+        review_refs = claim.get("review_refs", [])
+        if claim_status in decided_statuses and not review_refs:
+            messages.append(f"decided claim lacks review: {claim_id}")
+        if claim_status in accepted_statuses:
+            accepted_reviews = [
+                review_by_id[ref]
+                for ref in review_refs
+                if ref in review_by_id and review_by_id[ref].get("decision") in accepting_decisions
+            ]
+            if not accepted_reviews:
+                messages.append(f"accepted claim lacks an accepting real-human review: {claim_id}")
+            if claim.get("maker", {}).get("maker_kind") == "synthetic_fixture":
+                messages.append(f"synthetic fixture cannot establish an accepted claim: {claim_id}")
+        if (
+            packet.get("content_posture") != "public_synthetic_contract_exercise"
+            and claim.get("maker", {}).get("maker_kind") == "synthetic_fixture"
+        ):
+            messages.append(f"synthetic fixture maker escaped the synthetic laboratory: {claim_id}")
+
+    for relation in relations:
+        relation_id = relation.get("relation_id")
+        subject_ref = relation.get("subject_ref")
+        object_ref = relation.get("object_ref")
+        claim_ref = relation.get("claim_ref")
+        unresolved_refs([subject_ref, object_ref], entity_by_id, "relation endpoint")
+        unresolved_refs([claim_ref], claim_by_id, "relation claim")
+        unresolved_refs(relation.get("target_anchor_refs"), anchor_by_id, "relation target anchor")
+        unresolved_refs(relation.get("review_refs"), review_by_id, "relation review")
+        if subject_ref == object_ref:
+            messages.append(f"relation cannot collapse subject and object: {relation_id}")
+        claim = claim_by_id.get(str(claim_ref))
+        if claim is not None:
+            proposition = claim.get("proposition", {})
+            obj = proposition.get("object", {})
+            if not (
+                claim.get("claim_type") == "relation"
+                and proposition.get("subject_ref") == subject_ref
+                and proposition.get("predicate") == relation.get("relation_type")
+                and isinstance(obj, dict)
+                and obj.get("kind") == "entity_ref"
+                and obj.get("entity_ref") == object_ref
+            ):
+                messages.append(f"relation and supporting claim proposition differ: {relation_id}")
+        if relation.get("relation_status") in accepted_statuses:
+            if claim is None or claim.get("claim_status") not in accepted_statuses:
+                messages.append(f"accepted relation lacks an accepted supporting claim: {relation_id}")
+            accepted_reviews = [
+                review_by_id[ref]
+                for ref in relation.get("review_refs", [])
+                if ref in review_by_id and review_by_id[ref].get("decision") in accepting_decisions
+            ]
+            if not accepted_reviews:
+                messages.append(f"accepted relation lacks an accepting real-human review: {relation_id}")
+
+    graph = packet.get("graph_projection", {})
+    unresolved_refs(graph.get("node_refs"), entity_by_id, "graph node")
+    for edge in graph.get("edges", []):
+        if not isinstance(edge, dict):
+            continue
+        relation_ref = edge.get("relation_ref")
+        claim_ref = edge.get("claim_ref")
+        relation = relation_by_id.get(str(relation_ref))
+        claim = claim_by_id.get(str(claim_ref))
+        unresolved_refs([relation_ref], relation_by_id, "graph relation")
+        unresolved_refs([claim_ref], claim_by_id, "graph claim")
+        unresolved_refs([edge.get("subject_ref"), edge.get("object_ref")], entity_by_id, "graph endpoint")
+        unresolved_refs(edge.get("source_return_anchor_refs"), anchor_by_id, "graph source-return anchor")
+        if relation is None or relation.get("relation_status") not in accepted_statuses:
+            messages.append(f"graph edge projects a relation that is not accepted: {relation_ref}")
+        if claim is None or claim.get("claim_status") not in accepted_statuses:
+            messages.append(f"graph edge projects a claim that is not accepted: {claim_ref}")
+        if relation is not None and (
+            relation.get("claim_ref") != claim_ref
+            or relation.get("subject_ref") != edge.get("subject_ref")
+            or relation.get("object_ref") != edge.get("object_ref")
+        ):
+            messages.append(f"graph edge differs from its admitted relation: {relation_ref}")
+
+    rights = packet.get("rights_and_visibility", {})
+    if rights.get("private_source_used") is True and rights.get("publication_authorized") is True:
+        messages.append("private source use cannot widen publication authority")
+    if rights.get("source_content_visibility") in {"local_only", "restricted", "unknown"} and rights.get("publication_authorized") is True:
+        messages.append("non-public or unknown source visibility cannot authorize publication")
+    return messages
+
+
+def validate_semantic_annotation_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[str, Any]]:
+    """Validate the source-bound A/B/C semantic identity contract exercise."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {"variants": [], "negative_controls": {}}
+    try:
+        packet_validator, _ = _schema_validator(SEMANTIC_ANNOTATION_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [
+            (
+                SEMANTIC_ANNOTATION_V2_SCHEMA.as_posix(),
+                f"cannot load semantic annotation v2 schema: {exc}",
+            )
+        ], report
+
+    manifest_path = repo_root / SEMANTIC_ANNOTATION_V2_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_semantic_annotation_v2_lab_manifest_v1":
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "unexpected semantic annotation lab manifest version"))
+    if manifest.get("authority_posture") != "public_synthetic_contract_mechanics_only":
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic annotation lab authority posture widened"))
+    expected_limits = {
+        "private_source_used": False,
+        "model_invoked": False,
+        "human_review_performed": False,
+        "stable_sign_established": False,
+        "concept_established": False,
+        "graph_truth_established": False,
+        "semantic_truth_established": False,
+        "canon_effect": False,
+    }
+    if manifest.get("authority_limits") != expected_limits:
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic annotation lab authority limits widened"))
+
+    def binding_closes(binding: Any, label: str) -> bool:
+        if not isinstance(binding, dict):
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), f"{label} binding is absent"))
+            return False
+        ref = binding.get("ref")
+        digest = binding.get("sha256")
+        path = repo_root / ref if isinstance(ref, str) else manifest_path
+        if path.is_symlink() or not path.is_file() or _sha256(path) != digest:
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), f"{label} binding drifted"))
+            return False
+        return True
+
+    for field in ("contract", "research", "plan", "builder", "input_fixture"):
+        binding_closes(manifest.get(field), field)
+    if manifest.get("contract", {}).get("ref") != SEMANTIC_ANNOTATION_V2_SCHEMA.as_posix():
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic annotation contract reference drifted"))
+
+    plan_ref = manifest.get("plan", {}).get("ref")
+    plan_path = repo_root / plan_ref if isinstance(plan_ref, str) else manifest_path
+    plan = _load_json(plan_path, repo_root, issues) if plan_path.is_file() else None
+    expected_controls = set(plan.get("negative_controls", [])) if isinstance(plan, dict) else set()
+    if not isinstance(plan, dict) or plan.get("authority_limits") != expected_limits:
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic annotation plan authority limits drifted"))
+
+    input_ref = manifest.get("input_fixture", {}).get("ref")
+    input_path = repo_root / input_ref if isinstance(input_ref, str) else manifest_path
+    try:
+        source_text = input_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), f"cannot read public synthetic source: {exc}"))
+        source_text = ""
+
+    packets_by_variant: dict[str, dict[str, Any]] = {}
+    manifest_variants = manifest.get("variants", [])
+    if [row.get("variant_id") for row in manifest_variants if isinstance(row, dict)] != ["A", "B", "C"]:
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic variants must be ordered exactly A, B, C"))
+    for row in manifest_variants if isinstance(manifest_variants, list) else []:
+        if not isinstance(row, dict):
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic variant is not an object"))
+            continue
+        variant_id = row.get("variant_id")
+        packet_ref = row.get("packet_ref")
+        if variant_id not in {"A", "B", "C"} or not isinstance(packet_ref, str):
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "semantic variant identity is invalid"))
+            continue
+        packet_path = repo_root / packet_ref
+        if packet_path.is_symlink() or not packet_path.is_file() or _sha256(packet_path) != row.get("packet_sha256"):
+            issues.append((packet_ref, "semantic variant packet fixity drifted"))
+            continue
+        packet = _load_json(packet_path, repo_root, issues)
+        if packet is None:
+            continue
+        schema_errors = list(packet_validator.iter_errors(packet))
+        semantic_errors = _semantic_annotation_v2_issues(packet)
+        schema_valid = not schema_errors
+        semantic_valid = not semantic_errors
+        if schema_valid != row.get("expected_schema_valid"):
+            issues.append((packet_ref, "schema result differs from frozen A/B/C expectation"))
+        if semantic_valid != row.get("expected_semantic_valid"):
+            issues.append((packet_ref, "semantic closure result differs from frozen A/B/C expectation"))
+
+        source_scope = packet.get("source_scope", {})
+        if source_scope.get("file_sha256") != _sha256(input_path):
+            issues.append((packet_ref, "packet source fixity differs from the manifest input"))
+        for anchor in source_scope.get("source_anchors", []):
+            if not isinstance(anchor, dict):
+                continue
+            selector = anchor.get("selector", {})
+            start = selector.get("start")
+            end = selector.get("end")
+            if not isinstance(start, int) or not isinstance(end, int) or not (0 <= start < end <= len(source_text)):
+                issues.append((packet_ref, f"anchor selector is outside synthetic source: {anchor.get('anchor_ref')}"))
+                continue
+            exact = source_text[start:end]
+            if anchor.get("exact_sha256") != _sha256_text(exact):
+                issues.append((packet_ref, f"anchor exact digest does not resolve: {anchor.get('anchor_ref')}"))
+            if anchor.get("source_sha256") != _sha256(input_path):
+                issues.append((packet_ref, f"anchor source fixity drifted: {anchor.get('anchor_ref')}"))
+
+        packets_by_variant[variant_id] = packet
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "schema_valid": schema_valid,
+                "semantic_valid": semantic_valid,
+                "entity_kinds": [entity.get("entity_kind") for entity in packet.get("entities", [])],
+                "claim_statuses": [claim.get("claim_status") for claim in packet.get("claims", [])],
+                "review_count": len(packet.get("reviews", [])),
+                "graph_edge_count": len(packet.get("graph_projection", {}).get("edges", [])),
+                "rejection_reasons": sorted({error.message for error in schema_errors} | set(semantic_errors)),
+            }
+        )
+
+    if set(packets_by_variant) == {"A", "B", "C"}:
+        a = packets_by_variant["A"]
+        b = packets_by_variant["B"]
+        c = packets_by_variant["C"]
+        if {entity.get("entity_kind") for entity in a.get("entities", [])} != {"occurrence"}:
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "variant A contains a higher semantic entity"))
+        if any(claim.get("stage") != "exact_form" for claim in a.get("claims", [])):
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "variant A leaves exact-form observation"))
+        b_signs = [entity for entity in b.get("entities", []) if entity.get("entity_kind") == "sign"]
+        b_sign_claims = [claim for claim in b.get("claims", []) if claim.get("claim_type") == "sign_identity"]
+        if len(b_signs) != 2 or {entity.get("admission_status") for entity in b_signs} != {"proposed"}:
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "variant B must preserve exactly two proposed sign identities"))
+        if len(b_sign_claims) != 2 or any(len(claim.get("competing_claim_refs", [])) != 1 for claim in b_sign_claims):
+            issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "variant B must preserve two reciprocal competing claims"))
+        for packet, variant_id in ((a, "A"), (b, "B"), (c, "C")):
+            if packet.get("reviews") or packet.get("graph_projection", {}).get("edges"):
+                issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), f"variant {variant_id} fabricates review or graph effect"))
+
+        def control_rejected(name: str, payload: dict[str, Any]) -> None:
+            rejected = bool(list(packet_validator.iter_errors(payload))) or bool(_semantic_annotation_v2_issues(payload))
+            report["negative_controls"][name] = "rejected" if rejected else "not_rejected"
+            if not rejected:
+                issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), f"negative control was not rejected: {name}"))
+
+        mutated = copy.deepcopy(b)
+        mutated["entities"][2]["entity_id"] = "tos.sign.flame"
+        control_rejected("label-derived-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["entities"].append(copy.deepcopy(mutated["entities"][0]))
+        control_rejected("duplicate-entity-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["claims"][0]["target_anchor_refs"] = []
+        control_rejected("missing-target-anchor", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["claims"][2]["proposition"]["object"]["entity_refs"].append(
+            "tos.sign.sid-ffffffffffffffffffffffffffffffff"
+        )
+        control_rejected("unresolved-entity-reference", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["claims"][2]["competing_claim_refs"] = []
+        control_rejected("one-way-competing-claim", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["claims"][2]["claim_status"] = "accepted"
+        control_rejected("accepted-model-claim-without-review", mutated)
+
+        review_id = "tos.review.sid-11111111111111111111111111111111"
+        weak_review = {
+            "review_id": review_id,
+            "reviewer_kind": "human",
+            "reviewer_ref": "human:synthetic-negative-control",
+            "review_kind": "sign_promotion",
+            "competence": [
+                {"scope": "source_reading", "status": "not_claimed", "evidence_refs": []},
+                {"scope": "semantic_interpretation", "status": "not_claimed", "evidence_refs": []},
+            ],
+            "review_mode": "source_visible_unassisted",
+            "decision": "accept",
+            "rationale": "Synthetic negative control; not evidence of an actual review.",
+            "reviewed_at": "2026-08-11T12:00:00Z",
+            "unassisted_baseline": {
+                "required": True,
+                "status": "frozen",
+                "frozen_before_model_suggestions": True,
+                "evidence_ref": "synthetic:missing-real-baseline",
+            },
+        }
+        mutated = copy.deepcopy(b)
+        mutated["reviews"] = [weak_review]
+        mutated["entities"][2]["admission_status"] = "accepted"
+        mutated["entities"][2]["admission_review_refs"] = [review_id]
+        control_rejected("sign-promotion-without-baseline-or-competence", mutated)
+
+        relation_claim_id = "tos.claim.sid-22222222222222222222222222222222"
+        relation_id = "tos.relation.sid-33333333333333333333333333333333"
+        subject_ref = b["entities"][2]["entity_id"]
+        object_ref = b["entities"][3]["entity_id"]
+        relation_claim = copy.deepcopy(b["claims"][2])
+        relation_claim.update(
+            {
+                "claim_id": relation_claim_id,
+                "claim_type": "relation",
+                "stage": "relations_between_signs",
+                "proposition": {
+                    "subject_ref": subject_ref,
+                    "predicate": "related_to",
+                    "object": {"kind": "entity_ref", "entity_ref": object_ref},
+                },
+                "claim_status": "proposed",
+                "status_reason": "Synthetic proposed relation.",
+                "competing_claim_refs": [],
+                "review_refs": [],
+            }
+        )
+        accepted_relation = {
+            "relation_id": relation_id,
+            "relation_type": "related_to",
+            "subject_ref": subject_ref,
+            "object_ref": object_ref,
+            "claim_ref": relation_claim_id,
+            "target_anchor_refs": relation_claim["target_anchor_refs"],
+            "relation_status": "accepted",
+            "review_refs": [review_id],
+        }
+        interpretive_review = copy.deepcopy(weak_review)
+        interpretive_review.update(
+            {
+                "review_kind": "interpretive",
+                "review_mode": "evidence_packet_review",
+                "competence": [
+                    {"scope": "semantic_interpretation", "status": "self_attested", "evidence_refs": []}
+                ],
+                "unassisted_baseline": {
+                    "required": False,
+                    "status": "not_applicable",
+                    "frozen_before_model_suggestions": False,
+                    "evidence_ref": None,
+                },
+            }
+        )
+        mutated = copy.deepcopy(b)
+        mutated["claims"].append(relation_claim)
+        mutated["relations"] = [accepted_relation]
+        mutated["reviews"] = [interpretive_review]
+        control_rejected("accepted-relation-without-accepted-claim", mutated)
+
+        proposed_relation = copy.deepcopy(accepted_relation)
+        proposed_relation["relation_status"] = "proposed"
+        proposed_relation["review_refs"] = []
+        mutated = copy.deepcopy(b)
+        mutated["claims"].append(relation_claim)
+        mutated["relations"] = [proposed_relation]
+        mutated["graph_projection"].update(
+            {
+                "projection_event_refs": ["synthetic:negative-control"],
+                "node_refs": [subject_ref, object_ref],
+                "edges": [
+                    {
+                        "relation_ref": relation_id,
+                        "claim_ref": relation_claim_id,
+                        "subject_ref": subject_ref,
+                        "object_ref": object_ref,
+                        "source_return_anchor_refs": relation_claim["target_anchor_refs"],
+                    }
+                ],
+            }
+        )
+        control_rejected("graph-projection-of-proposed-claim", mutated)
+
+        mutated = copy.deepcopy(b)
+        mismatched_claim = copy.deepcopy(relation_claim)
+        mismatched_claim["proposition"]["predicate"] = "contrasts_with"
+        mutated["claims"].append(mismatched_claim)
+        mutated["relations"] = [proposed_relation]
+        control_rejected("relation-proposition-mismatch", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["supersedes_annotation_ref"] = mutated["annotation_id"]
+        control_rejected("self-supersession", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["rights_and_visibility"].update(
+            {
+                "source_content_visibility": "local_only",
+                "record_visibility": "public_metadata_only",
+                "publication_authorized": True,
+                "private_source_used": True,
+            }
+        )
+        control_rejected("publication-boundary-widening", mutated)
+
+    if expected_controls != set(report["negative_controls"]):
+        issues.append((SEMANTIC_ANNOTATION_V2_LAB_MANIFEST.as_posix(), "negative-control coverage differs from the plan"))
+    return issues, report
+
+
 def _latest_event_in_supersession_lineage(
     events_by_id: dict[str, dict[str, Any]],
     base_event_id: str,
@@ -3341,6 +3893,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     provenance_v2_lab_issues, _ = validate_provenance_v2_lab(repo_root)
     issues.extend(provenance_v2_lab_issues)
+
+    semantic_annotation_v2_lab_issues, _ = validate_semantic_annotation_v2_lab(
+        repo_root
+    )
+    issues.extend(semantic_annotation_v2_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -10659,6 +11216,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="replay and report only the public synthetic provenance-event-v2 A/B/C",
     )
+    parser.add_argument(
+        "--semantic-annotation-v2-lab-only",
+        action="store_true",
+        help="validate only the public synthetic semantic identity/annotation v2 A/B/C",
+    )
     args = parser.parse_args(argv)
 
     if args.source_anchor_v2_lab_only:
@@ -10692,6 +11254,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
         print("[boundary] public synthetic provenance mechanics only; unsigned receipts and green closure do not establish execution truth, content quality, rights, human review, semantics, canon, or publication authority")
+        return 0
+
+    if args.semantic_annotation_v2_lab_only:
+        issues, report = validate_semantic_annotation_v2_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Semantic identity/annotation v2 laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] public synthetic contract mechanics only; green closure establishes no model run, human review, stable sign, concept, semantic truth, graph truth, canon effect, or private-source publication authority")
         return 0
 
     issues = validate_foundation(

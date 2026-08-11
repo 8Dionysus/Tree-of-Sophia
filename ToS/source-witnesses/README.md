@@ -909,6 +909,28 @@ truth or content quality. Use v2 for new materialized work, or migrate one v1
 lineage only when a concrete discrepancy, replay, security, or source-return
 question requires it.
 
+## Semantic-annotation v2 laboratory boundary
+
+The additive
+`ToS/contracts/semantic-annotation-packet-v2.schema.json` begins only after an
+exact source representation and anchor exist. It keeps occurrences, lexemes,
+lexical senses, proposed annotations, promoted signs, concepts, claims,
+relations, reviews, and graph projections separately addressable. Opaque IDs
+do not derive from mutable labels or interpretations. Every semantic proposal
+returns through its exact source anchors and explicit maker, method,
+provenance, uncertainty, alternatives, and review posture.
+
+The current public-synthetic A/B/C under
+`ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/`
+records two exact occurrences, two reciprocal competing proposed readings,
+and one deliberately invalid model-shaped promotion. No corresponding model,
+software, or human act occurred; the fixture says so explicitly. Validation
+rejects the invalid promotion and twelve identity, evidence, competition,
+review, relation, graph, and publication-boundary failures. This proves only
+the mechanic. It creates no source witness, accepted reading, language
+competence, sign, concept, relation, graph truth, publication authority, human
+task, or canon effect, and it does not alter the existing semantic ladders.
+
 ## Rebuild local resource inventories
 
 The payloads may be absent from a public clone, so the inventory builder is a

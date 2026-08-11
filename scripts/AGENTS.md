@@ -99,6 +99,21 @@ does not prove the execution occurred, authenticate its producer, establish
 content quality, supply human or language competence, or authorize rights,
 publication, semantics, graph truth, or canon.
 
+`build_semantic_annotation_v2_lab.py` owns only the deterministic public-
+synthetic semantic identity/annotation A/B/C. It creates two exact occurrences,
+then two reciprocal model-shaped sign proposals, then one deliberately invalid
+promotion attempt. It must never read a corpus payload, invoke a model,
+fabricate human review, or produce an accepted sign, concept, relation, graph
+edge, or canon effect. Changing the schema, research basis, builder, source, or
+variant packets requires an intentional full rebuild so the manifest digests
+remain exact.
+
+The source-foundation validator's `--semantic-annotation-v2-lab-only` route
+checks the additive stand-off contract, exact public source spans, opaque
+label-independent higher IDs, reference closure, reciprocal competing claims,
+real-human promotion boundary, accepted-claim-only graph admission, and twelve
+negative controls. Its green result proves only synthetic contract mechanics.
+
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
 EPUB resource, TEI structure, and provider OCR page inventories from an
@@ -445,6 +460,7 @@ Local owner routes:
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
+| public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
 | tracked Zarathustra exact-form recurrence observations | `python scripts/build_zarathustra_recurrence_projection.py --check`; omit `--check` only to intentionally rebuild the tracked hash-only frequency/range/DP tuple and provenance from the frozen plan and tracked lexical projection |

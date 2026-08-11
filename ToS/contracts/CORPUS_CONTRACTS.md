@@ -54,6 +54,7 @@ judgment true.
 | `public-laboratory-evidence-derivative.schema.json` | actual aggregate derivative payload: opaque private return, minimum-cell suppression, method/outcome/error/cost summaries, explicit confounds, review state, and zero source/translation/semantic/canon authority |
 | `manual-error-ledger-record.schema.json` | append-only historical ledger state plus one bounded aggregate source-visible human candidate-review episode, digest-bound to its governed handoff, public-safe derivative, and provenance while accepting no transcription, independent gold, method winner, content authority, or routine human backlog |
 | `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse, using distinct occurrence, lexeme, sign, and concept identities |
+| `semantic-annotation-packet-v2.schema.json` | additive stand-off semantic packet with label-independent opaque identities for lexeme, lexical sense, sign, concept, annotation, claim, relation, and review; exact occurrence/source-anchor return; first-class competing claims; real-human competence and unassisted sign-promotion review; and accepted-claim-only downstream graph projection |
 | `claim-packet.schema.json` | evidence-bearing assertion over a stable ToS subject, with alternatives, lineage, and human review state |
 | `expression-derivation.schema.json` | typed qualifiers for a directed Expression→Expression source relation, including derivation kind, source directness, evidence/collation posture, same-Work scope, non-transitivity, asymmetry, irreflexivity, and an explicit no-equivalence boundary |
 | `translation-packet.schema.json` | source-accepted lifecycle packet binding independent frozen analyses to human, AI, machine-alternative, and AI+human drafts before comparator reveal, comparison, change tracking, and human adjudication |
@@ -191,6 +192,15 @@ A schema validator can establish that:
   graph projection cannot skip competing readings or claim authority; this is
   a promotion checkpoint for one sign packet, not routine human work for every
   occurrence, form, concordance row, or machine proposal;
+- a semantic-annotation v2 packet keeps occurrence, lexeme, lexical sense,
+  sign, concept, claim, relation, review, and graph-edge identities separate;
+  mutable labels, glosses, translations, and current concept names never seed
+  semantic IDs; every claim and relation closes to source anchors and typed
+  evidence; competing readings remain reciprocal first-class claims; model
+  proposals cannot become accepted signs without a competence-appropriate
+  real-human promotion review over a source-visible unassisted baseline; and
+  graph projection admits only accepted claims and relations while preserving
+  source return;
 - a golden-kernel transfer plan keeps title-page scouts ineligible for
   semantic evaluation, may preserve exactly twenty pre-output private
   page-level candidates without calling them gold or opening human debt,
@@ -314,3 +324,8 @@ evaluation units. V2 adds a separate, fail-closed
 sampling soil while leaving the ready-state target-gold gate unchanged. The
 v3 transfer provenance event records the migration, exact builder, source
 digest, candidate anchors, and local-content digests.
+
+`tos_semantic_annotation_packet_v2` is additive. It does not reinterpret or
+bulk-migrate `tos_sign_annotation_v1`, `tos_claim_packet_v1`, the frozen
+initial-sign packet, or semantic-ladder v4/v5. A real packet is created only
+for one concrete source-grounded question.

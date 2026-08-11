@@ -1950,6 +1950,127 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             legacy_gold["properties"]["schema_version"]["const"],
         )
 
+    def test_semantic_annotation_v2_synthetic_abc_separates_identity_claim_and_review(
+        self,
+    ) -> None:
+        issues, report = foundation.validate_semantic_annotation_v2_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual(
+            [
+                ("A", True, True, 0, 0),
+                ("B", True, True, 0, 0),
+                ("C", False, False, 0, 0),
+            ],
+            [
+                (
+                    row["variant_id"],
+                    row["schema_valid"],
+                    row["semantic_valid"],
+                    row["review_count"],
+                    row["graph_edge_count"],
+                )
+                for row in report["variants"]
+            ],
+        )
+        self.assertEqual(
+            {
+                "label-derived-id",
+                "duplicate-entity-id",
+                "missing-target-anchor",
+                "unresolved-entity-reference",
+                "one-way-competing-claim",
+                "accepted-model-claim-without-review",
+                "sign-promotion-without-baseline-or-competence",
+                "accepted-relation-without-accepted-claim",
+                "graph-projection-of-proposed-claim",
+                "relation-proposition-mismatch",
+                "self-supersession",
+                "publication-boundary-widening",
+            },
+            set(report["negative_controls"]),
+        )
+        self.assertEqual({"rejected"}, set(report["negative_controls"].values()))
+
+        lab_root = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "semantic-annotation-v2-abc"
+        )
+        variant_a = json.loads(
+            (lab_root / "variant-a-occurrences-only.json").read_text(encoding="utf-8")
+        )
+        variant_b = json.loads(
+            (lab_root / "variant-b-competing-sign-proposals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            {"occurrence"},
+            {entity["entity_kind"] for entity in variant_a["entities"]},
+        )
+        signs = [
+            entity for entity in variant_b["entities"] if entity["entity_kind"] == "sign"
+        ]
+        self.assertEqual(2, len(signs))
+        self.assertEqual(2, len({entity["entity_id"] for entity in signs}))
+        self.assertTrue(
+            all(
+                entity["entity_id"].startswith("tos.sign.sid-")
+                and entity["admission_status"] == "proposed"
+                and not entity["admission_review_refs"]
+                for entity in signs
+            )
+        )
+        competing = [
+            claim for claim in variant_b["claims"] if claim["claim_type"] == "sign_identity"
+        ]
+        self.assertEqual(
+            {competing[0]["claim_id"]},
+            set(competing[1]["competing_claim_refs"]),
+        )
+        self.assertEqual(
+            {competing[1]["claim_id"]},
+            set(competing[0]["competing_claim_refs"]),
+        )
+        self.assertEqual([], variant_b["reviews"])
+        self.assertEqual([], variant_b["graph_projection"]["edges"])
+
+    def test_semantic_annotation_v2_requires_model_and_promotion_closure(self) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/semantic-annotation-packet-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        packet = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        model_without_prompt_closure = copy.deepcopy(packet)
+        model_without_prompt_closure["claims"][2]["maker"] = {
+            "maker_kind": "model",
+            "agent_ref": "model:synthetic-negative-control",
+            "made_at": "2026-08-11T12:00:00Z",
+            "method": "synthetic negative control",
+            "provenance_event_ref": "tos.event.synthetic-negative-control",
+        }
+        self.assertTrue(list(validator.iter_errors(model_without_prompt_closure)))
+
+        label_renamed = copy.deepcopy(packet)
+        before = label_renamed["entities"][2]["entity_id"]
+        label_renamed["entities"][2]["display_labels"][0]["value"] = (
+            "a completely different mutable display label"
+        )
+        self.assertEqual(before, label_renamed["entities"][2]["entity_id"])
+        self.assertFalse(list(validator.iter_errors(label_renamed)))
+
     def test_provenance_v2_synthetic_abc_preserves_success_transform_and_failure(
         self,
     ) -> None:

@@ -76,6 +76,17 @@ one. Fixity and replay specification remain distinct from signature,
 source-visible review, content truth, publication authority, and canon. The
 legacy v1 records keep their historical meaning and are not bulk-migrated.
 
+Semantic identity above those layers is now explicit rather than hidden in a
+generic annotation body. The additive semantic-annotation v2 contract keeps
+occurrence, lexeme, lexical sense, sign, concept, claim, relation, review, and
+graph projection separate. Higher semantic IDs are opaque and independent of
+mutable labels, glosses, translations, or current concept names. Its public
+synthetic A/B/C binds exact source spans, preserves two reciprocal competing
+sign proposals without review or graph effect, and rejects a model-shaped
+promotion without real-human evidence. This proves contract mechanics only;
+it establishes no sign, concept, interpretation, graph truth, or human review,
+and it migrates no current corpus packet.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review

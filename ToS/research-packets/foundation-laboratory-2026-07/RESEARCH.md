@@ -6,7 +6,8 @@ route refreshed 2026-07-29; exact standalone Nietzsche source-route research
 and the *Ecce Homo* / *Zarathustra* / *Jenseits von Gut und Böse*
 authorial-witness routes refreshed 2026-07-30; exact-form recurrence
 foundation refreshed 2026-08-02; semantic standards, annotation-tool, and
-fresh-paper plus software/model-stack currentness refreshed 2026-08-08
+fresh-paper plus software/model-stack currentness refreshed 2026-08-08;
+semantic identity/annotation foundation refreshed 2026-08-11
 Scope: corpus identity, source witnesses, provenance, anchors, signs,
 translation, annotation, retrieval, graph projection, discovery, and rights
 
@@ -37,6 +38,27 @@ revised, disputed, or rejected without changing the witness.
 The graph is therefore a projection of reviewed claims, not the container of
 truth. Search indexes are also rebuildable projections. The tracked corpus
 catalog, contracts, claims, decisions, and receipts remain authoritative.
+
+### Semantic identity closure — 2026-08-11
+
+The ordered follow-up in
+`SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md` returns first to W3C Web
+Annotation, SKOS, OntoLex/VarTrans, TEI, CIDOC CRM/CRMinf, and Wikibase, then
+to established ontology/annotation/provenance work, and only then to 2025–2026
+human+LLM validation and diachronic-semantics research. OntoLex FrAC is kept as
+an emerging public-review input rather than mislabeled as a final standard.
+
+The resulting additive v2 packet gives occurrence, lexeme, lexical sense,
+sign, concept, claim, relation, review, and graph projection separate
+identities. Labels, glosses, translations, and current concept names remain
+mutable and cannot seed higher semantic IDs. A public synthetic A/B/C resolves
+two exact source spans; preserves two incompatible, reciprocal, model-shaped
+sign proposals as unreviewed `proposed` claims with zero graph effect; and
+rejects attempted acceptance without real-human promotion evidence. Twelve
+independent negative controls and direct span/digest inspection close the
+mechanics. No model was invoked, no human review was fabricated, and no stable
+sign, concept, semantic truth, graph truth, or private-source publication
+authority was created.
 
 ### Golden-kernel source correction
 

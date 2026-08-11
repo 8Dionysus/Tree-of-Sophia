@@ -74,6 +74,12 @@ exact input/output/byproduct bytes, derivation, terminal state, command,
 runtime/model, responsibility, manual-change, measurement, rights, review, and
 replay fields remain inspectable without turning a green unsigned receipt into
 execution truth or content authority. Legacy provenance v1 is preserved.
+Semantic annotations above those layers use a separate additive v2 packet:
+occurrence, lexeme, lexical sense, sign, concept, claim, relation, review, and
+graph projection do not collapse; higher IDs remain independent of mutable
+labels and translations; competing readings remain claims; and graph edges
+require accepted source-returnable claims and relations. The tracked A/B/C is
+public synthetic mechanics only and creates neither review nor semantic truth.
 Its read-only query route proves source parity before returning a claim bundle
 and persists no result or judgment. The current source spine gives all 55
 declared Work→Expression→Edition→Item steps their own claim IDs, evidence,

@@ -38,6 +38,7 @@ For orientation, read only the route you need:
 | agent-surface shape | [DESIGN.AGENTS](DESIGN.AGENTS.md) |
 | ToS source home or branch work | [ToS/AGENTS](ToS/AGENTS.md), then the owning branch card |
 | corpus identity, payload, anchor, provenance, or rights | [CORPUS_FOUNDATION](ToS/doctrine/CORPUS_FOUNDATION.md) -> [source-witness route](ToS/source-witnesses/README.md) -> [source-witness AGENTS](ToS/source-witnesses/AGENTS.md) |
+| semantic identity, claim, review, relation, or graph admission | [semantic identity research](ToS/research-packets/foundation-laboratory-2026-07/SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md) -> [corpus contracts](ToS/contracts/CORPUS_CONTRACTS.md) -> nearest candidate/review/canon/export owner |
 | golden-kernel architecture | [GOLDEN_GROWTH_KERNEL](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md), then the nearest witness, intake, review, canon, contract, or export owner |
 | bounded public Zarathustra route | [TINY_ENTRY_ROUTE](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) |
 | mechanics | [mechanics](mechanics/README.md), package `AGENTS.md`, package `ROADMAP.md`, active part route |
@@ -73,6 +74,10 @@ or manifest, and the narrowest relevant validator before broader gates.
 - Native extraction, OCR, correction, normalization, alignment, translation,
   annotation, and review are separate versioned events. Never overwrite an
   earlier layer to make a later result appear clean.
+- Occurrence, lexeme, lexical sense, sign, concept, claim, relation, review,
+  and graph projection are separate identities. Never derive a durable
+  semantic ID from a mutable label, gloss, translation, or current concept
+  name, and never project an unaccepted claim as a fact edge.
 - Validators prove mechanics. Manual source-visible review owns text,
   translation, semantic, rights, and canon judgments.
 
