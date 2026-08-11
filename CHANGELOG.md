@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added `tos_source_text_layer_v1` as the immutable textual-representation
+  floor above exact source anchors. Ordered TEI, OCR-D, Web Annotation,
+  PROV-O, IIIF, Unicode, established digital-edition, and fresh 2025–2026
+  correction-provenance research now separates raw OCR, diplomatic candidate,
+  reviewed reading, and normalization; binds predecessor, content, editorial
+  policy, and explicit code-point edits; and keeps mechanical, review,
+  language-competence, accepted-use, rights-record, and publication-authority
+  gates distinct.
+  A public-synthetic real-byte A/B/C replayed both transitions exactly and nine
+  negative controls failed closed. No existing record was migrated and no
+  accepted text, competence, translation, semantic claim, graph truth, human
+  task, publication, or canon authority was added.
 - Added an explicitly additive `tos_source_anchor_v2` foundation without
   reinterpreting or migrating current v1 anchors. Ordered W3C Web Annotation,
   TEI, IIIF, EPUB/IETF, established robust-anchoring, and fresh 2025–2026

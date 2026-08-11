@@ -73,6 +73,15 @@ migrates no v1 anchor, and cannot establish source text, review, translation,
 semantics, rights, graph truth, or canon. The ordinary source-witness lane runs
 the same mechanics as one bounded subcheck.
 
+The validator also owns the public-synthetic `tos_source_text_layer_v1`
+laboratory. `--source-text-layer-lab-only` reads the three tracked UTF-8
+artifacts, verifies their digests and exact source-anchor-v2 return, replays
+the two declared Unicode-code-point transitions, checks normalization and
+predecessor closure, and exercises fail-closed review/competence/use/rights
+controls. It reads no private corpus payload, accepts no transcription, and
+cannot supply human or language competence, translation, semantics,
+publication, graph truth, canon, or bulk migration authority.
+
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
 EPUB resource, TEI structure, and provider OCR page inventories from an

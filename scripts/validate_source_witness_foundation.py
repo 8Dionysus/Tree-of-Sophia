@@ -59,6 +59,11 @@ ANCHOR_V2_LAB_ROOT = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc"
 )
 ANCHOR_V2_LAB_MANIFEST = ANCHOR_V2_LAB_ROOT / "lab.manifest.json"
+SOURCE_TEXT_LAYER_SCHEMA = CONTRACT_ROOT / "source-text-layer.schema.json"
+SOURCE_TEXT_LAYER_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc"
+)
+SOURCE_TEXT_LAYER_LAB_MANIFEST = SOURCE_TEXT_LAYER_LAB_ROOT / "lab.manifest.json"
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -948,6 +953,483 @@ def validate_source_anchor_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[st
     declared_controls = set(manifest.get("negative_controls", []))
     if declared_controls != set(report["negative_controls"]):
         issues.append((ANCHOR_V2_LAB_MANIFEST.as_posix(), "negative-control coverage differs from manifest"))
+    return issues, report
+
+
+def _source_text_layer_semantic_issues(layer: dict[str, Any]) -> list[str]:
+    """Return cross-field source-text-layer defects JSON Schema cannot express."""
+
+    messages: list[str] = []
+    layer_id = layer.get("layer_id")
+    if layer.get("supersedes_layer_ref") == layer_id:
+        messages.append("source text layer cannot supersede itself")
+
+    representation = layer.get("representation", {})
+    scope = representation.get("text_scope", {})
+    if (
+        isinstance(scope.get("start"), int)
+        and isinstance(scope.get("end"), int)
+        and scope["end"] < scope["start"]
+    ):
+        messages.append("representation text scope is reversed")
+
+    storage = representation.get("storage")
+    tracked_content = representation.get("tracked_content")
+    visibility = representation.get("content_visibility")
+    if (storage == "tracked") != (tracked_content is True):
+        messages.append("representation storage and tracked-content posture disagree")
+    if tracked_content is True and visibility != "public":
+        messages.append("tracked source text layer must be public content")
+    publication_authorized = representation.get("publication_authorized")
+    publication_authority_refs = representation.get(
+        "publication_authority_refs", []
+    )
+    if publication_authorized is True and visibility != "public":
+        messages.append("nonpublic source text layer cannot authorize publication")
+    if publication_authorized is True and not publication_authority_refs:
+        messages.append("publication authorization has no authority reference")
+    if publication_authorized is not True and publication_authority_refs:
+        messages.append("publication authority references contradict the closed gate")
+
+    anchor_ids = {
+        binding.get("anchor_id")
+        for binding in layer.get("source_binding", {}).get("anchors", [])
+        if isinstance(binding, dict)
+    }
+    derivation = layer.get("derivation", {})
+    inputs = derivation.get("input_layers", [])
+    if any(
+        isinstance(item, dict) and item.get("layer_id") == layer_id
+        for item in inputs
+    ):
+        messages.append("source text layer cannot derive from itself")
+
+    change_payload = derivation.get("change_payload", {})
+    operations = (
+        change_payload.get("operations", [])
+        if change_payload.get("kind") == "explicit_operations"
+        else []
+    )
+    last_input_end = -1
+    last_output_end = -1
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        input_span = operation.get("input_span", {})
+        output_span = operation.get("output_span", {})
+        input_start = input_span.get("start")
+        input_end = input_span.get("end")
+        output_start = output_span.get("start")
+        output_end = output_span.get("end")
+        if all(isinstance(value, int) for value in (input_start, input_end)):
+            if input_end < input_start:
+                messages.append(f"{operation.get('edit_id')} input span is reversed")
+            if input_start < last_input_end:
+                messages.append("explicit input edit spans overlap or are out of order")
+            last_input_end = max(last_input_end, input_end)
+        if all(isinstance(value, int) for value in (output_start, output_end)):
+            if output_end < output_start:
+                messages.append(f"{operation.get('edit_id')} output span is reversed")
+            if output_start < last_output_end:
+                messages.append("explicit output edit spans overlap or are out of order")
+            last_output_end = max(last_output_end, output_end)
+        input_exact = operation.get("input_exact")
+        output_exact = operation.get("output_exact")
+        if isinstance(input_exact, str):
+            if operation.get("input_sha256") != _sha256_text(input_exact):
+                messages.append(f"{operation.get('edit_id')} input text digest drifted")
+            if isinstance(input_start, int) and isinstance(input_end, int):
+                if len(input_exact) != input_end - input_start:
+                    messages.append(f"{operation.get('edit_id')} input span length differs from text")
+        if isinstance(output_exact, str):
+            if operation.get("output_sha256") != _sha256_text(output_exact):
+                messages.append(f"{operation.get('edit_id')} output text digest drifted")
+            if isinstance(output_start, int) and isinstance(output_end, int):
+                if len(output_exact) != output_end - output_start:
+                    messages.append(f"{operation.get('edit_id')} output span length differs from text")
+        evidence = set(operation.get("evidence_anchor_refs", []))
+        if not evidence or not evidence.issubset(anchor_ids):
+            messages.append(f"{operation.get('edit_id')} evidence anchors leave the source binding")
+
+    uncertainty = layer.get("uncertainty", {})
+    for annotation in uncertainty.get("annotations", []):
+        if not isinstance(annotation, dict):
+            continue
+        if annotation.get("anchor_ref") not in anchor_ids:
+            messages.append("uncertainty annotation leaves the source binding")
+        for alternative in annotation.get("alternatives", []):
+            if not isinstance(alternative, dict):
+                continue
+            value = alternative.get("value")
+            in_record = alternative.get("value_in_record")
+            if in_record is True and not isinstance(value, str):
+                messages.append("in-record uncertainty alternative omits its value")
+            if in_record is False and value is not None:
+                messages.append("withheld uncertainty alternative exposes a value")
+            if isinstance(value, str) and alternative.get("value_sha256") != _sha256_text(value):
+                messages.append("uncertainty alternative digest drifted")
+    return messages
+
+
+def _source_text_layer_selected_text(
+    layer: dict[str, Any],
+    *,
+    repo_root: Path,
+) -> tuple[str, Path]:
+    representation = layer["representation"]
+    content_ref = representation["content_ref"]
+    content_path = repo_root / content_ref
+    if content_path.is_symlink() or not content_path.is_file():
+        raise ValueError("text-layer representation is absent or symlinked")
+    if _sha256(content_path) != representation["content_sha256"]:
+        raise ValueError("text-layer representation digest drifted")
+    try:
+        text = content_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f"text-layer representation is not UTF-8 text: {exc}") from exc
+    scope = representation["text_scope"]
+    start = scope["start"]
+    end = scope["end"]
+    if end < start or end > len(text):
+        raise ValueError("text-layer representation scope leaves the content")
+    selected = text[start:end]
+    normalization = representation["character_normalization"]
+    if normalization in {"NFC", "NFD", "NFKC", "NFKD"}:
+        if unicodedata.normalize(normalization, selected) != selected:
+            raise ValueError("text-layer representation contradicts its Unicode normalization")
+    return selected, content_path
+
+
+def _replay_source_text_layer_edits(
+    input_text: str,
+    output_text: str,
+    operations: list[dict[str, Any]],
+) -> None:
+    """Independently replay ordered half-open Unicode edits against real bytes."""
+
+    pieces: list[str] = []
+    input_cursor = 0
+    output_cursor = 0
+    for operation in operations:
+        input_span = operation["input_span"]
+        output_span = operation["output_span"]
+        start = input_span["start"]
+        end = input_span["end"]
+        if start < input_cursor or end < start or end > len(input_text):
+            raise ValueError("explicit input edits overlap, reverse, or leave the input")
+        unchanged = input_text[input_cursor:start]
+        pieces.append(unchanged)
+        output_cursor += len(unchanged)
+        if input_text[start:end] != operation["input_exact"]:
+            raise ValueError("explicit input edit text does not match the input bytes")
+        if _sha256_text(operation["input_exact"]) != operation["input_sha256"]:
+            raise ValueError("explicit input edit digest drifted")
+        if output_span["start"] != output_cursor:
+            raise ValueError("explicit output edit start is not replay-aligned")
+        if output_span["end"] != output_cursor + len(operation["output_exact"]):
+            raise ValueError("explicit output edit end is not replay-aligned")
+        if _sha256_text(operation["output_exact"]) != operation["output_sha256"]:
+            raise ValueError("explicit output edit digest drifted")
+        pieces.append(operation["output_exact"])
+        output_cursor = output_span["end"]
+        input_cursor = end
+    pieces.append(input_text[input_cursor:])
+    if "".join(pieces) != output_text:
+        raise ValueError("explicit edit replay does not reproduce the output layer")
+
+
+def validate_source_text_layer_lab(repo_root: Path) -> tuple[list[Issue], dict[str, Any]]:
+    """Validate public synthetic OCR -> diplomatic -> normalized layer lineage."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {
+        "source_anchor_selection": None,
+        "variants": [],
+        "negative_controls": {},
+    }
+    try:
+        layer_validator, _ = _schema_validator(SOURCE_TEXT_LAYER_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [(SOURCE_TEXT_LAYER_SCHEMA.as_posix(), f"cannot load text-layer schema: {exc}")], report
+
+    manifest_path = repo_root / SOURCE_TEXT_LAYER_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_source_text_layer_lab_v1":
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "unexpected laboratory manifest version"))
+    if manifest.get("contract_ref") != SOURCE_TEXT_LAYER_SCHEMA.as_posix():
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "laboratory contract reference drifted"))
+    if manifest.get("authority_posture") != "public_synthetic_mechanics_only":
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "laboratory authority posture widened"))
+    expected_limits = {
+        "real_source_payload_used": False,
+        "human_review_performed": False,
+        "source_text_accepted": False,
+        "translation_created": False,
+        "linguistic_claim_created": False,
+        "semantic_claim_created": False,
+        "graph_effect_created": False,
+        "canon_effect": False,
+        "routine_human_task_created": False,
+    }
+    if manifest.get("authority_limits") != expected_limits:
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "laboratory authority limits widened"))
+
+    policy = manifest.get("editorial_policy", {})
+    policy_ref = policy.get("ref")
+    policy_path = repo_root / policy_ref if isinstance(policy_ref, str) else manifest_path
+    if not policy_path.is_file() or _sha256(policy_path) != policy.get("sha256"):
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "editorial policy closure drifted"))
+
+    anchor_issues, anchor_report = validate_source_anchor_v2_lab(repo_root)
+    for location, message in anchor_issues:
+        issues.append((location, f"source-text-layer anchor dependency: {message}"))
+    anchor_expectation = manifest.get("source_anchor", {})
+    anchor_row = next(
+        (row for row in anchor_report.get("variants", []) if row.get("variant_id") == "B"),
+        None,
+    )
+    if anchor_row is None:
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "source anchor B did not resolve"))
+    else:
+        report["source_anchor_selection"] = anchor_row.get("selection")
+        if (
+            anchor_row.get("selection") != anchor_expectation.get("expected_selection")
+            or anchor_row.get("selection_sha256") != anchor_expectation.get("expected_selection_sha256")
+            or anchor_row.get("review_status") != anchor_expectation.get("review_status")
+        ):
+            issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "source anchor expectation drifted"))
+    anchor_record_ref = anchor_expectation.get("anchor_record_ref")
+    anchor_record_path = repo_root / anchor_record_ref if isinstance(anchor_record_ref, str) else manifest_path
+    if not anchor_record_path.is_file() or _sha256(anchor_record_path) != anchor_expectation.get("anchor_record_sha256"):
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "source anchor record closure drifted"))
+
+    layers_by_id: dict[str, dict[str, Any]] = {}
+    record_ref_by_id: dict[str, str] = {}
+    selected_text_by_id: dict[str, str] = {}
+    layers_by_variant: dict[str, dict[str, Any]] = {}
+    for variant in manifest.get("variants", []):
+        if not isinstance(variant, dict):
+            issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "variant is not an object"))
+            continue
+        variant_id = variant.get("variant_id")
+        layer_ref = variant.get("layer_ref")
+        content_ref = variant.get("content_ref")
+        if not all(isinstance(value, str) for value in (variant_id, layer_ref, content_ref)):
+            issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "variant references are invalid"))
+            continue
+        layer_path = repo_root / layer_ref
+        content_path = repo_root / content_ref
+        if layer_path.is_symlink() or not layer_path.is_file() or _sha256(layer_path) != variant.get("layer_sha256"):
+            issues.append((layer_ref, "layer record fixity drifted"))
+            continue
+        if content_path.is_symlink() or not content_path.is_file() or _sha256(content_path) != variant.get("content_sha256"):
+            issues.append((content_ref, "layer content fixity drifted"))
+            continue
+        layer = _load_json(layer_path, repo_root, issues)
+        if layer is None:
+            continue
+        _validate_payload(layer, layer_validator, layer_ref, issues)
+        for message in _source_text_layer_semantic_issues(layer):
+            issues.append((layer_ref, message))
+        try:
+            selected_text, selected_path = _source_text_layer_selected_text(layer, repo_root=repo_root)
+        except (KeyError, TypeError, ValueError) as exc:
+            issues.append((layer_ref, str(exc)))
+            continue
+        if selected_path != content_path:
+            issues.append((layer_ref, "layer representation and manifest content paths differ"))
+        if selected_text != variant.get("expected_text"):
+            issues.append((layer_ref, "selected text differs from the frozen expectation"))
+        if _sha256_text(selected_text) != variant.get("expected_text_sha256"):
+            issues.append((layer_ref, "selected text digest differs from the frozen expectation"))
+        representation = layer.get("representation", {})
+        if representation.get("content_sha256") != variant.get("content_sha256"):
+            issues.append((layer_ref, "layer and manifest content digests differ"))
+        editorial = layer.get("editorial_policy", {})
+        if editorial.get("policy_ref") != policy_ref or editorial.get("policy_sha256") != policy.get("sha256"):
+            issues.append((layer_ref, "layer editorial policy closure drifted"))
+        source_binding = layer.get("source_binding", {})
+        if source_binding.get("source_file_sha256") != "0e80d33931ca968af97942d1a91c82d4ab4c2ed9c417b21a05186ef85493dfce":
+            issues.append((layer_ref, "layer source file digest left the exact anchor target"))
+        anchors = source_binding.get("anchors", [])
+        if anchors != [
+            {
+                "anchor_id": anchor_expectation.get("anchor_id"),
+                "anchor_record_ref": anchor_record_ref,
+                "anchor_record_sha256": anchor_expectation.get("anchor_record_sha256"),
+            }
+        ]:
+            issues.append((layer_ref, "layer source-anchor binding drifted"))
+
+        layer_id = layer.get("layer_id")
+        if not isinstance(layer_id, str) or layer_id in layers_by_id:
+            issues.append((layer_ref, "layer identity is invalid or duplicated"))
+            continue
+        input_layers = layer.get("derivation", {}).get("input_layers", [])
+        for input_binding in input_layers:
+            input_id = input_binding.get("layer_id")
+            predecessor = layers_by_id.get(input_id)
+            if predecessor is None:
+                issues.append((layer_ref, "input layer is absent or occurs after its successor"))
+                continue
+            predecessor_ref = record_ref_by_id[input_id]
+            predecessor_path = repo_root / predecessor_ref
+            if (
+                input_binding.get("record_ref") != predecessor_ref
+                or input_binding.get("record_sha256") != _sha256(predecessor_path)
+                or input_binding.get("content_sha256") != predecessor["representation"]["content_sha256"]
+            ):
+                issues.append((layer_ref, "input layer digest-bound closure drifted"))
+                continue
+            payload = layer["derivation"]["change_payload"]
+            if payload.get("kind") == "explicit_operations":
+                try:
+                    _replay_source_text_layer_edits(
+                        selected_text_by_id[input_id],
+                        selected_text,
+                        payload["operations"],
+                    )
+                except (KeyError, TypeError, ValueError) as exc:
+                    issues.append((layer_ref, f"explicit change replay failed: {exc}"))
+        if input_layers and layer.get("supersedes_layer_ref") != input_layers[-1].get("layer_id"):
+            issues.append((layer_ref, "successor does not name its immediate input as superseded"))
+        if layer.get("derivation", {}).get("method") == "unicode_normalization" and input_layers:
+            predecessor_text = selected_text_by_id.get(input_layers[-1].get("layer_id"))
+            if predecessor_text is not None and unicodedata.normalize("NFC", predecessor_text) != selected_text:
+                issues.append((layer_ref, "declared NFC derivation does not reproduce the output"))
+        if variant_id == "B" and selected_text != report.get("source_anchor_selection"):
+            issues.append((layer_ref, "diplomatic candidate differs from the exact source-anchor selection"))
+
+        layers_by_id[layer_id] = layer
+        record_ref_by_id[layer_id] = layer_ref
+        selected_text_by_id[layer_id] = selected_text
+        layers_by_variant[variant_id] = layer
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "layer_id": layer_id,
+                "layer_role": layer.get("layer_role"),
+                "text": selected_text,
+                "text_sha256": _sha256_text(selected_text),
+                "review_status": layer.get("admission", {}).get("review_status"),
+                "accepted_uses": layer.get("admission", {}).get("accepted_uses"),
+                "publication_authorized": layer.get("representation", {}).get(
+                    "publication_authorized"
+                ),
+                "rights_record_refs": layer.get("representation", {}).get(
+                    "rights_record_refs"
+                ),
+            }
+        )
+
+    def negative_rejected(name: str, action: Any) -> None:
+        try:
+            action()
+        except (KeyError, TypeError, ValueError):
+            report["negative_controls"][name] = "rejected"
+        else:
+            issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), f"negative control was not rejected: {name}"))
+            report["negative_controls"][name] = "not_rejected"
+
+    def schema_reject(payload: dict[str, Any]) -> None:
+        if list(layer_validator.iter_errors(payload)):
+            raise ValueError("schema rejected negative control")
+
+    if set(layers_by_variant) == {"A", "B", "C"}:
+        def silent_correction() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["derivation"]["change_payload"] = {"kind": "none"}
+            schema_reject(mutated)
+
+        def input_record_drift() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            binding = mutated["derivation"]["input_layers"][0]
+            if binding["record_sha256"] != _sha256(repo_root / binding["record_ref"]):
+                raise ValueError("input record digest drift rejected")
+            binding["record_sha256"] = "0" * 64
+            if binding["record_sha256"] != _sha256(repo_root / binding["record_ref"]):
+                raise ValueError("input record digest drift rejected")
+
+        def edit_mismatch() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            operation = mutated["derivation"]["change_payload"]["operations"][0]
+            operation["output_sha256"] = "0" * 64
+            messages = _source_text_layer_semantic_issues(mutated)
+            if any("output text digest drifted" in message for message in messages):
+                raise ValueError("edit digest mismatch rejected")
+
+        def unreviewed_accepted_use() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["admission"]["accepted_uses"] = ["citation"]
+            schema_reject(mutated)
+
+        def normalized_diplomatic_use() -> None:
+            mutated = copy.deepcopy(layers_by_variant["C"])
+            mutated["admission"].update(
+                {
+                    "review_status": "accepted",
+                    "review_ref": "tos.review.synthetic.source-text-layer",
+                    "human_review_performed": True,
+                    "accepted_uses": ["diplomatic_transcription"],
+                }
+            )
+            schema_reject(mutated)
+
+        def language_use_without_competence() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["admission"].update(
+                {
+                    "review_status": "accepted_with_limits",
+                    "review_ref": "tos.review.synthetic.source-text-layer",
+                    "human_review_performed": True,
+                    "human_language_competence": "blocked",
+                    "accepted_uses": ["translation_source"],
+                }
+            )
+            schema_reject(mutated)
+
+        def tracked_nonpublic_text() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["representation"]["content_visibility"] = "local_only"
+            mutated["representation"]["publication_authorized"] = False
+            messages = _source_text_layer_semantic_issues(mutated)
+            if "tracked source text layer must be public content" in messages:
+                raise ValueError("tracked nonpublic source text rejected")
+
+        def publication_without_authority() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["representation"]["publication_authorized"] = False
+            mutated["admission"].update(
+                {
+                    "review_status": "accepted",
+                    "review_ref": "tos.review.synthetic.source-text-layer",
+                    "human_review_performed": True,
+                    "accepted_uses": ["publication"],
+                }
+            )
+            schema_reject(mutated)
+
+        def self_supersession() -> None:
+            mutated = copy.deepcopy(layers_by_variant["B"])
+            mutated["supersedes_layer_ref"] = mutated["layer_id"]
+            if "source text layer cannot supersede itself" in _source_text_layer_semantic_issues(mutated):
+                raise ValueError("self supersession rejected")
+
+        negative_rejected("silent_correction_without_operations", silent_correction)
+        negative_rejected("input_record_digest_drift", input_record_drift)
+        negative_rejected("edit_span_or_digest_mismatch", edit_mismatch)
+        negative_rejected("unreviewed_layer_claims_accepted_use", unreviewed_accepted_use)
+        negative_rejected("normalized_layer_claims_diplomatic_use", normalized_diplomatic_use)
+        negative_rejected("language_sensitive_use_without_competence", language_use_without_competence)
+        negative_rejected("tracked_nonpublic_explicit_text", tracked_nonpublic_text)
+        negative_rejected("publication_use_without_publication_authority", publication_without_authority)
+        negative_rejected("self_supersession", self_supersession)
+
+    if set(manifest.get("negative_controls", [])) != set(report["negative_controls"]):
+        issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "negative-control coverage differs from manifest"))
     return issues, report
 
 
@@ -2397,6 +2879,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     anchor_v2_lab_issues, _ = validate_source_anchor_v2_lab(repo_root)
     issues.extend(anchor_v2_lab_issues)
+
+    source_text_layer_lab_issues, _ = validate_source_text_layer_lab(repo_root)
+    issues.extend(source_text_layer_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -9705,6 +10190,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="resolve and report only the public synthetic source-anchor v2 A/B/C",
     )
+    parser.add_argument(
+        "--source-text-layer-lab-only",
+        action="store_true",
+        help="replay and report only the public synthetic source-text-layer A/B/C",
+    )
     args = parser.parse_args(argv)
 
     if args.source_anchor_v2_lab_only:
@@ -9716,6 +10206,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
         print("[boundary] synthetic mechanical resolution only; no source, review, translation, semantic, or canon authority")
+        return 0
+
+    if args.source_text_layer_lab_only:
+        issues, report = validate_source_text_layer_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Source-text-layer laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] public synthetic layer mechanics only; no human review, accepted text, translation, linguistic, semantic, graph, canon, or publication authority")
         return 0
 
     issues = validate_foundation(

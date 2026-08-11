@@ -1796,6 +1796,160 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 resources_by_path={},
             )
 
+    def test_source_text_layer_synthetic_abc_replays_real_unicode_edits(self) -> None:
+        issues, report = foundation.validate_source_text_layer_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual("café", report["source_anchor_selection"])
+        self.assertEqual(
+            [
+                ("A", "raw_ocr", "cafe"),
+                ("B", "diplomatic_transcription", "café"),
+                ("C", "normalized_text", "café"),
+            ],
+            [
+                (row["variant_id"], row["layer_role"], row["text"])
+                for row in report["variants"]
+            ],
+        )
+        self.assertTrue(
+            all(
+                row["review_status"] == "unreviewed"
+                and row["accepted_uses"] == []
+                and row["publication_authorized"] is False
+                and row["rights_record_refs"] == []
+                for row in report["variants"]
+            )
+        )
+        self.assertEqual(
+            {
+                "edit_span_or_digest_mismatch": "rejected",
+                "input_record_digest_drift": "rejected",
+                "language_sensitive_use_without_competence": "rejected",
+                "normalized_layer_claims_diplomatic_use": "rejected",
+                "publication_use_without_publication_authority": "rejected",
+                "self_supersession": "rejected",
+                "silent_correction_without_operations": "rejected",
+                "tracked_nonpublic_explicit_text": "rejected",
+                "unreviewed_layer_claims_accepted_use": "rejected",
+            },
+            report["negative_controls"],
+        )
+
+    def test_source_text_layer_keeps_review_competence_and_visibility_fail_closed(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/source-text-layer.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        layer = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "source-text-layer-abc/variant-b.layer.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        silent_correction = copy.deepcopy(layer)
+        silent_correction["derivation"]["change_payload"] = {"kind": "none"}
+        self.assertTrue(list(validator.iter_errors(silent_correction)))
+
+        unreviewed_acceptance = copy.deepcopy(layer)
+        unreviewed_acceptance["admission"]["accepted_uses"] = ["citation"]
+        self.assertTrue(list(validator.iter_errors(unreviewed_acceptance)))
+
+        competence_bypass = copy.deepcopy(layer)
+        competence_bypass["admission"].update(
+            {
+                "review_status": "accepted_with_limits",
+                "review_ref": "tos.review.synthetic.source-text-layer",
+                "human_review_performed": True,
+                "human_language_competence": "blocked",
+                "accepted_uses": ["semantic_analysis"],
+            }
+        )
+        self.assertTrue(list(validator.iter_errors(competence_bypass)))
+
+        rejected_but_used = copy.deepcopy(layer)
+        rejected_but_used["admission"].update(
+            {
+                "review_status": "rejected",
+                "review_ref": "tos.review.synthetic.source-text-layer",
+                "human_review_performed": True,
+                "accepted_uses": ["citation"],
+                "promotion_authorized": True,
+            }
+        )
+        self.assertTrue(list(validator.iter_errors(rejected_but_used)))
+
+        unbound_identity_copy = copy.deepcopy(layer)
+        unbound_identity_copy["derivation"].update(
+            {
+                "method": "identity_copy",
+                "input_layers": [],
+                "change_payload": {"kind": "none"},
+            }
+        )
+        self.assertTrue(list(validator.iter_errors(unbound_identity_copy)))
+
+        ungrounded_publication = copy.deepcopy(layer)
+        ungrounded_publication["representation"]["publication_authorized"] = True
+        self.assertTrue(list(validator.iter_errors(ungrounded_publication)))
+
+        rejected_active_edit = copy.deepcopy(layer)
+        rejected_active_edit["derivation"]["change_payload"]["operations"][0][
+            "status"
+        ] = "rejected"
+        self.assertTrue(list(validator.iter_errors(rejected_active_edit)))
+
+        unbound_second_version = copy.deepcopy(layer)
+        unbound_second_version["layer_version"] = 2
+        unbound_second_version["supersedes_layer_ref"] = None
+        self.assertTrue(list(validator.iter_errors(unbound_second_version)))
+
+        tracked_nonpublic = copy.deepcopy(layer)
+        tracked_nonpublic["representation"].update(
+            {
+                "content_visibility": "local_only",
+                "publication_authorized": False,
+            }
+        )
+        self.assertIn(
+            "tracked source text layer must be public content",
+            foundation._source_text_layer_semantic_issues(tracked_nonpublic),
+        )
+
+        self_supersession = copy.deepcopy(layer)
+        self_supersession["supersedes_layer_ref"] = self_supersession["layer_id"]
+        self.assertIn(
+            "source text layer cannot supersede itself",
+            foundation._source_text_layer_semantic_issues(self_supersession),
+        )
+
+        reversed_scope = copy.deepcopy(layer)
+        reversed_scope["representation"]["text_scope"].update(
+            {"start": 5, "end": 4}
+        )
+        self.assertIn(
+            "representation text scope is reversed",
+            foundation._source_text_layer_semantic_issues(reversed_scope),
+        )
+
+        legacy_gold = json.loads(
+            (REPO_ROOT / "ToS/contracts/manual-gold-status.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            "tos_manual_gold_status_v1",
+            legacy_gold["properties"]["schema_version"]["const"],
+        )
+
     def test_source_witness_claim_catalog_is_exact_source_returnable_projection(
         self,
     ) -> None:

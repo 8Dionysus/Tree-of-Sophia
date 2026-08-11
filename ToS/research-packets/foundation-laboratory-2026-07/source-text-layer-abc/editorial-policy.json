@@ -1,0 +1,14 @@
+{
+  "schema_version": "tos_source_text_layer_editorial_policy_v1",
+  "policy_id": "tos.policy.source-text-layer.synthetic-abc",
+  "scope": "public synthetic mechanics only",
+  "principles": [
+    "keep every immutable representation",
+    "declare every correction and normalization",
+    "preserve historical-language evidence in the source-near layer",
+    "represent uncertainty explicitly",
+    "separate mechanical reproduction from human review and downstream admission"
+  ],
+  "source_authority": "exact source anchor and immutable source bytes",
+  "validator_boundary": "mechanics and fixity only"
+}

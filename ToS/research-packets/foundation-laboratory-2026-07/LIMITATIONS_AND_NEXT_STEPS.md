@@ -242,6 +242,17 @@ contracts intentionally reject simulated human evidence.
   format. A real-source v2 anchor is created only when a concrete source
   question requires one; there is no bulk migration task or routine human
   backlog.
+- `tos_source_text_layer_v1` is likewise proven only on three invented public
+  UTF-8 artifacts. It establishes immutable layer identity, exact predecessor
+  and content closure, independently replayable code-point edits, explicit
+  normalization, uncertainty, and separated review/competence/use/rights
+  gates. Its synthetic records carry no rights-record or publication-authority
+  refs and keep publication authorization false. It does not establish OCR quality, a real diplomatic or accepted
+  reading, German competence, translation, semantics, or publication. A real
+  layer is created only for a concrete source question under that Item's
+  private/public and rights posture; language-sensitive accepted use still
+  requires competence evidence. There is no bulk corpus migration or routine
+  human backlog.
 - The source-witness catalog now exposes all 96 current objects and all 140
   tracked membership, responsibility, publication, provision-activity,
   chronology, and identity-ladder claims through an exact

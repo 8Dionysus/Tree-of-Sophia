@@ -1187,6 +1187,34 @@ region. This proves bounded address mechanics only. It creates no source
 payload, migration, human review, accepted text, translation, semantic claim,
 graph truth, canon effect, public route, or human backlog.
 
+## Source-text layer and correction-provenance objective — 2026-08-11
+
+The next source-floor gap was not another OCR run but the missing durable
+contract between an exact source anchor and later linguistic or semantic
+packets. Research therefore returned first to current TEI, OCR-D, Web
+Annotation, PROV-O, IIIF, and Unicode documentation, then to established
+scholarly-digital-edition criteria and documentary-editing work, and only then
+to fresh 2025–2026 correction-provenance, OCR-repair, and historical-character
+preservation evidence. The resulting additive `tos_source_text_layer_v1`
+models raw OCR, machine/diplomatic transcription, reviewed source text, and
+normalization as distinct immutable representations rather than states of one
+editable field.
+
+One public-synthetic A/B/C binds actual UTF-8 bytes to the existing synthetic
+source-anchor-v2 selection. A contains an unaccented OCR form; B records the
+combining-mark insertion and exactly matches the anchored NFD selection; C
+records the two-code-point-to-one-code-point NFC replacement. Independent
+byte, digest, and code-point inspection replays both transitions and confirms
+`NFC(B) == C`. Nine negative controls reject silent correction, predecessor
+digest drift, edit span/digest mismatch, unreviewed accepted use, normalized
+diplomatic overclaim, language-sensitive use without competence, tracked
+nonpublic text, publication without authority, and self-supersession. All
+three layers remain unreviewed with no accepted use. This proves representation
+and lineage mechanics only. Their rights-record and publication-authority refs
+remain empty and publication authorization remains false; it creates no corpus migration, real-source
+reading, accepted transcription, human or German competence, translation,
+sign, semantics, graph truth, canon effect, publication route, or human debt.
+
 ## Thirty-one required artifacts
 
 The 2026-08-01 Antonovsky Agent continuation is independent of the earlier
@@ -1278,6 +1306,7 @@ or publication authority.
 | 29 | promotion/rejection decisions | `FOUNDATION_PROMOTION_REJECTION_LEDGER.md` promotes mechanics and preserves negative runs; the specialized MADLAD row retains exact acquisition/build/repair/smoke/mode-audit evidence plus one private candidate as `uncertain / retain-for-method-comparison`, with three bounded AI risk labels and no accepted text, human task, production artifact, or publication route | proven for method/setup decisions and explicit non-promotion of the one uncertain specialized candidate; content authority open | superseding competence-appropriate human receipts for any text, sign, relation, or transfer promotion; do not rerun the specialized candidate for wording or a greener status |
 | 30 | future server-import contract | schemas, protocol, nineteen item plans, rights gate, takedown fields, and metadata-only status exist; the operator policy keeps present local payloads off the future public site while permitting public-safe source identity and provenance; the four DTA plans report `open-licensed` upstream annotated-TEI evidence yet stay `blocked-rights`, metadata-only, and operator-unapproved, with every content-bearing derivative prohibited; the *Jenseits* plan preserves positive DE/US historical, faithful-scan, and automatic-text layers while generated cover, holding furniture, coordinate, package, and metadata layers keep the exact aggregate `conflicting_evidence`; the *Genealogie* plan now likewise preserves positive historical/mechanical layers and scoped Commons metadata licenses while binding, UNC furniture, OCR layout, package, Internet Archive metadata, incomplete source-country expression, and byte-revision divergence keep the aggregate conflicting, rights-unknown, local-only, and blocked; the *Antichrist* 1906 plan preserves four positive represented historical/mechanical layers and two scoped Commons metadata licenses while archive editorial responsibility, Stanford furniture, OCR layout, the DjVu package, contaminated Internet Archive metadata, and the unreviewed pages 228-329 map keep the aggregate conflicting, rights-unknown, local-only, and blocked; the *Ecce Homo* plan maps its aggregate `in_copyright` record to `restricted`, preserves positive Nietzsche/Richter and Commons-metadata sublayers, records van de Velde's German design term through 2027-12-31, and requires new upstream reacquisition plus fresh gates after term expiry; Reader 1899, Nani 1899, and Antonovsky 1913 retain their independent fail-closed routes | proven as blocked contract and payload non-publication policy | fresh independently acquired public object, separate reviewed publication decision, and operator approval for any material that may actually be published |
 | 31 | honest limitations and continuation route | `LIMITATIONS_AND_NEXT_STEPS.md` names the open human and transfer gates; `HUMAN_ASSURANCE_RESEARCH.md` and `gold-assurance.v2.json` reconcile solo+AI review and language competence; `private-evidence-handoff.v1.json` keeps active-goal authorization separate from publication approval; the public OCR derivative preserves aggregate outcomes without content authority; the currentness refresh closes broad watch debt; `SPECIALIZED_MT_CHALLENGER_ADMISSION_2026-08-10.md` now preserves exact research, acquisition, failures, repaired runtime, smoke, mode audit, fresh atomic owner admission, one private candidate, finding-free uncertain floor result, exact cost evidence, and three AI risk labels while keeping source/candidate text private | proven for current assurance, bounded derivative mechanics, handoff, currentness, one specialized private episode, and its non-promotion; repository publication remains false | human rights/correlation review and later authority-bearing review progress remain open; the specialized episode is closed without rerun, and every genuinely new execution still needs task-local exact-version plus machine-owner preflight |
+| 16a | immutable source-text-layer and correction provenance | `source-text-layer.schema.json` binds one immutable role-bearing representation to exact Work/Expression/Edition/Item/File/source-anchor-v2 identity and predecessor/content/editorial-policy digests; the public synthetic A/B/C retains actual UTF-8 NFD/NFC differences, explicit replayable edits, uncertainty and publication posture, plus independent mechanical, review, language-competence, accepted-use, rights-record, and publication-authority gates; direct byte/code-point inspection agrees and all nine negative controls fail closed | proven for public-synthetic representation, lineage, normalization, and gate mechanics only; all layers remain unreviewed and use-free, their rights/authority refs are empty, and publication authorization is false | create a real layer only for a concrete source question under its exact private/public and rights posture; any accepted reading or language-sensitive use still requires source-visible review and competence evidence; no bulk migration |
 
 ## Definition-of-Done reconciliation
 

@@ -43,6 +43,8 @@ current bounded Zarathustra route:
   `ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json`
 - current exact source-return query route:
   `scripts/query_source_witness_bibliographic_graph.py`
+- current public-synthetic source-text lineage laboratory:
+  `ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
@@ -61,6 +63,10 @@ identity, catalogs, digests, provenance, rights, forensic evidence, anchors,
 and review remain tracked. Search, vector, graph, and KAG surfaces are
 rebuildable projections. The bibliographic graph keeps claims as explicit
 nodes and does not flatten an unreviewed assertion into a direct fact edge.
+Source text is also layered rather than overwritten: raw OCR, diplomatic
+candidate, reviewed reading, and normalization keep distinct immutable
+identities, exact derivation provenance, and independent review, competence,
+use, and publication gates.
 Its read-only query route proves source parity before returning a claim bundle
 and persists no result or judgment. The current source spine gives all 55
 declared Work→Expression→Edition→Item steps their own claim IDs, evidence,

@@ -23,7 +23,7 @@ Semantic growth begins on this floor. It is not collapsed into it.
 | Posture | Meaning | Examples |
 | --- | --- | --- |
 | immutable | the recorded value never changes; a change creates another object/event | acquired file bytes, SHA-256 digest, signed receipt, review event |
-| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, passage, occurrence, lexeme, sign, concept, relation, annotation, claim |
+| persistent identity | the identifier remains while correctable descriptions accumulate | work, expression, edition, item, text layer, passage, occurrence, lexeme, sign, concept, relation, annotation, claim |
 | versioned assertion | content may be superseded without erasing lineage | title attribution, date, lemma, etymology, translation, concept boundary, relation |
 | derived projection | safely rebuildable from stronger tracked surfaces | search index, vector index, graph store, KAG export, visualization |
 
@@ -41,6 +41,7 @@ ToS uses an LRM-shaped local profile without claiming full IFLA conformance.
 | `edition` | a published or edited manifestation that embodies one or more expressions | one acquired scan or download |
 | `item` | one physical or digital copy/container as acquired | its metadata record or every file extracted from it |
 | `file` | one immutable byte sequence with media type and digest | the work itself |
+| `text-layer` | one immutable, role-bearing textual representation of an exact source scope | accepted text, the source file itself, or a silently mutable OCR field |
 | `collection` | an aggregate publication or container holding multiple works/expressions | a single contained work |
 
 Authorship, translation responsibility, edition identity, date, place, and
@@ -95,7 +96,7 @@ tos.<class>.<stable-local-name>
 ```
 
 where `<class>` is one of `agent`, `work`, `expression`, `edition`,
-`collection`, `item`, `file`, `passage`, `region`, `anchor`, `occurrence`,
+`collection`, `item`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
 `lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
 `review`, or `event`.
 
@@ -167,6 +168,26 @@ The following layers never overwrite one another:
 Unicode NFC belongs only in an explicitly normalized layer. Historical
 spelling, typography, punctuation, whitespace, glyph uncertainty, and OCR
 errors remain visible in source-near layers.
+
+The additive `tos_source_text_layer_v1` contract makes this separation
+first-class. Each layer binds one exact Work/Expression/Edition/Item/File
+scope and `tos_source_anchor_v2`, an immutable UTF-8 artifact and digest, its
+role, language, Unicode form, storage and publication posture, explicit
+digest-bound rights and publication-authority refs, and the exact
+predecessor record/content digests where derivation exists. Explicit
+code-point edit operations are half-open and independently replayable; a
+withheld operation stream needs its own governed receipt. Normalization is a
+successor, never a rewrite.
+
+Mechanical validation, source-visible review, reviewer language competence,
+accepted use, and rights/publication authority are separate gates. In
+particular, an unreviewed diplomatic candidate can match an anchored source
+selection exactly and still have no accepted use; a normalized successor
+cannot claim diplomatic or source-fidelity authority. The public synthetic
+A/B/C laboratory proves only byte/digest closure, edit replay, and explicit
+NFD-to-NFC succession. It creates no accepted transcription, German
+competence, translation, sign, semantic claim, graph truth, canon effect, or
+bulk migration obligation.
 
 ## Sign ladder
 

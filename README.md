@@ -56,6 +56,16 @@ source-anchor v2 contract now proves those distinctions on invented public
 JSON, Unicode text, and container/XHTML fixtures only; all current corpus
 anchors remain v1 until one real source question justifies a bounded successor.
 
+Text derived from those bytes is likewise a chain of immutable, role-bearing
+representations rather than one editable field. The additive source-text-layer
+contract keeps raw OCR, a diplomatic candidate, reviewed source text, and
+explicit normalization distinct; every transition returns to an exact v2
+source anchor or predecessor digest and replays its declared edits. Its public
+synthetic A/B/C proves mechanics only: no layer is reviewed, accepted for
+translation or semantics, or suitable for publication; rights records and
+publication-authority refs remain explicit and empty. No current corpus record
+is migrated.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review

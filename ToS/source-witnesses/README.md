@@ -865,6 +865,26 @@ All current corpus anchors remain v1. No source-bearing migration is implied.
 A future v2 successor may be created only for one concrete source question,
 with the exact representation and publication boundary visible.
 
+## Source-text layer laboratory boundary
+
+The additive `ToS/contracts/source-text-layer.schema.json` owns the next step
+without turning text into one mutable field. Raw OCR, machine or diplomatic
+transcription, reviewed source text, and normalized text are separate
+immutable records bound to exact corpus identity, a v2 source anchor, content
+digest, predecessor, editorial policy, and replayable code-point edits. Review,
+language competence, accepted use, rights-record refs, and publication-
+authority refs remain independent
+from mechanical validity.
+
+The current A/B/C under
+`ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
+uses only invented public UTF-8 bytes. It replays one correction and one
+NFD-to-NFC normalization transition and rejects nine overclaim or lineage
+failures. All three layers remain unreviewed and use-free. No real Item gains a
+text layer, no source is published, and no accepted transcription, German
+competence, translation, semantics, graph truth, canon effect, migration, or
+human backlog follows.
+
 ## Rebuild local resource inventories
 
 The payloads may be absent from a public clone, so the inventory builder is a

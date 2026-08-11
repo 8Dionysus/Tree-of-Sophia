@@ -91,6 +91,18 @@ retain a locator or withheld-selector receipt, but not copied source text.
 `tos_source_anchor_v2` is additive laboratory soil, not a migration of current
 v1 anchors.
 
+The text layer above an anchor is append-only as well. Raw OCR, machine or
+diplomatic transcription, reviewed source text, and normalized text receive
+separate identities and immutable content digests. A successor names its exact
+predecessor record and content, records every code-point edit or a governed
+withheld-operations receipt, and declares the editorial policy that permits
+the transformation. Mechanical replay, human source review, language
+competence, accepted downstream use, and publication authority are independent
+gates; rights records and any publication authority remain separately
+digest-bound rather than compressed into a boolean. A normalization successor
+can support normalized search without
+silently becoming the diplomatic reading of the witness.
+
 Institutional catalogue metadata follows the same attribution law. A control
 number keeps its native scheme; a holding statement keeps both the reporting
 catalogue and the reported holding institution. Thus an RNL field may verify
