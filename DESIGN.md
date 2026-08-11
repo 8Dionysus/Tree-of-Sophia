@@ -129,6 +129,18 @@ relation and accepted supporting claim; it is never a shortcut around them.
 The public synthetic semantic-annotation v2 laboratory proves these closure
 and rejection mechanics without creating any accepted semantic object.
 
+Text-unit identity sits between a frozen source-text layer and every
+alignment, lexical, semantic, retrieval, or graph consumer. The additive
+source-text-unit v1 packet does not choose one canonical tokenizer. It binds
+opaque scheme, segmentation, and unit IDs to exact ordered anchors, declared
+boundary methods, explicit coverage and gaps, reciprocal alternatives, review
+scope, and visibility inheritance. Layout lines, source-observed structure,
+orthographic tokens, linguistic units, model subwords, and virtual analytic
+nodes remain different kinds with different authority. Stable IDs do not
+encode text, labels, ordinals, offsets, or the current analysis; projections
+remain disposable and status-preserving. The public-synthetic A/B/C proves
+only closure and rejection mechanics and migrates no historical method label.
+
 Translation correspondence is another stand-off assertion layer, not a field
 inside either text. The additive translation-alignment v1 packet binds two
 exact expression/edition/item/file and frozen text-layer states, their

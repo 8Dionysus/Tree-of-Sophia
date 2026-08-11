@@ -66,6 +66,18 @@ translation or semantics, or suitable for publication; rights records and
 publication-authority refs remain explicit and empty. No current corpus record
 is migrated.
 
+Division of one frozen layer is a separate additive identity problem. The
+source-text-unit v1 contract gives opaque identities to the scheme,
+segmentation, and units while keeping physical layout, source-observed
+structure, orthographic or linguistic analysis, and model-input pieces apart.
+Every source-bearing unit returns through ordered exact anchors; coverage,
+gaps, overlap, punctuation, whitespace, line breaks, and hyphenation stay
+explicit. Competing segmentations remain reciprocal alternatives, and model
+subwords cannot silently become words, lexemes, signs, concepts, or graph
+facts. Its public-synthetic A/B/C proves range, digest, coverage, competition,
+and acceptance-gate mechanics only. The historical
+`tos-local-sentence-segmentation-v1` label is not reinterpreted or migrated.
+
 Every materialized transformation around those layers also receives an
 append-only execution receipt. The additive provenance-event v2 contract binds
 exact inputs, outputs, diagnostic byproducts, explicit derivation edges,

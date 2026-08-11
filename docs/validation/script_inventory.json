@@ -945,6 +945,29 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_source_text_unit_v1_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "source_truth": [
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt"
+      ],
+      "reads": [
+        "source-text-unit v1 contract, ordered research, deterministic invented ASCII source, plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic source, valid A layout and B reciprocal segmentation packets, deliberately invalid C acceptance packet, plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, tokenizer/model invocation, human evidence, accepted boundary, legacy migration, lexical or semantic identity, projection, graph, publication, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_provenance_event_v2_lab.py",
       "family": "source_fixture_builder",
       "organ_lane": "source/topology",
@@ -990,6 +1013,8 @@
         "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json",
         "ToS/contracts/source-text-layer.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/lab.manifest.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/lab.manifest.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
         "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
@@ -1003,10 +1028,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2, source-text-layer, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 labs report public synthetic mechanics and no corpus payload, execution truth, translation, human review, accepted alignment, or semantic truth",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 labs report public synthetic mechanics and no corpus payload, execution truth, accepted boundary, translation, human review, accepted alignment, or semantic truth",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

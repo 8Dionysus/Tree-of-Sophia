@@ -189,6 +189,36 @@ NFD-to-NFC succession. It creates no accepted transcription, German
 competence, translation, sign, semantic claim, graph truth, canon effect, or
 bulk migration obligation.
 
+Dividing one frozen layer is an additive assertion layer of its own. The
+`tos_source_text_unit_packet_v1` contract binds opaque packet, scheme,
+segmentation, unit, review, and projection identities to one exact immutable
+text layer. Those identities do not derive from text, labels, ordinals,
+offsets, or the current analysis. Physical lines, source-observed structure,
+orthographic tokens, linguistic words or sentence-like units, punctuation,
+whitespace, graphemes, model subwords, milestones, and non-surface analytic
+nodes remain distinct kinds. A segmentation never edits its input.
+
+Every source-bearing unit returns through ordered exact anchors. Declared
+coverage, gaps, overlap, punctuation, whitespace, line breaks, hyphenation,
+normalization posture, parent/child membership, competing alternatives, and
+supersession remain explicit. No character may disappear merely because an
+algorithm ignores it. Source-observed layout is not accepted linguistic
+analysis; machine, model, imported, and synthetic results cannot accept
+themselves. A sampled review may calibrate a method but cannot silently accept
+a complete segmentation. Acceptance requires a separate source-visible
+real-human review over the exact frozen layer, declared scope, and relevant
+competence. Model subwords and virtual nodes cannot promote themselves to an
+occurrence, lexeme, sense, sign, concept, relation, or graph fact.
+
+TEI, CoNLL-U, Web Annotation, ISO/LAF-family JSON, retrieval chunks, and graph
+forms are status-preserving derived projections. The public-synthetic A/B/C
+laboratory proves only range, digest, reference, coverage, gap, competition,
+review, visibility, and projection mechanics. It establishes no real German
+boundary, token, word, human review, translation, semantic claim, or canon
+effect. The historical `tos-local-sentence-segmentation-v1` string remains a
+legacy proposed method label until one concrete source question justifies a
+bounded migration.
+
 ## Execution provenance
 
 Every materialized acquisition or transformation is an Activity over
@@ -379,7 +409,8 @@ text layer remains a real positive finding rather than being erased.
 
 Translation alignment follows the same evidence law before projection. Each
 side resolves through an exact Work/Expression/Edition/Item/File, frozen text
-layer, segmentation or tokenization artifact, and ordered source anchors. The
+layer, source-text-unit packet or other frozen segmentation/tokenization
+artifact, and ordered source anchors. The
 mapping receives a stable opaque identity and a separate versioned claim;
 cardinality, order, omission/addition, technique, certainty, maker,
 competition, supersession, and review are not compressed into one confidence

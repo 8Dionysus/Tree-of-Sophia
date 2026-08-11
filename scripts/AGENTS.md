@@ -82,6 +82,25 @@ controls. It reads no private corpus payload, accepts no transcription, and
 cannot supply human or language competence, translation, semantics,
 publication, graph truth, canon, or bulk migration authority.
 
+`build_source_text_unit_v1_lab.py` owns only the deterministic public-synthetic
+source-text-unit and segmentation A/B/C. It writes one invented ASCII source,
+A's exact physical-line and newline units, B's reciprocal sentence and
+hyphen-token alternatives, and C's deliberately invalid model-shaped
+acceptance with a hidden final-newline gap. It must never read corpus payload,
+invoke a tokenizer or model, fabricate language competence or human review,
+accept a real boundary, or create lexical, semantic, graph, publication, or
+canon authority. Schema, research, builder, source, plan, or variant changes
+require an intentional full rebuild because the manifest binds those bytes.
+
+The source-foundation validator's `--source-text-unit-v1-lab-only` route checks
+schema and reference closure, exact code-point ranges and digests, unit
+ownership and coverage, declared gaps and overlap, reciprocal parent/child and
+competing-segmentation relations, supersession, source-visible scoped review,
+accepted-unit closure, projection admission, and most-restrictive visibility.
+Its negative controls must fail closed. Green proves synthetic mechanics only;
+it supplies no correct boundary, tokenization, German competence, review,
+translation, semantic identity, graph fact, migration, or publication right.
+
 `build_provenance_event_v2_lab.py` owns only the public-synthetic execution-
 receipt A/B/C. Run `--prepare`, then variants `A`, `B`, and `C` as separate
 commands, accepting C's declared exit code 7, and finish with `--finalize`.
@@ -477,6 +496,7 @@ Local owner routes:
 | decision indexes | `python scripts/generate_decision_indexes.py --check` and `python scripts/validate_decision_records.py` |
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
+| public synthetic source-text-unit and segmentation A/B/C | `python scripts/build_source_text_unit_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --source-text-unit-v1-lab-only`; rebuilding is intentional because the manifest binds the invented text, research, contract, builder, plan, and variants |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |

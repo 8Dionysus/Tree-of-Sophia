@@ -1,0 +1,2477 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-scope",
+      "anchor_role": "scope",
+      "exact_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3",
+      "ordinal": 1,
+      "selector": {
+        "end": 42,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-whole-sentence-1",
+      "anchor_role": "content",
+      "exact_sha256": "18d75c93d7be519be9df557867cedcc1f3259d3020a55776fc848835a902ef98",
+      "ordinal": 2,
+      "selector": {
+        "end": 20,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-whole-break-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 3,
+      "selector": {
+        "end": 21,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 20,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-whole-sentence-2",
+      "anchor_role": "content",
+      "exact_sha256": "763ebbc06bd6bc83d28a1eb5a0b0530df4c0e93a4f76049b52deafa04201296c",
+      "ordinal": 4,
+      "selector": {
+        "end": 41,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 21,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-whole-break-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 5,
+      "selector": {
+        "end": 42,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 41,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-1a",
+      "anchor_role": "content",
+      "exact_sha256": "9039ae2ed72e97c4c9ce85681d4c9fb5f48171a2eb744ff8ad96ce6ebf86023e",
+      "ordinal": 6,
+      "selector": {
+        "end": 7,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-space-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 7,
+      "selector": {
+        "end": 8,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 7,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-1b",
+      "anchor_role": "content",
+      "exact_sha256": "00cc09fe13ed9d372ae2819c29e5794551564b8a8a8303c88901a8c5668f4186",
+      "ordinal": 8,
+      "selector": {
+        "end": 20,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 8,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-break-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 9,
+      "selector": {
+        "end": 21,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 20,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-2",
+      "anchor_role": "content",
+      "exact_sha256": "763ebbc06bd6bc83d28a1eb5a0b0530df4c0e93a4f76049b52deafa04201296c",
+      "ordinal": 10,
+      "selector": {
+        "end": 41,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 21,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-split-break-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 11,
+      "selector": {
+        "end": 42,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 41,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-mark-1",
+      "anchor_role": "content",
+      "exact_sha256": "6201eb4dccc956cc4fa3a78dca0c2888177ec52efd48f125df214f046eb43138",
+      "ordinal": 12,
+      "selector": {
+        "end": 4,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 13,
+      "selector": {
+        "end": 5,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 4,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-a",
+      "anchor_role": "content",
+      "exact_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+      "ordinal": 14,
+      "selector": {
+        "end": 6,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 5,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-1",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 15,
+      "selector": {
+        "end": 7,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 6,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 16,
+      "selector": {
+        "end": 8,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 7,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-ember-turns",
+      "anchor_role": "content",
+      "exact_sha256": "fdcae3e82fddff9121e3a8475b8296ace91537f796660b2efc46f2b818ad0932",
+      "ordinal": 17,
+      "selector": {
+        "end": 19,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 8,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-2",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 18,
+      "selector": {
+        "end": 20,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 19,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-break-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 19,
+      "selector": {
+        "end": 21,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 20,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-mark-2",
+      "anchor_role": "content",
+      "exact_sha256": "6201eb4dccc956cc4fa3a78dca0c2888177ec52efd48f125df214f046eb43138",
+      "ordinal": 20,
+      "selector": {
+        "end": 25,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 21,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-3",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 21,
+      "selector": {
+        "end": 26,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 25,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-b",
+      "anchor_role": "content",
+      "exact_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+      "ordinal": 22,
+      "selector": {
+        "end": 27,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 26,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-colon",
+      "anchor_role": "punctuation",
+      "exact_sha256": "e7ac0786668e0ff0f02b62bd04f45ff636fd82db63b1104601c975dc005f3a67",
+      "ordinal": 23,
+      "selector": {
+        "end": 28,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 27,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-4",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 24,
+      "selector": {
+        "end": 29,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 28,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-ember-2",
+      "anchor_role": "content",
+      "exact_sha256": "7cadc15d609c4ae9b4be6265b8e1cace16e6fa78a81ab0c7db82e687a7c867a5",
+      "ordinal": 25,
+      "selector": {
+        "end": 34,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 29,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-5",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 26,
+      "selector": {
+        "end": 35,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 34,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-turns-2",
+      "anchor_role": "content",
+      "exact_sha256": "6976a029d065bf7dd5a64c4a61ff9258550e18abe1838fb9c6ecda43c908147a",
+      "ordinal": 27,
+      "selector": {
+        "end": 40,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 35,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-3",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 28,
+      "selector": {
+        "end": 41,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 40,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-break-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 29,
+      "selector": {
+        "end": 42,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 41,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-mark-1",
+      "anchor_role": "content",
+      "exact_sha256": "6201eb4dccc956cc4fa3a78dca0c2888177ec52efd48f125df214f046eb43138",
+      "ordinal": 30,
+      "selector": {
+        "end": 4,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 31,
+      "selector": {
+        "end": 5,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 4,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-a",
+      "anchor_role": "content",
+      "exact_sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+      "ordinal": 32,
+      "selector": {
+        "end": 6,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 5,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-1",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 33,
+      "selector": {
+        "end": 7,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 6,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 34,
+      "selector": {
+        "end": 8,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 7,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-ember-1",
+      "anchor_role": "content",
+      "exact_sha256": "7cadc15d609c4ae9b4be6265b8e1cace16e6fa78a81ab0c7db82e687a7c867a5",
+      "ordinal": 35,
+      "selector": {
+        "end": 13,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 8,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-hyphen",
+      "anchor_role": "punctuation",
+      "exact_sha256": "3973e022e93220f9212c18d0d0c543ae7c309e46640da93a4a0314de999f5112",
+      "ordinal": 36,
+      "selector": {
+        "end": 14,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 13,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-turns-1",
+      "anchor_role": "content",
+      "exact_sha256": "6976a029d065bf7dd5a64c4a61ff9258550e18abe1838fb9c6ecda43c908147a",
+      "ordinal": 37,
+      "selector": {
+        "end": 19,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 14,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-2",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 38,
+      "selector": {
+        "end": 20,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 19,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-break-1",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 39,
+      "selector": {
+        "end": 21,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 20,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-mark-2",
+      "anchor_role": "content",
+      "exact_sha256": "6201eb4dccc956cc4fa3a78dca0c2888177ec52efd48f125df214f046eb43138",
+      "ordinal": 40,
+      "selector": {
+        "end": 25,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 21,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-3",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 41,
+      "selector": {
+        "end": 26,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 25,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-b",
+      "anchor_role": "content",
+      "exact_sha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c",
+      "ordinal": 42,
+      "selector": {
+        "end": 27,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 26,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-colon",
+      "anchor_role": "punctuation",
+      "exact_sha256": "e7ac0786668e0ff0f02b62bd04f45ff636fd82db63b1104601c975dc005f3a67",
+      "ordinal": 43,
+      "selector": {
+        "end": 28,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 27,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-4",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 44,
+      "selector": {
+        "end": 29,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 28,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-ember-2",
+      "anchor_role": "content",
+      "exact_sha256": "7cadc15d609c4ae9b4be6265b8e1cace16e6fa78a81ab0c7db82e687a7c867a5",
+      "ordinal": 45,
+      "selector": {
+        "end": 34,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 29,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-5",
+      "anchor_role": "whitespace",
+      "exact_sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068",
+      "ordinal": 46,
+      "selector": {
+        "end": 35,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 34,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-turns-2",
+      "anchor_role": "content",
+      "exact_sha256": "6976a029d065bf7dd5a64c4a61ff9258550e18abe1838fb9c6ecda43c908147a",
+      "ordinal": 47,
+      "selector": {
+        "end": 40,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 35,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-3",
+      "anchor_role": "punctuation",
+      "exact_sha256": "cdb4ee2aea69cc6a83331bbe96dc2caa9a299d21329efb0336fc02a82e1839a8",
+      "ordinal": 48,
+      "selector": {
+        "end": 41,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 40,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    },
+    {
+      "anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-b-token-split-break-2",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 49,
+      "selector": {
+        "end": 42,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 41,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+      "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3"
+    }
+  ],
+  "authority_boundary": {
+    "graph_role": "relation",
+    "legacy_bulk_migration_authorized": false,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_role": "authority",
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "public_synthetic_contract_exercise",
+  "packet_id": "tos.source-text-unit-packet.sid-28b405d8e5fac9c3eb5a6954b9bca42a",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "public",
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins",
+    "packet_visibility": "public",
+    "private_source_used": false,
+    "publication_authorized": true,
+    "rights_record_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json"
+    ],
+    "source_visibility": "public"
+  },
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "schemes": [
+    {
+      "analysis_role": "linguistic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "public_synthetic_fixture",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic sentence candidate b-whole",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-d03b0064030838d64314142f422b3ec1",
+      "scheme_name": "public-synthetic sentence candidate b-whole",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "sentence",
+        "whitespace"
+      ]
+    },
+    {
+      "analysis_role": "linguistic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "public_synthetic_fixture",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic sentence candidate b-split",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-0221652f661431c9a0c182d0b626f381",
+      "scheme_name": "public-synthetic sentence candidate b-split",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "sentence",
+        "whitespace"
+      ]
+    },
+    {
+      "analysis_role": "orthographic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "public_synthetic_fixture",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic orthographic token candidate b-token-whole",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "standalone_units",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-9d544a918b9032759857d91121e1714d",
+      "scheme_name": "public-synthetic orthographic token candidate b-token-whole",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "surface_token",
+        "punctuation",
+        "whitespace"
+      ]
+    },
+    {
+      "analysis_role": "orthographic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "public_synthetic_fixture",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic orthographic token candidate b-token-split",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "standalone_units",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-2e32e80b443e1f865666b5f044290fd7",
+      "scheme_name": "public-synthetic orthographic token candidate b-token-split",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "surface_token",
+        "punctuation",
+        "whitespace"
+      ]
+    }
+  ],
+  "segmentations": [
+    {
+      "competing_segmentation_refs": [
+        "tos.text-segmentation.sid-c3c9b3cf24dff7621dd2679375e566db"
+      ],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-scope",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "linguistic_analysis",
+        "translation_alignment"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic segmentation result b-sentence-whole",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-14eb4e66ad881bcd5ff0930f9a5145a6",
+        "tos.text-unit.sid-b72bb948a7fda9f521d0cfd5e9482f72",
+        "tos.text-unit.sid-eaa6d7f9624d919ee30de16ec53a3210",
+        "tos.text-unit.sid-ff8375406392ee0fce1600eae1078f07"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-d03b0064030838d64314142f422b3ec1",
+      "segmentation_id": "tos.text-segmentation.sid-ca2377237f5f7340bb8f1387a7666a7d",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "ambiguous",
+      "status_reason": "Whole-first-line sentence candidate remains unresolved.",
+      "supersedes_segmentation_ref": null
+    },
+    {
+      "competing_segmentation_refs": [
+        "tos.text-segmentation.sid-ca2377237f5f7340bb8f1387a7666a7d"
+      ],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-scope",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "linguistic_analysis",
+        "translation_alignment"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic segmentation result b-sentence-split",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-553b9ef8a0b061d679b5e66bdafd2256",
+        "tos.text-unit.sid-05baec3c94d517d85d4fc35fc260b24a",
+        "tos.text-unit.sid-a1ff64ad7aec3b9e23ee20eeffe7a604",
+        "tos.text-unit.sid-278593677455b903b32f74e68d36a9b3",
+        "tos.text-unit.sid-79b95920e5564abf48c73ca526ffb9c4",
+        "tos.text-unit.sid-66d55bc59401c353829778def6ed7b97"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-0221652f661431c9a0c182d0b626f381",
+      "segmentation_id": "tos.text-segmentation.sid-c3c9b3cf24dff7621dd2679375e566db",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "ambiguous",
+      "status_reason": "Split-first-line sentence candidate remains unresolved.",
+      "supersedes_segmentation_ref": null
+    },
+    {
+      "competing_segmentation_refs": [
+        "tos.text-segmentation.sid-ba3324161b0a2f253e49cbc6b0f588a2"
+      ],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-scope",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "linguistic_analysis",
+        "model_input"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic segmentation result b-token-hyphen-whole",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-4a14f255dfc87d9b33f8cfee3ed4b751",
+        "tos.text-unit.sid-ceac6680e6288b372e7c8f19826acc31",
+        "tos.text-unit.sid-16518b36745175f1ef6c37e6956c5464",
+        "tos.text-unit.sid-d57c9791b147c41f79c20e7031a03eb6",
+        "tos.text-unit.sid-061c6a1bd4c8c23153f68bd50520fbe8",
+        "tos.text-unit.sid-8eb5abee444b7d7c004e1fa61cb6493e",
+        "tos.text-unit.sid-5e2d1158ee052b02cec67744cfe5b482",
+        "tos.text-unit.sid-c9458883da2088c03e8b2ad9f3a391ad",
+        "tos.text-unit.sid-d58517d329244c71c85e9bbe393bc9d7",
+        "tos.text-unit.sid-9f93ef373a2a38d2e6f011b540b959d0",
+        "tos.text-unit.sid-f2401d18ecde9d3bc3386d08f94c299b",
+        "tos.text-unit.sid-f1e31dea552c06e4a6826924113ab30c",
+        "tos.text-unit.sid-9bcda7bec32b443de4411f2f281cfe2b",
+        "tos.text-unit.sid-8f4b1462275fb5b90330f25cf153701c",
+        "tos.text-unit.sid-7e3c74e459bab3ecec8faee6cd9cc62a",
+        "tos.text-unit.sid-58007cac44f69709c926a93c2dfd1fe9",
+        "tos.text-unit.sid-86992423b36f82aa90eac21411175e1d",
+        "tos.text-unit.sid-224e9325d2407af77dd085bd6999185d"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-9d544a918b9032759857d91121e1714d",
+      "segmentation_id": "tos.text-segmentation.sid-0100b314e4a9eba42d99c1872101a398",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "ambiguous",
+      "status_reason": "Hyphenated surface-token candidate remains unresolved.",
+      "supersedes_segmentation_ref": null
+    },
+    {
+      "competing_segmentation_refs": [
+        "tos.text-segmentation.sid-0100b314e4a9eba42d99c1872101a398"
+      ],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.source-text-unit-v1.synthetic-scope",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "linguistic_analysis",
+        "model_input"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-source-text-unit-v1-lab-builder",
+        "configuration_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/plan.json",
+        "locale": "x-tos-unit",
+        "made_at": "2026-08-11T18:00:00Z",
+        "maker_kind": "synthetic_fixture",
+        "method_name": "public-synthetic segmentation result b-token-hyphen-split",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "synthetic:no-runtime-provenance-event-claimed",
+        "software_refs": [
+          "scripts/build_source_text_unit_v1_lab.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": 47,
+        "unicode_version": "17.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-6c4f0f1bd4d2dfda3f7625b24422f6b2",
+        "tos.text-unit.sid-5f8b9aa3f927488225a0a0c61a086e0a",
+        "tos.text-unit.sid-e368559cb88bb418bf3e1ec36e9cc2e3",
+        "tos.text-unit.sid-0b57cfd96ebe646d37aa24ced101c75c",
+        "tos.text-unit.sid-e9762bb11dade57372ce14d3397bc69c",
+        "tos.text-unit.sid-3350daefb900c3d9fc9fcb936ea73ae2",
+        "tos.text-unit.sid-ef32e3ef68d4bcfa7ae203dea169a482",
+        "tos.text-unit.sid-d9a924a37baaed16ffe2ac4b3b64941e",
+        "tos.text-unit.sid-b99a14ddd2dd34b5e0b1435f9fd7b03a",
+        "tos.text-unit.sid-b430cdcf39a587f1cf02c5c5fe1048d8",
+        "tos.text-unit.sid-01cf3955c8ee1d9750b7df51c3bb3488",
+        "tos.text-unit.sid-6c55109ab05a5eadf268ca4c35e4897a",
+        "tos.text-unit.sid-e186ef86499ee22931e538db57e45378",
+        "tos.text-unit.sid-54176e02d2d1b0c34a1451e00d6279d2",
+        "tos.text-unit.sid-2276f6e59c0866078b09b60770c64902",
+        "tos.text-unit.sid-0720f5e98fe9e27cdb296bc9811fb69a",
+        "tos.text-unit.sid-6a288be7ae208a262e3ead7e739b905b",
+        "tos.text-unit.sid-d7f52d4ea1ae519c18a3eb4e7f27e7f7",
+        "tos.text-unit.sid-bb083dd126b6b7d1b722d272432d7731",
+        "tos.text-unit.sid-d912a55852d85de1b95fd8a9dbfd333c"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-2e32e80b443e1f865666b5f044290fd7",
+      "segmentation_id": "tos.text-segmentation.sid-ba3324161b0a2f253e49cbc6b0f588a2",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "ambiguous",
+      "status_reason": "Split-hyphen surface-token candidate remains unresolved.",
+      "supersedes_segmentation_ref": null
+    }
+  ],
+  "source_layer": {
+    "immutable": true,
+    "interval": "half_open",
+    "language": "x-tos-unit",
+    "media_type": "text/plain; charset=utf-8",
+    "position_unit": "unicode_code_point",
+    "publication_authorized": true,
+    "text_layer_ref": "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt",
+    "text_layer_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3",
+    "unicode_form": "source_preserved",
+    "visibility": "public"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.source-text-unit-v1.synthetic-miniature",
+    "expression_ref": "tos.expression.source-text-unit-v1.synthetic-miniature",
+    "file_ref": "tos.file.source-text-unit-v1.synthetic-miniature.utf8",
+    "file_sha256": "312864bbb2666e8cb5130797996afcf8debb5b4fb3234e4cad81bcb82bff53b3",
+    "item_ref": "tos.item.source-text-unit-v1.synthetic-miniature",
+    "work_ref": "tos.work.source-text-unit-v1.synthetic-miniature"
+  },
+  "supersedes_packet_ref": null,
+  "units": [
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-whole-sentence-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-14eb4e66ad881bcd5ff0930f9a5145a6",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-whole-break-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-b72bb948a7fda9f521d0cfd5e9482f72",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-whole-sentence-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-eaa6d7f9624d919ee30de16ec53a3210",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-whole-break-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-ff8375406392ee0fce1600eae1078f07",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-1a"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-553b9ef8a0b061d679b5e66bdafd2256",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-space-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-05baec3c94d517d85d4fc35fc260b24a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-1b"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-a1ff64ad7aec3b9e23ee20eeffe7a604",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-break-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-278593677455b903b32f74e68d36a9b3",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-sentence-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-79b95920e5564abf48c73ca526ffb9c4",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-split-break-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-66d55bc59401c353829778def6ed7b97",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-mark-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-4a14f255dfc87d9b33f8cfee3ed4b751",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-ceac6680e6288b372e7c8f19826acc31",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-a"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-16518b36745175f1ef6c37e6956c5464",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d57c9791b147c41f79c20e7031a03eb6",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-061c6a1bd4c8c23153f68bd50520fbe8",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-ember-turns"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-8eb5abee444b7d7c004e1fa61cb6493e",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-5e2d1158ee052b02cec67744cfe5b482",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-break-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-c9458883da2088c03e8b2ad9f3a391ad",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-mark-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d58517d329244c71c85e9bbe393bc9d7",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-3"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-9f93ef373a2a38d2e6f011b540b959d0",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-b"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-f2401d18ecde9d3bc3386d08f94c299b",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-colon"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-f1e31dea552c06e4a6826924113ab30c",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-4"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-9bcda7bec32b443de4411f2f281cfe2b",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-ember-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-8f4b1462275fb5b90330f25cf153701c",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-space-5"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-7e3c74e459bab3ecec8faee6cd9cc62a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-turns-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-58007cac44f69709c926a93c2dfd1fe9",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-period-3"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-86992423b36f82aa90eac21411175e1d",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-whole-break-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-224e9325d2407af77dd085bd6999185d",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-mark-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-6c4f0f1bd4d2dfda3f7625b24422f6b2",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-5f8b9aa3f927488225a0a0c61a086e0a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-a"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-e368559cb88bb418bf3e1ec36e9cc2e3",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-0b57cfd96ebe646d37aa24ced101c75c",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-e9762bb11dade57372ce14d3397bc69c",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-ember-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-3350daefb900c3d9fc9fcb936ea73ae2",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-hyphen"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-ef32e3ef68d4bcfa7ae203dea169a482",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-turns-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d9a924a37baaed16ffe2ac4b3b64941e",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-b99a14ddd2dd34b5e0b1435f9fd7b03a",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-break-1"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-b430cdcf39a587f1cf02c5c5fe1048d8",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-mark-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-01cf3955c8ee1d9750b7df51c3bb3488",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-3"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-6c55109ab05a5eadf268ca4c35e4897a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-b"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-e186ef86499ee22931e538db57e45378",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-colon"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-54176e02d2d1b0c34a1451e00d6279d2",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-4"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-2276f6e59c0866078b09b60770c64902",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-ember-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-0720f5e98fe9e27cdb296bc9811fb69a",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-space-5"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-6a288be7ae208a262e3ead7e739b905b",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-turns-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d7f52d4ea1ae519c18a3eb4e7f27e7f7",
+      "unit_kind": "surface_token",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-period-3"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-bb083dd126b6b7d1b722d272432d7731",
+      "unit_kind": "punctuation",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.source-text-unit-v1.synthetic-b-token-split-break-2"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "Public-synthetic unit exists only to exercise exact boundary mechanics.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d912a55852d85de1b95fd8a9dbfd333c",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    }
+  ]
+}

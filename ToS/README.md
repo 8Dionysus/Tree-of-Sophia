@@ -45,6 +45,8 @@ current bounded Zarathustra route:
   `scripts/query_source_witness_bibliographic_graph.py`
 - current public-synthetic source-text lineage laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
+- current public-synthetic source-text-unit and segmentation laboratory:
+  `ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/`
 - current public-synthetic execution-provenance laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
 - current public-synthetic translation-alignment identity laboratory:
@@ -71,6 +73,15 @@ Source text is also layered rather than overwritten: raw OCR, diplomatic
 candidate, reviewed reading, and normalization keep distinct immutable
 identities, exact derivation provenance, and independent review, competence,
 use, and publication gates.
+Source-text units above one frozen layer use their own additive v1 packet:
+opaque scheme, segmentation, and unit identities remain independent of text,
+labels, ordinals, offsets, and the current analysis; physical layout,
+source-observed structure, orthographic or linguistic divisions, model
+subwords, and virtual nodes stay distinct; exact anchors, coverage, gaps,
+overlap, whitespace, punctuation, line breaks, competition, review scope, and
+visibility remain explicit. The tracked A/B/C uses one invented ASCII source
+and creates no accepted boundary, German competence, semantic identity,
+translation, graph fact, migration, or publication authority.
 Materialized transformations likewise use additive provenance v2 receipts:
 exact input/output/byproduct bytes, derivation, terminal state, command,
 runtime/model, responsibility, manual-change, measurement, rights, review, and

@@ -43,6 +43,7 @@ judgment true.
 | `collection-work-boundary-map.schema.json` | text-free complete or explicitly partial member-work representation, contiguous represented/non-member/unrepresented container-page coverage, exact Work/Expression/claim refs, optional evidence-bearing responsibility refs, source order and anchors, and an explicit bibliographic-only ceiling for aggregate items |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `source-text-layer.schema.json` | immutable role-bearing source-text representation bound to exact Work/Expression/Edition/Item/File and source-anchor-v2 identity, with predecessor and edit/normalization lineage, uncertainty, editorial policy, explicit rights/publication-authority refs, and separate mechanical, review, language-competence, accepted-use, rights, and publication gates |
+| `source-text-unit-packet-v1.schema.json` | additive frozen-layer unit and segmentation owner with opaque label-independent scheme/segmentation/unit identities, exact ordered anchor return, distinct layout/source-structure/orthographic/linguistic/model-input kinds, explicit coverage/gaps/overlap/whitespace/punctuation/line-break/hyphenation posture, reciprocal alternatives, scoped source-visible human review, status-preserving projections, and no model-subword-to-semantic promotion |
 | `provenance-event.schema.json` | legacy v1 acquisition and transformation entity/activity/agent trail, preserved without reinterpretation |
 | `provenance-event-v2.schema.json` | additive immutable execution receipt with exact input/output/byproduct entities, explicit derivation, terminal state, command/configuration/software/runtime/model capture, responsibility, manual changes, measurements, authentication, rights, review, and bounded replay posture |
 | `lived-witness-packet.schema.json` | private-by-default first-person authored body, distinct experience/capture time, work or passage targets, raw/AI/transformation provenance, third-party posture, separate downstream permissions, author confirmation, revision/withdrawal, and explicit zero source/philology/semantic/canon authority |
@@ -206,6 +207,17 @@ A schema validator can establish that:
   real-human promotion review over a source-visible unassisted baseline; and
   graph projection admits only accepted claims and relations while preserving
   source return;
+- a source-text-unit v1 packet keeps physical layout, source-observed
+  structure, orthographic, linguistic, model-input, and non-surface analytic
+  units separate over one exact frozen text layer; gives schemes,
+  segmentations, units, reviews, and projections opaque identities independent
+  of text, labels, ordinals, offsets, or mutable analysis; requires exact
+  anchor return and explicit coverage, gaps, overlap, whitespace, punctuation,
+  line-break, hyphenation, parent/child, competition, supersession, review
+  scope, and visibility closure; blocks machine/model/synthetic self-acceptance
+  and model-subword semantic promotion; and leaves the legacy
+  `tos-local-sentence-segmentation-v1` string uninterpreted until a bounded
+  migration is justified;
 - a translation-alignment v1 packet keeps exact source and target witness,
   text-layer, segmentation/tokenization, anchor, alignment, claim, review, and
   projection identities separate; checks correspondence-shape cardinality,

@@ -9,6 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added `tos_source_text_unit_packet_v1` as the owner of stable segmentation
+  and text-unit identity over one exact frozen text layer. Ordered Unicode,
+  ICU, TEI, Web Annotation, CoNLL-U, ISO/LAF, established segmentation work,
+  and fresh 2025–2026 historical-text evidence now keep physical layout,
+  source-observed structure, orthographic and linguistic units, model-input
+  pieces, and non-surface analytic nodes distinct. Opaque IDs, exact anchors,
+  coverage, gaps, overlap, whitespace, punctuation, line breaks, hyphenation,
+  reciprocal alternatives, scoped review, projection, and visibility remain
+  explicit. A public-synthetic A/B/C exercises two competing sentence and two
+  competing hyphen-token analyses and rejects model-shaped acceptance plus
+  twenty-five negative controls. It creates no real boundary, token, German
+  competence, human review, semantic identity, translation, graph, canon,
+  migration, or publication authority; the legacy
+  `tos-local-sentence-segmentation-v1` label is unchanged.
 - Added `tos_translation_alignment_packet_v1` without mutating the existing
   translation-packet v2 lifecycle. Ordered TEI, Web Annotation, XLIFF, TMX,
   OntoLex/VarTrans, PROV-O, classical/established alignment research, and fresh

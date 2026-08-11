@@ -90,6 +90,12 @@ TRANSLATION_ALIGNMENT_V1_LAB_ROOT = Path(
 TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST = (
     TRANSLATION_ALIGNMENT_V1_LAB_ROOT / "lab.manifest.json"
 )
+SOURCE_TEXT_UNIT_V1_SCHEMA = CONTRACT_ROOT / "source-text-unit-packet-v1.schema.json"
+SOURCE_TEXT_UNIT_V1_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/"
+    "source-text-unit-v1-abc"
+)
+SOURCE_TEXT_UNIT_V1_LAB_MANIFEST = SOURCE_TEXT_UNIT_V1_LAB_ROOT / "lab.manifest.json"
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -3217,6 +3223,866 @@ def validate_translation_alignment_v1_lab(
     return issues, report
 
 
+def _source_text_unit_v1_issues(
+    packet: dict[str, Any], *, text: str | None = None
+) -> list[str]:
+    """Check text-unit identity, coverage, competition, review, and visibility."""
+
+    messages: list[str] = []
+    schemes = [row for row in packet.get("schemes", []) if isinstance(row, dict)]
+    anchors = [row for row in packet.get("anchors", []) if isinstance(row, dict)]
+    units = [row for row in packet.get("units", []) if isinstance(row, dict)]
+    segmentations = [
+        row for row in packet.get("segmentations", []) if isinstance(row, dict)
+    ]
+    reviews = [row for row in packet.get("reviews", []) if isinstance(row, dict)]
+    projections = [
+        row for row in packet.get("projections", []) if isinstance(row, dict)
+    ]
+    source_layer = packet.get("source_layer", {})
+
+    def index_unique(
+        rows: list[dict[str, Any]], key: str, label: str
+    ) -> dict[str, dict[str, Any]]:
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            value = row.get(key)
+            if not isinstance(value, str):
+                continue
+            if value in result:
+                messages.append(f"duplicate {label} identity: {value}")
+            result[value] = row
+        return result
+
+    scheme_by_id = index_unique(schemes, "scheme_id", "text-unit scheme")
+    anchor_by_id = index_unique(anchors, "anchor_ref", "text-unit anchor")
+    unit_by_id = index_unique(units, "unit_id", "text unit")
+    segmentation_by_id = index_unique(
+        segmentations, "segmentation_id", "text segmentation"
+    )
+    review_by_id = index_unique(reviews, "review_id", "text-unit review")
+    index_unique(projections, "projection_id", "text-unit projection")
+
+    if packet.get("packet_id") == packet.get("supersedes_packet_ref"):
+        messages.append("source-text-unit packet cannot supersede itself")
+
+    def unresolved_refs(refs: Any, known: dict[str, Any], label: str) -> None:
+        for ref in refs if isinstance(refs, list) else []:
+            if ref not in known:
+                messages.append(f"unresolved {label} reference: {ref}")
+
+    source_layer_ref = (
+        source_layer.get("text_layer_ref") if isinstance(source_layer, dict) else None
+    )
+    source_layer_sha256 = (
+        source_layer.get("text_layer_sha256")
+        if isinstance(source_layer, dict)
+        else None
+    )
+    anchor_ordinals: set[int] = set()
+    anchor_interval: dict[str, tuple[int, int]] = {}
+    for anchor in anchors:
+        anchor_ref = anchor.get("anchor_ref")
+        ordinal = anchor.get("ordinal")
+        if isinstance(ordinal, int):
+            if ordinal in anchor_ordinals:
+                messages.append(f"duplicate text-unit anchor ordinal: {ordinal}")
+            anchor_ordinals.add(ordinal)
+        if anchor.get("text_layer_ref") != source_layer_ref:
+            messages.append(f"anchor escapes frozen source layer: {anchor_ref}")
+        if anchor.get("text_layer_sha256") != source_layer_sha256:
+            messages.append(f"anchor source-layer digest drifted: {anchor_ref}")
+        selector = anchor.get("selector", {})
+        start = selector.get("start") if isinstance(selector, dict) else None
+        end = selector.get("end") if isinstance(selector, dict) else None
+        if not isinstance(start, int) or not isinstance(end, int):
+            continue
+        if start > end:
+            messages.append(f"anchor selector is reversed: {anchor_ref}")
+            continue
+        if start == end and anchor.get("anchor_role") != "milestone":
+            messages.append(f"non-milestone anchor selector is empty: {anchor_ref}")
+        anchor_interval[str(anchor_ref)] = (start, end)
+        if text is not None:
+            if not (0 <= start <= end <= len(text)):
+                messages.append(f"anchor selector is outside frozen text: {anchor_ref}")
+            elif anchor.get("exact_sha256") != _sha256_text(text[start:end]):
+                messages.append(f"anchor exact digest does not resolve: {anchor_ref}")
+
+    for scheme in schemes:
+        scheme_id = scheme.get("scheme_id")
+        if scheme_id == scheme.get("supersedes_scheme_ref"):
+            messages.append(f"text-unit scheme cannot supersede itself: {scheme_id}")
+        method = scheme.get("method", {})
+        if (
+            packet.get("content_posture") != "public_synthetic_contract_exercise"
+            and isinstance(method, dict)
+            and method.get("maker_kind") == "synthetic_fixture"
+        ):
+            messages.append(
+                f"synthetic scheme maker escaped the synthetic laboratory: {scheme_id}"
+            )
+
+    for unit in units:
+        unit_id = unit.get("unit_id")
+        if unit_id == unit.get("supersedes_unit_ref"):
+            messages.append(f"text unit cannot supersede itself: {unit_id}")
+        anchor_refs = unit.get("ordered_anchor_refs", [])
+        unresolved_refs(anchor_refs, anchor_by_id, "unit anchor")
+        intervals = [
+            anchor_interval[ref]
+            for ref in anchor_refs
+            if isinstance(ref, str) and ref in anchor_interval
+        ]
+        for previous, current in zip(intervals, intervals[1:]):
+            if current[0] < previous[1]:
+                messages.append(f"unit anchor members overlap or reverse: {unit_id}")
+        continuity = unit.get("continuity")
+        if continuity == "contiguous" and len(intervals) > 1:
+            if any(current[0] != previous[1] for previous, current in zip(intervals, intervals[1:])):
+                messages.append(f"contiguous unit has a gap between members: {unit_id}")
+        if continuity == "discontinuous" and len(intervals) > 1:
+            if all(current[0] == previous[1] for previous, current in zip(intervals, intervals[1:])):
+                messages.append(f"discontinuous unit has no discontinuity: {unit_id}")
+        parent_refs = unit.get("parent_unit_refs", [])
+        child_refs = unit.get("ordered_child_unit_refs", [])
+        unresolved_refs(parent_refs, unit_by_id, "parent unit")
+        unresolved_refs(child_refs, unit_by_id, "child unit")
+        if unit_id in parent_refs:
+            messages.append(f"text unit is its own parent: {unit_id}")
+        if unit_id in child_refs:
+            messages.append(f"text unit is its own child: {unit_id}")
+        for parent_ref in parent_refs:
+            parent = unit_by_id.get(parent_ref)
+            if parent is not None and unit_id not in parent.get(
+                "ordered_child_unit_refs", []
+            ):
+                messages.append(
+                    f"unit parent relation is not reciprocal: {unit_id} -> {parent_ref}"
+                )
+        for child_ref in child_refs:
+            child = unit_by_id.get(child_ref)
+            if child is not None and unit_id not in child.get("parent_unit_refs", []):
+                messages.append(
+                    f"unit child relation is not reciprocal: {unit_id} -> {child_ref}"
+                )
+
+    for review in reviews:
+        review_id = review.get("review_id")
+        segmentation_refs = review.get("segmentation_refs", [])
+        unresolved_refs(
+            segmentation_refs, segmentation_by_id, "reviewed segmentation"
+        )
+        unresolved_refs(review.get("reviewed_unit_refs"), unit_by_id, "reviewed unit")
+        if review.get("source_layer_ref") != source_layer_ref:
+            messages.append(f"review escapes frozen source layer: {review_id}")
+        if review.get("source_layer_sha256") != source_layer_sha256:
+            messages.append(f"review source-layer digest drifted: {review_id}")
+        competence = review.get("language_competence", {})
+        if isinstance(competence, dict) and isinstance(source_layer, dict):
+            if competence.get("language") != source_layer.get("language"):
+                messages.append(f"review language competence does not match source: {review_id}")
+        for segmentation_ref in segmentation_refs:
+            segmentation = segmentation_by_id.get(segmentation_ref)
+            if segmentation is not None and review_id not in segmentation.get(
+                "review_refs", []
+            ):
+                messages.append(
+                    f"review-to-segmentation relation is not reciprocal: {review_id} -> {segmentation_ref}"
+                )
+
+    accepted_statuses = {"accepted"}
+    reviewed_statuses = {"partially_reviewed", "accepted"}
+    for segmentation in segmentations:
+        segmentation_id = segmentation.get("segmentation_id")
+        if segmentation_id == segmentation.get("supersedes_segmentation_ref"):
+            messages.append(
+                f"text segmentation cannot supersede itself: {segmentation_id}"
+            )
+        scheme_ref = segmentation.get("scheme_ref")
+        if scheme_ref not in scheme_by_id:
+            messages.append(f"unresolved segmentation scheme reference: {scheme_ref}")
+        unit_refs = segmentation.get("ordered_unit_refs", [])
+        unresolved_refs(unit_refs, unit_by_id, "segmentation unit")
+        scheme = scheme_by_id.get(scheme_ref)
+        if scheme is not None:
+            allowed_kinds = set(scheme.get("unit_kinds", []))
+            for unit_ref in unit_refs:
+                unit = unit_by_id.get(unit_ref)
+                if unit is not None and unit.get("unit_kind") not in allowed_kinds:
+                    messages.append(
+                        f"segmentation unit kind is outside its scheme: {segmentation_id} -> {unit_ref}"
+                    )
+
+        competing_refs = segmentation.get("competing_segmentation_refs", [])
+        unresolved_refs(
+            competing_refs, segmentation_by_id, "competing segmentation"
+        )
+        for competing_ref in competing_refs:
+            if competing_ref == segmentation_id:
+                messages.append(
+                    f"text segmentation competes with itself: {segmentation_id}"
+                )
+            elif (
+                competing_ref in segmentation_by_id
+                and segmentation_id
+                not in segmentation_by_id[competing_ref].get(
+                    "competing_segmentation_refs", []
+                )
+            ):
+                messages.append(
+                    f"competing-segmentation relation is not reciprocal: {segmentation_id} -> {competing_ref}"
+                )
+
+        review_refs = segmentation.get("review_refs", [])
+        unresolved_refs(review_refs, review_by_id, "segmentation review")
+        for review_ref in review_refs:
+            review = review_by_id.get(review_ref)
+            if review is not None and segmentation_id not in review.get(
+                "segmentation_refs", []
+            ):
+                messages.append(
+                    f"segmentation-to-review relation is not reciprocal: {segmentation_id} -> {review_ref}"
+                )
+
+        status = segmentation.get("status")
+        if status in reviewed_statuses and not review_refs:
+            messages.append(f"reviewed segmentation lacks review: {segmentation_id}")
+        if status in accepted_statuses:
+            accepting_reviews = [
+                review_by_id[ref]
+                for ref in review_refs
+                if ref in review_by_id and review_by_id[ref].get("outcome") == "accepted"
+            ]
+            full_reviews = [
+                review
+                for review in accepting_reviews
+                if review.get("review_scope") == "all_units"
+                and set(review.get("reviewed_unit_refs", [])) == set(unit_refs)
+                and review.get("reviewer_kind") == "real_human"
+                and review.get("source_visible") is True
+                and review.get("independent_boundary_decision_recorded_before_assistance")
+                is True
+                and review.get("language_competence", {}).get("declared") is True
+            ]
+            if not full_reviews:
+                messages.append(
+                    f"accepted segmentation lacks full competent real-human review: {segmentation_id}"
+                )
+            for unit_ref in unit_refs:
+                unit = unit_by_id.get(unit_ref)
+                if unit is not None and unit.get("boundary_posture") != "reviewed_accepted":
+                    messages.append(
+                        f"accepted segmentation contains an unaccepted unit: {segmentation_id} -> {unit_ref}"
+                    )
+
+        if status == "observed_source_structure":
+            if scheme is None or scheme.get("analysis_role") not in {
+                "source_layout",
+                "source_structure",
+            } or scheme.get("boundary_basis") not in {
+                "source_layout",
+                "source_markup",
+            }:
+                messages.append(
+                    f"source-observed segmentation is not source-layout/markup based: {segmentation_id}"
+                )
+            for unit_ref in unit_refs:
+                unit = unit_by_id.get(unit_ref)
+                if unit is not None and unit.get("boundary_posture") != "source_attested":
+                    messages.append(
+                        f"source-observed segmentation contains a proposed unit: {segmentation_id} -> {unit_ref}"
+                    )
+
+        coverage = segmentation.get("coverage", {})
+        scope_ref = coverage.get("scope_anchor_ref") if isinstance(coverage, dict) else None
+        if scope_ref not in anchor_by_id:
+            messages.append(f"unresolved coverage scope anchor: {scope_ref}")
+            continue
+        scope_interval = anchor_interval.get(str(scope_ref))
+        if scope_interval is None:
+            continue
+        excluded_refs = coverage.get("excluded_anchor_refs", [])
+        unresolved_refs(excluded_refs, anchor_by_id, "excluded coverage anchor")
+        member_intervals: list[tuple[int, int, str]] = []
+        for unit_ref in unit_refs:
+            unit = unit_by_id.get(unit_ref)
+            if unit is None or unit.get("surface_posture") != "source_bearing":
+                continue
+            for anchor_ref in unit.get("ordered_anchor_refs", []):
+                if anchor_ref in anchor_interval:
+                    start, end = anchor_interval[anchor_ref]
+                    member_intervals.append((start, end, unit_ref))
+        excluded_intervals = [
+            (*anchor_interval[ref], f"excluded:{ref}")
+            for ref in excluded_refs
+            if ref in anchor_interval
+        ]
+        all_intervals = member_intervals + excluded_intervals
+        for start, end, ref in all_intervals:
+            if start < scope_interval[0] or end > scope_interval[1]:
+                messages.append(
+                    f"coverage member escapes scope: {segmentation_id} -> {ref}"
+                )
+        ordered = sorted(all_intervals, key=lambda row: (row[0], row[1], row[2]))
+        posture = coverage.get("coverage_posture")
+        overlap_found = any(
+            current[0] < previous[1]
+            for previous, current in zip(ordered, ordered[1:])
+        )
+        if posture in {"exhaustive_nonoverlapping", "declared_partial"} and overlap_found:
+            messages.append(f"coverage overlaps without declaration: {segmentation_id}")
+        if posture == "overlap_declared" and scheme is not None:
+            if scheme.get("policies", {}).get("overlap") != "allow_declared":
+                messages.append(
+                    f"declared overlap conflicts with scheme policy: {segmentation_id}"
+                )
+        merged: list[list[int]] = []
+        for start, end, _ in ordered:
+            if not merged or start > merged[-1][1]:
+                merged.append([start, end])
+            else:
+                merged[-1][1] = max(merged[-1][1], end)
+        if merged != [[scope_interval[0], scope_interval[1]]]:
+            messages.append(
+                f"coverage does not reconstruct exact scope without hidden gaps: {segmentation_id}"
+            )
+        if posture != "declared_partial" and excluded_refs:
+            messages.append(
+                f"non-partial segmentation declares excluded ranges: {segmentation_id}"
+            )
+        if posture == "declared_partial" and not excluded_refs:
+            messages.append(
+                f"partial segmentation lacks explicit excluded ranges: {segmentation_id}"
+            )
+
+    referenced_units = {
+        ref
+        for segmentation in segmentations
+        for ref in segmentation.get("ordered_unit_refs", [])
+    }
+    for unit_id in sorted(set(unit_by_id) - referenced_units):
+        messages.append(f"text unit is not owned by any segmentation: {unit_id}")
+
+    # Supersession is directed lineage and must remain acyclic.
+    for key, supersedes_key, index, label, rows in (
+        ("scheme_id", "supersedes_scheme_ref", scheme_by_id, "scheme", schemes),
+        ("unit_id", "supersedes_unit_ref", unit_by_id, "unit", units),
+        (
+            "segmentation_id",
+            "supersedes_segmentation_ref",
+            segmentation_by_id,
+            "segmentation",
+            segmentations,
+        ),
+    ):
+        for row in rows:
+            start = row.get(key)
+            cursor = row.get(supersedes_key)
+            seen = {start}
+            while isinstance(cursor, str) and cursor in index:
+                if cursor in seen:
+                    messages.append(f"{label} supersession contains a cycle: {start}")
+                    break
+                seen.add(cursor)
+                cursor = index[cursor].get(supersedes_key)
+
+    visibility_rank = {
+        "public": 0,
+        "public_metadata_only": 1,
+        "controlled": 2,
+        "local_only": 3,
+        "restricted": 4,
+        "unknown": 5,
+    }
+    rights = packet.get("rights_and_visibility", {})
+    if isinstance(rights, dict) and isinstance(source_layer, dict):
+        if rights.get("source_visibility") != source_layer.get("visibility"):
+            messages.append("source-layer and packet visibility differ")
+        components = [
+            rights.get("source_visibility"),
+            rights.get("packet_visibility"),
+        ]
+        if all(value in visibility_rank for value in components):
+            expected = max(components, key=lambda value: visibility_rank[value])
+            if rights.get("effective_visibility") != expected:
+                messages.append(
+                    "effective visibility is not the most restrictive source or packet component"
+                )
+        if rights.get("publication_authorized") is True and (
+            rights.get("effective_visibility") != "public"
+            or rights.get("private_source_used") is True
+            or source_layer.get("publication_authorized") is not True
+        ):
+            messages.append("text-unit publication authority widens source boundary")
+
+    for projection in projections:
+        projection_id = projection.get("projection_id")
+        source_refs = projection.get("source_segmentation_refs", [])
+        unresolved_refs(source_refs, segmentation_by_id, "projected segmentation")
+        if projection.get("projection_kind") == "graph" or projection.get(
+            "admission_posture"
+        ) == "accepted_only":
+            for segmentation_ref in source_refs:
+                segmentation = segmentation_by_id.get(segmentation_ref)
+                if segmentation is not None and segmentation.get("status") != "accepted":
+                    messages.append(
+                        f"accepted-only projection uses unaccepted segmentation: {projection_id} -> {segmentation_ref}"
+                    )
+        effective = rights.get("effective_visibility") if isinstance(rights, dict) else None
+        projection_visibility = projection.get("visibility")
+        if effective in visibility_rank and projection_visibility in visibility_rank:
+            if visibility_rank[projection_visibility] < visibility_rank[effective]:
+                messages.append(
+                    f"text-unit projection visibility widens packet boundary: {projection_id}"
+                )
+
+    return messages
+
+
+def validate_source_text_unit_v1_lab(
+    repo_root: Path,
+) -> tuple[list[Issue], dict[str, Any]]:
+    """Validate public-synthetic source-text-unit A/B/C mechanics."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {"variants": [], "negative_controls": {}}
+    try:
+        packet_validator, _ = _schema_validator(SOURCE_TEXT_UNIT_V1_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [
+            (
+                SOURCE_TEXT_UNIT_V1_SCHEMA.as_posix(),
+                f"cannot load source text unit v1 schema: {exc}",
+            )
+        ], report
+
+    manifest_path = repo_root / SOURCE_TEXT_UNIT_V1_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_source_text_unit_v1_lab_manifest_v1":
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "unexpected source text unit lab manifest version",
+            )
+        )
+    if manifest.get("authority_posture") != "public_synthetic_contract_mechanics_only":
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "source text unit lab authority posture widened",
+            )
+        )
+    expected_limits = {
+        "private_source_used": False,
+        "real_language_boundary_accepted": False,
+        "model_invoked": False,
+        "human_review_performed": False,
+        "linguistic_word_established": False,
+        "lexeme_established": False,
+        "semantic_truth_established": False,
+        "graph_truth_established": False,
+        "legacy_migration_performed": False,
+        "canon_effect": False,
+    }
+    if manifest.get("authority_limits") != expected_limits:
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "source text unit lab authority limits widened",
+            )
+        )
+
+    def binding_closes(binding: Any, label: str) -> bool:
+        if not isinstance(binding, dict):
+            issues.append(
+                (
+                    SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                    f"{label} binding is absent",
+                )
+            )
+            return False
+        ref = binding.get("ref")
+        digest = binding.get("sha256")
+        path = repo_root / ref if isinstance(ref, str) else manifest_path
+        if path.is_symlink() or not path.is_file() or _sha256(path) != digest:
+            issues.append(
+                (
+                    SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                    f"{label} binding drifted",
+                )
+            )
+            return False
+        return True
+
+    for field in ("contract", "research", "plan", "builder", "source"):
+        binding_closes(manifest.get(field), field)
+    if manifest.get("contract", {}).get("ref") != SOURCE_TEXT_UNIT_V1_SCHEMA.as_posix():
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "source text unit contract reference drifted",
+            )
+        )
+
+    plan_ref = manifest.get("plan", {}).get("ref")
+    plan_path = repo_root / plan_ref if isinstance(plan_ref, str) else manifest_path
+    plan = _load_json(plan_path, repo_root, issues) if plan_path.is_file() else None
+    expected_controls = (
+        set(plan.get("negative_controls", [])) if isinstance(plan, dict) else set()
+    )
+    if not isinstance(plan, dict) or plan.get("authority_limits") != expected_limits:
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "source text unit plan authority limits drifted",
+            )
+        )
+
+    source_binding = manifest.get("source", {})
+    source_ref = source_binding.get("ref") if isinstance(source_binding, dict) else None
+    source_path = repo_root / source_ref if isinstance(source_ref, str) else manifest_path
+    try:
+        text = source_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                f"cannot read public synthetic source text: {exc}",
+            )
+        )
+        text = ""
+
+    packets_by_variant: dict[str, dict[str, Any]] = {}
+    manifest_variants = manifest.get("variants", [])
+    if [
+        row.get("variant_id") for row in manifest_variants if isinstance(row, dict)
+    ] != ["A", "B", "C"]:
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "source text unit variants must be ordered exactly A, B, C",
+            )
+        )
+    for row in manifest_variants if isinstance(manifest_variants, list) else []:
+        if not isinstance(row, dict):
+            continue
+        variant_id = row.get("variant_id")
+        packet_ref = row.get("packet_ref")
+        if variant_id not in {"A", "B", "C"} or not isinstance(packet_ref, str):
+            issues.append(
+                (
+                    SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                    "source text unit variant identity is invalid",
+                )
+            )
+            continue
+        packet_path = repo_root / packet_ref
+        if (
+            packet_path.is_symlink()
+            or not packet_path.is_file()
+            or _sha256(packet_path) != row.get("packet_sha256")
+        ):
+            issues.append((packet_ref, "source text unit variant fixity drifted"))
+            continue
+        packet = _load_json(packet_path, repo_root, issues)
+        if packet is None:
+            continue
+        schema_errors = list(packet_validator.iter_errors(packet))
+        semantic_errors = _source_text_unit_v1_issues(packet, text=text)
+        schema_valid = not schema_errors
+        semantic_valid = not semantic_errors
+        if schema_valid != row.get("expected_schema_valid"):
+            issues.append(
+                (packet_ref, "schema result differs from frozen A/B/C expectation")
+            )
+        if semantic_valid != row.get("expected_semantic_valid"):
+            issues.append(
+                (packet_ref, "semantic result differs from frozen A/B/C expectation")
+            )
+        source_layer = packet.get("source_layer", {})
+        source_scope = packet.get("source_scope", {})
+        if source_layer.get("text_layer_ref") != source_ref:
+            issues.append((packet_ref, "packet source layer does not resolve to manifest source"))
+        for field in ("text_layer_sha256",):
+            if source_layer.get(field) != _sha256_text(text):
+                issues.append((packet_ref, f"packet {field} differs from source input"))
+        if source_scope.get("file_sha256") != _sha256_text(text):
+            issues.append((packet_ref, "packet file digest differs from source input"))
+
+        packets_by_variant[variant_id] = packet
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "schema_valid": schema_valid,
+                "semantic_valid": semantic_valid,
+                "scheme_count": len(packet.get("schemes", [])),
+                "segmentation_count": len(packet.get("segmentations", [])),
+                "unit_count": len(packet.get("units", [])),
+                "statuses": [
+                    item.get("status") for item in packet.get("segmentations", [])
+                ],
+                "review_count": len(packet.get("reviews", [])),
+                "projection_count": len(packet.get("projections", [])),
+                "rejection_reasons": sorted(
+                    {error.message for error in schema_errors} | set(semantic_errors)
+                ),
+            }
+        )
+
+    if set(packets_by_variant) == {"A", "B", "C"}:
+        a = packets_by_variant["A"]
+        b = packets_by_variant["B"]
+        c = packets_by_variant["C"]
+        if [row.get("status") for row in a.get("segmentations", [])] != [
+            "observed_source_structure"
+        ]:
+            issues.append(
+                (
+                    SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                    "variant A must contain exactly one source-layout observation",
+                )
+            )
+        b_segmentations = b.get("segmentations", [])
+        if len(b_segmentations) != 4 or {
+            row.get("status") for row in b_segmentations
+        } != {"ambiguous"}:
+            issues.append(
+                (
+                    SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                    "variant B must preserve four unresolved competing segmentations",
+                )
+            )
+        for packet, variant_id in ((a, "A"), (b, "B"), (c, "C")):
+            if packet.get("reviews") or packet.get("projections"):
+                issues.append(
+                    (
+                        SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                        f"variant {variant_id} fabricates review or projection evidence",
+                    )
+                )
+
+        def control_rejected(name: str, payload: dict[str, Any]) -> None:
+            rejected = bool(list(packet_validator.iter_errors(payload))) or bool(
+                _source_text_unit_v1_issues(payload, text=text)
+            )
+            report["negative_controls"][name] = (
+                "rejected" if rejected else "not_rejected"
+            )
+            if not rejected:
+                issues.append(
+                    (
+                        SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                        f"negative control was not rejected: {name}",
+                    )
+                )
+
+        mutated = copy.deepcopy(b)
+        mutated["units"][0]["unit_id"] = "tos.text-unit.derived-from-current-text"
+        control_rejected("text-derived-unit-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["units"].append(copy.deepcopy(mutated["units"][0]))
+        control_rejected("duplicate-unit-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["schemes"].append(copy.deepcopy(mutated["schemes"][0]))
+        control_rejected("duplicate-scheme-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"].append(copy.deepcopy(mutated["segmentations"][0]))
+        control_rejected("duplicate-segmentation-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["scheme_ref"] = (
+            "tos.text-unit-scheme.sid-00000000000000000000000000000000"
+        )
+        control_rejected("missing-scheme-ref", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["ordered_unit_refs"][0] = (
+            "tos.text-unit.sid-00000000000000000000000000000000"
+        )
+        control_rejected("missing-unit-ref", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["units"][0]["ordered_anchor_refs"][0] = (
+            "tos.anchor.source-text-unit-v1.synthetic-missing"
+        )
+        control_rejected("missing-anchor-ref", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["source_layer"]["text_layer_sha256"] = "0" * 64
+        control_rejected("source-layer-digest-drift", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["anchors"][1]["exact_sha256"] = "1" * 64
+        control_rejected("anchor-exact-digest-drift", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["anchors"][1]["selector"]["end"] = len(text) + 1
+        control_rejected("anchor-out-of-bounds", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["anchors"][1]["selector"].update({"start": 5, "end": 4})
+        control_rejected("anchor-reversed-range", mutated)
+
+        mutated = copy.deepcopy(b)
+        first_segmentation = mutated["segmentations"][0]
+        first_unit = next(
+            unit
+            for unit in mutated["units"]
+            if unit["unit_id"] == first_segmentation["ordered_unit_refs"][0]
+        )
+        first_unit["ordered_anchor_refs"].append(
+            next(
+                unit["ordered_anchor_refs"][0]
+                for unit in mutated["units"]
+                if unit["unit_id"] == first_segmentation["ordered_unit_refs"][1]
+            )
+        )
+        control_rejected("unit-anchor-order-overlap", mutated)
+
+        mutated = copy.deepcopy(b)
+        parent = mutated["units"][0]
+        child = mutated["units"][1]
+        child["parent_unit_refs"] = [parent["unit_id"]]
+        control_rejected("one-way-parent-child", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["units"][0]["parent_unit_refs"] = [mutated["units"][0]["unit_id"]]
+        control_rejected("self-parent-unit", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["competing_segmentation_refs"] = []
+        control_rejected("one-way-competing-segmentation", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["competing_segmentation_refs"] = [
+            mutated["segmentations"][0]["segmentation_id"]
+        ]
+        control_rejected("self-competing-segmentation", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["ordered_unit_refs"].pop()
+        control_rejected("hidden-exhaustive-coverage-gap", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["ordered_unit_refs"].append(
+            mutated["segmentations"][1]["ordered_unit_refs"][0]
+        )
+        control_rejected("undeclared-overlap", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["segmentations"][0]["status"] = "accepted"
+        control_rejected("accepted-machine-result-without-review", mutated)
+
+        weak_review_id = (
+            "tos.text-unit-review.sid-11111111111111111111111111111111"
+        )
+        segmentation_ref = b["segmentations"][0]["segmentation_id"]
+        weak_review = {
+            "review_id": weak_review_id,
+            "segmentation_refs": [segmentation_ref],
+            "reviewer_kind": "real_human",
+            "reviewer_ref": "human:synthetic-negative-control",
+            "reviewed_at": "2026-08-11T18:00:00Z",
+            "review_scope": "sample",
+            "reviewed_unit_refs": [b["segmentations"][0]["ordered_unit_refs"][0]],
+            "source_layer_ref": b["source_layer"]["text_layer_ref"],
+            "source_layer_sha256": b["source_layer"]["text_layer_sha256"],
+            "source_visible": True,
+            "independent_boundary_decision_recorded_before_assistance": True,
+            "unassisted_baseline_ref": plan_ref,
+            "language_competence": {
+                "language": "x-tos-unit",
+                "declared": True,
+                "scope": "synthetic negative control only",
+            },
+            "outcome": "accepted",
+            "notes_ref": plan_ref,
+            "provenance_event_ref": "synthetic:negative-control",
+            "sample_does_not_accept_unreviewed_units": True,
+        }
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["reviews"] = [weak_review]
+        mutated["segmentations"][0]["status"] = "accepted"
+        mutated["segmentations"][0]["review_refs"] = [weak_review_id]
+        control_rejected("accepted-with-sample-only-review", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        weak_no_competence = copy.deepcopy(weak_review)
+        weak_no_competence["review_scope"] = "all_units"
+        weak_no_competence["reviewed_unit_refs"] = mutated["segmentations"][0][
+            "ordered_unit_refs"
+        ]
+        weak_no_competence["language_competence"]["declared"] = False
+        mutated["reviews"] = [weak_no_competence]
+        mutated["segmentations"][0]["status"] = "accepted"
+        mutated["segmentations"][0]["review_refs"] = [weak_review_id]
+        control_rejected("accepted-without-language-competence", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["units"][0]["unit_kind"] = "model_subword"
+        mutated["segmentations"][0]["linguistic_authority"] = True
+        control_rejected("model-subword-promoted-to-linguistic-authority", mutated)
+
+        projection = {
+            "projection_id": (
+                "tos.text-unit-projection.sid-22222222222222222222222222222222"
+            ),
+            "projection_kind": "graph",
+            "source_segmentation_refs": [segmentation_ref],
+            "artifact_ref": plan_ref,
+            "artifact_sha256": "2" * 64,
+            "admission_posture": "accepted_only",
+            "preserves_unit_ids": True,
+            "preserves_status": True,
+            "preserves_source_return": True,
+            "runtime_authority": False,
+            "source_text_authority": False,
+            "linguistic_authority": False,
+            "semantic_authority": False,
+            "visibility": "public",
+        }
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["projections"] = [projection]
+        control_rejected("graph-projection-of-proposed-segmentation", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["source_layer"]["visibility"] = "local_only"
+        mutated["source_layer"]["publication_authorized"] = False
+        mutated["rights_and_visibility"].update(
+            {
+                "source_visibility": "local_only",
+                "effective_visibility": "local_only",
+                "publication_authorized": False,
+            }
+        )
+        mutated["projections"] = [projection]
+        control_rejected("projection-visibility-widening", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["supersedes_packet_ref"] = mutated["packet_id"]
+        control_rejected("self-supersession", mutated)
+
+    if expected_controls != set(report["negative_controls"]):
+        issues.append(
+            (
+                SOURCE_TEXT_UNIT_V1_LAB_MANIFEST.as_posix(),
+                "negative-control coverage differs from the plan",
+            )
+        )
+    return issues, report
+
+
 def _latest_event_in_supersession_lineage(
     events_by_id: dict[str, dict[str, Any]],
     base_event_id: str,
@@ -4679,6 +5545,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         repo_root
     )
     issues.extend(translation_alignment_v1_lab_issues)
+
+    source_text_unit_v1_lab_issues, _ = validate_source_text_unit_v1_lab(repo_root)
+    issues.extend(source_text_unit_v1_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -12007,6 +12876,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="validate only the public synthetic translation-alignment v1 A/B/C",
     )
+    parser.add_argument(
+        "--source-text-unit-v1-lab-only",
+        action="store_true",
+        help="validate only the public synthetic source-text-unit v1 A/B/C",
+    )
     args = parser.parse_args(argv)
 
     if args.source_anchor_v2_lab_only:
@@ -12062,6 +12936,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
         print("[boundary] public synthetic mapping mechanics only; green closure establishes no translation act, model or aligner run, human review, accepted alignment, lexical equivalence, semantic truth, graph truth, canon effect, or private-source publication authority")
+        return 0
+
+    if args.source_text_unit_v1_lab_only:
+        issues, report = validate_source_text_unit_v1_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Source-text-unit v1 laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] public synthetic unit and segmentation mechanics only; green closure establishes no real-language boundary, model run, human review, accepted word or sentence, lexeme, sign, semantic or graph truth, canon effect, legacy migration, or private-source publication authority")
         return 0
 
     issues = validate_foundation(

@@ -77,7 +77,7 @@ Keep these boundaries visible:
 
 | Surface | Owner |
 | --- | --- |
-| identity, anchor, sign, assertion, and translation law | `doctrine/` |
+| identity, anchor, text-unit, sign, assertion, and translation law | `doctrine/` |
 | tracked catalogs, object records, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
 | machine-checkable record shapes | `contracts/` |
 | extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |

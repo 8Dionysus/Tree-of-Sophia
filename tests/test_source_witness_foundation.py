@@ -2236,6 +2236,186 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             legacy_translation["properties"]["schema_version"]["const"],
         )
 
+    def test_source_text_unit_v1_synthetic_abc_preserves_competing_layers(
+        self,
+    ) -> None:
+        issues, report = foundation.validate_source_text_unit_v1_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual(
+            [
+                ("A", True, True, 1, 1, 4, ["observed_source_structure"], 0, 0),
+                (
+                    "B",
+                    True,
+                    True,
+                    4,
+                    4,
+                    48,
+                    ["ambiguous", "ambiguous", "ambiguous", "ambiguous"],
+                    0,
+                    0,
+                ),
+                ("C", False, False, 1, 1, 3, ["accepted"], 0, 0),
+            ],
+            [
+                (
+                    row["variant_id"],
+                    row["schema_valid"],
+                    row["semantic_valid"],
+                    row["scheme_count"],
+                    row["segmentation_count"],
+                    row["unit_count"],
+                    row["statuses"],
+                    row["review_count"],
+                    row["projection_count"],
+                )
+                for row in report["variants"]
+            ],
+        )
+        self.assertEqual(
+            {
+                "text-derived-unit-id",
+                "duplicate-unit-id",
+                "duplicate-scheme-id",
+                "duplicate-segmentation-id",
+                "missing-scheme-ref",
+                "missing-unit-ref",
+                "missing-anchor-ref",
+                "source-layer-digest-drift",
+                "anchor-exact-digest-drift",
+                "anchor-out-of-bounds",
+                "anchor-reversed-range",
+                "unit-anchor-order-overlap",
+                "one-way-parent-child",
+                "self-parent-unit",
+                "one-way-competing-segmentation",
+                "self-competing-segmentation",
+                "hidden-exhaustive-coverage-gap",
+                "undeclared-overlap",
+                "accepted-machine-result-without-review",
+                "accepted-with-sample-only-review",
+                "accepted-without-language-competence",
+                "model-subword-promoted-to-linguistic-authority",
+                "graph-projection-of-proposed-segmentation",
+                "projection-visibility-widening",
+                "self-supersession",
+            },
+            set(report["negative_controls"]),
+        )
+        self.assertEqual({"rejected"}, set(report["negative_controls"].values()))
+
+        lab_root = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "source-text-unit-v1-abc"
+        )
+        variant_a = json.loads(
+            (lab_root / "variant-a-source-layout-observation.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        variant_b = json.loads(
+            (lab_root / "variant-b-competing-segmentations.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("x-tos-unit", variant_a["source_layer"]["language"])
+        self.assertEqual(
+            ["physical_line", "whitespace"], variant_a["schemes"][0]["unit_kinds"]
+        )
+        sentence_first, sentence_second, token_first, token_second = variant_b[
+            "segmentations"
+        ]
+        self.assertEqual(
+            {sentence_second["segmentation_id"]},
+            set(sentence_first["competing_segmentation_refs"]),
+        )
+        self.assertEqual(
+            {sentence_first["segmentation_id"]},
+            set(sentence_second["competing_segmentation_refs"]),
+        )
+        self.assertEqual(
+            {token_second["segmentation_id"]},
+            set(token_first["competing_segmentation_refs"]),
+        )
+        self.assertEqual(
+            {token_first["segmentation_id"]},
+            set(token_second["competing_segmentation_refs"]),
+        )
+        self.assertEqual([], variant_b["reviews"])
+        self.assertEqual([], variant_b["projections"])
+
+    def test_source_text_unit_v1_is_additive_and_coverage_gated(self) -> None:
+        schema = json.loads(
+            (
+                REPO_ROOT / "ToS/contracts/source-text-unit-packet-v1.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        packet = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "source-text-unit-v1-abc/variant-b-competing-segmentations.json"
+            ).read_text(encoding="utf-8")
+        )
+        text = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt"
+        ).read_text(encoding="utf-8")
+
+        self.assertFalse(list(validator.iter_errors(packet)))
+        before_scheme_id = packet["schemes"][0]["scheme_id"]
+        before_segmentation_id = packet["segmentations"][0]["segmentation_id"]
+        renamed = copy.deepcopy(packet)
+        renamed["schemes"][0]["scheme_name"] = (
+            "A different mutable scheme label does not reissue identity."
+        )
+        self.assertEqual(before_scheme_id, renamed["schemes"][0]["scheme_id"])
+        self.assertEqual(
+            before_segmentation_id, renamed["segmentations"][0]["segmentation_id"]
+        )
+        self.assertFalse(list(validator.iter_errors(renamed)))
+
+        hidden_gap = copy.deepcopy(packet)
+        hidden_gap["segmentations"][0]["ordered_unit_refs"].pop()
+        self.assertTrue(
+            any(
+                "hidden gaps" in issue
+                for issue in foundation._source_text_unit_v1_issues(
+                    hidden_gap, text=text
+                )
+            )
+        )
+
+        accepted_without_review = copy.deepcopy(packet)
+        accepted_without_review["segmentations"][0]["status"] = "accepted"
+        self.assertTrue(list(validator.iter_errors(accepted_without_review)))
+        self.assertTrue(
+            any(
+                "lacks full competent real-human review" in issue
+                for issue in foundation._source_text_unit_v1_issues(
+                    accepted_without_review, text=text
+                )
+            )
+        )
+
+        legacy_translation_samples = json.loads(
+            (
+                REPO_ROOT / "ToS/contracts/translation-sample-plan.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            "tos-local-sentence-segmentation-v1",
+            legacy_translation_samples["properties"]["selector_method"][
+                "properties"
+            ]["segmentation"]["const"],
+        )
+
     def test_provenance_v2_synthetic_abc_preserves_success_transform_and_failure(
         self,
     ) -> None:
