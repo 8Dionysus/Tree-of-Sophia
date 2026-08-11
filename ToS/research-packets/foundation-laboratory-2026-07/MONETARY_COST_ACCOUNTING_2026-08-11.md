@@ -126,6 +126,18 @@ can coexist with blocked electricity, unmeasured hardware allocation, zero
 active human seconds, unpriced human time, and null marginal/fully loaded cost.
 It is not a measurement of a historical ToS run.
 
+Reviewed follow-up checkpoint
+`60c6a9e911a6f12829de0152d50ba63f5fc7847e` closes the same ambiguity in
+the two non-runner-bound Russian-surface receipt emitters. Future receipts from
+those mutable routes now say `unmeasured-local-execution`, through one shared
+posture, instead of `zero-local-runtime`. The regression suite rejects a return
+of the false-zero label. Digest-bound translation runners retain their exact
+historical bytes and profiles: their legacy field means at most that no direct
+external charge was recorded. A genuinely new episode through one of those
+fixed routes must pair its raw run receipt with the separate monetary-cost
+evidence route before any cost is reported. No old receipt, private payload, or
+model result was rewritten or rerun.
+
 ## Decision
 
 Promote the accounting mechanics with limits. For every new material run:
@@ -138,7 +150,9 @@ Promote the accounting mechanics with limits. For every new material run:
 5. estimate hardware only under a declared allocation policy;
 6. record active human seconds independently of any hourly valuation;
 7. leave unavailable fields null;
-8. compare monetary cost only inside compatible task and evidence boundaries.
+8. treat a legacy emitter label as historical raw evidence, not a monetary
+   aggregate;
+9. compare monetary cost only inside compatible task and evidence boundaries.
 
 Do not retrofit the cash-only example onto old runs. Their monetary cost stays
 unmeasured until their own evidence closes.

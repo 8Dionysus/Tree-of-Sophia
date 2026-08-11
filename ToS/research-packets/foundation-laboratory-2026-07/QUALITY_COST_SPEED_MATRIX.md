@@ -38,16 +38,21 @@ evidence is in
 Reviewed `abyss-stack` checkpoint `c1758692` adds a source-free monetary
 accounting contract derived from FOCUS 1.4, SCI boundary law, official CFE
 tariff routing, established Green AI reporting, ML.ENERGY, and the fresh
-A-LEMS goal-level preprint. It separates direct billed, electricity, allocated
-hardware, active human time, and human valuation; it also keeps retries and
-failures inside one goal boundary.
+A-LEMS goal-level preprint. Reviewed follow-up `60c6a9e9` aligns the two
+mutable Russian-surface emitters with that law while leaving digest-bound
+translation runners and historical receipts byte-exact. The contract
+separates direct billed, electricity, allocated hardware, active human time,
+and human valuation; it also keeps retries and failures inside one goal
+boundary.
 
 The cash-only example proves mechanics, not a historical run. An evidenced
 zero external charge does not fill electricity, hardware, human valuation,
 marginal, or fully loaded cost. No current run has both attributed whole-system
 energy and an exact tariff, and no hardware allocation policy is adopted.
 Therefore total monetary cost for existing runs remains `Not measured`, not
-zero. Exact research and decision evidence is in
+zero. A legacy emitter label is raw history, not an aggregate; any new episode
+through a digest-bound runner requires a separate monetary receipt. Exact
+research and decision evidence is in
 [`MONETARY_COST_ACCOUNTING_2026-08-11.md`](MONETARY_COST_ACCOUNTING_2026-08-11.md).
 
 ## Consolidated matrix
