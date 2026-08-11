@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Closed the declared-content gap in future goal-attempt receipts. Reviewed
+  `abyss-stack` checkpoint `55e58d0a` adds the strict
+  `tos_goal_attempt_run_receipt_v1` contract and binds each exact receipt to
+  its ledger identity, ordinal, status, UTC interval, terminal event, and
+  applicable process exit code while rejecting duplicate keys and non-JSON
+  constants. Ordered provenance/run-lifecycle research is retained. A
+  conforming receipt remains unsigned declared evidence: it does not prove
+  execution, producer identity, environment completeness, result truth,
+  content quality, human acceptance, publication, or canon authority.
 - Bound future monetary accounting to exact evidence without rewriting history.
   The reviewed `abyss-stack` v2 route verifies relative regular-file bytes,
   byte lengths, SHA-256, component-reference closure, and one run receipt for

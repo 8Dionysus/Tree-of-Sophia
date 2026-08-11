@@ -45,6 +45,12 @@ translation runners and historical receipts byte-exact. Reviewed checkpoint
 regular file is byte-length/SHA-256 verified, every descriptor is used, and
 one ordered digest-bound run receipt covers every attempt. The receipt labels
 that integrity `unsigned-not-attested`; it does not invent authenticity. The
+reviewed `55e58d0a` continuation additionally parses those exact bytes under
+the strict `tos_goal_attempt_run_receipt_v1` contract and requires receipt
+identity, ordinal, status, UTC interval, terminal event, and applicable process
+exit to agree with the ledger. This proves declared-content coherence, not
+that execution occurred, who produced the record, environment completeness,
+or the truth of a result. The
 contract separates direct billed, electricity, allocated hardware, active
 human time, and human valuation; it also keeps retries and failures inside one
 goal boundary.

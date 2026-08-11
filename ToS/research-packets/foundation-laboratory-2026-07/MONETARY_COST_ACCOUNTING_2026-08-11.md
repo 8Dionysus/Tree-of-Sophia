@@ -162,15 +162,76 @@ before changing the contract.
   preprint) distinguishes the execution-provenance graph from its evidence-
   support projection and identifies unified schemas and privacy-aware audit as
   open problems.
-- [ProvenanceGuard](https://arxiv.org/abs/2607.01236) (July 2026 preprint)
-  checks whether tool calls and parameters are supported by traceable context.
-  It supports typed evidence references, not a claim that accounting proves
-  agent alignment.
+- [ProvenanceGuard](https://arxiv.org/abs/2606.18037) (June 2026 preprint)
+  checks source-aware claim support and attribution against stable tool/source
+  identifiers and retained raw MCP outputs. It supports typed evidence
+  references, not a claim that accounting proves agent alignment.
 
 The admitted scope is deliberately narrower: exact local file bytes, byte
 length, SHA-256, reference closure, and a complete attempt ledger. It does not
 prove producer identity, signature authenticity, statement truth, agent
 reasoning, source quality, or human acceptance.
+
+## 5. Run-receipt content closure
+
+Digest closure proves which bytes were admitted, but not whether those bytes
+are a coherent record of the attempt named by the ledger. A third ordered pass
+therefore addressed the content contract without turning an unsigned local
+JSON document into execution attestation.
+
+### Official and normative documentation
+
+- [W3C PROV-DM](https://www.w3.org/TR/prov-dm/) gives an activity its own
+  identity, start/end boundaries, uses, and generations. A digest identifies
+  an entity; it does not by itself establish that the described activity
+  happened.
+- [in-toto Link metadata](https://github.com/in-toto/docs/blob/master/in-toto-spec.md)
+  records a command, materials, products, byproducts such as a return value,
+  and environment data. Its byproducts are not verified by default, and a
+  declared command expectation is advisory rather than proof of execution.
+- [OpenLineage 1.52 object model](https://openlineage.io/docs/spec/object-model/)
+  and [run cycle](https://openlineage.io/docs/spec/run-cycle/) identify a run
+  independently and retain terminal observations such as `COMPLETE`, `FAIL`,
+  and `ABORT` instead of collapsing the lifecycle into a result label.
+- [Process Run Crate 0.1](https://www.researchobject.org/workflow-run-crate/profiles/0.1/process_run_crate)
+  models instrument, start/end, status, inputs, and outputs while treating a
+  command description as informational metadata.
+- [OpenTelemetry Trace API](https://opentelemetry.io/docs/specs/otel/trace/api/)
+  keeps span lifetime and status distinct. Span status is set by
+  instrumentation or an operator and is not process-exit evidence.
+
+### Established work
+
+- The [in-toto USENIX Security 2019 paper](https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias)
+  shows why signed step records and layout verification matter. The ToS route
+  does not inherit those authenticity properties from a similar field shape.
+- [CWLProv](https://pmc.ncbi.nlm.nih.gov/articles/PMC6824458/) combines
+  prospective workflow structure with retrospective run provenance, showing
+  why declared method and observed episode must remain separate.
+- [ReproZip](https://www.reprozip.org/) captures an execution environment for
+  reproducibility. Environment completeness is a separate problem and is not
+  implied by a compact attempt receipt.
+
+### Freshest relevant work at the snapshot
+
+- [AgentTrace](https://arxiv.org/abs/2602.10133) and
+  [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) remain useful
+  February/June 2026 preprint directions for layered telemetry and evidence-
+  support projections, not standards or execution attestations.
+- [ProvenanceGuard](https://arxiv.org/abs/2606.18037) (June 2026 preprint)
+  validates source-aware claim support and attribution against stable source
+  handles; it does not prove that a locally declared process ran.
+- [AgentTrails](https://arxiv.org/abs/2607.18816) (July 21, 2026 preprint)
+  organizes actions and artifacts into a provenance graph. It remains a fresh
+  prototype direction, not authority for ToS source or receipt truth.
+
+No source above makes unsigned JSON proof of execution. The admitted contract
+is consequently narrow: one typed attempt identity, ordinal, interval,
+activity description, terminal state, and process exit code where applicable;
+strict agreement with the already digest-bound goal ledger; and explicit
+`unsigned-not-attested` posture. It does not establish execution authenticity,
+producer identity, signatures, non-repudiation, complete environment capture,
+billing truth, result truth, content quality, or human acceptance.
 
 ## Admitted method
 
@@ -229,13 +290,33 @@ environment-blocked outside this slice because the installed host MCP SDK no
 longer exports the checkout's `MCPError`/`MCPServer` API; that unrelated failure
 is not reported green or repaired through the ToS accounting change.
 
+Reviewed content-closure checkpoint
+`55e58d0a23362d3e1679baa18b1f0fb9a1a5ebdb` adds the
+`tos_goal_attempt_run_receipt_v1` contract. The accounting command now reads
+each receipt once under a 1 MiB cap, verifies the digest and byte length of
+those same bytes, requires exact `application/json`, and parses strict UTF-8
+JSON while rejecting duplicate object keys and non-JSON numeric constants.
+The receipt must agree with the ledger's goal, attempt, ordinal, and status;
+its UTC interval must be ordered and contained by the goal boundary; its
+terminal event must map to the ledger status; and process activity must expose
+an integer exit code, with a successful attempt rejecting a nonzero exit.
+
+The content follow-up passes 29 direct monetary tests, the complete 236-test
+laboratory suite, the laboratory validator, `source-fast`, the nested-agent
+validator, and the stack validator. Manual positive inspection confirmed the
+v2 ledger/receipt contract and unsigned posture; manual negative probes
+rejected both an arbitrary status-only object and duplicate keys. Full-repo
+pytest/release collection remains honestly blocked by the same unrelated host
+MCP SDK drift (`MCPError`/`MCPServer`) and is not counted as passing.
+
 ## Decision
 
 Promote the accounting mechanics with limits. For every new material run:
 
 1. bind one goal and functional unit before execution in a v2 input;
 2. retain every attempt, including failure and retry, as one digest-bound
-   run-receipt row;
+   `tos_goal_attempt_run_receipt_v1` whose identity, ordinal, status, interval,
+   terminal event, and applicable process exit agree with the goal ledger;
 3. bind every component to a verified local evidence descriptor and reject
    both dangling and unused descriptors;
 4. record direct billed charges from explicit evidence;
