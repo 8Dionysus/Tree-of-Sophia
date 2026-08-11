@@ -898,6 +898,28 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_provenance_event_v2_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt"
+      ],
+      "reads": [
+        "tracked public-synthetic UTF-8 input fixture, frozen plan, provenance v2 contract, builder bytes, and host runtime identity"
+      ],
+      "writes": [
+        "tracked public-synthetic environment profile, A copy output, B NFC output, C diagnostic byproduct, three v2 event records, and exact lab manifest"
+      ],
+      "side_effects": "variant C intentionally returns exit code 7 after preserving its failed terminal event and diagnostic byproduct; no corpus payload, model, human evidence, accepted content, publication, semantics, graph, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validate_source_witness_foundation.py",
       "family": "source_validator",
       "organ_lane": "source/topology",
@@ -909,6 +931,8 @@
         "ToS/contracts/source-resource-inventory.schema.json",
         "ToS/contracts/rights-record.schema.json",
         "ToS/contracts/provenance-event.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json",
         "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
@@ -928,10 +952,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2 and source-text-layer A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, and provenance-event-v2 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2 and source-text-layer labs report public synthetic selections/representations and no corpus payload",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, and provenance-event-v2 labs report public synthetic mechanics and no corpus payload or execution truth",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

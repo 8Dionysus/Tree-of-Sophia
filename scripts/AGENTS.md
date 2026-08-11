@@ -82,6 +82,23 @@ controls. It reads no private corpus payload, accepts no transcription, and
 cannot supply human or language competence, translation, semantics,
 publication, graph truth, canon, or bulk migration authority.
 
+`build_provenance_event_v2_lab.py` owns only the public-synthetic execution-
+receipt A/B/C. Run `--prepare`, then variants `A`, `B`, and `C` as separate
+commands, accepting C's declared exit code 7, and finish with `--finalize`.
+The builder must preserve exact input/output/byproduct bytes, argv,
+configuration, software/runtime identity, terminal state, and manifest fixity.
+Never relabel a failed run's diagnostic as authoritative output. Changing the
+builder or contract invalidates their bound digests and requires an intentional
+full laboratory rebuild.
+
+The source-foundation validator's `--provenance-v2-lab-only` route validates
+the additive `tos_provenance_event_v2` schema, exact record/entity/command
+closure, real copy and normalization bytes, honest failed-output boundary, and
+negative controls. Legacy v1 records are not migrated. A green unsigned receipt
+does not prove the execution occurred, authenticate its producer, establish
+content quality, supply human or language competence, or authorize rights,
+publication, semantics, graph truth, or canon.
+
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
 EPUB resource, TEI structure, and provider OCR page inventories from an

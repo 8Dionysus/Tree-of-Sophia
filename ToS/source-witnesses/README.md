@@ -885,6 +885,30 @@ text layer, no source is published, and no accepted transcription, German
 competence, translation, semantics, graph truth, canon effect, migration, or
 human backlog follows.
 
+## Provenance-event v2 laboratory boundary
+
+The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution
+receipt more precise without rewriting current v1 provenance. It separates
+input, output, and diagnostic-byproduct entities; explicit derivation edges;
+command/configuration/software/runtime/model capture; responsibility and manual
+changes; measurements and terminal state; fixity, authentication, review,
+rights, publication, and replay posture.
+
+The current public-synthetic A/B/C under
+`ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
+contains one byte-identical copy, one real NFD-to-NFC transformation, and one
+intentional ASCII-strict failure with exit code 7, an exact diagnostic
+byproduct, and zero authoritative outputs. Fourteen negative controls reject
+digest drift, command drift, output/status contradictions, escaping or false
+derivation, missing model/manual evidence, false signature or human-review
+claims, publication without authority, and self-supersession.
+
+All three receipts are unsigned, model-free, unreviewed, and publication-
+unauthorized. Their schema and exact-byte closure does not prove execution
+truth or content quality. Use v2 for new materialized work, or migrate one v1
+lineage only when a concrete discrepancy, replay, security, or source-return
+question requires it.
+
 ## Rebuild local resource inventories
 
 The payloads may be absent from a public clone, so the inventory builder is a

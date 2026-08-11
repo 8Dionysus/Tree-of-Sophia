@@ -18,6 +18,7 @@ import subprocess
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -64,6 +65,11 @@ SOURCE_TEXT_LAYER_LAB_ROOT = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc"
 )
 SOURCE_TEXT_LAYER_LAB_MANIFEST = SOURCE_TEXT_LAYER_LAB_ROOT / "lab.manifest.json"
+PROVENANCE_V2_SCHEMA = CONTRACT_ROOT / "provenance-event-v2.schema.json"
+PROVENANCE_V2_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc"
+)
+PROVENANCE_V2_LAB_MANIFEST = PROVENANCE_V2_LAB_ROOT / "lab.manifest.json"
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -1430,6 +1436,456 @@ def validate_source_text_layer_lab(repo_root: Path) -> tuple[list[Issue], dict[s
 
     if set(manifest.get("negative_controls", [])) != set(report["negative_controls"]):
         issues.append((SOURCE_TEXT_LAYER_LAB_MANIFEST.as_posix(), "negative-control coverage differs from manifest"))
+    return issues, report
+
+
+def _canonical_json_value_sha256(value: Any) -> str:
+    """Hash the lab's declared compact UTF-8 JSON value representation."""
+
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _provenance_v2_semantic_issues(event: dict[str, Any]) -> list[str]:
+    """Return v2 cross-field defects that JSON Schema cannot express."""
+
+    messages: list[str] = []
+    event_id = event.get("event_id")
+    if event.get("supersedes_event_ref") == event_id:
+        messages.append("provenance event cannot supersede itself")
+
+    activity = event.get("activity", {})
+    try:
+        started = datetime.fromisoformat(activity["started_at"])
+        ended = datetime.fromisoformat(activity["ended_at"])
+        if ended < started:
+            messages.append("provenance activity ends before it starts")
+    except (KeyError, TypeError, ValueError):
+        messages.append("provenance activity timestamps are not comparable")
+
+    status = activity.get("status")
+    exit_code = activity.get("exit_code")
+    terminal_reason = activity.get("terminal_reason")
+    if status in {"completed", "completed_with_warnings"}:
+        if exit_code != 0:
+            messages.append("completed provenance activity has a non-zero or absent exit code")
+        if terminal_reason is not None:
+            messages.append("completed provenance activity carries a terminal failure reason")
+    if status in {"failed", "stopped"}:
+        if exit_code in {None, 0}:
+            messages.append("failed or stopped provenance activity lacks a non-zero exit code")
+        if not isinstance(terminal_reason, str) or not terminal_reason:
+            messages.append("failed or stopped provenance activity lacks a terminal reason")
+
+    entities = event.get("entities", {})
+    groups = {
+        name: entries if isinstance(entries, list) else []
+        for name, entries in (
+            ("inputs", entities.get("inputs", [])),
+            ("outputs", entities.get("outputs", [])),
+            ("byproducts", entities.get("byproducts", [])),
+        )
+    }
+    refs_by_group: dict[str, set[str]] = {}
+    entity_by_ref: dict[str, dict[str, Any]] = {}
+    for group_name, entries in groups.items():
+        refs: list[str] = []
+        for entity in entries:
+            if not isinstance(entity, dict):
+                continue
+            ref = entity.get("entity_ref")
+            if isinstance(ref, str):
+                refs.append(ref)
+                entity_by_ref[ref] = entity
+            if entity.get("fixity_verified") is True and entity.get("fixity_verified_at") is None:
+                messages.append(f"{group_name} entity claims fixity without verification time")
+            if entity.get("fixity_verified") is False and entity.get("fixity_verified_at") is not None:
+                messages.append(f"{group_name} entity has verification time while fixity is false")
+        if len(refs) != len(set(refs)):
+            messages.append(f"duplicate entity reference inside {group_name}")
+        refs_by_group[group_name] = set(refs)
+    if refs_by_group["inputs"] & refs_by_group["outputs"]:
+        messages.append("input and output entity identities collapse")
+    if refs_by_group["outputs"] & refs_by_group["byproducts"]:
+        messages.append("authoritative output and byproduct identities collapse")
+
+    covered_outputs: set[str] = set()
+    for derivation in event.get("derivations", []):
+        if not isinstance(derivation, dict):
+            continue
+        input_ref = derivation.get("input_entity_ref")
+        output_ref = derivation.get("output_entity_ref")
+        if input_ref not in refs_by_group["inputs"]:
+            messages.append("derivation input leaves the declared input entities")
+        if output_ref not in refs_by_group["outputs"]:
+            messages.append("derivation output leaves the authoritative output entities")
+        else:
+            covered_outputs.add(output_ref)
+        if input_ref == output_ref:
+            messages.append("derivation collapses input and output identity")
+        if derivation.get("relation") == "identity_copy_of":
+            input_entity = entity_by_ref.get(str(input_ref), {})
+            output_entity = entity_by_ref.get(str(output_ref), {})
+            if (
+                input_entity.get("sha256") != output_entity.get("sha256")
+                or input_entity.get("size_bytes") != output_entity.get("size_bytes")
+            ):
+                messages.append("identity copy does not preserve exact bytes and size")
+    missing_derivations = refs_by_group["outputs"] - covered_outputs
+    if missing_derivations:
+        messages.append("authoritative output lacks an explicit derivation")
+    if not refs_by_group["outputs"] and event.get("derivations"):
+        messages.append("event without authoritative output still asserts derivation")
+
+    method = event.get("method", {})
+    command = method.get("command_capture", {})
+    argv = command.get("argv")
+    if command.get("disclosure") == "inline" and isinstance(argv, list):
+        if command.get("argv_sha256") != _canonical_json_value_sha256(argv):
+            messages.append("inline command argv digest drifted")
+
+    output_digests = {
+        entity.get("sha256")
+        for entity in groups["outputs"]
+        if isinstance(entity, dict)
+    }
+    for invocation in method.get("model_invocations", []):
+        if not isinstance(invocation, dict):
+            continue
+        prompt = invocation.get("prompt_capture", {})
+        if prompt.get("disclosure") == "inline" and isinstance(prompt.get("text"), str):
+            if prompt.get("sha256") != _sha256_text(prompt["text"]):
+                messages.append("inline model prompt digest drifted")
+        if invocation.get("response_status") == "completed":
+            if invocation.get("output_sha256") not in output_digests:
+                messages.append("completed model invocation output is not an event output")
+
+    authentication = event.get("evidence_authentication", {})
+    signature_status = authentication.get("signature_status")
+    signature_bindings = authentication.get("signature_bindings", [])
+    verification_status = authentication.get("verification_status")
+    if signature_status == "unsigned":
+        if signature_bindings:
+            messages.append("unsigned provenance event carries signature bindings")
+        if verification_status == "signature_verified":
+            messages.append("unsigned provenance event claims signature verification")
+    if signature_status in {"signed_unverified", "signed_verified"} and not signature_bindings:
+        messages.append("signed provenance event lacks signature bindings")
+
+    reproducibility = event.get("reproducibility", {})
+    if reproducibility.get("classification") in {
+        "replay_ready",
+        "replay_ready_negative_control",
+    }:
+        if command.get("disclosure") != "inline":
+            messages.append("replay-ready provenance withholds its command")
+        if event.get("manual_changes", {}).get("status") == "unknown":
+            messages.append("replay-ready provenance has unknown manual changes")
+        if any(
+            component.get("verification_status") != "verified"
+            for component in method.get("software_components", [])
+            if isinstance(component, dict)
+        ):
+            messages.append("replay-ready provenance has an unverified software component")
+    return messages
+
+
+def validate_provenance_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[str, Any]]:
+    """Validate exact A/B/C execution receipts and their real synthetic bytes."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {"variants": [], "negative_controls": {}}
+    try:
+        event_validator, _ = _schema_validator(PROVENANCE_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [(PROVENANCE_V2_SCHEMA.as_posix(), f"cannot load provenance v2 schema: {exc}")], report
+
+    manifest_path = repo_root / PROVENANCE_V2_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_provenance_event_v2_lab_v1":
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "unexpected provenance v2 lab manifest version"))
+    if manifest.get("authority_posture") != "public_synthetic_mechanics_only":
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance v2 lab authority posture widened"))
+    expected_limits = {
+        "private_source_used": False,
+        "model_invoked": False,
+        "human_evidence_created": False,
+        "execution_truth_established": False,
+        "content_truth_established": False,
+        "rights_clearance_established": False,
+        "semantic_claim_created": False,
+        "canon_effect": False,
+    }
+    if manifest.get("authority_limits") != expected_limits:
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance v2 lab authority limits widened"))
+
+    def binding_closes(binding: Any, label: str) -> bool:
+        if not isinstance(binding, dict):
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), f"{label} binding is absent"))
+            return False
+        ref = binding.get("ref")
+        digest = binding.get("sha256")
+        path = repo_root / ref if isinstance(ref, str) else manifest_path
+        if path.is_symlink() or not path.is_file() or _sha256(path) != digest:
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), f"{label} binding drifted"))
+            return False
+        return True
+
+    for field in ("contract", "plan", "builder", "environment_profile", "input_fixture"):
+        binding_closes(manifest.get(field), field)
+    if manifest.get("contract", {}).get("ref") != PROVENANCE_V2_SCHEMA.as_posix():
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance v2 contract reference drifted"))
+
+    events_by_variant: dict[str, dict[str, Any]] = {}
+    manifest_variants = manifest.get("variants", [])
+    if not isinstance(manifest_variants, list):
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance variants are not a list"))
+        manifest_variants = []
+    variant_manifest_by_id = {
+        variant.get("variant_id"): variant
+        for variant in manifest_variants
+        if isinstance(variant, dict) and isinstance(variant.get("variant_id"), str)
+    }
+    if [variant.get("variant_id") for variant in manifest_variants if isinstance(variant, dict)] != ["A", "B", "C"]:
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance variants must be ordered exactly A, B, C"))
+    if len(variant_manifest_by_id) != len(manifest_variants):
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance variant identity is duplicated or missing"))
+    for variant in manifest_variants:
+        if not isinstance(variant, dict):
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance variant is not an object"))
+            continue
+        variant_id = variant.get("variant_id")
+        event_ref = variant.get("event_ref")
+        if variant_id not in {"A", "B", "C"} or not isinstance(event_ref, str):
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "provenance variant identity is invalid"))
+            continue
+        event_path = repo_root / event_ref
+        if event_path.is_symlink() or not event_path.is_file() or _sha256(event_path) != variant.get("event_sha256"):
+            issues.append((event_ref, "provenance event record fixity drifted"))
+            continue
+        event = _load_json(event_path, repo_root, issues)
+        if event is None:
+            continue
+        _validate_payload(event, event_validator, event_ref, issues)
+        for message in _provenance_v2_semantic_issues(event):
+            issues.append((event_ref, message))
+        if event.get("record_binding") != {
+            "manifest_ref": PROVENANCE_V2_LAB_MANIFEST.as_posix(),
+            "digest_algorithm": "sha256",
+            "digest_scope": "exact_event_record_bytes",
+        }:
+            issues.append((event_ref, "event-to-manifest record binding drifted"))
+        activity = event.get("activity", {})
+        if (
+            activity.get("status") != variant.get("expected_status")
+            or activity.get("exit_code") != variant.get("expected_exit_code")
+        ):
+            issues.append((event_ref, "event terminal state differs from the frozen expectation"))
+        command = event.get("method", {}).get("command_capture", {})
+        expected_command = [
+            "python",
+            "scripts/build_provenance_event_v2_lab.py",
+            "--variant",
+            variant_id,
+        ]
+        if command.get("argv") != expected_command or variant.get("captured_command") != expected_command:
+            issues.append((event_ref, "captured argv differs from the executed laboratory command"))
+
+        input_ref = variant.get("input_ref")
+        input_path = repo_root / input_ref if isinstance(input_ref, str) else manifest_path
+        if not input_path.is_file() or _sha256(input_path) != variant.get("input_sha256"):
+            issues.append((event_ref, "variant input fixity drifted"))
+        input_entities = event.get("entities", {}).get("inputs", [])
+        if len(input_entities) != 1 or input_entities[0].get("entity_ref") != input_ref or input_entities[0].get("sha256") != variant.get("input_sha256"):
+            issues.append((event_ref, "event input binding differs from the manifest"))
+
+        output_ref = variant.get("output_ref")
+        byproduct_ref = variant.get("byproduct_ref")
+        outputs = event.get("entities", {}).get("outputs", [])
+        byproducts = event.get("entities", {}).get("byproducts", [])
+        if isinstance(output_ref, str):
+            output_path = repo_root / output_ref
+            if not output_path.is_file() or _sha256(output_path) != variant.get("output_sha256"):
+                issues.append((event_ref, "variant output fixity drifted"))
+            if len(outputs) != 1 or outputs[0].get("entity_ref") != output_ref or outputs[0].get("sha256") != variant.get("output_sha256"):
+                issues.append((event_ref, "event output binding differs from the manifest"))
+        elif outputs:
+            issues.append((event_ref, "failed variant exposes an authoritative output"))
+        if isinstance(byproduct_ref, str):
+            byproduct_path = repo_root / byproduct_ref
+            if not byproduct_path.is_file() or _sha256(byproduct_path) != variant.get("byproduct_sha256"):
+                issues.append((event_ref, "variant byproduct fixity drifted"))
+            if len(byproducts) != 1 or byproducts[0].get("entity_ref") != byproduct_ref or byproducts[0].get("sha256") != variant.get("byproduct_sha256"):
+                issues.append((event_ref, "event byproduct binding differs from the manifest"))
+        elif byproducts:
+            issues.append((event_ref, "successful variant unexpectedly carries a failure byproduct"))
+
+        relation = variant.get("expected_relation")
+        relations = [row.get("relation") for row in event.get("derivations", [])]
+        if relations != ([] if relation is None else [relation]):
+            issues.append((event_ref, "event derivation relation differs from the frozen expectation"))
+        if event.get("method", {}).get("model_invocations") != []:
+            issues.append((event_ref, "public synthetic provenance lab invoked a model"))
+        if any(actor.get("agent_kind") == "human" for actor in event.get("responsibility", [])):
+            issues.append((event_ref, "public synthetic provenance lab fabricated human evidence"))
+        if event.get("review_and_authority", {}).get("human_review_status") != "not_performed":
+            issues.append((event_ref, "public synthetic provenance lab claims human review"))
+        if event.get("rights_and_visibility", {}).get("publication_authorized") is not False:
+            issues.append((event_ref, "public synthetic provenance lab widened publication authority"))
+        events_by_variant[variant_id] = event
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "status": activity.get("status"),
+                "exit_code": activity.get("exit_code"),
+                "input_sha256": variant.get("input_sha256"),
+                "output_sha256": variant.get("output_sha256"),
+                "byproduct_sha256": variant.get("byproduct_sha256"),
+                "relation": relation,
+                "signature_status": event.get("evidence_authentication", {}).get("signature_status"),
+                "human_review_status": event.get("review_and_authority", {}).get("human_review_status"),
+            }
+        )
+
+    if set(events_by_variant) == {"A", "B", "C"} and set(variant_manifest_by_id) == {"A", "B", "C"}:
+        input_bytes = (repo_root / manifest["input_fixture"]["ref"]).read_bytes()
+        a_bytes = (repo_root / variant_manifest_by_id["A"]["output_ref"]).read_bytes()
+        b_bytes = (repo_root / variant_manifest_by_id["B"]["output_ref"]).read_bytes()
+        c_bytes = (repo_root / variant_manifest_by_id["C"]["byproduct_ref"]).read_bytes()
+        if a_bytes != input_bytes:
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "variant A is not a byte-identical copy"))
+        try:
+            source_text = input_bytes.decode("utf-8")
+            b_text = b_bytes.decode("utf-8")
+        except UnicodeError as exc:
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), f"synthetic text is not UTF-8: {exc}"))
+        else:
+            if b_text != unicodedata.normalize("NFC", source_text) or b_bytes == input_bytes:
+                issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "variant B does not preserve the exact NFC transformation"))
+        if c_bytes != b"status=failed\nreason=non_ascii_input\nexit_code=7\n":
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "variant C failure byproduct drifted"))
+
+    def negative_rejected(name: str, action: Any) -> None:
+        try:
+            action()
+        except (KeyError, TypeError, ValueError):
+            report["negative_controls"][name] = "rejected"
+        else:
+            report["negative_controls"][name] = "not_rejected"
+            issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), f"negative control was not rejected: {name}"))
+
+    def schema_reject(payload: dict[str, Any]) -> None:
+        if list(event_validator.iter_errors(payload)):
+            raise ValueError("schema rejected negative control")
+
+    if set(events_by_variant) == {"A", "B", "C"}:
+        def event_record_digest_drift() -> None:
+            first = variant_manifest_by_id["A"]
+            if _sha256(repo_root / first["event_ref"]) != "0" * 64:
+                raise ValueError("event record digest drift rejected")
+
+        def input_fixity_drift() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["entities"]["inputs"][0]["sha256"] = "0" * 64
+            input_path = repo_root / mutated["entities"]["inputs"][0]["entity_ref"]
+            if mutated["entities"]["inputs"][0]["sha256"] != _sha256(input_path):
+                raise ValueError("input fixity drift rejected")
+
+        def command_digest_drift() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["method"]["command_capture"]["argv_sha256"] = "0" * 64
+            if "inline command argv digest drifted" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("command digest drift rejected")
+
+        def completed_without_output() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["entities"]["outputs"] = []
+            mutated["derivations"] = []
+            schema_reject(mutated)
+
+        def failed_with_output() -> None:
+            mutated = copy.deepcopy(events_by_variant["C"])
+            mutated["entities"]["outputs"] = copy.deepcopy(events_by_variant["A"]["entities"]["outputs"])
+            schema_reject(mutated)
+
+        def identity_copy_drift() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["entities"]["outputs"][0]["sha256"] = "0" * 64
+            if "identity copy does not preserve exact bytes and size" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("identity-copy content drift rejected")
+
+        def derivation_escape() -> None:
+            mutated = copy.deepcopy(events_by_variant["B"])
+            mutated["derivations"][0]["output_entity_ref"] = "outside:event-output"
+            if "derivation output leaves the authoritative output entities" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("derivation endpoint escape rejected")
+
+        def model_without_invocation() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["activity"]["event_type"] = "model_inference"
+            schema_reject(mutated)
+
+        def replay_withheld_command() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["method"]["command_capture"].update(
+                {"disclosure": "withheld_digest_only", "argv": None, "withholding_reason": "synthetic negative"}
+            )
+            if "replay-ready provenance withholds its command" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("withheld replay command rejected")
+
+        def unsigned_signature_claim() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["evidence_authentication"]["verification_status"] = "signature_verified"
+            if "unsigned provenance event claims signature verification" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("unsigned signature claim rejected")
+
+        def publication_without_authority() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["rights_and_visibility"]["publication_authorized"] = True
+            schema_reject(mutated)
+
+        def unattested_human_review() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["review_and_authority"]["human_review_status"] = "performed"
+            mutated["review_and_authority"]["review_bindings"] = [manifest["plan"]]
+            schema_reject(mutated)
+
+        def manual_change_without_receipt() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["manual_changes"]["status"] = "recorded"
+            schema_reject(mutated)
+
+        def self_supersession() -> None:
+            mutated = copy.deepcopy(events_by_variant["A"])
+            mutated["supersedes_event_ref"] = mutated["event_id"]
+            if "provenance event cannot supersede itself" in _provenance_v2_semantic_issues(mutated):
+                raise ValueError("self supersession rejected")
+
+        negative_rejected("event_record_digest_drift", event_record_digest_drift)
+        negative_rejected("input_fixity_drift", input_fixity_drift)
+        negative_rejected("command_digest_drift", command_digest_drift)
+        negative_rejected("completed_without_output", completed_without_output)
+        negative_rejected("failed_with_authoritative_output", failed_with_output)
+        negative_rejected("identity_copy_content_drift", identity_copy_drift)
+        negative_rejected("derivation_endpoint_escape", derivation_escape)
+        negative_rejected("model_event_without_invocation", model_without_invocation)
+        negative_rejected("replay_ready_with_withheld_command", replay_withheld_command)
+        negative_rejected("unsigned_claimed_signature_verification", unsigned_signature_claim)
+        negative_rejected("publication_without_authority", publication_without_authority)
+        negative_rejected("unattested_human_review", unattested_human_review)
+        negative_rejected("manual_change_without_receipt", manual_change_without_receipt)
+        negative_rejected("self_supersession", self_supersession)
+
+    if set(manifest.get("negative_controls", [])) != set(report["negative_controls"]):
+        issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), "negative-control coverage differs from manifest"))
     return issues, report
 
 
@@ -2882,6 +3338,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     source_text_layer_lab_issues, _ = validate_source_text_layer_lab(repo_root)
     issues.extend(source_text_layer_lab_issues)
+
+    provenance_v2_lab_issues, _ = validate_provenance_v2_lab(repo_root)
+    issues.extend(provenance_v2_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -10195,6 +10654,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="replay and report only the public synthetic source-text-layer A/B/C",
     )
+    parser.add_argument(
+        "--provenance-v2-lab-only",
+        action="store_true",
+        help="replay and report only the public synthetic provenance-event-v2 A/B/C",
+    )
     args = parser.parse_args(argv)
 
     if args.source_anchor_v2_lab_only:
@@ -10217,6 +10681,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
         print("[boundary] public synthetic layer mechanics only; no human review, accepted text, translation, linguistic, semantic, graph, canon, or publication authority")
+        return 0
+
+    if args.provenance_v2_lab_only:
+        issues, report = validate_provenance_v2_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Provenance-event-v2 laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] public synthetic provenance mechanics only; unsigned receipts and green closure do not establish execution truth, content quality, rights, human review, semantics, canon, or publication authority")
         return 0
 
     issues = validate_foundation(

@@ -1950,6 +1950,146 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             legacy_gold["properties"]["schema_version"]["const"],
         )
 
+    def test_provenance_v2_synthetic_abc_preserves_success_transform_and_failure(
+        self,
+    ) -> None:
+        issues, report = foundation.validate_provenance_v2_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual(
+            [
+                ("A", "completed", 0, "identity_copy_of"),
+                ("B", "completed", 0, "revision_of"),
+                ("C", "failed", 7, None),
+            ],
+            [
+                (
+                    row["variant_id"],
+                    row["status"],
+                    row["exit_code"],
+                    row["relation"],
+                )
+                for row in report["variants"]
+            ],
+        )
+        self.assertEqual(
+            report["variants"][0]["input_sha256"],
+            report["variants"][0]["output_sha256"],
+        )
+        self.assertNotEqual(
+            report["variants"][1]["input_sha256"],
+            report["variants"][1]["output_sha256"],
+        )
+        self.assertIsNone(report["variants"][2]["output_sha256"])
+        self.assertIsNotNone(report["variants"][2]["byproduct_sha256"])
+        self.assertTrue(
+            all(
+                row["signature_status"] == "unsigned"
+                and row["human_review_status"] == "not_performed"
+                for row in report["variants"]
+            )
+        )
+        self.assertEqual(
+            {
+                "command_digest_drift",
+                "completed_without_output",
+                "derivation_endpoint_escape",
+                "event_record_digest_drift",
+                "failed_with_authoritative_output",
+                "identity_copy_content_drift",
+                "input_fixity_drift",
+                "manual_change_without_receipt",
+                "model_event_without_invocation",
+                "publication_without_authority",
+                "replay_ready_with_withheld_command",
+                "self_supersession",
+                "unattested_human_review",
+                "unsigned_claimed_signature_verification",
+            },
+            set(report["negative_controls"]),
+        )
+        self.assertEqual(
+            {"rejected"},
+            set(report["negative_controls"].values()),
+        )
+
+    def test_provenance_v2_separates_replay_fixity_authentication_and_authority(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/provenance-event-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        event = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "provenance-event-v2-abc/variant-a.event.v2.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        completed_without_output = copy.deepcopy(event)
+        completed_without_output["entities"]["outputs"] = []
+        completed_without_output["derivations"] = []
+        self.assertTrue(list(validator.iter_errors(completed_without_output)))
+
+        model_without_invocation = copy.deepcopy(event)
+        model_without_invocation["activity"]["event_type"] = "model_inference"
+        self.assertTrue(list(validator.iter_errors(model_without_invocation)))
+
+        publication_without_authority = copy.deepcopy(event)
+        publication_without_authority["rights_and_visibility"][
+            "publication_authorized"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(publication_without_authority)))
+
+        fabricated_human_review = copy.deepcopy(event)
+        fabricated_human_review["review_and_authority"].update(
+            {
+                "human_review_status": "performed",
+                "review_bindings": [
+                    {
+                        "ref": (
+                            "ToS/research-packets/foundation-laboratory-2026-07/"
+                            "provenance-event-v2-abc/plan.json"
+                        ),
+                        "sha256": "0" * 64,
+                    }
+                ],
+            }
+        )
+        self.assertTrue(list(validator.iter_errors(fabricated_human_review)))
+
+        command_drift = copy.deepcopy(event)
+        command_drift["method"]["command_capture"]["argv_sha256"] = "0" * 64
+        self.assertIn(
+            "inline command argv digest drifted",
+            foundation._provenance_v2_semantic_issues(command_drift),
+        )
+
+        unsigned_claim = copy.deepcopy(event)
+        unsigned_claim["evidence_authentication"][
+            "verification_status"
+        ] = "signature_verified"
+        self.assertIn(
+            "unsigned provenance event claims signature verification",
+            foundation._provenance_v2_semantic_issues(unsigned_claim),
+        )
+
+        legacy_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/provenance-event.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            "tos_provenance_event_v1",
+            legacy_schema["properties"]["schema_version"]["const"],
+        )
+
     def test_source_witness_claim_catalog_is_exact_source_returnable_projection(
         self,
     ) -> None:

@@ -1539,6 +1539,27 @@ from the calibration-only route in section 2b.
     metadata as identity authority, or convert the proposed pages 228-329 map
     into accepted membership or text.
 
+### 7. Execution-receipt adoption
+
+1. Use `tos_provenance_event_v2` for new materialized transformations and
+   model/agent invocations whose outputs may influence later work.
+2. Preserve exact input, output, and diagnostic-byproduct identities. A failed
+   run must retain its terminal state and must not expose partial material as an
+   authoritative output.
+3. Keep exact replay specification, fixity, authentication, human/source or
+   language review, rights, publication, semantic, and canon authority as
+   independent evidence planes.
+4. Treat the current synthetic A/B/C receipts as unsigned declared evidence.
+   Their schema and byte closure do not prove that the reported commands ran or
+   that their outputs are correct.
+5. Do not bulk-migrate provenance v1. Create a v2 successor only for new work or
+   when a concrete discrepancy, security, replay, or source-return question
+   needs stronger closure.
+6. For model work, retain exact provider/model/revision/weights/quantization,
+   prompt and output digests, decoding, runtime/backend/hardware, and controlled-
+   disclosure gaps. Withholding information must lower replay claims rather
+   than disappear from the record.
+
 ## Definition-of-done reconciliation
 
 | Goal condition | Current state |

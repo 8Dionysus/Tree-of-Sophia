@@ -103,6 +103,19 @@ digest-bound rather than compressed into a boolean. A normalization successor
 can support normalized search without
 silently becoming the diplomatic reading of the witness.
 
+The execution layer is append-only too. Each materialized transformation names
+distinct immutable input, output, and byproduct entities, with explicit
+derivation edges and an exact terminal state. It captures argv, configuration,
+software/runtime or model identity, responsibility, manual interventions,
+measurements, and replay limits without compressing them into a generic method
+string. Failed or stopped work may retain diagnostics as byproducts but cannot
+expose them as authoritative output. External manifest fixity closes the exact
+receipt bytes while avoiding a self-referential self-hash. That closure proves
+neither that the reported execution happened nor that its output is true,
+reviewed, rights-cleared, publishable, semantic, or canonical. Provenance v2 is
+additive; legacy v1 events are migrated only for a concrete return-to-source or
+reproducibility question.
+
 Institutional catalogue metadata follows the same attribution law. A control
 number keeps its native scheme; a holding statement keeps both the reporting
 catalogue and the reported holding institution. Thus an RNL field may verify

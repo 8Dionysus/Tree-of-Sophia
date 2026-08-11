@@ -1,0 +1,116 @@
+{
+  "schema_version": "tos_provenance_event_v2_lab_v1",
+  "lab_id": "tos.lab.provenance-event-v2.synthetic-abc",
+  "contract": {
+    "ref": "ToS/contracts/provenance-event-v2.schema.json",
+    "sha256": "6433d123373082713cb54c550fc18cfebb4e8ddf8953083c07b02609457f3e73"
+  },
+  "plan": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/plan.json",
+    "sha256": "29ea70620ae43bf0734a007280332fe9cdeee9db7dc1391f4208f4c37966864b"
+  },
+  "builder": {
+    "ref": "scripts/build_provenance_event_v2_lab.py",
+    "sha256": "1effde40706c1ee4790e8425145b02424627ecd08b71dd8b014f5b0705ca9f4d"
+  },
+  "environment_profile": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/environment-profile.json",
+    "sha256": "a86aa17c764a7a8f1d4218cad8296fe19b16f57e7a9d3e710f78cbe0c5f3c77a"
+  },
+  "input_fixture": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+    "sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e"
+  },
+  "authority_posture": "public_synthetic_mechanics_only",
+  "authority_limits": {
+    "private_source_used": false,
+    "model_invoked": false,
+    "human_evidence_created": false,
+    "execution_truth_established": false,
+    "content_truth_established": false,
+    "rights_clearance_established": false,
+    "semantic_claim_created": false,
+    "canon_effect": false
+  },
+  "variants": [
+    {
+      "variant_id": "A",
+      "operation": "identity-copy",
+      "expected_status": "completed",
+      "expected_relation": "identity_copy_of",
+      "expected_exit_code": 0,
+      "event_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-a.event.v2.json",
+      "event_sha256": "a9cfcc7fb557fd3aacff3fd9c33363ec2c4271743d1f1522e063b7de82aee072",
+      "input_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+      "input_sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+      "output_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-a.copy.txt",
+      "output_sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+      "byproduct_ref": null,
+      "byproduct_sha256": null,
+      "captured_command": [
+        "python",
+        "scripts/build_provenance_event_v2_lab.py",
+        "--variant",
+        "A"
+      ]
+    },
+    {
+      "variant_id": "B",
+      "operation": "unicode-nfc",
+      "expected_status": "completed",
+      "expected_relation": "revision_of",
+      "expected_exit_code": 0,
+      "event_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-b.event.v2.json",
+      "event_sha256": "2895b3ec455a3fc0e78787d019bd9365aefd7d1093aa0621190c9eab11a6d657",
+      "input_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+      "input_sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+      "output_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-b.nfc.txt",
+      "output_sha256": "7b49b9e063bd91a4f9252b413261f5557b9c570aa61516989499f64a62dbcdd6",
+      "byproduct_ref": null,
+      "byproduct_sha256": null,
+      "captured_command": [
+        "python",
+        "scripts/build_provenance_event_v2_lab.py",
+        "--variant",
+        "B"
+      ]
+    },
+    {
+      "variant_id": "C",
+      "operation": "ascii-strict-negative-control",
+      "expected_status": "failed",
+      "expected_relation": null,
+      "expected_exit_code": 7,
+      "event_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-c.event.v2.json",
+      "event_sha256": "88c131a159d63f9a21717088004cc282e346fccbaa99192a9b74e60b729d5b7b",
+      "input_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/input-fixture.txt",
+      "input_sha256": "dcc492420fc77018ce8b7eb59458568e7901e9751194f4dbe7a1044ca16ccd2e",
+      "output_ref": null,
+      "output_sha256": null,
+      "byproduct_ref": "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/variant-c.failure.log",
+      "byproduct_sha256": "53931d1ba7ab59b32627bf0f16471c73e7b934b6b964aadc42deec525e341986",
+      "captured_command": [
+        "python",
+        "scripts/build_provenance_event_v2_lab.py",
+        "--variant",
+        "C"
+      ]
+    }
+  ],
+  "negative_controls": [
+    "event_record_digest_drift",
+    "input_fixity_drift",
+    "command_digest_drift",
+    "completed_without_output",
+    "failed_with_authoritative_output",
+    "identity_copy_content_drift",
+    "derivation_endpoint_escape",
+    "model_event_without_invocation",
+    "replay_ready_with_withheld_command",
+    "unsigned_claimed_signature_verification",
+    "publication_without_authority",
+    "unattested_human_review",
+    "manual_change_without_receipt",
+    "self_supersession"
+  ]
+}

@@ -45,6 +45,8 @@ current bounded Zarathustra route:
   `scripts/query_source_witness_bibliographic_graph.py`
 - current public-synthetic source-text lineage laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
+- current public-synthetic execution-provenance laboratory:
+  `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
@@ -67,6 +69,11 @@ Source text is also layered rather than overwritten: raw OCR, diplomatic
 candidate, reviewed reading, and normalization keep distinct immutable
 identities, exact derivation provenance, and independent review, competence,
 use, and publication gates.
+Materialized transformations likewise use additive provenance v2 receipts:
+exact input/output/byproduct bytes, derivation, terminal state, command,
+runtime/model, responsibility, manual-change, measurement, rights, review, and
+replay fields remain inspectable without turning a green unsigned receipt into
+execution truth or content authority. Legacy provenance v1 is preserved.
 Its read-only query route proves source parity before returning a claim bundle
 and persists no result or judgment. The current source spine gives all 55
 declared Work→Expression→Edition→Item steps their own claim IDs, evidence,

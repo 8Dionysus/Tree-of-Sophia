@@ -189,6 +189,33 @@ NFD-to-NFC succession. It creates no accepted transcription, German
 competence, translation, sign, semantic claim, graph truth, canon effect, or
 bulk migration obligation.
 
+## Execution provenance
+
+Every materialized acquisition or transformation is an Activity over
+immutable Entities with separately named responsible Agents. Inputs, outputs,
+and diagnostic byproducts remain distinct; co-occurrence does not imply
+derivation, so every claimed derivation has its own directed edge. A successful
+event requires at least one authoritative output. A failed or stopped event
+retains its exit state and may retain diagnostics as byproducts, but it must not
+promote partial material to output.
+
+The additive `tos_provenance_event_v2` contract captures exact argv and
+configuration, software and runtime identity, optional model invocation,
+responsibility, manual-change receipts, measurements, timestamps, terminal
+state, rights/visibility, review, authentication, and a bounded replay
+classification. Unknown or unavailable evidence remains explicit rather than
+being represented as a false zero or a generic success. Exact receipt bytes are
+bound by an external manifest to avoid a self-referential self-hash.
+
+Five planes remain independent: byte and lineage closure; replay
+specification; evidence authentication; human/source/language review; and
+rights, publication, semantic, and canon authority. A schema-valid, hash-closed
+unsigned receipt proves mechanics only. It does not authenticate the producer,
+prove that the reported run occurred, establish output quality, or authorize
+downstream use. Existing `tos_provenance_event_v1` records retain their
+historical meaning. A v2 successor is created for new materialized work or a
+question-triggered migration, never for a bulk version-count increase.
+
 ## Sign ladder
 
 ToS treats a sign as a layered family of addressable records rather than one

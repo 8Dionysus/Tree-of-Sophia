@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added `tos_provenance_event_v2` as an additive immutable execution-receipt
+  foundation while preserving all legacy v1 records. Ordered W3C PROV, PREMIS,
+  in-toto/SLSA, RO-Crate/Croissant, established provenance research, and fresh
+  2025–2026 reproducibility, agent-trace, digital-humanities, and inspectable-AI
+  work now separates exact inputs, authoritative outputs, diagnostic
+  byproducts, derivation, command/configuration/runtime/model capture,
+  responsibility, manual changes, measurements, authentication, review,
+  rights, and bounded replay posture. A public-synthetic A/B/C executed an
+  exact copy, NFC transformation, and honest exit-7 failure; fourteen negative
+  controls failed closed. The receipts remain unsigned and prove neither
+  execution truth, content quality, human competence, publication, semantics,
+  graph truth, nor canon.
 - Added `tos_source_text_layer_v1` as the immutable textual-representation
   floor above exact source anchors. Ordered TEI, OCR-D, Web Annotation,
   PROV-O, IIIF, Unicode, established digital-edition, and fresh 2025–2026

@@ -66,6 +66,16 @@ translation or semantics, or suitable for publication; rights records and
 publication-authority refs remain explicit and empty. No current corpus record
 is migrated.
 
+Every materialized transformation around those layers also receives an
+append-only execution receipt. The additive provenance-event v2 contract binds
+exact inputs, outputs, diagnostic byproducts, explicit derivation edges,
+command/configuration/runtime or model details, responsibility, manual changes,
+measurements, terminal state, rights posture, review, and replay limits. A
+successful run must name an authoritative output; a failed run must not promote
+one. Fixity and replay specification remain distinct from signature,
+source-visible review, content truth, publication authority, and canon. The
+legacy v1 records keep their historical meaning and are not bulk-migrated.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review
