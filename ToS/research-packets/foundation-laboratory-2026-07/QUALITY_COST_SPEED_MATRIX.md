@@ -2,7 +2,8 @@
 
 Status: mechanical measurements consolidated and raw morphology/OCR aggregates
 independently recomputed; direct energy observation is permission-blocked;
-human quality and correction cost remain open
+monetary accounting is fail-closed; human quality and correction cost remain
+open
 Snapshot: 2026-08-11
 
 ## Reading rule
@@ -31,6 +32,23 @@ Package energy cannot be relabeled whole-system energy, and no model is rerun
 merely to exercise this measurement route. Exact research and admission
 evidence is in
 [`ENERGY_MEASUREMENT_ADMISSION_2026-08-11.md`](ENERGY_MEASUREMENT_ADMISSION_2026-08-11.md).
+
+## Monetary-cost observability gate
+
+Reviewed `abyss-stack` checkpoint `c1758692` adds a source-free monetary
+accounting contract derived from FOCUS 1.4, SCI boundary law, official CFE
+tariff routing, established Green AI reporting, ML.ENERGY, and the fresh
+A-LEMS goal-level preprint. It separates direct billed, electricity, allocated
+hardware, active human time, and human valuation; it also keeps retries and
+failures inside one goal boundary.
+
+The cash-only example proves mechanics, not a historical run. An evidenced
+zero external charge does not fill electricity, hardware, human valuation,
+marginal, or fully loaded cost. No current run has both attributed whole-system
+energy and an exact tariff, and no hardware allocation policy is adopted.
+Therefore total monetary cost for existing runs remains `Not measured`, not
+zero. Exact research and decision evidence is in
+[`MONETARY_COST_ACCOUNTING_2026-08-11.md`](MONETARY_COST_ACCOUNTING_2026-08-11.md).
 
 ## Consolidated matrix
 
