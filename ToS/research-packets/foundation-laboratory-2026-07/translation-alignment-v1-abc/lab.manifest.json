@@ -1,0 +1,83 @@
+{
+  "analysis_artifacts": [
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/source-segmentation.json",
+      "sha256": "3500417ea57222ede1575fe7039965293466cf3cd7f2f62b0e49110641c7a453"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/target-segmentation.json",
+      "sha256": "c9d46ea0722a1ae1c36a3990f70968acbd96b43b01afa787db4a3ce3270fafe2"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/source-tokenization.json",
+      "sha256": "fa81efa5b6d61a1ea27c395326214f01730990116244900af0de2cac4c46c157"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/target-tokenization.json",
+      "sha256": "f79f066ccca7e633465e011f8f2ada0cad7c83409df8bcb82b389634ba018720"
+    }
+  ],
+  "authority_limits": {
+    "accepted_alignment_established": false,
+    "aligner_invoked": false,
+    "canon_effect": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "lexical_equivalence_established": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "semantic_truth_established": false,
+    "translation_performed": false
+  },
+  "authority_posture": "public_synthetic_contract_mechanics_only",
+  "builder": {
+    "ref": "scripts/build_translation_alignment_v1_lab.py",
+    "sha256": "4faf54fcae1dd7d891caccb88404d3f852f54a7c2c3ff26c937861cff5a3f166"
+  },
+  "contract": {
+    "ref": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+    "sha256": "69be2c70d9eac1cd1ccef165d99b5c7709cd2e52f8ec8022548ce33eb7cca130"
+  },
+  "inputs": [
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+      "sha256": "63a1081d585f8d6f07d51e8c0c09fd54dc36eee7270971b1ad5f5f0e324e5e1a"
+    },
+    {
+      "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt",
+      "sha256": "2311244ff57ef7e3e0eee3d5aa5601b8f6d6957d3cd1dc68e2b70399278ed6c0"
+    }
+  ],
+  "plan": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json",
+    "sha256": "548e295e334c5051bef01d5e65ac6506ba5b0b4005ae1b94d0827cb95e5b7591"
+  },
+  "research": {
+    "ref": "ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md",
+    "sha256": "987077e03e50a98982b29c7e83208036569959680a8b30056c6d6c662760580c"
+  },
+  "schema_version": "tos_translation_alignment_v1_lab_manifest_v1",
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-a-one-to-one-proposal.json",
+      "packet_sha256": "846529d1d3f75404122bc65eee65bd3d84feb57719b19930db600a32e54d2f50",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-b-competing-mappings.json",
+      "packet_sha256": "c5385616d73858d7ed23a542e9ed7f3c35adccfff3c543af0c5d1df13aa0e424",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "packet_ref": "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-c-invalid-acceptance.json",
+      "packet_sha256": "5cc8df0a99bcf3b7a3d394a98f0bbe3777db89d13a9457b9fccfe6d3b3abc185",
+      "variant_id": "C"
+    }
+  ]
+}

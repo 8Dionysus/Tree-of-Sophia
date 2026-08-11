@@ -47,6 +47,8 @@ current bounded Zarathustra route:
   `ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
 - current public-synthetic execution-provenance laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
+- current public-synthetic translation-alignment identity laboratory:
+  `ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later
@@ -80,6 +82,14 @@ graph projection do not collapse; higher IDs remain independent of mutable
 labels and translations; competing readings remain claims; and graph edges
 require accepted source-returnable claims and relations. The tracked A/B/C is
 public synthetic mechanics only and creates neither review nor semantic truth.
+Translation alignments use their own additive v1 packet rather than hiding
+inside a text or generic annotation: exact source/target expression, edition,
+item, file, frozen layer, segmentation/tokenization, and ordered anchors
+precede any mapping claim. Competing cardinalities and unaligned members remain
+first class, acceptance requires a separate competent real-human review, and
+TEI/XLIFF/TMX/Web Annotation/graph forms remain derived projections. Its
+tracked A/B/C uses invented private-use languages and creates no translation,
+accepted alignment, lexical equivalence, or human evidence.
 Its read-only query route proves source parity before returning a claim bundle
 and persists no result or judgment. The current source spine gives all 55
 declared Work→Expression→Edition→Item steps their own claim IDs, evidence,

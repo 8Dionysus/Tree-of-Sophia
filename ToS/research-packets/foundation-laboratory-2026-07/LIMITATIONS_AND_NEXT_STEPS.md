@@ -219,6 +219,27 @@ remote source body, accepted German, synthetic reconstruction, translation
 relation, semantic object, transfer unit, human review task, rights clearance,
 or publication route.
 
+## Translation-alignment boundary after the v1 contract
+
+The new contract and public-synthetic laboratory remove an engineering
+ambiguity; they do not remove the evidence work needed for any real alignment.
+There is still no accepted German/Russian source pair, competent human
+alignment decision, real alignment gold, measured A/B/C method quality,
+translation-technique adjudication, or rights-cleared public projection. The
+invented `x-tos-src`/`x-tos-tgt` fixtures cannot estimate historical,
+philosophical, literary, or cross-lingual difficulty.
+
+The next real alignment episode must be triggered by one concrete downstream
+question after both exact text layers and their rights posture are admitted.
+It should freeze segmentation/tokenization, include a classical Hunalign or
+length-based baseline, add only challengers justified by that question,
+preserve omissions/additions/reorder and reciprocal alternatives, and open a
+small source-and-target-visible competence review only when acceptance is
+actually required. It must measure quality, speed, machine/storage cost, and
+human correction time separately. Until then, no current structural
+crosswalk, translation candidate, XLIFF/TMX/TEI export, or graph edge may be
+relabeled as a passage or translation alignment.
+
 ## Unfinished human decisions
 
 | Human evidence | Prepared interface | Current state | Why an agent cannot close it |

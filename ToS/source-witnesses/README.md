@@ -931,6 +931,30 @@ the mechanic. It creates no source witness, accepted reading, language
 competence, sign, concept, relation, graph truth, publication authority, human
 task, or canon effect, and it does not alter the existing semantic ladders.
 
+## Translation-alignment v1 laboratory boundary
+
+The additive
+`ToS/contracts/translation-alignment-packet-v1.schema.json` begins only after
+both exact source and target witness plus frozen text-layer identities exist.
+It binds segmentation/tokenization and ordered anchors on both sides before a
+separate opaque alignment and claim ID can describe cardinality, order,
+omission/addition, technique, certainty, maker, competition, supersession, or
+review. A model, aligner, imported memory, or exchange file may propose but
+cannot accept. Accepted states require a distinct source-and-target-visible
+real-human decision with declared language and translation competence.
+
+The public-synthetic A/B/C under
+`ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/`
+uses only invented `x-tos-src` and `x-tos-tgt` bytes. A records one one-to-one
+proposal; B preserves reciprocal one-to-one and one-to-many proposals; C
+attempts an invalid unreviewed acceptance. Seventeen controls exercise exact
+side/layer/anchor closure, identity, cardinality, unaligned members,
+competition, acceptance, projection visibility, and supersession. No
+translation, model/aligner run, real review, accepted mapping, lexical
+equivalence, TEI/Web Annotation/XLIFF/TMX/graph authority, rights clearance,
+publication, human task, or canon effect exists. Existing structural
+crosswalks and translation packets are unchanged.
+
 ## Rebuild local resource inventories
 
 The payloads may be absent from a public clone, so the inventory builder is a

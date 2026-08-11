@@ -129,6 +129,19 @@ relation and accepted supporting claim; it is never a shortcut around them.
 The public synthetic semantic-annotation v2 laboratory proves these closure
 and rejection mechanics without creating any accepted semantic object.
 
+Translation correspondence is another stand-off assertion layer, not a field
+inside either text. The additive translation-alignment v1 packet binds two
+exact expression/edition/item/file and frozen text-layer states, their
+segmentation and tokenization identities, and ordered source/target anchors.
+Stable alignment and claim IDs survive changes to explanations and mapping
+interpretation. Cardinality, direction, order, technique, confidence, maker,
+competition, supersession, review, and rights posture remain independent.
+Software/model/imported mappings cannot accept themselves; a real-human
+source-and-target-visible competence review is a separate event. Any TEI,
+Web Annotation, XLIFF, TMX, or graph form is a reproducible projection of an
+accepted owner claim and inherits the most restrictive visibility boundary.
+The public-synthetic A/B/C proves only these closure and rejection mechanics.
+
 Institutional catalogue metadata follows the same attribution law. A control
 number keeps its native scheme; a holding statement keeps both the reporting
 catalogue and the reported holding institution. Thus an RNL field may verify

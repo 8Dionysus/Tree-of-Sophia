@@ -1215,6 +1215,36 @@ remain empty and publication authorization remains false; it creates no corpus m
 reading, accepted transcription, human or German competence, translation,
 sign, semantics, graph truth, canon effect, publication route, or human debt.
 
+## Translation-alignment identity objective — 2026-08-11
+
+The remaining alignment-foundation gap is now closed additively rather than by
+mutating `translation-packet` v2. Ordered research starts with current
+TEI/W3C/OASIS/TMX/OntoLex/PROV documentation, proceeds through classical and
+established sentence/word/literary alignment work, and only then assesses
+fresh 2025–2026 historical-document, encoder, literary-evaluation, interlinear,
+and preprint evidence. The result keeps Hunalign as a required future classical
+baseline despite newer neural challengers.
+
+`translation-alignment-packet-v1.schema.json` binds exact source and target
+Work/Expression/Edition/Item/File, frozen text layer, segmentation/tokenization,
+and ordered anchors. Alignment and claim IDs are opaque and separate from
+mutable text or mapping interpretation. Cardinality, direction, order,
+omission/addition, technique, certainty, maker, provenance, competition,
+supersession, human review, projection, and most-restrictive visibility remain
+independent. Machine/model/imported claims cannot accept themselves; accepted
+states require a matching source-and-target-visible real-human decision with
+declared competence and a frozen unassisted baseline.
+
+The deterministic public-synthetic A/B/C uses two invented private-use
+language tags. A validates one one-to-one proposal. B preserves reciprocal
+one-to-one and one-to-many proposals without selecting a winner. C attempts an
+unreviewed synthetic/model-shaped acceptance and fails. Seventeen in-memory
+controls reject broken identity, claim uniqueness, layer/anchor fixity,
+cardinality, omission/addition, competition, acceptance, projection,
+visibility, and supersession. No real translation, model/aligner run, human
+review, accepted alignment, lexical equivalence, corpus migration, graph, or
+canon effect was created.
+
 ## Thirty-one required artifacts
 
 The 2026-08-01 Antonovsky Agent continuation is independent of the earlier

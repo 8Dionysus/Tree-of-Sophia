@@ -60,6 +60,28 @@ mechanics. No model was invoked, no human review was fabricated, and no stable
 sign, concept, semantic truth, graph truth, or private-source publication
 authority was created.
 
+### Translation alignment identity closure — 2026-08-11
+
+`TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md` follows the same
+ordered method. It starts with current TEI linking, W3C Web Annotation,
+XLIFF 2.1, TMX 1.4b, OntoLex/VarTrans, and PROV-O; then classical sentence and
+word alignment, established multilingual aligners, literary/document-level
+corpora, and translation-technique work; only then does it assess 2025–2026
+historical-document, literary-evaluation, encoder-aligner, interlinear, and
+preprint evidence. The fresh historical-document result strengthens rather
+than replaces the classical baseline: Hunalign remains mandatory in later
+method comparisons.
+
+The additive v1 contract binds both exact witness and frozen text-layer sides,
+their segmentation/tokenization artifacts, and ordered anchors before issuing
+separate opaque alignment and claim IDs. It preserves explicit cardinality,
+order, omission/addition, unresolved technique, provenance, reciprocal
+competition, supersession, review, and most-restrictive visibility. The
+public-synthetic A/B/C uses only `x-tos-src` and `x-tos-tgt`: A and B validate
+proposal mechanics; C and seventeen controls reject false acceptance and
+broken closure. No translation, aligner/model run, human review, accepted
+mapping, lexical equivalence, graph truth, or corpus migration occurred.
+
 ### Golden-kernel source correction
 
 The 2026-07-30 authorial-witness refresh strengthens this conclusion at the

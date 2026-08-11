@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added `tos_translation_alignment_packet_v1` without mutating the existing
+  translation-packet v2 lifecycle. Ordered TEI, Web Annotation, XLIFF, TMX,
+  OntoLex/VarTrans, PROV-O, classical/established alignment research, and fresh
+  2025–2026 historical and literary evidence now bind exact source/target
+  witness and frozen text-layer states, segmentation/tokenization, ordered
+  anchors, opaque alignment/claim identity, cardinality/order/unaligned states,
+  competition, review, projection, and most-restrictive visibility. A
+  public-synthetic invented-language A/B/C validates one-to-one and reciprocal
+  one-to-one/one-to-many proposals, rejects false acceptance, and exercises
+  seventeen controls. It creates no translation, aligner/model act, human
+  review, accepted alignment, lexical equivalence, export authority, graph,
+  canon, corpus migration, or publication authority.
 - Added `tos_semantic_annotation_packet_v2` as a source-first, stand-off
   semantic identity and assertion foundation. Ordered Web Annotation, SKOS,
   OntoLex-Lemon/VarTrans, TEI, CIDOC/CRMinf, Wikibase, established ontology and

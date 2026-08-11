@@ -87,6 +87,18 @@ promotion without real-human evidence. This proves contract mechanics only;
 it establishes no sign, concept, interpretation, graph truth, or human review,
 and it migrates no current corpus packet.
 
+Translation alignment now has the same source-first boundary. The additive
+translation-alignment v1 contract binds both sides to exact
+Work/Expression/Edition/Item/File identities, frozen text layers,
+segmentation/tokenization artifacts, and ordered anchors before recording a
+mapping claim. One-to-one, one-to-many, many-to-one, many-to-many, omission,
+addition, reorder, and unresolved states remain explicit; competing maps are
+not collapsed. Machine and model methods may propose, while acceptance
+requires a separate source-and-target-visible real-human review with declared
+language and translation competence. TEI, Web Annotation, XLIFF, TMX, and
+graph forms remain derived projections. The public-synthetic A/B/C establishes
+only fail-closed mechanics and migrates no existing translation packet.
+
 The local source payload lives in a narrowly gitignored item directory under
 `ToS/source-witnesses/`. The public repository retains catalogs, manifests,
 checksums, forensic reports, rights posture, provenance, contracts, and review

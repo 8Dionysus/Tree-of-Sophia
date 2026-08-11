@@ -1,0 +1,730 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-alignment-packet-v1.schema.json",
+  "title": "Tree of Sophia translation alignment identity and provenance packet v1",
+  "description": "Additive stand-off contract for exact source/target return, stable alignment and claim identity, competing mappings, review closure, rights inheritance, and non-authoritative exports.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "packet_version",
+    "supersedes_packet_ref",
+    "content_posture",
+    "granularity",
+    "source_side",
+    "target_side",
+    "alignments",
+    "reviews",
+    "projections",
+    "rights_and_visibility",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-alignment-packet-v1.schema.json"
+    },
+    "schema_version": {"const": "tos_translation_alignment_packet_v1"},
+    "packet_id": {"$ref": "#/$defs/packetId"},
+    "packet_version": {"type": "integer", "minimum": 1},
+    "supersedes_packet_ref": {
+      "oneOf": [{"$ref": "#/$defs/packetId"}, {"type": "null"}]
+    },
+    "content_posture": {
+      "enum": ["source_bound", "public_synthetic_contract_exercise"]
+    },
+    "granularity": {
+      "enum": [
+        "document",
+        "section",
+        "paragraph",
+        "sentence",
+        "phrase",
+        "token",
+        "morpheme",
+        "mixed"
+      ]
+    },
+    "source_side": {"$ref": "#/$defs/sourceSide"},
+    "target_side": {"$ref": "#/$defs/targetSide"},
+    "alignments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/alignment"}
+    },
+    "reviews": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/review"}
+    },
+    "projections": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/projection"}
+    },
+    "rights_and_visibility": {"$ref": "#/$defs/rightsAndVisibility"},
+    "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"packet_version": {"minimum": 2}},
+        "required": ["packet_version"]
+      },
+      "then": {
+        "properties": {"supersedes_packet_ref": {"$ref": "#/$defs/packetId"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "granularity": {"enum": ["phrase", "token", "morpheme", "mixed"]}
+        },
+        "required": ["granularity"]
+      },
+      "then": {
+        "properties": {
+          "source_side": {
+            "properties": {"tokenization": {"$ref": "#/$defs/frozenAnalysisBinding"}}
+          },
+          "target_side": {
+            "properties": {"tokenization": {"$ref": "#/$defs/frozenAnalysisBinding"}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "content_posture": {"const": "public_synthetic_contract_exercise"}
+        },
+        "required": ["content_posture"]
+      },
+      "then": {
+        "properties": {
+          "source_side": {
+            "properties": {
+              "visibility": {"const": "public"},
+              "publication_authorized": {"const": true}
+            }
+          },
+          "target_side": {
+            "properties": {
+              "visibility": {"const": "public"},
+              "publication_authorized": {"const": true}
+            }
+          },
+          "alignments": {
+            "items": {
+              "properties": {
+                "status": {"enum": ["proposed", "ambiguous", "deferred", "rejected"]}
+              }
+            }
+          },
+          "reviews": {"maxItems": 0},
+          "projections": {"maxItems": 0},
+          "rights_and_visibility": {
+            "properties": {
+              "source_visibility": {"const": "public"},
+              "target_visibility": {"const": "public"},
+              "packet_visibility": {"const": "public"},
+              "effective_visibility": {"const": "public"},
+              "private_source_used": {"const": false},
+              "publication_authorized": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "boundedRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!~[\\\\/])(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "languageTag": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|x(?:-[A-Za-z0-9]{1,8})+)$"
+    },
+    "visibility": {
+      "enum": [
+        "public",
+        "public_metadata_only",
+        "controlled",
+        "local_only",
+        "restricted",
+        "unknown"
+      ]
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "expressionId": {
+      "type": "string",
+      "pattern": "^tos\\.expression\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "editionId": {
+      "type": "string",
+      "pattern": "^tos\\.edition\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "itemId": {
+      "type": "string",
+      "pattern": "^tos\\.item\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "fileId": {
+      "type": "string",
+      "pattern": "^tos\\.file\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "anchorId": {
+      "type": "string",
+      "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "packetId": {
+      "type": "string",
+      "pattern": "^tos\\.translation-alignment-packet\\.sid-[a-f0-9]{32}$"
+    },
+    "alignmentId": {
+      "type": "string",
+      "pattern": "^tos\\.translation-alignment\\.sid-[a-f0-9]{32}$"
+    },
+    "claimId": {
+      "type": "string",
+      "pattern": "^tos\\.translation-alignment-claim\\.sid-[a-f0-9]{32}$"
+    },
+    "reviewId": {
+      "type": "string",
+      "pattern": "^tos\\.translation-alignment-review\\.sid-[a-f0-9]{32}$"
+    },
+    "projectionId": {
+      "type": "string",
+      "pattern": "^tos\\.translation-alignment-projection\\.sid-[a-f0-9]{32}$"
+    },
+    "frozenAnalysisBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_ref", "sha256", "state"],
+      "properties": {
+        "artifact_ref": {"$ref": "#/$defs/boundedRef"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "state": {"const": "frozen"}
+      }
+    },
+    "sourceAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_ref",
+        "ordinal",
+        "text_layer_ref",
+        "text_layer_sha256",
+        "selector",
+        "exact_sha256",
+        "source_return"
+      ],
+      "properties": {
+        "anchor_ref": {"$ref": "#/$defs/anchorId"},
+        "ordinal": {"type": "integer", "minimum": 1},
+        "text_layer_ref": {"$ref": "#/$defs/boundedRef"},
+        "text_layer_sha256": {"$ref": "#/$defs/sha256"},
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "start", "end", "position_unit", "interval"],
+          "properties": {
+            "type": {"const": "text_position"},
+            "start": {"type": "integer", "minimum": 0},
+            "end": {"type": "integer", "minimum": 1},
+            "position_unit": {"const": "unicode_code_point"},
+            "interval": {"const": "half_open"}
+          }
+        },
+        "exact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_return": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "locator_ref"],
+          "properties": {
+            "required": {"const": true},
+            "locator_ref": {"$ref": "#/$defs/boundedRef"}
+          }
+        }
+      }
+    },
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "side_role",
+        "work_ref",
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "text_layer_ref",
+        "text_layer_sha256",
+        "language",
+        "segmentation",
+        "tokenization",
+        "anchors",
+        "rights_refs",
+        "visibility",
+        "publication_authorized"
+      ],
+      "properties": {
+        "side_role": {"enum": ["source", "target"]},
+        "work_ref": {"$ref": "#/$defs/workId"},
+        "expression_ref": {"$ref": "#/$defs/expressionId"},
+        "edition_ref": {"$ref": "#/$defs/editionId"},
+        "item_ref": {"$ref": "#/$defs/itemId"},
+        "file_ref": {"$ref": "#/$defs/fileId"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "text_layer_ref": {"$ref": "#/$defs/boundedRef"},
+        "text_layer_sha256": {"$ref": "#/$defs/sha256"},
+        "language": {"$ref": "#/$defs/languageTag"},
+        "segmentation": {"$ref": "#/$defs/frozenAnalysisBinding"},
+        "tokenization": {
+          "oneOf": [{"$ref": "#/$defs/frozenAnalysisBinding"}, {"type": "null"}]
+        },
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/sourceAnchor"}
+        },
+        "rights_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        },
+        "visibility": {"$ref": "#/$defs/visibility"},
+        "publication_authorized": {"type": "boolean"}
+      }
+    },
+    "sourceSide": {
+      "allOf": [
+        {"$ref": "#/$defs/side"},
+        {"properties": {"side_role": {"const": "source"}}}
+      ]
+    },
+    "targetSide": {
+      "allOf": [
+        {"$ref": "#/$defs/side"},
+        {"properties": {"side_role": {"const": "target"}}}
+      ]
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maker_kind",
+        "agent_ref",
+        "made_at",
+        "method",
+        "provenance_event_ref",
+        "method_output_posture"
+      ],
+      "properties": {
+        "maker_kind": {
+          "enum": ["human", "software", "model", "mixed", "imported_source", "synthetic_fixture"]
+        },
+        "agent_ref": {"type": "string", "minLength": 1},
+        "made_at": {"type": "string", "format": "date-time"},
+        "method": {"type": "string", "minLength": 1},
+        "provenance_event_ref": {"type": "string", "minLength": 1},
+        "method_output_posture": {"const": "proposal_not_truth"},
+        "software_ref": {"type": "string", "minLength": 1},
+        "software_version": {"type": "string", "minLength": 1},
+        "configuration_sha256": {"$ref": "#/$defs/sha256"},
+        "model_ref": {"type": "string", "minLength": 1},
+        "model_revision": {"type": "string", "minLength": 1},
+        "prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "simulates_kind": {"enum": ["human", "software", "model", "mixed", "imported_source"]},
+        "simulation_notice": {
+          "const": "synthetic fixture only; no corresponding human, software, model, translation, or review act occurred"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"maker_kind": {"enum": ["software", "mixed"]}},
+            "required": ["maker_kind"]
+          },
+          "then": {
+            "required": ["software_ref", "software_version", "configuration_sha256"]
+          }
+        },
+        {
+          "if": {
+            "properties": {"maker_kind": {"enum": ["model", "mixed"]}},
+            "required": ["maker_kind"]
+          },
+          "then": {"required": ["model_ref", "model_revision", "prompt_sha256"]}
+        },
+        {
+          "if": {
+            "properties": {"maker_kind": {"const": "synthetic_fixture"}},
+            "required": ["maker_kind"]
+          },
+          "then": {"required": ["simulates_kind", "simulation_notice"]}
+        }
+      ]
+    },
+    "certainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "meaning"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0, "maximum": 1},
+        "meaning": {"const": "maker_declared_uncertainty_not_truth_probability"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "role",
+        "source_anchor_refs",
+        "target_anchor_refs",
+        "description"
+      ],
+      "properties": {
+        "evidence_ref": {"$ref": "#/$defs/boundedRef"},
+        "role": {"enum": ["method_input", "support", "counterevidence", "context", "qualification"]},
+        "source_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/anchorId"}
+        },
+        "target_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/anchorId"}
+        },
+        "description": {"type": "string", "minLength": 1}
+      },
+      "anyOf": [
+        {"properties": {"source_anchor_refs": {"minItems": 1}}},
+        {"properties": {"target_anchor_refs": {"minItems": 1}}}
+      ]
+    },
+    "alignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alignment_id",
+        "alignment_version",
+        "supersedes_alignment_ref",
+        "identity_policy",
+        "claim_id",
+        "claim_version",
+        "supersedes_claim_ref",
+        "direction",
+        "correspondence_shape",
+        "order_posture",
+        "ordered_source_anchor_refs",
+        "ordered_target_anchor_refs",
+        "translation_techniques",
+        "epistemic_status",
+        "certainty",
+        "status",
+        "status_reason",
+        "maker",
+        "evidence",
+        "competing_alignment_refs",
+        "review_refs"
+      ],
+      "properties": {
+        "alignment_id": {"$ref": "#/$defs/alignmentId"},
+        "alignment_version": {"type": "integer", "minimum": 1},
+        "supersedes_alignment_ref": {
+          "oneOf": [{"$ref": "#/$defs/alignmentId"}, {"type": "null"}]
+        },
+        "identity_policy": {
+          "const": "opaque-id-independent-of-text-label-translation-and-current-mapping"
+        },
+        "claim_id": {"$ref": "#/$defs/claimId"},
+        "claim_version": {"type": "integer", "minimum": 1},
+        "supersedes_claim_ref": {
+          "oneOf": [{"$ref": "#/$defs/claimId"}, {"type": "null"}]
+        },
+        "direction": {"const": "source_to_target"},
+        "correspondence_shape": {
+          "enum": [
+            "one_to_one",
+            "one_to_many",
+            "many_to_one",
+            "many_to_many",
+            "source_omission",
+            "target_addition",
+            "unresolved"
+          ]
+        },
+        "order_posture": {
+          "enum": ["monotonic", "reordered", "not_applicable", "unresolved"]
+        },
+        "ordered_source_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/anchorId"}
+        },
+        "ordered_target_anchor_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/anchorId"}
+        },
+        "translation_techniques": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "literal",
+              "partial",
+              "idiomatic",
+              "generalization",
+              "particularization",
+              "modulation",
+              "compensation",
+              "paraphrase",
+              "unresolved"
+            ]
+          }
+        },
+        "epistemic_status": {
+          "enum": ["observed_structure", "inferred", "reported", "interpreted", "uncertain", "disputed"]
+        },
+        "certainty": {"$ref": "#/$defs/certainty"},
+        "status": {
+          "enum": [
+            "proposed",
+            "ambiguous",
+            "accepted",
+            "accepted_with_limits",
+            "rejected",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "status_reason": {"type": "string", "minLength": 1},
+        "maker": {"$ref": "#/$defs/maker"},
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "competing_alignment_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/alignmentId"}
+        },
+        "review_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/reviewId"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"alignment_version": {"minimum": 2}},
+            "required": ["alignment_version"]
+          },
+          "then": {
+            "properties": {"supersedes_alignment_ref": {"$ref": "#/$defs/alignmentId"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"claim_version": {"minimum": 2}},
+            "required": ["claim_version"]
+          },
+          "then": {
+            "properties": {"supersedes_claim_ref": {"$ref": "#/$defs/claimId"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {"enum": ["accepted", "accepted_with_limits", "rejected", "superseded"]}
+            },
+            "required": ["status"]
+          },
+          "then": {"properties": {"review_refs": {"minItems": 1}}}
+        }
+      ]
+    },
+    "competence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "status", "evidence_refs"],
+      "properties": {
+        "scope": {
+          "enum": ["source_language_reading", "target_language_reading", "translation_analysis"]
+        },
+        "status": {"enum": ["not_claimed", "self_attested", "evidence_attested"]},
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "reviewer_kind",
+        "reviewer_ref",
+        "reviewed_alignment_refs",
+        "review_kind",
+        "competence",
+        "source_visible",
+        "target_visible",
+        "decision",
+        "rationale",
+        "reviewed_at",
+        "review_provenance_event_ref",
+        "unassisted_baseline"
+      ],
+      "properties": {
+        "review_id": {"$ref": "#/$defs/reviewId"},
+        "reviewer_kind": {"const": "real_human"},
+        "reviewer_ref": {"type": "string", "minLength": 1},
+        "reviewed_alignment_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/alignmentId"}
+        },
+        "review_kind": {"const": "translation_alignment_adjudication"},
+        "competence": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"$ref": "#/$defs/competence"}
+        },
+        "source_visible": {"const": true},
+        "target_visible": {"const": true},
+        "decision": {
+          "enum": ["accept", "accept_with_limits", "reject", "defer", "preserve_ambiguity"]
+        },
+        "rationale": {"type": "string", "minLength": 1},
+        "reviewed_at": {"type": "string", "format": "date-time"},
+        "review_provenance_event_ref": {"type": "string", "minLength": 1},
+        "unassisted_baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "status",
+            "frozen_before_machine_or_model_suggestions",
+            "evidence_ref"
+          ],
+          "properties": {
+            "required": {"const": true},
+            "status": {"const": "frozen"},
+            "frozen_before_machine_or_model_suggestions": {"const": true},
+            "evidence_ref": {"$ref": "#/$defs/boundedRef"}
+          }
+        }
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projection_id",
+        "projection_kind",
+        "artifact_ref",
+        "artifact_sha256",
+        "source_alignment_refs",
+        "projection_event_ref",
+        "derived_only",
+        "source_return_required",
+        "authority_posture",
+        "effective_visibility"
+      ],
+      "properties": {
+        "projection_id": {"$ref": "#/$defs/projectionId"},
+        "projection_kind": {
+          "enum": ["tei_linking", "web_annotation", "xliff_2_1", "tmx_1_4b", "graph", "custom"]
+        },
+        "artifact_ref": {"$ref": "#/$defs/boundedRef"},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_alignment_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/alignmentId"}
+        },
+        "projection_event_ref": {"type": "string", "minLength": 1},
+        "derived_only": {"const": true},
+        "source_return_required": {"const": true},
+        "authority_posture": {"const": "non_authoritative_reproducible_projection"},
+        "effective_visibility": {"$ref": "#/$defs/visibility"}
+      }
+    },
+    "rightsAndVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_visibility",
+        "target_visibility",
+        "packet_visibility",
+        "effective_visibility",
+        "rights_record_refs",
+        "private_source_used",
+        "publication_authorized",
+        "inheritance_policy"
+      ],
+      "properties": {
+        "source_visibility": {"$ref": "#/$defs/visibility"},
+        "target_visibility": {"$ref": "#/$defs/visibility"},
+        "packet_visibility": {"$ref": "#/$defs/visibility"},
+        "effective_visibility": {"$ref": "#/$defs/visibility"},
+        "rights_record_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/boundedRef"}
+        },
+        "private_source_used": {"type": "boolean"},
+        "publication_authorized": {"type": "boolean"},
+        "inheritance_policy": {"const": "most_restrictive_side_or_packet_wins"}
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tree_role",
+        "graph_role",
+        "source_role",
+        "validators_prove_mechanics_not_truth",
+        "alignment_is_claim_not_translation_truth",
+        "machine_or_model_may_propose_not_accept",
+        "exports_are_not_owner_truth",
+        "unaligned_members_are_first_class",
+        "lexical_equivalence_not_inferred",
+        "canon_effect"
+      ],
+      "properties": {
+        "tree_role": {"const": "orientation"},
+        "graph_role": {"const": "relation"},
+        "source_role": {"const": "authority"},
+        "validators_prove_mechanics_not_truth": {"const": true},
+        "alignment_is_claim_not_translation_truth": {"const": true},
+        "machine_or_model_may_propose_not_accept": {"const": true},
+        "exports_are_not_owner_truth": {"const": true},
+        "unaligned_members_are_first_class": {"const": true},
+        "lexical_equivalence_not_inferred": {"const": true},
+        "canon_effect": {"const": false}
+      }
+    }
+  }
+}

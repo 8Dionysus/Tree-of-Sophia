@@ -377,6 +377,19 @@ text layer remains a real positive finding rather than being erased.
 
 ## Projection boundary
 
+Translation alignment follows the same evidence law before projection. Each
+side resolves through an exact Work/Expression/Edition/Item/File, frozen text
+layer, segmentation or tokenization artifact, and ordered source anchors. The
+mapping receives a stable opaque identity and a separate versioned claim;
+cardinality, order, omission/addition, technique, certainty, maker,
+competition, supersession, and review are not compressed into one confidence
+score. A machine, model, imported memory, or exchange file may propose but
+cannot accept. Acceptance requires a distinct source-and-target-visible
+real-human review with declared competence and a frozen unassisted baseline.
+The most restrictive source, target, or packet visibility follows every
+derivative. TEI, Web Annotation, XLIFF, TMX, and graph views are therefore
+rebuildable projections, never the authority for the alignment or translation.
+
 The authoritative chain is:
 
 ```text

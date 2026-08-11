@@ -144,6 +144,17 @@ coverage and agreement remain proposals, not linguistic acceptance.
 Alignment records must support `1:1`, `1:n`, `n:1`, `n:m`, `omitted`,
 `added`, `reordered`, `uncertain`, and `rejected`.
 
+The additive `translation-alignment-packet-v1` now makes that decision
+executable without changing `translation-packet` v2. Both exact witness and
+frozen text-layer sides, segmentation/tokenization artifacts, and ordered
+anchors precede an opaque alignment plus claim identity. A and B use invented
+private-use languages to validate one-to-one and reciprocal competing
+one-to-one/one-to-many proposals. C and seventeen negative controls fail
+closed on unreviewed acceptance, broken cardinality/reference closure,
+competition, supersession, or visibility. Promote the contract mechanics with
+limits; do not promote any real alignment, translation, lexical equivalence,
+human evidence, export, graph, or canon object.
+
 ## Local LLM candidates
 
 | Candidate | State | First role | License/storage posture | Stop condition |

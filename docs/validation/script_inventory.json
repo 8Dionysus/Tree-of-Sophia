@@ -921,6 +921,30 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_translation_alignment_v1_lab.py",
+      "family": "source_fixture_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/contracts/translation-alignment-packet-v1.schema.json",
+      "source_truth": [
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/plan.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-source.x-tos-src.txt",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/public-synthetic-target.x-tos-tgt.txt"
+      ],
+      "reads": [
+        "translation-alignment v1 contract, ordered research, deterministic invented source/target sides, frozen synthetic analysis artifacts, plan, and builder bytes"
+      ],
+      "writes": [
+        "tracked public-synthetic source/target and analysis fixtures, valid A and B mapping packets, deliberately invalid C acceptance packet, plan, and exact lab manifest"
+      ],
+      "side_effects": "public synthetic fixture generation only; no corpus payload, translation, aligner/model invocation, human evidence, accepted alignment, lexical equivalence, projection, graph, or canon effect",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_provenance_event_v2_lab.py",
       "family": "source_fixture_builder",
       "organ_lane": "source/topology",
@@ -958,6 +982,8 @@
         "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json",
         "ToS/contracts/semantic-annotation-packet-v2.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/lab.manifest.json",
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/lab.manifest.json",
         "ToS/contracts/claim-packet.schema.json",
         "ToS/contracts/source-witness-catalog.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
@@ -977,10 +1003,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, provenance-event-v2, and semantic-annotation-v2 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2, source-text-layer, provenance-event-v2, and semantic-annotation-v2 labs report public synthetic mechanics and no corpus payload, execution truth, human review, or semantic truth",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 labs report public synthetic mechanics and no corpus payload, execution truth, translation, human review, accepted alignment, or semantic truth",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

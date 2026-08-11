@@ -2071,6 +2071,171 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(before, label_renamed["entities"][2]["entity_id"])
         self.assertFalse(list(validator.iter_errors(label_renamed)))
 
+    def test_translation_alignment_v1_synthetic_abc_preserves_competing_maps(
+        self,
+    ) -> None:
+        issues, report = foundation.validate_translation_alignment_v1_lab(REPO_ROOT)
+
+        self.assertEqual([], issues)
+        self.assertEqual(
+            [
+                ("A", True, True, ["one_to_one"], ["proposed"], 0, 0),
+                (
+                    "B",
+                    True,
+                    True,
+                    ["one_to_one", "one_to_many"],
+                    ["proposed", "proposed"],
+                    0,
+                    0,
+                ),
+                (
+                    "C",
+                    False,
+                    False,
+                    ["one_to_one", "one_to_many"],
+                    ["accepted", "proposed"],
+                    0,
+                    0,
+                ),
+            ],
+            [
+                (
+                    row["variant_id"],
+                    row["schema_valid"],
+                    row["semantic_valid"],
+                    row["shapes"],
+                    row["statuses"],
+                    row["review_count"],
+                    row["projection_count"],
+                )
+                for row in report["variants"]
+            ],
+        )
+        self.assertEqual(
+            {
+                "text-derived-alignment-id",
+                "duplicate-alignment-id",
+                "duplicate-claim-id",
+                "missing-source-anchor",
+                "missing-target-anchor",
+                "source-layer-digest-drift",
+                "target-layer-digest-drift",
+                "naked-unresolved-anchor",
+                "shape-cardinality-mismatch",
+                "source-omission-with-target-members",
+                "target-addition-with-source-members",
+                "one-way-competing-mapping",
+                "accepted-model-proposal-without-review",
+                "accepted-without-language-competence",
+                "projection-of-proposed-alignment",
+                "projection-visibility-widening",
+                "self-supersession",
+            },
+            set(report["negative_controls"]),
+        )
+        self.assertEqual({"rejected"}, set(report["negative_controls"].values()))
+
+        lab_root = (
+            REPO_ROOT
+            / "ToS/research-packets/foundation-laboratory-2026-07/"
+            "translation-alignment-v1-abc"
+        )
+        variant_a = json.loads(
+            (lab_root / "variant-a-one-to-one-proposal.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        variant_b = json.loads(
+            (lab_root / "variant-b-competing-mappings.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("x-tos-src", variant_a["source_side"]["language"])
+        self.assertEqual("x-tos-tgt", variant_a["target_side"]["language"])
+        self.assertEqual("mixed", variant_a["granularity"])
+        self.assertTrue(
+            all(
+                alignment["alignment_id"].startswith(
+                    "tos.translation-alignment.sid-"
+                )
+                and alignment["claim_id"].startswith(
+                    "tos.translation-alignment-claim.sid-"
+                )
+                and alignment["status"] == "proposed"
+                and alignment["maker"]["maker_kind"] == "synthetic_fixture"
+                for alignment in variant_b["alignments"]
+            )
+        )
+        first, second = variant_b["alignments"]
+        self.assertEqual(
+            {second["alignment_id"]}, set(first["competing_alignment_refs"])
+        )
+        self.assertEqual(
+            {first["alignment_id"]}, set(second["competing_alignment_refs"])
+        )
+        self.assertEqual([], variant_b["reviews"])
+        self.assertEqual([], variant_b["projections"])
+
+    def test_translation_alignment_v1_is_additive_and_claim_gated(self) -> None:
+        schema = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/contracts/translation-alignment-packet-v1.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        validator_class = validator_for(schema)
+        validator_class.check_schema(schema)
+        validator = validator_class(schema, format_checker=FormatChecker())
+        packet = json.loads(
+            (
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "translation-alignment-v1-abc/variant-b-competing-mappings.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertFalse(list(validator.iter_errors(packet)))
+        before_alignment_id = packet["alignments"][0]["alignment_id"]
+        before_claim_id = packet["alignments"][0]["claim_id"]
+        mutable_reason = copy.deepcopy(packet)
+        mutable_reason["alignments"][0]["status_reason"] = (
+            "A different mutable explanation does not reissue stable identity."
+        )
+        self.assertEqual(before_alignment_id, mutable_reason["alignments"][0]["alignment_id"])
+        self.assertEqual(before_claim_id, mutable_reason["alignments"][0]["claim_id"])
+        self.assertFalse(list(validator.iter_errors(mutable_reason)))
+
+        wrong_cardinality = copy.deepcopy(packet)
+        wrong_cardinality["alignments"][1]["correspondence_shape"] = "one_to_one"
+        self.assertIn(
+            "alignment member cardinality does not match one_to_one: "
+            + wrong_cardinality["alignments"][1]["alignment_id"],
+            foundation._translation_alignment_v1_issues(wrong_cardinality),
+        )
+
+        accepted_without_review = copy.deepcopy(packet)
+        accepted_without_review["alignments"][0]["status"] = "accepted"
+        self.assertTrue(list(validator.iter_errors(accepted_without_review)))
+        self.assertTrue(
+            any(
+                "cannot be accepted directly" in issue
+                for issue in foundation._translation_alignment_v1_issues(
+                    accepted_without_review
+                )
+            )
+        )
+
+        legacy_translation = json.loads(
+            (REPO_ROOT / "ToS/contracts/translation-packet.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            "tos_translation_packet_v2",
+            legacy_translation["properties"]["schema_version"]["const"],
+        )
+
     def test_provenance_v2_synthetic_abc_preserves_success_transform_and_failure(
         self,
     ) -> None:

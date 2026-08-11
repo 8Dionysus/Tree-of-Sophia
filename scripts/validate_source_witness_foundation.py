@@ -80,6 +80,16 @@ SEMANTIC_ANNOTATION_V2_LAB_ROOT = Path(
 SEMANTIC_ANNOTATION_V2_LAB_MANIFEST = (
     SEMANTIC_ANNOTATION_V2_LAB_ROOT / "lab.manifest.json"
 )
+TRANSLATION_ALIGNMENT_V1_SCHEMA = (
+    CONTRACT_ROOT / "translation-alignment-packet-v1.schema.json"
+)
+TRANSLATION_ALIGNMENT_V1_LAB_ROOT = Path(
+    "ToS/research-packets/foundation-laboratory-2026-07/"
+    "translation-alignment-v1-abc"
+)
+TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST = (
+    TRANSLATION_ALIGNMENT_V1_LAB_ROOT / "lab.manifest.json"
+)
 COLLECTION_WORK_BOUNDARY_MAP_SCHEMA = (
     CONTRACT_ROOT / "collection-work-boundary-map.schema.json"
 )
@@ -2441,6 +2451,772 @@ def validate_semantic_annotation_v2_lab(repo_root: Path) -> tuple[list[Issue], d
     return issues, report
 
 
+def _translation_alignment_v1_issues(packet: dict[str, Any]) -> list[str]:
+    """Check alignment identity, reference, review, and visibility closure."""
+
+    messages: list[str] = []
+    alignments = [row for row in packet.get("alignments", []) if isinstance(row, dict)]
+    reviews = [row for row in packet.get("reviews", []) if isinstance(row, dict)]
+    projections = [row for row in packet.get("projections", []) if isinstance(row, dict)]
+    source_side = packet.get("source_side", {})
+    target_side = packet.get("target_side", {})
+
+    def index_unique(
+        rows: list[dict[str, Any]], key: str, label: str
+    ) -> dict[str, dict[str, Any]]:
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            value = row.get(key)
+            if not isinstance(value, str):
+                continue
+            if value in result:
+                messages.append(f"duplicate {label} identity: {value}")
+            result[value] = row
+        return result
+
+    alignment_by_id = index_unique(alignments, "alignment_id", "alignment")
+    claim_by_id = index_unique(alignments, "claim_id", "alignment claim")
+    review_by_id = index_unique(reviews, "review_id", "alignment review")
+    projection_by_id = index_unique(projections, "projection_id", "alignment projection")
+    del projection_by_id
+
+    def side_anchors(side: Any, label: str) -> dict[str, dict[str, Any]]:
+        if not isinstance(side, dict):
+            return {}
+        anchors = [row for row in side.get("anchors", []) if isinstance(row, dict)]
+        indexed = index_unique(anchors, "anchor_ref", f"{label} anchor")
+        ordinals: set[int] = set()
+        for anchor in anchors:
+            ordinal = anchor.get("ordinal")
+            if isinstance(ordinal, int):
+                if ordinal in ordinals:
+                    messages.append(f"duplicate {label} anchor ordinal: {ordinal}")
+                ordinals.add(ordinal)
+            if anchor.get("text_layer_ref") != side.get("text_layer_ref"):
+                messages.append(
+                    f"{label} anchor escapes the frozen text layer: {anchor.get('anchor_ref')}"
+                )
+            if anchor.get("text_layer_sha256") != side.get("text_layer_sha256"):
+                messages.append(
+                    f"{label} anchor text-layer digest drifted: {anchor.get('anchor_ref')}"
+                )
+            selector = anchor.get("selector", {})
+            if isinstance(selector, dict):
+                start = selector.get("start")
+                end = selector.get("end")
+                if isinstance(start, int) and isinstance(end, int) and start >= end:
+                    messages.append(
+                        f"{label} anchor selector is reversed or empty: {anchor.get('anchor_ref')}"
+                    )
+        return indexed
+
+    source_anchor_by_id = side_anchors(source_side, "source")
+    target_anchor_by_id = side_anchors(target_side, "target")
+    for shared_anchor_ref in sorted(set(source_anchor_by_id) & set(target_anchor_by_id)):
+        messages.append(
+            f"source and target sides reuse one anchor identity: {shared_anchor_ref}"
+        )
+
+    if packet.get("packet_id") == packet.get("supersedes_packet_ref"):
+        messages.append("translation alignment packet cannot supersede itself")
+    if (
+        isinstance(source_side, dict)
+        and isinstance(target_side, dict)
+        and source_side.get("expression_ref") == target_side.get("expression_ref")
+    ):
+        messages.append("translation alignment source and target expressions must differ")
+
+    for side, label in ((source_side, "source"), (target_side, "target")):
+        if not isinstance(side, dict):
+            continue
+        analysis_bindings = [side.get("segmentation")]
+        if side.get("tokenization") is not None:
+            analysis_bindings.append(side.get("tokenization"))
+        for binding in analysis_bindings:
+            if isinstance(binding, dict) and binding.get("state") != "frozen":
+                messages.append(f"{label} analysis binding is not frozen")
+
+    decided_statuses = {"accepted", "accepted_with_limits", "rejected", "superseded"}
+    accepted_statuses = {"accepted", "accepted_with_limits"}
+    accepting_decisions = {
+        "accepted": {"accept"},
+        "accepted_with_limits": {"accept_with_limits"},
+    }
+    required_competence = {
+        "source_language_reading",
+        "target_language_reading",
+        "translation_analysis",
+    }
+
+    def unresolved_refs(refs: Any, known: dict[str, Any], label: str) -> None:
+        for ref in refs if isinstance(refs, list) else []:
+            if ref not in known:
+                messages.append(f"unresolved {label} reference: {ref}")
+
+    for review in reviews:
+        review_id = review.get("review_id")
+        unresolved_refs(
+            review.get("reviewed_alignment_refs"),
+            alignment_by_id,
+            "reviewed alignment",
+        )
+        competence_rows = [
+            row for row in review.get("competence", []) if isinstance(row, dict)
+        ]
+        scopes = [row.get("scope") for row in competence_rows]
+        if len(scopes) != len(set(scopes)) or set(scopes) != required_competence:
+            messages.append(
+                f"alignment review competence scopes are incomplete or duplicated: {review_id}"
+            )
+        for alignment_ref in review.get("reviewed_alignment_refs", []):
+            alignment = alignment_by_id.get(alignment_ref)
+            if alignment is not None and review_id not in alignment.get(
+                "review_refs", []
+            ):
+                messages.append(
+                    f"review-to-alignment relation is not reciprocal: {review_id} -> {alignment_ref}"
+                )
+
+    shape_cardinality = {
+        "one_to_one": lambda s, t: s == 1 and t == 1,
+        "one_to_many": lambda s, t: s == 1 and t > 1,
+        "many_to_one": lambda s, t: s > 1 and t == 1,
+        "many_to_many": lambda s, t: s > 1 and t > 1,
+        "source_omission": lambda s, t: s > 0 and t == 0,
+        "target_addition": lambda s, t: s == 0 and t > 0,
+        "unresolved": lambda s, t: s + t > 0,
+    }
+    for alignment in alignments:
+        alignment_id = alignment.get("alignment_id")
+        claim_id = alignment.get("claim_id")
+        if alignment_id == alignment.get("supersedes_alignment_ref"):
+            messages.append(f"alignment cannot supersede itself: {alignment_id}")
+        if claim_id == alignment.get("supersedes_claim_ref"):
+            messages.append(f"alignment claim cannot supersede itself: {claim_id}")
+
+        source_refs = alignment.get("ordered_source_anchor_refs", [])
+        target_refs = alignment.get("ordered_target_anchor_refs", [])
+        unresolved_refs(source_refs, source_anchor_by_id, "source anchor")
+        unresolved_refs(target_refs, target_anchor_by_id, "target anchor")
+        shape = alignment.get("correspondence_shape")
+        shape_check = shape_cardinality.get(str(shape))
+        if shape_check is not None and not shape_check(len(source_refs), len(target_refs)):
+            messages.append(
+                f"alignment member cardinality does not match {shape}: {alignment_id}"
+            )
+        if shape in {"source_omission", "target_addition"} and alignment.get(
+            "order_posture"
+        ) not in {"not_applicable", "unresolved"}:
+            messages.append(
+                f"unaligned member uses an inapplicable order posture: {alignment_id}"
+            )
+        techniques = alignment.get("translation_techniques", [])
+        if "unresolved" in techniques and len(techniques) > 1:
+            messages.append(
+                f"unresolved translation technique is mixed with decided techniques: {alignment_id}"
+            )
+
+        unresolved_refs(
+            alignment.get("competing_alignment_refs"),
+            alignment_by_id,
+            "competing alignment",
+        )
+        unresolved_refs(alignment.get("review_refs"), review_by_id, "alignment review")
+        for review_ref in alignment.get("review_refs", []):
+            review = review_by_id.get(review_ref)
+            if review is not None and alignment_id not in review.get(
+                "reviewed_alignment_refs", []
+            ):
+                messages.append(
+                    f"alignment-to-review relation is not reciprocal: {alignment_id} -> {review_ref}"
+                )
+        for competing_ref in alignment.get("competing_alignment_refs", []):
+            if competing_ref == alignment_id:
+                messages.append(f"alignment competes with itself: {alignment_id}")
+            elif (
+                competing_ref in alignment_by_id
+                and alignment_id
+                not in alignment_by_id[competing_ref].get(
+                    "competing_alignment_refs", []
+                )
+            ):
+                messages.append(
+                    f"competing-alignment relation is not reciprocal: {alignment_id} -> {competing_ref}"
+                )
+
+        status = alignment.get("status")
+        review_refs = alignment.get("review_refs", [])
+        if status in decided_statuses and not review_refs:
+            messages.append(f"decided alignment lacks review: {alignment_id}")
+        if status in accepted_statuses:
+            maker_kind = alignment.get("maker", {}).get("maker_kind")
+            if maker_kind in {
+                "software",
+                "model",
+                "mixed",
+                "imported_source",
+                "synthetic_fixture",
+            }:
+                messages.append(
+                    f"machine, imported, or synthetic alignment cannot be accepted directly: {alignment_id}"
+                )
+            accepted_reviews = [
+                review_by_id[ref]
+                for ref in review_refs
+                if ref in review_by_id
+                and review_by_id[ref].get("decision")
+                in accepting_decisions.get(str(status), set())
+            ]
+            if not accepted_reviews:
+                messages.append(
+                    f"accepted alignment lacks a matching real-human decision: {alignment_id}"
+                )
+            for review in accepted_reviews:
+                competence = {
+                    row.get("scope"): row.get("status")
+                    for row in review.get("competence", [])
+                    if isinstance(row, dict)
+                }
+                for scope in required_competence:
+                    if competence.get(scope) not in {
+                        "self_attested",
+                        "evidence_attested",
+                    }:
+                        messages.append(
+                            f"accepted alignment review lacks declared competence for {scope}: {review.get('review_id')}"
+                        )
+        if (
+            packet.get("content_posture") != "public_synthetic_contract_exercise"
+            and alignment.get("maker", {}).get("maker_kind") == "synthetic_fixture"
+        ):
+            messages.append(
+                f"synthetic fixture maker escaped the synthetic laboratory: {alignment_id}"
+            )
+
+        for evidence in alignment.get("evidence", []):
+            if not isinstance(evidence, dict):
+                continue
+            unresolved_refs(
+                evidence.get("source_anchor_refs"),
+                source_anchor_by_id,
+                "evidence source anchor",
+            )
+            unresolved_refs(
+                evidence.get("target_anchor_refs"),
+                target_anchor_by_id,
+                "evidence target anchor",
+            )
+        evidence_source_refs = {
+            ref
+            for evidence in alignment.get("evidence", [])
+            if isinstance(evidence, dict)
+            for ref in evidence.get("source_anchor_refs", [])
+        }
+        evidence_target_refs = {
+            ref
+            for evidence in alignment.get("evidence", [])
+            if isinstance(evidence, dict)
+            for ref in evidence.get("target_anchor_refs", [])
+        }
+        if not set(source_refs).issubset(evidence_source_refs):
+            messages.append(
+                f"alignment evidence does not cover every source member: {alignment_id}"
+            )
+        if not set(target_refs).issubset(evidence_target_refs):
+            messages.append(
+                f"alignment evidence does not cover every target member: {alignment_id}"
+            )
+
+    # Supersession is lineage, not competition, and must remain acyclic.
+    for key, ref_key, index, label in (
+        ("alignment_id", "supersedes_alignment_ref", alignment_by_id, "alignment"),
+        ("claim_id", "supersedes_claim_ref", claim_by_id, "alignment claim"),
+    ):
+        for row in alignments:
+            start = row.get(key)
+            cursor = row.get(ref_key)
+            seen = {start}
+            while isinstance(cursor, str):
+                if cursor in seen:
+                    messages.append(f"{label} supersession cycle reaches: {cursor}")
+                    break
+                seen.add(cursor)
+                predecessor = index.get(cursor)
+                if predecessor is None:
+                    messages.append(f"unresolved superseded {label} reference: {cursor}")
+                    break
+                cursor = predecessor.get(ref_key)
+
+    visibility_rank = {
+        "public": 0,
+        "public_metadata_only": 1,
+        "controlled": 2,
+        "local_only": 3,
+        "restricted": 4,
+        "unknown": 5,
+    }
+    rights = packet.get("rights_and_visibility", {})
+    if isinstance(rights, dict):
+        if isinstance(source_side, dict) and rights.get("source_visibility") != source_side.get(
+            "visibility"
+        ):
+            messages.append("source-side and packet visibility differ")
+        if isinstance(target_side, dict) and rights.get("target_visibility") != target_side.get(
+            "visibility"
+        ):
+            messages.append("target-side and packet visibility differ")
+        component_visibilities = [
+            rights.get("source_visibility"),
+            rights.get("target_visibility"),
+            rights.get("packet_visibility"),
+        ]
+        if all(value in visibility_rank for value in component_visibilities):
+            expected_effective = max(
+                component_visibilities, key=lambda value: visibility_rank[value]
+            )
+            if rights.get("effective_visibility") != expected_effective:
+                messages.append("effective visibility is not the most restrictive component")
+        if rights.get("publication_authorized") is True and (
+            rights.get("effective_visibility") != "public"
+            or rights.get("private_source_used") is True
+            or not isinstance(source_side, dict)
+            or not isinstance(target_side, dict)
+            or source_side.get("publication_authorized") is not True
+            or target_side.get("publication_authorized") is not True
+        ):
+            messages.append("alignment publication authority widens a source or target boundary")
+
+    for projection in projections:
+        projection_id = projection.get("projection_id")
+        unresolved_refs(
+            projection.get("source_alignment_refs"),
+            alignment_by_id,
+            "projected alignment",
+        )
+        for alignment_ref in projection.get("source_alignment_refs", []):
+            alignment = alignment_by_id.get(alignment_ref)
+            if alignment is not None and alignment.get("status") not in accepted_statuses:
+                messages.append(
+                    f"projection uses an alignment that is not accepted: {projection_id} -> {alignment_ref}"
+                )
+        effective = rights.get("effective_visibility") if isinstance(rights, dict) else None
+        projection_visibility = projection.get("effective_visibility")
+        if effective in visibility_rank and projection_visibility in visibility_rank:
+            if visibility_rank[projection_visibility] < visibility_rank[effective]:
+                messages.append(f"projection visibility widens packet boundary: {projection_id}")
+
+    return messages
+
+
+def validate_translation_alignment_v1_lab(
+    repo_root: Path,
+) -> tuple[list[Issue], dict[str, Any]]:
+    """Validate public-synthetic bilingual A/B/C alignment mechanics."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    report: dict[str, Any] = {"variants": [], "negative_controls": {}}
+    required_competence = {
+        "source_language_reading",
+        "target_language_reading",
+        "translation_analysis",
+    }
+    try:
+        packet_validator, _ = _schema_validator(
+            TRANSLATION_ALIGNMENT_V1_SCHEMA, repo_root
+        )
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [
+            (
+                TRANSLATION_ALIGNMENT_V1_SCHEMA.as_posix(),
+                f"cannot load translation alignment v1 schema: {exc}",
+            )
+        ], report
+
+    manifest_path = repo_root / TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST
+    manifest = _load_json(manifest_path, repo_root, issues)
+    if manifest is None:
+        return issues, report
+    if manifest.get("schema_version") != "tos_translation_alignment_v1_lab_manifest_v1":
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "unexpected translation alignment lab manifest version",
+            )
+        )
+    if manifest.get("authority_posture") != "public_synthetic_contract_mechanics_only":
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "translation alignment lab authority posture widened",
+            )
+        )
+    expected_limits = {
+        "private_source_used": False,
+        "translation_performed": False,
+        "model_invoked": False,
+        "aligner_invoked": False,
+        "human_review_performed": False,
+        "accepted_alignment_established": False,
+        "lexical_equivalence_established": False,
+        "semantic_truth_established": False,
+        "graph_truth_established": False,
+        "canon_effect": False,
+    }
+    if manifest.get("authority_limits") != expected_limits:
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "translation alignment lab authority limits widened",
+            )
+        )
+
+    def binding_closes(binding: Any, label: str) -> bool:
+        if not isinstance(binding, dict):
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    f"{label} binding is absent",
+                )
+            )
+            return False
+        ref = binding.get("ref")
+        digest = binding.get("sha256")
+        path = repo_root / ref if isinstance(ref, str) else manifest_path
+        if path.is_symlink() or not path.is_file() or _sha256(path) != digest:
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    f"{label} binding drifted",
+                )
+            )
+            return False
+        return True
+
+    for field in ("contract", "research", "plan", "builder"):
+        binding_closes(manifest.get(field), field)
+    for index, binding in enumerate(manifest.get("inputs", [])):
+        binding_closes(binding, f"input[{index}]")
+    for index, binding in enumerate(manifest.get("analysis_artifacts", [])):
+        binding_closes(binding, f"analysis_artifact[{index}]")
+    if manifest.get("contract", {}).get("ref") != TRANSLATION_ALIGNMENT_V1_SCHEMA.as_posix():
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "translation alignment contract reference drifted",
+            )
+        )
+
+    plan_ref = manifest.get("plan", {}).get("ref")
+    plan_path = repo_root / plan_ref if isinstance(plan_ref, str) else manifest_path
+    plan = _load_json(plan_path, repo_root, issues) if plan_path.is_file() else None
+    expected_controls = set(plan.get("negative_controls", [])) if isinstance(plan, dict) else set()
+    if not isinstance(plan, dict) or plan.get("authority_limits") != expected_limits:
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "translation alignment plan authority limits drifted",
+            )
+        )
+
+    input_bindings = manifest.get("inputs", [])
+    input_texts: dict[str, str] = {}
+    for binding in input_bindings if isinstance(input_bindings, list) else []:
+        if not isinstance(binding, dict) or not isinstance(binding.get("ref"), str):
+            continue
+        try:
+            input_texts[binding["ref"]] = (repo_root / binding["ref"]).read_text(
+                encoding="utf-8"
+            )
+        except (OSError, UnicodeError) as exc:
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    f"cannot read public synthetic alignment input: {exc}",
+                )
+            )
+
+    packets_by_variant: dict[str, dict[str, Any]] = {}
+    manifest_variants = manifest.get("variants", [])
+    if [
+        row.get("variant_id") for row in manifest_variants if isinstance(row, dict)
+    ] != ["A", "B", "C"]:
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "translation alignment variants must be ordered exactly A, B, C",
+            )
+        )
+    for row in manifest_variants if isinstance(manifest_variants, list) else []:
+        if not isinstance(row, dict):
+            continue
+        variant_id = row.get("variant_id")
+        packet_ref = row.get("packet_ref")
+        if variant_id not in {"A", "B", "C"} or not isinstance(packet_ref, str):
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    "translation alignment variant identity is invalid",
+                )
+            )
+            continue
+        packet_path = repo_root / packet_ref
+        if packet_path.is_symlink() or not packet_path.is_file() or _sha256(packet_path) != row.get(
+            "packet_sha256"
+        ):
+            issues.append((packet_ref, "translation alignment variant fixity drifted"))
+            continue
+        packet = _load_json(packet_path, repo_root, issues)
+        if packet is None:
+            continue
+        schema_errors = list(packet_validator.iter_errors(packet))
+        semantic_errors = _translation_alignment_v1_issues(packet)
+        schema_valid = not schema_errors
+        semantic_valid = not semantic_errors
+        if schema_valid != row.get("expected_schema_valid"):
+            issues.append((packet_ref, "schema result differs from frozen A/B/C expectation"))
+        if semantic_valid != row.get("expected_semantic_valid"):
+            issues.append((packet_ref, "semantic result differs from frozen A/B/C expectation"))
+
+        for side_name in ("source_side", "target_side"):
+            side = packet.get(side_name, {})
+            if not isinstance(side, dict):
+                continue
+            text_ref = side.get("text_layer_ref")
+            text = input_texts.get(text_ref)
+            if text is None:
+                issues.append((packet_ref, f"{side_name} does not resolve to a manifest input"))
+                continue
+            if side.get("file_sha256") != _sha256_text(text):
+                issues.append((packet_ref, f"{side_name} file fixity differs from its input"))
+            if side.get("text_layer_sha256") != _sha256_text(text):
+                issues.append((packet_ref, f"{side_name} text-layer fixity differs from its input"))
+            for analysis_field in ("segmentation", "tokenization"):
+                binding = side.get(analysis_field)
+                if not isinstance(binding, dict):
+                    continue
+                ref = binding.get("artifact_ref")
+                path = repo_root / ref if isinstance(ref, str) else packet_path
+                if not path.is_file() or _sha256(path) != binding.get("sha256"):
+                    issues.append((packet_ref, f"{side_name} {analysis_field} binding drifted"))
+            for anchor in side.get("anchors", []):
+                if not isinstance(anchor, dict):
+                    continue
+                selector = anchor.get("selector", {})
+                start = selector.get("start")
+                end = selector.get("end")
+                if not isinstance(start, int) or not isinstance(end, int) or not (
+                    0 <= start < end <= len(text)
+                ):
+                    issues.append(
+                        (packet_ref, f"anchor selector is outside synthetic {side_name}: {anchor.get('anchor_ref')}")
+                    )
+                    continue
+                if anchor.get("exact_sha256") != _sha256_text(text[start:end]):
+                    issues.append(
+                        (packet_ref, f"anchor exact digest does not resolve: {anchor.get('anchor_ref')}")
+                    )
+
+        packets_by_variant[variant_id] = packet
+        report["variants"].append(
+            {
+                "variant_id": variant_id,
+                "schema_valid": schema_valid,
+                "semantic_valid": semantic_valid,
+                "shapes": [item.get("correspondence_shape") for item in packet.get("alignments", [])],
+                "statuses": [item.get("status") for item in packet.get("alignments", [])],
+                "review_count": len(packet.get("reviews", [])),
+                "projection_count": len(packet.get("projections", [])),
+                "rejection_reasons": sorted(
+                    {error.message for error in schema_errors} | set(semantic_errors)
+                ),
+            }
+        )
+
+    if set(packets_by_variant) == {"A", "B", "C"}:
+        a = packets_by_variant["A"]
+        b = packets_by_variant["B"]
+        c = packets_by_variant["C"]
+        if [row.get("correspondence_shape") for row in a.get("alignments", [])] != [
+            "one_to_one"
+        ]:
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    "variant A must contain exactly one one-to-one proposal",
+                )
+            )
+        b_alignments = b.get("alignments", [])
+        if [row.get("correspondence_shape") for row in b_alignments] != [
+            "one_to_one",
+            "one_to_many",
+        ] or {row.get("status") for row in b_alignments} != {"proposed"}:
+            issues.append(
+                (
+                    TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                    "variant B must preserve the two proposed competing shapes",
+                )
+            )
+        for packet, variant_id in ((a, "A"), (b, "B"), (c, "C")):
+            if packet.get("reviews") or packet.get("projections"):
+                issues.append(
+                    (
+                        TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                        f"variant {variant_id} fabricates review or projection evidence",
+                    )
+                )
+
+        def control_rejected(name: str, payload: dict[str, Any]) -> None:
+            rejected = bool(list(packet_validator.iter_errors(payload))) or bool(
+                _translation_alignment_v1_issues(payload)
+            )
+            report["negative_controls"][name] = (
+                "rejected" if rejected else "not_rejected"
+            )
+            if not rejected:
+                issues.append(
+                    (
+                        TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                        f"negative control was not rejected: {name}",
+                    )
+                )
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["identity_policy"] = (
+            "text-derived-from-current-source-and-target-content"
+        )
+        control_rejected("text-derived-alignment-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"].append(copy.deepcopy(mutated["alignments"][0]))
+        control_rejected("duplicate-alignment-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][1]["claim_id"] = mutated["alignments"][0]["claim_id"]
+        control_rejected("duplicate-claim-id", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["ordered_source_anchor_refs"] = []
+        control_rejected("missing-source-anchor", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["ordered_target_anchor_refs"] = []
+        control_rejected("missing-target-anchor", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["source_side"]["text_layer_sha256"] = "0" * 64
+        control_rejected("source-layer-digest-drift", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["target_side"]["text_layer_sha256"] = "1" * 64
+        control_rejected("target-layer-digest-drift", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["ordered_source_anchor_refs"] = [
+            "tos.anchor.translation-alignment-v1.synthetic-naked-offset"
+        ]
+        control_rejected("naked-unresolved-anchor", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][1]["correspondence_shape"] = "one_to_one"
+        control_rejected("shape-cardinality-mismatch", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["correspondence_shape"] = "source_omission"
+        mutated["alignments"][0]["order_posture"] = "not_applicable"
+        control_rejected("source-omission-with-target-members", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["correspondence_shape"] = "target_addition"
+        mutated["alignments"][0]["order_posture"] = "not_applicable"
+        control_rejected("target-addition-with-source-members", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["competing_alignment_refs"] = []
+        control_rejected("one-way-competing-mapping", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["alignments"][0]["status"] = "accepted"
+        control_rejected("accepted-model-proposal-without-review", mutated)
+
+        weak_review_id = (
+            "tos.translation-alignment-review.sid-11111111111111111111111111111111"
+        )
+        weak_review = {
+            "review_id": weak_review_id,
+            "reviewer_kind": "real_human",
+            "reviewer_ref": "human:synthetic-negative-control",
+            "reviewed_alignment_refs": [mutated["alignments"][0]["alignment_id"]],
+            "review_kind": "translation_alignment_adjudication",
+            "competence": [
+                {"scope": scope, "status": "not_claimed", "evidence_refs": []}
+                for scope in sorted(required_competence)
+            ],
+            "source_visible": True,
+            "target_visible": True,
+            "decision": "accept",
+            "rationale": "Synthetic negative control; not evidence of a real review.",
+            "reviewed_at": "2026-08-11T14:00:00Z",
+            "review_provenance_event_ref": "synthetic:negative-control",
+            "unassisted_baseline": {
+                "required": True,
+                "status": "frozen",
+                "frozen_before_machine_or_model_suggestions": True,
+                "evidence_ref": "synthetic:negative-control-baseline",
+            },
+        }
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["reviews"] = [weak_review]
+        mutated["alignments"][0]["status"] = "accepted"
+        mutated["alignments"][0]["review_refs"] = [weak_review_id]
+        control_rejected("accepted-without-language-competence", mutated)
+
+        projection = {
+            "projection_id": "tos.translation-alignment-projection.sid-22222222222222222222222222222222",
+            "projection_kind": "tei_linking",
+            "artifact_ref": "synthetic:negative-control-projection",
+            "artifact_sha256": "2" * 64,
+            "source_alignment_refs": [b["alignments"][0]["alignment_id"]],
+            "projection_event_ref": "synthetic:negative-control",
+            "derived_only": True,
+            "source_return_required": True,
+            "authority_posture": "non_authoritative_reproducible_projection",
+            "effective_visibility": "public",
+        }
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["projections"] = [projection]
+        control_rejected("projection-of-proposed-alignment", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["content_posture"] = "source_bound"
+        mutated["source_side"]["visibility"] = "local_only"
+        mutated["source_side"]["publication_authorized"] = False
+        mutated["rights_and_visibility"].update(
+            {
+                "source_visibility": "local_only",
+                "effective_visibility": "local_only",
+                "publication_authorized": False,
+            }
+        )
+        mutated["projections"] = [projection]
+        control_rejected("projection-visibility-widening", mutated)
+
+        mutated = copy.deepcopy(b)
+        mutated["supersedes_packet_ref"] = mutated["packet_id"]
+        control_rejected("self-supersession", mutated)
+
+    if expected_controls != set(report["negative_controls"]):
+        issues.append(
+            (
+                TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST.as_posix(),
+                "negative-control coverage differs from the plan",
+            )
+        )
+    return issues, report
+
+
 def _latest_event_in_supersession_lineage(
     events_by_id: dict[str, dict[str, Any]],
     base_event_id: str,
@@ -3898,6 +4674,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         repo_root
     )
     issues.extend(semantic_annotation_v2_lab_issues)
+
+    translation_alignment_v1_lab_issues, _ = validate_translation_alignment_v1_lab(
+        repo_root
+    )
+    issues.extend(translation_alignment_v1_lab_issues)
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
@@ -11221,6 +12002,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="validate only the public synthetic semantic identity/annotation v2 A/B/C",
     )
+    parser.add_argument(
+        "--translation-alignment-v1-lab-only",
+        action="store_true",
+        help="validate only the public synthetic translation-alignment v1 A/B/C",
+    )
     args = parser.parse_args(argv)
 
     if args.source_anchor_v2_lab_only:
@@ -11265,6 +12051,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
         print("[boundary] public synthetic contract mechanics only; green closure establishes no model run, human review, stable sign, concept, semantic truth, graph truth, canon effect, or private-source publication authority")
+        return 0
+
+    if args.translation_alignment_v1_lab_only:
+        issues, report = validate_translation_alignment_v1_lab(args.repo_root)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        if issues:
+            print("Translation-alignment v1 laboratory validation failed.", file=sys.stderr)
+            for location, message in issues:
+                print(f"- {location}: {message}", file=sys.stderr)
+            return 1
+        print("[boundary] public synthetic mapping mechanics only; green closure establishes no translation act, model or aligner run, human review, accepted alignment, lexical equivalence, semantic truth, graph truth, canon effect, or private-source publication authority")
         return 0
 
     issues = validate_foundation(

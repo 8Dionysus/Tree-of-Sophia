@@ -114,6 +114,23 @@ label-independent higher IDs, reference closure, reciprocal competing claims,
 real-human promotion boundary, accepted-claim-only graph admission, and twelve
 negative controls. Its green result proves only synthetic contract mechanics.
 
+`build_translation_alignment_v1_lab.py` owns only the deterministic
+public-synthetic translation-alignment identity A/B/C. It writes two invented
+private-use-language text sides, frozen synthetic segmentation/tokenization,
+exact anchors, A one-to-one, B reciprocal one-to-one/one-to-many proposals,
+and C's deliberately invalid acceptance. It must never read a corpus payload,
+invoke an aligner/model, fabricate a real translation or human review, accept
+an alignment, or emit a projection/canon effect. Schema, research, builder,
+input, analysis, plan, and variant changes require a full rebuild because the
+manifest binds all bytes.
+
+The validator's `--translation-alignment-v1-lab-only` route checks both exact
+text-layer returns, frozen analysis bindings, opaque alignment/claim IDs,
+cardinality, reciprocal competition, review and projection admission,
+most-restrictive visibility, and seventeen negative controls. Green proves
+synthetic mechanics only; it supplies no translation, aligner/model execution,
+competence, accepted mapping, lexical equivalence, semantics, graph, or canon.
+
 `build_source_resource_inventories.py` is the focused local companion for
 fixity-verified payloads. It writes tracked, text-free PDF or bundled-DjVu page,
 EPUB resource, TEI structure, and provider OCR page inventories from an
@@ -461,6 +478,7 @@ Local owner routes:
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
+| public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |
 | local Zarathustra lexical observation index | `python scripts/build_zarathustra_lexical_index.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_zarathustra_lexical_index.py --local-output-root /srv/AbyssOS/Tree-of-Sophia`; omit `--check` only for an intentional deterministic rebuild of the tracked hash/resource projection and ignored SQLite/FTS5 database |
 | tracked Zarathustra exact-form recurrence observations | `python scripts/build_zarathustra_recurrence_projection.py --check`; omit `--check` only to intentionally rebuild the tracked hash-only frequency/range/DP tuple and provenance from the frozen plan and tracked lexical projection |

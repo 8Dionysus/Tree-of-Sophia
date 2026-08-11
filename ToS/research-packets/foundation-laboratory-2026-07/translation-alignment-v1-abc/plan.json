@@ -1,0 +1,60 @@
+{
+  "authority_limits": {
+    "accepted_alignment_established": false,
+    "aligner_invoked": false,
+    "canon_effect": false,
+    "graph_truth_established": false,
+    "human_review_performed": false,
+    "lexical_equivalence_established": false,
+    "model_invoked": false,
+    "private_source_used": false,
+    "semantic_truth_established": false,
+    "translation_performed": false
+  },
+  "input_posture": "public_synthetic_only",
+  "languages": [
+    "x-tos-src",
+    "x-tos-tgt"
+  ],
+  "negative_controls": [
+    "text-derived-alignment-id",
+    "duplicate-alignment-id",
+    "duplicate-claim-id",
+    "missing-source-anchor",
+    "missing-target-anchor",
+    "source-layer-digest-drift",
+    "target-layer-digest-drift",
+    "naked-unresolved-anchor",
+    "shape-cardinality-mismatch",
+    "source-omission-with-target-members",
+    "target-addition-with-source-members",
+    "one-way-competing-mapping",
+    "accepted-model-proposal-without-review",
+    "accepted-without-language-competence",
+    "projection-of-proposed-alignment",
+    "projection-visibility-widening",
+    "self-supersession"
+  ],
+  "question": "Can ToS bind exact bilingual sides and preserve competing mappings without turning a method output into translation truth?",
+  "schema_version": "tos_translation_alignment_v1_lab_plan_v1",
+  "variants": [
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "One deterministic one-to-one structural proposal",
+      "variant_id": "A"
+    },
+    {
+      "expected_schema_valid": true,
+      "expected_semantic_valid": true,
+      "purpose": "Reciprocal one-to-one and one-to-many competing proposals",
+      "variant_id": "B"
+    },
+    {
+      "expected_schema_valid": false,
+      "expected_semantic_valid": false,
+      "purpose": "Invalid synthetic/model-shaped acceptance without review or competence",
+      "variant_id": "C"
+    }
+  ]
+}

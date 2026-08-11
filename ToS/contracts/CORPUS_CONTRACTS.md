@@ -57,6 +57,7 @@ judgment true.
 | `semantic-annotation-packet-v2.schema.json` | additive stand-off semantic packet with label-independent opaque identities for lexeme, lexical sense, sign, concept, annotation, claim, relation, and review; exact occurrence/source-anchor return; first-class competing claims; real-human competence and unassisted sign-promotion review; and accepted-claim-only downstream graph projection |
 | `claim-packet.schema.json` | evidence-bearing assertion over a stable ToS subject, with alternatives, lineage, and human review state |
 | `expression-derivation.schema.json` | typed qualifiers for a directed Expression→Expression source relation, including derivation kind, source directness, evidence/collation posture, same-Work scope, non-transitivity, asymmetry, irreflexivity, and an explicit no-equivalence boundary |
+| `translation-alignment-packet-v1.schema.json` | additive stand-off source/target mapping packet binding exact Work/Expression/Edition/Item/File, frozen text-layer, segmentation/tokenization, and ordered anchor identities; separate alignment/claim/review/projection identities; explicit cardinality, omission, addition, reorder, uncertainty, competition, supersession, human competence, and most-restrictive visibility; machine proposals cannot accept themselves and TEI/Web Annotation/XLIFF/TMX/graph forms remain derived |
 | `translation-packet.schema.json` | source-accepted lifecycle packet binding independent frozen analyses to human, AI, machine-alternative, and AI+human drafts before comparator reveal, comparison, change tracking, and human adjudication |
 | `translation-laboratory-plan.schema.json` | exact source-first 17-stage translation order, real-human lane law, sealed comparator, model-candidate posture, and source-acceptance gate |
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
@@ -93,6 +94,10 @@ judgment true.
   provenance event or receipt.
 - Earlier transcription, correction, translation, annotation, and claim
   versions are superseded, not overwritten.
+- Translation alignment is a versioned claim over two exact frozen sides, not
+  an intrinsic property of either string. Unaligned members, reorder, and
+  reciprocal competing maps remain explicit; interchange IDs and graph edges
+  never replace ToS owner identity.
 - Review states retain rejection, ambiguity, deferral, and counterevidence.
 - Rights/visibility constraints travel into derivatives and projections.
 - A tracked lexical projection may expose only the content posture authorized
@@ -201,6 +206,16 @@ A schema validator can establish that:
   real-human promotion review over a source-visible unassisted baseline; and
   graph projection admits only accepted claims and relations while preserving
   source return;
+- a translation-alignment v1 packet keeps exact source and target witness,
+  text-layer, segmentation/tokenization, anchor, alignment, claim, review, and
+  projection identities separate; checks correspondence-shape cardinality,
+  anchor closure, reciprocal competing maps, supersession, and visibility
+  inheritance; blocks machine/model/imported or synthetic proposals from
+  accepting themselves; requires a matching source-and-target-visible
+  real-human decision with declared source-language, target-language, and
+  translation competence before acceptance; and permits TEI, Web Annotation,
+  XLIFF, TMX, or graph output only as a non-authoritative projection of an
+  accepted mapping;
 - a golden-kernel transfer plan keeps title-page scouts ineligible for
   semantic evaluation, may preserve exactly twenty pre-output private
   page-level candidates without calling them gold or opening human debt,
