@@ -9,6 +9,11 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Reconciled the foundation completion audit with the existing initial-sign
+  owner route: the complete four-part exact-form recurrence remains a
+  queryable, source-observed, non-promoting sidecar. It does not change
+  semantic-ladder v5, open stages 4–15, create human work, or establish a
+  lemma, sense, motif, sign, semantic claim, relation, graph truth, or canon.
 - Preserved the already completed 2026-07-26 source-visible, method-blind,
   solo-human OCR candidate-review pass as one append-only aggregate manual
   error-ledger episode. It closes 10 source pages, 30 candidate dispositions,
