@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-08-10
+Snapshot: 2026-08-11
 
 ## Honest boundary
 
@@ -11,6 +11,15 @@ The current work establishes a source-addressable corpus spine, local witness
 storage, fixity, preliminary rights posture, discovery/access/server routes,
 source-gated translation and semantic contracts, reproducible laboratory
 mechanics, and preserved negative results.
+
+The energy-cost axis now has a researched and tested admission method, but no
+run energy value. Reviewed `abyss-stack` checkpoint `7f28312e` found four
+physical Intel RAPL zones with readable ranges, while the current unprivileged
+laboratory identity was denied every energy-counter read; the actual `perf`
+event was unsupported and the battery was not discharging. The result is
+`blocked-counter-permission`, not `0 J`. No model should be rerun for this
+reason, and changing host counter access remains an `abyss-machine` owner
+decision.
 
 It does **not** establish a completed human gold set, accepted German source
 text, a translation, a semantic sign, a philosophical relation, a quality
@@ -1497,7 +1506,7 @@ from the calibration-only route in section 2b.
 | accepted signs resolving to occurrences | contract prepared; no accepted sign |
 | graph edges resolving to claim and evidence | projection mechanics proven for unreviewed claims; truth review incomplete |
 | automatic metrics manually rechecked | incomplete; morphology A aggregates were independently recomputed from private raw rows by a separate owner recorder, but that is still mechanical verification rather than human content review |
-| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the contextual ZDL B acquisition took 356.746 s with a 2.1 GiB peak and zero swap but produced no runtime or model-quality evidence; the specialized MADLAD route adds a 1,671,227,060-byte three-file model set, a 9,667,291-byte runtime, a 264.620562-second source-free caller episode, and one 979.291729-second private call dominated by a 901.152729-second owner gate; its worker took 71.241677 seconds and peaked at 3,330,088,960 bytes RAM plus 667,648 bytes swap; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; one real-human OCR candidate-review pass recorded 8,334 seconds, but display position, page difficulty, and the single pass confound method comparison; monetary, energy, stable correction cost, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
+| quality, cost, speed, and human correction time | morphology A, historical translation A/B/C, E4B, and Qwen3 8B CPU have bounded speed/resource evidence; the contextual ZDL B acquisition took 356.746 s with a 2.1 GiB peak and zero swap but produced no runtime or model-quality evidence; the specialized MADLAD route adds a 1,671,227,060-byte three-file model set, a 9,667,291-byte runtime, a 264.620562-second source-free caller episode, and one 979.291729-second private call dominated by a 901.152729-second owner gate; its worker took 71.241677 seconds and peaked at 3,330,088,960 bytes RAM plus 667,648 bytes swap; the deterministic Russian floor measured about 7.707 ms/candidate in-process and about 289.050 ms/candidate with required resident Hunspell on invented controls; pinned offline LanguageTool B measured 78.004763012 s wall and 600,440 KiB peak child RSS over 36 isolated cold starts; Qwen3.5 GEC C measured 111.711071750 s wall and a 3.5 GiB cgroup peak over nine batches, with 3/15 exact corrections, two clean false changes, and zero process swap; one real-human OCR candidate-review pass recorded 8,334 seconds, but display position, page difficulty, and the single pass confound method comparison; reviewed checkpoint `7f28312e` proves the current energy-observation route is `blocked-counter-permission` without rerunning a model; monetary cost, run energy, stable correction cost, and accepted content quality remain unmeasured, while the earlier Qwen3 8B translation model-process peak was not captured by its owner wrapper |
 | A/B/C reproducibility | demonstrated for bounded mechanical slices only; morphology A has two byte-identical whole-vocabulary passes and the contextual B input is reproducibly materialized, but B has no output and C is question-inapplicable; Structure B/C have one corrected full-scope run each under different frozen scopes |
 | golden-kernel benefit and danger tested | incomplete; experiment intentionally blocked-not-run |
 | unauthorized publication avoided | satisfied for the current work; no upload/send/publication occurred |

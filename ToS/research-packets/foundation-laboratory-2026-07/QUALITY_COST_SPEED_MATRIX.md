@@ -1,8 +1,9 @@
 # Foundation Laboratory Quality / Cost / Speed Matrix
 
 Status: mechanical measurements consolidated and raw morphology/OCR aggregates
-independently recomputed; human quality and correction cost remain open
-Snapshot: 2026-08-10
+independently recomputed; direct energy observation is permission-blocked;
+human quality and correction cost remain open
+Snapshot: 2026-08-11
 
 ## Reading rule
 
@@ -14,6 +15,22 @@ store.
 `Not measured` is an evidence state. It must not be converted to zero. A
 successful process, schema, model inspection, advisory expected hit, or
 deterministic rebuild is mechanical evidence—not source-visible human quality.
+
+## Energy observability gate
+
+Reviewed `abyss-stack` checkpoint `7f28312e` implements a source-free,
+read-only capability probe derived from official Linux interfaces, established
+RAPL measurement work, and current ML-energy research. Its live 2026-08-11
+result discovered four Intel RAPL package/core/uncore zones and readable
+counter ranges, but every `energy_uj` read was permission-denied. The actual
+`perf` RAPL event probe was unsupported, and `BAT1` was `Not charging` with
+zero reported power, so battery telemetry could not attribute a workload.
+
+Therefore energy for every existing run remains `Not measured`, not zero.
+Package energy cannot be relabeled whole-system energy, and no model is rerun
+merely to exercise this measurement route. Exact research and admission
+evidence is in
+[`ENERGY_MEASUREMENT_ADMISSION_2026-08-11.md`](ENERGY_MEASUREMENT_ADMISSION_2026-08-11.md).
 
 ## Consolidated matrix
 
