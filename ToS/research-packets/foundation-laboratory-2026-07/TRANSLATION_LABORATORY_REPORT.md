@@ -3,7 +3,9 @@
 Status: source-review laboratory prepared and mechanically exercised; one
 bounded eKGWB citation witness admitted for private AI experiments; frozen A
 linked as a rejected AI-only candidate; deterministic Russian floor and
-source-free LanguageTool B executed; accepted translation A/B/C not started
+source-free LanguageTool B executed; one specialized MADLAD model/runtime and
+source-free smoke admitted without private source use; accepted translation
+A/B/C not started
 Experiment: `tos-translation-foundation-v1`
 Report date: 2026-07-29
 
@@ -86,6 +88,23 @@ echo. AI-only Russian-surface triage found obvious defects, including a
 defective name case and an ungrammatical age construction, and rejected the
 candidate before human review. No candidate text, source text, private path,
 German judgment, comparator reveal, or human task entered the tracked Tree.
+
+A subsequent ordered specialist-MT pass selected one direct DE→RU challenger
+instead of asking another general model to imitate translation. Exact
+MADLAD-400 3B q4 bytes, disclosed conversion provenance, a generated Cargo
+lock, a local-only Candle 0.11.0 runner, package-level license evidence, and a
+complete host runtime manifest are now frozen. The setup retained a redundant
+preflight timeout, a clean compile/API failure, a validator-rejected
+environment manifest, and a schema-rejected repair attempt rather than hiding
+them behind the later green result.
+
+The exact retained binary was admitted without recompilation and passed one
+invented source-free DE→RU smoke in a new user+network namespace. The smoke
+used no private source, network, comparator, or force. A manual permission
+audit then caught one `0644` worker file inside the enclosing `0700` tree;
+mode was corrected to `0600` without a byte change and future output now fails
+closed on owner-only mode and complete artifact closure. No Nietzsche text was
+fed to MADLAD, so this is setup evidence, not a fourth translation candidate.
 
 A later ordered research pass (classical and official Russian rules and
 corpora, established Russian GEC work, then current 2025--2026 diagnostic and
@@ -418,7 +437,11 @@ The v2 interface owner service ran for 40.706 seconds. The separate
 calibration measured A at 146.973579 seconds and 5.007703 completion tokens/s,
 and B at 169.745670 seconds and 4.524416 completion tokens/s. C failed after
 35.420039 seconds and returned no usage record, so its token throughput is
-unavailable. Human translation time remains unmeasured.
+unavailable. The specialized source-free smoke spent 13.377 seconds in the
+owner service, including 6.293957121 seconds loading MADLAD and
+4.477793941 seconds generating five output tokens; the complete caller wall
+was 264.620562 seconds because current owner preflight dominated the tiny
+inference. Human translation time remains unmeasured.
 
 ### Machine and storage cost
 
@@ -427,13 +450,24 @@ It observed 142.961 MiB peak memory, zero swap, and produced 45,034,156 bytes
 across 94 files. The learned next-run estimate is 178.701 MiB; the original
 96-MiB estimate must not be reused as observed demand.
 
-No model download was admitted. A and B reused the resident Gemma E2B
-llama.cpp route. C reuses an existing Qwen3 4B OpenVINO artifact and exact
-OVMS image. Its immutable admitted payload is 2,290,768,181 bytes across 18
-files; `.git/` and OVMS-generated `graph.pbtxt` are excluded from payload
-identity, while the later runtime contract binds the exact launch command.
-The detached failure measures launcher plumbing; the later 35.420039-second
-failure is the actual C inference result. Neither produced a quality result.
+The historical A/B/C calibration admitted no model download. A and B reused
+the resident Gemma E2B llama.cpp route. C reused an existing Qwen3 4B OpenVINO
+artifact and exact OVMS image. Its immutable admitted payload is
+2,290,768,181 bytes across 18 files; `.git/` and OVMS-generated `graph.pbtxt`
+are excluded from payload identity, while the later runtime contract binds the
+exact launch command. The detached failure measures launcher plumbing; the
+later 35.420039-second failure is the actual C inference result. Neither
+produced a quality result.
+
+The later specialized setup retained 1,671,227,060 exact model bytes. Its
+successful owner acquisition service took 431.423 seconds and peaked at
+1,653.359 MiB RAM plus 0.523 MiB swap. The fresh locked offline runtime build
+took 432.966 owner service seconds and peaked at 1,852.047 MiB RAM plus
+29.023 MiB swap; the admitted runtime contains 9,667,291 inventoried bytes.
+The source-free smoke peaked at 3,486.566 MiB with zero swap, so the next
+private execution declares 4,608 MiB before the owner independently decides
+whether it may start. None of these setup measurements is a translation
+quality result.
 
 Monetary and energy cost remain unmeasured. Local wall time, token counts,
 artifact fixity, and before/after host snapshots exist; missing cost
@@ -471,6 +505,11 @@ Missing human time is not zero cost.
   exact runtime question; it does not repair Qwen3 4B GPU C, prove a model-size
   effect, or establish translation quality. Keep model-process peak memory
   unmeasured rather than substituting the owner-wrapper cgroup value.
+- Retain the MADLAD acquisition, locked runtime, source-free smoke, permission
+  correction, and every failed setup attempt as one specialized method setup.
+  They authorize at most one future commit-bound private AI-only proposal;
+  they do not constitute a candidate, model winner, translation result, or
+  reason to create human work.
 - Retain the detached C sidecar/port-helper failure as negative runtime
   evidence; do not count internal container health as loopback availability.
 - Retain C as a single failed GPU-execution result whose source-free diagnosis
@@ -506,6 +545,13 @@ its Russian-surface failure prevents operator review. It must not be rerun for
 a greener candidate or treated as evidence that the blocked 4B GPU route is
 healthy.
 
+The specialized MADLAD setup may now proceed only through its separately
+frozen profile and a fresh owner preflight. That run must preserve the earlier
+negative receipts, source/comparator sealing, exact model/runtime/smoke
+digests, one-string output contract, and 4,608-MiB declared demand. It stops at
+the Russian-surface floor unless a genuinely unresolved comparison question
+survives; setup success alone does not justify operator review.
+
 In parallel, the next authority-bearing source action remains
 question-triggered: prefer an authenticated or institutionally supplied copy
 of the exact eKGWB witness, then complete bibliographic and rights review at
@@ -524,6 +570,8 @@ That input has three frozen historical machine outcomes—one poor
 contract-complete candidate, one truncated invalid output, and one GPU runtime
 failure—and three later successor episodes: an E4B pre-candidate
 infrastructure failure, an E4B Russian-surface rejection, and a Qwen3 8B CPU
-Russian-surface rejection. It has yielded three admission-linked negative
+Russian-surface rejection. A later specialized MADLAD setup has exact
+model/runtime/smoke evidence but has consumed no private source and produced no
+fourth candidate. The laboratory has yielded three admission-linked negative
 experimental candidates in total. It has not been translated through an
 accepted lane or yielded one accepted German or translation unit.

@@ -4,7 +4,8 @@ Status: research decision scaffold updated with bounded graph, retrieval, struct
 
 Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
 direct-visual retrieval and historical-German morphology routes refreshed
-2026-07-30; broad software/model-stack currentness refreshed 2026-08-08
+2026-07-30; broad software/model-stack currentness refreshed 2026-08-08;
+specialized DE→RU MT setup evidence refreshed 2026-08-10/11 UTC
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md` and the non-executing superseding currentness record
@@ -153,7 +154,7 @@ Alignment records must support `1:1`, `1:n`, `n:1`, `n:m`, `omitted`,
 | Phi-3.5 mini INT4 | conditional control | older small control | resident | no unique evidence contribution |
 | Qwen3.5-4B | watchlist / conditional download | fresh small multimodal challenger | Apache 2.0 model card; new conversion/runtime and reduced-context proof required | resident A/B/C has no reviewed failure taxonomy |
 | TranslateGemma 4B | conditional, license- and source-gated | specialized MT challenger | gated license, absent artifact, 2K input context | German source unaccepted, DE/RU route unproved, or resident MT controls untested |
-| MADLAD-400 3B | defer | multilingual MT baseline | older Apache model; conversion path aging | only if specialized baseline is needed |
+| MADLAD-400 3B q4 + Candle 0.11.0 CPU | exact specialized challenger; setup admitted, private source not run | one-string DE→RU machine proposal after three general-model surface rejections | exact 1,671,227,060-byte Apache-2.0 artifact set from the Google namespace with disclosed community-conversion lineage; locked offline 9,501,904-byte runner; source-free no-network smoke passed | keep recognized translations sealed; fresh owner gate and exact ToS commit/profile required; a clean Russian surface remains uncertain; no German, fidelity, etymology, semantic, human-task, publication, or canon authority |
 | EuroLLM 1.7B | defer | compact European-language MT/control | new model artifact required | resident models fail and storage gate passes |
 | NLLB | defer/restricted | research-only MT reference | non-commercial/research license posture | incompatible intended use or rights uncertainty |
 | Qwen3.6 27B, 35B-A3B, and larger | exclude first wave | none | current but total weights are too large for the first justified local question | revisit only on different hardware or specific small-model failure evidence |

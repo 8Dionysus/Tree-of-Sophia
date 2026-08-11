@@ -10,6 +10,12 @@ updates official software/model watch and future preflight facts without
 superseding this exact admission decision or authorizing a download, upgrade,
 run, or human task.
 
+Specialized translation continuation:
+`SPECIALIZED_MT_CHALLENGER_ADMISSION_2026-08-10.md` records the later,
+question-specific decision and executed setup evidence after the resident
+general-model translation candidates all failed the inexpensive Russian
+surface. It does not retroactively change this 2026-07-26 first-wave decision.
+
 Owner boundary: Tree of Sophia owns the task material, source posture, review
 meaning, and promotion decision. `abyss-stack` owns the experiment mechanics
 and receipts. `abyss-machine` owns the live device, model, runtime, storage,
@@ -394,14 +400,51 @@ backend, or another model only after the resident comparison leaves an
 important error class unresolved and the new candidate is likely to isolate
 that class.
 
-## Decision
+## Specialized translation continuation — 2026-08-10/11 UTC
 
-The freshness gate is complete for the next LLM choice:
+The later evidence justified one new artifact because it asks a narrower
+question than the resident proposal comparison: whether a direct multilingual
+MT model produces a more usable private DE→RU string than the three retained
+general-model negatives.
+
+MADLAD-400 3B q4 was selected over NLLB-200 distilled 600M because the primary
+MADLAD paper explicitly lists direct `de-ru` and `ru-de` training pairs with at
+least 500,000 examples, while the reviewed official NLLB-600M results do not
+publish that exact pair score. NLLB remains a restricted reserve;
+TranslateGemma remains a gated watch item.
+
+The selected 1,671,227,060-byte artifact set was acquired under the host owner
+route and exactly verified. A pinned local-only Candle 0.11.0 derivative was
+built from a generated lock and offline dependency closure. The first clean
+compile failure, a rejected runtime environment manifest, and one rejected
+schema-boundary repair are retained. The exact binary was then admitted
+without recompilation under an empty environment and complete digest closure.
+
+An invented source-free no-network smoke passed with 3,486.566 MiB peak RAM,
+zero swap, 6.293957121-second model load, and 4.477793941-second generation.
+Manual mode inspection caught and corrected one `0644` worker output inside a
+`0700` tree without changing bytes; the future route now enforces owner-only
+output and the live closure verifier reports no issue. These facts establish
+only exact local model/runtime mechanics. No private source, recognized
+translation, German judgment, AI+human task, semantic object, graph edge,
+publication decision, or canon effect has occurred.
+
+The next private run, if its exact commit-bound profile passes fresh gates,
+must emit one Russian string and measurements only. It may be rejected by the
+existing Russian-surface floor; a finding-free result remains `uncertain` and
+does not automatically earn human attention.
+
+## Resident LLM decision (2026-08-08 scope)
+
+The earlier general-purpose LLM freshness gate remains complete within its
+resident proposal-comparison scope. The specialized-MT continuation above is a
+separate, later question and does not rewrite this decision:
 
 - resident E2B/E4B/Qwen3-4B is the admitted first-wave set;
 - Qwen3 8B is a resident escalation control;
-- no model download, new runtime build, NPU conversion, or heavy generation
-  run is currently justified;
+- no additional general-purpose LLM download, new general-purpose runtime
+  build, NPU conversion, or heavy resident-generation run is justified by this
+  packet;
 - model suggestions remain downstream of accepted source text and, for
   subjective work, an anchoring-independent human baseline;
 - no model or validator can create human gold, German competence, an accepted
