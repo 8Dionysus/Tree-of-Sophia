@@ -25,9 +25,12 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia source evidence through reviewed checkpoint `747eeb10`
-  (`Add immutable provenance execution receipts`), including the completed
-  uncertain specialized-MT episode at `5b31a573`, the energy admission, the post-street
+- Tree of Sophia source evidence through reviewed checkpoint `084627ae`
+  (`Add stable source text unit foundation`), following reviewed source-anchor
+  v2 `8f3b95b2`, source-text-layer v1 `7a973526`, provenance-event v2
+  `747eeb10`, semantic-annotation v2 `fe3cefbd`, and translation-alignment v1
+  `1a59a9b7`. The same owner history retains the completed uncertain
+  specialized-MT episode at `5b31a573`, the energy admission, the post-street
   metadata-only Stanford state, the unchanged semantic-ladder v5 and its
   source-observation sidecars, and every earlier source-challenger,
   source-visible transfer, catalogue, layered-rights, and restored-work
@@ -1215,6 +1218,36 @@ remain empty and publication authorization remains false; it creates no corpus m
 reading, accepted transcription, human or German competence, translation,
 sign, semantics, graph truth, canon effect, publication route, or human debt.
 
+## Source-text-unit and segmentation identity objective — 2026-08-11
+
+The next unresolved source-floor question was how later alignment, lexical,
+and semantic packets can address units without pretending that one sentence or
+token boundary is inherent in the witness. Research therefore returned first
+to current TEI P5, Unicode text-segmentation, ICU, Web Annotation, Universal
+Dependencies, and ISO linguistic-annotation documentation, then to the Penn
+Treebank, Punkt, Universal Dependencies, and established tokenization work,
+and only then to fresh 2025–2026 historical-text and segmentation evidence.
+The resulting additive `tos_source_text_unit_packet_v1` keeps physical layout,
+source-observed structure, orthographic and linguistic units, model-input
+pieces, and interchange projections distinct while binding every unit to one
+exact frozen text layer and half-open code-point range.
+
+The deterministic public-synthetic A/B/C uses one invented 42-byte, 42-code-
+point ASCII source. A records two physical lines and their two newline units.
+B preserves four reciprocal competing segmentations: whole-versus-split
+sentence readings and one-token-versus-split treatment of a hyphenated form,
+with 48 units across the alternatives and no selected winner. C is deliberately
+invalid: it claims acceptance without review and leaves the final line feed
+uncovered. Independent byte, code-point, range, digest, reconstruction, and
+builder-stability inspection agrees with the packet, while 25 controls reject
+identity, coverage, gap, overlap, anchor, competition, hierarchy, review,
+projection, visibility, and model-subword overclaims. This proves bounded
+unit and segmentation mechanics only. It creates no real German or Russian
+boundary, sentence, token, lemma, lexeme, sign, translation alignment,
+semantic object, graph truth, canon effect, corpus migration, or human task;
+the existing `tos-local-sentence-segmentation-v1` method string remains
+unchanged.
+
 ## Translation-alignment identity objective — 2026-08-11
 
 The remaining alignment-foundation gap is now closed additively rather than by
@@ -1339,6 +1372,8 @@ or publication authority.
 | 16a | immutable source-text-layer and correction provenance | `source-text-layer.schema.json` binds one immutable role-bearing representation to exact Work/Expression/Edition/Item/File/source-anchor-v2 identity and predecessor/content/editorial-policy digests; the public synthetic A/B/C retains actual UTF-8 NFD/NFC differences, explicit replayable edits, uncertainty and publication posture, plus independent mechanical, review, language-competence, accepted-use, rights-record, and publication-authority gates; direct byte/code-point inspection agrees and all nine negative controls fail closed | proven for public-synthetic representation, lineage, normalization, and gate mechanics only; all layers remain unreviewed and use-free, their rights/authority refs are empty, and publication authorization is false | create a real layer only for a concrete source question under its exact private/public and rights posture; any accepted reading or language-sensitive use still requires source-visible review and competence evidence; no bulk migration |
 | 16b | immutable provenance execution receipts and honest failure | `provenance-event-v2.schema.json` additively binds exact receipt bytes, input/output/byproduct entities, explicit derivations, command/configuration/software/runtime/model identity, responsibility, manual changes, terminal state, measurements, authentication, rights, review, and replay scope while preserving v1; the public synthetic A/B/C executes an identity copy, NFD→NFC transform, and exit-7 failure with one diagnostic byproduct and zero authoritative outputs; independent raw-byte inspection agrees and all fourteen negative controls fail closed | proven for public-synthetic declared receipt, fixity, derivation, and success/failure mechanics only; all receipts remain unsigned, model-free, unreviewed, publication-unauthorized, and unable to prove execution or content truth | use v2 for new materialized work or one question-triggered migration; require separate authentication, source/language review, rights, and authority evidence for stronger claims; no bulk v1 migration |
 | 16c | stable semantic identity, competing claims, review, and graph admission | `SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md` follows official/classical documentation → established works → fresh 2025–2026 evidence and labels emerging FrAC separately. `semantic-annotation-packet-v2.schema.json` additively separates occurrence, lexeme, lexical sense, sign, concept, annotation, claim, relation, review, and graph identities; keeps labels/translations outside opaque higher IDs; closes every claim to typed evidence and source anchors; requires real-human competence and frozen unassisted baseline for sign promotion; and admits only accepted claim-backed relations to graph projection. Public synthetic A resolves two exact spans, B preserves two reciprocal competing proposed signs with zero review/graph effect, C is rejected for model-shaped acceptance without review. Direct span/digest inspection agrees and all twelve controls fail closed | proven for public-synthetic identity, closure, competing-reading, review-gate, and graph-admission mechanics only; no model invoked, no private source used, no human review fabricated, and no sign, concept, semantic truth, graph truth, or canon effect established | create a real packet only for a new concrete source question; any promotion requires a source-visible competence-appropriate real-human checkpoint, and any graph edge remains downstream; no bulk migration or repeat run merely to exercise the contract |
+| 16d | stable translation-alignment identity, competing maps, review, and projection | `TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md` follows official/classical documentation → established work → fresh 2025–2026 evidence. `translation-alignment-packet-v1.schema.json` additively binds both exact witness/text-layer/segmentation/anchor sides, keeps alignment, claim, review, and projection identities separate, preserves `1:1`, `1:n`, `n:1`, `n:m`, omission, addition, reorder, uncertainty, competition, supersession, and most-restrictive visibility. Invented-language A validates one proposal, B retains reciprocal competing proposals without a winner, C is invalid, and all seventeen controls reject | proven for public-synthetic two-sided identity, cardinality, competition, review-gate, and projection mechanics only; no aligner, model, real translation, human review, accepted map, lexical equivalence, semantics, graph truth, or canon effect exists | create a real packet only after both exact source-text-unit sides and their rights posture are admitted for one concrete question; acceptance still requires source-and-target-visible competence-appropriate real-human evidence; no bulk migration or routine task |
+| 16e | stable source-text-unit and segmentation identity | `SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md` follows current official/classical documentation → established work → fresh 2025–2026 evidence. `source-text-unit-packet-v1.schema.json` additively separates layout, source-structure, orthographic, linguistic, model-input, and interchange units; binds exact frozen text, opaque IDs, code-point ranges, digests, source return, explicit coverage/gaps/overlap, reciprocal alternatives/supersession, hierarchy closure, review, projection, and visibility. The 42-byte/42-code-point invented source yields exact A layout units, four reciprocal B segmentations with 48 units, and an invalid C that hides the final line feed; independent reconstruction agrees, the rebuild is byte-stable, and all 25 controls fail closed | proven for public-synthetic unit identity, reconstruction, coverage, competition, hierarchy, review-gate, and projection mechanics only; no real source boundary, sentence, token, linguistic truth, model run, human review, or downstream authority exists | materialize only for one concrete source question against an exact frozen text layer; retain alternatives and explicit gaps, keep model subwords non-linguistic, preserve `tos-local-sentence-segmentation-v1`, and do no bulk migration |
 
 ## Definition-of-Done reconciliation
 
@@ -1352,10 +1387,10 @@ or publication authority.
 | manifests, fixity, rights, and provenance are tracked | proven structurally | complete human rights review where required |
 | every source item has a page/resource inventory | proven mechanically for all nineteen local items | retain the text-free boundary and rebuild only from exact fixity-verified bytes |
 | every source item has stable identity | proven for the bounded catalog | do not infer identity from filenames or title similarity |
-| every derived text resolves to a witness | proven for current laboratory mechanics; the full-work lexical database binds every local occurrence to exact file, page resource, structural resource, and opaque local locator while its tracked companion exposes only aggregate resource return | require the same closure for every future layer; lexical observation still does not accept the bound text |
+| every derived text resolves to a witness | proven for current laboratory mechanics; the full-work lexical database binds every local occurrence to exact file, page resource, structural resource, and opaque local locator while its tracked companion exposes only aggregate resource return; source-text-unit v1 now adds exact frozen-layer, half-open range, digest, coverage/gap, and source-return mechanics without choosing a real boundary | require the same closure for every future layer; lexical observation and mechanically resolved units still do not accept the bound text or its linguistic interpretation |
 | every accepted sign resolves to occurrences | vacuously unviolated; no accepted laboratory signs exist | task-specific occurrence closure and a real-human promotion checkpoint only when a concrete sign moves to a stronger layer |
 | every graph edge resolves to claim and evidence | proven mechanically for the pilot projections; claim truth unreviewed | human claim/trace review |
-| translation preserves original, alternatives, etymology, and comparison | accepted lifecycle contract only; bounded A/B/C machine-method evidence is frozen, one exact edition-local reading is attested, and no accepted German or translation packet exists; one source-locked MADLAD/Candle private candidate is retained `uncertain` with text-free provenance and risk screening, but has no recognized-comparator reveal, etymology, German-competent review, or acceptance | begin the independent accepted-translation lifecycle only after packet-local philological admission; edition-reading attestation, Russian-surface survival, and AI risk screening are insufficient |
+| translation preserves original, alternatives, etymology, and comparison | accepted lifecycle plus separate translation-alignment identity/claim/review/projection contracts only; bounded A/B/C machine-method evidence is frozen, one exact edition-local reading is attested, and no accepted German, translation packet, or alignment exists; one source-locked MADLAD/Candle private candidate is retained `uncertain` with text-free provenance and risk screening, but has no recognized-comparator reveal, etymology, German-competent review, or acceptance | begin the independent accepted-translation lifecycle only after exact source-text-unit packets and packet-local philological admission exist on both sides; edition-reading attestation, Russian-surface survival, structural mapping, and AI risk screening remain insufficient |
 | recognized translation is a witness, not truth | proven in method law | preserve the seal/reveal order in actual runs |
 | human-only, AI-only, and AI+human lanes stay separate | contract only | execute genuine independent lanes without simulated human evidence |
 | real pages and texts are checked manually | partial | one private Russian candidate-review pass exists; diplomatic gold, German review, and other families remain open |
@@ -1370,7 +1405,7 @@ or publication authority.
 | golden-kernel benefit and danger are tested | blocked; twenty pre-output target candidates are prepared but ineligible; the deferred §22 witness route is outside the plan | deliberately activate and execute the target-content transfer plan only after both gold routes exist; never substitute witness stages for transfer variants |
 | no completeness claim is made for philosophy | proven | keep catalog scope explicit |
 | remaining uncertainty is explicit | proven by this audit and limitations packet | update the audit after every authority-bearing pass |
-| a later agent can resume without chat reconstruction | proven for the current checkpoint: the requirement matrix, four reconciled contract pressures, exact owner refs, dependency-ordered route, stop line, and transfer-readiness projection are tracked together | refresh this audit after every authority-bearing pass; chat or generated KAG may help navigation but is not required to reconstruct the route |
+| a later agent can resume without chat reconstruction | proven for the current checkpoint: the requirement matrix, reconciled contract pressures, exact owner refs, dependency-ordered route, stop line, and transfer-readiness projection are tracked together | refresh this audit after every authority-bearing pass; chat or generated KAG may help navigation but is not required to reconstruct the route |
 
 ## Resolved and open contract pressures
 
@@ -1844,7 +1879,13 @@ schedules no routine review.
    separate human rights, correlation-risk, and operator gates.
 2. Open new Russian source-visible work only for a declared discrepancy,
    uncertainty, semantic risk, new source/method calibration, or drift
-   control; do not reopen the closed historical packet. Use the German
+   control; do not reopen the closed historical packet. When one concrete
+   downstream question requires sentence, token, layout, or other unit
+   identity, materialize `tos_source_text_unit_packet_v1` only against the
+   exact frozen text layer, preserve alternative segmentations, and state
+   coverage, gaps, and overlap explicitly. Do not migrate or reinterpret the
+   existing `tos-local-sentence-segmentation-v1` method merely because the new
+   owner contract exists. Use the German
    assisted protocol only for a specific source/translation question and
    retain the competence block on orthography, grammar, semantics, etymology,
    and translation fidelity. Treat the structure-compatible
@@ -1955,8 +1996,12 @@ schedules no routine review.
    considered, open only the five trigger-selected queries for criteria-based
    source-visible review; execution success is not page relevance or source
    truth.
-6. Open the accepted translation lifecycle only after its exact German anchors
-   reach a philologically admitted source posture.
+6. Open the accepted translation lifecycle only after exact source-text-unit
+   packets exist for both sides and the German anchors reach a philologically
+   admitted source posture. Mechanical alignment may then create proposals
+   only. An accepted alignment additionally requires a source-and-target-
+   visible, competence-appropriate real-human review; structural compatibility
+   or a green validator cannot supply it.
 7. If one exact textual-genetic question genuinely requires §22, open its
    W I 7 -> D 18 -> publication-critical route as a separate source-gated
    episode. If a *Genealogie* question requires genesis, open only the exact

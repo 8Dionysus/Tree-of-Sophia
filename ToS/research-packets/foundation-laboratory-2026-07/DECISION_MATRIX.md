@@ -6,7 +6,8 @@ Snapshot: 2026-07-23; local software/LLM admission refreshed 2026-07-26;
 direct-visual retrieval and historical-German morphology routes refreshed
 2026-07-30; broad software/model-stack currentness refreshed 2026-08-08;
 specialized DE→RU MT setup evidence refreshed 2026-08-10/11 UTC; semantic
-identity and annotation contract refreshed 2026-08-11
+identity, translation-alignment identity, and source-text-unit contracts
+refreshed 2026-08-11
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md` and the non-executing superseding currentness record
@@ -129,6 +130,26 @@ German-competent gold, accepted morphology, lemma, `lexeme_id`, sign, semantic
 claim, translation decision, or graph effect exists. Machine
 coverage and agreement remain proposals, not linguistic acceptance.
 
+## Text-unit and segmentation identity
+
+| Candidate | Role | State | Why | Authority boundary |
+| --- | --- | --- | --- | --- |
+| source-observed layout and explicit line-break units | physical/layout floor | baseline | closest unit layer to the fixed representation and independently reconstructable | records layout, not a sentence, token, or linguistic intention |
+| Unicode UAX #29 / ICU boundary candidates | deterministic orthographic proposal | baseline for a future concrete question | current, versioned, explainable, and language-tailorable | version and tailoring must be captured; a default boundary is not witness truth |
+| language- and historical-text-tailored segmentation | linguistic challenger | conditional | may preserve abbreviations, historical orthography, verse, and editorial structure better than defaults | requires an exact task, declared competence, alternatives, and source-visible review before acceptance |
+| tokenizer or model subword pieces | model-input projection | conditional projection only | needed to reproduce some model and embedding runs | never promotes to token, lexeme, sign, or semantic identity |
+| interchange units such as CoNLL-U/TEI exports | transport projection | conditional | useful for downstream tools when generated from an owned packet | projection status and visibility cannot exceed their source unit packet |
+| one forced canonical segmentation | universal owner | exclude | erases legitimate ambiguity and couples future work to one mutable method | no single algorithm, ordinal, tokenizer, or model may silently become source authority |
+
+The additive `source-text-unit-packet-v1` is now the baseline owner contract.
+Its public 42-byte/42-code-point A/B/C proves exact unit identity, coverage and
+gap declaration, reciprocal alternatives, hierarchy closure, review and
+projection gates, and deterministic reconstruction. The 25 rejected controls
+and independent raw-byte inspection promote those mechanics only. No real
+German/Russian boundary, linguistic unit, method winner, corpus migration, or
+human task is admitted, and the existing `tos-local-sentence-segmentation-v1`
+method remains unchanged.
+
 ## Alignment of editions and translations
 
 | Candidate | Role | State | Why | Risk |
@@ -247,6 +268,7 @@ not installed permanently before workflow value is demonstrated.
 | Candidate | State | Role | Boundary |
 | --- | --- | --- | --- |
 | JSON/JSON-LD explicit claim resources | baseline | tracked canonical packet shape | human-readable fields remain primary |
+| `source-text-unit-packet-v1` | baseline contract | exact frozen-text unit identity, explicit coverage/gaps, competing segmentation, review, and projection boundary | public synthetic A/B/C proves mechanics only; model pieces stay non-linguistic and no real boundary or bulk migration is admitted |
 | `semantic-annotation-packet-v2` | baseline contract | stand-off occurrence→lexeme/sense→sign→concept entities plus first-class competing claims, human reviews, typed relations, and source-returnable graph admission | public synthetic A/B/C proves mechanics only; no bulk migration or accepted semantic object |
 | PROV-O profile | baseline projection | entity/activity/agent provenance | local terms must be documented |
 | PREMIS-inspired event/rights fields | baseline profile | preservation and fixity history | not full repository certification |

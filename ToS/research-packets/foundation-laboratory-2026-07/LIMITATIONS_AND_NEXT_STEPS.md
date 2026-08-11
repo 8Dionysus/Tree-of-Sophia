@@ -51,6 +51,31 @@ text, a translation, a semantic sign, a philosophical relation, a quality
 winner, or a successful golden-kernel transfer. Those are not small missing
 fields. They are the next authority layer.
 
+The source-text-unit continuation closes a separate engineering gap without
+closing that authority layer. Ordered official/classical, established, and
+fresh 2025–2026 research produced an additive packet that distinguishes
+layout, source structure, orthographic, linguistic, model-input, and
+interchange units over one exact frozen text layer. Its invented 42-byte,
+42-code-point A/B/C source survives independent byte, range, digest,
+reconstruction, and deterministic-rebuild checks; A records exact physical
+line/newline units, B preserves four reciprocal competing segmentations with
+48 units and no winner, C hides the final line feed and is rejected, and all
+25 negative controls fail closed. This creates no real boundary, sentence,
+token, accepted German or Russian, lemma, lexeme, sign, translation alignment,
+semantic object, graph truth, corpus migration, or human task. A real packet
+opens only for one concrete downstream question, and the existing
+`tos-local-sentence-segmentation-v1` method remains unchanged.
+
+The translation-alignment continuation likewise closes identity and
+fail-closed mechanics, not translation authority. Its separate alignment,
+claim, review, and projection identities bind two exact text-layer,
+segmentation, and anchor sides while preserving cardinality, omission,
+addition, reorder, competition, supersession, and visibility. Invented-language
+A/B/C plus 17 rejected controls prove only that shape. No aligner or model ran,
+no recognized translation was consumed, and no real alignment, lexical or
+sense equivalence, human competence, review, translation quality, semantic
+effect, graph edge, or canon object was created.
+
 The semantic identity continuation now closes a narrower engineering gap, not
 that authority gap. Ordered standards, established-work, and fresh 2025–2026
 research support an additive stand-off v2 contract. Its public synthetic A/B/C
