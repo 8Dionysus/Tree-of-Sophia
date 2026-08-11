@@ -1,7 +1,8 @@
 # Monetary-cost accounting admission — 2026-08-11
 
-Status: ordered research complete; fail-closed accounting method reviewed in
-`abyss-stack`; existing laboratory runs remain monetarily incomplete
+Status: ordered cost and provenance-binding research complete; fail-closed v2
+accounting method reviewed in `abyss-stack`; existing laboratory runs remain
+monetarily incomplete
 
 ## Question
 
@@ -105,6 +106,72 @@ No newer source found by 2026-08-11 displaced the official billing/boundary
 contracts or the established reporting law. Fresh work refines the functional
 unit; it does not license guessed inputs.
 
+## 4. Exact evidence-binding continuation
+
+The first accounting contract hashed its canonical input but still allowed
+free-form evidence labels. That was insufficient: a successful schema check
+could not prove which exact run receipt or cost artifact supported a component,
+and `attempt_count` did not prove that every failed or successful attempt had a
+receipt. A second ordered research pass therefore addressed provenance binding
+before changing the contract.
+
+### Official and normative documentation
+
+- [W3C PROV-DM](https://www.w3.org/TR/prov-dm/) separates immutable entities,
+  activities, agents, usage, generation, and derivation. Changed bytes are a
+  new evidence entity, not an update hidden behind the same label.
+- [in-toto Attestation Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md)
+  identifies immutable subjects by cryptographic digest, and its
+  [reference predicate](https://github.com/in-toto/attestation/blob/main/spec/predicates/reference.md)
+  uses digest-bearing resource descriptors. ToS adopts subject-by-digest
+  closure without claiming in-toto conformance.
+- [SLSA 1.2 provenance](https://slsa.dev/spec/v1.2/provenance) keeps artifact
+  identity, completeness, authenticity, and accuracy distinct. The local
+  route adopts that separation without claiming a SLSA level.
+- [RO-Crate 1.3](https://www.researchobject.org/ro-crate/1.3/), released as a
+  Recommendation on 2026-06-22, relates research inputs, outputs, instruments,
+  and actions. It informs the evidence catalog but is not itself cryptographic
+  attestation.
+
+### Established work
+
+- The [FAIR Guiding Principles](https://doi.org/10.1038/sdata.2016.18) require
+  persistent identifiers, explicit metadata-to-data links, qualified
+  references, and detailed provenance.
+- The [in-toto USENIX Security 2019 paper](https://www.usenix.org/conference/usenixsecurity19/presentation/torres-arias)
+  establishes the value of complete step/material/product verification. The
+  monetary route borrows completeness discipline, not supply-chain authority.
+- The [RO-Crate 2022 paper](https://doi.org/10.3233/DS-210053) demonstrates a
+  lightweight research-object package applicable beyond software, including
+  digital-humanities workflows.
+
+### Freshest relevant work at the snapshot
+
+- [REPRO-Bench (ACL Findings 2025)](https://aclanthology.org/2025.findings-acl.1210/)
+  evaluates agents against papers and real reproduction packages; its best
+  baseline reached only 21.4% accuracy. Automated green is therefore not
+  accepted as source-visible reality.
+- [Proofs of Autonomy (ICML TAIG workshop 2025)](https://openreview.net/forum?id=qxFgQHN69d)
+  binds actions to verifiable execution traces and an immutable agent
+  definition. Its identity, non-repudiation, MPC, and privacy claims remain
+  outside this unsigned local route.
+- [AgentTrace](https://arxiv.org/abs/2602.10133) (February 2026) separates
+  operational, cognitive, and contextual telemetry. Structured logging is
+  useful, but remains weaker than byte-verified evidence closure.
+- [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) (June 2026
+  preprint) distinguishes the execution-provenance graph from its evidence-
+  support projection and identifies unified schemas and privacy-aware audit as
+  open problems.
+- [ProvenanceGuard](https://arxiv.org/abs/2607.01236) (July 2026 preprint)
+  checks whether tool calls and parameters are supported by traceable context.
+  It supports typed evidence references, not a claim that accounting proves
+  agent alignment.
+
+The admitted scope is deliberately narrower: exact local file bytes, byte
+length, SHA-256, reference closure, and a complete attempt ledger. It does not
+prove producer identity, signature authenticity, statement truth, agent
+reasoning, source quality, or human acceptance.
+
 ## Admitted method
 
 Reviewed `abyss-stack` checkpoint
@@ -138,21 +205,50 @@ fixed routes must pair its raw run receipt with the separate monetary-cost
 evidence route before any cost is reported. No old receipt, private payload, or
 model result was rewritten or rerun.
 
+Reviewed exact-binding checkpoint
+`71f8f0b56ed92aa9b9ea0abf4eb5e0a60fe41bb7` preserves v1 as a historical
+compatibility surface and adds v2 beside it. For v2, the accounting command:
+
+- resolves every evidence descriptor relative to the input packet;
+- rejects absolute/traversing paths, symlinks, missing files, duplicate IDs,
+  and duplicate paths;
+- reads each regular file and verifies both byte length and SHA-256;
+- requires every component evidence reference to resolve and every descriptor
+  to be used;
+- records one contiguous ordered attempt row per `attempt_count`, requires its
+  status counts to agree with `successful_goal_count`, and binds each attempt
+  to evidence of kind `run-receipt`;
+- emits a canonical descriptor-set digest while stating
+  `unsigned-not-attested` so file integrity is not mislabeled authenticity.
+
+The public v2 fixture is source-free and its four evidence files are themselves
+hash-checked by the repo-wide schema contract. Twenty-one direct monetary tests,
+the complete 228-test laboratory suite, the laboratory validator,
+`source-fast`, and the stack validator pass. The broader stack pytest remains
+environment-blocked outside this slice because the installed host MCP SDK no
+longer exports the checkout's `MCPError`/`MCPServer` API; that unrelated failure
+is not reported green or repaired through the ToS accounting change.
+
 ## Decision
 
 Promote the accounting mechanics with limits. For every new material run:
 
-1. bind one goal and functional unit before execution;
-2. retain every attempt, including failure and retry;
-3. record direct billed charges from explicit evidence;
-4. price electricity only from attributed whole-system/facility energy and a
+1. bind one goal and functional unit before execution in a v2 input;
+2. retain every attempt, including failure and retry, as one digest-bound
+   run-receipt row;
+3. bind every component to a verified local evidence descriptor and reject
+   both dangling and unused descriptors;
+4. record direct billed charges from explicit evidence;
+5. price electricity only from attributed whole-system/facility energy and a
    same-currency tariff receipt;
-5. estimate hardware only under a declared allocation policy;
-6. record active human seconds independently of any hourly valuation;
-7. leave unavailable fields null;
-8. treat a legacy emitter label as historical raw evidence, not a monetary
+6. estimate hardware only under a declared allocation policy;
+7. record active human seconds independently of any hourly valuation;
+8. leave unavailable fields null;
+9. treat a legacy emitter label as historical raw evidence, not a monetary
    aggregate;
-9. compare monetary cost only inside compatible task and evidence boundaries.
+10. compare monetary cost only inside compatible task and evidence boundaries;
+11. label local SHA-256 closure unsigned unless a separately admitted signing
+    or attestation route actually exists.
 
 Do not retrofit the cash-only example onto old runs. Their monetary cost stays
 unmeasured until their own evidence closes.
@@ -166,3 +262,5 @@ unmeasured until their own evidence closes.
 - a model, OCR, retrieval, graph, or translation winner;
 - content quality, German competence, human correction quality, or canon;
 - permission to rerun a model merely to populate a cost field.
+- producer identity, signature authenticity, non-repudiation, or truth of the
+  digest-bound evidence contents.

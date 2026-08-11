@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Bound future monetary accounting to exact evidence without rewriting history.
+  The reviewed `abyss-stack` v2 route verifies relative regular-file bytes,
+  byte lengths, SHA-256, component-reference closure, and one run receipt for
+  every ordered attempt while preserving v1 and labeling local integrity
+  `unsigned-not-attested`. Ordered W3C PROV, in-toto, SLSA, RO-Crate, FAIR,
+  reproducibility, and fresh agent-trace research is retained with explicit
+  limits. No old run gains a price, no evidence statement gains truth or
+  producer authenticity, and no source, model, human task, semantic claim,
+  publication, or canon authority is added.
 - Reconciled the foundation completion audit with the existing initial-sign
   owner route: the complete four-part exact-form recurrence remains a
   queryable, source-observed, non-promoting sidecar. It does not change

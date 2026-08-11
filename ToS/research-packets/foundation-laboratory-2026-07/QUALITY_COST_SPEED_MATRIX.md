@@ -40,10 +40,14 @@ accounting contract derived from FOCUS 1.4, SCI boundary law, official CFE
 tariff routing, established Green AI reporting, ML.ENERGY, and the fresh
 A-LEMS goal-level preprint. Reviewed follow-up `60c6a9e9` aligns the two
 mutable Russian-surface emitters with that law while leaving digest-bound
-translation runners and historical receipts byte-exact. The contract
-separates direct billed, electricity, allocated hardware, active human time,
-and human valuation; it also keeps retries and failures inside one goal
-boundary.
+translation runners and historical receipts byte-exact. Reviewed checkpoint
+`71f8f0b5` adds versioned v2 exact-evidence closure: every referenced local
+regular file is byte-length/SHA-256 verified, every descriptor is used, and
+one ordered digest-bound run receipt covers every attempt. The receipt labels
+that integrity `unsigned-not-attested`; it does not invent authenticity. The
+contract separates direct billed, electricity, allocated hardware, active
+human time, and human valuation; it also keeps retries and failures inside one
+goal boundary.
 
 The cash-only example proves mechanics, not a historical run. An evidenced
 zero external charge does not fill electricity, hardware, human valuation,
