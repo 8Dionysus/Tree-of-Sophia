@@ -363,3 +363,15 @@ normalization, and aggregate-CC-BY versus transcription-noncommercial rights
 conflict keep both texts deferred as question-scoped diagnostic challengers.
 No Item, retained payload, accepted German, alignment, human task, semantic
 effect, or experiment admission is created.
+
+`stanford-loeb-tinsley-pre-street-drift.2026-08-10.v1.json` rechecks the
+forthcoming Complete Works volume 7 in publisher -> established lineage ->
+identifier registry -> fresh distribution -> general-web-last order before
+2026-08-11 has begun at Stanford. The official catalog still says 424 pages,
+while current Google, Harvard, iMusic, and an indexed Stanford-page snippet
+say 552. Harvard remains preorder; iMusic's simultaneous `Released Jul 10`
+and `out of stock` fields are retained as internal vendor conflict. Direct
+publisher HTML returned a Vercel HTTP 429 and was not bypassed. Publisher
+excerpts, provider previews, and an unresolved third-party upload were not
+opened; no exact released manifestation, review, source content, request,
+rights clearance, translation reveal, or admission was created.

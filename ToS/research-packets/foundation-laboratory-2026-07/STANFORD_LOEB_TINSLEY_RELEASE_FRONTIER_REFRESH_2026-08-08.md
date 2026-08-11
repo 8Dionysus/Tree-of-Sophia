@@ -4,6 +4,13 @@ Status: current metadata refresh complete 2026-08-08; still forthcoming;
 zero content acquired or admitted; zero requests sent; exact manifestations,
 rights, reception, and passage-level suitability remain unreviewed
 
+Continuity note: this packet preserves the exact 2026-08-08 observation. The
+separate
+[`STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md`](STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md)
+records the later iMusic 424-to-552 drift, current Stanford-catalog versus
+search-index conflict, and still-unreleased boundary without rewriting this
+history.
+
 ## Question
 
 Has Stanford University Press's Loeb–Tinsley *Thus Spoke Zarathustra*

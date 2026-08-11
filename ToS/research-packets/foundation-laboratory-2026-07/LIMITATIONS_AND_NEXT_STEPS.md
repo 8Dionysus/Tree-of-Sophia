@@ -793,6 +793,15 @@ publisher still gives only August, the anticipated retailer date is
 2026-08-11, and current records conflict at 424 versus 552 pages. The route
 therefore remains metadata-only; post-street-date manifestation, rights,
 reception, and suitability review are still open.
+`STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md` repeats that
+order before the anticipated date begins at Stanford. The exact official
+catalog remains at 424 pages while current Google, Harvard, iMusic, and an
+indexed Stanford-page snippet report 552; Harvard remains preorder and
+iMusic's `Released Jul 10` plus `out of stock` combination is internally
+conflicting. Direct publisher HTML returned HTTP 429 without bypass.
+Publisher excerpts, previews, and an unresolved third-party upload were not
+opened, so the episode refreshes metadata conflict without acquiring content,
+revealing a comparator, or changing admission.
 The first cross-work route was refreshed the same day in
 `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md`: current GSA/Kalliope, HAAB, DFGA,
 eKGWB, e-rara, established genesis scholarship, and 2024-2025 textual-genetic

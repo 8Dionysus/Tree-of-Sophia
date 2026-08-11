@@ -420,6 +420,19 @@ an anticipated 2026-08-11 street date. Records also conflict at 424 versus
 552 pages. The conflict is manifestation evidence to preserve, not a value to
 normalize before an exact copy exists.
 
+The later
+[`STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md`](STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md)
+repeats the same order before the anticipated street date actually begins at
+Stanford. The exact official catalog still says 424 pages, while current
+Google Books records for all three ISBNs, Harvard's still-preorder record, and
+iMusic now say 552; an indexed Stanford-page snippet also says 552. iMusic's
+simultaneous `Released Jul 10` and `out of stock` fields are retained as an
+internal vendor-feed conflict, not promoted to publication evidence. The
+current publisher HTML transport returned a Vercel HTTP 429 and was not
+bypassed. Publisher excerpts and an unresolved third-party upload were not
+opened, preserving rights and blind-lane boundaries. No independent volume-7
+review was found in the dated scholarly-index and general-web-last pass.
+
 The register therefore keeps the volume as a deferred metadata-only research
 candidate under its stable v1 ID. No review-copy request was sent. After the
 anticipated street date, the three ISBN manifestations, exact publication
@@ -430,7 +443,7 @@ quality for volume 7.
 
 ## Admission result
 
-The register contains 15 candidates covering all nine required categories:
+The register contains 16 candidates covering all nine required categories:
 
 - historical German dictionary;
 - modern German dictionary;
