@@ -551,6 +551,18 @@ redistribution `not_authorized`, derivatives `local_research_only`, and
 blocked from the future site. Only public-safe metadata, fixity, provenance,
 text-free resource geometry, and proposed source-return anchors are tracked.
 
+The local 2007 Cultural Revolution witness now carries its own eight-layer
+assessment instead of inheriting either the age of Nietzsche's Work or the
+status of Antonovsky's historical translation. Those two historical layers
+are public-domain-reviewed for RU/US, but page 4 separately identifies and
+claims 2007 translation editing, commentary translation, and design. The
+underlying modern commentary and exact scope of the publisher contribution
+remain unresolved. The aggregate vector-outline PDF is therefore
+`in_copyright`, `local_only`, redistribution `not_authorized`, derivatives
+`local_research_only`, and blocked from the future site. The positive
+historical substrate creates no equivalence, accepted text, translation-
+quality, OCR, semantic, or publication result.
+
 The Nani 1899 parallel witness now exercises the required per-layer rights
 model. The exact record is freely downloadable and the current RuNEB FAQ says
 that only public-domain works may be downloaded, so the underlying Nietzsche

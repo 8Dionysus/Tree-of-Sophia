@@ -35,6 +35,27 @@ training datum, or public artifact was created. The route activates only on an
 explicit author request; an author-confirmed packet may inform a later claim
 only through a separate permission and review event.
 
+## Antonovsky 2007 layered-rights decision — 2026-08-11
+
+Retain the exact Item's eight-layer RU/US assessment as current model-authored
+rights evidence. Promote only the separation itself: Nietzsche's Work and the
+historical Antonovsky translation substrate are `public_domain_reviewed`;
+Oznobkina's 2007 translation editing, Zhavoronkov's 2007 commentary
+translation, Bernshtein's 2007 design, and the aggregate operator PDF are
+`in_copyright`; the underlying Colli/Montinari commentary and the publisher's
+exact Edition contribution remain `copyright_undetermined`.
+
+Keep the Item `local_only`, redistribution `not_authorized`, derivatives
+`local_research_only`, and human review `unreviewed`. Retain server-plan v2 as
+`restricted`, metadata-only, rights-blocked, transfer-false, and
+operator-unapproved. Public-safe bibliographic, contributor-role, fixity,
+provenance, and layer-status metadata may remain navigable; payload, page
+images, OCR, transcription, snippets, embeddings, alignments, translations,
+commentary, design, and source-bearing annotations must not be transferred or
+published. Reject any inference from public-domain upstream layers to the
+modern edited Expression or exact aggregate PDF, and reject stripping the
+local package as a route to clearance.
+
 ## Decision register
 
 The current MDZ pair pass extends the existing *Der Fall Wagner*,

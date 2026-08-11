@@ -176,3 +176,15 @@ operator-unapproved. The
 translations, embeddings, and content-bearing annotations remain prohibited
 for server transfer. Only public-safe bibliographic metadata, fixity,
 provenance, and source-return addresses may be projected.
+
+The local 2007 Cultural Revolution plan separately records the positive
+public-domain RU/US status of Nietzsche's Work and Antonovsky's historical
+translation substrate while refusing to propagate either result to the exact
+newly edited Expression. Source-visible 2007 notices keep translation editing,
+commentary translation, and design in copyright; the underlying modern
+commentary and publisher contribution remain unresolved. The exact
+162,778,307-byte vector-outline PDF is therefore restricted, metadata-only,
+blocked, and operator-unapproved. No payload, page image, OCR, transcription,
+snippet, embedding, alignment, translation, or source-bearing annotation may
+be transferred. Only public-safe identity, contributor-role, provenance,
+fixity, and eight-layer status metadata may be projected.

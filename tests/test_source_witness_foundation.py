@@ -549,6 +549,28 @@ ANTONOVSKY_1911_SERVER_PLAN_PATH = (
     / "ToS/source-witnesses/server-import/plans/"
     "antonovsky-prometey-1911-rsl-neb-scan-pdf.server-import.json"
 )
+ANTONOVSKY_2007_EXPRESSION_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution"
+)
+ANTONOVSKY_2007_EDITION_ROOT = (
+    ANTONOVSKY_2007_EXPRESSION_ROOT
+    / "editions/moscow-cultural-revolution-2007-volume-4"
+)
+ANTONOVSKY_2007_ITEM_ROOT = (
+    ANTONOVSKY_2007_EDITION_ROOT / "items/operator-pdf"
+)
+ANTONOVSKY_2007_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md"
+)
+ANTONOVSKY_2007_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "antonovsky-2007-operator-pdf.server-import.json"
+)
 READER_1899_EXPRESSION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -4131,6 +4153,172 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertFalse(
             server_event["method"]["configuration"]["aggregate_rights_status_changed"]
+        )
+
+    def test_antonovsky_2007_keeps_historical_and_recent_rights_layers_distinct(
+        self,
+    ) -> None:
+        rights_path = ANTONOVSKY_2007_ITEM_ROOT / "rights.json"
+        rights = json.loads(rights_path.read_text(encoding="utf-8"))
+        self.assertEqual("in_copyright", rights["assessment_status"])
+        self.assertEqual(["RU", "US"], rights["jurisdictions_reviewed"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual(2, rights["record_version"])
+        self.assertIsNone(rights["rights_statement_uri"])
+
+        layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original-german-work",
+                "historical-antonovsky-translation-substrate",
+                "translation-editing-2007",
+                "underlying-critical-commentary",
+                "commentary-translation-2007",
+                "edition-design-2007",
+                "publisher-edition-contribution-2007",
+                "exact-operator-digital-package",
+            },
+            set(layers),
+        )
+        for layer_id in (
+            "original-german-work",
+            "historical-antonovsky-translation-substrate",
+        ):
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers[layer_id]["assessment_status"],
+            )
+            self.assertEqual(
+                "authorized_with_conditions",
+                layers[layer_id]["redistribution_posture"],
+            )
+        self.assertEqual(
+            "1970-12-31",
+            layers["original-german-work"]["term"]["ends_on"],
+        )
+        self.assertEqual(
+            "1963-12-31",
+            layers["historical-antonovsky-translation-substrate"]["term"][
+                "ends_on"
+            ],
+        )
+        for layer_id in (
+            "translation-editing-2007",
+            "commentary-translation-2007",
+            "edition-design-2007",
+            "exact-operator-digital-package",
+        ):
+            self.assertEqual("in_copyright", layers[layer_id]["assessment_status"])
+            self.assertEqual(
+                "not_authorized",
+                layers[layer_id]["redistribution_posture"],
+            )
+            self.assertEqual(
+                "not_authorized",
+                layers[layer_id]["server_processing_posture"],
+            )
+        for layer_id in (
+            "underlying-critical-commentary",
+            "publisher-edition-contribution-2007",
+        ):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers[layer_id]["assessment_status"],
+            )
+
+        server_plan = json.loads(
+            ANTONOVSKY_2007_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("restricted", server_plan["rights_policy"]["assessment_status"])
+        self.assertEqual(
+            hashlib.sha256(rights_path.read_bytes()).hexdigest(),
+            server_plan["rights_policy"]["rights_record_sha256"],
+        )
+        self.assertEqual(
+            ["RU", "US"],
+            server_plan["rights_policy"]["jurisdictions_reviewed"],
+        )
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual(2, server_plan["contract_version"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        for derivative in (
+            "ocr",
+            "transcription",
+            "page_images",
+            "snippets",
+            "embeddings",
+            "alignments",
+            "translations",
+            "annotations",
+        ):
+            self.assertEqual(
+                "prohibited",
+                server_plan["allowed_derivatives"][derivative]["state"],
+            )
+
+        research_text = ANTONOVSKY_2007_RIGHTS_RESEARCH_PATH.read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Classical and official documentation", research_text)
+        self.assertIn("Established scholarship and practice", research_text)
+        self.assertIn("Fresh and currently relevant checks", research_text)
+        self.assertIn("General web search, last", research_text)
+        self.assertIn("explicitly non-normative", research_text)
+        self.assertIn("public-domain Work and", research_text)
+        self.assertIn("modern edited Edition", research_text)
+
+        item_events = [
+            json.loads(line)
+            for line in (ANTONOVSKY_2007_ITEM_ROOT / "provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        item_event = item_events[-1]
+        self.assertEqual(
+            "tos.event.rights-assessment.antonovsky-cultural-revolution-2007-"
+            "operator-pdf.layered.2026-08-11",
+            item_event["event_id"],
+        )
+        self.assertTrue(item_event["method"]["configuration"]["payload_read"])
+        self.assertEqual(
+            [3, 4], item_event["method"]["configuration"]["inspected_pdf_pages"]
+        )
+        self.assertFalse(
+            item_event["method"]["configuration"]["operator_transfer_approval"]
+        )
+
+        server_events = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        server_event = next(
+            event
+            for event in reversed(server_events)
+            if event["event_id"] == server_plan["provenance_event_refs"][0]
+        )
+        self.assertEqual(2, server_event["event_version"])
+        self.assertEqual(
+            "in_copyright",
+            server_event["method"]["configuration"][
+                "rights_record_aggregate_status"
+            ],
+        )
+        self.assertFalse(
+            server_event["method"]["configuration"]["payload_transfer_authorized"]
         )
 
     def test_reader_1899_is_an_exact_but_fragmentary_uncredited_witness(
@@ -11185,6 +11373,13 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertIn(
             translation_laboratory_plan["recognized_comparator"]["item_ref"],
             comparator_entry["tos_refs"]["record_refs"],
+        )
+        self.assertEqual("in-copyright", comparator_entry["rights"]["assessment"])
+        self.assertFalse(comparator_entry["admission"]["human_rights_review"])
+        self.assertIn(
+            "ToS/research-packets/foundation-laboratory-2026-07/"
+            "ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+            comparator_entry["tos_refs"]["path_refs"],
         )
         stanford_entry = next(
             entry

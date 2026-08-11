@@ -95,4 +95,28 @@ translation, commentary translation, and design remain exact research
 evidence but are not flattened into the current responsibility predicates.
 The annotation does not admit source text, OCR, Expression equivalence,
 translation quality, semantics, rights clearance, or human review. The local
-payload and its rights posture remain unchanged.
+payload remains unchanged and local.
+
+## Layered rights continuation — 2026-08-11
+
+The exact registered bytes were reverified, and temporary renders of PDF
+pages 3 and 4 were opened again. Ordered research then checked current official
+RU/US law, established digitisation scholarship, fresh 2026 WIPO guidance,
+and general web results last. The result is recorded in
+`ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md` and in the
+Item's version-2 `rights.json`.
+
+The assessment now separates eight layers. Nietzsche's underlying Work and
+Antonovsky's historical translation substrate are public-domain-reviewed for
+the bounded RU/US route. That historical result does not clear the exact 2007
+Expression: page 4 separately identifies and claims new translation editing,
+commentary translation, and design in 2007. Those recent contributions and
+the aggregate operator PDF are treated as in copyright; the underlying modern
+commentary and the exact scope of the publisher contribution remain
+copyright-undetermined.
+
+The improved status is a more precise closed boundary, not permission. The
+162,778,307-byte PDF remains local-only; redistribution, public derivatives,
+server processing, and future-site upload remain unauthorized. Rights review
+does not accept OCR, source text, translation quality, semantics, or canon,
+and human legal review and operator transfer approval remain absent.

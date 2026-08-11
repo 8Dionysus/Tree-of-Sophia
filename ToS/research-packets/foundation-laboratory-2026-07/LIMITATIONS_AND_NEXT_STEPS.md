@@ -598,6 +598,16 @@ contracts intentionally reject simulated human evidence.
 - Current rights assessments are preliminary, model-authored, and unreviewed.
 - The 1996 and 2007 Russian sources are local-research-only; payload and public
   derivative redistribution are not authorized.
+- The exact 2007 *Cultural Revolution* Item is no longer merely unevaluated.
+  Its current model-authored RU/US assessment separates eight layers:
+  Nietzsche's Work and the historical Antonovsky translation substrate are
+  `public_domain_reviewed`; the 2007 translation editing, commentary
+  translation, design, and aggregate operator PDF are `in_copyright`; the
+  underlying commentary and publisher contribution remain unresolved. This
+  sharper result keeps the file local-only and makes its server plan
+  `restricted`, metadata-only, rights-blocked, transfer-false, and
+  operator-unapproved. It is not human legal review, source-text acceptance,
+  permission, or publication authority.
 - The 1913 Commons scan is a genuinely positive route: the provider declares
   the exact object public domain, and the distinct Wikisource transcription is
   offered under CC BY-SA terms. ToS preserves those claims with stable source
@@ -1158,8 +1168,11 @@ not reintroduce a false 90 °C gate.
   subject-object edge. General editing, scientific translation editing, and
   commentary translation remain deferred contract pressure rather than false
   generic relations. The local payload remains unpublished and local-only;
-  bibliographic attribution establishes neither textual fidelity, translation
-  quality, rights clearance, human review, semantics, publication, nor canon.
+  bibliographic attribution establishes neither textual fidelity nor
+  translation quality. A later exact-Item rights pass separately records two
+  positive historical layers, three active 2007 authored layers, two
+  unresolved layers, and one active aggregate PDF layer without creating
+  human legal clearance, accepted text, semantics, publication, or canon.
 - The subsequent Antonovsky–Prometey 1911 slice adds one distinct Expression,
   one exact fourth Edition, one 62,952,283-byte RSL/RuNEB Item, two provisional
   provision Organizations, one translator claim, two provision claims, and
@@ -1581,16 +1594,22 @@ from the calibration-only route in section 2b.
    metadata layers before human rights review and operator approval. Do not
    upload any of the three operator-held files or relabel a stripped local
    derivative as the original package.
-10. Treat the different Harvard/Hathi 1886 volume as a new Item only after an
+10. For the 2007 *Cultural Revolution* Edition, do not project the positive
+    historical Work or Antonovsky-substrate results onto the newly edited
+    translation, commentary, design, or exact PDF. A content-bearing public
+    route requires an independently permitted exact source or written
+    layer-specific permission, then fresh fixity, quality, rights,
+    human-review, and operator-approval gates.
+11. Treat the different Harvard/Hathi 1886 volume as a new Item only after an
     operator-approved request and current access-contract review. Shared author,
     title, publisher, and year do not establish physical identity, rights
     equivalence, text equivalence, or server admission.
-11. Reacquire any future public *Genealogie* 1892 object independently from
+12. Reacquire any future public *Genealogie* 1892 object independently from
     the then-current exact Commons route, verify that revision's fixity and
     source-country expression, and inspect binding, UNC furniture, OCR layout,
     wrapper, and provider metadata by layer. Do not upload the operator-held
     PDF or substitute the current byte-different Internet Archive derivative.
-12. Reacquire any future public *Antichrist* 1906 aggregate object
+13. Reacquire any future public *Antichrist* 1906 aggregate object
     independently from the then-current exact Commons route. Verify its new
     fixity and inspect archive editorial matter, Stanford furniture, OCR
     coverage and layout, DjVu packaging, and provider metadata by layer. Do
