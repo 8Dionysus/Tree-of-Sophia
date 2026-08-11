@@ -61,11 +61,13 @@ observations only inside that addressable witness. Meaning, preferred reading,
 authorial finality, translation, and conceptual relation remain separately
 reviewable assertions.
 
-The freshest directly relevant 2026 development is not a new manuscript
-identity but the forthcoming August 2026 Stanford translation by Paul S.
-Loeb and David F. Tinsley. It is registered as a deferred metadata candidate
-until publication, manifestation, rights, and passage-level suitability are
-actually verified.
+The directly relevant 2026 development is not a new manuscript identity but
+the Stanford translation by Paul S. Loeb and David F. Tinsley, announced for
+August 2026. The 2026-08-11 post-street check advances it only to
+metadata-only unresolved: current publisher transport is blocked, the exact
+catalog remains at 424 pages, distribution records conflict at 424 and 552,
+and no exact manifestation, custody, rights, or passage-level suitability is
+verified.
 
 ### First cross-work source correction
 

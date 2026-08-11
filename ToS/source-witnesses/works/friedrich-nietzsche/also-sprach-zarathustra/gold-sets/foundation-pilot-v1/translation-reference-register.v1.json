@@ -4,7 +4,7 @@
   "register_id": "tos.translation-reference-register.zarathustra-foundation-v1",
   "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
   "laboratory_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-laboratory-plan.v1.json",
-  "research_snapshot": "2026-08-08",
+  "research_snapshot": "2026-08-11",
   "status": "researched-not-content-admitted",
   "research_order": [
     "classical-official-documentation",
@@ -1246,9 +1246,9 @@
         "translators": ["Paul S. Loeb", "David F. Tinsley"]
       },
       "dating": {
-        "original_or_coverage_date": "publisher catalog schedules August 2026; current distribution metadata supplies an anticipated 2026-08-11 street date; no completed release established by 2026-08-10 17:59 America/Los_Angeles",
-        "edition_or_version": "Complete Works volume 7; cloth, paper, and eBook manifestations announced; exact official catalog says 424 pages while current Google, Harvard, iMusic, and indexed Stanford-page metadata report 552; Harvard remains preorder and iMusic's release/out-of-stock fields conflict internally; no exact released manifestation inspected as of 2026-08-10",
-        "verified_at": "2026-08-10"
+        "original_or_coverage_date": "publisher catalog schedules August 2026; distribution metadata supplies 2026-08-11; after that date began at Stanford, direct publisher HTML remained unavailable and no publisher-authenticated completed release was established",
+        "edition_or_version": "Complete Works volume 7; cloth, paper, and eBook manifestations announced; the exact official catalog remains at 424 pages while current records preserve 424 and 552 values; Harvard exposes post-street cart availability, other print routes remain preorder, delayed, or internally conflicting, and no exact manifestation has been inspected",
+        "verified_at": "2026-08-11"
       },
       "identifiers": [
         {"scheme": "ISBN-hardcover", "value": "9780804728799"},
@@ -1267,7 +1267,7 @@
         "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=Oi2H0QEACAAJ",
         "https://books.google.com/books/about/Thus_Spoke_Zarathustra.html?id=kgrzEQAAQBAJ"
       ],
-      "scholarly_posture": "forthcoming publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison; established specialist review of the translators' earlier Complete Works volume supports candidate value but does not transfer a quality verdict to volume 7",
+      "scholarly_posture": "post-street metadata-only publisher-backed English translation candidate whose announced notebook-variant cross-references, translation-issues afterword, and key-term glossary are directly relevant to later translation-laboratory comparison; established specialist review of the translators' earlier Complete Works volume supports candidate value but does not transfer a quality verdict to volume 7",
       "intended_uses": [
         "translation-witness",
         "critical-source-comparison",
@@ -1275,17 +1275,17 @@
         "bibliographic-identity"
       ],
       "limits": [
-        "on 2026-08-10 at 17:59 America/Los_Angeles the volume remains a pre-street metadata candidate against a retailer-supplied anticipated 2026-08-11 date, not an inspectable or admitted translation",
+        "on 2026-08-11 after the anticipated date began at Stanford, the volume advanced only to post-street metadata-only unresolved, not an inspectable or admitted translation",
         "publisher description is not passage-level quality evidence",
-        "the publisher gives only August 2026 and does not currently confirm the retailer-supplied exact day",
-        "the exact official catalog remains at 424 pages while current Google Books records for all three ISBNs, Harvard, iMusic, and an indexed Stanford-page snippet report 552, so extent cannot be normalized before exact manifestation inspection",
-        "Harvard still marks both print formats preorder, while iMusic simultaneously reports Released Jul 10 and out of stock; the vendor conflict is not publication evidence",
-        "current direct Stanford title-page transport returned a Vercel HTTP 429 and was not bypassed; a search-index snippet is not substituted for publisher transport",
-        "publisher excerpts, provider previews, and an unresolved third-party upload were not opened or admitted because rights, version, and blind-lane gates remain closed",
-        "specialist review of the translators' 2019 volume 14 is established lineage evidence, not reception or a quality verdict for the unreleased volume 7",
+        "the exact official catalog remains at 424 pages while current external records preserve both 424 and 552 values, so extent cannot be normalized before manifestation-specific inspection",
+        "Harvard now exposes add-to-cart for both print ISBNs at 552 pages, while iMusic and other current routes preserve preorder, delayed-delivery, out-of-stock, July 10, and 424-page values; distribution conflict is not publisher-authenticated release",
+        "current direct Stanford title and copy-request transport returned Vercel HTTP 429 and was not bypassed; a stale search-index record is not substituted for publisher transport",
+        "no preview page was deliberately opened, but a general-search response emitted an unsolicited metadata-adjacent contents and common-terms snippet; it is not quoted, retained, admitted, or usable for blind adjudication",
+        "publisher excerpts and unresolved third-party uploads were not opened or admitted because rights, version, and blind-lane gates remain closed",
+        "specialist review of the translators' 2019 volume 14 is established lineage evidence, not reception or a quality verdict for volume 7",
         "newness does not establish recognition, accuracy, or superiority",
         "the in-copyright text has not been acquired and no review-copy request was sent",
-        "publication date, manifestation identity, pagination, and actual contents require post-release verification"
+        "publisher-authenticated release, manifestation identity, pagination, lawful custody, rights, and passage-level suitability remain unverified"
       ],
       "access": {
         "access_state": "metadata-only",
@@ -1318,6 +1318,8 @@
           "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_RELEASE_FRONTIER_REFRESH_2026-08-08.md",
           "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_PRE_STREET_DRIFT_CHECK_2026-08-10.md",
           "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-pre-street-drift.2026-08-10.v1.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md",
+          "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json",
           "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md",
           "ToS/source-witnesses/discovery/runs/zarathustra-authorial-witness-route.2026-07-30.v1.json"
         ]
@@ -1328,15 +1330,14 @@
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "the scheduled publication has not occurred",
-          "no completed publisher-authenticated release has been established by the end of the 2026-08-10 Stanford check",
+          "no completed publisher-authenticated release has been established after the 2026-08-11 Stanford date began",
           "no exact manifestation or content has been inspected",
           "the 424-versus-552 extent conflict remains unresolved per manifestation",
           "rights and permissible research-use scope remain unreviewed",
           "passage-level comparison and recognition evidence do not yet exist"
         ]
       },
-      "notes": "The 2026-08-10 pre-street check preserves the official-catalog 424 versus current 552 metadata drift, current print preorder state, iMusic's internally conflicting release/out-of-stock fields, publisher HTTP 429 without bypass, and zero content access. Recheck after the anticipated 2026-08-11 street date and again against an exact lawfully held manifestation. The stable v1 reference ID preserves research history; it does not assert permanent forthcoming status. Until release, manifestation, rights, and suitability gates are separately proven, this entry is a dated metadata lead only and must not be revealed to independent translation lanes as a comparator."
+      "notes": "The 2026-08-11 post-street check preserves the unchanged official-catalog 424-page record, publisher HTTP 429 without bypass, Harvard's new cart signal at 552 pages, contradictory print preorder, delivery, stock, date, and extent feeds, and the eBook metadata date without acquiring content. A search response emitted an unsolicited metadata-adjacent snippet; this context is excluded from blind adjudication and no text is retained. The stable v1 reference ID preserves research history and does not assert current forthcoming status. The next trigger is a current publisher response or an exact lawfully held manifestation, followed by separate rights and suitability review."
     }
   ],
   "coverage": {

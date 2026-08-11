@@ -279,11 +279,14 @@ nine required categories: dictionaries, corpora, critical-edition resources,
 Nietzsche-specific lexical resources, and recognized translation witnesses.
 It keeps scholarly role, access, rights, citation, contact, and content
 admission separate. The current additional English candidate is the
-Loeb/Tinsley Stanford translation scheduled for August 2026: after the
-2026-08-10 pre-street drift check it remains metadata-only, with
-official-catalog 424 versus current 552 evidence, current print preorder
-state, no acquired manifestation, passage inspection, review-copy request, or
-authority in the independent lanes.
+Loeb/Tinsley Stanford translation dated August 2026: after the 2026-08-11
+post-street metadata check it remains metadata-only and unresolved. The
+official catalog is unchanged at 424 pages; Harvard now exposes cart
+availability at 552 pages; other exact print routes remain preorder, delayed,
+out of stock, internally misdated, or at 424 pages. No publisher-authenticated
+release, acquired manifestation, passage inspection, review-copy request, or
+authority in the independent lanes exists. An unsolicited search-result
+content-adjacent snippet is excluded from blind adjudication and not retained.
 
 Current admission counts are deliberately zero:
 

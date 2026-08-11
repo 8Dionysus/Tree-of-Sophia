@@ -828,6 +828,17 @@ conflicting. Direct publisher HTML returned HTTP 429 without bypass.
 Publisher excerpts, previews, and an unresolved third-party upload were not
 opened, so the episode refreshes metadata conflict without acquiring content,
 revealing a comparator, or changing admission.
+`STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md` then executes
+the event-based check after the anticipated date begins at Stanford. Direct
+publisher HTML remains HTTP 429 without bypass and the official catalog bytes
+remain fixed at 424 pages. Harvard now exposes add-to-cart at 552 pages, but
+other current print routes still report preorder, delayed delivery,
+out-of-stock, internally incompatible dates, or 424 pages. The eBook metadata
+date has arrived without an exact manifestation, rights grant, or custody.
+One general-search response emitted an unsolicited metadata-adjacent snippet;
+it is not retained or usable for blind adjudication. The next trigger is a
+current publisher response or an exact lawfully held manifestation, not
+another date loop.
 The first cross-work route was refreshed the same day in
 `JENSEITS_AUTHORIAL_WITNESS_ROUTE.md`: current GSA/Kalliope, HAAB, DFGA,
 eKGWB, e-rara, established genesis scholarship, and 2024-2025 textual-genetic

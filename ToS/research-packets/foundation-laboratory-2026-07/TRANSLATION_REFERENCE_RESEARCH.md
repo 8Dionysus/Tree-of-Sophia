@@ -1,18 +1,19 @@
 # Translation Reference Research
 
 Status: bounded research complete; eKGWB rights/transport refreshed
-2026-07-30; Stanford release frontier and the source-first etymology evidence
-route refreshed 2026-08-08; Stanford remains forthcoming; zero reference
-content admitted; human bibliographic and rights review pending
+2026-07-30; source-first etymology evidence route refreshed 2026-08-08;
+Stanford post-street metadata refreshed 2026-08-11 and remains unresolved;
+zero reference content admitted; human bibliographic and rights review pending
 
-Research snapshot: 2026-08-08; eKGWB rights/transport refresh: 2026-07-30;
-Stanford release-frontier and etymology evidence-route refresh: 2026-08-08
+Research snapshot: 2026-08-11; eKGWB rights/transport refresh: 2026-07-30;
+etymology evidence-route refresh: 2026-08-08; Stanford post-street metadata
+refresh: 2026-08-11
 
 Machine-readable register:
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-reference-register.v1.json`
 
 Register SHA-256:
-`1a8022068ec8893605725046239a5e90c0a3f3a2ed1d1e771140f8dae7a4f7aa`
+`6df55e6cddd8560e4a3533867b866edae91e89b746b2a49523b07c268812c76c`
 
 Contract:
 `ToS/contracts/translation-reference-register.schema.json`
@@ -433,13 +434,27 @@ bypassed. Publisher excerpts and an unresolved third-party upload were not
 opened, preserving rights and blind-lane boundaries. No independent volume-7
 review was found in the dated scholarly-index and general-web-last pass.
 
-The register therefore keeps the volume as a deferred metadata-only research
-candidate under its stable v1 ID. No review-copy request was sent. After the
-anticipated street date, the three ISBN manifestations, exact publication
-date, extent, contents, rights, independent reception, and passage-level
-suitability must be checked separately before any comparison lane can see it.
-Newness and prior translator reputation establish neither recognition nor
-quality for volume 7.
+The post-street
+[`STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md`](STANFORD_LOEB_TINSLEY_POST_STREET_METADATA_CHECK_2026-08-11.md)
+then runs after 2026-08-11 begins at Stanford. Direct publisher HTML remains
+HTTP 429 without bypass, and the exact catalog bytes remain unchanged at 424
+pages. Harvard now exposes add-to-cart for both print ISBNs at 552 pages, but
+other current routes remain preorder, delayed, out of stock, internally
+misdated, or at 424 pages. The eBook metadata date has arrived, while exact
+Crossref and Open Library routes remain empty. This is a distribution
+transition and a preserved manifestation conflict, not publisher-authenticated
+release or lawful custody.
+
+No preview page was deliberately opened. A general-search response did emit
+an unsolicited metadata-adjacent contents and common-terms snippet; it is not
+quoted, retained, admitted, or usable for blind adjudication. The register
+therefore keeps the volume as a post-street metadata-only unresolved research
+candidate under its stable v1 ID. No review-copy request was sent. A current
+publisher response or exact lawfully held manifestation must precede title
+and copyright-page inspection, extent reconciliation, rights review,
+independent reception assessment, and passage-level suitability. Newness and
+prior translator reputation establish neither recognition nor quality for
+volume 7.
 
 ## Admission result
 

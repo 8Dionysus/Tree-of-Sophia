@@ -375,3 +375,15 @@ publisher HTML returned a Vercel HTTP 429 and was not bypassed. Publisher
 excerpts, provider previews, and an unresolved third-party upload were not
 opened; no exact released manifestation, review, source content, request,
 rights clearance, translation reveal, or admission was created.
+
+`stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json` executes the
+event trigger after 2026-08-11 begins at Stanford. Direct publisher title and
+copy-request HTML still return HTTP 429 without bypass, and the exact catalog
+remains byte-identical at 424 pages. Harvard now exposes add-to-cart for both
+print ISBNs at 552 pages, while other current print routes remain preorder,
+delayed, out of stock, internally misdated, or at 424 pages. The eBook
+metadata date has arrived, but no exact manifestation, publisher-authenticated
+release, custody, rights grant, or suitability review exists. An unsolicited
+metadata-adjacent search snippet is excluded from blind adjudication and not
+retained. The next trigger is a current publisher response or exact lawfully
+held manifestation, not another date loop.

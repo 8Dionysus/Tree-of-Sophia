@@ -10304,21 +10304,22 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             translation_laboratory_plan["recognized_comparator"]["item_ref"],
             comparator_entry["tos_refs"]["record_refs"],
         )
-        forthcoming_entry = next(
+        stanford_entry = next(
             entry
             for entry in translation_reference_register["entries"]
             if entry["reference_id"]
             == "tos-ref.en.loeb-tinsley-stanford-2026-forthcoming"
         )
-        self.assertEqual("metadata-only", forthcoming_entry["access"]["access_state"])
+        self.assertEqual("2026-08-11", stanford_entry["dating"]["verified_at"])
+        self.assertEqual("metadata-only", stanford_entry["access"]["access_state"])
         self.assertEqual(
             "not-acquired",
-            forthcoming_entry["access"]["acquisition_state"],
+            stanford_entry["access"]["acquisition_state"],
         )
-        self.assertFalse(forthcoming_entry["admission"]["accepted_as_truth"])
+        self.assertFalse(stanford_entry["admission"]["accepted_as_truth"])
         self.assertIn(
-            "the scheduled publication has not occurred",
-            forthcoming_entry["admission"]["blocking_reasons"],
+            "no completed publisher-authenticated release has been established after the 2026-08-11 Stanford date began",
+            stanford_entry["admission"]["blocking_reasons"],
         )
         self.assertTrue(retrieval_plan["frozen_before_variant_outputs"])
         self.assertEqual(20, len(retrieval_plan["queries"]))
