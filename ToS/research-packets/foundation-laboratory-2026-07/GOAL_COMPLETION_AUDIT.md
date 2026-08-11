@@ -3,7 +3,7 @@
 Status: active requirement-by-requirement audit; the corpus mechanics are
 substantial, but the full foundation goal is not complete
 
-Audit snapshot: 2026-08-10
+Audit snapshot: 2026-08-11
 
 ## Purpose
 
@@ -25,16 +25,15 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia reviewed checkpoint `8ee432fd` (`Return selected form across
-  work witnesses`), including the unchanged semantic-ladder v5, its earlier
-  packet-local source observation, one frozen selected-hash recurrence plan,
-  145 private exact raw-witness returns across all four DTA Items, a tracked
-  source-withholding receipt, the preceding DTA/eKGWB edition-reading
-  admission, and every earlier source-challenger, source-visible transfer,
-  catalogue, layered-rights, and restored-work correction retained by
-  checkpoint `67fc9bdf`;
-- isolated `abyss-stack` branch through `12546641` (`Measure pinned Qwen
-  Russian surface challenger`);
+- Tree of Sophia source evidence through reviewed checkpoint `76191457`
+  (`Refresh Stanford translation post-street state`), including the completed
+  uncertain specialized-MT episode at `5b31a573`, the post-street
+  metadata-only Stanford state, the unchanged semantic-ladder v5 and its
+  source-observation sidecars, and every earlier source-challenger,
+  source-visible transfer, catalogue, layered-rights, and restored-work
+  correction retained by the branch;
+- isolated `abyss-stack` branch through `83b87010` (`docs: record specialized
+  translation outcome`);
 - private, host-owned OCR candidate-review evidence produced on 2026-07-26;
 - the host-owned direct-visual `ready` preflight captured on 2026-07-30,
   SHA-256

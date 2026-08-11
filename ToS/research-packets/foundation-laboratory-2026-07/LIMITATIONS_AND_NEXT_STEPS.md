@@ -1218,10 +1218,11 @@ materialization, annotation-tool execution, and human work remain blocked.
 Current state: one source string is eligible; historical A/B/C remain frozen
 at their actual outcomes; separately admitted resident E4B and Qwen3 8B CPU
 successor probes are also frozen. A specialized MADLAD/Candle CPU route has
-passed exact acquisition, repaired-runtime admission, and one source-free
-smoke, but has not consumed the private source or produced a candidate. A
-later deterministic source-blind screen was applied to existing private
-artifacts without model reruns. None is open for cosmetic reruns.
+passed exact acquisition, repaired-runtime admission, one source-free smoke,
+and one private-source candidate episode retained as finding-free but
+`uncertain / retain-for-method-comparison`. A later deterministic source-blind
+screen was applied to existing private artifacts without model reruns. None is
+open for cosmetic reruns.
 
 1. Read the source string only from the ignored local artifact and verify its
    artifact and source-text digests before each run.
