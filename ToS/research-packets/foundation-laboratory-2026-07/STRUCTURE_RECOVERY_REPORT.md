@@ -1,6 +1,7 @@
 # Structure Recovery Report: Foundation Pilot v1
 
-Status: variants A, B, and C executed; awaiting real-human review
+Status: variants A, B, and C executed; common-page advisory comparison
+complete; no content-acceptance question open
 Experiment: `tos-structure-recovery-v1`
 Frozen scopes: A/B 36 units; C 12 output-blind pages selected before execution
 Execution dates: 2026-07-22 through 2026-07-23
@@ -22,13 +23,22 @@ Three materially different structure routes now have real machine evidence:
   slow and memory-intensive on this CPU host.
 
 No variant has a structural F1, reading-order score, accepted transcription,
-or measured human correction cost. Human manual-review receipts remain
+or measured human correction cost. Human structure-review receipts remain
 **0**. Six source-visible advisory model inspections were recorded for B and
 six for C, but every one is `advisory-nonhuman` and forbids promotion.
 
+A later direct comparison inspected the same six frozen pages against all
+three actual outputs. It is recorded without source text in
+`structure-common-page-comparison.v1.json`. Variant identities were visible
+from their artifact paths, so this is explicitly **not blind review**. It
+supports per-page engineering route choices, not a quality score or content
+promotion.
+
 The result therefore retains A/B/C as distinct laboratory evidence without
-declaring a quality winner or moving any output into ToS text, semantics, or
-canon.
+declaring a universal quality winner or moving any output into ToS text,
+semantics, or canon. No standing human batch is opened. A human episode becomes
+relevant only if a concrete adoption, accepted-structure, correction-cost, or
+promotion question later requires it.
 
 Separately from the A/B/C extraction outputs, the source-owned witness route
 now has a deterministic text-free structure map across the four DTA part
@@ -155,6 +165,32 @@ C is therefore a serious structure challenger, not an accepted
 transcription. Its improved visible structure on several pages must be
 weighed against page-level errors, omitted witness marks, approximately
 95-minute wall time for 12 pages, and an 11.4 GiB observed owner footprint.
+
+## Same-page A/B/C comparison
+
+The later comparison used two already-frozen pages from each source group and
+returned to the original-resolution page PNG plus the exact A metadata/native
+layout, B ordered blocks, and C ordered blocks. It assessed only visible
+structure: main-content order, furniture separation, roles, grouping,
+identity-bearing block retention, visible omissions/additions, and source
+return. It did not assess German or Russian correctness, transcription
+accuracy, translation, or semantics.
+
+| Frozen page | A | B | C | Bounded route |
+| --- | --- | --- | --- | --- |
+| Antonovsky 300 | native layer empty | verse and marginal numbers damaged | main verse order useful; relations absent | C for visual structure navigation |
+| Antonovsky 330 | native layer empty | broad prose order useful; margins flattened | marginal labels moved before prose in wrong order | B for broad prose-order navigation |
+| Mysl 4 | identity blocks and layout retained; roles absent | identity-bearing front matter omitted or flattened | title, credits, and footer roles separated; glyph errors remain | C for front-matter navigation, with A as cheap embedded-layer companion |
+| Mysl 8 | corrupt embedded layer exposed; no visual repair | inherited corruption plus adjacent-block reversal | visual paragraph order recovered; substitutions remain | C for visual order navigation |
+| Naumann 59 | mapped EPUB body order usable but flat | one flattened block | paragraphs, page number, and provider furniture separated; handwriting omitted | C for scan-page navigation |
+| Naumann 380 | mapped EPUB body order usable but flat | one flattened block | title, subtitle, section, refrain, page, and furniture separated; ornament/relations absent | C for song-page navigation |
+
+The `5 C / 1 B / 0 A` bounded preference count is deliberately **not** an
+accuracy measure. A answers a different native-layer question, the Naumann A/B
+routes consume mapped EPUB members while C consumes rendered PDF pages, and C
+costs orders of magnitude more while failing materially on Antonovsky 330.
+The defensible method is a question-scoped per-page fallback with source
+return, not a family-wide winner.
 
 ## Exact Naumann 1886 numbered-unit source trial
 
@@ -351,18 +387,22 @@ or canon effect.
    earlier C setup/scope failures as negative evidence.
 2. Retain corrected A for container inventory, anchors, EPUB body extraction,
    and selected readable ABBYY mechanics only.
-3. Retain corrected B as a fast, provenance-routed hybrid comparator; reject
-   the five inspected output examples and make no family-wide rejection.
-4. Retain C as a high-cost independent challenger; reject the inspected
-   Antonovsky page 330 result and accept five inspected packets only with
-   nonhuman advisory limits.
+3. Retain corrected B as a fast, provenance-routed hybrid comparator and the
+   bounded prose-order preference on Antonovsky page 330; reject the five
+   earlier inspected output examples and make no family-wide rejection.
+4. Retain C as a high-cost independent challenger and the bounded
+   visual-structure preference on five common pages; reject the inspected
+   Antonovsky page 330 result and keep every retained packet under nonhuman
+   advisory limits.
 5. Do not compare B's 36-unit full scope to C's 12-page subset as if they were
    an equal benchmark.
-6. Do not report structural F1, reading-order accuracy, correction minutes,
-   or a winner until real-human gold exists and at least one aggregate is
-   manually recomputed from raw artifacts.
-7. Keep all 15 gold candidates unaccepted until two real source-visible human
-   passes are recorded.
+6. Do not report structural F1, reading-order accuracy, correction minutes, or
+   a universal winner from the same-page comparison. A future metric requires
+   a separately opened question, suitable gold, and manual recomputation from
+   raw artifacts.
+7. Keep all 15 gold candidates unaccepted, but do not turn them into a standing
+   human backlog. Open only the smallest competence-appropriate source-visible
+   subset required by a concrete adoption or promotion question.
 8. Reuse the 246 Zarathustra structural addresses, 299 Jenseits source starts,
    298 target-only Polilov/Mysl starts, and 140 independently materialized
    source plus 140 target Genealogie/Antichrist series-qualified starts for
@@ -381,8 +421,8 @@ or canon effect.
 ## What remains unknown
 
 - exact CER/WER, punctuation fidelity, and structural F1;
-- whether C's apparent structural gains survive blind human review across the
-  full 36-page packet;
+- whether C's apparent structural gains survive question-triggered,
+  competence-appropriate human review on a predeclared adoption subset;
 - whether B can improve under a new, predeclared branch hypothesis;
 - correction minutes and therefore real human-inclusive cost;
 - whether a clean scan-derived German witness disagrees materially with the
