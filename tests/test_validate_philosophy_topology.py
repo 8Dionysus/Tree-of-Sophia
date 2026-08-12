@@ -150,6 +150,17 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         )
         self.assertEqual([], list(validator.iter_errors(bibliographic_planting)))
 
+        direct_work_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "atu3-lexical-lists/source-planting.json"
+        )
+        direct_work_planting = json.loads(
+            direct_work_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(direct_work_planting)))
+
         false_graph_promotion = copy.deepcopy(planting)
         false_graph_promotion["authority"]["graph_status"] = "promoted"
         self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
@@ -165,6 +176,12 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         unbound_bibliographic_planting = copy.deepcopy(bibliographic_planting)
         del unbound_bibliographic_planting["source_witness"]["membership_claim_ref"]
         self.assertTrue(list(validator.iter_errors(unbound_bibliographic_planting)))
+
+        partial_container_binding = copy.deepcopy(direct_work_planting)
+        partial_container_binding["source_witness"]["container_id"] = (
+            "tos.collection.proto-cuneiform.unsupported-wrapper"
+        )
+        self.assertTrue(list(validator.iter_errors(partial_container_binding)))
 
     def test_research_packet_route_traversal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

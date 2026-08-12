@@ -1,0 +1,61 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.atu3-lexical-lists",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 14,
+    "source_table_index": 13,
+    "source_row_index": 6,
+    "source_label": "ATU 3 — Die Lexikalischen Listen der archaischen Texte aus Uruk [24]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/die-lexikalischen-listen-der-archaischen-texte-aus-uruk/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU3_LEXICAL_LISTS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "exact ATU 3 bibliographic Work identity and 1993 publication metadata",
+    "standalone monograph separated from aggregate Collection topology",
+    "Englund and Nissen authorship separated from Damerow's reported collaboration",
+    "LLATU page-entry coordinate distinguished from ZATU, PCSL, Unicode, and semantics",
+    "recognized lexical-tradition scholarship and current 2025-2026 methodological controls",
+    "rights-aware Heidelberg local-research access request prepared but not sent"
+  ],
+  "remaining_controls": [
+    "no complete ATU 3 Item, source payload, or source-visible contents map has been acquired or admitted",
+    "no Expression or Edition rung is asserted before a source-bearing manifestation is available",
+    "no lexical-list line, sign-index entry, form, reading, gloss, translation, or etymology has been copied",
+    "LLATU coordinates, ZATU identities, PCSL OIDs, and provisional Unicode values remain distinct",
+    "list order is evidence for a scribal artifact and practice, not automatic ancient ontology or ToS graph truth",
+    "no model-made concordance, semantics, graph fact, canon state, or human task follows from this planting"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T13:25:35-06:00",
+  "record_version": 1
+}

@@ -72,6 +72,27 @@
           "required": [
             "work_id",
             "record_ref",
+            "relationship"
+          ],
+          "properties": {
+            "work_id": {
+              "type": "string",
+              "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+            },
+            "record_ref": {
+              "$ref": "#/$defs/repoPath"
+            },
+            "relationship": {
+              "const": "grounds_source_backlog_anchor"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "work_id",
+            "record_ref",
             "container_id",
             "container_ref",
             "membership_claim_ref",

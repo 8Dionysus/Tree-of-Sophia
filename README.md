@@ -63,6 +63,11 @@ the exact `Work`, its `Collection` container, and the evidence-bearing
 `contains_work` claim; it does not flatten the whole volume into one work or
 pretend that an accessible chapter is the complete book.
 
+When the named source is a standalone monograph, the planting points directly
+to its `Work` and leaves unsupported Expression, Edition, Item, and file rungs
+open. The filesystem must not invent a one-member Collection or a complete
+source witness merely because publication metadata is available.
+
 A durable address is not a naked offset. Its persistent anchor ID, immutable
 target file, exact representation state, selector semantics, mechanical
 resolution, human review, and publication posture stay separate. The additive

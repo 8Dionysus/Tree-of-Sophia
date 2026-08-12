@@ -13843,6 +13843,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     responsibility_predicate_subject_types = {
         "authored_by": {"work"},
+        "contributed_by": {"work"},
         "translated_by": {"expression"},
         "edited_by": {"edition"},
         "afterword_by": {"edition"},

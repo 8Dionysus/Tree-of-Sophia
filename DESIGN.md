@@ -96,6 +96,11 @@ Aggregate printed volumes remain bibliographic rather than becoming
 named source contribution while keeping other chapters, editions, Items, and
 rights states independently addressable.
 
+A standalone monograph binds directly to its bibliographic `Work`; the route
+does not invent a one-member `Collection`. A direct Work planting is only the
+identity floor. It does not imply a complete Expression/Edition/Item ladder,
+source access, textual equivalence, accepted responsibility, or semantics.
+
 At the address layer, the anchor identity, immutable File target, selected
 representation digest, and selector expression remain distinct. Text
 positions are Unicode-code-point half-open spans; byte positions are another

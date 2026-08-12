@@ -3196,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(103, manifest["counts"]["object_total"])
-        self.assertEqual(145, manifest["counts"]["claim"])
-        self.assertEqual(248, manifest["counts"]["total"])
-        self.assertEqual(145, len(claim_entries))
+        self.assertEqual(105, manifest["counts"]["object_total"])
+        self.assertEqual(148, manifest["counts"]["claim"])
+        self.assertEqual(253, manifest["counts"]["total"])
+        self.assertEqual(148, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 128,
+                "bibliographic_assertion": 131,
                 "scholarly_report": 17,
             },
             {
@@ -3308,7 +3308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(10, len(authorship_claims))
+        self.assertEqual(12, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -3358,6 +3358,57 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(
             {"tos.agent.peter-damerow", "tos.agent.robert-k-englund"},
             numerical_system_authors,
+        )
+        atu3_authors = {
+            entry["object"]
+            for entry in authorship_claims
+            if entry["subject_ref"]
+            == "tos.work.proto-cuneiform."
+            "die-lexikalischen-listen-der-archaischen-texte-aus-uruk"
+        }
+        self.assertEqual(
+            {"tos.agent.hans-j-nissen", "tos.agent.robert-k-englund"},
+            atu3_authors,
+        )
+        atu3_contributors = {
+            entry["object"]
+            for entry in claim_entries
+            if entry["subject_ref"]
+            == "tos.work.proto-cuneiform."
+            "die-lexikalischen-listen-der-archaischen-texte-aus-uruk"
+            and entry["predicate"] == "contributed_by"
+        }
+        self.assertEqual({"tos.agent.peter-damerow"}, atu3_contributors)
+        atu3_contribution_claim = next(
+            entry
+            for entry in claim_entries
+            if entry["claim_id"]
+            == "tos.claim.work.proto-cuneiform.atu3."
+            "contributed-by-peter-damerow"
+        )
+        self.assertEqual(
+            {
+                "reported_source_wording": "unter Mitarbeit von Peter Damerow",
+                "normalized_role": "contributor",
+                "contribution_scope": "unresolved",
+                "coauthorship_inferred": False,
+            },
+            atu3_contribution_claim["qualifiers"],
+        )
+        atu3_work = work_entries[
+            "tos.work.proto-cuneiform."
+            "die-lexikalischen-listen-der-archaischen-texte-aus-uruk"
+        ]
+        self.assertEqual(
+            {
+                "tos.claim.work.proto-cuneiform.atu3."
+                "authored-by-robert-k-englund",
+                "tos.claim.work.proto-cuneiform.atu3."
+                "authored-by-hans-j-nissen",
+                "tos.claim.work.proto-cuneiform.atu3."
+                "contributed-by-peter-damerow",
+            },
+            set(atu3_work["links"]["responsibility_claim_refs"]),
         )
         chronology_claims = [
             entry

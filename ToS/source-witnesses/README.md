@@ -128,6 +128,12 @@ its source planting cites the contained Work, the Collection container, and
 the exact `contains_work` claim together. A table of contents, review link, or
 separately accessible chapter cannot silently stand in for the whole volume.
 
+When the backlog names a standalone bibliographic Work, its planting may cite
+that Work directly. It must not manufacture a Collection merely to satisfy a
+route shape. Expression, Edition, Item, and file identities remain absent until
+their own evidence supports them; publication metadata on the Work is not an
+implicit complete ladder.
+
 Physical artifacts that do not naturally enter that bibliographic ladder use
 the parallel `artifacts/` spine. Its route is based on physical, excavation, or
 custody identity rather than a current provider. The artifact, catalog record,
@@ -175,14 +181,14 @@ or a generated graph cannot fill a missing historical edge.
 
 Work, Expression, and Edition records may close over evidence-bearing
 `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
-The initial typed predicates are `authored_by` on a Work, `translated_by` on
-an Expression, and `edited_by`, `afterword_by`, or `designed_by` on an
-Edition. Every object resolves to an Agent. Every claim is referenced by its
-actual subject, its file is digest-bound by the cited provenance event, and
-unreferenced or cross-subject claims fail validation. A role statement remains
-a versioned claim: it does not collapse author, translator, copyist, editor,
-paratext author, designer, publisher, or rights holder into one generic
-“creator”.
+The initial typed predicates are `authored_by` and `contributed_by` on a Work,
+`translated_by` on an Expression, and `edited_by`, `afterword_by`, or
+`designed_by` on an Edition. Every object resolves to an Agent. Every claim is
+referenced by its actual subject, its file is digest-bound by the cited
+provenance event, and unreferenced or cross-subject claims fail validation. A
+role statement remains a versioned claim: it does not collapse author,
+contributor, translator, copyist, editor, paratext author, designer, publisher,
+or rights holder into one generic “creator”.
 
 In the current bounded corpus, all seven Nietzsche Work records close over one
 `authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim

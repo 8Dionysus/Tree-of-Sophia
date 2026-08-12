@@ -397,3 +397,13 @@ inscription, composite, photograph, and line art remain separate. Only
 public-safe metadata enters the artifact spine and A01 branch; no source
 content, fixed sign translation, artifact-as-philosophy judgment, semantic
 claim, graph promotion, canon state, or human task is created.
+
+`proto-cuneiform-atu3-lexical-lists-critical-edition.2026-08-12.v1.json`
+plants the exact A01 ATU 3 backlog row as a standalone bibliographic Work. It
+resolves official publication and responsibility metadata, direct reviews,
+established lexical-tradition method, current 2025 colophon research, the June
+2026 classification/ontology frontier, live LLATU coordinate semantics, and
+the provisional Unicode state before a final general-web screen. Heidelberg
+supplies a lawful request route, not a source Item or rights grant. No source
+payload, list line, sign entry, reading, concordance, semantics, graph/canon
+promotion, external message, or human task is created.

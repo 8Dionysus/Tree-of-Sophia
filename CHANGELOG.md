@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Planted the exact A01 `ATU 3 — Die Lexikalischen Listen der archaischen
+  Texte aus Uruk [24]` backlog row as a standalone bibliographic Work. Ordered
+  official/classical, established, and current 2025–2026 research preserves
+  Englund and Nissen's authorship separately from Damerow's reported
+  contribution, identifies LLATU as a page-and-entry coordinate inside the
+  1993 volume, and keeps LLATU labels, ZATU identities, PCSL OIDs, proposed
+  Unicode values, readings, glosses, and concepts distinct. A current
+  Heidelberg holding and reproduction route supports one tiered, unsent local
+  research-access request. No book bytes, list text, sign inventory,
+  concordance, semantics, graph/canon promotion, human task, external message,
+  or redistribution permission was created.
 - Planted the exact A01 `ATU 2 — Zeichenliste der archaischen Texte aus
   Uruk [24]` backlog row through the existing bibliographic spine. Ordered
   official/classical, established, and fresh research resolves the 377-page
