@@ -3196,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(107, manifest["counts"]["object_total"])
-        self.assertEqual(150, manifest["counts"]["claim"])
-        self.assertEqual(257, manifest["counts"]["total"])
-        self.assertEqual(150, len(claim_entries))
+        self.assertEqual(110, manifest["counts"]["object_total"])
+        self.assertEqual(152, manifest["counts"]["claim"])
+        self.assertEqual(262, manifest["counts"]["total"])
+        self.assertEqual(152, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 133,
+                "bibliographic_assertion": 135,
                 "scholarly_report": 17,
             },
             {
@@ -3308,7 +3308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(13, len(authorship_claims))
+        self.assertEqual(15, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -3451,6 +3451,37 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "contributed-by-rainer-m-boehmer",
             },
             set(work_entries[atu5_work_id]["links"]["responsibility_claim_refs"]),
+        )
+        cdlb_work_id = (
+            "tos.work.proto-cuneiform."
+            "a-quantitative-analysis-of-proto-cuneiform-sign-use-in-"
+            "archaic-tribute"
+        )
+        self.assertEqual(
+            {"tos.agent.logan-born", "tos.agent.kathryn-erin-kelley"},
+            {
+                entry["object"]
+                for entry in authorship_claims
+                if entry["subject_ref"] == cdlb_work_id
+            },
+        )
+        self.assertEqual(
+            {
+                "tos.claim.work.proto-cuneiform.cdlb-2021-6."
+                "authored-by-logan-born",
+                "tos.claim.work.proto-cuneiform.cdlb-2021-6."
+                "authored-by-kathryn-erin-kelley",
+            },
+            set(
+                work_entries[cdlb_work_id]["links"][
+                    "responsibility_claim_refs"
+                ]
+            ),
+        )
+        self.assertEqual(
+            "A Quantitative Analysis of Proto-Cuneiform Sign Use in "
+            "Archaic Tribute",
+            work_entries[cdlb_work_id]["preferred_label"],
         )
         chronology_claims = [
             entry

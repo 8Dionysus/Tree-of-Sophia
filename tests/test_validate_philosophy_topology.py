@@ -161,6 +161,48 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         )
         self.assertEqual([], list(validator.iter_errors(direct_work_planting)))
 
+        cdlb_planting_root = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings"
+        )
+        cdlb_source_planting = json.loads(
+            (
+                cdlb_planting_root
+                / "cdlb-2021-6-quantitative-sign-use/source-planting.json"
+            ).read_text(encoding="utf-8")
+        )
+        cdlb_control_planting = json.loads(
+            (
+                cdlb_planting_root
+                / "born-kelley-2021-tribute-control/source-planting.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [], list(validator.iter_errors(cdlb_source_planting))
+        )
+        self.assertEqual(
+            [], list(validator.iter_errors(cdlb_control_planting))
+        )
+        self.assertEqual(
+            cdlb_source_planting["source_witness"],
+            cdlb_control_planting["source_witness"],
+        )
+        self.assertEqual(
+            {16, 22},
+            {
+                cdlb_source_planting["source_backlog_anchor"]["line"],
+                cdlb_control_planting["source_backlog_anchor"]["line"],
+            },
+        )
+        self.assertFalse(
+            cdlb_source_planting["authority"]["source_text_admitted"]
+        )
+        self.assertEqual(
+            "not_started",
+            cdlb_control_planting["authority"]["semantic_status"],
+        )
+
         false_graph_promotion = copy.deepcopy(planting)
         false_graph_promotion["authority"]["graph_status"] = "promoted"
         self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
