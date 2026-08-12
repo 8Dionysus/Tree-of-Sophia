@@ -2013,6 +2013,24 @@ inventory, and source-return debt only. It creates no accepted text,
 translation, sign, concept, philosophical relation, graph truth, Human Gold,
 publication permission, server transfer, or completion of the foundation goal.
 
+Reviewed checkpoint `906ff637` closes that bridge at its declared scope. The
+builder build/check, sixteen focused bridge tests, complete source-witness and
+corpus-index checks, full and incremental workflow-pinned portable-family
+parity, family-contract validation, exact seven-file compatibility assembly,
+manual source/authored-boundary review, and the complete 377-test release lane
+all pass with one declared skip. Direct review of all 277 staged blobs found no
+complete raw or normalized private layer, forbidden source-text field, or
+absolute owner-local path; the four exact comparison artifacts remain ignored
+and mode `0600`. The portable KAG family closes at digest
+`a4451ffa6dd637ebe0731afd0cd996700e841547343bbf71bb105c3b17a7992a`
+with 573 shards, 1,973 source/artifact records, 21,520 anchors, 531 events,
+3,633 assertions, 8,668 relations, 4,653 entities, and 24,031 canonical
+records. These checks establish deterministic representation, fixity,
+source-return, portability, private-content withholding, and zero-authority
+closure only; they do not establish German or translation correctness,
+competence-scoped Human Gold, semantic or graph truth, rights clearance,
+publication, transfer, or completion of the wider foundation goal.
+
 ## Dependency-ordered next owner work
 
 1. Use the frozen private-to-public handoff contract before any tracked result
