@@ -3196,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(105, manifest["counts"]["object_total"])
-        self.assertEqual(148, manifest["counts"]["claim"])
-        self.assertEqual(253, manifest["counts"]["total"])
-        self.assertEqual(148, len(claim_entries))
+        self.assertEqual(107, manifest["counts"]["object_total"])
+        self.assertEqual(150, manifest["counts"]["claim"])
+        self.assertEqual(257, manifest["counts"]["total"])
+        self.assertEqual(150, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 131,
+                "bibliographic_assertion": 133,
                 "scholarly_report": 17,
             },
             {
@@ -3308,7 +3308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(12, len(authorship_claims))
+        self.assertEqual(13, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -3409,6 +3409,48 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 "contributed-by-peter-damerow",
             },
             set(atu3_work["links"]["responsibility_claim_refs"]),
+        )
+        atu5_work_id = (
+            "tos.work.proto-cuneiform."
+            "archaic-administrative-texts-from-uruk-the-early-campaigns"
+        )
+        self.assertEqual(
+            {"tos.agent.robert-k-englund"},
+            {
+                entry["object"]
+                for entry in authorship_claims
+                if entry["subject_ref"] == atu5_work_id
+            },
+        )
+        atu5_contribution_claim = next(
+            entry
+            for entry in claim_entries
+            if entry["claim_id"]
+            == "tos.claim.work.proto-cuneiform.atu5."
+            "contributed-by-rainer-m-boehmer"
+        )
+        self.assertEqual(
+            "tos.agent.rainer-m-boehmer",
+            atu5_contribution_claim["object"],
+        )
+        self.assertEqual(
+            {
+                "reported_source_wording":
+                    "with a contribution by Rainer M. Boehmer",
+                "normalized_role": "contributor",
+                "contribution_scope": "unresolved",
+                "coauthorship_inferred": False,
+            },
+            atu5_contribution_claim["qualifiers"],
+        )
+        self.assertEqual(
+            {
+                "tos.claim.work.proto-cuneiform.atu5."
+                "authored-by-robert-k-englund",
+                "tos.claim.work.proto-cuneiform.atu5."
+                "contributed-by-rainer-m-boehmer",
+            },
+            set(work_entries[atu5_work_id]["links"]["responsibility_claim_refs"]),
         )
         chronology_claims = [
             entry

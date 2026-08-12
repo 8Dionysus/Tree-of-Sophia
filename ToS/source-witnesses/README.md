@@ -134,6 +134,13 @@ route shape. Expression, Edition, Item, and file identities remain absent until
 their own evidence supports them; publication metadata on the Work is not an
 implicit complete ladder.
 
+When the backlog names a thematic or historically recovered subset inside a
+standalone Work, retain that wording and evidence as planting scope rather
+than minting another Work. The parent Work identity, subset membership claims,
+provider coverage observations, and later interpretations are separate
+layers. Approximate publication totals and mutable corpus result counts cannot
+silently become one exact membership set.
+
 Physical artifacts that do not naturally enter that bibliographic ladder use
 the parallel `artifacts/` spine. Its route is based on physical, excavation, or
 custody identity rather than a current provider. The artifact, catalog record,

@@ -9,6 +9,18 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Planted the exact A01 `ATU 5 numerical texts layer [53]` backlog row through
+  Robert K. Englund's 1994 *Archaic Administrative Texts from Uruk: The Early
+  Campaigns*, one Work carrying both ATU 5 and ADFU 15 identifiers. Nissen's
+  2024 publication history proves that numerical-only tablets omitted from
+  ATU 1 were published in ATU 5, so the layer remains a source-backed subset
+  rather than a fabricated second Work or the distinct ATU 2 numerical-systems
+  analysis. Publisher `ca. 820` and current CDLI `897` observations remain
+  dated and non-equivalent; Boehmer's exact contribution wording, direct
+  reviews, current PCSL/Unicode controls, layered CDLI rights, and an unsent
+  DAI research-access route are preserved. No source bytes, exact tablet set,
+  sign/value claim, image, transcription, semantics, graph/canon promotion,
+  external message, human task, or redistribution permission was created.
 - Planted the exact A01 `ATU 3 — Die Lexikalischen Listen der archaischen
   Texte aus Uruk [24]` backlog row as a standalone bibliographic Work. Ordered
   official/classical, established, and current 2025–2026 research preserves

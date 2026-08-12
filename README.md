@@ -68,6 +68,15 @@ to its `Work` and leaves unsupported Expression, Edition, Item, and file rungs
 open. The filesystem must not invent a one-member Collection or a complete
 source witness merely because publication metadata is available.
 
+A backlog label may name a thematically or historically recoverable subset
+inside that monograph. The planting keeps the label and its exact evidence as
+scope while still binding the real parent `Work`; it does not manufacture a
+second Work. Subset membership, count, page or artifact coordinates, and
+interpretation remain separate claims until source-visible evidence supports
+them. The ATU 5 numerical-only layer exercises this boundary: Nissen's 2024
+publication history proves the omission/recovery class, not its complete
+membership or numerical semantics.
+
 A durable address is not a naked offset. Its persistent anchor ID, immutable
 target file, exact representation state, selector semantics, mechanical
 resolution, human review, and publication posture stay separate. The additive

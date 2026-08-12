@@ -101,6 +101,15 @@ does not invent a one-member `Collection`. A direct Work planting is only the
 identity floor. It does not imply a complete Expression/Edition/Item ladder,
 source access, textual equivalence, accepted responsibility, or semantics.
 
+A thematic or publication-history subset named by a backlog remains a bounded
+scope over its actual parent Work unless independent bibliographic evidence
+establishes another Work. Its label is not enough to reify a new object.
+Subset membership and count require exact source-visible claims; current
+database results remain dated provider observations. The numerical-only
+tablets omitted from ATU 1 and published in ATU 5 therefore ground an ATU 5
+source route without becoming a second book, a fixed artifact set, or a
+metrological or semantic class.
+
 At the address layer, the anchor identity, immutable File target, selected
 representation digest, and selector expression remain distinct. Text
 positions are Unicode-code-point half-open spans; byte positions are another

@@ -407,3 +407,14 @@ the provisional Unicode state before a final general-web screen. Heidelberg
 supplies a lawful request route, not a source Item or rights grant. No source
 payload, list line, sign entry, reading, concordance, semantics, graph/canon
 promotion, external message, or human task is created.
+
+`proto-cuneiform-atu5-numerical-texts-layer.2026-08-12.v1.json` plants the
+exact A01 ATU 5 numerical-texts-layer row through the real 1994 ATU 5 / ADFU
+15 Work. Nissen 2024 proves that Falkenstein omitted numerical-only tablets
+from ATU 1 and Englund later published them in ATU 5; the run preserves that
+subset without inventing a second Work or exact member count. Direct reviews,
+current CDLI coverage, 2025 contextual research, PCSL, Unicode, and layered
+rights checks precede a final general-web screen. A DAI request route is
+prepared but not sent. No book bytes, tablet membership, sign/value claim,
+image, transcription, semantics, graph/canon promotion, or human task is
+created.
