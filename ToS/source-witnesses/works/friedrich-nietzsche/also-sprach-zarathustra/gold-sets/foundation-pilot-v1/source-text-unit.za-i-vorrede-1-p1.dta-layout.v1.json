@@ -1,0 +1,718 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-e768ee9329067fee5f21c5618b24e369",
+      "anchor_role": "scope",
+      "exact_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+      "ordinal": 1,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-9d91cb2e2e67ad94901a909a7f450634",
+      "anchor_role": "content",
+      "exact_sha256": "f8ff2fe7377f15fddc0c76c5d77465c40883065b541ccaf69e22cb017e46ec84",
+      "ordinal": 2,
+      "selector": {
+        "end": 50,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-c9fbdfe65304675b345d9e9e8cc5180f",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 3,
+      "selector": {
+        "end": 51,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 50,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-be3c42f120b373b7df01a05b617ef8b9",
+      "anchor_role": "content",
+      "exact_sha256": "8d385e2ce3e00dd2dc58ce85372de0681ebdd6c5975c6f63bc6143a2e6814473",
+      "ordinal": 4,
+      "selector": {
+        "end": 102,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 51,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-f982cd25f5fe078879fb768851648f3a",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 5,
+      "selector": {
+        "end": 103,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 102,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-98afbed27f791d61f2c823c270e05881",
+      "anchor_role": "content",
+      "exact_sha256": "3d67d88b361708b0d7a6a8c310b82a3aca678bbcbd7458263ace6c633a2daaac",
+      "ordinal": 6,
+      "selector": {
+        "end": 156,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 103,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-e9400b248d510f95d3bd8a23b2967a09",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 7,
+      "selector": {
+        "end": 157,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 156,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-5d454d914c885d7a1c5dae5f39516f7a",
+      "anchor_role": "content",
+      "exact_sha256": "664673a68817374793ae95c97d1e14468588ee5f098b6a9ac62bd1ee7fa660aa",
+      "ordinal": 8,
+      "selector": {
+        "end": 207,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 157,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-2c58a26a68daa29cf46a6be2a90158d0",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 9,
+      "selector": {
+        "end": 208,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 207,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-91202bf1e43a31bf4e5422aba9d8effd",
+      "anchor_role": "content",
+      "exact_sha256": "fb1437686a6a8513e87b82440ee998cb74c1d1f72c8f63d2d70b82dadb55ebd1",
+      "ordinal": 10,
+      "selector": {
+        "end": 260,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 208,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-efcc33a9ab6bc290ddfc8c5d0f8ed85f",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 11,
+      "selector": {
+        "end": 261,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 260,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-ade2177f49a022c5341b869516e16f7b",
+      "anchor_role": "content",
+      "exact_sha256": "b1682a1c5e64cc28f06d0d5047f4c112fe7c549f04cae5873f3edfc70dc64208",
+      "ordinal": 12,
+      "selector": {
+        "end": 311,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 261,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-0d0ebef6a5f8e77cc805bb6cd7be67fb",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 13,
+      "selector": {
+        "end": 312,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 311,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-2f88192787e75832a488c81567a51d18",
+      "anchor_role": "content",
+      "exact_sha256": "5af1f78ce4dbed9aadd1fd7e1b0d849e46817e390ffff1205bd87b326207b74f",
+      "ordinal": 14,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 312,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61"
+    }
+  ],
+  "authority_boundary": {
+    "graph_role": "relation",
+    "legacy_bulk_migration_authorized": false,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_role": "authority",
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "source_bound",
+  "packet_id": "tos.source-text-unit-packet.sid-a88a079a1add23b0bac47ee807b1b768",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json"
+    ],
+    "source_visibility": "local_only"
+  },
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "schemes": [
+    {
+      "analysis_role": "source_layout",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "source_layout",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+        "locale": "de",
+        "made_at": "2026-08-12T08:07:17Z",
+        "maker_kind": "software",
+        "method_name": "exact TEI lb-delimited source-layout observation",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_source_text_foundation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-75b520001e7521bbaef5a8fbc8b620c2",
+      "scheme_name": "DTA TEI lb-delimited source-layout observation",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "physical_line",
+        "whitespace"
+      ]
+    }
+  ],
+  "segmentations": [
+    {
+      "competing_segmentation_refs": [],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.za-i-vorrede-1.dta-layout.sid-e768ee9329067fee5f21c5618b24e369",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+        "locale": "de",
+        "made_at": "2026-08-12T08:07:17Z",
+        "maker_kind": "software",
+        "method_name": "exact TEI lb-delimited source-layout observation",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_source_text_foundation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-9bfb5e4640a1697209adcfd43a1fe92a",
+        "tos.text-unit.sid-1dc03712d62cb695f8ddb834a6ab2b71",
+        "tos.text-unit.sid-6ea3742d749fe28e29c095fa1d7f1998",
+        "tos.text-unit.sid-d6c752b913377333fe2b2e84e565c927",
+        "tos.text-unit.sid-8421a7dd2dc7dfc446e53cddccd1fd9d",
+        "tos.text-unit.sid-cd0018aa593ac1b692512ecde364a9d7",
+        "tos.text-unit.sid-2e6c9f266bae6e45ae1a14be34bdc90a",
+        "tos.text-unit.sid-3d17d945832e8692cc36086debc07f1c",
+        "tos.text-unit.sid-71e4535a6a6dfef0938b22204bdab6d9",
+        "tos.text-unit.sid-b9e59c7c407db302581f553a9aa6b12b",
+        "tos.text-unit.sid-d08062a6bf382c8875cae0f4e3a03ff8",
+        "tos.text-unit.sid-d4835e7ef320f3ee1ad5e35ab4d178ca",
+        "tos.text-unit.sid-f5b7e3b09bb2cb7c4c461ce5fba20283"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-75b520001e7521bbaef5a8fbc8b620c2",
+      "segmentation_id": "tos.text-segmentation.sid-c98e50e37a33c89f6b91ca62488b8d65",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "observed_source_structure",
+      "status_reason": "Only the exact TEI lb-delimited layout of one provider-transcription paragraph is observed; no word or sentence boundary is asserted.",
+      "supersedes_segmentation_ref": null
+    }
+  ],
+  "source_layer": {
+    "immutable": true,
+    "interval": "half_open",
+    "language": "de",
+    "media_type": "text/plain; charset=utf-8",
+    "position_unit": "unicode_code_point",
+    "publication_authorized": false,
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+    "text_layer_sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+    "unicode_form": "source_preserved",
+    "visibility": "local_only"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_packet_ref": null,
+  "units": [
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-9d91cb2e2e67ad94901a909a7f450634"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-9bfb5e4640a1697209adcfd43a1fe92a",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-c9fbdfe65304675b345d9e9e8cc5180f"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-1dc03712d62cb695f8ddb834a6ab2b71",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-be3c42f120b373b7df01a05b617ef8b9"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-6ea3742d749fe28e29c095fa1d7f1998",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-f982cd25f5fe078879fb768851648f3a"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d6c752b913377333fe2b2e84e565c927",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-98afbed27f791d61f2c823c270e05881"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-8421a7dd2dc7dfc446e53cddccd1fd9d",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-e9400b248d510f95d3bd8a23b2967a09"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-cd0018aa593ac1b692512ecde364a9d7",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-5d454d914c885d7a1c5dae5f39516f7a"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-2e6c9f266bae6e45ae1a14be34bdc90a",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-2c58a26a68daa29cf46a6be2a90158d0"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-3d17d945832e8692cc36086debc07f1c",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-91202bf1e43a31bf4e5422aba9d8effd"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-71e4535a6a6dfef0938b22204bdab6d9",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-efcc33a9ab6bc290ddfc8c5d0f8ed85f"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-b9e59c7c407db302581f553a9aa6b12b",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-ade2177f49a022c5341b869516e16f7b"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d08062a6bf382c8875cae0f4e3a03ff8",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-0d0ebef6a5f8e77cc805bb6cd7be67fb"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d4835e7ef320f3ee1ad5e35ab4d178ca",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.dta-layout.sid-2f88192787e75832a488c81567a51d18"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact TEI lb-delimited print line or its line-break code point; it is not accepted German or linguistic analysis.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-f5b7e3b09bb2cb7c4c461ce5fba20283",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    }
+  ]
+}

@@ -103,6 +103,14 @@ digest-bound rather than compressed into a boolean. A normalization successor
 can support normalized search without
 silently becoming the diplomatic reading of the witness.
 
+The first real use keeps that separation literal. A question-scoped
+`structural_extraction` resolves the exact first paragraph of
+`Za-I-Vorrede-1` in the DTA Part-I TEI and records only its seven source-layout
+lines and six line breaks. Exact text stays ignored and mode `0600`; tracked
+records remain text-free and unreviewed. This is a source-returnable machine
+layer, not an accepted German reading, linguistic segmentation, translation
+source, semantic object, graph fact, canon entry, or publication authority.
+
 The execution layer is append-only too. Each materialized transformation names
 distinct immutable input, output, and byproduct entities, with explicit
 derivation edges and an exact terminal state. It captures argv, configuration,

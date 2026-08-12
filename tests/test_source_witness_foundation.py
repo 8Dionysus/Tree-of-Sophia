@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -1987,6 +1988,146 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "tos_manual_gold_status_v1",
             legacy_gold["properties"]["schema_version"]["const"],
         )
+
+    def test_real_zarathustra_source_text_foundation_is_text_free_and_non_promoting(
+        self,
+    ) -> None:
+        root = (
+            REPO_ROOT
+            / "ToS/source-witnesses/works/friedrich-nietzsche/"
+            "also-sprach-zarathustra/gold-sets/foundation-pilot-v1"
+        )
+        plan_path = root / "za-i-vorrede-1-source-text-foundation.plan.v1.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        records = {
+            key: json.loads((REPO_ROOT / ref).read_text(encoding="utf-8"))
+            for key, ref in {
+                "anchor": plan["outputs"]["anchor_ref"],
+                "layer": plan["outputs"]["text_layer_ref"],
+                "units": plan["outputs"]["text_unit_packet_ref"],
+                "event": plan["outputs"]["provenance_event_ref"],
+            }.items()
+        }
+        schema_refs = {
+            "anchor": "ToS/contracts/source-anchor-v2.schema.json",
+            "layer": "ToS/contracts/source-text-layer.schema.json",
+            "units": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+            "event": "ToS/contracts/provenance-event-v2.schema.json",
+        }
+        for key, schema_ref in schema_refs.items():
+            schema = json.loads((REPO_ROOT / schema_ref).read_text(encoding="utf-8"))
+            validator_class = validator_for(schema)
+            validator_class.check_schema(schema)
+            validator = validator_class(schema, format_checker=FormatChecker())
+            self.assertFalse(list(validator.iter_errors(records[key])), key)
+
+        anchor = records["anchor"]
+        layer = records["layer"]
+        units = records["units"]
+        event = records["event"]
+        self.assertEqual([], foundation._anchor_v2_semantic_issues(anchor))
+        self.assertEqual([], foundation._source_text_layer_semantic_issues(layer))
+        self.assertEqual([], foundation._source_text_unit_v1_issues(units))
+        self.assertEqual([], foundation._provenance_v2_semantic_issues(event))
+
+        self.assertEqual("structural_extraction", layer["derivation"]["method"])
+        self.assertEqual("ignored_local", layer["representation"]["storage"])
+        self.assertFalse(layer["representation"]["tracked_content"])
+        self.assertEqual([], layer["admission"]["accepted_uses"])
+        self.assertEqual("blocked", layer["admission"]["human_language_competence"])
+        self.assertFalse(layer["admission"]["human_review_performed"])
+        self.assertFalse(layer["admission"]["promotion_authorized"])
+        self.assertFalse(layer["representation"]["publication_authorized"])
+        self.assertEqual("single", anchor["selector_payload"]["expression"]["mode"])
+        self.assertEqual(
+            "structural",
+            anchor["selector_payload"]["expression"]["selector"]["selector"]["type"],
+        )
+        self.assertFalse(anchor["publication_boundary"]["source_text_in_record"])
+
+        unit_kinds = [unit["unit_kind"] for unit in units["units"]]
+        self.assertEqual(7, unit_kinds.count("physical_line"))
+        self.assertEqual(6, unit_kinds.count("whitespace"))
+        self.assertEqual([], units["reviews"])
+        self.assertEqual([], units["projections"])
+        self.assertFalse(units["segmentations"][0]["source_text_authority"])
+        self.assertFalse(units["segmentations"][0]["linguistic_authority"])
+        self.assertFalse(units["segmentations"][0]["semantic_authority"])
+        ordered = units["segmentations"][0]["ordered_unit_refs"]
+        self.assertEqual(
+            [unit["unit_id"] for unit in units["units"]],
+            ordered,
+        )
+        anchor_by_ref = {row["anchor_ref"]: row for row in units["anchors"]}
+        ranges = [
+            anchor_by_ref[unit["ordered_anchor_refs"][0]]["selector"]
+            for unit in units["units"]
+        ]
+        self.assertEqual(0, ranges[0]["start"])
+        self.assertTrue(
+            all(left["end"] == right["start"] for left, right in zip(ranges, ranges[1:]))
+        )
+        self.assertEqual(
+            layer["representation"]["text_scope"]["end"],
+            ranges[-1]["end"],
+        )
+
+        tracked_output_digests = {
+            row["entity_ref"]: row["sha256"]
+            for row in event["entities"]["outputs"]
+            if row["availability"] == "tracked"
+        }
+        for key in ("anchor_ref", "text_layer_ref", "text_unit_packet_ref"):
+            ref = plan["outputs"][key]
+            self.assertEqual(
+                hashlib.sha256((REPO_ROOT / ref).read_bytes()).hexdigest(),
+                tracked_output_digests[ref],
+            )
+        private_entity = next(
+            row
+            for row in event["entities"]["outputs"]
+            if row["availability"] == "ignored_local"
+        )
+        self.assertEqual(plan["outputs"]["private_content_ref"], private_entity["entity_ref"])
+        self.assertEqual(layer["representation"]["content_sha256"], private_entity["sha256"])
+        self.assertEqual("blocked", event["review_and_authority"]["human_review_status"])
+        self.assertEqual([], event["review_and_authority"]["accepted_uses"])
+        self.assertFalse(event["review_and_authority"]["promotion_authorized"])
+        self.assertFalse(event["rights_and_visibility"]["publication_authorized"])
+
+        private_ref = plan["outputs"]["private_content_ref"]
+        ignore = subprocess.run(
+            ["git", "check-ignore", "--quiet", "--", private_ref],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        self.assertEqual(0, ignore.returncode)
+
+        accepted_without_competence = copy.deepcopy(layer)
+        accepted_without_competence["admission"]["accepted_uses"] = [
+            "translation_source"
+        ]
+        layer_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/source-text-layer.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        layer_validator = validator_for(layer_schema)(
+            layer_schema, format_checker=FormatChecker()
+        )
+        self.assertTrue(list(layer_validator.iter_errors(accepted_without_competence)))
+
+        accepted_segmentation = copy.deepcopy(units)
+        accepted_segmentation["segmentations"][0]["status"] = "accepted"
+        unit_schema = json.loads(
+            (
+                REPO_ROOT / "ToS/contracts/source-text-unit-packet-v1.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        unit_validator = validator_for(unit_schema)(
+            unit_schema, format_checker=FormatChecker()
+        )
+        self.assertTrue(list(unit_validator.iter_errors(accepted_segmentation)))
 
     def test_semantic_annotation_v2_synthetic_abc_separates_identity_claim_and_review(
         self,

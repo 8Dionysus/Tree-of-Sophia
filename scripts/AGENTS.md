@@ -92,6 +92,17 @@ accept a real boundary, or create lexical, semantic, graph, publication, or
 canon authority. Schema, research, builder, source, plan, or variant changes
 require an intentional full rebuild because the manifest binds those bytes.
 
+`build_zarathustra_source_text_foundation.py` owns one real, question-scoped
+continuation only: the first paragraph of `Za-I-Vorrede-1` in the exact DTA
+Part-I TEI Item. It converts each declared TEI `lb` to one line feed, fails on
+unexpected child markup, writes the 353-byte result below ignored owner-local
+`local-content/source-text-foundation/` with mode `0600`, and writes four
+tracked text-free records: source-anchor v2, source-text-layer v1,
+source-text-unit v1, and provenance-event v2. It must not expand to another
+paragraph, normalize spelling, infer sentence/word boundaries, schedule human
+work, or open translation/semantic/canon authority without a new concrete
+question and its own plan.
+
 The source-foundation validator's `--source-text-unit-v1-lab-only` route checks
 schema and reference closure, exact code-point ranges and digests, unit
 ownership and coverage, declared gaps and overlap, reciprocal parent/child and
@@ -497,6 +508,7 @@ Local owner routes:
 | source-home or branch topology | `python scripts/validate_tos_source_home.py` and `python scripts/validate_philosophy_topology.py` |
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | public synthetic source-text-unit and segmentation A/B/C | `python scripts/build_source_text_unit_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --source-text-unit-v1-lab-only`; rebuilding is intentional because the manifest binds the invented text, research, contract, builder, plan, and variants |
+| real bounded `Za-I-Vorrede-1` source-text foundation | `python scripts/build_zarathustra_source_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 paragraph plus the four tracked text-free records; green closure establishes no accepted German, linguistic boundary, translation, semantics, publication, or canon effect |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |

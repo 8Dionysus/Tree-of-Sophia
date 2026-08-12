@@ -909,6 +909,26 @@ text layer, no source is published, and no accepted transcription, German
 competence, translation, semantics, graph truth, canon effect, migration, or
 human backlog follows.
 
+The first bounded real continuation is deliberately smaller than a sentence
+or translation pass. The tracked
+`za-i-vorrede-1-source-text-foundation.plan.v1.json` asks which exact DTA
+provider-transcription paragraph and source-observed print-line boundaries
+underlie the already frozen opening-sentence calibration. Its
+`tos_source_anchor_v2` resolves one structural XPath against the exact Part-I
+TEI Item; `tos_source_text_layer_v1` records one deterministic
+`structural_extraction`; and `tos_source_text_unit_packet_v1` records seven
+physical lines plus six standalone line-break units. The 353 private bytes
+remain mode `0600` below ignored `local-content/source-text-foundation/`.
+Tracked records contain no paragraph string and authorize no accepted German,
+sentence or word boundary, translation input, semantic use, graph/canon
+effect, redistribution, publication, or routine human task.
+
+The exact check command is owned by the validation card in
+`scripts/AGENTS.md`. Use `--build` only to intentionally recreate the exact
+private layer and its four tracked text-free records. The builder's green
+result proves byte, selector, range, digest, rights-binding, and gate closure
+only.
+
 ## Provenance-event v2 laboratory boundary
 
 The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution

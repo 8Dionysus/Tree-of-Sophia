@@ -179,6 +179,16 @@ code-point edit operations are half-open and independently replayable; a
 withheld operation stream needs its own governed receipt. Normalization is a
 successor, never a rewrite.
 
+`structural_extraction` is the bounded no-model route from one exact
+machine-readable witness structure to a source-near immutable text layer. It
+must name the selector and extraction policy, preserve every declared source
+feature, fail on an unexpected element, and retain the result as an unreviewed
+machine transcription. It is not an identity copy, OCR, manual transcription,
+or linguistic analysis. The first real use is one DTA paragraph at
+`Za-I-Vorrede-1`: seven TEI `lb`-delimited print lines and six line breaks,
+stored privately and projected only as text-free tracked identity, digest,
+range, provenance, and authority records.
+
 Mechanical validation, source-visible review, reviewer language competence,
 accepted use, and rights/publication authority are separate gates. In
 particular, an unreviewed diplomatic candidate can match an anchored source

@@ -1,0 +1,286 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
+  "activity": {
+    "ended_at": "2026-08-12T08:07:17Z",
+    "event_type": "native_extraction",
+    "exit_code": 0,
+    "started_at": "2026-08-12T08:07:17Z",
+    "status": "completed_with_warnings",
+    "terminal_reason": null,
+    "warnings": [
+      "The extracted layer is unreviewed provider transcription, not accepted German.",
+      "The source and derived text remain local-only and publication is unauthorized.",
+      "The unsigned self-recorded event proves neither execution truth nor content truth."
+    ]
+  },
+  "authority_boundary": {
+    "claims_not_established": [
+      "execution_truth",
+      "content_truth",
+      "source_fidelity",
+      "translation_quality",
+      "semantic_correctness",
+      "rights_clearance",
+      "human_review",
+      "publication_authority",
+      "canon_authority"
+    ],
+    "validator_role": "mechanics_and_closure_only_not_truth"
+  },
+  "derivations": [
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.source-text-foundation.1",
+      "description": "The exact fixity-bound TEI source and the tracked plan determine this bounded text, address, lineage, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.source-text-foundation.2",
+      "description": "The exact fixity-bound TEI source and the tracked plan determine this bounded text, address, lineage, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.dta.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.source-text-foundation.3",
+      "description": "The exact fixity-bound TEI source and the tracked plan determine this bounded text, address, lineage, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+      "relation": "selection_from"
+    },
+    {
+      "derivation_id": "tos.derivation.za-i-vorrede-1.source-text-foundation.4",
+      "description": "The exact fixity-bound TEI source and the tracked plan determine this bounded text, address, lineage, or layout record.",
+      "influence_asserted": true,
+      "input_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+      "output_entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json",
+      "relation": "selection_from"
+    }
+  ],
+  "entities": {
+    "byproducts": [],
+    "inputs": [
+      {
+        "availability": "owner_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "application/xml",
+        "role": "fixity-verified-local-dta-tei-source",
+        "sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+        "size_bytes": 159265
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-materialization-plan",
+        "sha256": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e",
+        "size_bytes": 6523
+      }
+    ],
+    "outputs": [
+      {
+        "availability": "ignored_local",
+        "content_disclosure": "private_content",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/source-text-foundation/za-i-vorrede-1/dta-part-1-paragraph-1.machine-transcription.txt",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "text/plain; charset=utf-8",
+        "role": "ignored-local-machine-transcription",
+        "sha256": "dcc0b25c1e91eaadc1e8b2982dca89cc8a4c355c756b67d996349c8dd9668a61",
+        "size_bytes": 353
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-p1.dta.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "a0f895355db939014763812a8e392f66ae89344990ea652fc0f99aeb3865b128",
+        "size_bytes": 2549
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "da6f419b73ead06b24a307ef917b6387d66600882968698170e99d6aba10c9ed",
+        "size_bytes": 5165
+      },
+      {
+        "availability": "tracked",
+        "content_disclosure": "public_metadata_only",
+        "entity_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json",
+        "fixity_verified": true,
+        "fixity_verified_at": "2026-08-12T08:07:17Z",
+        "media_type": "application/json",
+        "role": "tracked-text-free-foundation-record",
+        "sha256": "eb1947576475abe92370e3b233fd0aa24f1e36e3536ee5e499ccc6a71a612081",
+        "size_bytes": 34041
+      }
+    ]
+  },
+  "event_id": "tos.event.native-extraction.za-i-vorrede-1.dta-part-1-p1.2026-08-12",
+  "event_version": 1,
+  "evidence_authentication": {
+    "capture_posture": "tool_captured",
+    "producer_control_boundary": "The same local builder executed the extraction and emitted this unsigned record; independent byte checks can replay closure but cannot authenticate execution or philological truth.",
+    "signature_bindings": [],
+    "signature_status": "unsigned",
+    "verification_status": "mechanically_verified"
+  },
+  "manual_changes": {
+    "change_receipts": [],
+    "statement": "No manual edit occurred between the exact TEI parse and the private output; the declared lb rule is executed by the tracked builder.",
+    "status": "none_declared"
+  },
+  "measurements": [
+    {
+      "evidence_binding": null,
+      "method": "filesystem stat after exact digest verification",
+      "metric": "input_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 159265
+    },
+    {
+      "evidence_binding": null,
+      "method": "sum of exact serialized output entity byte counts",
+      "metric": "output_bytes",
+      "status": "measured",
+      "unit": "bytes",
+      "value": 42108
+    },
+    {
+      "evidence_binding": null,
+      "method": "no human content review or correction was scheduled or performed",
+      "metric": "human_active_seconds",
+      "status": "not_applicable",
+      "unit": null,
+      "value": null
+    }
+  ],
+  "method": {
+    "command_capture": {
+      "argv": [
+        "python",
+        "scripts/build_zarathustra_source_text_foundation.py",
+        "--build",
+        "--local-input-root",
+        "/srv/AbyssOS/Tree-of-Sophia",
+        "--local-output-root",
+        "/srv/AbyssOS/Tree-of-Sophia"
+      ],
+      "argv_sha256": "8e4126efa465847406827a8341ca4500adf56c75ae74c7008b2277178b1ae98c",
+      "disclosure": "inline",
+      "withholding_reason": null
+    },
+    "configuration_binding": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+      "sha256": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e"
+    },
+    "environment": {
+      "backend": "python-standard-library-elementtree",
+      "environment_profile_binding": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json",
+        "sha256": "ff9343b8af24828b91a87ee9cbbd3d9de7326246942177e5282de37140fa900e"
+      },
+      "hardware_target": "cpu",
+      "runtime": "CPython",
+      "runtime_artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+      "runtime_version": "3.14.6",
+      "unicode_version": "16.0.0"
+    },
+    "model_invocations": [],
+    "procedure": {
+      "name": "tei-lb-aware-structural-extraction",
+      "purpose": "Which exact DTA provider-transcription paragraph and source-observed print-line boundaries underlie the existing opening-sentence calibration at Za-I-Vorrede-1?",
+      "version": "1"
+    },
+    "software_components": [
+      {
+        "artifact_ref": "scripts/build_zarathustra_source_text_foundation.py",
+        "artifact_sha256": "d4cf34d6e0f4524ce3f87c8251972cc4d2e1fbf52de54820d21bd9c233924583",
+        "name": "Tree of Sophia Zarathustra source-text foundation builder",
+        "role": "native-extraction-and-record-builder",
+        "verification_status": "verified",
+        "version": "1"
+      },
+      {
+        "artifact_ref": "runtime:cpython-executable",
+        "artifact_sha256": "7af874aca05879e1823cd820913b42fb8d8b994738a05ec39ce4256d85b03861",
+        "name": "CPython",
+        "role": "language-runtime",
+        "verification_status": "verified",
+        "version": "3.14.6"
+      }
+    ]
+  },
+  "record_binding": {
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_event_record_bytes",
+    "manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json"
+  },
+  "reproducibility": {
+    "classification": "replay_ready",
+    "known_gaps": [
+      "The receipt is unsigned and self-recorded by the transformation runner.",
+      "No German-competent human reviewed the extracted content or boundaries.",
+      "The exact source and extracted text are intentionally absent from Git."
+    ],
+    "replay_scope": "Exact DTA TEI digest, tracked plan and builder, bounded structural selector, declared lb rule, private output digest, tracked record digests, CPython runtime digest, and fail-closed authority posture."
+  },
+  "responsibility": [
+    {
+      "agent_kind": "software",
+      "agent_ref": "software:tos-zarathustra-source-text-foundation-builder",
+      "evidence_binding": {
+        "ref": "scripts/build_zarathustra_source_text_foundation.py",
+        "sha256": "d4cf34d6e0f4524ce3f87c8251972cc4d2e1fbf52de54820d21bd9c233924583"
+      },
+      "human_evidence_status": "not_applicable",
+      "responsibility_posture": "performed",
+      "role": "executor"
+    }
+  ],
+  "review_and_authority": {
+    "accepted_uses": [],
+    "competence_evidence_bindings": [],
+    "human_review_status": "blocked",
+    "mechanical_validation": "passed",
+    "promotion_authorized": false,
+    "review_bindings": []
+  },
+  "rights_and_visibility": {
+    "content_visibility": "local_only",
+    "intended_uses": [
+      "local_research",
+      "preservation",
+      "indexing"
+    ],
+    "publication_authority_bindings": [],
+    "publication_authorized": false,
+    "rights_record_bindings": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      }
+    ]
+  },
+  "schema_version": "tos_provenance_event_v2",
+  "supersedes_event_ref": null
+}

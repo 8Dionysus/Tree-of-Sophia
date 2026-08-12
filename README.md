@@ -66,6 +66,15 @@ translation or semantics, or suitable for publication; rights records and
 publication-authority refs remain explicit and empty. No current corpus record
 is migrated.
 
+One real bounded successor now exercises that route without widening its
+authority: the exact DTA Part-I Item yields one private, mode-`0600`
+`Za-I-Vorrede-1` paragraph through a declared structural extraction. Its
+tracked anchor, layer, layout-unit packet, and provenance receipt expose only
+identity, XPath, digests, ranges, rights posture, and closed gates. Seven
+source-observed print lines are addressable, but no accepted German, sentence
+or word boundary, translation input, semantic claim, publication route, or
+human backlog is created.
+
 Division of one frozen layer is a separate additive identity problem. The
 source-text-unit v1 contract gives opaque identities to the scheme,
 segmentation, and units while keeping physical layout, source-observed

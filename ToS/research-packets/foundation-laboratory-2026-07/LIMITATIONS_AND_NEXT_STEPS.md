@@ -60,10 +60,13 @@ interchange units over one exact frozen text layer. Its invented 42-byte,
 reconstruction, and deterministic-rebuild checks; A records exact physical
 line/newline units, B preserves four reciprocal competing segmentations with
 48 units and no winner, C hides the final line feed and is rejected, and all
-25 negative controls fail closed. This creates no real boundary, sentence,
-token, accepted German or Russian, lemma, lexeme, sign, translation alignment,
-semantic object, graph truth, corpus migration, or human task. A real packet
-opens only for one concrete downstream question, and the existing
+25 negative controls fail closed. The first concrete successor now covers one
+private 349-code-point DTA `Za-I-Vorrede-1` layer with seven source-observed
+physical lines and six standalone line-break units. That is a real layout
+boundary only: it creates no sentence, token, accepted German or Russian,
+lemma, lexeme, sign, translation alignment, semantic object, graph truth,
+corpus migration, or human task. Another real packet opens only for a new
+concrete downstream question, and the existing
 `tos-local-sentence-segmentation-v1` method remains unchanged.
 
 The translation-alignment continuation likewise closes identity and
@@ -290,7 +293,7 @@ contracts intentionally reject simulated human evidence.
 
 - The current physical corpus is a bounded Nietzsche laboratory, not the
   written philosophy of humanity.
-- `tos_source_anchor_v2` is an additive, source-free mechanical contract, not
+- `tos_source_anchor_v2` is an additive mechanical contract, not
   a reinterpretation or migration of the historical v1 anchors. Its synthetic
   A/B/C fixture proves exact representation binding, alternative-versus-
   refinement semantics, half-open Unicode-code-point selection, container
@@ -298,17 +301,23 @@ contracts intentionally reject simulated human evidence.
   consistency for invented public bytes only. It does not prove durable
   resolution across changed Editions, OCR quality, accepted text, rights,
   German competence, human review, semantics, or suitability for every source
-  format. A real-source v2 anchor is created only when a concrete source
-  question requires one; there is no bulk migration task or routine human
-  backlog.
-- `tos_source_text_layer_v1` is likewise proven only on three invented public
-  UTF-8 artifacts. It establishes immutable layer identity, exact predecessor
+  format. One real-source v2 anchor now exists for the exact first paragraph of
+  `Za-I-Vorrede-1` in the DTA Part-I TEI Item. It is structural, text-free,
+  mechanically resolved, unreviewed, local-only, and non-promoting. Another
+  real anchor is created only when a new concrete question requires one; there
+  is no bulk migration task or routine human backlog.
+- `tos_source_text_layer_v1` is proven on three invented public UTF-8 artifacts
+  and one private real DTA structural extraction. It establishes immutable
+  layer identity, exact predecessor
   and content closure, independently replayable code-point edits, explicit
   normalization, uncertainty, and separated review/competence/use/rights
   gates. Its synthetic records carry no rights-record or publication-authority
-  refs and keep publication authorization false. It does not establish OCR quality, a real diplomatic or accepted
-  reading, German competence, translation, semantics, or publication. A real
-  layer is created only for a concrete source question under that Item's
+  refs and keep publication authorization false. The real layer binds one
+  exact Item, structural XPath, rights digest, mode-0600 353-byte output, and
+  unsigned provenance-event v2 receipt while exposing no paragraph text in
+  Git. It does not establish OCR quality, a diplomatic or accepted reading,
+  German competence, translation, semantics, or publication. Another real
+  layer is created only for a new concrete source question under that Item's
   private/public and rights posture; language-sensitive accepted use still
   requires competence evidence. There is no bulk corpus migration or routine
   human backlog.
@@ -1647,9 +1656,9 @@ from the calibration-only route in section 2b.
 3. Keep exact replay specification, fixity, authentication, human/source or
    language review, rights, publication, semantic, and canon authority as
    independent evidence planes.
-4. Treat the current synthetic A/B/C receipts as unsigned declared evidence.
-   Their schema and byte closure do not prove that the reported commands ran or
-   that their outputs are correct.
+4. Treat the synthetic A/B/C receipts and the first real DTA native-extraction
+   receipt as unsigned declared evidence. Their schema and byte closure do not
+   prove that the reported commands ran or that their outputs are correct.
 5. Do not bulk-migrate provenance v1. Create a v2 successor only for new work or
    when a concrete discrepancy, security, replay, or source-return question
    needs stronger closure.
