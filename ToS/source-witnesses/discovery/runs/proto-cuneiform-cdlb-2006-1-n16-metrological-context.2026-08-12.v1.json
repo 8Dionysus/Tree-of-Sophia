@@ -1,0 +1,335 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "research-publication",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.n16-in-the-archaic-texts"
+    ],
+    "description": "Resolve CDLB 2006:1 as one exact research Work, preserve its two A01 roles, reconstruct its metrological method without admitting the result as sign truth, and test the argument against current CDLI edition history, PCSL identity, Unicode status, rights, and 2024-2026 relevance.",
+    "required_properties": [
+      "exact article title, author, journal identity, publication date, and PDF version date",
+      "article-text rights separated from artifact-image and technical-resource rights",
+      "source-reported N16 calculation chain with intermediate, final, indeterminate, and hypothetical cases",
+      "current CDLI transcription and revision state for every decisive artifact",
+      "current PCSL identity and count with parameter limitations",
+      "current-final and next-draft Unicode status without importing proposal coordinates as facts"
+    ],
+    "acceptable_substitutions": [
+      "the publisher PDF for exact argument and version verification",
+      "current CDLI artifact and history pages for later transcription state",
+      "current PCSL and official Unicode data only as technical controls"
+    ],
+    "languages": ["en", "de", "und", "sux"],
+    "formats": ["journal HTML", "journal PDF", "citation metadata", "author metadata", "artifact HTML", "transliteration history", "sign-list HTML", "Unicode standard data", "Unicode proposal"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2006_1_N16_METROLOGICAL_CONTEXT_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-cdlb-2006-1-official-publication",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "Cuneiform Digital Library Initiative article, PDF, citation metadata, and author profile",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2006-1",
+      "interface_type": "web",
+      "interface_version": "current CDLI publication surface checked 2026-08-12",
+      "exact_query": "Resolve exact CDLB 2006:1 title, author, publication date, PDF version, issue, ISSN, citation key, rights statement, author identity, and journal scope.",
+      "queried_at": "2026-08-12T14:42:00-06:00",
+      "elapsed_seconds": 4.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2006-1-exact-article",
+          "rank": 1,
+          "title_as_displayed": "N16 in the Archaic Texts",
+          "result_url": "https://cdli.earth/articles/cdlb/2006-1",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2006-1",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2006:1"},
+            {"scheme": "CDLI article", "value": "cdlb-2006-1"},
+            {"scheme": "ISSN", "value": "1540-8760"},
+            {"scheme": "BibTeX key", "value": "Monaco2006N16"}
+          ],
+          "available_formats": ["open article HTML", "publisher PDF", "BibTeX", "RIS"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2006-1", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The originating publication fixes the Work identity, author, 2006-01-02 publication date, issue, citation, and layer-specific rights statement; the PDF separately reports version 2005-12-03.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No article payload was needed for the metadata-only planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-monaco-author-profile",
+          "rank": 2,
+          "title_as_displayed": "Monaco, Salvatore F. - Authors",
+          "result_url": "https://cdli.earth/authors/144",
+          "originating_record_url": "https://cdli.earth/authors/144",
+          "identifiers": [
+            {"scheme": "CDLI author", "value": "144"}
+          ],
+          "available_formats": ["author metadata HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The exact CDLI profile corroborates the source-reported name but exposes neither institution nor ORCID, so broader identity remains provisional.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public author metadata was sufficient."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdlb-journal-scope",
+          "rank": 3,
+          "title_as_displayed": "Cuneiform Digital Library Bulletin",
+          "result_url": "https://cdli.earth/articles/cdlb",
+          "originating_record_url": "https://cdli.earth/articles/cdlb",
+          "identifiers": [
+            {"scheme": "ISSN", "value": "1540-8760"}
+          ],
+          "available_formats": ["journal index HTML"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "CDLI defines CDLB as a refereed venue for short specific notes rather than synthetic treatments, preserving the source's intended limitation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The journal-scope statement is retained only as linked metadata."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2006-1-classical-and-method",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Publisher article text, ATU 2 numerical-system reference, CUSAS 1 publication trail, and current CDLI artifact records",
+      "endpoint_url": "https://cdli.earth/articles/cdlb/2006-1.pdf",
+      "interface_type": "web",
+      "interface_version": "publisher PDF version 2005-12-03 and current linked records checked 2026-08-12",
+      "exact_query": "Read the complete argument in order; distinguish 0.015 from the final 1/100 barig proposal; identify every decisive, indeterminate, and hypothetical case; verify the ATU 2 unit substrate and later CUSAS/CDLI coordinates.",
+      "queried_at": "2026-08-12T14:46:00-06:00",
+      "elapsed_seconds": 6.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdlb-2006-1-n16-method",
+          "rank": 1,
+          "title_as_displayed": "N16 in the Archaic Texts",
+          "result_url": "https://cdli.earth/articles/cdlb/2006-1.pdf",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2006-1",
+          "identifiers": [
+            {"scheme": "CDLB", "value": "2006:1"},
+            {"scheme": "PDF version", "value": "2005-12-03"}
+          ],
+          "available_formats": ["publisher PDF", "article HTML"],
+          "declared_rights": {"statement": "Creative Commons Attribution 4.0 International except where noted and for artifact images, which follow CDLI terms of use.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2006-1", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The complete source shows that 0.015 barig is an intermediate calculation rejected in favor of 1/100 barig, and that N17 remains explicitly hypothetical.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The argument was inspected remotely; no article body was imported."}
+        },
+        {
+          "result_id": "tos-discovery-result.damerow-englund-1987-numerical-systems",
+          "rank": 2,
+          "title_as_displayed": "Die Zahlzeichensysteme der Archaischen Texte aus Uruk",
+          "result_url": "https://cdli.earth/publications/1640630",
+          "originating_record_url": "https://cdli.earth/publications/1640630",
+          "identifiers": [
+            {"scheme": "CDLI BibTeX key", "value": "Damerow1987Zahlzeichensysteme"}
+          ],
+          "available_formats": ["bibliographic metadata HTML", "institutional digital copy"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The classical ATU 2 numerical-system analysis supplies the barig model explicitly cited by Monaco; it is a dimensional premise, not a replacement for the article's tablet argument.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No ATU 2 content was acquired in this article planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.cusas-1-n16-cornell-controls",
+          "rank": 3,
+          "title_as_displayed": "CUSAS 01, 112; CUSAS 01, 143; CUSAS 01, 172 artifact records",
+          "result_url": "https://cdli.earth/artifacts/283919",
+          "originating_record_url": "https://cdli.earth/publications/113714",
+          "identifiers": [
+            {"scheme": "CDLI artifact", "value": "P283919"},
+            {"scheme": "CDLI artifact", "value": "P283918"},
+            {"scheme": "CDLI artifact", "value": "P283917"}
+          ],
+          "available_formats": ["artifact metadata HTML", "current transliteration", "visual assets under separate terms"],
+          "declared_rights": {"statement": "Artifact images follow CDLI terms of use and are not covered by the article's blanket CC BY statement.", "scope": "digital-object", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The later CUSAS 1 records preserve direct source-return coordinates for the stronger Cornell calculations and the indeterminate case without collapsing artifact, transcription, or interpretation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No artifact metadata, transcription, or visual asset was mirrored."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2006-1-current-editions-and-pcsl",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Current CDLI artifact/transliteration history and Proto-Cuneiform Sign List",
+      "endpoint_url": "https://cdli.earth/artifacts/6303/history/atf",
+      "interface_type": "web",
+      "interface_version": "current CDLI and PCSL surfaces checked 2026-08-12",
+      "exact_query": "Compare the article-era N16 premises with current and historical CDLI transcriptions; resolve current PCSL N16 ID, LLATU coordinate, frequency, and encoding posture.",
+      "queried_at": "2026-08-12T14:53:00-06:00",
+      "elapsed_seconds": 8.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.cdli-p006303-n16-to-n24-revision",
+          "rank": 1,
+          "title_as_displayed": "MS 4499 (P006303) transliteration history",
+          "result_url": "https://cdli.earth/artifacts/6303/history/atf",
+          "originating_record_url": "https://cdli.earth/artifacts/6303",
+          "identifiers": [
+            {"scheme": "CDLI artifact", "value": "P006303"},
+            {"scheme": "CDLI update event", "value": "78754"}
+          ],
+          "available_formats": ["current transliteration HTML", "approved revision history HTML"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": "https://cdli.earth/terms-of-use", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The approved 2018-02-12 history replaces the article-era 1(N16) with 1(N24) in the decisive TARa case; this is a required currentness and reproducibility control.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The public revision route is cited directly; no transcription content entered the corpus."}
+        },
+        {
+          "result_id": "tos-discovery-result.pcsl-current-n16",
+          "rank": 2,
+          "title_as_displayed": "PCSL Signlist - 1(N16)",
+          "result_url": "https://oracc.museum.upenn.edu/pcsl/signlist/o0981940",
+          "originating_record_url": "https://oracc.museum.upenn.edu/pcsl/signlist/index.html",
+          "identifiers": [
+            {"scheme": "PCSL OID", "value": "o0981940"},
+            {"scheme": "LLATU concordance", "value": "324_06"},
+            {"scheme": "older PCSL OID", "value": "o0902960"},
+            {"scheme": "PCSL private-use coordinate", "value": "U+F00FB"}
+          ],
+          "available_formats": ["sign metadata HTML", "concordance HTML", "live frequency HTML"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "PCSL supplies the current technical sign coordinate and a live count of 9, but not enough frozen parameter metadata to turn that count into an exact comparable occurrence claim.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No PCSL sign data, images, or frequency table was imported."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-cdlb-2006-1-fresh-unicode-and-literature",
+      "sequence": 4,
+      "channel_type": "identifier-registry",
+      "role": "mixed",
+      "source_name": "Unicode final and beta standards, proposal history, and targeted 2024-2026 scholarly search",
+      "endpoint_url": "https://www.unicode.org/versions/beta-18.0.0.html",
+      "interface_type": "web",
+      "interface_version": "Unicode 17.0 final and Unicode 18.0 beta UCD checked 2026-08-12",
+      "exact_query": "Distinguish current-final Unicode 17 from future Unicode 18; verify whether N16 survived into the stable beta repertoire; search 2024-2026 primary scholarship for an exact N16 metrological reassessment and reject generic non-comparable AI papers.",
+      "queried_at": "2026-08-12T15:01:00-06:00",
+      "elapsed_seconds": 6.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.unicode-17-current-final",
+          "rank": 1,
+          "title_as_displayed": "Unicode 17.0.0",
+          "result_url": "https://www.unicode.org/versions/Unicode17.0.0/",
+          "originating_record_url": "https://www.unicode.org/versions/latest/",
+          "identifiers": [
+            {"scheme": "Unicode version", "value": "17.0.0"}
+          ],
+          "available_formats": ["official version page", "UCD", "code charts"],
+          "declared_rights": {"statement": "Unicode terms apply; no standard data is republished.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Unicode 17.0 is the current final standard on the research date and contains no proto-cuneiform numeral repertoire or N16 character.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The official final-version route is cited without importing UCD content."}
+        },
+        {
+          "result_id": "tos-discovery-result.unicode-18-beta-n16-absent",
+          "rank": 2,
+          "title_as_displayed": "BETA Unicode 18.0.0",
+          "result_url": "https://www.unicode.org/versions/beta-18.0.0.html",
+          "originating_record_url": "https://www.unicode.org/versions/Unicode18.0.0/",
+          "identifiers": [
+            {"scheme": "Unicode version", "value": "18.0.0 beta"},
+            {"scheme": "Unicode block", "value": "Archaic Cuneiform Numerals U+12550..U+1268F"}
+          ],
+          "available_formats": ["official beta page", "beta UCD", "beta code charts"],
+          "declared_rights": {"statement": "Unicode technical-document and data-file terms apply; no beta data is republished.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The stable beta repertoire is still not a final standard and its official UnicodeData contains no N16 entry, despite an N16 character appearing in the older L2/23-190 proposal.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Currentness is preserved through dated official references; no UCD or chart data entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.generic-cuneiform-ai-not-n16-control",
+          "rank": 3,
+          "title_as_displayed": "Generic 2024-2026 cuneiform OCR and sign-classification results",
+          "result_url": "https://arxiv.org/abs/2502.00129",
+          "originating_record_url": null,
+          "identifiers": [],
+          "available_formats": ["research preprints"],
+          "declared_rights": {"statement": null, "scope": "unknown", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Visual classification of later or broad cuneiform signs does not re-evaluate the exact N16 tablets, transcription history, metrological equations, or semantic inference chain.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The non-comparable lead was rejected without content capture."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-cdlb-2006-1-official-publication", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 5.0, "machine_seconds": 4.1, "notes": "Complete for Work identity, responsibility, publication and PDF-version dates, issue, citation, journal scope, and article rights. The author profile has no ORCID or institution, so broader identity remains provisional."},
+    {"channel_id": "channel-cdlb-2006-1-classical-and-method", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 11.0, "machine_seconds": 6.4, "notes": "Complete section-level direct evidence for the argument, its classical unit substrate, later Cornell publication coordinates, rejected intermediate result, final proposal, indeterminate case, and hypothetical N17 extension. No content was imported."},
+    {"channel_id": "channel-cdlb-2006-1-current-editions-and-pcsl", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 10.0, "machine_seconds": 8.2, "notes": "The decisive P006303 reading drift and current PCSL identity/count were resolved. PCSL's certificate chain required a transport fallback after indexed public results, but no access control was bypassed and no payload was acquired."},
+    {"channel_id": "channel-cdlb-2006-1-fresh-unicode-and-literature", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "strong", "machine_interface_quality": "strong", "human_minutes": 7.0, "machine_seconds": 6.9, "notes": "Official current-final, next-beta, repertoire, and proposal-history states were separated. No exact 2024-2026 N16 metrological reassessment was located; this remains a bounded search result, not literature completeness."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.cdlb-2006-1-exact-article",
+    "tos-discovery-result.cdlb-monaco-author-profile",
+    "tos-discovery-result.cdlb-journal-scope",
+    "tos-discovery-result.cdlb-2006-1-n16-method",
+    "tos-discovery-result.damerow-englund-1987-numerical-systems",
+    "tos-discovery-result.cusas-1-n16-cornell-controls",
+    "tos-discovery-result.cdli-p006303-n16-to-n24-revision",
+    "tos-discovery-result.pcsl-current-n16",
+    "tos-discovery-result.unicode-17-current-final",
+    "tos-discovery-result.unicode-18-beta-n16-absent"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.generic-cuneiform-ai-not-n16-control"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T14:42:00-06:00",
+  "ended_at": "2026-08-12T15:09:34-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

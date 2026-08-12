@@ -1,0 +1,51 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.monaco-2006-metrological-context-control",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 23,
+    "source_table_index": 14,
+    "source_row_index": 5,
+    "source_label": "Monaco 2006 [14]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.n16-in-the-archaic-texts",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/n16-in-the-archaic-texts/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2006_1_N16_METROLOGICAL_CONTEXT_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the exact Work behind Monaco 2006 is deduplicated against CDLB 2006:1",
+    "metrological context is represented as a reconstructive claim chain rather than a direct sign-to-meaning edge",
+    "source observation, damaged reading, restoration, scribal-error proposal, rounding, equation, and conclusion remain distinguishable",
+    "positive, contradictory, indeterminate, and hypothetical cases are retained together",
+    "the article's specialized short-note scope is preserved rather than generalized into a complete semantic method",
+    "current edition drift demonstrates why artifact identity cannot freeze transcription or sign occurrence",
+    "future A/B/C work is divided into historical reproduction, current-edition rerun, and adversarial premise sensitivity"
+  ],
+  "remaining_controls": [
+    "contextual arithmetic can support a proposed value but does not by itself establish lexical meaning, concept identity, or semantics",
+    "the TARa ten-percent relation, barig model, readings, restorations, rounding, and tablet membership remain challengeable premises",
+    "absence of a located 2024-2026 N16-specific reassessment is not a completeness claim",
+    "Unicode encoding status neither confirms nor refutes a contextual metrological interpretation",
+    "no article body, tablet content, sign-level data, metrological assertion, semantic annotation, graph relation, or canon state is created",
+    "this second role-specific planting references the same Work and does not manufacture a duplicate bibliographic entity",
+    "no redundant human review task is opened"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T15:09:34-06:00",
+  "record_version": 1
+}

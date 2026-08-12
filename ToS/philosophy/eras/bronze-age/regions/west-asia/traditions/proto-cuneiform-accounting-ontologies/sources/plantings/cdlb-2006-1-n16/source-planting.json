@@ -1,0 +1,51 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.cdlb-2006-1-n16",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 17,
+    "source_table_index": 13,
+    "source_row_index": 9,
+    "source_label": "CDLB 2006:1 [14]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.n16-in-the-archaic-texts",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/n16-in-the-archaic-texts/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-cdlb-2006-1-n16-metrological-context.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2006_1_N16_METROLOGICAL_CONTEXT_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "exact CDLB 2006:1 Work identity, author, publication date, PDF version date, journal scope, and rights resolved",
+    "the source-reported N16 reconstruction retained as a premise-bearing argument rather than a timeless sign property",
+    "the rejected intermediate 0.015 barig calculation separated from the article's 1/100 barig conclusion",
+    "physical artifact, transcription version, restoration, correction, unit model, arithmetic, and proposed value kept distinct",
+    "the 2018 P006303 N16-to-N24 transcription revision made a first-class current control",
+    "current Cornell cases, PCSL identity and count, and Unicode 17/future-18 status checked without importing them",
+    "article content and artifact-image rights kept separate"
+  ],
+  "remaining_controls": [
+    "1N16 = 1/100 barig remains a source-reported interpretation and is not admitted as a ToS sign or metrological claim",
+    "the current P006303 edition no longer supports the article-era N16 reading in that case",
+    "PCSL frequency 9 is a mutable dated surface without a fully declared comparable counting policy",
+    "PCSL OIDs, LLATU coordinates, private-use code points, Unicode characters, readings, occurrences, and meanings remain separate",
+    "no article Expression, Edition, Item, payload, artifact, image, transcription, sign record, occurrence, arithmetic assertion, or semantic object is admitted",
+    "the exact article Work is shared with a separate control planting rather than duplicated",
+    "no canon promotion or human task follows from peer review or open access"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed", "source_text_admitted": false, "semantic_status": "not_started", "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": false},
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T15:09:34-06:00",
+  "record_version": 1
+}
