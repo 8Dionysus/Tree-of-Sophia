@@ -749,6 +749,38 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_antonovsky_2007_1911_collation.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/WITNESS_TEXT_COLLATION_FOUNDATION_RESEARCH_2026-08-12.md",
+        "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/gold-assurance.v2.json",
+        "ToS/source-witnesses/**/item.manifest.json",
+        "ToS/source-witnesses/**/resource-inventory.json",
+        "ToS/source-witnesses/**/rights.json",
+        "ToS/source-witnesses/**/local-content/witness-text-collation/*",
+        "ToS/source-witnesses/**/local-content/target-text-foundation/*"
+      ],
+      "reads": [
+        "one fixed unattested p011 Workbench observation and sparse-calibration closure, the exact local Antonovsky 2007 PDF page binding, the existing Antonovsky 1911 private paragraph/sentence proposal, layered rights, and the frozen collation plan"
+      ],
+      "writes": [
+        "one ignored mode-0600 observation layer, one ignored mode-0600 reconstructive comparison detail, and five tracked text-free source-anchor, source-text-layer, source-text-unit, witness-collation, and provenance records unless --check is used"
+      ],
+      "side_effects": "one question-scoped same-language witness correspondence proposal only; no repeated human work, attestation, review, gold, accepted text or boundary, preferred reading, textual equivalence, Edition genealogy, Expression derivation, translation, lexical or semantic identity, projection, graph/canon effect, redistribution, or publication",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_antonovsky_witness_text_collation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
@@ -1095,6 +1127,8 @@
         "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/lab.manifest.json",
         "ToS/contracts/source-text-unit-packet-v1.schema.json",
         "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/lab.manifest.json",
+        "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
         "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
@@ -1108,10 +1142,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, the real tracked text-free Antonovsky 2007/1911 witness-collation proposal, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 labs report public synthetic mechanics and no corpus payload, execution truth, accepted boundary, translation, human review, accepted alignment, or semantic truth",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, translation-alignment-v1, and witness-text-collation checks report mechanics and closure only, never corpus content, execution truth, accepted boundary, preferred reading, equivalence, genealogy, derivation, translation, human review, accepted alignment, or semantic truth",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

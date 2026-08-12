@@ -95,6 +95,14 @@ ZARATHUSTRA_OPENING_SENTENCE_ALIGNMENT_PLAN = Path(
     "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
     "za-i-vorrede-1-opening-sentence-alignment.plan.v1.json"
 )
+WITNESS_TEXT_COLLATION_V1_SCHEMA = (
+    CONTRACT_ROOT / "witness-text-collation-packet-v1.schema.json"
+)
+ANTONOVSKY_2007_1911_COLLATION_PLAN = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "antonovsky-2007-1911-opening-sentence-collation.plan.v1.json"
+)
 SOURCE_TEXT_UNIT_V1_SCHEMA = CONTRACT_ROOT / "source-text-unit-packet-v1.schema.json"
 SOURCE_TEXT_UNIT_V1_LAB_ROOT = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
@@ -5901,6 +5909,398 @@ def validate_zarathustra_opening_sentence_alignment(
     return issues
 
 
+def _witness_text_collation_v1_issues(packet: dict[str, Any]) -> list[str]:
+    """Check collation closure that JSON shape alone cannot express."""
+
+    messages: list[str] = []
+    witnesses = [row for row in packet.get("witnesses", []) if isinstance(row, dict)]
+    collations = [row for row in packet.get("collations", []) if isinstance(row, dict)]
+    reviews = [row for row in packet.get("reviews", []) if isinstance(row, dict)]
+    witness_ids = [row.get("witness_id") for row in witnesses]
+    review_ids = {row.get("review_id") for row in reviews}
+    if len(witness_ids) != len(set(witness_ids)):
+        messages.append("duplicate witness identity")
+    if len({row.get("ordinal") for row in witnesses}) != len(witnesses):
+        messages.append("duplicate witness ordinal")
+    if len({row.get("expression_ref") for row in witnesses}) != len(witnesses):
+        messages.append("collation witnesses must retain distinct Expression identities")
+    known_witnesses = set(witness_ids)
+    known_collations = {
+        row.get("collation_id") for row in collations if isinstance(row.get("collation_id"), str)
+    }
+    decided = {"accepted", "accepted_with_limits", "rejected", "superseded"}
+    accepted = {"accepted", "accepted_with_limits"}
+    for row in collations:
+        refs = row.get("ordered_witness_refs", [])
+        if any(ref not in known_witnesses for ref in refs):
+            messages.append("collation references an unknown witness")
+        review_refs = row.get("review_refs", [])
+        if any(ref not in review_ids for ref in review_refs):
+            messages.append("collation references an unknown review")
+        if row.get("status") in decided and not review_refs:
+            messages.append("decided collation lacks human review")
+        if row.get("status") in accepted and row.get("maker", {}).get("maker_kind") != "human":
+            messages.append("non-human collation acceptance")
+        if row.get("collation_id") == row.get("supersedes_collation_ref"):
+            messages.append("collation cannot supersede itself")
+        if row.get("claim_id") == row.get("supersedes_claim_ref"):
+            messages.append("collation claim cannot supersede itself")
+        if any(value is not False for value in row.get("interpretive_boundary", {}).values()):
+            messages.append("collation interpretive boundary widened")
+    accepted_ids = {
+        row.get("collation_id") for row in collations if row.get("status") in accepted
+    }
+    for projection in packet.get("projections", []):
+        if not isinstance(projection, dict):
+            continue
+        refs = projection.get("source_collation_refs", [])
+        if any(ref not in known_collations for ref in refs):
+            messages.append("projection references an unknown collation")
+        if any(ref not in accepted_ids for ref in refs):
+            messages.append("projection uses a collation that is not accepted")
+    rights = packet.get("rights_and_visibility", {})
+    if rights.get("private_source_used") and rights.get("publication_authorized"):
+        messages.append("private-source collation authorizes publication")
+    return messages
+
+
+def validate_antonovsky_2007_1911_collation(repo_root: Path) -> list[Issue]:
+    """Close the tracked 2007/1911 witness proposal without reading private text."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    plan_path = repo_root / ANTONOVSKY_2007_1911_COLLATION_PLAN
+    location = ANTONOVSKY_2007_1911_COLLATION_PLAN.as_posix()
+    plan = _load_json(plan_path, repo_root, issues)
+    if plan is None:
+        return issues
+    if plan.get("schema_version") != "tos_antonovsky_2007_1911_opening_sentence_collation_plan_v1":
+        issues.append((location, "unexpected Antonovsky witness-collation plan version"))
+
+    try:
+        anchor_validator, _ = _schema_validator(ANCHOR_V2_SCHEMA, repo_root)
+        layer_validator, _ = _schema_validator(SOURCE_TEXT_LAYER_SCHEMA, repo_root)
+        unit_validator, _ = _schema_validator(SOURCE_TEXT_UNIT_V1_SCHEMA, repo_root)
+        collation_validator, _ = _schema_validator(WITNESS_TEXT_COLLATION_V1_SCHEMA, repo_root)
+        provenance_validator, _ = _schema_validator(PROVENANCE_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        issues.append((location, f"cannot load Antonovsky collation schemas: {exc}"))
+        return issues
+
+    outputs = plan.get("outputs", {})
+    refs = {
+        "anchor": outputs.get("source_anchor_ref"),
+        "layer": outputs.get("source_text_layer_ref"),
+        "unit": outputs.get("source_text_unit_packet_ref"),
+        "collation": outputs.get("collation_packet_ref"),
+        "event": outputs.get("provenance_event_ref"),
+    }
+    payloads: dict[str, dict[str, Any]] = {}
+    paths: dict[str, Path] = {}
+    for label, ref in refs.items():
+        if not isinstance(ref, str):
+            issues.append((location, f"{label} output reference is absent"))
+            continue
+        paths[label] = repo_root / ref
+        payload = _load_json(paths[label], repo_root, issues)
+        if payload is not None:
+            payloads[label] = payload
+    if set(payloads) != set(refs):
+        return issues
+
+    validators = {
+        "anchor": anchor_validator,
+        "layer": layer_validator,
+        "unit": unit_validator,
+        "collation": collation_validator,
+        "event": provenance_validator,
+    }
+    semantic_checks = {
+        "anchor": _anchor_v2_semantic_issues,
+        "layer": _source_text_layer_semantic_issues,
+        "unit": _source_text_unit_v1_issues,
+        "collation": _witness_text_collation_v1_issues,
+        "event": _provenance_v2_semantic_issues,
+    }
+    for label, payload in payloads.items():
+        for error in validators[label].iter_errors(payload):
+            issues.append((str(refs[label]), f"{label} schema: {error.message}"))
+        for message in semantic_checks[label](payload):
+            issues.append((str(refs[label]), message))
+
+    expected_boundary = {
+        "human_observation_preserved": True,
+        "human_attestation_collected": False,
+        "human_review_performed": False,
+        "gold_created": False,
+        "source_text_accepted": False,
+        "sentence_boundary_accepted": False,
+        "collation_status": "proposed",
+        "preferred_reading_selected": False,
+        "textual_equivalence_established": False,
+        "expression_derivation_established": False,
+        "translation_relation_created": False,
+        "lexical_or_semantic_relation_created": False,
+        "projection_created": False,
+        "graph_or_canon_effect": False,
+        "routine_human_task_created": False,
+        "publication_authorized": False,
+    }
+    if plan.get("authority_boundary") != expected_boundary:
+        issues.append((location, "Antonovsky witness-collation plan authority widened"))
+    observation = plan.get("human_observation", {})
+    if any(
+        observation.get(field) is not False
+        for field in (
+            "pass_receipt_collected",
+            "source_review_created",
+            "gold_created",
+            "promotion_authorized",
+        )
+    ) or observation.get("attestation_status") != "not_collected":
+        issues.append((location, "unattested Workbench observation was promoted"))
+
+    tracked_bindings = [
+        (plan.get("research_ref"), None),
+        (plan.get("contract_ref"), None),
+        (observation.get("assurance_ref"), observation.get("assurance_sha256")),
+        (observation.get("method_research_ref"), observation.get("method_research_sha256")),
+    ]
+    source = plan.get("witness_2007", {})
+    target = plan.get("witness_1911", {})
+    tracked_bindings.extend(
+        [
+            (source.get("item_manifest_ref"), None),
+            (source.get("resource_inventory_ref"), None),
+            (source.get("rights_ref"), source.get("rights_sha256")),
+            (target.get("text_layer_record_ref"), target.get("text_layer_record_sha256")),
+            (target.get("text_unit_packet_ref"), target.get("text_unit_packet_sha256")),
+            (target.get("rights_ref"), target.get("rights_sha256")),
+        ]
+    )
+    for ref, expected_digest in tracked_bindings:
+        if not isinstance(ref, str):
+            issues.append((location, "tracked collation dependency reference is absent"))
+            continue
+        path = repo_root / ref
+        if path.is_symlink() or not path.is_file():
+            issues.append((location, f"tracked collation dependency is absent: {ref}"))
+        elif expected_digest is not None and _sha256(path) != expected_digest:
+            issues.append((location, f"tracked collation dependency digest drifted: {ref}"))
+
+    for field in ("private_text_ref", "private_detail_ref"):
+        ref = outputs.get(field)
+        if not isinstance(ref, str) or "local-content/witness-text-collation/" not in ref:
+            issues.append((location, f"unsafe private collation output: {field}"))
+            continue
+        ignored = _git_ignored(repo_root, repo_root / ref)
+        if ignored is not True:
+            issues.append((location, f"private collation output is not Git-ignored: {field}"))
+
+    ids = plan.get("opaque_ids", {})
+    plan_digest = _sha256(plan_path)
+    anchor = payloads["anchor"]
+    expected_anchor_target = {
+        "item_id": source.get("item_ref"),
+        "file_id": source.get("file_ref"),
+        "file_sha256": source.get("file_sha256"),
+        "media_type": "application/pdf",
+    }
+    anchor_selector = anchor.get("selector_payload", {}).get("expression", {}).get("selector", {})
+    if (
+        anchor.get("anchor_id") != ids.get("source_anchor_id")
+        or anchor.get("passage_id") != ids.get("source_passage_id")
+        or anchor.get("target") != expected_anchor_target
+        or anchor.get("review_status") != "unreviewed"
+        or anchor.get("review_ref") is not None
+        or anchor.get("publication_boundary", {}).get("source_text_in_record") is not False
+        or anchor.get("publication_boundary", {}).get("public_payload_expected") is not False
+        or anchor_selector.get("state", {}).get("representation_sha256") != source.get("file_sha256")
+        or anchor_selector.get("selector", {}).get("page_identity", {}).get("page_number") != source.get("page_number")
+    ):
+        issues.append((str(refs["anchor"]), "2007 source-anchor binding or authority drifted"))
+
+    layer = payloads["layer"]
+    representation = layer.get("representation", {})
+    admission = layer.get("admission", {})
+    if (
+        layer.get("layer_id") != ids.get("source_text_layer_id")
+        or layer.get("layer_role") != "diplomatic_transcription"
+        or representation.get("content_ref") != outputs.get("private_text_ref")
+        or representation.get("content_sha256") != source.get("text_layer_sha256")
+        or representation.get("tracked_content") is not False
+        or representation.get("content_visibility") != "local_only"
+        or representation.get("publication_authorized") is not False
+        or admission.get("review_status") != "unreviewed"
+        or admission.get("human_review_performed") is not False
+        or admission.get("accepted_uses") != []
+        or admission.get("promotion_authorized") is not False
+        or admission.get("routine_human_task_created") is not False
+    ):
+        issues.append((str(refs["layer"]), "2007 observation layer authority or private-content posture drifted"))
+    source_anchors = layer.get("source_binding", {}).get("anchors", [])
+    if len(source_anchors) != 1 or source_anchors[0] != {
+        "anchor_id": ids.get("source_anchor_id"),
+        "anchor_record_ref": refs["anchor"],
+        "anchor_record_sha256": _sha256(paths["anchor"]),
+    }:
+        issues.append((str(refs["layer"]), "2007 layer-to-anchor fixity closure drifted"))
+
+    unit = payloads["unit"]
+    expected_scope = {
+        key: source.get(key)
+        for key in ("work_ref", "expression_ref", "edition_ref", "item_ref", "file_ref", "file_sha256")
+    }
+    if unit.get("packet_id") != ids.get("source_unit_packet_id") or unit.get("source_scope") != expected_scope:
+        issues.append((str(refs["unit"]), "2007 source-text-unit identity or scope drifted"))
+    anchors = {
+        row.get("anchor_ref"): row for row in unit.get("anchors", []) if isinstance(row, dict)
+    }
+    anchor_expectations = [
+        ("source_scope_anchor_id", 0, source.get("text_layer_codepoints"), source.get("text_layer_sha256")),
+        ("source_heading_anchor_id", source.get("heading_start"), source.get("heading_end"), source.get("heading_sha256")),
+        ("source_interstitial_anchor_id", source.get("interstitial_start"), source.get("interstitial_end"), None),
+        ("source_sentence_anchor_id", source.get("sentence_start"), source.get("sentence_end"), source.get("sentence_sha256")),
+        ("source_remainder_anchor_id", source.get("remainder_start"), source.get("remainder_end"), source.get("remainder_sha256")),
+    ]
+    for id_field, start, end, digest in anchor_expectations:
+        row = anchors.get(ids.get(id_field), {})
+        selector = row.get("selector", {})
+        if (
+            selector.get("start") != start
+            or selector.get("end") != end
+            or row.get("text_layer_ref") != outputs.get("private_text_ref")
+            or row.get("text_layer_sha256") != source.get("text_layer_sha256")
+            or (digest is not None and row.get("exact_sha256") != digest)
+        ):
+            issues.append((str(refs["unit"]), f"2007 unit anchor drifted: {id_field}"))
+    segmentations = unit.get("segmentations", [])
+    units = unit.get("units", [])
+    if (
+        len(segmentations) != 1
+        or segmentations[0].get("status") != "proposed"
+        or segmentations[0].get("review_refs") != []
+        or segmentations[0].get("ordered_unit_refs") != [ids.get("source_sentence_unit_id")]
+        or len(units) != 1
+        or units[0].get("unit_id") != ids.get("source_sentence_unit_id")
+        or units[0].get("boundary_posture") != "method_proposed"
+        or units[0].get("semantic_promotion") is not False
+        or unit.get("reviews") != []
+        or unit.get("projections") != []
+    ):
+        issues.append((str(refs["unit"]), "2007 sentence proposal was widened or lost closure"))
+
+    collation = payloads["collation"]
+    witnesses = collation.get("witnesses", [])
+    collations = collation.get("collations", [])
+    if collation.get("packet_id") != ids.get("collation_packet_id") or len(witnesses) != 2 or len(collations) != 1:
+        issues.append((str(refs["collation"]), "collation packet identity or cardinality drifted"))
+    witness_by_id = {
+        row.get("witness_id"): row for row in witnesses if isinstance(row, dict)
+    }
+    witness_expectations = (
+        (ids.get("witness_2007_id"), source, refs["unit"], _sha256(paths["unit"]), ids.get("source_sentence_anchor_id")),
+        (ids.get("witness_1911_id"), target, target.get("text_unit_packet_ref"), target.get("text_unit_packet_sha256"), target.get("anchor_ref")),
+    )
+    for witness_id, side, packet_ref, packet_sha, anchor_ref in witness_expectations:
+        row = witness_by_id.get(witness_id, {})
+        selector = row.get("selector", {})
+        if (
+            row.get("work_ref") != side.get("work_ref")
+            or row.get("expression_ref") != side.get("expression_ref")
+            or row.get("edition_ref") != side.get("edition_ref")
+            or row.get("item_ref") != side.get("item_ref")
+            or row.get("anchor_ref") != anchor_ref
+            or row.get("exact_sha256") != side.get("sentence_sha256")
+            or selector.get("start") != side.get("sentence_start")
+            or selector.get("end") != side.get("sentence_end")
+            or row.get("text_unit_packet") != {"ref": packet_ref, "sha256": packet_sha}
+            or row.get("visibility") != "local_only"
+            or row.get("publication_authorized") is not False
+            or row.get("source_text_in_record") is not False
+        ):
+            issues.append((str(refs["collation"]), f"collation witness binding drifted: {witness_id}"))
+    proposal = collations[0] if len(collations) == 1 else {}
+    expected_views = [
+        {**row, "similarity_metric": "sequence_matcher_ratio"}
+        for row in plan.get("comparison_method", {}).get("views", [])
+    ]
+    if (
+        proposal.get("collation_id") != ids.get("collation_id")
+        or proposal.get("claim_id") != ids.get("collation_claim_id")
+        or proposal.get("status") != "proposed"
+        or proposal.get("review_refs") != []
+        or proposal.get("correspondence_shape") != "one_to_one"
+        or proposal.get("comparison_views") != expected_views
+        or proposal.get("maker", {}).get("maker_kind") != "software"
+        or any(value is not False for value in proposal.get("interpretive_boundary", {}).values())
+        or proposal.get("private_detail", {}).get("tracked") is not False
+        or proposal.get("private_detail", {}).get("visibility") != "local_only"
+        or collation.get("reviews") != []
+        or collation.get("projections") != []
+    ):
+        issues.append((str(refs["collation"]), "collation proposal, metrics, or non-promotion boundary drifted"))
+    expected_rights = {
+        "witness_visibility": "local_only",
+        "packet_visibility": "public_metadata_only",
+        "effective_visibility": "local_only",
+        "rights_record_refs": [source.get("rights_ref"), target.get("rights_ref")],
+        "private_source_used": True,
+        "publication_authorized": False,
+        "inheritance_policy": "most-restrictive-witness-packet-detail-and-destination-wins",
+    }
+    if collation.get("rights_and_visibility") != expected_rights:
+        issues.append((str(refs["collation"]), "collation rights or visibility drifted"))
+
+    event = payloads["event"]
+    event_outputs = {
+        row.get("entity_ref"): row.get("sha256")
+        for row in event.get("entities", {}).get("outputs", [])
+        if isinstance(row, dict)
+    }
+    expected_event_outputs = {
+        str(refs[label]): _sha256(paths[label])
+        for label in ("anchor", "layer", "unit", "collation")
+    }
+    if event_outputs != expected_event_outputs:
+        issues.append((str(refs["event"]), "collation provenance output closure drifted"))
+    byproducts = {
+        row.get("entity_ref"): row for row in event.get("entities", {}).get("byproducts", [])
+        if isinstance(row, dict)
+    }
+    if set(byproducts) != {outputs.get("private_text_ref"), outputs.get("private_detail_ref")} or any(
+        row.get("availability") != "ignored_local" or row.get("content_disclosure") != "private_content"
+        for row in byproducts.values()
+    ):
+        issues.append((str(refs["event"]), "private collation byproduct closure drifted"))
+    review = event.get("review_and_authority", {})
+    if (
+        event.get("record_binding", {}).get("manifest_ref") != location
+        or event.get("activity", {}).get("event_type") != "alignment"
+        or review.get("human_review_status") != "not_performed"
+        or review.get("accepted_uses") != []
+        or review.get("promotion_authorized") is not False
+        or event.get("rights_and_visibility", {}).get("content_visibility") != "local_only"
+        or event.get("rights_and_visibility", {}).get("publication_authorized") is not False
+    ):
+        issues.append((str(refs["event"]), "collation provenance authority widened"))
+
+    # The plan itself and every tracked output must remain metadata-only.
+    forbidden_keys = {"diplomatic_transcription", "opcodes", "source_text", "target_text"}
+    for label, payload in {"plan": plan, **payloads}.items():
+        stack: list[Any] = [payload]
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                if forbidden_keys & set(value):
+                    issues.append((location if label == "plan" else str(refs[label]), "tracked collation record contains private-content field"))
+                    break
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+    return issues
+
+
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
     for basename in SOURCE_BASENAMES.values():
@@ -5937,6 +6337,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
     issues.extend(source_text_unit_v1_lab_issues)
 
     issues.extend(validate_zarathustra_opening_sentence_alignment(repo_root))
+    issues.extend(validate_antonovsky_2007_1911_collation(repo_root))
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)

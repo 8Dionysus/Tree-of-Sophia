@@ -272,6 +272,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_antonovsky_witness_text_collation.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/witness-text-collation-packet-v1.schema.json",
+      "protects": "the real text-free Antonovsky 2007/1911 witness-collation proposal, exact reuse of one preserved unattested p011 observation without repeated human work, selector/digest/unit/rights/metric/provenance closure, optional owner-local mode-0600 replay, and fail-closed rejection of fabricated review or gold, accepted machine claims, preferred reading, textual equivalence, Edition genealogy, Expression derivation, translation, semantics, proposed-claim projection, private-detail tracking, publication widening, and source-text leakage",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_antonovsky_witness_text_collation.py",
+      "failure_route": "Fix the witness-collation contract, plan, builder, tracked records, private custody boundary, provenance, or source-foundation validator before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_foundation.py",
       "home": "tests",
       "home_scope": "root",

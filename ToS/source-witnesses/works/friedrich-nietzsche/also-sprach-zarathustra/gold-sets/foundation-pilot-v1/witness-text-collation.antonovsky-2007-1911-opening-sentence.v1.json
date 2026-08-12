@@ -1,0 +1,319 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/witness-text-collation-packet-v1.schema.json",
+  "authority_boundary": {
+    "canon_effect": false,
+    "collation_is_claim_not_textual_truth": true,
+    "derivation_not_inferred": true,
+    "equivalence_not_inferred": true,
+    "graph_role": "relation",
+    "human_observation_is_not_human_review": true,
+    "machine_or_model_may_propose_not_accept": true,
+    "preferred_reading_not_inferred": true,
+    "projection_is_not_owner_truth": true,
+    "semantics_not_inferred": true,
+    "source_role": "authority",
+    "translation_not_inferred": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "collations": [
+    {
+      "claim_id": "tos.witness-text-collation-claim.sid-56b3bfc5064e374f1eef84c4bf01f738",
+      "claim_version": 1,
+      "collation_id": "tos.witness-text-collation.sid-71a83fd09264be7a2ee055685a7cba9e",
+      "collation_version": 1,
+      "comparison_method": {
+        "algorithm": "python-difflib-sequence-matcher-character-collation",
+        "algorithm_version": "1",
+        "autojunk": false,
+        "base_or_lemma_selected": false,
+        "source_text_mutated": false,
+        "tokenization": "unicode_code_point"
+      },
+      "comparison_views": [
+        {
+          "exact_equal": false,
+          "normalization": "none",
+          "normalization_version": "identity-v1",
+          "opcode_count": 15,
+          "opcode_extent_counts": {
+            "delete": 0,
+            "equal": 98,
+            "insert": 5,
+            "replace": 4
+          },
+          "opcode_tag_counts": {
+            "delete": 0,
+            "equal": 8,
+            "insert": 4,
+            "replace": 3
+          },
+          "private_edit_script_sha256": "49d0b2e3d517e5022386909fab5ac05569c6eb37e624bf7f3d1a8d93059c670d",
+          "similarity_metric": "sequence_matcher_ratio",
+          "similarity_score_ppm": 942308,
+          "view_id": "exact",
+          "witness_a_codepoints": 101,
+          "witness_b_codepoints": 107
+        },
+        {
+          "exact_equal": false,
+          "normalization": "NFC",
+          "normalization_version": "unicodedata-runtime-pinned-by-provenance",
+          "opcode_count": 15,
+          "opcode_extent_counts": {
+            "delete": 0,
+            "equal": 98,
+            "insert": 5,
+            "replace": 4
+          },
+          "opcode_tag_counts": {
+            "delete": 0,
+            "equal": 8,
+            "insert": 4,
+            "replace": 3
+          },
+          "private_edit_script_sha256": "49d0b2e3d517e5022386909fab5ac05569c6eb37e624bf7f3d1a8d93059c670d",
+          "similarity_metric": "sequence_matcher_ratio",
+          "similarity_score_ppm": 942308,
+          "view_id": "unicode-nfc",
+          "witness_a_codepoints": 101,
+          "witness_b_codepoints": 107
+        },
+        {
+          "exact_equal": false,
+          "normalization": "whitespace_collapsed",
+          "normalization_version": "python-str-split-join-v1",
+          "opcode_count": 15,
+          "opcode_extent_counts": {
+            "delete": 0,
+            "equal": 99,
+            "insert": 6,
+            "replace": 2
+          },
+          "opcode_tag_counts": {
+            "delete": 0,
+            "equal": 8,
+            "insert": 5,
+            "replace": 2
+          },
+          "private_edit_script_sha256": "ef0a3712e82665e0d01004ed8a071d2a33d873d13b002cb360f01528a6e7ed13",
+          "similarity_metric": "sequence_matcher_ratio",
+          "similarity_score_ppm": 951923,
+          "view_id": "whitespace-collapsed",
+          "witness_a_codepoints": 101,
+          "witness_b_codepoints": 107
+        },
+        {
+          "exact_equal": false,
+          "normalization": "alphanumeric_casefold",
+          "normalization_version": "python-str-isalnum-casefold-v1",
+          "opcode_count": 15,
+          "opcode_extent_counts": {
+            "delete": 0,
+            "equal": 82,
+            "insert": 5,
+            "replace": 2
+          },
+          "opcode_tag_counts": {
+            "delete": 0,
+            "equal": 8,
+            "insert": 5,
+            "replace": 2
+          },
+          "private_edit_script_sha256": "be7a12a2668fe2f65ab509f8cd4e8356d544249874a3eeac07f2a519a591a182",
+          "similarity_metric": "sequence_matcher_ratio",
+          "similarity_score_ppm": 947977,
+          "view_id": "alphanumeric-casefold",
+          "witness_a_codepoints": 84,
+          "witness_b_codepoints": 89
+        }
+      ],
+      "competing_collation_refs": [],
+      "correspondence_basis": "ordinal_and_surface_similarity",
+      "correspondence_shape": "one_to_one",
+      "direction": "symmetric_comparison",
+      "evidence": [
+        {
+          "authority_effect": "supports_proposal",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+          "role": "method_input",
+          "sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8",
+            "tos.witness-text-collation-witness.sid-afd7b20fd9596a4936495fd218af1e95"
+          ]
+        },
+        {
+          "authority_effect": "none",
+          "evidence_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.pass-1.autosave.json",
+          "role": "source_observation",
+          "sha256": "6ba7619bf4591353fb8d5afea75a92d0e2ddd705cbb5adb37885c883cc4a1635",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8"
+          ]
+        },
+        {
+          "authority_effect": "none",
+          "evidence_ref": "abyss-stack:artifact/tree-of-sophia-foundation-lab/human-review/zarathustra-15-page-gold-pass-1-20260723/human-review-workbench.sparse-calibration-closure/closure.json",
+          "role": "qualification",
+          "sha256": "e0ff950043eb823b7894ef3e4ee958f5292b111dc7d9f7d408dc9a3620b848da",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8"
+          ]
+        },
+        {
+          "authority_effect": "supports_proposal",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+          "role": "support",
+          "sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-afd7b20fd9596a4936495fd218af1e95"
+          ]
+        },
+        {
+          "authority_effect": "none",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+          "role": "rights",
+          "sha256": "8c672f22af6e94a6969bc9206592deaea0e1dc6ceed2ee8cf806f5b8fb34013d",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8"
+          ]
+        },
+        {
+          "authority_effect": "none",
+          "evidence_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+          "role": "rights",
+          "sha256": "ebf9a2e82f2dc75a43c73df998d3addc36564cdc1bcd3279630e8fc5404768a4",
+          "witness_refs": [
+            "tos.witness-text-collation-witness.sid-afd7b20fd9596a4936495fd218af1e95"
+          ]
+        }
+      ],
+      "identity_policy": "opaque-id-independent-of-text-label-offset-score-algorithm-and-current-correspondence",
+      "interpretive_boundary": {
+        "expression_derivation_established": false,
+        "lexical_equivalence_inferred": false,
+        "preferred_reading_selected": false,
+        "semantic_relation_inferred": false,
+        "textual_equivalence_established": false,
+        "translation_relation_inferred": false
+      },
+      "maker": {
+        "agent_ref": "software:tos-antonovsky-2007-1911-collation-builder",
+        "configuration_sha256": "13d73e9570e83588b8d8f5c36b79f5740def5b5157bc6d00ef2e908faf9cff23",
+        "made_at": "2026-08-12T10:19:48Z",
+        "maker_kind": "software",
+        "method": "python-difflib-sequence-matcher-character-collation",
+        "method_version": "1",
+        "output_posture": "proposal_not_textual_truth",
+        "provenance_event_ref": "tos.event.alignment.antonovsky-2007-1911-opening-sentence-collation.2026-08-12",
+        "software_ref": "scripts/build_antonovsky_2007_1911_collation.py"
+      },
+      "ordered_witness_refs": [
+        "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8",
+        "tos.witness-text-collation-witness.sid-afd7b20fd9596a4936495fd218af1e95"
+      ],
+      "private_detail": {
+        "reconstructive_detail": true,
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/comparison-details.json",
+        "sha256": "21cc98766b7e97cc80023a234e7090aaf3ef39b169094db028a3bde41176f5ab",
+        "tracked": false,
+        "visibility": "local_only"
+      },
+      "relation_scope": "same_work",
+      "review_refs": [],
+      "status": "proposed",
+      "status_reason": "The first prose sentence after the shared opening section marker has high character-level surface similarity in four declared views. The 2007 observation is unattested, both boundaries are unreviewed, and no textual equivalence or edition derivation is established.",
+      "supersedes_claim_ref": null,
+      "supersedes_collation_ref": null
+    }
+  ],
+  "content_posture": "source_bound",
+  "granularity": "sentence",
+  "packet_id": "tos.witness-text-collation-packet.sid-785a9bdd118e6be42bd29dd68aea5435",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most-restrictive-witness-packet-detail-and-destination-wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json",
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+    ],
+    "witness_visibility": "local_only"
+  },
+  "schema_version": "tos_witness_text_collation_packet_v1",
+  "supersedes_packet_ref": null,
+  "witnesses": [
+    {
+      "anchor_ref": "tos.anchor.antonovsky-2007-p011-opening-sentence.sid-f57f5a26e04d54f6f7ff641ef77c6078",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+      "exact_sha256": "feb753bc7821c4c67e18fca1769f234ec4986162f37fea34491ccfd93feb83b3",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution",
+      "file_ref": "tos.file.sha256.49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+      "file_sha256": "49614015865f8c65a68746b1a6dc9a8b7f036d817b2e04b1f3b94fec8ef7b0c2",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf",
+      "language": "ru",
+      "ordinal": 1,
+      "publication_authorized": false,
+      "rights_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/rights.json"
+      ],
+      "selector": {
+        "end": 168,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 67,
+        "type": "text_position"
+      },
+      "source_return_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "source_text_in_record": false,
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/witness-text-collation/antonovsky-2007-1911-opening-sentence/antonovsky-2007-p011.human-observation.txt",
+      "text_layer_sha256": "e38271c52b23dc46c2c3826b609b4cae5abeca4bea5bb075cfc14a631c8b45b2",
+      "text_unit_packet": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.antonovsky-2007-p011-opening-sentence-proposal.v1.json",
+        "sha256": "ab0f4a5a971d2500561e99a2ac0bb8b4f069e08876892961ba46b4f98a2aa93f"
+      },
+      "visibility": "local_only",
+      "witness_id": "tos.witness-text-collation-witness.sid-5cf7e33c01e9a370dfcf7c2e380926c8",
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42",
+      "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+      "exact_sha256": "fd26665b0e6cd602fdad957179b19d676534006d21048e24473f58241041a6d6",
+      "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+      "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+      "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+      "language": "ru",
+      "ordinal": 2,
+      "publication_authorized": false,
+      "rights_refs": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+      ],
+      "selector": {
+        "end": 107,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "source_text_in_record": false,
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+      "text_unit_packet": {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json",
+        "sha256": "61644c8f199de32233226bece7d0301cf9e7309e380c5dc415cf55de1e44ddcb"
+      },
+      "visibility": "local_only",
+      "witness_id": "tos.witness-text-collation-witness.sid-afd7b20fd9596a4936495fd218af1e95",
+      "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    }
+  ]
+}

@@ -957,6 +957,23 @@ uncertainty, language competence, translation fidelity, lexical equivalence,
 semantics, projection, graph/canon authority, rights clearance, and
 publication remain open.
 
+The separate Antonovsky 2007/1911 question is witness collation, not
+translation alignment. It reuses only the already preserved, unattested
+`tos-sample-antonovsky-p011` Workbench observation, copies its exact 1503-code-
+point layer into ignored owner-local custody, and compares the proposed first
+prose sentence with the existing Antonovsky 1911 sentence proposal. The
+tracked `witness-text-collation-packet-v1` record exposes exact selectors,
+digests, four declared character-comparison views, aggregate edit counts, and
+the digest of local reconstructive detail; it exposes neither witness text nor
+the human feedback. The observation remains an observation, not human review
+or gold. Both boundaries and the cross-edition correspondence stay
+`proposed`; no preferred reading, textual equivalence, Edition genealogy,
+Expression derivation, translation relation, lexical or semantic identity,
+projection, graph/canon effect, redistribution, publication, or routine human
+task follows. Release validation closes only tracked metadata and therefore
+does not require the private source or Workbench artifact; the owner-local
+builder owns exact replay against both.
+
 ## Provenance-event v2 laboratory boundary
 
 The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution

@@ -69,6 +69,17 @@ companions, catalog parity, and any locally present payload bytes. Neither tool
 can certify bibliographic truth, OCR quality, rights clearance, translation,
 semantics, or human acceptance.
 
+The Antonovsky 2007/1911 collation builder is an explicit-local source
+projection route over one previously preserved Workbench observation and one
+existing 1911 private layer. It writes source-bearing and reconstructive detail
+only to ignored mode-`0600` owner storage, while Git receives text-free
+anchor/layer/unit/collation/provenance records. The release-safe source
+validator checks their schema, selector, digest, rights, metric, provenance,
+and non-promotion closure without requiring either private witness. This route
+cannot convert an observation into review or gold, or surface similarity into
+preferred reading, textual equivalence, genealogy, derivation, translation,
+semantics, graph truth, canon, or publication authority.
+
 Explicit-local structure builders remain separate from that release-safe
 validator. The Mysl transfer-target builder reads one exact ignored PDF only
 when given a payload root, preserves independently resetting *Genealogie* and

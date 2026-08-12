@@ -456,6 +456,21 @@ acceptance. Paths, artifact hashes, independent checks, and the triggered
 human-work law are recorded in
 `ToS/research-packets/foundation-laboratory-2026-07/HUMAN_GOLD_REVIEW_PACKET.md`.
 
+## Antonovsky witness-text collation proposal
+
+`antonovsky-2007-1911-opening-sentence-collation.plan.v1.json` reuses that one
+preserved p011 observation without asking the operator to repeat it. The
+owner-local builder materializes the exact observation and reconstructive edit
+scripts only below ignored `local-content/witness-text-collation/`, with mode
+`0600`. The tracked source-anchor, source-text-layer, sentence-unit,
+witness-text-collation, and provenance records contain only identities,
+selectors, digests, aggregate comparison metrics, rights, method, and explicit
+authority limits. The 2007 observation remains unattested and unreviewed; the
+2007 and 1911 sentence boundaries and their same-Work correspondence remain
+proposals. This packet is neither gold nor a preferred reading, textual
+equivalence, Edition genealogy, Expression derivation, translation judgment,
+semantic relation, graph/canon fact, or publication route.
+
 ## Local content
 
 Restricted transcriptions, crops, prompts, drafts, and comparator text belong
