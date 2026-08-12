@@ -598,6 +598,17 @@ contracts intentionally reject simulated human evidence.
 - Current rights assessments are preliminary, model-authored, and unreviewed.
 - The 1996 and 2007 Russian sources are local-research-only; payload and public
   derivative redistribution are not authorized.
+- The exact 1996 Mysl Item is no longer represented by one unevaluated scalar.
+  Its current model-authored RU/US record separates eleven layers: Nietzsche's
+  Works and the historical Antonovsky and Polilov translation substrates are
+  `public_domain_reviewed`; Svasyan's translation, compilation/editing/notes,
+  and the exact aggregate are `in_copyright`; Flerova identity, publisher
+  contribution, portrait/presentation, scan, and ABBYY text remain unresolved.
+  The local payload and all content-bearing server derivatives remain closed.
+  Public discoverability is availability evidence only; the failed
+  verified-TLS comparison was not bypassed and creates no remote fixity match.
+  This is not exact-1996 Expression equivalence, accepted Russian, human legal
+  review, permission, or publication authority.
 - The exact 2007 *Cultural Revolution* Item is no longer merely unevaluated.
   Its current model-authored RU/US assessment separates eight layers:
   Nietzsche's Work and the historical Antonovsky translation substrate are
@@ -1600,16 +1611,25 @@ from the calibration-only route in section 2b.
     route requires an independently permitted exact source or written
     layer-specific permission, then fresh fixity, quality, rights,
     human-review, and operator-approval gates.
-11. Treat the different Harvard/Hathi 1886 volume as a new Item only after an
+11. For the 1996 Mysl volume, do not project the positive Nietzsche,
+    Antonovsky, or Polilov historical-substrate results onto the exact 1996
+    Expressions, Svasyan contributions, unresolved Flerova route, Edition,
+    portrait, scan, ABBYY text, or aggregate PDF. Preserve the current
+    rights-binding-only transfer reconciliation without replacing or changing
+    its frozen candidates or repeating the prior model review. Any public
+    content route requires an
+    independently permitted exact source or written layer-specific permission
+    followed by fresh fixity, quality, rights, human, and operator gates.
+12. Treat the different Harvard/Hathi 1886 volume as a new Item only after an
     operator-approved request and current access-contract review. Shared author,
     title, publisher, and year do not establish physical identity, rights
     equivalence, text equivalence, or server admission.
-12. Reacquire any future public *Genealogie* 1892 object independently from
+13. Reacquire any future public *Genealogie* 1892 object independently from
     the then-current exact Commons route, verify that revision's fixity and
     source-country expression, and inspect binding, UNC furniture, OCR layout,
     wrapper, and provider metadata by layer. Do not upload the operator-held
     PDF or substitute the current byte-different Internet Archive derivative.
-13. Reacquire any future public *Antichrist* 1906 aggregate object
+14. Reacquire any future public *Antichrist* 1906 aggregate object
     independently from the then-current exact Commons route. Verify its new
     fixity and inspect archive editorial matter, Stanford furniture, OCR
     coverage and layout, DjVu packaging, and provider metadata by layer. Do

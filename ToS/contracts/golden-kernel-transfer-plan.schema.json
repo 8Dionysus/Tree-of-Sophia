@@ -62,7 +62,20 @@
         "file_ref": {"$ref": "#/$defs/tosId"},
         "file_sha256": {"$ref": "#/$defs/sha256"},
         "rights_record_ref": {"type": "string", "minLength": 1},
-        "rights_assessment_status": {"const": "copyright_not_evaluated"}
+        "rights_assessment_status": {
+          "enum": [
+            "not_assessed",
+            "copyright_not_evaluated",
+            "copyright_undetermined",
+            "in_copyright",
+            "public_domain_reviewed",
+            "licensed",
+            "permission_requested",
+            "permission_granted",
+            "permission_denied",
+            "conflicting_evidence"
+          ]
+        }
       }
     },
     "status": {

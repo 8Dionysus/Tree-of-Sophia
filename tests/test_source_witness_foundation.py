@@ -105,6 +105,22 @@ MYSL_WORK_BOUNDARY_ROOT = (
     / "ToS/source-witnesses/collections/friedrich-nietzsche/"
     "works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries"
 )
+MYSL_1996_ITEM_ROOT = (
+    REPO_ROOT
+    / "ToS/source-witnesses/collections/friedrich-nietzsche/"
+    "works-in-two-volumes-volume-2-mysl-1996/editions/"
+    "moscow-mysl-1996-volume-2/items/operator-pdf"
+)
+MYSL_1996_RIGHTS_RESEARCH_PATH = (
+    REPO_ROOT
+    / "ToS/research-packets/foundation-laboratory-2026-07/"
+    "MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md"
+)
+MYSL_1996_SERVER_PLAN_PATH = (
+    REPO_ROOT
+    / "ToS/source-witnesses/server-import/plans/"
+    "mysl-1996-operator-pdf.server-import.json"
+)
 JENSEITS_1886_EXPRESSION_ROOT = (
     REPO_ROOT
     / "ToS/source-witnesses/works/friedrich-nietzsche/"
@@ -4320,6 +4336,224 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(
             server_event["method"]["configuration"]["payload_transfer_authorized"]
         )
+
+    def test_mysl_1996_keeps_historical_substrates_and_protected_layers_distinct(
+        self,
+    ) -> None:
+        rights_path = MYSL_1996_ITEM_ROOT / "rights.json"
+        rights = json.loads(rights_path.read_text(encoding="utf-8"))
+        self.assertEqual("in_copyright", rights["assessment_status"])
+        self.assertEqual(["RU", "US"], rights["jurisdictions_reviewed"])
+        self.assertEqual("local_only", rights["visibility"])
+        self.assertEqual("not_authorized", rights["redistribution_posture"])
+        self.assertEqual("local_research_only", rights["derivative_posture"])
+        self.assertEqual("unreviewed", rights["review_status"])
+        self.assertEqual(2, rights["record_version"])
+        self.assertIsNone(rights["rights_statement_uri"])
+
+        layers = {
+            layer["layer_id"].rsplit(".layer.", 1)[1]: layer
+            for layer in rights["layer_assessments"]
+        }
+        self.assertEqual(
+            {
+                "original-german-works",
+                "historical-antonovsky-translation-substrates",
+                "historical-polilov-translation-substrates",
+                "historical-flerova-translation-substrate",
+                "svasyan-genealogy-translation",
+                "svasyan-compilation-editing-and-notes",
+                "publisher-edition-contribution",
+                "portrait-and-edition-presentation",
+                "digital-page-scan",
+                "abbyy-embedded-text",
+                "exact-operator-pdf-aggregate",
+            },
+            set(layers),
+        )
+        expected_historical_terms = {
+            "original-german-works": "1970-12-31",
+            "historical-antonovsky-translation-substrates": "1963-12-31",
+            "historical-polilov-translation-substrates": "1957-12-31",
+        }
+        for layer_id, term_end in expected_historical_terms.items():
+            self.assertEqual(
+                "public_domain_reviewed",
+                layers[layer_id]["assessment_status"],
+            )
+            self.assertEqual(term_end, layers[layer_id]["term"]["ends_on"])
+            self.assertEqual(
+                "authorized_with_conditions",
+                layers[layer_id]["server_processing_posture"],
+            )
+        for layer_id in (
+            "svasyan-genealogy-translation",
+            "svasyan-compilation-editing-and-notes",
+        ):
+            self.assertEqual("in_copyright", layers[layer_id]["assessment_status"])
+            self.assertEqual("2094-12-31", layers[layer_id]["term"]["ends_on"])
+        self.assertEqual(
+            "in_copyright",
+            layers["exact-operator-pdf-aggregate"]["assessment_status"],
+        )
+        for layer_id in (
+            "historical-flerova-translation-substrate",
+            "publisher-edition-contribution",
+            "portrait-and-edition-presentation",
+            "digital-page-scan",
+            "abbyy-embedded-text",
+        ):
+            self.assertEqual(
+                "copyright_undetermined",
+                layers[layer_id]["assessment_status"],
+            )
+        self.assertEqual(
+            {"public_domain_reviewed": 3, "in_copyright": 3, "copyright_undetermined": 5},
+            {
+                status: sum(
+                    layer["assessment_status"] == status
+                    for layer in rights["layer_assessments"]
+                )
+                for status in (
+                    "public_domain_reviewed",
+                    "in_copyright",
+                    "copyright_undetermined",
+                )
+            },
+        )
+
+        server_plan = json.loads(
+            MYSL_1996_SERVER_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual("restricted", server_plan["rights_policy"]["assessment_status"])
+        self.assertEqual(
+            hashlib.sha256(rights_path.read_bytes()).hexdigest(),
+            server_plan["rights_policy"]["rights_record_sha256"],
+        )
+        self.assertEqual(["RU", "US"], server_plan["rights_policy"]["jurisdictions_reviewed"])
+        self.assertEqual("metadata-only", server_plan["access_class"])
+        self.assertEqual("blocked-rights", server_plan["server_import_status"])
+        self.assertEqual(2, server_plan["contract_version"])
+        self.assertFalse(server_plan["payload_transfer_authorized"])
+        self.assertFalse(server_plan["operator_transfer_approval"]["approved"])
+        for derivative in (
+            "ocr",
+            "transcription",
+            "page_images",
+            "snippets",
+            "embeddings",
+            "alignments",
+            "translations",
+            "annotations",
+        ):
+            self.assertEqual(
+                "prohibited",
+                server_plan["allowed_derivatives"][derivative]["state"],
+            )
+
+        research_text = MYSL_1996_RIGHTS_RESEARCH_PATH.read_text(encoding="utf-8")
+        for heading in (
+            "Classical and official documentation",
+            "Established scholarship and practice",
+            "Fresh and currently relevant checks",
+            "General web search, last",
+        ):
+            self.assertIn(heading, research_text)
+        self.assertIn("explicitly non-normative", research_text)
+        self.assertIn("no certificate bypass was used", research_text)
+        self.assertIn("availability evidence only", research_text)
+
+        item_events = [
+            json.loads(line)
+            for line in (MYSL_1996_ITEM_ROOT / "provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        item_event = item_events[-1]
+        self.assertEqual(
+            "tos.event.rights-assessment.mysl-1996-volume-2-operator-pdf."
+            "layered.2026-08-11",
+            item_event["event_id"],
+        )
+        configuration = item_event["method"]["configuration"]
+        self.assertTrue(configuration["payload_read"])
+        self.assertEqual([2, 4, 770, 829, 830, 831], configuration["inspected_pdf_pages"])
+        self.assertEqual(11, configuration["layer_count"])
+        self.assertFalse(configuration["verified_tls_public_fixity_comparison_completed"])
+        self.assertFalse(configuration["operator_transfer_approval"])
+
+        server_events = [
+            json.loads(line)
+            for line in (
+                REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+            )
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        server_event = next(
+            event
+            for event in reversed(server_events)
+            if event["event_id"] == server_plan["provenance_event_refs"][0]
+        )
+        self.assertEqual(2, server_event["event_version"])
+        self.assertEqual(
+            "in_copyright",
+            server_event["method"]["configuration"]["rights_record_aggregate_status"],
+        )
+        self.assertFalse(
+            server_event["method"]["configuration"]["payload_transfer_authorized"]
+        )
+
+        transfer_plan = json.loads((GOLD_ROOT / "transfer-samples.json").read_text())
+        self.assertEqual(
+            "in_copyright",
+            transfer_plan["target_source"]["rights_assessment_status"],
+        )
+        transfer_events = [
+            json.loads(line)
+            for line in (GOLD_ROOT / "transfer-provenance.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        transfer_event = next(
+            event
+            for event in transfer_events
+            if event["event_id"] == transfer_plan["provenance_event_ref"]
+        )
+        self.assertFalse(
+            transfer_event["method"]["configuration"]["content_candidates_rebuilt"]
+        )
+        self.assertEqual(
+            "tos.event.segmentation.zarathustra-transfer-candidate-freeze-v3."
+            "2026-07-29",
+            transfer_event["supersedes_event_ref"],
+        )
+
+        register = json.loads(
+            (GOLD_ROOT / "translation-reference-register.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        mysl_entry = next(
+            entry
+            for entry in register["entries"]
+            if entry["reference_id"] == "tos-ref.ru.mysl-1996-volume-2"
+        )
+        self.assertEqual("in-copyright", mysl_entry["rights"]["assessment"])
+        self.assertNotIn(
+            "http://rightsstatements.org/vocab/CNE/1.0/",
+            mysl_entry["rights"]["rights_evidence_urls"],
+        )
+        self.assertIn(
+            "ToS/research-packets/foundation-laboratory-2026-07/"
+            "MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+            mysl_entry["tos_refs"]["path_refs"],
+        )
+        self.assertFalse(mysl_entry["admission"]["human_rights_review"])
+        self.assertFalse(mysl_entry["admission"]["accepted_as_truth"])
 
     def test_reader_1899_is_an_exact_but_fragmentary_uncredited_witness(
         self,
@@ -9602,7 +9836,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         transfer_digest = hashlib.sha256(transfer_path.read_bytes()).hexdigest()
         self.assertEqual(
-            "adad0534a5ce61f3eaa821aaa19fcc7257958c7baac06b75f30b321f65f36cb6",
+            "55f9cf6486f57a83ad28c1439493cd946862eb43e1750110fc55a8c961769fbf",
             transfer_digest,
         )
         self.assertEqual(transfer_digest, output["sha256"])

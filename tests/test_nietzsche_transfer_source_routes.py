@@ -22,7 +22,17 @@ class NietzscheTransferSourceRouteTests(unittest.TestCase):
 
     def test_generation_is_deterministic_from_tracked_maps(self) -> None:
         for config in builder.CONFIGS:
-            outputs = builder.build_one(config, "2026-08-08T21:15:00-06:00")
+            provenance_path = (
+                Path("ToS/source-witnesses/works/friedrich-nietzsche")
+                / config["slug"]
+                / "alignments/structure"
+                / config["pair_slug"]
+                / "provenance.numbered-unit-label-correspondence.jsonl"
+            )
+            current_event = json.loads(
+                (REPO_ROOT / provenance_path).read_text(encoding="utf-8")
+            )
+            outputs = builder.build_one(config, current_event["started_at"])
             for relative, rendered in outputs.items():
                 self.assertEqual((REPO_ROOT / relative).read_text(encoding="utf-8"), rendered)
 

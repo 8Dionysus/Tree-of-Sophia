@@ -1,9 +1,9 @@
 # Forensic Intake — Mysl 1996, Works in Two Volumes, Volume 2 PDF
 
-Status: AI-assisted technical inspection; work boundaries and translator
-credits are model-observed and unreviewed; textual, rights, and human
-bibliographic judgments remain open
-Inspected: 2026-07-22
+Status: AI-assisted technical inspection; work boundaries, translator credits,
+and layered rights remain model-observed or model-assessed and unreviewed;
+textual and human bibliographic judgments remain open
+Inspected: 2026-07-22; layered-rights continuation: 2026-08-11
 Payload visibility: local only
 
 ## Fixity
@@ -97,3 +97,36 @@ This item is the embedded-OCR comparison case:
   review, not string similarity alone.
 
 No new OCR, correction, or semantic extraction is claimed by this report.
+
+## Layered rights continuation — 2026-08-11
+
+The exact payload was fixity-reverified and pages 2, 4, 770, 829, 830, and 831
+were opened again through temporary host-managed renders. Page 2 visibly
+contains an uncredited Nietzsche portrait. Page 4 visibly supplies Svasyan's
+compiler, editor, notes-author, and translator roles, the other translator
+credits, and `© Издательство «Мысль». 1996`. Page 770 confirms substantial
+notes content; the final pages corroborate the table of contents and portrait
+leaf. No source text or image was copied into Git.
+
+The superseding rights record separates eleven layers. The seven underlying
+Nietzsche Works, historical Antonovsky substrates, and historical Polilov
+substrates are `public_domain_reviewed` only within bounded RU/US historical
+routes. Exact 1996 textual equivalence is not asserted. The Flerova historical
+substrate, publisher scope, portrait/presentation, scan, and ABBYY text remain
+`copyright_undetermined`. Svasyan's translation and his compilation, editing,
+and notes remain `in_copyright`; the exact PDF is therefore an aggregate
+`in_copyright` object.
+
+The public philosophy.ru library currently lists the Edition and exposes a PDF
+link, but no exact-object reuse license was found. A verified-TLS command-line
+fixity comparison failed because the served certificate was expired; no TLS
+bypass was used and no public-object identity was asserted. Availability is
+not permission.
+
+The exact local payload remains gitignored, `local_only`, redistribution
+`not_authorized`, and derivatives `local_research_only`. No payload, page
+image, OCR, transcription, snippet, embedding, alignment, translation, or
+source-bearing annotation is authorized for server transfer or publication.
+The assessment is model-made, not legal advice or human legal review. See
+`MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md` for the ordered source and
+layer analysis.

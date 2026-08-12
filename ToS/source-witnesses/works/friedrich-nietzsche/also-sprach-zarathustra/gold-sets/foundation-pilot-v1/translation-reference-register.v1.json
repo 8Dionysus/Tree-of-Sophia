@@ -47,7 +47,7 @@
         "publishers": [],
         "authors": ["Jacob Grimm", "Wilhelm Grimm"],
         "editors": [],
-        "translators": []
+        "translators": ["Ю. М. Антоновский"]
       },
       "dating": {
         "original_or_coverage_date": "printed first edition published 1854-1960",
@@ -1019,8 +1019,8 @@
       },
       "dating": {
         "original_or_coverage_date": "published 1996",
-        "edition_or_version": "volume 2 of a two-volume collected edition; work-specific Zarathustra translator attribution remains pending source-visible review",
-        "verified_at": "2026-07-23"
+        "edition_or_version": "volume 2 of a two-volume collected edition; the visible contents assign Also sprach Zarathustra to Yu. M. Antonovsky",
+        "verified_at": "2026-08-11"
       },
       "identifiers": [
         {"scheme": "ISBN", "value": "5-244-00854-2"},
@@ -1028,15 +1028,16 @@
       ],
       "primary_url": "https://ci.nii.ac.jp/ncid/BA35025034",
       "evidence_urls": [
-        "https://ci.nii.ac.jp/ncid/BA35025034"
+        "https://ci.nii.ac.jp/ncid/BA35025034",
+        "https://philosophy.ru/library/"
       ],
-      "scholarly_posture": "additional Russian collected-edition witness candidate; bibliographic presence is supported, but the Zarathustra translator and textual equivalence are deliberately unresolved",
+      "scholarly_posture": "additional Russian collected-edition witness candidate; the local source visibly identifies Antonovsky as the Zarathustra translator, while human bibliographic acceptance and textual equivalence remain deliberately unresolved",
       "intended_uses": [
         "translation-witness",
         "bibliographic-identity"
       ],
       "limits": [
-        "the volume lists multiple translators and does not yet prove the work-specific attribution",
+        "the work-specific translator attribution is source-visible and model-recorded but not human-accepted",
         "equivalence with the 2007 Antonovsky expression is not assumed",
         "the local aggregate PDF is in copyright with no redistribution authorization"
       ],
@@ -1051,16 +1052,20 @@
         "request_state": "blocked-pending-rights-route"
       },
       "rights": {
-        "assessment": "copyright-not-evaluated",
+        "assessment": "in-copyright",
         "license_uri": null,
         "redistribution": "not-authorized",
         "derivative_use": "local-research-only",
         "citation_requirements": [
-          "cite exact volume, editor, publisher, year, page, work-specific translator once verified, and ToS item identity"
+          "cite exact volume, editor, publisher, year, page, work-specific translator, and ToS item identity"
         ],
         "rights_evidence_urls": [
           "https://ci.nii.ac.jp/ncid/BA35025034",
-          "http://rightsstatements.org/vocab/CNE/1.0/"
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+          "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+          "https://www.copyright.gov/title17/92chap1.html",
+          "https://www.copyright.gov/title17/92chap3.html"
         ]
       },
       "tos_refs": {
@@ -1073,21 +1078,22 @@
         "path_refs": [
           "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-mysl-1996/expression.json",
           "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/edition.json",
-          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+          "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
+          "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md"
         ]
       },
       "admission": {
-        "state": "bibliographic-review-blocked",
+        "state": "rights-review-blocked",
         "human_bibliographic_review": false,
         "human_rights_review": false,
         "accepted_as_truth": false,
         "blocking_reasons": [
-          "work-specific translator attribution requires manual title-page and contents review",
+          "source-visible work-specific translator attribution remains without human bibliographic acceptance",
           "candidate equivalence with other Russian expressions is unresolved",
-          "rights review and content-use permission are absent"
+          "the model-authored layered assessment is in-copyright; human legal review and permission for content-bearing redistribution are absent"
         ]
       },
-      "notes": "This entry exists to preserve uncertainty rather than to manufacture a second independent Russian translation."
+      "notes": "This entry records a source-visible Antonovsky attribution without manufacturing equivalence to another expression or publication permission."
     },
     {
       "reference_id": "tos-ref.en.parkes-oup-2008",

@@ -183,10 +183,11 @@ class WitnessStructureCorrespondenceTests(unittest.TestCase):
         expected_provenance = (
             REPO_ROOT / label_builder.PROVENANCE_PATH
         ).read_text(encoding="utf-8")
+        current_event = json.loads(expected_provenance)
 
         actual_map, actual_provenance = label_builder.build_outputs(
             repo_root=REPO_ROOT,
-            event_at="2026-08-02T05:10:00-06:00",
+            event_at=current_event["started_at"],
         )
 
         self.assertEqual(expected_map, actual_map)

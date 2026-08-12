@@ -5,20 +5,589 @@
     "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
     "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa"
   ],
-  "assessment_status": "copyright_not_evaluated",
-  "rights_statement_uri": "http://rightsstatements.org/vocab/CNE/1.0/",
+  "assessment_status": "in_copyright",
+  "rights_statement_uri": null,
   "license_uri": null,
-  "jurisdictions_reviewed": [],
+  "jurisdictions_reviewed": [
+    "RU",
+    "US"
+  ],
   "source_refs": [
-    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md"
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+    "ToS/source-witnesses/discovery/runs/mysl-1996-volume-2.2026-07-28.v1.json",
+    "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md",
+    "https://ci.nii.ac.jp/ncid/BA35025034.json",
+    "https://philosophy.ru/library/",
+    "https://philosophy.ru/upload/iblock/1b6/1b64995eaa094cb2d17733a821203b22.pdf",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+    "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+    "https://www.wipo.int/wipolex/en/legislation/details/6787",
+    "https://www.vsrf.ru/files/27771/",
+    "https://www.copyright.gov/title17/",
+    "https://www.copyright.gov/title17/92chap1.html",
+    "https://www.copyright.gov/title17/92chap3.html",
+    "https://www.copyright.gov/eco/help-limitation.html",
+    "https://www.copyright.gov/comp3/docs/compendium.pdf",
+    "https://www.ivir.nl/publicaties/download/1507.pdf",
+    "https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf",
+    "https://webcast.wipo.int/video/SCCR_48_2026-05-22_b0fc88ed-308f-4728-738f-08deaff9ce9f"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.original-german-works",
+      "layer_role": "original_work",
+      "scope_refs": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+        "tos.work.friedrich-nietzsche.zur-genealogie-der-moral",
+        "tos.work.friedrich-nietzsche.der-fall-wagner",
+        "tos.work.friedrich-nietzsche.goetzen-daemmerung",
+        "tos.work.friedrich-nietzsche.der-antichrist",
+        "tos.work.friedrich-nietzsche.ecce-homo"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/366db9d9c7215d66ada95405f1654967f2ae5e4b/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the seven underlying Nietzsche Works may be used in the reviewed Russian and United States public-domain routes without consent or remuneration"
+      ],
+      "restrictions": [
+        "authorship, the author's name, and integrity remain protected where applicable",
+        "this result does not select or clear a modern critical, editorial, translated, or digital text",
+        "jurisdictions other than RU and US remain unreviewed",
+        "this layer result does not authorize transfer or publication of the 1996 Edition or operator PDF"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Nietzsche died in 1900. The reviewed Russian term expired in 1950. For the United States foreign-work route, Germany is the source country of the published original Works and its life-plus-seventy term expired in 1970, before possible 1996 restoration.",
+        "starts_on": null,
+        "ends_on": "1970-12-31",
+        "uncertainty": "The displayed endpoint is the latest source-country operand used in the bounded RU/US analysis; it includes no later translation, editing, notes, arrangement, portrait, scan, OCR, or digital package."
+      },
+      "uncertainty": "The positive result is jurisdiction- and Work-layer-specific and admits no source text.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "All seven represented Nietzsche Works have independently expired historical terms in the reviewed RU/US routes, but that result cannot propagate to the mixed 1996 publication."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.historical-antonovsky-translation-substrates",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+        "tos.expression.friedrich-nietzsche.ecce-homo.ru-antonovsky-mysl-1996"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Antonovsky's independently identified historical translation contributions may be used in the reviewed RU/US public-domain route subject to authorship, name, integrity, and exact-expression boundaries"
+      ],
+      "restrictions": [
+        "this result covers only the historical substrates and not the exact 1996 Russian Expressions",
+        "no textual equivalence to any historical or later Edition is asserted",
+        "public-domain status is not a translation-quality, correctness, alignment, or source-text acceptance verdict",
+        "this result does not authorize extraction, redistribution, or server processing of the operator PDF"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "Antonovsky died in 1913; the former Russian fifty-year term expired in 1963 before the 1993 transition, so the historical contributions were already public domain in their source country before the United States 1996 restoration boundary.",
+        "starts_on": null,
+        "ends_on": "1963-12-31",
+        "uncertainty": "The 1996 credit establishes an Antonovsky substrate but does not identify the precise historical source Edition or prove word-for-word continuity."
+      },
+      "uncertainty": "The public-domain result must not be mistaken for a status assigned to the exact 1996 editing or text.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The historical Antonovsky term is independently expired while exact 1996 expression equivalence remains unproved."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.historical-polilov-translation-substrates",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+        "tos.expression.friedrich-nietzsche.der-fall-wagner.ru-polilov-mysl-1996",
+        "tos.expression.friedrich-nietzsche.goetzen-daemmerung.ru-polilov-mysl-1996"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/n-polilov/agent.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://d-nb.info/gnd/1012315509",
+        "https://search.rsl.ru/ru/record/01003967636",
+        "https://rusneb.ru/catalog/000199_000009_003967636/",
+        "https://ru.wikisource.org/wiki/%D0%90%D0%B2%D1%82%D0%BE%D1%80:%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B9_%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B5%D0%B2%D0%B8%D1%87_%D0%9F%D0%BE%D0%BB%D0%B8%D0%BB%D0%BE%D0%B2",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.wipo.int/wipolex/en/legislation/details/6787",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Polilov's independently identified historical translation contributions may be used in the reviewed RU/US public-domain route subject to authorship, name, integrity, and exact-expression boundaries"
+      ],
+      "restrictions": [
+        "this result covers only historical Polilov substrates and not the exact edited 1996 Russian Expressions",
+        "the identity and dates are authority-linked and cross-corroborated but remain model-assessed rather than human or legal review",
+        "no collation proves that the 1996 text is unchanged from an historical publication",
+        "this result does not authorize extraction, redistribution, or server processing of the operator PDF"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "expired",
+        "basis": "The verified translator identity is cross-corroborated with the life dates 1864-1907. The former Russian fifty-year term expired in 1957 before the 1993 transition and therefore before possible United States restoration in 1996.",
+        "starts_on": null,
+        "ends_on": "1957-12-31",
+        "uncertainty": "GND establishes the Nietzsche translator identity but omits life dates; the dates are supplied by current cross-corroborating historical-reference surfaces. Exact 1996 textual continuity is not established."
+      },
+      "uncertainty": "A positive historical-term result is not an exact-expression or edition clearance.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The independently identified historical Polilov term is expired in the reviewed RU/US route, while all 1996 editorial delta remains outside this layer."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.historical-flerova-translation-substrate",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.der-antichrist.ru-flerova-mysl-1996"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/v-a-flerova/agent.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://search.rsl.ru/ru/record/01003742587",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the historical existence and source-visible attribution of the translation may be recorded as public-safe bibliographic metadata"
+      ],
+      "restrictions": [
+        "the translator remains initials-only and her death date and Russian term cannot be calculated",
+        "the United States publication-based endpoint does not resolve the Russian jurisdiction",
+        "no textual equivalence between the 1907 and 1996 Expressions is established",
+        "no redistribution, public transcription, translation, or server processing of the operator PDF is authorized"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The translation is source-visible in 1907 and any restored United States publication-based term for that historical publication would have ended no later than 2002, but V. A. Flerova's identity and death date remain unresolved, so the current Russian term cannot be determined.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The two reviewed jurisdictions do not yield one positive aggregate status; exact 1996 continuity and later editing are also unknown."
+      },
+      "uncertainty": "The initials-only historical contributor is deliberately not expanded to a chronologically impossible namesake.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The United States historical publication route can be bounded, but missing Russian identity and term evidence prevents clearance."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.svasyan-genealogy-translation",
+      "layer_role": "translation",
+      "scope_refs": [
+        "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.ru-svasyan-mysl-1996"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/k-a-svasyan/agent.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://d-nb.info/gnd/120452367",
+        "https://search.rsl.ru/ru/record/01001677376",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.copyright.gov/title17/92chap3.html"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.k-a-svasyan"
+      ],
+      "permissions": [
+        "the exact contribution may be inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no redistribution, public transcription, public translation, snippet publication, or server processing is authorized",
+        "the source-visible attribution does not prove the current ownership chain or every contractual interest",
+        "the public-domain Nietzsche Work does not erase Svasyan's translation contribution"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The exact Edition credits Karen Svasyan for the Russian translation. GND records 1948-2024. Russian Article 1281 and the ordinary United States post-1977 author-term route yield life plus seventy for this qualifying authored contribution.",
+        "starts_on": null,
+        "ends_on": "2094-12-31",
+        "uncertainty": "The calculation does not establish the exact first publication, contractual ownership, or copyrightable boundary of every revised word."
+      },
+      "uncertainty": "The active-term assessment is contribution-specific and not an adjudication of ownership or originality sentence by sentence.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact 1996 volume visibly contains a recent independently protected Svasyan translation contribution with no reuse license."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.svasyan-compilation-editing-and-notes",
+      "layer_role": "editing",
+      "scope_refs": [
+        "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+        "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "law",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/agents/k-a-svasyan/agent.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://d-nb.info/gnd/120452367",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.copyright.gov/title17/92chap3.html"
+      ],
+      "rights_holder_refs": [
+        "tos.agent.k-a-svasyan"
+      ],
+      "permissions": [
+        "the compilation, editing, and notes may be inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no notes, editorial text, arrangement-bearing extract, transcription, page image, or server processing is authorized",
+        "the exact selection, arrangement, and editorial originality boundaries are not adjudicated",
+        "the source-visible role does not establish every ownership transfer or publisher interest",
+        "protection for this contribution does not enlarge protection in the pre-existing Nietzsche and historical translation layers"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The title page credits Karen Svasyan as compiler, editor, and author of notes; the source visibly contains a substantial notes section. GND records 1948-2024, supporting a life-plus-seventy endpoint for qualifying authored contributions under the reviewed RU/US routes.",
+        "starts_on": null,
+        "ends_on": "2094-12-31",
+        "uncertainty": "The endpoint is author-term evidence, not proof that every selection, correction, factual note, or typographic choice is independently protected."
+      },
+      "uncertainty": "The layer groups source-visible Svasyan editorial roles without converting them into blanket ownership of the Edition.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact Edition names a recent compiler, editor, and notes author whose qualifying contributions remain active and unlicensed."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.publisher-edition-contribution",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.copyright.gov/eco/help-limitation.html"
+      ],
+      "rights_holder_refs": [
+        "Издательство «Мысль» — source-visible 1996 notice; exact scope unverified"
+      ],
+      "permissions": [
+        "the existence, wording, date, and displayed publisher of the notice may be recorded as public-safe bibliographic and rights metadata"
+      ],
+      "restrictions": [
+        "the notice grants no reuse permission",
+        "the notice does not establish that the publisher owns every Work, translation, editorial, visual, scan, or OCR layer",
+        "the underlying contracts, transfers, employee contributions, exact scope, and term are not established",
+        "no content-bearing derivative or server processing is authorized"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The source visibly states © Издательство «Мысль», 1996, but no contract, contribution statement, license, ownership chain, or author-term evidence defines what that notice covers.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "The notice is retained as evidence without being inflated into a blanket ownership conclusion."
+      },
+      "uncertainty": "Publisher identity and a copyright notice are not a complete rights chain.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The recent notice is sufficient to block clearance but insufficient to assign the complete Edition or calculate one term."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.portrait-and-edition-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://ci.nii.ac.jp/ncid/BA35025034.json",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/title17/92chap1.html"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the presence and page location of the Nietzsche portrait and the existence of Edition presentation may be recorded as public-safe metadata"
+      ],
+      "restrictions": [
+        "the portrait source, photographer, first publication, credit, ownership, and term are unknown",
+        "no page image, portrait reproduction, layout-bearing derivative, or server processing is authorized",
+        "the model does not decide which typographic or functional elements meet originality thresholds"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The exact PDF and catalog describe one portrait leaf, and page 2 visibly contains a Nietzsche portrait, but no source credit or production history resolves the visual or presentation rights.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Nietzsche's death date does not determine the photographer's, source photograph's, or 1996 presentation contribution's status."
+      },
+      "uncertainty": "The visual and presentation layer stays separate from both the historical Works and the publisher notice.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "A visible historical portrait may ultimately be reusable, but the exact source and rights chain are absent and no inference from subject identity is allowed."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.digital-page-scan",
+      "layer_role": "digital_scan",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/comp3/docs/compendium.pdf",
+        "https://www.ivir.nl/publicaties/download/1507.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the exact page images may be inspected and compared in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no page-image redistribution, publication, upload, or server processing is authorized",
+        "ABBYY and iTextSharp metadata does not identify the scanning operator, ownership, originality, acquisition permission, or license",
+        "even a purely mechanical scan would still reproduce the protected Svasyan and unresolved Edition layers"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The PDF metadata records a 2011 ABBYY/iTextSharp digital production event, but the operator, workflow, manual intervention, originality, rights chain, and license are not known.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Technical digitisation may add no independent copyright, but the current evidence cannot prove a wholly mechanical process or clear the reproduced source layers."
+      },
+      "uncertainty": "Independent scan originality and permission are unresolved; source-layer protection independently blocks transfer.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact scan is a separate digital materialisation whose production and license are unknown and whose pages reproduce active source rights."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.abbyy-embedded-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa"
+      ],
+      "assessment_status": "copyright_undetermined",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.vsrf.ru/files/27771/",
+        "https://www.copyright.gov/comp3/docs/compendium.pdf",
+        "https://www.ivir.nl/publicaties/download/1507.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the exact embedded text may be inspected as an unaccepted machine layer in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no OCR text, coordinate, index, snippet, alignment, embedding, publication, upload, or server processing is authorized",
+        "the ABBYY layer is not accepted transcription and contains visible recognition and spacing errors",
+        "the creator, correction history, human intervention, license, and acquisition permission are unknown",
+        "the text reproduces active and unresolved source layers even if the recognition process itself was mechanical"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "unknown",
+        "basis": "The PDF contains a large ABBYY FineReader 10 text layer, but no provenance identifies whether it was fully automatic, manually corrected, contractually licensed, or authorized for redistribution.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No independent OCR copyright is presumed, but neither mechanical-only status nor source-content clearance is established."
+      },
+      "uncertainty": "Rights uncertainty is independent of the stronger textual rule that the layer is not reviewed or accepted.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "The embedded OCR is separately addressable for local comparison but supplies neither a reuse license nor textual authority."
+    },
+    {
+      "layer_id": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf.layer.exact-operator-pdf-aggregate",
+      "layer_role": "other",
+      "scope_refs": [
+        "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "tos.file.sha256.ce16b68089dee0fc53a31d9e97723991b292dd8835c43bbbb40a9373c9a436aa"
+      ],
+      "assessment_status": "in_copyright",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": null,
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "RU",
+        "US"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json",
+        "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/forensic-report.md",
+        "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+        "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+        "https://www.copyright.gov/title17/92chap1.html",
+        "https://www.ivir.nl/publicaties/download/1507.pdf"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "the exact registered file may be preserved and inspected in the operator-controlled local research lane"
+      ],
+      "restrictions": [
+        "no payload redistribution, public upload, server transfer, public transcription, page image, snippet, OCR, embedding, alignment, translation, or source-bearing annotation is authorized",
+        "the aggregate includes active Svasyan translation, compilation, editing, and notes contributions",
+        "public hosting elsewhere and historical public-domain sublayers do not clear this exact file",
+        "the earlier acquisition route, permission chain, and exact public-object fixity remain unresolved"
+      ],
+      "redistribution_posture": "not_authorized",
+      "derivative_posture": "local_research_only",
+      "server_processing_posture": "not_authorized",
+      "term": {
+        "calculation_status": "active",
+        "basis": "The exact PDF aggregate reproduces qualifying Svasyan contributions whose reviewed author-term endpoint is 2094, alongside other unresolved Edition and digital layers. No license or permission clears the aggregate.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "At least one reproduced layer remains active through 2094; unresolved publisher, visual, scan, and OCR layers prevent assigning one final aggregate endpoint."
+      },
+      "uncertainty": "The aggregate status is fail-closed and does not adjudicate independent originality of the scan or OCR package.",
+      "assessed_at": "2026-08-11T10:58:22-06:00",
+      "review_status": "unreviewed",
+      "rationale": "A mixed file that reproduces active protected contributions remains in copyright even when several historical substrates are public domain."
+    }
   ],
   "permissions": [
-    "local preservation and bounded research use pending human rights review"
+    "operator-controlled local preservation and bounded research use",
+    "tracking public-safe bibliographic identity, exact-file fixity, contributor roles, provenance, and layer-specific rights status"
   ],
   "restrictions": [
-    "no payload redistribution authorized",
-    "no public derivative text publication authorized",
-    "visible 1996 publisher copyright notice applies"
+    "no payload redistribution or public upload authorized",
+    "no public derivative text, page image, OCR, snippet, embedding, alignment, translation, or source-bearing annotation authorized",
+    "positive public-domain results for historical sublayers do not clear the exact 1996 Expressions, Edition, scan, OCR, or PDF aggregate",
+    "public availability without an exact-scope license is not permission",
+    "human legal review and operator transfer approval have not occurred"
   ],
   "visibility": "local_only",
   "redistribution_posture": "not_authorized",
@@ -27,11 +596,11 @@
     "maker_type": "model",
     "agent_ref": "model:codex"
   },
-  "assessed_at": "2026-07-22T11:20:52-06:00",
-  "rationale": "The file was supplied locally for research and the visible publication page carries a 1996 publisher copyright notice. No jurisdiction-specific legal review or permission record has been completed.",
+  "assessed_at": "2026-08-11T10:58:22-06:00",
+  "rationale": "The exact operator PDF combines three reviewed public-domain historical substrate groups, one unresolved historical translation, two active Svasyan contributions, unresolved publisher and visual presentation layers, unresolved scan and OCR materialisations, and an aggregate that reproduces active protected content. It remains local-only and unlicensed despite discoverable public hosting elsewhere.",
   "review_status": "unreviewed",
   "review_refs": [],
   "access_request_ref": null,
-  "record_version": 1,
-  "supersedes_rights_ref": null
+  "record_version": 2,
+  "supersedes_rights_ref": "tos.rights.nietzsche-works-volume-2-mysl-1996.operator-pdf"
 }

@@ -188,3 +188,16 @@ blocked, and operator-unapproved. No payload, page image, OCR, transcription,
 snippet, embedding, alignment, translation, or source-bearing annotation may
 be transferred. Only public-safe identity, contributor-role, provenance,
 fixity, and eight-layer status metadata may be projected.
+
+The exact 1996 Mysl volume plan separately carries an eleven-layer RU/US
+assessment. Nietzsche's Works and the historical Antonovsky and Polilov
+translation substrates are positive historical layers; Svasyan's 1996
+translation, compilation, editing, notes, and the aggregate PDF are active;
+Flerova identity, publisher contribution, portrait/presentation, scan, and
+ABBYY text remain unresolved. The aggregate is therefore `restricted`, not a
+public-domain package assembled from its older substrates. The plan remains
+metadata-only, rights-blocked, transfer-false, and operator-unapproved. It
+prohibits OCR, transcription, page images, snippets, embeddings, alignments,
+translations, and source-bearing annotations; only public-safe identity,
+fixity, provenance, contributor-role, and layer-status metadata may be
+projected. Neither the local PDF nor a stripped derivative may be uploaded.

@@ -266,6 +266,18 @@ official record chain stops at initials. `Вера Александровна Ф
 translator credit. Identity enrichment creates no new responsibility claim,
 Expression equivalence, accepted translation, or human review.
 
+The exact 1996 Mysl operator PDF now has an eleven-layer RU/US rights record
+rather than one undifferentiated unevaluated status. Nietzsche's seven Works
+and the historical Antonovsky and Polilov translation substrates are
+`public_domain_reviewed`; Svasyan's *Genealogie* translation and his
+compilation, editing, and notes remain `in_copyright`; Flerova's unresolved
+identity, publisher contribution, portrait/presentation, scan, and ABBYY text
+remain `copyright_undetermined`; the mixed aggregate is therefore
+`in_copyright`. This is model-authored legal-research evidence, not human legal
+review or exact-1996-expression clearance. The payload remains local, public
+discoverability is not permission, and all content-bearing future-server
+derivatives remain prohibited.
+
 Antonovsky also exercises the explicit identity/path boundary. The already
 referenced `tos.agent.yuri-antonovsky` remains the stable object of four
 responsibility claims, but the Agent file moves from the misleading human route

@@ -19,27 +19,100 @@
   ],
   "rights_policy": {
     "rights_record_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
-    "rights_record_sha256": "4c72113047353c6148af2ef3580e4128e8a968558f45331542081d7e0e761de0",
-    "assessment_status": "rights-unknown",
+    "rights_record_sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7",
+    "assessment_status": "restricted",
     "review_status": "unreviewed",
-    "jurisdictions_reviewed": [],
-    "permission_or_license_refs": [],
+    "jurisdictions_reviewed": [
+      "RU",
+      "US"
+    ],
+    "permission_or_license_refs": [
+      "ToS/research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md",
+      "ToS/research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md",
+      "https://ci.nii.ac.jp/ncid/BA35025034.json",
+      "https://philosophy.ru/library/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/26eaf5de7ca59025f4388fe2980d3dd03dd5e775/",
+      "https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/",
+      "https://www.wipo.int/wipolex/en/legislation/details/6787",
+      "https://www.vsrf.ru/files/27771/",
+      "https://www.copyright.gov/title17/92chap1.html",
+      "https://www.copyright.gov/title17/92chap3.html",
+      "https://www.copyright.gov/eco/help-limitation.html",
+      "https://www.copyright.gov/comp3/docs/compendium.pdf",
+      "https://www.ivir.nl/publicaties/download/1507.pdf",
+      "https://www.wipo.int/edocs/mdocs/copyright/en/sccr_48/sccr_48_5.pdf"
+    ],
     "expires_at": null,
     "recheck_before_transfer": true
   },
   "access_class": "metadata-only",
   "allowed_derivatives": {
-    "ocr": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "transcription": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "page_images": {"state": "prohibited", "conditions": ["No page-image publication is authorized."]},
-    "snippets": {"state": "prohibited", "conditions": ["No source-text publication is authorized."]},
-    "lexical_index": {"state": "conditional", "conditions": ["Public-safe bibliographic metadata only; no source text."]},
-    "embeddings": {"state": "prohibited", "conditions": ["No server-side source processing is authorized."]},
-    "alignments": {"state": "prohibited", "conditions": ["No restricted aligned text may be served."]},
-    "translations": {"state": "prohibited", "conditions": ["Translation rights remain unreviewed."]},
-    "annotations": {"state": "prohibited", "conditions": ["No source-bearing annotation publication is authorized."]},
-    "search_projection": {"state": "conditional", "conditions": ["Metadata-only records with no payload-derived text."]},
-    "graph_projection": {"state": "conditional", "conditions": ["Metadata and provenance only; no restricted content."]}
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "Local OCR research does not authorize server-side processing of the protected Svasyan translation, compilation, editing, notes, or mixed 1996 Edition."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "Positive historical substrate results do not clear any exact 1996 Russian Expression or the unaccepted ABBYY layer."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "The exact pages reproduce protected and unresolved Edition, notes, portrait, presentation, scan, and aggregate layers."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-text, notes, OCR, portrait, or design-bearing snippet publication is authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe bibliographic, fixity, contributor-role, provenance, and layer-status metadata only; no payload-derived forms, OCR coordinates, or dictionary-recoverable text."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "No server-side processing or publication of Work-, translation-, notes-, OCR-, image-, or layout-derived embeddings is authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "No alignment containing an exact 1996 Expression, ABBYY text, page coordinate, or protected source-bearing target may be transferred or served."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "Historical translation-substrate status does not clear the exact 1996 editing; future translation work requires its own source, provenance, quality, rights, and operator decisions."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "No source-bearing, quotation-bearing, portrait-bearing, OCR-coordinate-bearing, or payload-coordinate-bearing annotation publication is authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Metadata-only records with no payload-derived text, OCR forms or positions, page imagery, notes, layout, or embeddings."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Public-safe Work, Expression, Edition, Item, contributor-role, provenance, exact-file fixity, and eleven-layer rights-status metadata only; no protected content or accepted textual equivalence."
+      ]
+    }
   },
   "payload_transfer_authorized": false,
   "operator_transfer_approval": {
@@ -56,10 +129,12 @@
     "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
     "disable_supported": true,
     "delete_supported": true,
-    "last_reviewed_at": "2026-07-23T00:00:00Z"
+    "last_reviewed_at": "2026-08-11T16:58:22Z"
   },
-  "provenance_event_refs": ["tos.event.server-import-plan.foundation.2026-07-23"],
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.mysl-1996-volume-2-operator-pdf.layered-rights.2026-08-11"
+  ],
   "server_copy_is_authority": false,
   "automatic_checkout_payload_discovery_allowed": false,
-  "contract_version": 1
+  "contract_version": 2
 }

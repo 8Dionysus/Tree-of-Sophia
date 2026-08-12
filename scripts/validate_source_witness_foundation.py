@@ -9489,6 +9489,37 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 elif transfer_output.get("sha256") != _sha256(transfer_path):
                     issues.append((transfer_location, "transfer provenance digest drifted"))
                 if candidate_units:
+                    candidate_output_events = [transfer_event]
+                    transfer_configuration = transfer_event.get("method", {}).get(
+                        "configuration",
+                        {},
+                    )
+                    if (
+                        isinstance(transfer_configuration, dict)
+                        and transfer_configuration.get("content_candidates_rebuilt")
+                        is False
+                    ):
+                        superseded_event_ref = transfer_event.get(
+                            "supersedes_event_ref"
+                        )
+                        superseded_event = local_events_by_id.get(
+                            str(superseded_event_ref)
+                        )
+                        if superseded_event is None:
+                            issues.append(
+                                (
+                                    transfer_location,
+                                    "rights-only transfer provenance has no superseded candidate event",
+                                )
+                            )
+                        else:
+                            candidate_output_events.append(superseded_event)
+                    candidate_outputs = [
+                        output
+                        for event in candidate_output_events
+                        for output in event.get("outputs", [])
+                        if isinstance(output, dict)
+                    ]
                     expected_anchor_output = {
                         "ref": _relative(
                             transfer_target_anchor_path,
@@ -9497,10 +9528,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "role": "proposed-whole-page-transfer-candidate-anchors",
                         "sha256": _sha256(transfer_target_anchor_path),
                     }
-                    if expected_anchor_output not in transfer_event.get(
-                        "outputs",
-                        [],
-                    ):
+                    if expected_anchor_output not in candidate_outputs:
                         issues.append(
                             (
                                 transfer_location,
@@ -9521,8 +9549,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             output.get("role"),
                             output.get("sha256"),
                         )
-                        for output in transfer_event.get("outputs", [])
-                        if isinstance(output, dict)
+                        for output in candidate_outputs
                     }
                     if not expected_local_outputs.issubset(
                         actual_local_outputs
