@@ -42,15 +42,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
         counts = payload["counts"]
-        self.assertEqual(counts["source_claims"], 154)
-        self.assertEqual(counts["claim_traces"], 154)
-        self.assertEqual(counts["nodes"], 541)
-        self.assertEqual(counts["edges"], 1073)
+        self.assertEqual(counts["source_claims"], 155)
+        self.assertEqual(counts["claim_traces"], 155)
+        self.assertEqual(counts["nodes"], 546)
+        self.assertEqual(counts["edges"], 1079)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])
         self.assertEqual(payload["graph_layers"], ["bibliographic"])
-        self.assertEqual(payload["review_counts"], {"unreviewed": 154})
-        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 154})
+        self.assertEqual(payload["review_counts"], {"unreviewed": 155})
+        self.assertEqual(payload["visibility_counts"], {"public_metadata_only": 155})
         self.assertEqual(
             payload["projection_fingerprint"],
             _projection_fingerprint(payload),
