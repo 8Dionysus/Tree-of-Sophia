@@ -25,12 +25,14 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia source evidence through reviewed checkpoint `68bc75a7`
-  (`Materialize Zarathustra source text foundation`), retaining the stable
-  source-text unit checkpoint `084627ae` and following reviewed source-anchor
-  v2 `8f3b95b2`, source-text-layer v1 `7a973526`, provenance-event v2
-  `747eeb10`, semantic-annotation v2 `fe3cefbd`, and translation-alignment v1
-  `1a59a9b7`. The same owner history retains the completed uncertain
+- Tree of Sophia source evidence through reviewed checkpoint `463b0230`
+  (`Materialize Zarathustra opening sentence alignment proposal`), retaining
+  the exact Antonovsky target-text checkpoint `6fcb68cf`, the exact DTA source-
+  text checkpoint `68bc75a7`, the stable source-text unit checkpoint
+  `084627ae`, and following reviewed source-anchor v2 `8f3b95b2`, source-text-
+  layer v1 `7a973526`, provenance-event v2 `747eeb10`, semantic-annotation v2
+  `fe3cefbd`, and translation-alignment v1 `1a59a9b7`. The same owner history
+  retains the completed uncertain
   specialized-MT episode at `5b31a573`, the energy admission, the post-street
   metadata-only Stanford state, the unchanged semantic-ladder v5 and its
   source-observation sidecars, and every earlier source-challenger,
@@ -1955,6 +1957,21 @@ and neither sentence boundary nor the correspondence is accepted. German and
 Russian competence, translation fidelity, lexical or sense equivalence,
 etymology, semantics, graph/canon effect, rights clearance, redistribution,
 and publication remain open.
+
+Reviewed checkpoint `463b0230` closes this proposal at its declared scope.
+The deterministic builder check, source-witness validation, private-span
+fixity replay, nineteen full-layer/sentence/remainder/line leak probes over all
+252 staged blobs, complete release lane, and reviewed checkpoint all pass.
+The release lane contains 350 tests with one declared skip. The portable KAG
+family for that checkpoint closes at digest
+`b6e85033933dfa28116503e11ae61c2de932abc7a1b04a23bb9782b9a83f23db`
+with 573 shards, 1,952 source records, 21,108 anchors, 524 events, 3,589
+assertions, 8,422 relations, 4,501 entities, and 23,591 canonical records;
+the exact seven-file compatibility view assembles to the same digest. These
+checks establish identity, fixity, source return, text withholding, and
+fail-closed proposal mechanics only. They do not establish sentence truth,
+German or Russian competence, translation fidelity, semantics, review,
+rights clearance, publication, graph truth, or canon authority.
 
 ## Dependency-ordered next owner work
 
