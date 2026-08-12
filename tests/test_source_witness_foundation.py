@@ -7345,6 +7345,45 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         embedded_transliteration["inscription_layer"]["transliteration"] = "synthetic"
         self.assertTrue(list(artifact_validator.iter_errors(embedded_transliteration)))
 
+    def test_scholarly_composite_keeps_members_and_editorial_layers_separate(self) -> None:
+        composite_validator, _ = foundation._schema_validator(
+            foundation.SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
+            REPO_ROOT,
+        )
+        composite_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/scholarly-composites/lexical/proto-cuneiform/"
+            "archaic-vessels-and-garments/composite-witness.json"
+        )
+        composite = json.loads(composite_path.read_text(encoding="utf-8"))
+        self.assertEqual([], list(composite_validator.iter_errors(composite)))
+        self.assertEqual(
+            "tos.composite.proto-cuneiform.archaic-vessels-and-garments",
+            composite["composite_id"],
+        )
+        self.assertFalse(composite["editorial_object"]["physical_artifact"])
+        self.assertFalse(composite["editorial_object"]["ancient_original"])
+        self.assertFalse(composite["content_layer"]["content_stored"])
+        self.assertEqual(
+            [98, 36],
+            [
+                observation["observed_member_count"]
+                for observation in composite["coverage_observations"]
+            ],
+        )
+
+        false_ancient_original = copy.deepcopy(composite)
+        false_ancient_original["editorial_object"]["ancient_original"] = True
+        self.assertTrue(list(composite_validator.iter_errors(false_ancient_original)))
+
+        false_semantic_authority = copy.deepcopy(composite)
+        false_semantic_authority["authority"]["semantic_authority"] = True
+        self.assertTrue(list(composite_validator.iter_errors(false_semantic_authority)))
+
+        embedded_composite_text = copy.deepcopy(composite)
+        embedded_composite_text["content_layer"]["text"] = "synthetic"
+        self.assertTrue(list(composite_validator.iter_errors(embedded_composite_text)))
+
     def test_dta_open_license_remains_separate_from_local_transfer(self) -> None:
         rights_validator, _ = foundation._schema_validator(
             foundation.RIGHTS_SCHEMA,

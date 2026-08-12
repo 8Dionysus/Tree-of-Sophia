@@ -35,7 +35,7 @@ nearest nested `AGENTS.md` for the branch being touched.
 | Branch | Owns |
 | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation posture |
-| `source-witnesses/` | source-facing witness material |
+| `source-witnesses/` | source-facing bibliographic, physical-artifact, scholarly-composite, text, provenance, and rights material |
 | `zarathustra/` | first golden growth kernel, private lived-witness route, and current bounded route orientation |
 | `research-packets/` | non-authoritative research scaffolds |
 | `philosophy/` | domain-shaped philosophical growth |
@@ -78,7 +78,7 @@ Keep these boundaries visible:
 | Surface | Owner |
 | --- | --- |
 | identity, anchor, text-unit, sign, assertion, and translation law | `doctrine/` |
-| tracked catalogs, object records, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
+| tracked catalogs, bibliographic records, physical artifacts, scholarly composites, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
 | machine-checkable record shapes | `contracts/` |
 | extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |
 | host models, caches, runtimes, reservations, and large temporary data | `/etc/abyss-machine` and `/srv/abyss-machine` owner routes |

@@ -58,6 +58,16 @@ bibliographic topology predicates. `embodied_by` does not entail that two
 texts are identical, author-final, critical, accepted, or semantically
 equivalent.
 
+The ladder does not absorb every source kind. A physical artifact has its own
+`tos.artifact.*` identity, independent of the catalog that currently describes
+it. A documentary, critical, or synoptic reconstruction across witnesses has
+its own `tos.composite.*` identity, independent of the provider that currently
+renders it. Artifact, catalog record, member transcription, composite,
+editorial coordinate, translation, and interpretation remain separate. Stable
+membership or a stable Q-number supports return and comparison; it does not
+make the reconstruction an ancient original or its readings semantically
+fixed.
+
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,
 publisher, copyist, corrector, and rights holder are not interchangeable
@@ -96,7 +106,7 @@ tos.<class>.<stable-local-name>
 ```
 
 where `<class>` is one of `agent`, `work`, `expression`, `edition`,
-`collection`, `item`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
+`collection`, `item`, `artifact`, `composite`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
 `lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
 `review`, or `event`.
 

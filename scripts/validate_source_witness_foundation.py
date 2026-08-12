@@ -49,6 +49,9 @@ ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
 RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.json"
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
 ARTIFACT_SOURCE_WITNESS_SCHEMA = CONTRACT_ROOT / "artifact-source-witness.schema.json"
+SCHOLARLY_COMPOSITE_WITNESS_SCHEMA = (
+    CONTRACT_ROOT / "scholarly-composite-witness.schema.json"
+)
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
 EXPRESSION_DERIVATION_SCHEMA = CONTRACT_ROOT / "expression-derivation.schema.json"
@@ -6999,6 +7002,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             ARTIFACT_SOURCE_WITNESS_SCHEMA,
             repo_root,
         )
+        scholarly_composite_witness_validator, _ = _schema_validator(
+            SCHOLARLY_COMPOSITE_WITNESS_SCHEMA,
+            repo_root,
+        )
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
         expression_derivation_validator, _ = _schema_validator(
@@ -12628,6 +12635,156 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 stack.extend(value)
             elif isinstance(value, str) and value.startswith(("/srv/", "/home/", "/tmp/", "/var/tmp/")):
                 issues.append((artifact_ref, "artifact metadata packet exposes an absolute owner-local path"))
+                break
+
+    composite_ids: set[str] = set()
+    composite_root = repo_root / SOURCE_ROOT / "scholarly-composites"
+    for composite_path in sorted(composite_root.glob("**/composite-witness.json")):
+        composite_ref = _relative(composite_path, repo_root)
+        composite = _load_json(composite_path, repo_root, issues)
+        if composite is None:
+            continue
+        _validate_payload(
+            composite,
+            scholarly_composite_witness_validator,
+            composite_ref,
+            issues,
+        )
+        composite_id = composite.get("composite_id")
+        if isinstance(composite_id, str):
+            if composite_id in composite_ids:
+                issues.append((composite_ref, f"duplicate composite_id: {composite_id}"))
+            composite_ids.add(composite_id)
+
+        relative_composite_path = composite_path.relative_to(composite_root)
+        provider_parts = {"cdli", "dcclt", "oracc"}
+        if provider_parts & {part.lower() for part in relative_composite_path.parts[:-1]}:
+            issues.append(
+                (
+                    composite_ref,
+                    "scholarly-composite path must not be keyed to a mutable provider",
+                )
+            )
+
+        referenced_paths: dict[str, str | None] = {
+            "rights_ref": composite.get("rights_ref"),
+            "discovery_ref": composite.get("discovery_ref"),
+            "research_ref": composite.get("research_ref"),
+        }
+        for index, planting_ref in enumerate(composite.get("philosophy_planting_refs", [])):
+            referenced_paths[f"philosophy_planting_refs[{index}]"] = planting_ref
+        for field, ref in referenced_paths.items():
+            if not isinstance(ref, str) or not (repo_root / ref).is_file():
+                issues.append((composite_ref, f"{field} does not resolve to a tracked file"))
+
+        rights_ref = composite.get("rights_ref")
+        rights = (
+            _load_json(repo_root / rights_ref, repo_root, issues)
+            if isinstance(rights_ref, str) and (repo_root / rights_ref).is_file()
+            else None
+        )
+        if rights is not None:
+            _validate_payload(rights, rights_validator, str(rights_ref), issues)
+            if composite_id not in rights.get("scope_refs", []):
+                issues.append(
+                    (str(rights_ref), "scholarly-composite rights scope does not include composite_id")
+                )
+            if (
+                rights.get("visibility") != "public_metadata_only"
+                or rights.get("redistribution_posture") != "metadata_only"
+            ):
+                issues.append(
+                    (str(rights_ref), "tracked scholarly-composite record must remain public-metadata-only")
+                )
+
+        discovery_ref = composite.get("discovery_ref")
+        discovery = discovery_records_by_ref.get(str(discovery_ref))
+        if discovery is None:
+            issues.append(
+                (composite_ref, "scholarly-composite discovery_ref does not resolve to a validated discovery run")
+            )
+        else:
+            if composite_id not in discovery.get("target", {}).get("known_tos_refs", []):
+                issues.append(
+                    (composite_ref, "scholarly-composite discovery target does not include composite_id")
+                )
+            if discovery.get("target", {}).get("target_kind") != "scholarly-composite":
+                issues.append(
+                    (composite_ref, "scholarly-composite discovery target_kind must be scholarly-composite")
+                )
+
+        for member in composite.get("member_observations", []):
+            if not isinstance(member, dict):
+                continue
+            member_artifact_id = member.get("member_artifact_id")
+            if member_artifact_id not in artifact_ids:
+                issues.append(
+                    (composite_ref, f"unresolved composite member artifact: {member_artifact_id}")
+                )
+
+        coverage_keys: set[tuple[str, str]] = set()
+        for observation in composite.get("coverage_observations", []):
+            if not isinstance(observation, dict):
+                continue
+            key = (str(observation.get("provider")), str(observation.get("surface")))
+            if key in coverage_keys:
+                issues.append((composite_ref, f"duplicate composite coverage observation: {key}"))
+            coverage_keys.add(key)
+
+        event_ref = composite.get("provenance_event_ref")
+        event_entry = discovery_events.get(str(event_ref))
+        if event_entry is None:
+            issues.append(
+                (composite_ref, "scholarly-composite provenance_event_ref is absent from discovery provenance")
+            )
+        else:
+            event, event_location = event_entry
+            _validate_payload(event, provenance_validator, event_location, issues)
+            _validate_source_refs(repo_root, event, event_location, issues)
+            output_refs = {
+                output.get("ref")
+                for output in event.get("outputs", [])
+                if isinstance(output, dict)
+            }
+            required_outputs = {
+                composite_ref,
+                str(rights_ref),
+                str(discovery_ref),
+                str(composite.get("research_ref")),
+            } | {str(ref) for ref in composite.get("philosophy_planting_refs", [])}
+            if not required_outputs <= output_refs:
+                issues.append(
+                    (event_location, "scholarly-composite planting provenance lacks exact output closure")
+                )
+
+        forbidden_content_keys = {
+            "text",
+            "source_text",
+            "transliteration",
+            "translation",
+            "image_data",
+            "line_art_data",
+            "payload",
+        }
+        stack: list[Any] = [composite]
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                leaked = forbidden_content_keys & set(value)
+                if leaked:
+                    issues.append(
+                        (composite_ref, f"scholarly-composite packet exposes content fields: {sorted(leaked)}")
+                    )
+                    break
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+            elif isinstance(value, str) and value.startswith(
+                ("/srv/", "/home/", "/tmp/", "/var/tmp/")
+            ):
+                issues.append(
+                    (composite_ref, "scholarly-composite packet exposes an absolute owner-local path")
+                )
                 break
 
     access_root = repo_root / SOURCE_ROOT / "access-requests"

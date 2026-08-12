@@ -49,6 +49,14 @@ and append-only review history. An occurrence can be stable at that address.
 Its lemma, etymology, translation, sense, motif, concept, and relations remain
 versioned claims that can deepen without losing the source beneath them.
 
+Not every witness is a book. Physical artifacts use a parallel
+provider-independent artifact spine, while modern scholarly composites use
+their own composition identity and retain every member and provider
+representation as a separate layer. A composite Q-number may stabilize
+documentary comparison without turning the reconstruction into a physical
+object, ancient original, accepted reading, fixed sign meaning, or semantic
+fact.
+
 A durable address is not a naked offset. Its persistent anchor ID, immutable
 target file, exact representation state, selector semantics, mechanical
 resolution, human review, and publication posture stay separate. The additive

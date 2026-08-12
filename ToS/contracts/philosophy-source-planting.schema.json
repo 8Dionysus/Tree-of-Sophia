@@ -45,14 +45,28 @@
       }
     },
     "source_witness": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["artifact_id", "record_ref", "relationship"],
-      "properties": {
-        "artifact_id": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
-        "record_ref": {"$ref": "#/$defs/repoPath"},
-        "relationship": {"const": "grounds_source_backlog_anchor"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifact_id", "record_ref", "relationship"],
+          "properties": {
+            "artifact_id": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+            "record_ref": {"$ref": "#/$defs/repoPath"},
+            "relationship": {"const": "grounds_source_backlog_anchor"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["composite_id", "record_ref", "relationship"],
+          "properties": {
+            "composite_id": {"type": "string", "pattern": "^tos\\.composite\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+            "record_ref": {"$ref": "#/$defs/repoPath"},
+            "relationship": {"const": "grounds_source_backlog_anchor"}
+          }
+        }
+      ]
     },
     "discovery_ref": {"$ref": "#/$defs/repoPath"},
     "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},

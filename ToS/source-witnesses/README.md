@@ -18,6 +18,10 @@ source-witnesses/
 │   └── <tradition>/<site>/<physical-identity>/
 │       ├── artifact-witness.json           # physical/catalog/content-layer separation
 │       └── rights.json                     # layer-specific public-use boundary
+├── scholarly-composites/                   # modern reconstructions across witnesses
+│   └── <genre-or-method>/<tradition>/<composition-identity>/
+│       ├── composite-witness.json          # composition/member/representation separation
+│       └── rights.json                     # project content versus external-media terms
 ├── agents/
 │   └── <person-or-organization>/agent.json
 ├── places/
@@ -126,6 +130,15 @@ inscription or transliteration, scholarly composite, photograph, and line art
 remain separate. A philosophy branch may cite an artifact through a tracked
 source planting, but that relation alone establishes neither philosophy,
 semantics, graph truth, nor canon.
+
+Modern scholarly composites use the parallel `scholarly-composites/` spine.
+Their path follows composition and tradition rather than a current corpus or
+database. A composite identity may gather physical or textual member
+observations and stabilize editorial coordinates, but it remains distinct from
+each member, its physical layout and transcription, the mutable provider
+representation, and every reading or interpretation. Conflicting or
+differently scoped provider counts remain dated coverage observations instead
+of being flattened into one hidden membership truth.
 
 Collection work-boundary maps bind the source-visible member order to one
 exact item/file digest and its text-free page inventory. They may carry

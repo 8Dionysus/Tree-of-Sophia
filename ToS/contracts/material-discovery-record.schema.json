@@ -51,7 +51,7 @@
       ],
       "properties": {
         "target_kind": {
-          "enum": ["work", "expression", "edition", "item", "artifact", "translation", "critical-edition", "lexical-resource", "research-publication"]
+          "enum": ["work", "expression", "edition", "item", "artifact", "scholarly-composite", "translation", "critical-edition", "lexical-resource", "research-publication"]
         },
         "known_tos_refs": {
           "type": "array",
@@ -127,7 +127,7 @@
   "$defs": {
     "tosId": {
       "type": "string",
-      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|artifact|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|artifact|composite|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "resultId": {

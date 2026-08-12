@@ -11,7 +11,7 @@ home.
 | Path | Use For | Stronger Than |
 | --- | --- | --- |
 | `doctrine/` | knowledge law, node contracts, templates, interpretation ladder, and authored route doctrine | review notes and generated readers |
-| `source-witnesses/` | tracked Agent/Place/Organization and work/expression/edition/item catalog, explicit identity-ladder, chronology, responsibility, publication, and provision claims, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
+| `source-witnesses/` | tracked Agent/Place/Organization and work/expression/edition/item catalog, parallel physical-artifact and scholarly-composite spines, chronology, responsibility, publication, and provision claims, immutable local payload route, fixity, provenance, rights, and source-facing witness material | intake, canon summaries, exports |
 | `zarathustra/` | first golden growth kernel, private-by-default lived-witness route, and public-entry orientation for the bounded Zarathustra path | generic orientation and generated readers |
 | `research-packets/` | non-authoritative research scaffolds and capture metadata | philosophy branch review |
 | `philosophy/` | growing domain tree of philosophy: trunk, eras, regions, traditions, works, figures, concepts, transmissions, local graph workbenches | candidate intake and generated readers |
@@ -80,6 +80,10 @@ identity, catalogs, digests, provenance, rights, forensic evidence, anchors,
 and review remain tracked. Search, vector, graph, and KAG surfaces are
 rebuildable projections. The bibliographic graph keeps claims as explicit
 nodes and does not flatten an unreviewed assertion into a direct fact edge.
+Physical artifacts and modern scholarly composites remain parallel identities
+outside the book ladder: the former preserve object/custody identity, while
+the latter preserve composition/member/representation identity without
+pretending that an editorial reconstruction is an ancient original.
 Source text is also layered rather than overwritten: raw OCR, diplomatic
 candidate, reviewed reading, and normalization keep distinct immutable
 identities, exact derivation provenance, and independent review, competence,

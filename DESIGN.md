@@ -82,6 +82,14 @@ translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
 content infallible.
 
+The bibliographic ladder is not universal. Physical artifacts use a parallel
+`tos.artifact.*` spine; modern critical, documentary, or synoptic composites
+use `tos.composite.*`. A composite can collect and align many members while
+remaining distinct from every physical object, member transcription, provider
+page, reconstructed line, translation, and interpretation. Provider coverage
+is a dated observation: a short visible source list cannot silently override a
+stronger exact membership record or become a negative fact.
+
 At the address layer, the anchor identity, immutable File target, selected
 representation digest, and selector expression remain distinct. Text
 positions are Unicode-code-point half-open spans; byte positions are another
@@ -215,6 +223,8 @@ tree:
 
 ```text
 catalog/
+artifacts/<tradition>/<site>/<physical-identity>/
+scholarly-composites/<genre-or-method>/<tradition>/<composition-identity>/
 places/<place>/
 organizations/<historical-organization>/
 works/<responsibility>/<work>/expressions/<language-and-responsibility>/
@@ -227,6 +237,14 @@ provision-activities/
 Collections prevent multi-work volumes from being duplicated under every
 contained work. Stable ToS IDs, not paths, own identity, so the tree can be
 improved through explicit migrations.
+
+The artifact and scholarly-composite spines prevent non-book sources from
+being forced into that bibliographic topology. Their first tracked records may
+remain content-free while preserving exact external identities, dated
+representations, membership observations, rights, provenance, and branch
+plantings. Composite coordinates are useful source addresses only after the
+exact editorial representation is frozen; they do not inherit physical layout
+or philological acceptance.
 
 Only the immutable item bytes inside `payload/` are gitignored. The item
 manifest, digest, provenance, rights, forensic report, and catalog entry stay

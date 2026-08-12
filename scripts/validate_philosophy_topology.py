@@ -355,12 +355,22 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
         source_witness = planting.get("source_witness")
         if isinstance(source_witness, dict):
             record_ref = source_witness.get("record_ref")
-            if not isinstance(record_ref, str) or not record_ref.startswith("ToS/source-witnesses/artifacts/"):
-                issues.append((planting_ref, "source witness must route to the artifact spine"))
+            if "artifact_id" in source_witness:
+                if not isinstance(record_ref, str) or not record_ref.startswith("ToS/source-witnesses/artifacts/"):
+                    issues.append((planting_ref, "artifact source witness must route to the artifact spine"))
+                else:
+                    record = load_json(root, Path(record_ref), issues)
+                    if record is not None and record.get("artifact_id") != source_witness.get("artifact_id"):
+                        issues.append((planting_ref, "source-witness artifact_id differs from its exact record"))
+            elif "composite_id" in source_witness:
+                if not isinstance(record_ref, str) or not record_ref.startswith("ToS/source-witnesses/scholarly-composites/"):
+                    issues.append((planting_ref, "composite source witness must route to the scholarly-composite spine"))
+                else:
+                    record = load_json(root, Path(record_ref), issues)
+                    if record is not None and record.get("composite_id") != source_witness.get("composite_id"):
+                        issues.append((planting_ref, "source-witness composite_id differs from its exact record"))
             else:
-                record = load_json(root, Path(record_ref), issues)
-                if record is not None and record.get("artifact_id") != source_witness.get("artifact_id"):
-                    issues.append((planting_ref, "source-witness artifact_id differs from its exact record"))
+                issues.append((planting_ref, "source witness has no admitted identity field"))
 
         for field in ("discovery_ref", "research_ref"):
             ref = planting.get(field)

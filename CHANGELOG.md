@@ -9,6 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a provider-independent scholarly-composite witness spine and planted
+  the exact A01 `DCCLT link from P000015 [24]` backlog row through DCCLT
+  `Q000023` / CDLI `P471693`. Ordered official/classical, established, and
+  fresh research now separates the modern documentary composite, physical
+  members, member transliterations, editorial coordinates, provider pages,
+  rights, and interpretation. The exact CDLI API reports 98 members and
+  includes P000015 through relation 31, while the current DCCLT Q-page exposes
+  36 source links without P000015; both remain dated representation-coverage
+  observations instead of a flattened contradiction. DCCLT's explicit CC
+  BY-SA 3.0 route is retained positively for future attributed/share-alike
+  content, while external media remain separately governed. The first packet
+  stays text-free and public-metadata-only; it creates no ancient-original,
+  source-text, sign, translation, semantic, graph, canon, publication, or
+  human-review authority.
 - Added a participant-scoped translation-exposure contract and text-free
   Zarathustra pilot plan without rewriting the frozen historical translation
   lifecycle. Ordered official/classical, established, and fresh 2025–2026

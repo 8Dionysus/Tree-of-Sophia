@@ -56,6 +56,16 @@ gitignored payload bytes to be absent from a public clone; an operator may add
 implies that a human accepted the bibliography, relation, text, rights,
 translation, review, or semantics.
 
+The source-foundation validator also protects the parallel physical-artifact
+and scholarly-composite witness spines. A composite packet must preserve a
+provider-independent `tos.composite.*` identity, exact physical-member
+closure, dated provider representations and coverage observations,
+layer-specific rights, and text-free provenance. It must reject provider-keyed
+paths, hidden content, false ancient/physical identity, and semantic, graph,
+canon, or publication authority. A green result verifies this structure only;
+it does not establish composite completeness, philological quality, sign
+reading, translation, philosophy, or human review.
+
 The catalog and foundation validator also admit the bounded Edition-owned
 `provision_activity` family. Catalog v3 adds Place and Organization record
 projections; the validator checks exact Edition claim-ref closure, activity

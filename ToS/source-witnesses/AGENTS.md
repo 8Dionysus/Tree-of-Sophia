@@ -34,10 +34,18 @@ evidence.
   `artifacts/<tradition>/<site>/<physical-identity>/`. Do not force it into the
   Work/Expression/Edition/Item ladder or key its durable path to a mutable
   digital provider.
+- Route a modern documentary, critical, or synoptic composite through
+  `scholarly-composites/<genre-or-method>/<tradition>/<composition-identity>/`.
+  Keep its durable identity independent of the provider and retain member
+  assertions and representation coverage as dated evidence.
 - Keep physical artifact, catalog record, inscription or transliteration,
   scholarly composite, photograph, line art, and interpretation as separate
   layers. A stable sign or artifact ID does not establish a fixed reading,
   translation, semantics, philosophy status, graph fact, or canon state.
+- Keep a composite, its physical members, member transliterations, editorial
+  lines, translations, and provider pages separate. Page-visible source lists
+  do not become completeness claims, and absence from one representation does
+  not erase a stronger exact membership relation.
 - Treat paths as navigation and tracked IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.

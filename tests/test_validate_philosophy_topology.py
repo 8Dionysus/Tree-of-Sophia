@@ -128,6 +128,17 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         planting = json.loads(planting_path.read_text(encoding="utf-8"))
         self.assertEqual([], list(validator.iter_errors(planting)))
 
+        composite_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "dcclt-q000023/source-planting.json"
+        )
+        composite_planting = json.loads(
+            composite_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(composite_planting)))
+
         false_graph_promotion = copy.deepcopy(planting)
         false_graph_promotion["authority"]["graph_status"] = "promoted"
         self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
@@ -135,6 +146,10 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         false_human_task = copy.deepcopy(planting)
         false_human_task["authority"]["human_task_created"] = True
         self.assertTrue(list(validator.iter_errors(false_human_task)))
+
+        false_composite_promotion = copy.deepcopy(composite_planting)
+        false_composite_promotion["authority"]["source_text_admitted"] = True
+        self.assertTrue(list(validator.iter_errors(false_composite_promotion)))
 
     def test_research_packet_route_traversal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

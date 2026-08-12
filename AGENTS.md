@@ -70,6 +70,11 @@ or manifest, and the narrowest relevant validator before broader gates.
   and technique authority route to their owning AoA repositories or layers.
 - Filesystem paths are speaking navigation; tracked ToS IDs own corpus
   identity. A move requires reference migration, not identity replacement.
+- Physical artifacts, provider records, inscriptions or transliterations,
+  scholarly composites, composite members, reconstructed lines, and visual
+  media are separate witness layers. A composite coordinate or stable Q-ID
+  never makes a reconstruction an ancient original, physical layout, fixed
+  reading, semantic fact, or canon.
 - Only item `payload/` bytes may use the corpus Git ignore. Item metadata,
   digest, provenance, rights, forensic evidence, and catalog membership remain
   tracked.
@@ -113,6 +118,11 @@ Multi-work volumes belong under
 preflight before material `/srv` writes. Never download models or build heavy
 runtimes into this repository; route those trials through the `abyss-stack`
 laboratory and `/etc/abyss-machine` owner controls.
+
+For non-bibliographic witnesses, route physical objects through
+`source-witnesses/artifacts/` and modern documentary, critical, or synoptic
+reconstructions through `source-witnesses/scholarly-composites/`. Do not force
+either into the book ladder or key its durable identity to a mutable provider.
 
 Use `docs/AGENTS_ROOT_REFERENCE.md` only to audit preserved root-reference
 rules. If a preserved rule still governs current work, move it to the owning
