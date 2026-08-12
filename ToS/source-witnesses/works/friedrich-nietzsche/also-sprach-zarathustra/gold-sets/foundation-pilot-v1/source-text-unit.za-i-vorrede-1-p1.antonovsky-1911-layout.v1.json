@@ -1,0 +1,634 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-595d57f5d1f33a95c58bfda4825b5eb8",
+      "anchor_role": "scope",
+      "exact_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+      "ordinal": 1,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-53d2420743c08b731c25c41b26b5d7f3",
+      "anchor_role": "content",
+      "exact_sha256": "7a2dce37508711493186450214e5ba1553cca6cf506da8239273029f7f357f01",
+      "ordinal": 2,
+      "selector": {
+        "end": 56,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c61764ea0ddd02f4ed3478825dae5c77",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 3,
+      "selector": {
+        "end": 57,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 56,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c663788adb8266b90afe6a6403541d94",
+      "anchor_role": "content",
+      "exact_sha256": "b4106d1b1aa5f1428b8be4bb9229d225b0b25a6f49954bc3c260806ddd2b42b9",
+      "ordinal": 4,
+      "selector": {
+        "end": 120,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 57,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-ee0eabc61b8c204489a8351a49ee9c0b",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 5,
+      "selector": {
+        "end": 121,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 120,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-4e0f2865d0c7e8aa2f4c2ff901011e44",
+      "anchor_role": "content",
+      "exact_sha256": "b9ad312a7e0c863111b79b993dfef8685bdc52b32883f17416c0ba58d0292e85",
+      "ordinal": 6,
+      "selector": {
+        "end": 181,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 121,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bb687e70016d59e23a4f46bcd4060385",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 7,
+      "selector": {
+        "end": 182,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 181,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8a463ab6202716be870b1ab654778413",
+      "anchor_role": "content",
+      "exact_sha256": "8f76087f8c102a492cc9dc0d856b7ed52d938c9a5b72f870a7e4d3d234bbcfde",
+      "ordinal": 8,
+      "selector": {
+        "end": 242,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 182,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-e80e01d76cff4427e131f8d4f2d4f49e",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 9,
+      "selector": {
+        "end": 243,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 242,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bba102aaddcb61fc1071403aa9542a5e",
+      "anchor_role": "content",
+      "exact_sha256": "9bd77510a7f9becbc82627a479e51b4f390404002af20a6f092bc2ddc80cf6f8",
+      "ordinal": 10,
+      "selector": {
+        "end": 305,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 243,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-b7380ffaa06dbd09c10c90bdfab10259",
+      "anchor_role": "whitespace",
+      "exact_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "ordinal": 11,
+      "selector": {
+        "end": 306,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 305,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8ccabf05260aefc23453a4ee12ddfce9",
+      "anchor_role": "content",
+      "exact_sha256": "a05b1cdfecc5acf7d8258c328bab9ac4e46f24df68a77f9d7b1b8d04d403e64b",
+      "ordinal": 12,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 306,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    }
+  ],
+  "authority_boundary": {
+    "graph_role": "relation",
+    "legacy_bulk_migration_authorized": false,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_role": "authority",
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "source_bound",
+  "packet_id": "tos.source-text-unit-packet.sid-8182607da6ca1000fa4a4bc5f78ddda6",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+    ],
+    "source_visibility": "local_only"
+  },
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "schemes": [
+    {
+      "analysis_role": "source_layout",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "source_layout",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T08:46:33Z",
+        "maker_kind": "software",
+        "method_name": "exact Poppler bbox source-layout observation",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_target_text_foundation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "standalone_units",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "standalone_units"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-1d64c18f988e57c089dd8e5338bb395f",
+      "scheme_name": "Antonovsky 1911 embedded-PDF bbox source-layout observation",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "physical_line",
+        "whitespace"
+      ]
+    }
+  ],
+  "segmentations": [
+    {
+      "competing_segmentation_refs": [],
+      "coverage": {
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-595d57f5d1f33a95c58bfda4825b5eb8",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-zarathustra-target-text-foundation-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T08:46:33Z",
+        "maker_kind": "software",
+        "method_name": "exact Poppler bbox source-layout observation",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.native-extraction.za-i-vorrede-1.antonovsky-1911-pdf-page-6-opening.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_target_text_foundation.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-6f1ba590f656ba4977424a65146b9b4b",
+        "tos.text-unit.sid-ecdfefbe3f82a8293cca52eee3a3894a",
+        "tos.text-unit.sid-2ecd3c3f21a0a02e57e6626c46c06dae",
+        "tos.text-unit.sid-43212f9806ba48e10dbe236cfc136170",
+        "tos.text-unit.sid-ee7b58f2b58e241931290189941d2f21",
+        "tos.text-unit.sid-3a147df005692e544f25fe1c07e45e0a",
+        "tos.text-unit.sid-444bd60d6dd97d645dc5899cfc0c22c6",
+        "tos.text-unit.sid-379741e0754e894ea39b338ae0329251",
+        "tos.text-unit.sid-9960bb576dec6ec489bb06cdebb4c7b4",
+        "tos.text-unit.sid-d48579c598b6f165d5d73e90720e5669",
+        "tos.text-unit.sid-f69ffba4fdf9649c1c48cdcc4383d240"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-1d64c18f988e57c089dd8e5338bb395f",
+      "segmentation_id": "tos.text-segmentation.sid-fcef7bfffb0a2fa18deabbe105899e16",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "observed_source_structure",
+      "status_reason": "Only six exact embedded-PDF bbox lines are observed; word joining is the declared machine rule and no sentence, token, accepted text, or translation boundary is asserted.",
+      "supersedes_segmentation_ref": null
+    }
+  ],
+  "source_layer": {
+    "immutable": true,
+    "interval": "half_open",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "position_unit": "unicode_code_point",
+    "publication_authorized": false,
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+    "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+    "unicode_form": "source_preserved",
+    "visibility": "local_only"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+    "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_packet_ref": null,
+  "units": [
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-53d2420743c08b731c25c41b26b5d7f3"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-6f1ba590f656ba4977424a65146b9b4b",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c61764ea0ddd02f4ed3478825dae5c77"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-ecdfefbe3f82a8293cca52eee3a3894a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-c663788adb8266b90afe6a6403541d94"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-2ecd3c3f21a0a02e57e6626c46c06dae",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-ee0eabc61b8c204489a8351a49ee9c0b"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-43212f9806ba48e10dbe236cfc136170",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-4e0f2865d0c7e8aa2f4c2ff901011e44"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-ee7b58f2b58e241931290189941d2f21",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bb687e70016d59e23a4f46bcd4060385"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-3a147df005692e544f25fe1c07e45e0a",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8a463ab6202716be870b1ab654778413"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-444bd60d6dd97d645dc5899cfc0c22c6",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-e80e01d76cff4427e131f8d4f2d4f49e"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-379741e0754e894ea39b338ae0329251",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-bba102aaddcb61fc1071403aa9542a5e"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-9960bb576dec6ec489bb06cdebb4c7b4",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-b7380ffaa06dbd09c10c90bdfab10259"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d48579c598b6f165d5d73e90720e5669",
+      "unit_kind": "whitespace",
+      "unit_version": 1
+    },
+    {
+      "boundary_posture": "source_attested",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 1.0
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-layout.sid-8ccabf05260aefc23453a4ee12ddfce9"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The unit records only one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer; it is not accepted Russian, a linguistic unit, or a translation alignment.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-f69ffba4fdf9649c1c48cdcc4383d240",
+      "unit_kind": "physical_line",
+      "unit_version": 1
+    }
+  ]
+}

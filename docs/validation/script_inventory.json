@@ -776,6 +776,34 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_target_text_foundation.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/resource-inventory.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/payload/antonovsky-prometey-1911-rsl-neb.pdf",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "one exact fixity-bound Antonovsky 1911 PDF, its page-resource and layered-rights records, and one frozen page-6 opening-paragraph target-text-foundation plan"
+      ],
+      "writes": [
+        "one ignored mode-0600 633-byte raw embedded-text paragraph, one ignored exact Poppler bbox intermediate, and tracked text-free source-anchor-v2, source-text-layer-v1, source-text-unit-v1, and provenance-event-v2 records unless --check is used"
+      ],
+      "side_effects": "one question-scoped real target-layout foundation only; no accepted Russian, diplomatic text, sentence/token boundary, accepted translation or alignment, semantic or sign claim, graph/canon effect, human task, redistribution, publication, another paragraph, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_golden_kernel_transfer_candidates.py",
       "family": "projection_builder",
       "organ_lane": "projection/generated",

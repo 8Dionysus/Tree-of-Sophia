@@ -49,6 +49,8 @@ current bounded Zarathustra route:
   `ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/`
 - current real, bounded, text-free `Za-I-Vorrede-1` source-text foundation:
   `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json`
+- current real, bounded, text-free Antonovsky 1911 target-text foundation:
+  `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json`
 - current public-synthetic execution-provenance laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
 - current public-synthetic translation-alignment identity laboratory:

@@ -111,6 +111,18 @@ records remain text-free and unreviewed. This is a source-returnable machine
 layer, not an accepted German reading, linguistic segmentation, translation
 source, semantic object, graph fact, canon entry, or publication authority.
 
+The matching historical Russian scope is represented independently, not as a
+premature bilingual edge. Page 6 of the exact Antonovsky/Prometey 1911 PDF
+produces one private `raw_ocr` layer from its embedded Poppler text and one
+private bbox byproduct. Six source-observed lines and five line breaks are
+addressable through text-free tracked records. Visual inspection confirms the
+region but reveals that one visibly joined historical word is emitted as four
+tokens, so uncertainty is explicit and no silent repair occurs. Having one
+German machine layer and one Russian machine layer at the same work location
+does not establish accepted text on either side, passage identity,
+translation, alignment, lexical or semantic equivalence, graph truth, or
+canon authority.
+
 The execution layer is append-only too. Each materialized transformation names
 distinct immutable input, output, and byproduct entities, with explicit
 derivation edges and an exact terminal state. It captures argv, configuration,

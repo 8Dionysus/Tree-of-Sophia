@@ -189,6 +189,17 @@ or linguistic analysis. The first real use is one DTA paragraph at
 stored privately and projected only as text-free tracked identity, digest,
 range, provenance, and authority records.
 
+PDF embedded text is a different source observation. For the exact
+Antonovsky/Prometey 1911 page-6 opening paragraph, pinned Poppler bbox output
+is retained as a private diagnostic byproduct and its mechanically selected
+text as a private `raw_ocr` layer. Six layout lines and five line breaks may be
+addressed, but the layer remains lossy and unreviewed: visual inspection found
+one print-joined historical word split into four embedded-text tokens. A
+source-visible discrepancy must be recorded as uncertainty, not silently
+repaired. This route is not diplomatic transcription, accepted Russian,
+translation correspondence, or a reason to infer alignment merely because a
+German layer exists nearby.
+
 Mechanical validation, source-visible review, reviewer language competence,
 accepted use, and rights/publication authority are separate gates. In
 particular, an unreviewed diplomatic candidate can match an anchored source

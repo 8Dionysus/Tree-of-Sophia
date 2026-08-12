@@ -103,6 +103,21 @@ paragraph, normalize spelling, infer sentence/word boundaries, schedule human
 work, or open translation/semantic/canon authority without a new concrete
 question and its own plan.
 
+`build_zarathustra_target_text_foundation.py` owns the paired but still
+non-aligned target-side continuation: the six visible opening-paragraph lines
+on page 6 of the exact Antonovsky/Prometey 1911 RSL/RuNEB PDF Item. It pins
+Poppler `pdftotext` 26.01.0, the page geometry, block and word selectors, the
+17-warning diagnostic surface, the 30,714-byte bbox byproduct, and the
+633-byte/349-code-point embedded-text result. Both private outputs stay below
+ignored owner-local `local-content/target-text-foundation/` with mode `0600`;
+four tracked records remain text-free. The source-visible check found that the
+PDF text layer exposes one visibly joined historical word as four tokens, so
+two alternative digests remain withheld and uncertainty stays unresolved.
+This builder must not silently join the tokens, call the result diplomatic or
+accepted Russian, infer sentence/word boundaries, create a bilingual pair or
+alignment, schedule human work, or open translation, semantic, graph,
+publication, or canon authority.
+
 The source-foundation validator's `--source-text-unit-v1-lab-only` route checks
 schema and reference closure, exact code-point ranges and digests, unit
 ownership and coverage, declared gaps and overlap, reciprocal parent/child and
@@ -509,6 +524,7 @@ Local owner routes:
 | source-witness evidence spine | `python scripts/build_source_witness_catalog.py --check` and `python scripts/validate_source_witness_foundation.py`; add `--require-local-payloads` only for a machine expected to hold the local corpus |
 | public synthetic source-text-unit and segmentation A/B/C | `python scripts/build_source_text_unit_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --source-text-unit-v1-lab-only`; rebuilding is intentional because the manifest binds the invented text, research, contract, builder, plan, and variants |
 | real bounded `Za-I-Vorrede-1` source-text foundation | `python scripts/build_zarathustra_source_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 paragraph plus the four tracked text-free records; green closure establishes no accepted German, linguistic boundary, translation, semantics, publication, or canon effect |
+| real bounded Antonovsky 1911 target-text foundation | `python scripts/build_zarathustra_target_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 embedded-text paragraph and bbox byproduct plus four tracked text-free records; green closure preserves the observed spacing conflict and establishes no accepted Russian, bilingual pair, alignment, translation, semantics, publication, or canon effect |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |

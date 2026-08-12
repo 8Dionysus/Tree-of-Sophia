@@ -929,6 +929,22 @@ private layer and its four tracked text-free records. The builder's green
 result proves byte, selector, range, digest, rights-binding, and gate closure
 only.
 
+The second bounded real continuation uses the exact Antonovsky/Prometey 1911
+RSL/RuNEB PDF Item, but it does not declare a translation pair. The tracked
+`za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json` selects
+only the six visible opening-paragraph lines on page 6. A pinned Poppler
+`pdftotext` 26.01.0 bbox extraction yields one private 633-byte,
+349-code-point embedded-text layer and one private 30,714-byte bbox byproduct,
+both ignored and mode `0600`; its text-free packet exposes six physical-line
+and five line-break units. The source-visible page check confirms the selected
+region and line count while also exposing one unresolved spacing conflict:
+the embedded layer returns a visually joined historical word as four tokens.
+The raw layer therefore remains `raw_ocr`, lossy for the declared use,
+unreviewed, and use-free. Neither the DTA source layer nor this target layer is
+accepted, and their co-presence creates no bilingual passage, correspondence,
+translation alignment, Russian judgment, semantic relation, graph/canon
+effect, redistribution right, publication route, or human task.
+
 ## Provenance-event v2 laboratory boundary
 
 The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution

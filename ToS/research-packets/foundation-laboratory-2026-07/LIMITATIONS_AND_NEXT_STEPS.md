@@ -3,7 +3,7 @@
 Status: mechanical foundation and triggered solo+AI assurance contract
 prepared on local owner branches; human-evidence phases remain
 question-specific
-Snapshot: 2026-08-11
+Snapshot: 2026-08-12
 
 ## Honest boundary
 
@@ -68,6 +68,16 @@ lemma, lexeme, sign, translation alignment, semantic object, graph truth,
 corpus migration, or human task. Another real packet opens only for a new
 concrete downstream question, and the existing
 `tos-local-sentence-segmentation-v1` method remains unchanged.
+
+The corresponding target-side mechanical floor is now independently closed
+for the exact Antonovsky/Prometey 1911 page-6 region: a private
+633-byte/349-code-point embedded-text layer, a private bbox byproduct, and six
+physical-line plus five line-break units. The page image was inspected
+directly; selection and line count agree, while one visibly joined historical
+word is emitted as four embedded-text tokens. That unresolved discrepancy is
+retained rather than corrected. Both the DTA and Antonovsky layers remain
+unreviewed and use-free, so their co-presence is not an accepted bilingual
+passage, translation, or alignment and creates no human task.
 
 The translation-alignment continuation likewise closes identity and
 fail-closed mechanics, not translation authority. Its separate alignment,
@@ -304,19 +314,25 @@ contracts intentionally reject simulated human evidence.
   format. One real-source v2 anchor now exists for the exact first paragraph of
   `Za-I-Vorrede-1` in the DTA Part-I TEI Item. It is structural, text-free,
   mechanically resolved, unreviewed, local-only, and non-promoting. Another
-  real anchor is created only when a new concrete question requires one; there
-  is no bulk migration task or routine human backlog.
-- `tos_source_text_layer_v1` is proven on three invented public UTF-8 artifacts
-  and one private real DTA structural extraction. It establishes immutable
+  second real page-region anchor now binds only the exact Antonovsky 1911 PDF
+  page-6 opening-paragraph region. Both remain local-only, unreviewed, and
+  non-promoting; there is no bulk migration task or routine human backlog.
+- `tos_source_text_layer_v1` is proven on three invented public UTF-8 artifacts,
+  one private real DTA structural extraction, and one private real Antonovsky
+  embedded-PDF extraction. It establishes immutable
   layer identity, exact predecessor
   and content closure, independently replayable code-point edits, explicit
   normalization, uncertainty, and separated review/competence/use/rights
   gates. Its synthetic records carry no rights-record or publication-authority
   refs and keep publication authorization false. The real layer binds one
-  exact Item, structural XPath, rights digest, mode-0600 353-byte output, and
-  unsigned provenance-event v2 receipt while exposing no paragraph text in
-  Git. It does not establish OCR quality, a diplomatic or accepted reading,
-  German competence, translation, semantics, or publication. Another real
+  exact DTA Item, structural XPath, rights digest, mode-0600 353-byte output,
+  and unsigned provenance-event v2 receipt while exposing no paragraph text
+  in Git. The Antonovsky layer separately binds its exact PDF Item, page
+  geometry and bbox selectors, mode-0600 633-byte raw output and bbox
+  byproduct, unresolved visual-spacing alternatives, and a second unsigned
+  receipt. Neither establishes OCR quality, a diplomatic or accepted reading,
+  German or Russian competence, translation, alignment, semantics, or
+  publication. Another real
   layer is created only for a new concrete source question under that Item's
   private/public and rights posture; language-sensitive accepted use still
   requires competence evidence. There is no bulk corpus migration or routine

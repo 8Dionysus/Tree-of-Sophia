@@ -75,6 +75,15 @@ source-observed print lines are addressable, but no accepted German, sentence
 or word boundary, translation input, semantic claim, publication route, or
 human backlog is created.
 
+One independent Antonovsky/Prometey 1911 successor now gives the same opening
+location a target-side mechanical floor. The exact page-6 region yields a
+private mode-`0600` 633-byte embedded-text layer, a private bbox byproduct,
+and text-free anchor, layer, six-line/five-line-break unit, and provenance
+records. A direct source-visible check preserves an unresolved PDF-text versus
+print-spacing conflict instead of correcting it. This is neither accepted
+Russian nor a bilingual pair: no translation alignment, semantic relation,
+publication route, canon effect, or human backlog follows from co-location.
+
 Division of one frozen layer is a separate additive identity problem. The
 source-text-unit v1 contract gives opaque identities to the scheme,
 segmentation, and units while keeping physical layout, source-observed
