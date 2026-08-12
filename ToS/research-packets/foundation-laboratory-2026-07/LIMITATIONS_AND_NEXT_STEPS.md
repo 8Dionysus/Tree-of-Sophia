@@ -263,20 +263,25 @@ The new contract and public-synthetic laboratory remove an engineering
 ambiguity; they do not remove the evidence work needed for any real alignment.
 There is still no accepted German/Russian source pair, competent human
 alignment decision, real alignment gold, measured A/B/C method quality,
-translation-technique adjudication, or rights-cleared public projection. The
+translation-technique adjudication, or rights-cleared public projection. One
+real text-free `Za-I-Vorrede-1` packet now freezes exact first-sentence spans
+`[0,115)` and `[0,107)` plus both exact excluded remainders and records a
+software-made ordinal one-to-one proposal. Both sentence segmentations and the
+correspondence remain `proposed`; the Antonovsky spacing conflict remains
+unresolved. This is a source-return baseline, not alignment truth. The
 invented `x-tos-src`/`x-tos-tgt` fixtures cannot estimate historical,
 philosophical, literary, or cross-lingual difficulty.
 
-The next real alignment episode must be triggered by one concrete downstream
-question after both exact text layers and their rights posture are admitted.
-It should freeze segmentation/tokenization, include a classical Hunalign or
-length-based baseline, add only challengers justified by that question,
-preserve omissions/additions/reorder and reciprocal alternatives, and open a
-small source-and-target-visible competence review only when acceptance is
-actually required. It must measure quality, speed, machine/storage cost, and
-human correction time separately. Until then, no current structural
-crosswalk, translation candidate, XLIFF/TMX/TEI export, or graph edge may be
-relabeled as a passage or translation alignment.
+The next *method-comparison or acceptance* episode must still be triggered by
+one concrete downstream question. It should keep the frozen exact spans,
+include a classical Hunalign or length-based baseline, add only challengers
+justified by that question, preserve omissions/additions/reorder and reciprocal
+alternatives, and open a small source-and-target-visible competence review only
+when acceptance is actually required. It must measure quality, speed,
+machine/storage cost, and human correction time separately. Until then, the
+new proposal, any structural crosswalk, translation candidate,
+XLIFF/TMX/TEI export, or graph edge must not be relabeled as accepted passage
+or translation alignment.
 
 ## Unfinished human decisions
 
@@ -316,7 +321,10 @@ contracts intentionally reject simulated human evidence.
   mechanically resolved, unreviewed, local-only, and non-promoting. Another
   second real page-region anchor now binds only the exact Antonovsky 1911 PDF
   page-6 opening-paragraph region. Both remain local-only, unreviewed, and
-  non-promoting; there is no bulk migration task or routine human backlog.
+  non-promoting; there is no bulk migration task or routine human backlog. A
+  later real text-free sentence proposal binds one partial orthographic span
+  on each layer and one unreviewed ordinal correspondence. It changes neither
+  anchor's source fidelity nor either layer's acceptance posture.
 - `tos_source_text_layer_v1` is proven on three invented public UTF-8 artifacts,
   one private real DTA structural extraction, and one private real Antonovsky
   embedded-PDF extraction. It establishes immutable
@@ -332,7 +340,9 @@ contracts intentionally reject simulated human evidence.
   byproduct, unresolved visual-spacing alternatives, and a second unsigned
   receipt. Neither establishes OCR quality, a diplomatic or accepted reading,
   German or Russian competence, translation, alignment, semantics, or
-  publication. Another real
+  publication. The later exact-span proposal adds addressable sentence
+  candidates and one explicit alignment claim without accepting any of those
+  layers or resolving the target spacing uncertainty. Another real
   layer is created only for a new concrete source question under that Item's
   private/public and rights posture; language-sensitive accepted use still
   requires competence evidence. There is no bulk corpus migration or routine

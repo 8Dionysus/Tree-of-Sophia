@@ -123,6 +123,16 @@ does not establish accepted text on either side, passage identity,
 translation, alignment, lexical or semantic equivalence, graph truth, or
 canon authority.
 
+The first relation-bearing successor is deliberately weaker than an accepted
+pair. A deterministic first-`U+002E` rule freezes one exact proposed sentence
+span on each private layer and binds both spans to one opaque, software-made
+one-to-one alignment claim. The two segmentations and the alignment remain
+`proposed`; the target spacing conflict remains visible in evidence; no token
+layer, translation technique, fidelity judgment, review, projection, semantic
+edge, graph/canon authority, or publication route is inferred. This establishes
+the source-return and identity floor on which a later competent adjudication
+could act without making that adjudication routine or retroactive.
+
 The execution layer is append-only too. Each materialized transformation names
 distinct immutable input, output, and byproduct entities, with explicit
 derivation edges and an exact terminal state. It captures argv, configuration,

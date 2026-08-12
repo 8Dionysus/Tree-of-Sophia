@@ -118,6 +118,16 @@ accepted Russian, infer sentence/word boundaries, create a bilingual pair or
 alignment, schedule human work, or open translation, semantic, graph,
 publication, or canon authority.
 
+`build_zarathustra_opening_sentence_alignment.py` owns one later concrete
+comparison question across those two exact private paragraph layers. It may
+freeze only the first `U+002E`-inclusive code-point span per side, exact
+excluded remainders, two proposed orthographic sentence-unit packets, one
+software-made proposed one-to-one claim, and its text-free provenance. It must
+not copy source text into Git, normalize either layer, resolve the Antonovsky
+spacing uncertainty, tokenize, translate, accept a boundary or alignment,
+fabricate competence or review, create a projection/human backlog, or open
+lexical, semantic, graph, canon, redistribution, or publication authority.
+
 The source-foundation validator's `--source-text-unit-v1-lab-only` route checks
 schema and reference closure, exact code-point ranges and digests, unit
 ownership and coverage, declared gaps and overlap, reciprocal parent/child and
@@ -525,6 +535,7 @@ Local owner routes:
 | public synthetic source-text-unit and segmentation A/B/C | `python scripts/build_source_text_unit_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --source-text-unit-v1-lab-only`; rebuilding is intentional because the manifest binds the invented text, research, contract, builder, plan, and variants |
 | real bounded `Za-I-Vorrede-1` source-text foundation | `python scripts/build_zarathustra_source_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 paragraph plus the four tracked text-free records; green closure establishes no accepted German, linguistic boundary, translation, semantics, publication, or canon effect |
 | real bounded Antonovsky 1911 target-text foundation | `python scripts/build_zarathustra_target_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 embedded-text paragraph and bbox byproduct plus four tracked text-free records; green closure preserves the observed spacing conflict and establishes no accepted Russian, bilingual pair, alignment, translation, semantics, publication, or canon effect |
+| real bounded `Za-I-Vorrede-1` opening-sentence alignment proposal | `python scripts/build_zarathustra_opening_sentence_alignment.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the four tracked text-free sentence-unit/alignment/provenance records from the two existing ignored mode-0600 paragraph layers; green closure establishes only exact selectors, digests, source return, and one proposed ordinal correspondence—not accepted boundaries, German/Russian, translation fidelity, lexical equivalence, review, projection, semantics, publication, graph, or canon effect |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |

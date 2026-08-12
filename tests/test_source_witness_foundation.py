@@ -75,6 +75,9 @@ BOUNDED_TRANSLATION_RESEARCH_INPUT_PATH = (
     / "bounded-translation-research-input."
     "za-i-vorrede-1-opening-sentence.v1.json"
 )
+OPENING_SENTENCE_ALIGNMENT_PLAN_PATH = (
+    GOLD_ROOT / "za-i-vorrede-1-opening-sentence-alignment.plan.v1.json"
+)
 EXPERIMENTAL_TRANSLATION_CANDIDATE_PATH = (
     GOLD_ROOT
     / "experimental-translation-candidate."
@@ -2280,6 +2283,242 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             unit_schema, format_checker=FormatChecker()
         )
         self.assertTrue(list(unit_validator.iter_errors(accepted_segmentation)))
+
+    def test_real_opening_sentence_alignment_is_text_free_and_non_promoting(
+        self,
+    ) -> None:
+        plan = json.loads(
+            OPENING_SENTENCE_ALIGNMENT_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        outputs = plan["outputs"]
+        source_packet_path = REPO_ROOT / outputs["source_sentence_packet_ref"]
+        target_packet_path = REPO_ROOT / outputs["target_sentence_packet_ref"]
+        alignment_path = REPO_ROOT / outputs["alignment_packet_ref"]
+        event_path = REPO_ROOT / outputs["provenance_event_ref"]
+        source_packet = json.loads(source_packet_path.read_text(encoding="utf-8"))
+        target_packet = json.loads(target_packet_path.read_text(encoding="utf-8"))
+        alignment = json.loads(alignment_path.read_text(encoding="utf-8"))
+        event = json.loads(event_path.read_text(encoding="utf-8"))
+
+        unit_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/source-text-unit-packet-v1.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        alignment_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/translation-alignment-packet-v1.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        event_schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/provenance-event-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        unit_validator = validator_for(unit_schema)(
+            unit_schema, format_checker=FormatChecker()
+        )
+        alignment_validator = validator_for(alignment_schema)(
+            alignment_schema, format_checker=FormatChecker()
+        )
+        event_validator = validator_for(event_schema)(
+            event_schema, format_checker=FormatChecker()
+        )
+        self.assertFalse(list(unit_validator.iter_errors(source_packet)))
+        self.assertFalse(list(unit_validator.iter_errors(target_packet)))
+        self.assertFalse(list(alignment_validator.iter_errors(alignment)))
+        self.assertFalse(list(event_validator.iter_errors(event)))
+        self.assertEqual([], foundation._source_text_unit_v1_issues(source_packet))
+        self.assertEqual([], foundation._source_text_unit_v1_issues(target_packet))
+        self.assertEqual([], foundation._translation_alignment_v1_issues(alignment))
+        self.assertEqual([], foundation._provenance_v2_semantic_issues(event))
+        self.assertEqual(
+            [], foundation.validate_zarathustra_opening_sentence_alignment(REPO_ROOT)
+        )
+
+        ids = plan["opaque_ids"]
+        for label, packet, side_plan in (
+            ("source", source_packet, plan["source"]),
+            ("target", target_packet, plan["target"]),
+        ):
+            segmentation = packet["segmentations"][0]
+            unit = packet["units"][0]
+            anchor_by_ref = {
+                row["anchor_ref"]: row for row in packet["anchors"]
+            }
+            sentence_anchor = anchor_by_ref[
+                ids[f"{label}_sentence_anchor_id"]
+            ]
+            remainder_anchor = anchor_by_ref[
+                ids[f"{label}_remainder_anchor_id"]
+            ]
+            self.assertEqual("proposed", segmentation["status"])
+            self.assertEqual([], segmentation["review_refs"])
+            self.assertEqual("declared_partial", segmentation["coverage"]["coverage_posture"])
+            self.assertEqual(
+                [ids[f"{label}_remainder_anchor_id"]],
+                segmentation["coverage"]["excluded_anchor_refs"],
+            )
+            self.assertIn("translation_alignment", segmentation["declared_uses"])
+            self.assertFalse(segmentation["source_text_authority"])
+            self.assertFalse(segmentation["linguistic_authority"])
+            self.assertFalse(segmentation["semantic_authority"])
+            self.assertEqual("sentence", unit["unit_kind"])
+            self.assertEqual("method_proposed", unit["boundary_posture"])
+            self.assertFalse(unit["semantic_promotion"])
+            self.assertEqual(
+                {
+                    "type": "text_position",
+                    "start": 0,
+                    "end": side_plan["sentence_end"],
+                    "position_unit": "unicode_code_point",
+                    "interval": "half_open",
+                },
+                sentence_anchor["selector"],
+            )
+            self.assertEqual(side_plan["sentence_sha256"], sentence_anchor["exact_sha256"])
+            self.assertEqual(
+                {
+                    "type": "text_position",
+                    "start": side_plan["sentence_end"],
+                    "end": side_plan["scope_end"],
+                    "position_unit": "unicode_code_point",
+                    "interval": "half_open",
+                },
+                remainder_anchor["selector"],
+            )
+            self.assertEqual(side_plan["remainder_sha256"], remainder_anchor["exact_sha256"])
+            self.assertEqual([], packet["reviews"])
+            self.assertEqual([], packet["projections"])
+            self.assertEqual("local_only", packet["rights_and_visibility"]["effective_visibility"])
+            self.assertTrue(packet["rights_and_visibility"]["private_source_used"])
+            self.assertFalse(packet["rights_and_visibility"]["publication_authorized"])
+
+        proposal = alignment["alignments"][0]
+        self.assertEqual("source_bound", alignment["content_posture"])
+        self.assertEqual("sentence", alignment["granularity"])
+        self.assertEqual("one_to_one", proposal["correspondence_shape"])
+        self.assertEqual("inferred", proposal["epistemic_status"])
+        self.assertEqual(["unresolved"], proposal["translation_techniques"])
+        self.assertEqual("proposed", proposal["status"])
+        self.assertEqual("software", proposal["maker"]["maker_kind"])
+        self.assertEqual([], proposal["review_refs"])
+        self.assertEqual([], alignment["reviews"])
+        self.assertEqual([], alignment["projections"])
+        self.assertIsNone(alignment["source_side"]["tokenization"])
+        self.assertIsNone(alignment["target_side"]["tokenization"])
+        self.assertEqual(
+            hashlib.sha256(source_packet_path.read_bytes()).hexdigest(),
+            alignment["source_side"]["segmentation"]["sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(target_packet_path.read_bytes()).hexdigest(),
+            alignment["target_side"]["segmentation"]["sha256"],
+        )
+        self.assertEqual("local_only", alignment["rights_and_visibility"]["effective_visibility"])
+        self.assertTrue(alignment["rights_and_visibility"]["private_source_used"])
+        self.assertFalse(alignment["rights_and_visibility"]["publication_authorized"])
+        self.assertFalse(alignment["authority_boundary"]["canon_effect"])
+        self.assertTrue(alignment["authority_boundary"]["lexical_equivalence_not_inferred"])
+
+        output_digests = {
+            row["entity_ref"]: row["sha256"]
+            for row in event["entities"]["outputs"]
+        }
+        for path in (source_packet_path, target_packet_path, alignment_path):
+            ref = path.relative_to(REPO_ROOT).as_posix()
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(), output_digests[ref]
+            )
+        self.assertEqual("not_performed", event["review_and_authority"]["human_review_status"])
+        self.assertEqual([], event["review_and_authority"]["accepted_uses"])
+        self.assertFalse(event["review_and_authority"]["promotion_authorized"])
+        self.assertFalse(event["rights_and_visibility"]["publication_authorized"])
+
+        accepted_without_review = copy.deepcopy(alignment)
+        accepted_without_review["alignments"][0]["status"] = "accepted"
+        self.assertTrue(list(alignment_validator.iter_errors(accepted_without_review)))
+        self.assertTrue(
+            any(
+                "cannot be accepted directly" in row
+                for row in foundation._translation_alignment_v1_issues(
+                    accepted_without_review
+                )
+            )
+        )
+
+        wrong_cardinality = copy.deepcopy(alignment)
+        wrong_cardinality["alignments"][0]["ordered_target_anchor_refs"] = []
+        self.assertIn(
+            "alignment member cardinality does not match one_to_one: "
+            + proposal["alignment_id"],
+            foundation._translation_alignment_v1_issues(wrong_cardinality),
+        )
+
+        proposed_projection = copy.deepcopy(alignment)
+        proposed_projection["projections"] = [
+            {
+                "projection_id": "tos.translation-alignment-projection.sid-11111111111111111111111111111111",
+                "projection_kind": "graph",
+                "artifact_ref": "ToS/derived-exports/forbidden-proposed-alignment.json",
+                "artifact_sha256": "1" * 64,
+                "source_alignment_refs": [proposal["alignment_id"]],
+                "projection_event_ref": "tos.event.negative-control",
+                "derived_only": True,
+                "source_return_required": True,
+                "authority_posture": "non_authoritative_reproducible_projection",
+                "effective_visibility": "local_only",
+            }
+        ]
+        self.assertTrue(
+            any(
+                "projection uses an alignment that is not accepted" in row
+                for row in foundation._translation_alignment_v1_issues(
+                    proposed_projection
+                )
+            )
+        )
+
+        drifted_source_span = copy.deepcopy(alignment)
+        drifted_source_span["source_side"]["anchors"][0]["exact_sha256"] = "0" * 64
+        self.assertIn(
+            "source alignment side sentence digest drifted from plan",
+            foundation._zarathustra_opening_sentence_plan_binding_issues(
+                plan=plan,
+                source_packet=source_packet,
+                target_packet=target_packet,
+                alignment=drifted_source_span,
+            ),
+        )
+
+        drifted_target_span = copy.deepcopy(target_packet)
+        target_anchor_ref = ids["target_sentence_anchor_id"]
+        next(
+            row
+            for row in drifted_target_span["anchors"]
+            if row["anchor_ref"] == target_anchor_ref
+        )["exact_sha256"] = "1" * 64
+        self.assertIn(
+            "target sentence-unit packet sentence digest drifted from plan",
+            foundation._zarathustra_opening_sentence_plan_binding_issues(
+                plan=plan,
+                source_packet=source_packet,
+                target_packet=drifted_target_span,
+                alignment=alignment,
+            ),
+        )
+
+        accepted_segmentation = copy.deepcopy(source_packet)
+        accepted_segmentation["segmentations"][0]["status"] = "accepted"
+        self.assertTrue(list(unit_validator.iter_errors(accepted_segmentation)))
+        self.assertTrue(
+            any(
+                "accepted segmentation lacks full competent real-human review" in row
+                for row in foundation._source_text_unit_v1_issues(
+                    accepted_segmentation
+                )
+            )
+        )
 
     def test_semantic_annotation_v2_synthetic_abc_separates_identity_claim_and_review(
         self,

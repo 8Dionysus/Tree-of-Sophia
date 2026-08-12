@@ -90,6 +90,11 @@ TRANSLATION_ALIGNMENT_V1_LAB_ROOT = Path(
 TRANSLATION_ALIGNMENT_V1_LAB_MANIFEST = (
     TRANSLATION_ALIGNMENT_V1_LAB_ROOT / "lab.manifest.json"
 )
+ZARATHUSTRA_OPENING_SENTENCE_ALIGNMENT_PLAN = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "za-i-vorrede-1-opening-sentence-alignment.plan.v1.json"
+)
 SOURCE_TEXT_UNIT_V1_SCHEMA = CONTRACT_ROOT / "source-text-unit-packet-v1.schema.json"
 SOURCE_TEXT_UNIT_V1_LAB_ROOT = Path(
     "ToS/research-packets/foundation-laboratory-2026-07/"
@@ -5514,6 +5519,388 @@ def _validate_source_refs(repo_root: Path, payload: dict[str, Any], location: st
             issues.append((location, f"repository reference does not exist: {ref}"))
 
 
+def _zarathustra_opening_sentence_plan_binding_issues(
+    *,
+    plan: dict[str, Any],
+    source_packet: dict[str, Any],
+    target_packet: dict[str, Any],
+    alignment: dict[str, Any],
+) -> list[str]:
+    """Compare exact real sentence selectors and digests across tracked records."""
+
+    messages: list[str] = []
+    ids = plan.get("opaque_ids", {})
+    packets = {"source": source_packet, "target": target_packet}
+    sides = {
+        "source": alignment.get("source_side", {}),
+        "target": alignment.get("target_side", {}),
+    }
+    for label in ("source", "target"):
+        side_plan = plan.get(label, {})
+        anchor_ref = ids.get(f"{label}_sentence_anchor_id")
+        expected_selector = {
+            "type": "text_position",
+            "start": side_plan.get("sentence_start"),
+            "end": side_plan.get("sentence_end"),
+            "position_unit": "unicode_code_point",
+            "interval": "half_open",
+        }
+        packet_anchors = {
+            row.get("anchor_ref"): row
+            for row in packets[label].get("anchors", [])
+            if isinstance(row, dict)
+        }
+        packet_anchor = packet_anchors.get(anchor_ref)
+        alignment_anchors = [
+            row for row in sides[label].get("anchors", []) if isinstance(row, dict)
+        ]
+        alignment_anchor = alignment_anchors[0] if len(alignment_anchors) == 1 else None
+        for owner, anchor in (
+            ("sentence-unit packet", packet_anchor),
+            ("alignment side", alignment_anchor),
+        ):
+            if not isinstance(anchor, dict):
+                messages.append(f"{label} {owner} sentence anchor is absent")
+                continue
+            if anchor.get("anchor_ref") != anchor_ref:
+                messages.append(f"{label} {owner} sentence anchor identity drifted")
+            if anchor.get("selector") != expected_selector:
+                messages.append(f"{label} {owner} sentence selector drifted from plan")
+            if anchor.get("exact_sha256") != side_plan.get("sentence_sha256"):
+                messages.append(f"{label} {owner} sentence digest drifted from plan")
+            if anchor.get("text_layer_ref") != side_plan.get("text_layer_ref"):
+                messages.append(f"{label} {owner} text-layer ref drifted from plan")
+            if anchor.get("text_layer_sha256") != side_plan.get("text_layer_sha256"):
+                messages.append(f"{label} {owner} text-layer digest drifted from plan")
+            if anchor.get("source_return", {}).get("locator_ref") != side_plan.get(
+                "private_content_ref"
+            ):
+                messages.append(f"{label} {owner} source-return locator drifted from plan")
+    return messages
+
+
+def validate_zarathustra_opening_sentence_alignment(
+    repo_root: Path,
+) -> list[Issue]:
+    """Close the tracked, text-free real sentence proposal without claiming truth.
+
+    Private spans are deliberately not required here.  Their exact replay belongs
+    to the owner-local builder and manual checks; this validator proves only that
+    tracked selectors, digests, source-return routes, rights, provenance, and
+    non-promotion gates remain mutually closed.
+    """
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    plan_path = repo_root / ZARATHUSTRA_OPENING_SENTENCE_ALIGNMENT_PLAN
+    plan = _load_json(plan_path, repo_root, issues)
+    location = ZARATHUSTRA_OPENING_SENTENCE_ALIGNMENT_PLAN.as_posix()
+    if plan is None:
+        return issues
+    if plan.get("schema_version") != "tos_zarathustra_opening_sentence_alignment_plan_v1":
+        issues.append((location, "unexpected opening-sentence alignment plan version"))
+
+    try:
+        unit_validator, _ = _schema_validator(SOURCE_TEXT_UNIT_V1_SCHEMA, repo_root)
+        alignment_validator, _ = _schema_validator(
+            TRANSLATION_ALIGNMENT_V1_SCHEMA, repo_root
+        )
+        provenance_validator, _ = _schema_validator(PROVENANCE_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        issues.append((location, f"cannot load opening-sentence schemas: {exc}"))
+        return issues
+
+    outputs = plan.get("outputs", {})
+    if not isinstance(outputs, dict):
+        issues.append((location, "opening-sentence output map is absent"))
+        return issues
+    refs = {
+        "source": outputs.get("source_sentence_packet_ref"),
+        "target": outputs.get("target_sentence_packet_ref"),
+        "alignment": outputs.get("alignment_packet_ref"),
+        "event": outputs.get("provenance_event_ref"),
+    }
+    payloads: dict[str, dict[str, Any]] = {}
+    paths: dict[str, Path] = {}
+    for label, ref in refs.items():
+        if not isinstance(ref, str):
+            issues.append((location, f"{label} output reference is absent"))
+            continue
+        path = repo_root / ref
+        paths[label] = path
+        payload = _load_json(path, repo_root, issues)
+        if payload is not None:
+            payloads[label] = payload
+    if set(payloads) != {"source", "target", "alignment", "event"}:
+        return issues
+
+    for message in _zarathustra_opening_sentence_plan_binding_issues(
+        plan=plan,
+        source_packet=payloads["source"],
+        target_packet=payloads["target"],
+        alignment=payloads["alignment"],
+    ):
+        issues.append((location, message))
+
+    for label in ("source", "target"):
+        packet = payloads[label]
+        ref = refs[label]
+        schema_errors = list(unit_validator.iter_errors(packet))
+        for error in schema_errors:
+            issues.append((str(ref), f"source-text-unit schema: {error.message}"))
+        for message in _source_text_unit_v1_issues(packet):
+            issues.append((str(ref), message))
+
+    alignment = payloads["alignment"]
+    for error in alignment_validator.iter_errors(alignment):
+        issues.append((str(refs["alignment"]), f"alignment schema: {error.message}"))
+    for message in _translation_alignment_v1_issues(alignment):
+        issues.append((str(refs["alignment"]), message))
+    event = payloads["event"]
+    for error in provenance_validator.iter_errors(event):
+        issues.append((str(refs["event"]), f"provenance schema: {error.message}"))
+    for message in _provenance_v2_semantic_issues(event):
+        issues.append((str(refs["event"]), message))
+
+    expected_authority = {
+        "source_sentence_segmentation_status": "proposed",
+        "target_sentence_segmentation_status": "proposed",
+        "alignment_status": "proposed",
+        "accepted_german": False,
+        "accepted_russian": False,
+        "accepted_translation": False,
+        "translation_fidelity_established": False,
+        "lexical_equivalence_established": False,
+        "etymology_or_semantics_established": False,
+        "human_task_created": False,
+        "projection_created": False,
+        "graph_or_canon_effect": False,
+    }
+    if plan.get("authority_boundary") != expected_authority:
+        issues.append((location, "opening-sentence plan authority boundary widened"))
+    method = plan.get("method", {})
+    expected_false_method_flags = (
+        "dehyphenation",
+        "tokenization",
+        "model_invoked",
+        "translation_performed",
+        "recognized_translation_used_for_text_decision",
+        "human_review_performed",
+    )
+    for field in expected_false_method_flags:
+        if not isinstance(method, dict) or method.get(field) is not False:
+            issues.append((location, f"opening-sentence method widened {field}"))
+
+    ids = plan.get("opaque_ids", {})
+    alignment_sides = {
+        "source": alignment.get("source_side", {}),
+        "target": alignment.get("target_side", {}),
+    }
+    for label in ("source", "target"):
+        side_plan = plan.get(label, {})
+        packet = payloads[label]
+        side = alignment_sides[label]
+        packet_ref = refs[label]
+        packet_path = paths[label]
+        prefix = "source" if label == "source" else "target"
+        expected_scope = {
+            key: side_plan.get(key)
+            for key in (
+                "work_ref",
+                "expression_ref",
+                "edition_ref",
+                "item_ref",
+                "file_ref",
+                "file_sha256",
+            )
+        }
+        if packet.get("source_scope") != expected_scope:
+            issues.append((str(packet_ref), f"{label} source scope drifted from plan"))
+        source_layer = packet.get("source_layer", {})
+        expected_layer_fields = {
+            "text_layer_ref": side_plan.get("text_layer_ref"),
+            "text_layer_sha256": side_plan.get("text_layer_sha256"),
+            "language": side_plan.get("language"),
+            "visibility": "local_only",
+            "publication_authorized": False,
+        }
+        if any(source_layer.get(key) != value for key, value in expected_layer_fields.items()):
+            issues.append((str(packet_ref), f"{label} frozen source layer drifted"))
+        if packet.get("reviews") or packet.get("projections"):
+            issues.append((str(packet_ref), f"{label} proposal fabricates review or projection"))
+        segmentations = packet.get("segmentations", [])
+        units = packet.get("units", [])
+        anchors = packet.get("anchors", [])
+        if len(segmentations) != 1 or segmentations[0].get("status") != "proposed":
+            issues.append((str(packet_ref), f"{label} sentence segmentation is not one proposal"))
+        elif (
+            segmentations[0].get("review_refs")
+            or segmentations[0].get("coverage", {}).get("coverage_posture")
+            != "declared_partial"
+            or "translation_alignment" not in segmentations[0].get("declared_uses", [])
+        ):
+            issues.append((str(packet_ref), f"{label} proposal coverage or review posture drifted"))
+        if (
+            len(units) != 1
+            or units[0].get("unit_kind") != "sentence"
+            or units[0].get("boundary_posture") != "method_proposed"
+            or units[0].get("semantic_promotion") is not False
+        ):
+            issues.append((str(packet_ref), f"{label} sentence unit posture drifted"))
+        anchor_by_ref = {
+            row.get("anchor_ref"): row for row in anchors if isinstance(row, dict)
+        }
+        sentence_anchor_ref = ids.get(f"{prefix}_sentence_anchor_id")
+        remainder_anchor_ref = ids.get(f"{prefix}_remainder_anchor_id")
+        sentence_anchor = anchor_by_ref.get(sentence_anchor_ref, {})
+        remainder_anchor = anchor_by_ref.get(remainder_anchor_ref, {})
+        expected_sentence_selector = {
+            "type": "text_position",
+            "start": side_plan.get("sentence_start"),
+            "end": side_plan.get("sentence_end"),
+            "position_unit": "unicode_code_point",
+            "interval": "half_open",
+        }
+        expected_remainder_selector = {
+            "type": "text_position",
+            "start": side_plan.get("sentence_end"),
+            "end": side_plan.get("scope_end"),
+            "position_unit": "unicode_code_point",
+            "interval": "half_open",
+        }
+        if (
+            sentence_anchor.get("selector") != expected_sentence_selector
+            or sentence_anchor.get("exact_sha256") != side_plan.get("sentence_sha256")
+            or sentence_anchor.get("source_return", {}).get("locator_ref")
+            != side_plan.get("private_content_ref")
+        ):
+            issues.append((str(packet_ref), f"{label} sentence anchor drifted"))
+        if (
+            remainder_anchor.get("selector") != expected_remainder_selector
+            or remainder_anchor.get("exact_sha256") != side_plan.get("remainder_sha256")
+        ):
+            issues.append((str(packet_ref), f"{label} excluded remainder anchor drifted"))
+        if (
+            not segmentations
+            or remainder_anchor_ref
+            not in segmentations[0].get("coverage", {}).get("excluded_anchor_refs", [])
+        ):
+            issues.append((str(packet_ref), f"{label} excluded remainder is not closed"))
+
+        expected_side_fields = {
+            **expected_scope,
+            "text_layer_ref": side_plan.get("text_layer_ref"),
+            "text_layer_sha256": side_plan.get("text_layer_sha256"),
+            "language": side_plan.get("language"),
+            "visibility": "local_only",
+            "publication_authorized": False,
+        }
+        if any(side.get(key) != value for key, value in expected_side_fields.items()):
+            issues.append((str(refs["alignment"]), f"alignment {label} side drifted"))
+        binding = side.get("segmentation", {})
+        if (
+            binding.get("artifact_ref") != packet_ref
+            or binding.get("sha256") != _sha256(packet_path)
+            or binding.get("state") != "frozen"
+        ):
+            issues.append((str(refs["alignment"]), f"alignment {label} segmentation binding drifted"))
+        alignment_anchors = side.get("anchors", [])
+        if len(alignment_anchors) != 1:
+            issues.append((str(refs["alignment"]), f"alignment {label} anchor count drifted"))
+        else:
+            aligned_anchor = alignment_anchors[0]
+            comparable_fields = (
+                "anchor_ref",
+                "text_layer_ref",
+                "text_layer_sha256",
+                "selector",
+                "exact_sha256",
+                "source_return",
+            )
+            if any(
+                aligned_anchor.get(key) != sentence_anchor.get(key)
+                for key in comparable_fields
+            ):
+                issues.append((str(refs["alignment"]), f"alignment {label} anchor drifted from unit packet"))
+        if side.get("tokenization") is not None:
+            issues.append((str(refs["alignment"]), f"alignment {label} fabricates tokenization"))
+
+    alignments = alignment.get("alignments", [])
+    if len(alignments) != 1:
+        issues.append((str(refs["alignment"]), "real opening-sentence packet must contain one alignment"))
+    else:
+        proposal = alignments[0]
+        if (
+            proposal.get("status") != "proposed"
+            or proposal.get("correspondence_shape") != "one_to_one"
+            or proposal.get("translation_techniques") != ["unresolved"]
+            or proposal.get("epistemic_status") != "inferred"
+            or proposal.get("review_refs")
+            or proposal.get("maker", {}).get("maker_kind") != "software"
+        ):
+            issues.append((str(refs["alignment"]), "opening-sentence alignment authority posture widened"))
+    if alignment.get("reviews") or alignment.get("projections"):
+        issues.append((str(refs["alignment"]), "opening-sentence alignment fabricates review or projection"))
+    rights = alignment.get("rights_and_visibility", {})
+    if rights != {
+        "source_visibility": "local_only",
+        "target_visibility": "local_only",
+        "packet_visibility": "public_metadata_only",
+        "effective_visibility": "local_only",
+        "rights_record_refs": [
+            plan.get("source", {}).get("rights_ref"),
+            plan.get("target", {}).get("rights_ref"),
+        ],
+        "private_source_used": True,
+        "publication_authorized": False,
+        "inheritance_policy": "most_restrictive_side_or_packet_wins",
+    }:
+        issues.append((str(refs["alignment"]), "opening-sentence rights or visibility drifted"))
+
+    tracked_bindings = (
+        ("source", "text_layer_ref", "text_layer_record_sha256"),
+        ("source", "layout_packet_ref", "layout_packet_sha256"),
+        (
+            "source",
+            "edition_reading_admission_ref",
+            "edition_reading_admission_sha256",
+        ),
+        ("source", "rights_ref", "rights_sha256"),
+        ("target", "text_layer_ref", "text_layer_record_sha256"),
+        ("target", "layout_packet_ref", "layout_packet_sha256"),
+        ("target", "expression_record_ref", "expression_record_sha256"),
+        ("target", "responsibility_claims_ref", "responsibility_claims_sha256"),
+        ("target", "rights_ref", "rights_sha256"),
+    )
+    for side_name, ref_field, digest_field in tracked_bindings:
+        side_plan = plan.get(side_name, {})
+        ref = side_plan.get(ref_field)
+        expected_digest = side_plan.get(digest_field)
+        path = repo_root / ref if isinstance(ref, str) else plan_path
+        if path.is_symlink() or not path.is_file() or _sha256(path) != expected_digest:
+            issues.append((location, f"tracked {side_name} binding drifted: {ref_field}"))
+
+    event_outputs = {
+        row.get("entity_ref"): row.get("sha256")
+        for row in event.get("entities", {}).get("outputs", [])
+        if isinstance(row, dict)
+    }
+    expected_event_outputs = {
+        str(refs[label]): _sha256(paths[label])
+        for label in ("source", "target", "alignment")
+    }
+    if event_outputs != expected_event_outputs:
+        issues.append((str(refs["event"]), "alignment provenance output closure drifted"))
+    review = event.get("review_and_authority", {})
+    if (
+        review.get("human_review_status") != "not_performed"
+        or review.get("accepted_uses") != []
+        or review.get("promotion_authorized") is not False
+    ):
+        issues.append((str(refs["event"]), "alignment provenance authority widened"))
+    return issues
+
+
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
     for basename in SOURCE_BASENAMES.values():
@@ -5548,6 +5935,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     source_text_unit_v1_lab_issues, _ = validate_source_text_unit_v1_lab(repo_root)
     issues.extend(source_text_unit_v1_lab_issues)
+
+    issues.extend(validate_zarathustra_opening_sentence_alignment(repo_root))
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)

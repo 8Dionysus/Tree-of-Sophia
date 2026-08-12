@@ -200,6 +200,17 @@ repaired. This route is not diplomatic transcription, accepted Russian,
 translation correspondence, or a reason to infer alignment merely because a
 German layer exists nearby.
 
+An explicit alignment proposal is a separate claim layer. The first real
+question-scoped use selects only the exact first `U+002E`-terminated span from
+each of those private paragraphs, freezes the two partial sentence
+segmentations with exact excluded remainders, and binds them to one opaque
+one-to-one claim. `proposed` is the ceiling: the method does not tokenize,
+translate, resolve the Russian spacing uncertainty, adjudicate technique or
+fidelity, accept either language layer, create review or projection work, or
+authorize semantics, graph/canon promotion, redistribution, or publication.
+Any stronger state requires source-and-target-visible, competence-appropriate
+evidence for the exact claim, not confidence in the deterministic builder.
+
 Mechanical validation, source-visible review, reviewer language competence,
 accepted use, and rights/publication authority are separate gates. In
 particular, an unreviewed diplomatic candidate can match an anchored source

@@ -945,6 +945,18 @@ accepted, and their co-presence creates no bilingual passage, correspondence,
 translation alignment, Russian judgment, semantic relation, graph/canon
 effect, redistribution right, publication route, or human task.
 
+The next bounded question now creates the first real alignment *proposal*, not
+an accepted pair. The text-free
+`za-i-vorrede-1-opening-sentence-alignment.plan.v1.json` binds offsets
+`[0,115)` and `[0,107)` to the exact private German and Russian paragraph
+digests, materializes one proposed sentence unit per side plus an exact
+excluded remainder, and records one software-made one-to-one claim with
+unresolved translation technique. No source string enters Git. Both sentence
+boundaries and the correspondence remain unreviewed; the Russian spacing
+uncertainty, language competence, translation fidelity, lexical equivalence,
+semantics, projection, graph/canon authority, rights clearance, and
+publication remain open.
+
 ## Provenance-event v2 laboratory boundary
 
 The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution

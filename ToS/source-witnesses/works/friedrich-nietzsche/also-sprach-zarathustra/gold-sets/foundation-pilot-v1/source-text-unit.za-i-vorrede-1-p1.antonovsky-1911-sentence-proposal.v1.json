@@ -1,0 +1,234 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-eed9ba82abd04160baa8f7e216a350b0",
+      "anchor_role": "scope",
+      "exact_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+      "ordinal": 1,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42",
+      "anchor_role": "content",
+      "exact_sha256": "fd26665b0e6cd602fdad957179b19d676534006d21048e24473f58241041a6d6",
+      "ordinal": 2,
+      "selector": {
+        "end": 107,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 0,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    },
+    {
+      "anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-3ab0f73c39ab4fce9f79a3e42a9ffa9c",
+      "anchor_role": "gap",
+      "exact_sha256": "27f4a47956e8a1a2d93ab28b63b5efefc202485a97d8555cd5d10566124673fd",
+      "ordinal": 3,
+      "selector": {
+        "end": 349,
+        "interval": "half_open",
+        "position_unit": "unicode_code_point",
+        "start": 107,
+        "type": "text_position"
+      },
+      "source_return": {
+        "locator_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/target-text-foundation/za-i-vorrede-1/antonovsky-1911-page-6-opening-paragraph.raw-embedded-text.txt",
+        "required": true
+      },
+      "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+      "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c"
+    }
+  ],
+  "authority_boundary": {
+    "graph_role": "relation",
+    "legacy_bulk_migration_authorized": false,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_role": "authority",
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "tree_role": "orientation",
+    "validators_prove_mechanics_not_truth": true
+  },
+  "content_posture": "source_bound",
+  "packet_id": "tos.source-text-unit-packet.sid-42736cc329c148d794eb06927ac365b0",
+  "packet_version": 1,
+  "projections": [],
+  "reviews": [],
+  "rights_and_visibility": {
+    "effective_visibility": "local_only",
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins",
+    "packet_visibility": "public_metadata_only",
+    "private_source_used": true,
+    "publication_authorized": false,
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json"
+    ],
+    "source_visibility": "local_only"
+  },
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "schemes": [
+    {
+      "analysis_role": "orthographic",
+      "authority_limit": {
+        "algorithmic_output_is_linguistic_truth": false,
+        "algorithmic_output_is_source_truth": false,
+        "model_subword_is_lexeme": false,
+        "text_mutation_allowed": false,
+        "unit_identity_is_semantic_identity": false
+      },
+      "boundary_basis": "rule_based",
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "method": {
+        "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T09:27:07Z",
+        "maker_kind": "software",
+        "method_name": "exact first-full-stop-inclusive sentence-boundary proposal",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_opening_sentence_alignment.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "policies": {
+        "hyphenation": "preserve_source",
+        "line_break": "declared_excluded",
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "overlap": "forbid",
+        "punctuation": "included_in_neighbor",
+        "unreported_gaps_allowed": false,
+        "whitespace": "declared_excluded"
+      },
+      "scheme_id": "tos.text-unit-scheme.sid-752012f313d04073a09e992bf3f81b6b",
+      "scheme_name": "ru exact first-full-stop-inclusive sentence proposal",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "unit_kinds": [
+        "sentence"
+      ]
+    }
+  ],
+  "segmentations": [
+    {
+      "competing_segmentation_refs": [],
+      "coverage": {
+        "coverage_posture": "declared_partial",
+        "excluded_anchor_refs": [
+          "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-3ab0f73c39ab4fce9f79a3e42a9ffa9c"
+        ],
+        "overlap_requires_declaration": true,
+        "scope_anchor_ref": "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-eed9ba82abd04160baa8f7e216a350b0",
+        "source_reconstruction_required": true,
+        "unreported_gaps_allowed": false
+      },
+      "declared_uses": [
+        "source_observation",
+        "translation_alignment"
+      ],
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "linguistic_authority": false,
+      "maker": {
+        "agent_ref": "software:tos-zarathustra-opening-sentence-alignment-builder",
+        "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "locale": "ru",
+        "made_at": "2026-08-12T09:27:07Z",
+        "maker_kind": "software",
+        "method_name": "exact first-full-stop-inclusive sentence-boundary proposal",
+        "method_version": "1",
+        "model_ref": null,
+        "output_posture": "method_result_not_source_or_linguistic_truth",
+        "provenance_event_ref": "tos.event.alignment.za-i-vorrede-1.dta-1883-antonovsky-1911-opening-sentence.2026-08-12",
+        "software_refs": [
+          "scripts/build_zarathustra_opening_sentence_alignment.py"
+        ],
+        "tailoring_ref": null,
+        "unicode_revision": null,
+        "unicode_version": "16.0.0"
+      },
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-d63f07f85f4f45c59fa0ff39b276873c"
+      ],
+      "review_refs": [],
+      "scheme_ref": "tos.text-unit-scheme.sid-752012f313d04073a09e992bf3f81b6b",
+      "segmentation_id": "tos.text-segmentation.sid-d0f3d546e656442a8c0fa23c67a8cce1",
+      "segmentation_version": 1,
+      "semantic_authority": false,
+      "source_text_authority": false,
+      "status": "proposed",
+      "status_reason": "Only the first full-stop-delimited span is proposed; the exact remainder is digest-bound as excluded coverage and no linguistic review occurred.",
+      "supersedes_segmentation_ref": null
+    }
+  ],
+  "source_layer": {
+    "immutable": true,
+    "interval": "half_open",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "position_unit": "unicode_code_point",
+    "publication_authorized": false,
+    "text_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+    "text_layer_sha256": "3b856676c48ad6f4ef18397f429ab740c2efb917600ac6c72fc4481b89c4b71c",
+    "unicode_form": "source_preserved",
+    "visibility": "local_only"
+  },
+  "source_scope": {
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+    "file_ref": "tos.file.sha256.57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "file_sha256": "57518b50e24fee37b3e9c151e853c36ad34258f51a8b65b8233742d69017db69",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_packet_ref": null,
+  "units": [
+    {
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability",
+        "value": 0.5
+      },
+      "continuity": "contiguous",
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "ordered_anchor_refs": [
+        "tos.anchor.za-i-vorrede-1.antonovsky-1911-sentence.sid-f464215f25df44f7a57656b586012a42"
+      ],
+      "ordered_child_unit_refs": [],
+      "parent_unit_refs": [],
+      "semantic_promotion": false,
+      "source_text_mutated": false,
+      "status_reason": "The exact first U+002E boundary is mechanically selected for a bounded alignment proposal; it is not accepted sentence analysis or accepted text.",
+      "supersedes_unit_ref": null,
+      "surface_posture": "source_bearing",
+      "unit_id": "tos.text-unit.sid-d63f07f85f4f45c59fa0ff39b276873c",
+      "unit_kind": "sentence",
+      "unit_version": 1
+    }
+  ]
+}

@@ -81,8 +81,19 @@ private mode-`0600` 633-byte embedded-text layer, a private bbox byproduct,
 and text-free anchor, layer, six-line/five-line-break unit, and provenance
 records. A direct source-visible check preserves an unresolved PDF-text versus
 print-spacing conflict instead of correcting it. This is neither accepted
-Russian nor a bilingual pair: no translation alignment, semantic relation,
-publication route, canon effect, or human backlog follows from co-location.
+Russian nor an accepted bilingual pair: no translation truth, semantic
+relation, publication route, canon effect, or human backlog follows from
+co-location.
+
+One later, question-scoped successor now tests the missing relation without
+promoting it. It selects only the exact first full-stop-delimited span of each
+private paragraph, records source-returnable half-open ranges and digests in
+two proposed sentence-unit packets, and emits one software-made, one-to-one
+translation-alignment claim with status `proposed`. The exact text remains
+local; the Russian spacing uncertainty remains unresolved; tokenization,
+review, projection, accepted German/Russian, translation fidelity, lexical
+equivalence, semantics, graph/canon effect, and publication authority all
+remain absent.
 
 Division of one frozen layer is a separate additive identity problem. The
 source-text-unit v1 contract gives opaque identities to the scheme,

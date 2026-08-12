@@ -749,6 +749,31 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/translation-alignment-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json"
+      ],
+      "reads": [
+        "the two existing exact ignored private paragraph layers plus their tracked identity, layout, edition-reading, translated-by, rights, and frozen alignment-plan evidence"
+      ],
+      "writes": [
+        "two tracked text-free proposed sentence-unit packets, one tracked text-free proposed alignment packet, and one tracked provenance-event-v2 record unless --check is used"
+      ],
+      "side_effects": "one question-scoped real ordinal first-sentence correspondence proposal only; no tracked source text, accepted sentence boundary, German/Russian, translation act or fidelity, lexical equivalence, human review/task, projection, semantics, graph/canon effect, redistribution, publication, another sentence, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_witness_foundation.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_zarathustra_source_text_foundation.py",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
