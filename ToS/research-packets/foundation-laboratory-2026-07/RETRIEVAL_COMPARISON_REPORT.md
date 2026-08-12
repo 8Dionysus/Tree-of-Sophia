@@ -1,8 +1,9 @@
 # Retrieval Comparison Report: Foundation Pilot v1
 
 Status: text variants A/B/C and the separate direct-visual challenger C
-executed; rare direct-visual review trigger open but unscheduled; real human
-relevance judgments remain zero
+executed; the five-query source-visible engineering-routing inspection is
+complete at advisory non-human authority; real human relevance judgments
+remain zero
 Experiment: `tos-retrieval-foundation-v1`
 Frozen query set: 20 queries, sealed before variant output
 Indexed sample: 36 source-addressable units, of which 24 contain extracted text
@@ -246,6 +247,36 @@ zero human judgments, and requires criteria-based source-visible ranking
 review without retyping. No interface was materialized and no routine human
 backlog was created.
 
+The later adoption/source-return question activated that exact narrow scope.
+`direct-visual-retrieval-routing-inspection.v1.json` records a text-free,
+source-visible inspection by `model:codex` at `advisory-nonhuman` authority.
+The maker read the five frozen private query strings and inspected eight exact
+page PNGs at original resolution; it did not use a prepared validator to set
+the dispositions and did not create human labels.
+
+The route result is asymmetric and actionable:
+
+- in `tos-query-003`, `009`, `010`, and `020`, the declared hard negative is
+  rank 1 and the proposed expected witness is lower; the visual pages show
+  apparent cross-witness parallels, but the ranking violates the declared
+  target language or witness and cannot establish an alignment;
+- in `tos-query-010`, two further German pages, including a contents page,
+  also outrank the requested Russian witness, so language and content-class
+  policy cannot be inferred from visual similarity;
+- in `tos-query-011`, A and B cannot return the image-only Antonovsky page,
+  while visual C returns the exact expected page at rank 1. This is the one
+  material source-return recovery.
+
+Therefore the current unfiltered direct-visual route is rejected as the
+default or primary retrieval path. The exact r9 challenger is retained only as
+an opt-in fallback after a declared lexical/native/OCR-backed text route has
+no usable candidate or the requested witness is known to lack a usable text
+layer. A future method revision must constrain Work, expression, edition,
+item, witness, intended language, and allowed content class before ranking;
+it may not relabel the current output after the fact. Returned pages remain
+source candidates, never accepted text, relevance gold, alignment, sign, or
+semantic authority.
+
 A returned image is still not a transcription, quotation, source-text
 acceptance, semantic judgment, or philosophical claim. The tracked text-free
 result receipt proves exact mechanics and the trigger boundary; it does not
@@ -444,9 +475,11 @@ frozen runs; it belongs in a separately declared method revision.
 11. Preserve the C runtime/cache only while it supports the remaining frozen
     laboratory; its versioned removal route is already recorded.
 12. Retain direct-visual r9 as the audit-complete challenger and r8 as a
-    preserved audit-incomplete negative. Keep the narrow five-query review
-    open but unscheduled until a real adoption or source-return decision needs
-    it; do not turn the trigger into routine human work.
+    preserved audit-incomplete negative. The exact five-query advisory
+    engineering-routing inspection is complete: reject the current unfiltered
+    method as a default route and retain it only as an opt-in post-text-
+    coverage fallback. Human relevance remains unstarted, and no routine
+    human task is created.
 
 ## Comparison still required
 
@@ -459,9 +492,10 @@ A genuine quality conclusion still requires:
 - separate indexing, query, machine, storage, and human-time costs;
 - candidate-depth and target-language-policy trials declared before output;
 - a corpus-scale Qdrant run large enough to exercise its vector index;
-- the already-open five-query direct-visual source-visible review if its
-  output is actually considered for adoption or used to change a
-  source-return route;
+- a competence-appropriate human relevance episode only if a later claim
+  requires nDCG, hard-negative correctness, accepted alignment, promotion, or
+  a production/public adoption decision; the current fallback-routing choice
+  is already bounded by the five-query advisory inspection;
 - final deletion or retention receipts for all derived indexes.
 
 Until those conditions hold, the defensible conclusion is narrower: lexical

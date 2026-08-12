@@ -308,7 +308,7 @@ or translation alignment.
 | translation pre-draft analyses | human-only worksheet and three independent schemas/lanes | 0 packets | machine findings cannot seed or impersonate the human-only lane |
 | translation drafts and adjudication | 17-stage plan, five blind drafts, comparator-reveal and change-ledger contract | 0 drafts | recognized witness must stay sealed and human/AI authorship must remain genuine |
 | semantic sign promotion | v3 15-stage contract, route card, and tracked content-free initial packet | 1 blocked packet; 0 promotion-capable packets; 0 occurrences, lexemes, signs, concepts, claims, relations, projections, or scheduled human tasks | one packet-local accepted German source bundle and language-competence evidence must precede materialization; a model cannot set `performed_by_real_human` or promote its own proposal; the checkpoint opens only for a concrete sign moving toward interpretation/canon |
-| retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual r9 executed audit-complete with 20/20 stable rankings, 200 resolved anchors, one A/B-missed route recovery, four hard-negative outranks, and two ambiguous cross-language cases; five trigger queries open but unscheduled; human judgments 0 | advisory model targets, route recovery, and hard negatives are not gold; exact execution and independent mechanical reconstruction still cannot supply relevance, nDCG, adoption, or promotion |
+| retrieval relevance | 20 frozen queries and blind review contract; separate 36-page direct-visual route | text A/B/C executed; visual r9 executed audit-complete with 20/20 stable rankings and 200 resolved anchors; the exact five-query source-visible advisory inspection confirms one A/B-missed coverage recovery and four unfiltered language/witness-policy failures, rejects visual C as default, and retains it only as an opt-in post-text-coverage fallback; human judgments 0 | the inspection closes an engineering-routing question only; advisory model targets and apparent parallels are not relevance or alignment gold, and exact execution still cannot supply human nDCG, hard-negative correctness, promotion, or production/public adoption |
 | graph correctness | 13 claims, 10 questions, projection receipts | 0 human graph reviews | mechanical trace closure cannot judge claim truth |
 | historical-German morphology A/B/C | ordered official -> established -> current research; exact whole-vocabulary input; reproducible `abyss-stack` A profile; DWDSmor Open 0.18.0 A runtime and retained private result; one output-blind three-context ZDL `de_zdl_lg 4.0.0` B episode frozen for a concrete A ambiguity; rights-gated DTAEC-assisted C retained only for a distinct normalization question | A: 11,352 exact form types / 86,287 token weight processed twice with byte-identical streams; 6,610 types and 75,872 token weight covered; 4,742 types / 10,415 weight mechanically unknown. B: retained denied 41-wheel attempt; later import-complete 42-wheel subject admitted with all five controls; private ranks 1/73/145 across parts 1/3/4 executed twice with byte-identical streams, three exact single-token alignments, and unreviewed `ADV` proposals; tracked return is text-free. C: question-inapplicable and unacquired. Accuracy, competent gold, accepted tokenization, morphology, lemmas, and lexemes 0; human debt 0 | coverage, alignment, provider labels, and repeatability are not quality or a review trigger; preserve both B outcomes and its local-private/non-redistributable boundary; production trust-root/lifecycle proof remains separate; preserve C's block; machine disagreement or agreement still cannot supply German competence or acceptance |
 | semantic and LLM A/B/C | historical universal v1 evidence plus task-specific semantic v2 and LLM v2 plans | 0 tasks; human debt 0 | both current plans first need accepted evidence for the exact selected tasks; unassisted baselines open only for materialized interpretive tasks, morphology/lemma execution needs language-competence evidence, and unresolved competence or ambiguity does not become routine review debt |
@@ -1495,12 +1495,13 @@ open for cosmetic reruns.
     review, current machine admission, and explicit preservation controls. Do
     not create a human task automatically from this screen.
 
-### 2c. Preserve direct visual retrieval evidence and defer human judgment
+### 2c. Preserve the bounded direct-visual fallback and defer human judgment
 
 Current state: the exact source plan was admitted without mutation; owner-routed
 r9 completed offline and was independently reconstructed; r8 and all failed
-admission/setup evidence are preserved; the narrow review trigger is open but
-unscheduled.
+admission/setup evidence are preserved; the exact five-query source-visible
+advisory routing inspection rejects unfiltered default use and retains only an
+opt-in post-text-coverage fallback. Human relevance remains unstarted.
 
 1. Preserve the frozen 20-query/36-image plan and immutable text-control
    receipts. Do not mutate the source plan merely because runtime setup later
@@ -1515,9 +1516,12 @@ unscheduled.
    trigger IDs, and authority boundaries—not query strings, page images,
    vectors, source strings, or absolute paths.
 5. Treat 19/19 model-proposed target presence, one route recovery, hard-negative
-   ordering, and cross-language behavior as advisory observations. The opened
-   five-query review is criteria-only, source-visible, and no-retyping; it
-   remains unscheduled and does not create human debt.
+   ordering, and cross-language behavior as advisory observations. Preserve
+   the completed five-query inspection as nonhuman routing evidence: four
+   language/witness-policy failures reject the current unfiltered default,
+   while one image-only recovery admits a fallback only after text coverage
+   fails and item/witness/language/content-class constraints are declared.
+   This does not create human debt or human relevance metrics.
 6. Do not rerun merely to obtain another green receipt or test the UI. A new
    run needs a new declared research question, fresh unique preflight, owner
    admission without force, and a one-factor comparison plan frozen before

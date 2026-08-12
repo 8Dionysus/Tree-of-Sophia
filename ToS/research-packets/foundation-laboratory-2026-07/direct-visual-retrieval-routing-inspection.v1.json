@@ -1,0 +1,307 @@
+{
+  "schema_version": "tos_direct_visual_retrieval_routing_inspection_v1",
+  "inspection_id": "tos-direct-visual-retrieval-routing-inspection-20260812",
+  "experiment_id": "tos-visual-retrieval-foundation-v1",
+  "status": "completed-advisory-nonhuman",
+  "question": "Should direct page-image retrieval be retained as a bounded source-return route, and under which routing limits?",
+  "selection": {
+    "triggered_query_ids": [
+      "tos-query-003",
+      "tos-query-009",
+      "tos-query-010",
+      "tos-query-011",
+      "tos-query-020"
+    ],
+    "query_count": 5,
+    "selection_was_declared_before_this_inspection": true,
+    "selection_reason": [
+      "challenger-materially-changes-a-source-return-route",
+      "hard-negative-or-cross-language-behavior-remains-ambiguous"
+    ],
+    "query_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/retrieval-queries.json",
+    "query_plan_sha256": "481e1f8ea32b9f7b40eb73a59e7bc3e614d08a3b8958bebd7b0c7fce94fed7a4",
+    "private_query_content_sha256": "5c9ce96fb362512a9ef775bd7d7212b5df6b00570226961a96d51478ba980a1e",
+    "query_strings_embedded": false
+  },
+  "inspection": {
+    "inspected_at_utc": "2026-08-12T15:40:48Z",
+    "source_visible": true,
+    "query_content_visible_to_maker": true,
+    "variant_labels_visible": true,
+    "blind_comparison": false,
+    "blindness_boundary": "The declared A and B controls, visual challenger C, expected anchors, and model-proposed hard negatives were visible. This record is an engineering routing inspection, not blind human relevance gold.",
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "codex/root",
+      "method": "Direct original-resolution visual inspection of eight exact digest-bound page PNGs against the five private frozen query strings and the source-anchor rankings reconstructed from the exact A, B, and visual-C outputs; no prepared validator supplied the disposition."
+    },
+    "criteria": [
+      "expected-source-anchor-presence-and-rank",
+      "declared-hard-negative-presence-and-rank",
+      "intended-target-language-and-witness-compliance",
+      "coverage-recovery-after-text-route-failure",
+      "content-class-contamination",
+      "source-return-risk-and-fallback-value"
+    ],
+    "language_accuracy_assessed": false,
+    "translation_fidelity_assessed": false,
+    "semantic_relevance_gold_created": false,
+    "transcription_accuracy_assessed": false,
+    "copyrighted_source_strings_embedded": false,
+    "review_authority": "advisory-nonhuman",
+    "promotion_authorized": false
+  },
+  "run_bindings": {
+    "visual_plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-plan.v1.json",
+    "visual_plan_sha256": "27e142883d4385b8b69857ab7ebcbee7facb16454e54649ef6ed1df15e3b7c25",
+    "tracked_result_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-result.c-qwen3-vl-embedding-2b.v1.json",
+    "tracked_result_sha256": "9e07d5581e600220efa885aeddc3c5870e5669b4a68d80f72e7ac92e1906e7da",
+    "private_artifact_owner": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab",
+    "private_run_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C",
+    "private_run_id": "zarathustra-qwen-vl-visual-c-20260730t1059z-r9",
+    "abc_comparison_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/abc-anchor-comparison.json",
+    "abc_comparison_sha256": "a980cfd83da986199f9cf83879e628d63ed781a108cd143868196e0b896c670d"
+  },
+  "queries": [
+    {
+      "query_id": "tos-query-003",
+      "category": "exact-quote",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "query_result_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/query-results/tos-query-003.json",
+      "query_result_sha256": "f0ec4392d9dfd01650a2e05793ed4562b07fdab4d020852d1f5222f59687b278",
+      "expected_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237",
+      "hard_negative_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-522",
+      "ranks": {
+        "A_expected": 1,
+        "B_expected": 1,
+        "C_expected": 2,
+        "A_hard_negative": null,
+        "B_hard_negative": null,
+        "C_hard_negative": 1
+      },
+      "visual_evidence": [
+        {
+          "role": "expected",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p237",
+          "png_sha256": "17836a4a57fe9f8ca46e596e25c1fa4824a0b8a7a5652d8a129ef555dde2dcfa"
+        },
+        {
+          "role": "hard-negative",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p523",
+          "png_sha256": "bcda6e6efdb40f52ee8f37fd569486054309de84d1584955697101979758f5b5"
+        }
+      ],
+      "routing_disposition": "reject-as-default-unfiltered-source-return",
+      "finding_codes": [
+        "declared-hard-negative-outranks-expected",
+        "intended-target-language-violated-at-rank-1",
+        "apparent-cross-witness-parallel-is-not-accepted-alignment",
+        "text-controls-already-return-expected-at-rank-1"
+      ],
+      "rationale": "The direct visual route returns an apparent German parallel above the requested Russian witness while both text controls already return the requested anchor first. This adds source-policy risk without recovering coverage."
+    },
+    {
+      "query_id": "tos-query-009",
+      "category": "cross-lingual",
+      "query_language": "ru",
+      "intended_target_language": "de",
+      "query_result_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/query-results/tos-query-009.json",
+      "query_result_sha256": "c41a60786c2c5614f9d042a10cc0e1366b0b1990bb9ea0d61e1b046ab1357731",
+      "expected_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+      "hard_negative_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+      "ranks": {
+        "A_expected": null,
+        "B_expected": 2,
+        "C_expected": 2,
+        "A_hard_negative": 1,
+        "B_hard_negative": 1,
+        "C_hard_negative": 1
+      },
+      "visual_evidence": [
+        {
+          "role": "expected",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p060",
+          "png_sha256": "6326776b3a435932de7e3630f718718a8c0b3c2b8ff2ed73d933c6426447b819"
+        },
+        {
+          "role": "hard-negative",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+          "png_sha256": "46a5ccc7d484cc7258f929eb63bcd0cd25790b83bb6192ba943282ab865e5ce0"
+        }
+      ],
+      "routing_disposition": "reject-as-unfiltered-cross-language-route",
+      "finding_codes": [
+        "expected-cross-language-anchor-recovered-at-rank-2",
+        "declared-hard-negative-outranks-expected",
+        "intended-target-language-violated-at-rank-1",
+        "language-intent-needs-predeclared-filter"
+      ],
+      "rationale": "The challenger discovers the intended German page but ranks the Russian witness first. Candidate discovery is useful; the unfiltered ranking is not compliant with the declared target-language route."
+    },
+    {
+      "query_id": "tos-query-010",
+      "category": "cross-lingual",
+      "query_language": "de",
+      "intended_target_language": "ru",
+      "query_result_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/query-results/tos-query-010.json",
+      "query_result_sha256": "abfaa6929e354ec5d65503120a5c8d2c8741c1812ebe780a781cfda43ae81316",
+      "expected_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+      "hard_negative_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-059",
+      "ranks": {
+        "A_expected": null,
+        "B_expected": 4,
+        "C_expected": 4,
+        "A_hard_negative": 1,
+        "B_hard_negative": 1,
+        "C_hard_negative": 1
+      },
+      "visual_evidence": [
+        {
+          "role": "expected",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p008",
+          "png_sha256": "46a5ccc7d484cc7258f929eb63bcd0cd25790b83bb6192ba943282ab865e5ce0"
+        },
+        {
+          "role": "hard-negative",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p060",
+          "png_sha256": "6326776b3a435932de7e3630f718718a8c0b3c2b8ff2ed73d933c6426447b819"
+        },
+        {
+          "role": "intervening-rank-2",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p381",
+          "png_sha256": "fcc249fe1e5fa110764d7226ed2ec5cc1a6faab760633ba3431d7cac4db5cecf"
+        },
+        {
+          "role": "intervening-rank-3",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p048",
+          "png_sha256": "47230865f1d80a59f7eb298fc331348526166359852a42624bd750cb22c156e0"
+        }
+      ],
+      "routing_disposition": "reject-as-unfiltered-cross-language-route",
+      "finding_codes": [
+        "expected-cross-language-anchor-recovered-at-rank-4",
+        "declared-hard-negative-outranks-expected",
+        "three-german-pages-outrank-requested-russian-witness",
+        "contents-page-outranks-expected",
+        "language-and-content-class-intent-need-predeclared-filters"
+      ],
+      "rationale": "The reverse-language case repeats the policy failure and adds content-class contamination: three German pages, including a contents page, outrank the requested Russian witness."
+    },
+    {
+      "query_id": "tos-query-011",
+      "category": "coverage-failure",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "query_result_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/query-results/tos-query-011.json",
+      "query_result_sha256": "a041788c1859570d60e923f3e475aba0b913b15aaf31feb2e3afd8c398153cf5",
+      "expected_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p050",
+      "hard_negative_source_anchor_ref": null,
+      "ranks": {
+        "A_expected": null,
+        "B_expected": null,
+        "C_expected": 1,
+        "A_hard_negative": null,
+        "B_hard_negative": null,
+        "C_hard_negative": null
+      },
+      "visual_evidence": [
+        {
+          "role": "expected",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.antonovsky-p050",
+          "png_sha256": "9390e81682c9ac6e622ee5692c256746425fed8b48438cfe3a8615215e850b3a"
+        }
+      ],
+      "routing_disposition": "accept-with-limits-as-post-text-coverage-fallback",
+      "finding_codes": [
+        "text-controls-miss-because-source-text-is-unavailable",
+        "visual-challenger-returns-expected-page-at-rank-1",
+        "source-return-route-materially-recovered",
+        "returned-page-is-not-accepted-text-or-relevance-gold"
+      ],
+      "rationale": "This is the one material gain: after both text routes fail on an image-only source page, the visual challenger returns the requested source page first. It is useful as a bounded page-candidate fallback, not as text or semantic authority."
+    },
+    {
+      "query_id": "tos-query-020",
+      "category": "sign",
+      "query_language": "ru",
+      "intended_target_language": "ru",
+      "query_result_ref": "tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-20260730t1059z-r9/variant-C/raw-output/query-results/tos-query-020.json",
+      "query_result_sha256": "24a22d2a01c14866da08c87fcd7d23e830042f1b6a88718c39b53ff62bfb9c0f",
+      "expected_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166",
+      "hard_negative_source_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.naumann-page-380",
+      "ranks": {
+        "A_expected": 1,
+        "B_expected": 2,
+        "C_expected": 2,
+        "A_hard_negative": null,
+        "B_hard_negative": 1,
+        "C_hard_negative": 1
+      },
+      "visual_evidence": [
+        {
+          "role": "expected",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.mysl-p166",
+          "png_sha256": "42f330615b6c4e390471a1843308b27b99911437afa34a827c182c9e82110bda"
+        },
+        {
+          "role": "hard-negative",
+          "visual_anchor_ref": "tos.anchor.zarathustra-foundation-pilot-v1.ocr-naumann-p381",
+          "png_sha256": "fcc249fe1e5fa110764d7226ed2ec5cc1a6faab760633ba3431d7cac4db5cecf"
+        }
+      ],
+      "routing_disposition": "reject-as-default-unfiltered-source-return",
+      "finding_codes": [
+        "declared-hard-negative-outranks-expected",
+        "intended-target-language-violated-at-rank-1",
+        "apparent-cross-witness-parallel-is-not-a-sign-or-alignment-claim",
+        "lexical-control-already-returns-expected-at-rank-1"
+      ],
+      "rationale": "The visual route again prefers an apparent German parallel over the requested Russian witness. That behavior can suggest a later comparison candidate but cannot satisfy source-return policy or create a sign, alignment, or semantic claim."
+    }
+  ],
+  "aggregate": {
+    "triggered_query_count": 5,
+    "source_visible_query_count": 5,
+    "visual_page_count_inspected": 8,
+    "coverage_recovery_count": 1,
+    "declared_hard_negative_outranks_expected_count": 4,
+    "default_route_rejection_count": 4,
+    "bounded_fallback_accept_with_limits_count": 1,
+    "advisory_trigger_status": "completed-for-engineering-routing-question",
+    "human_judgment_status": "not_started",
+    "human_review_minutes": null,
+    "human_ndcg_at_10": null,
+    "human_hard_negative_error_rate": null,
+    "human_task_opened": false,
+    "human_debt_count": 0,
+    "method_adoption_status": "retain-as-opt-in-post-text-coverage-fallback-only",
+    "default_route_adopted": false,
+    "winner": null,
+    "promotion_authorized": false,
+    "publication_authorized": false,
+    "eligible_activation_conditions": [
+      "A declared lexical, native-text, or OCR-backed route has no usable candidate, or the exact requested witness is known to lack a usable text layer.",
+      "Work, expression, edition, item, witness, intended language, and allowed content classes are constrained before ranking rather than inferred from similarity score.",
+      "Returned results remain source-page candidates with exact source and visual anchors, fixity, uncertainty, and source return.",
+      "Any use as transcription, quotation, accepted text, translation, alignment, sign, semantic claim, or canon evidence passes its separate source-visible and competence-appropriate gate."
+    ],
+    "route_findings": [
+      "Do not place direct page-image retrieval ahead of the lexical or text-semantic routes on the current mixed-witness corpus.",
+      "Retain the exact r9 method and artifacts because they prove a real OCR-independent recovery route for a page that A and B cannot index.",
+      "A future method revision may test predeclared item, witness, language, and content-class filtering; the current output cannot be retroactively relabeled as filtered.",
+      "Apparent translation parallels may be returned as comparison candidates only; they remain unaccepted until a separate alignment and competence route admits them."
+    ],
+    "prohibited_inferences": [
+      "human relevance judgment",
+      "nDCG or hard-negative correctness",
+      "accepted source text or quotation",
+      "German or Russian language correctness",
+      "translation fidelity or accepted alignment",
+      "sign concept claim relation graph or canon authority",
+      "family-wide retrieval winner",
+      "production or public-site adoption"
+    ]
+  },
+  "authority_boundary": "This text-free record preserves one model-authored, source-visible engineering routing inspection. It closes the immediate question of whether the current unfiltered direct-visual challenger should become a default source-return route: it should not. It retains one bounded post-text-coverage fallback without creating human gold, accepted relevance, text, translation, alignment, semantics, graph authority, publication permission, production admission, or promotion."
+}

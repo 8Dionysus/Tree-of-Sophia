@@ -87,11 +87,16 @@ evidence, but a fresh 2026-07-30 preflight later returned `ready` without
 changing the 17,179,869,184-byte floor or using force. Owner-routed r9 then
 completed over all 36 images and 20 queries with a persisted normalization
 audit and text-free Tree result receipt. Its rankings and scores match the
-preserved audit-incomplete r8 execution 20/20. Human relevance remains
-unjudged; the five-query ambiguity/route-change trigger is open but
-unscheduled, and no transcription, quotation, source acceptance, winner,
-adoption, or promotion follows. This later route does not retroactively alter
-the output-blind Granite selection above.
+preserved audit-incomplete r8 execution 20/20. A later exact five-query,
+source-visible advisory inspection closes the immediate engineering-routing
+question: four rank-1 language/witness-policy failures reject the current
+unfiltered route as default, while one A/B-missed image-only page recovery
+retains it as an opt-in post-text-coverage fallback with predeclared
+item/witness/language/content-class constraints. Human relevance remains
+unjudged, and no transcription, quotation, source acceptance, accepted
+alignment, winner, promotion, or production/public adoption follows. This
+later route does not retroactively alter the output-blind Granite selection
+above.
 
 ## Comparability lock
 
