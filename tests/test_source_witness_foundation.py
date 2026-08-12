@@ -3196,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(112, manifest["counts"]["object_total"])
-        self.assertEqual(153, manifest["counts"]["claim"])
-        self.assertEqual(265, manifest["counts"]["total"])
-        self.assertEqual(153, len(claim_entries))
+        self.assertEqual(114, manifest["counts"]["object_total"])
+        self.assertEqual(154, manifest["counts"]["claim"])
+        self.assertEqual(268, manifest["counts"]["total"])
+        self.assertEqual(154, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3237,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 136,
+                "bibliographic_assertion": 137,
                 "scholarly_report": 17,
             },
             {
@@ -3308,7 +3308,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(16, len(authorship_claims))
+        self.assertEqual(17, len(authorship_claims))
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims

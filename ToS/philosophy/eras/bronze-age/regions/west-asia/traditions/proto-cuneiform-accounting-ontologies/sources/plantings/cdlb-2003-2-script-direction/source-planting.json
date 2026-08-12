@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.cdlb-2003-2-script-direction",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 18,
+    "source_table_index": 13,
+    "source_row_index": 10,
+    "source_label": "CDLB 2003:2 [54]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.proto-cuneiform.pisan-dub-ba-and-the-direction-of-cuneiform-script",
+    "record_ref": "ToS/source-witnesses/works/proto-cuneiform-scholarship/pisan-dub-ba-and-the-direction-of-cuneiform-script/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLB_2003_2_SCRIPT_DIRECTION_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "exact CDLB 2003:2 Work identity, author, issue, publication date, HTML and PDF version-label divergence, journal scope, and rights resolved",
+    "physical artifact top, attachment axis, text direction, sign orientation, reading order, and modern display transform separated",
+    "the Ur III and Old Babylonian pisan-dub-ba evidence bounded as comparative material rather than direct Late Uruk proof",
+    "competing Powell, Picchioni, and Fitzgerald chronologies retained rather than collapsed into one inherited fact",
+    "the five named Ur III examples resolved to current CDLI identifiers without importing artifacts or images",
+    "fresh 2025 tag scholarship and 2026 transform-sensitive visual methodology checked",
+    "article-text, artifact-image, transcription, and later-publication rights kept separate"
+  ],
+  "remaining_controls": [
+    "the proposed during-or-after-Kassite direction change remains a source-reported interpretation rather than accepted ToS chronology",
+    "Fitzgerald's social-causal explanations remain explicitly prospective",
+    "current CDLI normalized ATF and tag metadata do not establish physical top, attachment axis, or reading direction",
+    "raw photographs, line art, processed visualizations, and normalized text remain distinct witnesses with recorded transforms",
+    "no article Expression, Edition, Item, payload, artifact, image, spatial annotation, orientation observation, period-level assertion, or semantic object is admitted",
+    "no canon promotion or human task follows from peer review, open access, or current source availability"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T15:32:49-06:00",
+  "record_version": 1
+}
