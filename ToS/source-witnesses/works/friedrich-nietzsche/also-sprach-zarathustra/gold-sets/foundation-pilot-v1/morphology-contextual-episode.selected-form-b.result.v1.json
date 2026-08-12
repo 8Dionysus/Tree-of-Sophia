@@ -1,0 +1,272 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-result-receipt.schema.json",
+  "schema_version": "tos_morphology_contextual_result_receipt_v1",
+  "generated_or_authored": "generated_from_private_contextual_provider_run",
+  "receipt_id": "morphology-contextual-result:zarathustra-selected-form-b.zdl-4.0.0.v1",
+  "recorded_at_utc": "2026-08-12T13:59:14.895068+00:00",
+  "status": "b-executed-machine-proposal-awaiting-real-trigger",
+  "experiment_id": "tos-historical-german-morphology-v1",
+  "variant": "B",
+  "question": {
+    "plan": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+      "sha256": "73a88433cda008de222f288027d4ac2fc1a97357a47a5a0e99d9e67f95a34785"
+    },
+    "context_receipt": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.receipt.v1.json",
+      "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+    },
+    "historical_negative_admission": {
+      "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.artifact-admission.v1.json",
+      "sha256": "01cce657d1a13e152d94a4c9342d71bae39918628e8a8bb42a20500be36a689f",
+      "retained": true,
+      "superseded": false
+    },
+    "frozen_before_b_output": true
+  },
+  "generator": {
+    "ref": "scripts/record_zarathustra_morphology_contextual_result.py",
+    "sha256": "9eef23c97d13928ec40208c4731d860b7137c3e1cf74e10828bd275cb5bcfe8e"
+  },
+  "private_run": {
+    "artifact_owner": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab",
+    "relative_ref": "tos-historical-german-morphology-v1/zarathustra-zdl-b-20260812t1354z/variant-B",
+    "run_id": "zarathustra-zdl-b-20260812t1354z",
+    "status": "awaiting-triggered-review",
+    "started_at_utc": "2026-08-12T13:59:08.929628+00:00",
+    "finished_at_utc": "2026-08-12T13:59:14.895068+00:00",
+    "retention_decision": "retain",
+    "visibility": "owner-local-only",
+    "manual_review_count": 0,
+    "model_inspection_count": 0
+  },
+  "implementation": {
+    "owner": "abyss-stack",
+    "commit": "a321401b792b24e9b7dd6cbae4e7085b8fafe0e2",
+    "runner_sha256": "e86c0cafe281e73832a9475b5a54e4a12d75f26b8e8389a73e4595b9d6ffb672"
+  },
+  "provider": {
+    "artifact": "ZDL de_zdl_lg",
+    "version": "4.0.0",
+    "spacy_version": "3.8.11",
+    "source_commit": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4",
+    "principal_wheel_sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a",
+    "pipeline": [
+      "tok2vec",
+      "tagger",
+      "morphologizer",
+      "parser",
+      "ner",
+      "trainable_lemmatizer"
+    ],
+    "confidence_scores_exposed": false,
+    "execution_posture": "unreviewed-contextual-provider-proposal"
+  },
+  "artifact_admission": {
+    "record_id": "sha256:d6356a650a3f033469759a380264cbe00c1401b5713f90b97df674e04363a80b",
+    "record_file_sha256": "99ae2c2a325dc586751c3bf2fffb337ced93cf256d9813c2da2b81b5a8a22db7",
+    "subject_digest": "sha256:9768ec14c9f4e0115bf285b7e50f24521cecbd7533c20fb00e0bb7204aba9ff4",
+    "subjects_aggregate_digest": "sha256:df79c75c0e521bc5f1b379d7b06f27d7d433b5b8bac048fa5ed0ff088d48eed2",
+    "lifecycle_state": "manually-verified",
+    "latest_eligible": true,
+    "trust_root_mode": "local_dev",
+    "required_controls": [
+      "abi_signature",
+      "sbom",
+      "ml_bom",
+      "slsa_in_toto",
+      "sigstore_cosign"
+    ],
+    "present_controls": [
+      "abi_signature",
+      "sbom",
+      "ml_bom",
+      "slsa_in_toto",
+      "sigstore_cosign"
+    ],
+    "verified_controls": [
+      "abi_signature",
+      "sbom",
+      "ml_bom",
+      "slsa_in_toto",
+      "sigstore_cosign"
+    ],
+    "subject_store_file_count": 44,
+    "trust_gate_verdict": "allow",
+    "rights_effect": "none"
+  },
+  "source_input": {
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "packet_sha256": "d82a2d81b370f3131fb56e0b1328866120cb3313903ffdf115debb4f0e34aa66",
+    "packet_bytes": 5203,
+    "packet_mode": "0600",
+    "row_count": 3,
+    "selection_ranks": [
+      1,
+      73,
+      145
+    ],
+    "selection_roles": [
+      "first",
+      "inclusive-median",
+      "last"
+    ],
+    "part_orders": [
+      1,
+      3,
+      4
+    ],
+    "exact_surface_mutated": false,
+    "source_text_accepted": false
+  },
+  "runtime": {
+    "runtime_id": "zdl-de-zdl-lg-4.0.0-7eabc170-py312",
+    "manifest_sha256": "89c8a70b779c3782cfdf5b10bdd7963736c181afa86918a92d4d967aebdc820c",
+    "artifact_set_sha256": "591824890eefdbc9f2d79897640a47fdd5c128b87f7eb29e70203f5dda97f561",
+    "runtime_bytes": 977683987,
+    "network_used": false
+  },
+  "private_artifacts": {
+    "run_receipt": {
+      "sha256": "d66c4b139352b01ea3197d0660e0281e28b67f18d7d46993870aebbb730d5335",
+      "bytes": 1341,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "experiment_spec": {
+      "sha256": "1d1725c9b69e637bf7dd1307ae6f4a7dac1fdb809899e49e68280968b7ad7dd1",
+      "bytes": 12107,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "preflight": {
+      "sha256": "317f279345af4dd5e4471445d74d2e9ce91691f5b5740f1b79d51250db1ee42d",
+      "bytes": 82488,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "execution": {
+      "sha256": "d06465da4713fc7794eb83e75aab8c19e3910d2c07ce87e255f0b633b01bc719",
+      "bytes": 2954,
+      "mode": "0600",
+      "source_bearing": true
+    },
+    "repeat_determinism": {
+      "sha256": "dc587cb235f703386ec198c81484768bc398591c4073c0a0f2c40bbe69195cba",
+      "bytes": 476,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "metrics": {
+      "sha256": "b3f90940ae6e4d1af6eec029f079844543d1d42b2a876deb715e0ffbe9944403",
+      "bytes": 2755,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "raw_output": {
+      "sha256": "cf32d4b2730675241fff501d851aa95a7eae9eeedfcc67819f1a5fc39e9407a1",
+      "bytes": 39869,
+      "mode": "0600",
+      "source_bearing": true
+    },
+    "resource_launch": {
+      "sha256": "78b57b90c07213e498eb53eac446fbee8059ba0c7ebf58b68304cac72bae65b4",
+      "bytes": 27630,
+      "mode": "0600",
+      "source_bearing": false
+    },
+    "runtime_manifest": {
+      "sha256": "89c8a70b779c3782cfdf5b10bdd7963736c181afa86918a92d4d967aebdc820c",
+      "bytes": 1334467,
+      "mode": "0644",
+      "source_bearing": false
+    },
+    "registry_record": {
+      "sha256": "99ae2c2a325dc586751c3bf2fffb337ced93cf256d9813c2da2b81b5a8a22db7",
+      "bytes": 4938,
+      "mode": "0644",
+      "source_bearing": false
+    }
+  },
+  "tokenization": {
+    "exact_single_token_alignment_count": 3,
+    "split_or_expanded_alignment_count": 0,
+    "target_token_count_distribution": {
+      "1": 3
+    }
+  },
+  "proposal_distributions": {
+    "target_pos": {
+      "ADV": 3
+    },
+    "target_tag": {
+      "ADV": 3
+    }
+  },
+  "repeat_determinism": {
+    "deterministic": true,
+    "pass_1_stream_sha256": "cf32d4b2730675241fff501d851aa95a7eae9eeedfcc67819f1a5fc39e9407a1",
+    "pass_2_stream_sha256": "cf32d4b2730675241fff501d851aa95a7eae9eeedfcc67819f1a5fc39e9407a1",
+    "mismatch_count": 0,
+    "second_pass_raw_output_retained": false
+  },
+  "performance": {
+    "pass_1_wall_seconds": 0.09812343399971724,
+    "pass_1_cpu_seconds": 0.08810884899999927,
+    "pass_2_wall_seconds": 0.08455105099710636,
+    "pass_2_cpu_seconds": 0.08401045899999993,
+    "contexts_per_second_pass_1": 30.57373634119496,
+    "peak_rss_bytes": 1273647104,
+    "host_service_wall_seconds": 11.118,
+    "host_service_cpu_seconds": 9.935,
+    "host_cgroup_footprint_peak_mib": 1892.715,
+    "host_cgroup_memory_peak_bytes": 1984393216,
+    "host_cgroup_swap_peak_bytes": 262144,
+    "resource_force_used": false
+  },
+  "quality": {
+    "status": "unmeasured-no-german-competent-gold",
+    "german_competent_gold_count": 0,
+    "accepted_tokenization_count": 0,
+    "accepted_morphology_count": 0,
+    "accepted_lemma_count": 0,
+    "provider_proposal_is_accuracy": false,
+    "machine_repeatability_is_gold": false
+  },
+  "followup": {
+    "status": "closed-machine-proposal-awaiting-real-trigger",
+    "c_status": "blocked-question-inapplicable",
+    "human_work_scheduled": false,
+    "automatic_review_opened": false,
+    "automatic_promotion_authorized": false
+  },
+  "rights_and_visibility": {
+    "execution": "owner-local-private-research-only",
+    "redistribution": "blocked",
+    "private_source_and_raw_output": "owner-local-only",
+    "tracked_receipt_contains_source_strings": false,
+    "tracked_receipt_contains_sequence": false,
+    "tracked_receipt_contains_context": false,
+    "tracked_receipt_contains_provider_lemma_strings": false,
+    "source_payload_publication_authorized": false,
+    "raw_output_publication_authorized": false,
+    "tracked_receipt_publication_authorized": false,
+    "future_site_route": "blocked"
+  },
+  "semantic_boundary": {
+    "creates_accepted_source": false,
+    "creates_tokenization": false,
+    "creates_morphology": false,
+    "creates_lemma": false,
+    "creates_lexeme": false,
+    "creates_sign_candidate": false,
+    "creates_sign": false,
+    "creates_semantic_claim": false,
+    "creates_translation": false,
+    "creates_graph_fact": false,
+    "changes_canon": false,
+    "opens_human_backlog": false
+  },
+  "provenance_event_ref": "tos.event.annotation.zarathustra-morphology-context-b-result.2026-08-12",
+  "authority_boundary": "This receipt proves one private, deterministic, source-bound contextual provider execution and its measured resource cost. It does not accept a German reading, token boundary, morphology, lemma, lexeme, sign, concept, translation, semantic claim, relation, graph edge, canon effect, rights clearance, publication route, winner, or human task."
+}

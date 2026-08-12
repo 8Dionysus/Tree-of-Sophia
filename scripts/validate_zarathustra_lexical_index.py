@@ -69,6 +69,19 @@ MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_REF = (
     "provenance.morphology-contextual-episode.selected-form-b."
     "artifact-admission.v1.jsonl"
 )
+MORPHOLOGY_CONTEXT_RESULT_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "morphology-contextual-episode.selected-form-b.result.v1.json"
+)
+MORPHOLOGY_CONTEXT_RESULT_PROVENANCE_REF = (
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "provenance.morphology-contextual-episode.selected-form-b.result.v1.jsonl"
+)
+MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF = (
+    "scripts/record_zarathustra_morphology_contextual_result.py"
+)
 MORPHOLOGY_CONTEXT_GENERATOR_REF = (
     "scripts/build_zarathustra_morphology_context_packet.py"
 )
@@ -100,6 +113,13 @@ MORPHOLOGY_CONTEXT_ADMISSION_AUTHORITY_BOUNDARY = (
     "consumed, and no German, morphology, lemma, lexeme, sign, semantic, "
     "graph, canon, publication, redistribution, or human-review authority is "
     "created"
+)
+MORPHOLOGY_CONTEXT_RESULT_AUTHORITY_BOUNDARY = (
+    "This receipt proves one private, deterministic, source-bound contextual "
+    "provider execution and its measured resource cost. It does not accept a "
+    "German reading, token boundary, morphology, lemma, lexeme, sign, concept, "
+    "translation, semantic claim, relation, graph edge, canon effect, rights "
+    "clearance, publication route, winner, or human task."
 )
 
 
@@ -612,6 +632,9 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         REPO_ROOT / MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_REF
     )
     admission = _load_json(admission_path)
+    result_path = REPO_ROOT / MORPHOLOGY_CONTEXT_RESULT_REF
+    result_provenance_path = REPO_ROOT / MORPHOLOGY_CONTEXT_RESULT_PROVENANCE_REF
+    result = _load_json(result_path)
     _validate_schema(
         plan,
         REPO_ROOT / "ToS/contracts/morphology-contextual-episode-plan.schema.json",
@@ -628,6 +651,12 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         REPO_ROOT
         / "ToS/contracts/morphology-contextual-artifact-admission.schema.json",
         label="morphology contextual artifact admission",
+    )
+    _validate_schema(
+        result,
+        REPO_ROOT
+        / "ToS/contracts/morphology-contextual-result-receipt.schema.json",
+        label="morphology contextual result",
     )
     provenance_events = _load_provenance(provenance_path)
     if len(provenance_events) != 1:
@@ -651,6 +680,17 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         admission_provenance,
         REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
         label="morphology contextual artifact admission provenance",
+    )
+    result_provenance_events = _load_provenance(result_provenance_path)
+    if len(result_provenance_events) != 1:
+        raise LexicalIndexValidationError(
+            "morphology contextual result provenance must contain exactly one event"
+        )
+    result_provenance = result_provenance_events[0]
+    _validate_schema(
+        result_provenance,
+        REPO_ROOT / "ToS/contracts/provenance-event.schema.json",
+        label="morphology contextual result provenance",
     )
 
     prohibited_private_keys = {
@@ -1017,6 +1057,118 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
             "morphology context artifact admission provenance output drift"
         )
 
+    result_digest = _sha256_file(result_path)
+    result_generator_digest = _sha256_file(
+        REPO_ROOT / MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF
+    )
+    if (
+        result["status"]
+        != "b-executed-machine-proposal-awaiting-real-trigger"
+        or result["question"]["plan"]
+        != {"ref": MORPHOLOGY_CONTEXT_PLAN_REF, "sha256": plan_digest}
+        or result["question"]["context_receipt"]
+        != {"ref": MORPHOLOGY_CONTEXT_RECEIPT_REF, "sha256": receipt_digest}
+        or result["question"]["historical_negative_admission"]
+        != {
+            "ref": MORPHOLOGY_CONTEXT_ADMISSION_REF,
+            "sha256": admission_digest,
+            "retained": True,
+            "superseded": False,
+        }
+        or result["generator"]
+        != {
+            "ref": MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF,
+            "sha256": result_generator_digest,
+        }
+        or result["authority_boundary"]
+        != MORPHOLOGY_CONTEXT_RESULT_AUTHORITY_BOUNDARY
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result identity/authority drift"
+        )
+    if (
+        result["source_input"]["packet_sha256"] != local_receipt["sha256"]
+        or result["source_input"]["packet_bytes"] != local_receipt["bytes"]
+        or result["source_input"]["row_count"] != 3
+        or result["source_input"]["selection_ranks"] != [1, 73, 145]
+        or result["source_input"]["source_text_accepted"]
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result source closure drift"
+        )
+    trust_result = result["artifact_admission"]
+    if (
+        trust_result["trust_gate_verdict"] != "allow"
+        or not trust_result["latest_eligible"]
+        or trust_result["lifecycle_state"] != "manually-verified"
+        or trust_result["required_controls"]
+        != trust_result["present_controls"]
+        or trust_result["present_controls"]
+        != trust_result["verified_controls"]
+        or trust_result["rights_effect"] != "none"
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result trust closure drift"
+        )
+    if (
+        result["repeat_determinism"]["pass_1_stream_sha256"]
+        != result["repeat_determinism"]["pass_2_stream_sha256"]
+        or not result["repeat_determinism"]["deterministic"]
+        or result["repeat_determinism"]["mismatch_count"] != 0
+        or result["tokenization"]["exact_single_token_alignment_count"] != 3
+        or result["tokenization"]["split_or_expanded_alignment_count"] != 0
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result repeat/tokenization drift"
+        )
+    if (
+        result["quality"]["status"]
+        != "unmeasured-no-german-competent-gold"
+        or result["quality"]["german_competent_gold_count"] != 0
+        or result["followup"]["human_work_scheduled"]
+        or result["followup"]["automatic_review_opened"]
+        or result["followup"]["automatic_promotion_authorized"]
+        or any(result["semantic_boundary"].values())
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result authority gate opened"
+        )
+    serialized_result = json.dumps(
+        [result, result_provenance], ensure_ascii=False, sort_keys=True
+    )
+    for prohibited in (
+        "/srv/",
+        "local-content/",
+        "context_text",
+        "target_exact_form",
+        "occurrence_id",
+        "target_start_offset",
+        "target_end_offset",
+    ):
+        if prohibited in serialized_result:
+            raise LexicalIndexValidationError(
+                f"morphology contextual B result leaked private material: {prohibited}"
+            )
+    if (
+        result_provenance["event_id"] != result["provenance_event_ref"]
+        or result_provenance["event_type"] != "annotation"
+        or result_provenance["status"] != "completed_with_warnings"
+        or result_provenance["method"]["artifact_digest"]
+        != result_generator_digest
+        or result_provenance["rights_basis_ref"] is not None
+    ):
+        raise LexicalIndexValidationError(
+            "morphology contextual B result provenance posture drift"
+        )
+    result_output_pairs = {
+        (entry.get("ref"), entry.get("sha256"))
+        for entry in result_provenance["outputs"]
+    }
+    if result_output_pairs != {(MORPHOLOGY_CONTEXT_RESULT_REF, result_digest)}:
+        raise LexicalIndexValidationError(
+            "morphology contextual B result provenance output drift"
+        )
+
     return {
         "plan_ref": MORPHOLOGY_CONTEXT_PLAN_REF,
         "plan_sha256": plan_digest,
@@ -1036,6 +1188,16 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
             "model_output_present": admission["execution_effects"][
                 "model_output_present"
             ],
+        },
+        "b_result": {
+            "ref": MORPHOLOGY_CONTEXT_RESULT_REF,
+            "sha256": result_digest,
+            "status": result["status"],
+            "quality": result["quality"]["status"],
+            "human_work_scheduled": result["followup"][
+                "human_work_scheduled"
+            ],
+            "semantic_effect": any(result["semantic_boundary"].values()),
         },
         "authority_boundary": MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY,
     }

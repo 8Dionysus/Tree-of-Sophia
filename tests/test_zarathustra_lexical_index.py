@@ -49,6 +49,12 @@ MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_PATH = MORPHOLOGY_PLAN_PATH.with_name(
     "provenance.morphology-contextual-episode.selected-form-b."
     "artifact-admission.v1.jsonl"
 )
+MORPHOLOGY_CONTEXT_RESULT_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "morphology-contextual-episode.selected-form-b.result.v1.json"
+)
+MORPHOLOGY_CONTEXT_RESULT_PROVENANCE_PATH = MORPHOLOGY_PLAN_PATH.with_name(
+    "provenance.morphology-contextual-episode.selected-form-b.result.v1.jsonl"
+)
 RECURRENCE_PLAN_PATH = PLAN_PATH.with_name("recurrence-plan.v1.json")
 RECURRENCE_PROJECTION_PATH = (
     ROOT / "ToS/derived-exports/lexical-search/"
@@ -90,6 +96,10 @@ MORPHOLOGY_CONTEXT_BUILDER = _load_module(
     "tos_zarathustra_morphology_context_builder",
     "scripts/build_zarathustra_morphology_context_packet.py",
 )
+MORPHOLOGY_CONTEXT_RESULT_RECORDER = _load_module(
+    "tos_zarathustra_morphology_context_result_recorder",
+    "scripts/record_zarathustra_morphology_contextual_result.py",
+)
 RECURRENCE_BUILDER = _load_module(
     "tos_zarathustra_recurrence_projection_builder",
     "scripts/build_zarathustra_recurrence_projection.py",
@@ -128,6 +138,14 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.morphology_context_admission_provenance = json.loads(
             MORPHOLOGY_CONTEXT_ADMISSION_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        cls.morphology_context_result = json.loads(
+            MORPHOLOGY_CONTEXT_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        cls.morphology_context_result_provenance = json.loads(
+            MORPHOLOGY_CONTEXT_RESULT_PROVENANCE_PATH.read_text(
                 encoding="utf-8"
             )
         )
@@ -1044,6 +1062,174 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         self.assertNotIn("/srv/", tracked)
         self.assertNotIn("local-content/", tracked)
         self.assertNotIn("wieder", tracked)
+
+    def test_morphology_context_b_result_is_text_free_and_non_authoritative(
+        self,
+    ) -> None:
+        result_schema = json.loads(
+            (
+                ROOT
+                / "ToS/contracts/"
+                "morphology-contextual-result-receipt.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        provenance_schema = json.loads(
+            (ROOT / "ToS/contracts/provenance-event.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        result = self.morphology_context_result
+        provenance = self.morphology_context_result_provenance
+        self.assertEqual(
+            [], list(Draft202012Validator(result_schema).iter_errors(result))
+        )
+        self.assertEqual(
+            [],
+            list(Draft202012Validator(provenance_schema).iter_errors(provenance)),
+        )
+        self.assertEqual(
+            "b-executed-machine-proposal-awaiting-real-trigger",
+            result["status"],
+        )
+        self.assertEqual(
+            "unmeasured-no-german-competent-gold",
+            result["quality"]["status"],
+        )
+        self.assertTrue(result["repeat_determinism"]["deterministic"])
+        self.assertEqual(
+            result["repeat_determinism"]["pass_1_stream_sha256"],
+            result["repeat_determinism"]["pass_2_stream_sha256"],
+        )
+        self.assertFalse(result["followup"]["human_work_scheduled"])
+        self.assertTrue(
+            all(value is False for value in result["semantic_boundary"].values())
+        )
+        self.assertFalse(
+            self.validation["morphology_context"]["b_result"][
+                "human_work_scheduled"
+            ]
+        )
+        self.assertFalse(
+            self.validation["morphology_context"]["b_result"]["semantic_effect"]
+        )
+        self.assertEqual(
+            hashlib.sha256(MORPHOLOGY_CONTEXT_RESULT_PATH.read_bytes()).hexdigest(),
+            self.validation["morphology_context"]["b_result"]["sha256"],
+        )
+        tracked = (
+            MORPHOLOGY_CONTEXT_RESULT_PATH.read_text(encoding="utf-8")
+            + MORPHOLOGY_CONTEXT_RESULT_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            )
+        )
+        for prohibited in (
+            "/srv/",
+            "local-content/",
+            '"context_text"',
+            '"target_exact_form"',
+            '"occurrence_id"',
+            '"target_start_offset"',
+            '"target_end_offset"',
+            "wieder",
+        ):
+            self.assertNotIn(prohibited, tracked)
+
+    def test_contextual_result_aggregate_does_not_return_source_strings(self) -> None:
+        surface = "Testform"
+        context = "Alpha Testform omega"
+        start = context.index(surface)
+        end = start + len(surface)
+        form_digest = hashlib.sha256(surface.encode("utf-8")).hexdigest()
+        context_digest = hashlib.sha256(context.encode("utf-8")).hexdigest()
+        token_payloads = []
+        cursor = 0
+        for index, (text, whitespace, pos, tag) in enumerate(
+            (
+                ("Alpha", " ", "NOUN", "NN"),
+                ("Testform", " ", "ADV", "ADV"),
+                ("omega", "", "NOUN", "NN"),
+            )
+        ):
+            token_start = cursor
+            token_end = token_start + len(text)
+            token_payloads.append(
+                {
+                    "dep": "dep",
+                    "end_offset": token_end,
+                    "ent_type": "",
+                    "head_token_index": index,
+                    "is_sent_start": index == 0,
+                    "lemma": text.casefold(),
+                    "morph": {},
+                    "pos": pos,
+                    "start_offset": token_start,
+                    "tag": tag,
+                    "text": text,
+                    "token_index": index,
+                    "whitespace": whitespace,
+                }
+            )
+            cursor = token_end + len(whitespace)
+        rows = []
+        for rank, role, part in zip(
+            (1, 73, 145),
+            ("first", "inclusive-median", "last"),
+            (1, 3, 4),
+            strict=True,
+        ):
+            row = {
+                "authority": "unreviewed-contextual-provider-proposal",
+                "context_id": f"private-{rank}",
+                "context_sha256": context_digest,
+                "context_text": context,
+                "episode_id": "zarathustra-selected-form-context-b-v1",
+                "exact_form_sha256": form_digest,
+                "form_key": f"lexical-form:sha256:{form_digest}",
+                "input_preserved": True,
+                "item_ref": "tos.item.private",
+                "occurrence_id": f"tos.occurrence.private-{rank}",
+                "part_order": part,
+                "provider": {
+                    **MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_PROVIDER,
+                },
+                "schema_version": "tos_zdl_contextual_morphology_row_v1",
+                "selection_rank": rank,
+                "selection_role": role,
+                "target_end_offset": end,
+                "target_exact_form": surface,
+                "target_start_offset": start,
+                "target_tokens": [token_payloads[1]],
+                "tokenization": {
+                    "token_count": 3,
+                    "target_token_count": 1,
+                    "exact_single_token_alignment": True,
+                    "split_or_expanded_alignment": False,
+                    "target_covered": True,
+                },
+                "tokens": token_payloads,
+            }
+            rows.append(row)
+        with tempfile.TemporaryDirectory() as temporary:
+            raw_path = Path(temporary) / "raw.jsonl"
+            raw_path.write_bytes(
+                b"".join(
+                    MORPHOLOGY_CONTEXT_RESULT_RECORDER.canonical_line(row)
+                    for row in rows
+                )
+            )
+            original_form = MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256
+            MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256 = form_digest
+            try:
+                aggregate = MORPHOLOGY_CONTEXT_RESULT_RECORDER.inspect_raw_output(
+                    raw_path
+                )
+            finally:
+                MORPHOLOGY_CONTEXT_RESULT_RECORDER.EXPECTED_FORM_SHA256 = original_form
+        serialized = json.dumps(aggregate, ensure_ascii=False)
+        self.assertNotIn(surface, serialized)
+        self.assertNotIn(context, serialized)
+        self.assertEqual(3, aggregate["exact_single_token_alignment_count"])
+        self.assertEqual({"ADV": 3}, aggregate["target_pos"])
 
     def test_morphology_context_tracked_files_withhold_private_rows(self) -> None:
         plan = self.morphology_context_plan

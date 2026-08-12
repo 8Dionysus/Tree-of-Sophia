@@ -1,0 +1,530 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-result-receipt.schema.json",
+  "title": "Tree of Sophia text-free contextual morphology result receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "recorded_at_utc",
+    "status",
+    "experiment_id",
+    "variant",
+    "question",
+    "generator",
+    "private_run",
+    "implementation",
+    "provider",
+    "artifact_admission",
+    "source_input",
+    "runtime",
+    "private_artifacts",
+    "tokenization",
+    "proposal_distributions",
+    "repeat_determinism",
+    "performance",
+    "quality",
+    "followup",
+    "rights_and_visibility",
+    "semantic_boundary",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/morphology-contextual-result-receipt.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_morphology_contextual_result_receipt_v1"
+    },
+    "generated_or_authored": {
+      "const": "generated_from_private_contextual_provider_run"
+    },
+    "receipt_id": {
+      "const": "morphology-contextual-result:zarathustra-selected-form-b.zdl-4.0.0.v1"
+    },
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "status": {"const": "b-executed-machine-proposal-awaiting-real-trigger"},
+    "experiment_id": {"const": "tos-historical-german-morphology-v1"},
+    "variant": {"const": "B"},
+    "question": {"$ref": "#/$defs/question"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "private_run": {"$ref": "#/$defs/privateRun"},
+    "implementation": {"$ref": "#/$defs/implementation"},
+    "provider": {"$ref": "#/$defs/provider"},
+    "artifact_admission": {"$ref": "#/$defs/artifactAdmission"},
+    "source_input": {"$ref": "#/$defs/sourceInput"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "private_artifacts": {"$ref": "#/$defs/privateArtifacts"},
+    "tokenization": {"$ref": "#/$defs/tokenization"},
+    "proposal_distributions": {"$ref": "#/$defs/proposalDistributions"},
+    "repeat_determinism": {"$ref": "#/$defs/repeatDeterminism"},
+    "performance": {"$ref": "#/$defs/performance"},
+    "quality": {"$ref": "#/$defs/quality"},
+    "followup": {"$ref": "#/$defs/followup"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
+    "provenance_event_ref": {
+      "const": "tos.event.annotation.zarathustra-morphology-context-b-result.2026-08-12"
+    },
+    "authority_boundary": {"type": "string", "minLength": 240}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sha256Id": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "repoPath": {
+      "type": "string",
+      "pattern": "^(ToS|scripts)/[A-Za-z0-9._/-]+$"
+    },
+    "nonNegativeInteger": {"type": "integer", "minimum": 0},
+    "positiveInteger": {"type": "integer", "minimum": 1},
+    "nonNegativeNumber": {"type": "number", "minimum": 0},
+    "refDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan",
+        "context_receipt",
+        "historical_negative_admission",
+        "frozen_before_b_output"
+      ],
+      "properties": {
+        "plan": {"$ref": "#/$defs/refDigest"},
+        "context_receipt": {"$ref": "#/$defs/refDigest"},
+        "historical_negative_admission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha256", "retained", "superseded"],
+          "properties": {
+            "ref": {"$ref": "#/$defs/repoPath"},
+            "sha256": {"$ref": "#/$defs/digest"},
+            "retained": {"const": true},
+            "superseded": {"const": false}
+          }
+        },
+        "frozen_before_b_output": {"const": true}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "const": "scripts/record_zarathustra_morphology_contextual_result.py"
+        },
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "privateRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_owner",
+        "relative_ref",
+        "run_id",
+        "status",
+        "started_at_utc",
+        "finished_at_utc",
+        "retention_decision",
+        "visibility",
+        "manual_review_count",
+        "model_inspection_count"
+      ],
+      "properties": {
+        "artifact_owner": {
+          "const": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab"
+        },
+        "relative_ref": {
+          "const": "tos-historical-german-morphology-v1/zarathustra-zdl-b-20260812t1354z/variant-B"
+        },
+        "run_id": {"const": "zarathustra-zdl-b-20260812t1354z"},
+        "status": {"const": "awaiting-triggered-review"},
+        "started_at_utc": {"type": "string", "format": "date-time"},
+        "finished_at_utc": {"type": "string", "format": "date-time"},
+        "retention_decision": {"const": "retain"},
+        "visibility": {"const": "owner-local-only"},
+        "manual_review_count": {"const": 0},
+        "model_inspection_count": {"const": 0}
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "commit", "runner_sha256"],
+      "properties": {
+        "owner": {"const": "abyss-stack"},
+        "commit": {
+          "const": "a321401b792b24e9b7dd6cbae4e7085b8fafe0e2"
+        },
+        "runner_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "version",
+        "spacy_version",
+        "source_commit",
+        "principal_wheel_sha256",
+        "pipeline",
+        "confidence_scores_exposed",
+        "execution_posture"
+      ],
+      "properties": {
+        "artifact": {"const": "ZDL de_zdl_lg"},
+        "version": {"const": "4.0.0"},
+        "spacy_version": {"const": "3.8.11"},
+        "source_commit": {
+          "const": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4"
+        },
+        "principal_wheel_sha256": {"$ref": "#/$defs/digest"},
+        "pipeline": {
+          "const": [
+            "tok2vec",
+            "tagger",
+            "morphologizer",
+            "parser",
+            "ner",
+            "trainable_lemmatizer"
+          ]
+        },
+        "confidence_scores_exposed": {"const": false},
+        "execution_posture": {
+          "const": "unreviewed-contextual-provider-proposal"
+        }
+      }
+    },
+    "controls": {
+      "const": [
+        "abi_signature",
+        "sbom",
+        "ml_bom",
+        "slsa_in_toto",
+        "sigstore_cosign"
+      ]
+    },
+    "artifactAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "record_file_sha256",
+        "subject_digest",
+        "subjects_aggregate_digest",
+        "lifecycle_state",
+        "latest_eligible",
+        "trust_root_mode",
+        "required_controls",
+        "present_controls",
+        "verified_controls",
+        "subject_store_file_count",
+        "trust_gate_verdict",
+        "rights_effect"
+      ],
+      "properties": {
+        "record_id": {"$ref": "#/$defs/sha256Id"},
+        "record_file_sha256": {"$ref": "#/$defs/digest"},
+        "subject_digest": {"$ref": "#/$defs/sha256Id"},
+        "subjects_aggregate_digest": {"$ref": "#/$defs/sha256Id"},
+        "lifecycle_state": {"const": "manually-verified"},
+        "latest_eligible": {"const": true},
+        "trust_root_mode": {"const": "local_dev"},
+        "required_controls": {"$ref": "#/$defs/controls"},
+        "present_controls": {"$ref": "#/$defs/controls"},
+        "verified_controls": {"$ref": "#/$defs/controls"},
+        "subject_store_file_count": {"const": 44},
+        "trust_gate_verdict": {"const": "allow"},
+        "rights_effect": {"const": "none"}
+      }
+    },
+    "sourceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "packet_sha256",
+        "packet_bytes",
+        "packet_mode",
+        "row_count",
+        "selection_ranks",
+        "selection_roles",
+        "part_orders",
+        "exact_surface_mutated",
+        "source_text_accepted"
+      ],
+      "properties": {
+        "work_ref": {
+          "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "packet_sha256": {"$ref": "#/$defs/digest"},
+        "packet_bytes": {"const": 5203},
+        "packet_mode": {"const": "0600"},
+        "row_count": {"const": 3},
+        "selection_ranks": {"const": [1, 73, 145]},
+        "selection_roles": {"const": ["first", "inclusive-median", "last"]},
+        "part_orders": {"const": [1, 3, 4]},
+        "exact_surface_mutated": {"const": false},
+        "source_text_accepted": {"const": false}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "manifest_sha256",
+        "artifact_set_sha256",
+        "runtime_bytes",
+        "network_used"
+      ],
+      "properties": {
+        "runtime_id": {"const": "zdl-de-zdl-lg-4.0.0-7eabc170-py312"},
+        "manifest_sha256": {"$ref": "#/$defs/digest"},
+        "artifact_set_sha256": {"$ref": "#/$defs/digest"},
+        "runtime_bytes": {"const": 977683987},
+        "network_used": {"const": false}
+      }
+    },
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "bytes", "mode", "source_bearing"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"$ref": "#/$defs/nonNegativeInteger"},
+        "mode": {"enum": ["0600", "0644"]},
+        "source_bearing": {"type": "boolean"}
+      }
+    },
+    "privateArtifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_receipt",
+        "experiment_spec",
+        "preflight",
+        "execution",
+        "repeat_determinism",
+        "metrics",
+        "raw_output",
+        "resource_launch",
+        "runtime_manifest",
+        "registry_record"
+      ],
+      "properties": {
+        "run_receipt": {"$ref": "#/$defs/fileRecord"},
+        "experiment_spec": {"$ref": "#/$defs/fileRecord"},
+        "preflight": {"$ref": "#/$defs/fileRecord"},
+        "execution": {"$ref": "#/$defs/fileRecord"},
+        "repeat_determinism": {"$ref": "#/$defs/fileRecord"},
+        "metrics": {"$ref": "#/$defs/fileRecord"},
+        "raw_output": {"$ref": "#/$defs/fileRecord"},
+        "resource_launch": {"$ref": "#/$defs/fileRecord"},
+        "runtime_manifest": {"$ref": "#/$defs/fileRecord"},
+        "registry_record": {"$ref": "#/$defs/fileRecord"}
+      }
+    },
+    "countMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Z0-9<>._-]+$"},
+      "additionalProperties": {"$ref": "#/$defs/nonNegativeInteger"}
+    },
+    "tokenization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_single_token_alignment_count",
+        "split_or_expanded_alignment_count",
+        "target_token_count_distribution"
+      ],
+      "properties": {
+        "exact_single_token_alignment_count": {"const": 3},
+        "split_or_expanded_alignment_count": {"const": 0},
+        "target_token_count_distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["1"],
+          "properties": {"1": {"const": 3}}
+        }
+      }
+    },
+    "proposalDistributions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_pos", "target_tag"],
+      "properties": {
+        "target_pos": {"$ref": "#/$defs/countMap"},
+        "target_tag": {"$ref": "#/$defs/countMap"}
+      }
+    },
+    "repeatDeterminism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic",
+        "pass_1_stream_sha256",
+        "pass_2_stream_sha256",
+        "mismatch_count",
+        "second_pass_raw_output_retained"
+      ],
+      "properties": {
+        "deterministic": {"const": true},
+        "pass_1_stream_sha256": {"$ref": "#/$defs/digest"},
+        "pass_2_stream_sha256": {"$ref": "#/$defs/digest"},
+        "mismatch_count": {"const": 0},
+        "second_pass_raw_output_retained": {"const": false}
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_1_wall_seconds",
+        "pass_1_cpu_seconds",
+        "pass_2_wall_seconds",
+        "pass_2_cpu_seconds",
+        "contexts_per_second_pass_1",
+        "peak_rss_bytes",
+        "host_service_wall_seconds",
+        "host_service_cpu_seconds",
+        "host_cgroup_footprint_peak_mib",
+        "host_cgroup_memory_peak_bytes",
+        "host_cgroup_swap_peak_bytes",
+        "resource_force_used"
+      ],
+      "properties": {
+        "pass_1_wall_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "pass_1_cpu_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "pass_2_wall_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "pass_2_cpu_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "contexts_per_second_pass_1": {"$ref": "#/$defs/nonNegativeNumber"},
+        "peak_rss_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_service_wall_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "host_service_cpu_seconds": {"$ref": "#/$defs/nonNegativeNumber"},
+        "host_cgroup_footprint_peak_mib": {"$ref": "#/$defs/nonNegativeNumber"},
+        "host_cgroup_memory_peak_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_cgroup_swap_peak_bytes": {"$ref": "#/$defs/nonNegativeInteger"},
+        "resource_force_used": {"const": false}
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "german_competent_gold_count",
+        "accepted_tokenization_count",
+        "accepted_morphology_count",
+        "accepted_lemma_count",
+        "provider_proposal_is_accuracy",
+        "machine_repeatability_is_gold"
+      ],
+      "properties": {
+        "status": {"const": "unmeasured-no-german-competent-gold"},
+        "german_competent_gold_count": {"const": 0},
+        "accepted_tokenization_count": {"const": 0},
+        "accepted_morphology_count": {"const": 0},
+        "accepted_lemma_count": {"const": 0},
+        "provider_proposal_is_accuracy": {"const": false},
+        "machine_repeatability_is_gold": {"const": false}
+      }
+    },
+    "followup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "c_status",
+        "human_work_scheduled",
+        "automatic_review_opened",
+        "automatic_promotion_authorized"
+      ],
+      "properties": {
+        "status": {"const": "closed-machine-proposal-awaiting-real-trigger"},
+        "c_status": {"const": "blocked-question-inapplicable"},
+        "human_work_scheduled": {"const": false},
+        "automatic_review_opened": {"const": false},
+        "automatic_promotion_authorized": {"const": false}
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution",
+        "redistribution",
+        "private_source_and_raw_output",
+        "tracked_receipt_contains_source_strings",
+        "tracked_receipt_contains_sequence",
+        "tracked_receipt_contains_context",
+        "tracked_receipt_contains_provider_lemma_strings",
+        "source_payload_publication_authorized",
+        "raw_output_publication_authorized",
+        "tracked_receipt_publication_authorized",
+        "future_site_route"
+      ],
+      "properties": {
+        "execution": {"const": "owner-local-private-research-only"},
+        "redistribution": {"const": "blocked"},
+        "private_source_and_raw_output": {"const": "owner-local-only"},
+        "tracked_receipt_contains_source_strings": {"const": false},
+        "tracked_receipt_contains_sequence": {"const": false},
+        "tracked_receipt_contains_context": {"const": false},
+        "tracked_receipt_contains_provider_lemma_strings": {"const": false},
+        "source_payload_publication_authorized": {"const": false},
+        "raw_output_publication_authorized": {"const": false},
+        "tracked_receipt_publication_authorized": {"const": false},
+        "future_site_route": {"const": "blocked"}
+      }
+    },
+    "semanticBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "creates_accepted_source",
+        "creates_tokenization",
+        "creates_morphology",
+        "creates_lemma",
+        "creates_lexeme",
+        "creates_sign_candidate",
+        "creates_sign",
+        "creates_semantic_claim",
+        "creates_translation",
+        "creates_graph_fact",
+        "changes_canon",
+        "opens_human_backlog"
+      ],
+      "properties": {
+        "creates_accepted_source": {"const": false},
+        "creates_tokenization": {"const": false},
+        "creates_morphology": {"const": false},
+        "creates_lemma": {"const": false},
+        "creates_lexeme": {"const": false},
+        "creates_sign_candidate": {"const": false},
+        "creates_sign": {"const": false},
+        "creates_semantic_claim": {"const": false},
+        "creates_translation": {"const": false},
+        "creates_graph_fact": {"const": false},
+        "changes_canon": {"const": false},
+        "opens_human_backlog": {"const": false}
+      }
+    }
+  }
+}

@@ -125,6 +125,16 @@ Tracking starts with the community-docs baseline for this repository.
   was consumed, and no model output, German judgment, morphology, lemma,
   lexeme, semantic effect, human task, publication route, or canon effect was
   created.
+- Recorded the later contextual morphology B execution without rewriting that
+  negative evidence. An admitted successor first exposed a source-free
+  spaCy/Typer/Click import gap; the corrected 42-wheel subject then closed all
+  five `local_dev` controls, a 44-file subject store, exact `agent` admission,
+  and an isolated Python 3.12 smoke before reading the three frozen contexts.
+  Both provider passes are byte-identical and all three targets align to one
+  token, but the tracked result remains text-free and
+  `unmeasured-no-german-competent-gold`. Private source/output redistribution,
+  accepted tokenization, morphology, lemma, lexeme, sign, semantics, graph,
+  canon, publication, and automatic human work remain closed.
 - Reconciled Antonovsky's exact 1900 *Zarathustra* Edition across current RSL,
   RNL, and LNB records. RSL and RNL share the `rc\\1717107` control core,
   transaction value, and bibliography; the crosswalk resolves RSL

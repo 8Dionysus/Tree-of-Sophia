@@ -110,3 +110,16 @@ The unresolved model-rights review and private-only boundary remain separate
 and cannot be satisfied by a green integrity gate. Any production consumer
 would additionally require its own non-local trust-root and release-lifecycle
 admission. No direct builder invocation may bypass these routes.
+
+## Later additive outcome on 2026-08-12
+
+The stop line above remains the exact outcome for its denied 41-wheel
+candidate. A later, separately identified 42-wheel bundle closed the required
+local-development controls, exposed and corrected one source-free
+spaCy/Typer/Click import gap, received an exact `agent` allow verdict, and ran
+the frozen B packet privately. That later evidence is recorded without
+rewriting this document or the negative receipt in
+`HISTORICAL_GERMAN_MORPHOLOGY_B_EXECUTION_2026-08-12.md` and the tracked
+text-free result receipt. It changes the executable state, not the linguistic
+authority: German accuracy, accepted morphology, lemma, lexeme, sign,
+semantics, graph, canon, publication, and automatic human work remain zero.

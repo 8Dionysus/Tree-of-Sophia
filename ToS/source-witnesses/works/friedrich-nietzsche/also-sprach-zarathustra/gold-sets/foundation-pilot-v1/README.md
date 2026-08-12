@@ -228,22 +228,24 @@ Zarathustra golden kernel. It is not a completed gold set.
   mode-`0600` packet returns each exact target slice inside two source
   paragraphs and one verse group; the tracked receipt and provenance expose
   only fixity, structure, counts, selection closure, and execution posture.
-  The later artifact-admission overlay records what happened without rewriting
-  that pre-output freeze: the exact B wheel and its 41-wheel CPython 3.12
-  closure were acquired into private owner cache, but required Cosign evidence,
-  release lifecycle, non-local trust root, verification, and subject-store
-  closure were absent. The exact runtime trust gate therefore denied
-  admission. A later additive engineering return preserves that event while
-  correcting the active pre-build boundary: reviewed `abyss-stack` checkpoint
-  `87d85ad1` now runs an exact `agent` gate inside the materializer before
-  acquisition verification or runtime creation. Production-only trust-root
-  and lifecycle reviews remain separate; latest, verification, Cosign/control,
-  and subject-store closure still fail closed. The final real denial left the
-  runtime absent and consumed no source packet. No B output exists. Variant C
-  remains blocked as question-inapplicable because exact and normalized form
-  identity do not differ in this episode. This creates no German-competent
-  gold, morphology acceptance, lemma, lexeme, semantic effect, or human
-  backlog.
+  The artifact-admission overlay preserves the first exact B wheel and its
+  41-wheel CPython 3.12 closure as a denied attempt. Reviewed `abyss-stack`
+  checkpoint `87d85ad1` made the exact `agent` gate executable before build or
+  source use. A later admitted successor exposed a source-free
+  spaCy/Typer/Click import gap and was retained as a second negative before any
+  source packet was consumed. Reviewed checkpoint `a321401b` then freezes the
+  corrected 42-wheel compatibility set, verifies all five `local_dev`
+  controls and the 44-file subject store, materializes a source-free-smoked
+  Python 3.12 runtime, and executes only the frozen three contexts twice. The
+  provider streams are byte-identical; all three targets align to one token
+  and receive unreviewed `ADV` proposals. The tracked result receipt and
+  provenance include no source string, provider lemma, context sequence,
+  occurrence position, private path, or absolute host path. German-competent
+  gold, accuracy, accepted tokenization, morphology, lemma, lexeme, semantic
+  effect, and human backlog remain zero. Variant C remains blocked as
+  question-inapplicable because exact and normalized form identity do not
+  differ in this episode. Private source/output redistribution and public
+  serving remain blocked.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic

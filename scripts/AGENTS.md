@@ -293,6 +293,16 @@ gates. The builder acquires or runs no model, admits no C normalization for an
 unrelated POS question, and creates no accepted German, morphology, lemma,
 lexeme, sign, semantic claim, publication route, or human backlog.
 
+`record_zarathustra_morphology_contextual_result.py` is the return route from
+the exact owner-local ZDL B run. It independently replays source return,
+token-stream reconstruction, target overlap, output digests, repeatability,
+runtime/artifact trust, and host resource receipts, then writes only a
+text-free result receipt and provenance. The earlier denied admission remains
+immutable negative evidence. POS/tag labels remain unreviewed provider
+aggregates: the recorder cannot accept German, tokenization, morphology,
+lemma, lexeme, sign, semantics, graph or canon effects, clear redistribution,
+publish source/output, or create a human task.
+
 `record_zarathustra_visual_retrieval_result.py` is the return route from one
 exact owner-local direct-page-image retrieval C run. It independently
 reconstructs frozen-input and artifact fixity, normalization evidence,
@@ -574,6 +584,7 @@ Local owner routes:
 | private selected-form Zarathustra raw-witness recurrence | `python scripts/build_semantic_source_recurrence_bundle.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`, then `python scripts/validate_source_witness_foundation.py`; omit `--check` only to intentionally rebuild the ignored mode-0600 complete occurrence-return bundle plus its tracked string/position-free receipt and provenance from the frozen selected hash |
 | local Zarathustra morphology census input | `python scripts/build_zarathustra_morphology_input.py --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia --check`; omit `--check` only to intentionally rebuild the ignored exact-form JSONL and its tracked text-free receipt before any morphology output |
 | private Zarathustra morphology A result | `python scripts/record_zarathustra_morphology_census_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/<run-id>/variant-A --check`; omit `--check` only to intentionally record an exact owner-local run as the tracked text-free aggregate receipt |
+| private Zarathustra contextual morphology B result | `python scripts/record_zarathustra_morphology_contextual_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/zarathustra-zdl-b-20260812t1354z/variant-B --resource-receipt /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/resource-runs/zarathustra-zdl-b-20260812t1354z.json --check`; omit `--check` only to intentionally regenerate the tracked text-free result receipt and provenance from that exact retained run |
 | private Zarathustra direct-visual retrieval C result | `python scripts/record_zarathustra_visual_retrieval_result.py --run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<run-id>/variant-C --prior-run-root /srv/abyss-machine/storage/artifacts/tree-of-sophia-foundation-lab/tos-visual-retrieval-foundation-v1/<prior-run-id>/variant-C --local-query-content /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/retrieval/queries.v1.json --check`; omit `--check` only to intentionally record the exact owner-local run as a tracked text-free mechanical and trigger receipt |
 | local witness structure correspondence | `python scripts/build_witness_structure_correspondence.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check` for local regeneration parity, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
 | local Jenseits numbered-unit structure | `python scripts/build_jenseits_numbered_unit_structure.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`, then `python scripts/validate_witness_structure_correspondence.py` for tracked release-safe closure |
