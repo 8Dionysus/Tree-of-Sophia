@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+  "title": "Tree of Sophia authored route to evidence spine bridge v1",
+  "description": "Text-free reconciliation of a pre-existing authored canon route with exact source layers and modern claim/review boundaries, without migrating or promoting the authored route.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "bridge_id",
+    "bridge_version",
+    "research",
+    "route_scope",
+    "source_foundation",
+    "authored_surfaces",
+    "witness_roles",
+    "segment_crosswalk",
+    "canon_inventory",
+    "assurance",
+    "effects",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/authored-route-evidence-bridge-v1.schema.json"},
+    "schema_version": {"const": "tos_authored_route_evidence_bridge_v1"},
+    "bridge_id": {"type": "string", "pattern": "^tos\\.authored-route-evidence-bridge\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "bridge_version": {"const": 1},
+    "research": {"$ref": "#/$defs/digestBoundRef"},
+    "route_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route_ref", "work_ref", "expression_ref", "edition_ref", "item_ref", "file_ref", "file_sha256"],
+      "properties": {
+        "route_ref": {"type": "string", "pattern": "^tos\\.source\\."},
+        "work_ref": {"type": "string", "pattern": "^tos\\.work\\."},
+        "expression_ref": {"type": "string", "pattern": "^tos\\.expression\\."},
+        "edition_ref": {"type": "string", "pattern": "^tos\\.edition\\."},
+        "item_ref": {"type": "string", "pattern": "^tos\\.item\\."},
+        "file_ref": {"type": "string", "pattern": "^tos\\.file\\."},
+        "file_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "source_foundation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_anchor", "raw_layer", "normalized_layer", "unit_packet", "rights"],
+      "properties": {
+        "source_anchor": {"$ref": "#/$defs/digestBoundRef"},
+        "raw_layer": {"$ref": "#/$defs/digestBoundRef"},
+        "normalized_layer": {"$ref": "#/$defs/digestBoundRef"},
+        "unit_packet": {"$ref": "#/$defs/digestBoundRef"},
+        "rights": {"$ref": "#/$defs/digestBoundRef"}
+      }
+    },
+    "authored_surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_node", "alignment_witness", "relation_pack", "review_records"],
+      "properties": {
+        "source_node": {"$ref": "#/$defs/digestBoundRef"},
+        "alignment_witness": {"$ref": "#/$defs/digestBoundRef"},
+        "relation_pack": {"$ref": "#/$defs/digestBoundRef"},
+        "review_records": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/digestBoundRef"}}
+      }
+    },
+    "witness_roles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/witnessRole"}
+    },
+    "segment_crosswalk": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {"$ref": "#/$defs/segmentCrosswalk"}
+    },
+    "canon_inventory": {"$ref": "#/$defs/canonInventory"},
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_comparison",
+        "authored_review_posture",
+        "modern_semantic_packet_posture",
+        "claim_evidence_closure",
+        "graph_admission",
+        "current_canon_retained",
+        "bulk_migration_authorized"
+      ],
+      "properties": {
+        "source_comparison": {"const": "complete-mechanical-normalized-match"},
+        "authored_review_posture": {"const": "legacy-review-records-without-machine-readable-human-attestation"},
+        "modern_semantic_packet_posture": {"const": "not-materialized-by-this-bridge"},
+        "claim_evidence_closure": {"const": false},
+        "graph_admission": {"const": false},
+        "current_canon_retained": {"const": true},
+        "bulk_migration_authorized": {"const": false}
+      }
+    },
+    "effects": {"$ref": "#/$defs/effects"},
+    "authority_boundary": {
+      "const": "the bridge proves exact representation and inventory closure only; it preserves the authored route without converting its witness roles, review notes, nodes, or relations into accepted German, accepted translation, semantic truth, modern human attestation, claim-evidence closure, graph admission, canon revision, publication permission, or server-transfer authority"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "boundedRef": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!~[\\\\/])(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {"ref": {"$ref": "#/$defs/boundedRef"}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "witnessRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "legacy_role", "segment_count", "content_sha256", "authorship_posture", "current_assurance", "modern_review_refs"],
+      "properties": {
+        "language": {"enum": ["de", "ru", "en"]},
+        "legacy_role": {"enum": ["canonical_source", "working_translation", "bridge_translation"]},
+        "segment_count": {"const": 12},
+        "content_sha256": {"$ref": "#/$defs/sha256"},
+        "authorship_posture": {"enum": ["nietzsche-source-witness-role", "dionysus-authored-translation-witness"]},
+        "current_assurance": {"enum": ["mechanically-crosswalked-not-philologically-accepted", "legacy-authored-translation-not-modernly-reviewed"]},
+        "modern_review_refs": {"type": "array", "maxItems": 0}
+      }
+    },
+    "segmentCrosswalk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legacy_segment_id", "source_unit_ref", "source_anchor_ref", "dta_normalized_sha256", "legacy_normalized_sha256", "normalized_match", "match_scope", "modern_review_refs"],
+      "properties": {
+        "legacy_segment_id": {"type": "string", "pattern": "^seg\\.1\\.1\\.1\\.(?:[1-9]|1[0-2])$"},
+        "source_unit_ref": {"type": "string", "pattern": "^tos\\.text-unit\\.sid-[a-f0-9]{32}$"},
+        "source_anchor_ref": {"type": "string", "pattern": "^tos\\.anchor\\."},
+        "dta_normalized_sha256": {"$ref": "#/$defs/sha256"},
+        "legacy_normalized_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_match": {"const": true},
+        "match_scope": {"const": "mechanical-representation-only"},
+        "modern_review_refs": {"type": "array", "maxItems": 0}
+      }
+    },
+    "canonInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_count", "node_kind_counts", "node_records_sha256", "relation_count", "relation_kind_counts", "relation_ids_sha256", "relations_with_legacy_segment_locators", "relations_with_modern_claim_refs", "relations_with_modern_evidence_refs", "legacy_review_record_count", "machine_readable_human_attestation_count"],
+      "properties": {
+        "node_count": {"type": "integer", "minimum": 1},
+        "node_kind_counts": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 1}},
+        "node_records_sha256": {"$ref": "#/$defs/sha256"},
+        "relation_count": {"type": "integer", "minimum": 1},
+        "relation_kind_counts": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 1}},
+        "relation_ids_sha256": {"$ref": "#/$defs/sha256"},
+        "relations_with_legacy_segment_locators": {"type": "integer", "minimum": 0},
+        "relations_with_modern_claim_refs": {"const": 0},
+        "relations_with_modern_evidence_refs": {"const": 0},
+        "legacy_review_record_count": {"type": "integer", "minimum": 1},
+        "machine_readable_human_attestation_count": {"const": 0}
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_text_accepted", "german_competence_attested", "translation_accepted", "sign_or_concept_promoted", "legacy_relation_migrated", "graph_projection_admitted", "canon_revised", "human_task_created", "new_publication_authorized", "server_transfer_authorized"],
+      "properties": {
+        "source_text_accepted": {"const": false},
+        "german_competence_attested": {"const": false},
+        "translation_accepted": {"const": false},
+        "sign_or_concept_promoted": {"const": false},
+        "legacy_relation_migrated": {"const": false},
+        "graph_projection_admitted": {"const": false},
+        "canon_revised": {"const": false},
+        "human_task_created": {"const": false},
+        "new_publication_authorized": {"const": false},
+        "server_transfer_authorized": {"const": false}
+      }
+    }
+  }
+}

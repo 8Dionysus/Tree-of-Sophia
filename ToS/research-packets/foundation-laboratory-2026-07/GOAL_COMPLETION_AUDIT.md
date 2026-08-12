@@ -1973,6 +1973,46 @@ fail-closed proposal mechanics only. They do not establish sentence truth,
 German or Russian competence, translation fidelity, semantics, review,
 rights clearance, publication, graph truth, or canon authority.
 
+## Authored canon evidence bridge — 2026-08-12
+
+The foundation now reconnects the project's living Zarathustra seed to exact
+source evidence instead of leaving the old authored canon beside the new
+contracts as an implicit exception. A question-scoped research packet applies
+the ordered official/classical, established, and fresh 2025–2026 source and
+semantic law. One deterministic builder selects the complete exact DTA
+`Za-I-Vorrede-1` section, creates a private raw layer and a separate declared
+editorial-normalized comparison layer, and binds all normalization operations
+and reconstructive comparison detail by digest below ignored mode-`0600`
+owner-local storage.
+
+The exact source contains twelve direct TEI paragraphs. The canonical authored
+German witness contains twelve segments, and all 12/12 match uniquely in order
+over the complete 1,593-code-point normalized layer. The boundary systems are
+not identical: the authored segment 5/6 boundary falls inside the fifth TEI
+paragraph, and the following TEI paragraph boundary falls inside authored
+segment 6. The resulting source-text-unit packet therefore preserves both as
+reciprocal competing segmentations with explicit one-space gap anchors, rather
+than silently selecting or rewriting either topology.
+
+The tracked text-free bridge binds the exact anchor, raw/normalized layer
+records, unit packet, rights record, trilingual donor, authored source node,
+relation pack, and eight historical review records. It inventories 92 current
+route nodes and 125 current relations, all with legacy segment locators. The
+old `canonical_source`, `working_translation`, and `bridge_translation` values
+are now explicitly classified as route-local authored roles. The eight review
+notes remain historical records without modern machine-readable human
+attestation. Modern claim refs, evidence refs, and human attestations all remain
+zero. No canon file or relation pack was rewritten.
+
+The bridge contract, foundation validator, and sixteen focused positive and
+negative tests reject segment/digest drift, fabricated review or competence,
+accepted German/translation, claim/evidence or semantic closure, graph/canon
+promotion, publication/server-transfer widening, bulk migration, repeated
+human work, and private-text fields. This slice closes representation,
+inventory, and source-return debt only. It creates no accepted text,
+translation, sign, concept, philosophical relation, graph truth, Human Gold,
+publication permission, server transfer, or completion of the foundation goal.
+
 ## Dependency-ordered next owner work
 
 1. Use the frozen private-to-public handoff contract before any tracked result

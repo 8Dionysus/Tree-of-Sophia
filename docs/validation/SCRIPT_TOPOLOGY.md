@@ -80,6 +80,19 @@ cannot convert an observation into review or gold, or surface similarity into
 preferred reading, textual equivalence, genealogy, derivation, translation,
 semantics, graph truth, canon, or publication authority.
 
+The authored-canon evidence-bridge builder is another explicit-local source
+route, but it reconciles two histories rather than two Editions. It extracts
+the complete DTA `Za-I-Vorrede-1` section, preserves raw and declared
+comparison-normalized text plus operations only in ignored mode-`0600` owner
+storage, and writes text-free exact-source records alongside a digest-bound
+inventory of the existing authored route. Release validation checks both
+reciprocal segmentations, 12/12 ordered normalized matches, authored witness
+roles, 92 node and 125 relation closure, legacy review bindings, provenance,
+and all zero-authority effects without requiring private text. It neither
+rewrites canon nor treats a route-local source/translation role or historical
+review note as modern philological, translation, semantic, graph, or human
+evidence.
+
 Explicit-local structure builders remain separate from that release-safe
 validator. The Mysl transfer-target builder reads one exact ignored PDF only
 when given a payload root, preserves independently resetting *Genealogie* and

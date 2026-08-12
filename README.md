@@ -107,6 +107,17 @@ facts. Its public-synthetic A/B/C proves range, digest, coverage, competition,
 and acceptance-gate mechanics only. The historical
 `tos-local-sentence-segmentation-v1` label is not reinterpreted or migrated.
 
+The living authored Zarathustra route now returns to this spine through a
+non-migrating bridge. The complete DTA `Za-I-Vorrede-1` section retains its
+twelve TEI paragraphs while the existing authored German witness retains its
+twelve different segment boundaries; all 12/12 authored segments match the
+complete declared-normalized source sequence. Exact text and comparison
+operations remain ignored and mode `0600`; Git keeps selectors, digests, and
+the current 92-node/125-relation inventory. Route-local roles and historical
+review notes remain visible but do not become accepted German, accepted
+translation, modern human evidence, semantic or graph truth, canon revision,
+publication, transfer, or bulk-migration authority.
+
 Every materialized transformation around those layers also receives an
 append-only execution receipt. The additive provenance-event v2 contract binds
 exact inputs, outputs, diagnostic byproducts, explicit derivation edges,

@@ -48,6 +48,12 @@ Keep the witness posture:
 - segment-aligned across languages
 - explicit enough to distinguish source witness, published translation, and maintainer-curated witness where that difference matters
 
+The role vocabulary is local to the authored node. A `canonical_source` role
+does not replace exact Edition/Item/File, immutable text-layer, selector, and
+philological-review evidence. A `working_translation` or `bridge_translation`
+role does not mean the translation has passed the modern translation packet,
+language-competence, or Human Gold gates.
+
 A bounded multilingual source entry may also expose optional witness provenance fields such as:
 
 - `witness_ref`

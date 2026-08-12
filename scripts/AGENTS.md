@@ -140,6 +140,21 @@ genealogy, Expression derivation, translation, lexical or semantic identity,
 create a projection or human backlog, or authorize graph, canon, redistribution,
 or publication effects.
 
+`build_zarathustra_authored_canon_evidence_bridge.py` owns the non-migrating
+return from the pre-existing authored `prologue-1` route to the complete exact
+DTA `Za-I-Vorrede-1` section. It writes raw, declared-normalized,
+normalization-operation, and comparison-detail artifacts only below ignored
+owner-local `local-content/authored-canon-evidence-bridge/` with mode `0600`;
+Git receives one anchor, raw/normalized layer records, a source/authored
+competing-segmentation packet, a text-free bridge inventory, and provenance.
+It must preserve the twelve TEI paragraph boundaries and twelve authored
+segment boundaries separately, bind all existing witness/node/relation/review
+surfaces by digest, and leave the old canon unchanged. It must not reinterpret
+`canonical_source`, `working_translation`, `bridge_translation`, or legacy
+review notes as modern acceptance or Human Gold; create claim/evidence closure,
+signs, concepts, graph admission, migration, canon revision, human backlog,
+publication, or server-transfer authority; or expose exact text in Git.
+
 The source-foundation validator's `--source-text-unit-v1-lab-only` route checks
 schema and reference closure, exact code-point ranges and digests, unit
 ownership and coverage, declared gaps and overlap, reciprocal parent/child and
@@ -549,6 +564,7 @@ Local owner routes:
 | real bounded Antonovsky 1911 target-text foundation | `python scripts/build_zarathustra_target_text_foundation.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the ignored mode-0600 embedded-text paragraph and bbox byproduct plus four tracked text-free records; green closure preserves the observed spacing conflict and establishes no accepted Russian, bilingual pair, alignment, translation, semantics, publication, or canon effect |
 | real bounded `Za-I-Vorrede-1` opening-sentence alignment proposal | `python scripts/build_zarathustra_opening_sentence_alignment.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia`; use `--build` only to intentionally recreate the four tracked text-free sentence-unit/alignment/provenance records from the two existing ignored mode-0600 paragraph layers; green closure establishes only exact selectors, digests, source return, and one proposed ordinal correspondence—not accepted boundaries, German/Russian, translation fidelity, lexical equivalence, review, projection, semantics, publication, graph, or canon effect |
 | local Antonovsky 2007/1911 witness-text collation proposal | `python scripts/build_antonovsky_2007_1911_collation.py --check --repo-root . --owner-root /srv/AbyssOS/Tree-of-Sophia --artifact-root /srv/abyss-machine/storage/artifacts`; use `--build` only to intentionally recreate the ignored mode-0600 p011 observation/detail and five tracked text-free records; green closure establishes deterministic reuse, selector/digest/metric/fixity closure, and one proposed same-language correspondence—not human review, gold, accepted text or boundaries, preferred reading, equivalence, genealogy/derivation, translation, semantics, projection, publication, graph, or canon effect |
+| authored Zarathustra route evidence bridge | `python scripts/build_zarathustra_authored_canon_evidence_bridge.py --check --local-input-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`, then `python scripts/validate_source_witness_foundation.py`; use `--build` only to intentionally recreate four ignored mode-0600 exact/comparison artifacts and six tracked text-free records; green closure proves the complete 12/12 normalized representation crosswalk and current 92-node/125-relation inventory, not accepted German/translation, modern human review, claim/evidence or semantic closure, graph/canon promotion, publication, transfer, or migration authority |
 | public synthetic semantic identity/annotation A/B/C | `python scripts/build_semantic_annotation_v2_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --semantic-annotation-v2-lab-only`; rebuilding is intentional because the manifest binds all fixture bytes |
 | public synthetic translation-alignment identity A/B/C | `python scripts/build_translation_alignment_v1_lab.py --build`, then `python scripts/validate_source_witness_foundation.py --translation-alignment-v1-lab-only`; rebuilding is intentional because the manifest binds both invented text sides, analysis artifacts, plan, research, contract, builder, and variants |
 | local source resource inventories | `python scripts/build_source_resource_inventories.py --payload-source-root /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses --check`; omit `--check` only for intentional regeneration from fixity-verified local bytes |

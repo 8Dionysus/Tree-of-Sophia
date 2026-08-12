@@ -171,6 +171,16 @@ encode text, labels, ordinals, offsets, or the current analysis; projections
 remain disposable and status-preserving. The public-synthetic A/B/C proves
 only closure and rejection mechanics and migrates no historical method label.
 
+Existing authored routes enter that law through an explicit evidence bridge,
+not an in-place rewrite. The first bridge keeps the DTA's twelve paragraph
+units and the Zarathustra route's twelve authored units as reciprocal competing
+segmentations over one exact private comparison layer. It binds the route's
+source/translation witnesses, nodes, relations, and historical reviews by
+digest, inventories the missing modern claim/review closure, and changes none
+of their authority. Thus authored continuity is preserved while source return
+becomes exact; `canonical_source` remains a route-local role rather than a
+shortcut to critical-text, translation, semantic, graph, or Human Gold status.
+
 Translation correspondence is another stand-off assertion layer, not a field
 inside either text. The additive translation-alignment v1 packet binds two
 exact expression/edition/item/file and frozen text-layer states, their

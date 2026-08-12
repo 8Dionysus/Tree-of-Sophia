@@ -471,6 +471,26 @@ proposals. This packet is neither gold nor a preferred reading, textual
 equivalence, Edition genealogy, Expression derivation, translation judgment,
 semantic relation, graph/canon fact, or publication route.
 
+## Authored canon evidence bridge
+
+`authored-canon-evidence-bridge.plan.v1.json` binds the living twelve-segment
+German/Russian/English `prologue-1` route back to the complete exact DTA
+`Za-I-Vorrede-1` section. The owner-local builder preserves a raw extracted
+section, a separate declared editorial-normalized layer, its operation receipt,
+and reconstructive comparison details only below ignored
+`local-content/authored-canon-evidence-bridge/`, all mode `0600`. The tracked
+anchor, two text-layer records, source/authored segmentation packet, bridge,
+and provenance event are text-free.
+
+The twelve authored German segments cover and exactly match the normalized DTA
+sequence, while the twelve TEI paragraphs retain their different boundaries.
+That is mechanical representation evidence only. The route's three authored
+witness roles, 92 nodes, 125 relations, and eight historical review notes are
+preserved, not promoted: accepted German and translation, modern human
+attestation, semantic claim/evidence closure, sign/concept and graph admission,
+canon revision, routine human work, publication, server transfer, and bulk
+migration all remain closed.
+
 ## Local content
 
 Restricted transcriptions, crops, prompts, drafts, and comparator text belong

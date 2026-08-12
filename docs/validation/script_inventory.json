@@ -781,6 +781,36 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+      "family": "source_projection_builder",
+      "organ_lane": "source/topology",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "source_truth": [
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+        "ToS/research-packets/foundation-laboratory-2026-07/AUTHORED_CANON_EVIDENCE_BRIDGE_RESEARCH_2026-08-12.md",
+        "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "ToS/source-witnesses/**/payload/nietzsche_zarathustra01_1883.tei.xml",
+        "ToS/source-witnesses/**/local-content/authored-canon-evidence-bridge/*"
+      ],
+      "reads": [
+        "the exact DTA Part-I TEI, frozen bridge plan, authored trilingual source node and donor, route-local canon nodes and relations, legacy review records, layered rights, and any existing private bridge artifacts"
+      ],
+      "writes": [
+        "four ignored mode-0600 exact/comparison artifacts plus six tracked text-free source-anchor, raw/normalized source-text-layer, source/authored segmentation, route-bridge, and provenance records unless --check is used"
+      ],
+      "side_effects": "representation and inventory reconciliation only; preserves competing DTA/authored boundaries and the existing canon, with no accepted German or translation, modern human attestation, claim/evidence or semantic closure, graph/canon promotion, human task, publication, server transfer, or bulk migration",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_zarathustra_authored_canon_evidence_bridge.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/build_zarathustra_opening_sentence_alignment.py",
       "family": "source_projection_builder",
       "organ_lane": "source/topology",
@@ -1129,6 +1159,8 @@
         "ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/lab.manifest.json",
         "ToS/contracts/witness-text-collation-packet-v1.schema.json",
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+        "ToS/contracts/authored-route-evidence-bridge-v1.schema.json",
+        "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
         "ToS/contracts/german-assisted-source-review.schema.json",
         "ToS/contracts/critical-edition-witness-admission.schema.json",
         "ToS/contracts/critical-edition-citation-witness-decision.schema.json",
@@ -1142,10 +1174,10 @@
         "ToS/contracts/manual-error-ledger-record.schema.json"
       ],
       "reads": [
-        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, the real tracked text-free Antonovsky 2007/1911 witness-collation proposal, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
+        "source-witness records, companions, text-free resource inventories, generated catalog, the public synthetic source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, and translation-alignment-v1 A/B/C laboratories, the real tracked text-free Antonovsky 2007/1911 witness-collation proposal, the authored Zarathustra route evidence bridge and its zero-authority canon inventory, bounded aggregate manual-review ledger and provenance, governed private-evidence handoff and public-safe derivative, and any present local payload bytes"
       ],
       "writes": [],
-      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, translation-alignment-v1, and witness-text-collation checks report mechanics and closure only, never corpus content, execution truth, accepted boundary, preferred reading, equivalence, genealogy, derivation, translation, human review, accepted alignment, or semantic truth",
+      "side_effects": "validation output only; source-anchor v2, source-text-layer, source-text-unit-v1, provenance-event-v2, semantic-annotation-v2, translation-alignment-v1, witness-text-collation, and authored-route bridge checks report mechanics and closure only, never corpus content, execution truth, accepted boundary, preferred reading, equivalence, genealogy, derivation, translation, human review, accepted alignment, semantic truth, graph admission, or canon authority",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_foundation.py",

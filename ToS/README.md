@@ -53,6 +53,8 @@ current bounded Zarathustra route:
   `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json`
 - current real, bounded, text-free opening-sentence alignment proposal:
   `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json`
+- current text-free authored-canon evidence bridge:
+  `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json`
 - current public-synthetic execution-provenance laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
 - current public-synthetic translation-alignment identity laboratory:
@@ -88,6 +90,13 @@ overlap, whitespace, punctuation, line breaks, competition, review scope, and
 visibility remain explicit. The tracked A/B/C uses one invented ASCII source
 and creates no accepted boundary, German competence, semantic identity,
 translation, graph fact, migration, or publication authority.
+The first authored-route bridge now keeps the complete DTA section's twelve
+paragraph boundaries and the living Zarathustra route's twelve authored
+boundaries as reciprocal segmentations, with 12/12 ordered normalized matches.
+It binds the three authored witnesses, 92 nodes, 125 relations, and eight
+historical reviews without rewriting them or manufacturing modern review,
+accepted source/translation, semantic/graph authority, publication, or bulk
+migration.
 Materialized transformations likewise use additive provenance v2 receipts:
 exact input/output/byproduct bytes, derivation, terminal state, command,
 runtime/model, responsibility, manual-change, measurement, rights, review, and

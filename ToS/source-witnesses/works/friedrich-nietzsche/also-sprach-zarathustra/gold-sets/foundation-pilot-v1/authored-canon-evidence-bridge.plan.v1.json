@@ -1,0 +1,173 @@
+{
+  "schema_version": "tos_authored_canon_evidence_bridge_plan_v1",
+  "plan_id": "tos.authored-canon-evidence-bridge.zarathustra-prologue-1.v1",
+  "plan_version": 1,
+  "created_at": "2026-08-12T18:30:00Z",
+  "question": "How does the pre-existing twelve-segment authored Zarathustra route return to the exact DTA Za-I-Vorrede-1 witness without silently acquiring modern source, translation, semantic, review, graph, or canon authority?",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/AUTHORED_CANON_EVIDENCE_BRIDGE_RESEARCH_2026-08-12.md",
+  "scope": {
+    "route_ref": "tos.source.thus-spoke-zarathustra.prologue",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "source_relative_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml",
+    "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json"
+  },
+  "source_selector": {
+    "scheme": "xpath-1.0-local-name",
+    "value": "/*[local-name()='TEI']/*[local-name()='text']/*[local-name()='body']/*[local-name()='div'][1]/*[local-name()='div'][1]",
+    "expected_paragraph_count": 12
+  },
+  "authored_surfaces": {
+    "source_node_ref": "ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json",
+    "alignment_witness_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/prologue-1/Z_1_1_1_de_ru_en.md",
+    "relation_pack_ref": "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+    "review_record_refs": [
+      "ToS/review-ledger/2026-03-23-zarathustra-trilingual-entry-review.md",
+      "ToS/review-ledger/2026-03-25-zarathustra-pass-001-stabilization-review.md",
+      "ToS/review-ledger/2026-03-25-zarathustra-witness-provenance-and-tiny-hop-review.md",
+      "ToS/review-ledger/2026-03-26-tree-canonical-layer-review.md",
+      "ToS/review-ledger/2026-03-28-zarathustra-deferred-analogy-review.md",
+      "ToS/review-ledger/2026-03-28-zarathustra-deferred-commentary-review.md",
+      "ToS/review-ledger/2026-03-28-zarathustra-relation-residue-review.md",
+      "ToS/review-ledger/2026-07-21-zarathustra-golden-kernel-architecture-review.md"
+    ]
+  },
+  "normalization_policy": {
+    "method": "declared-presentation-normalization-for-crosswalk-only",
+    "method_version": "1",
+    "steps": [
+      "remove DTA U+00AC plus following line feed as one discretionary line-break marker",
+      "collapse every remaining Unicode whitespace run to one U+0020",
+      "trim leading and trailing whitespace",
+      "remove Markdown U+002A emphasis markers from the authored comparison surface",
+      "remove authored U+002D plus following line feed as one visible line-break hyphen only where the DTA normalized stream proves the joined sequence"
+    ],
+    "output_is_source_truth": false,
+    "output_is_linguistic_truth": false,
+    "output_is_semantic_truth": false
+  },
+  "outputs": {
+    "anchor_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+    "raw_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-raw.v1.json",
+    "normalized_layer_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-normalized.v1.json",
+    "unit_packet_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-section.dta-authored-crosswalk.v1.json",
+    "bridge_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json",
+    "provenance_event_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.authored-canon-evidence-bridge.za-i-vorrede-1.v2.json",
+    "private_raw_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.raw.txt",
+    "private_normalized_content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.editorial-normalized.txt",
+    "private_operations_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/normalization-operations.json",
+    "private_comparison_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/comparison-details.json"
+  },
+  "opaque_ids": {
+    "anchor_id": "tos.anchor.za-i-vorrede-1.dta-section.sid-e748d623ac0b4c348ca85aa01e8b61cd",
+    "passage_id": "tos.passage.za-i-vorrede-1.dta-section.sid-8fd22a54e15940d1abf771710d80380d",
+    "raw_layer_id": "tos.text-layer.za-i-vorrede-1.dta-section-raw.sid-7664839e013a462abad13a9f2b35d814",
+    "normalized_layer_id": "tos.text-layer.za-i-vorrede-1.dta-section-normalized.sid-efc0e7f983f24b6882c7b42e2d9d42e0",
+    "packet_id": "tos.source-text-unit-packet.sid-b0c7809a68df43bbb6aacbc4b63ba1f1",
+    "source_scheme_id": "tos.text-unit-scheme.sid-47313edea7bb458f965ae24a1a31ac74",
+    "authored_scheme_id": "tos.text-unit-scheme.sid-f0eeaec2cdbb4920ba4d55ad6524a56d",
+    "source_segmentation_id": "tos.text-segmentation.sid-438de7840aa04b24979b0f0578a93fac",
+    "authored_segmentation_id": "tos.text-segmentation.sid-4c355615fc33437ba39688fa87c06a1c",
+    "scope_anchor_id": "tos.anchor.za-i-vorrede-1.section-scope.sid-abbaff39442641aba0dd4b8ec1cf38d8",
+    "source_anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-59a0a1e06ff648c7b8c9df5ff0d9d77e",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-78744543bf7f45da9e24217dea04e87e",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-c2f5dc096cec4931934df7cf60f8d521",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-a200cc74634e40849846c5553345540a",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-2b02b74a71e24b86aa6b0261722622f6",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-f76fed65d8b644d7b4980d93b213aa05",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-1338781afbd64d4cbdf4aea6c7e072e3",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-b0e4614fdbf740068e1c613ce84ed98c",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-0044bcc054114d38a17a56c4edebf5af",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-87b2b6ced0c44b04af72b257baa24e00",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-75cf2ee11387413da83dd1590c91fea1",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph.sid-6f1b9f58dfdc45b28ad7aed57031102f"
+    ],
+    "source_gap_anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-66e3c98a9d4242488926111bfafa0e40",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-cc93d433f4fd4e72833df2543356c6e6",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-08b2a3d3d4034402bf08a26a08dcdce9",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-541d614fbadd4958873220815a79cdc4",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-e4135305774f4e2ba46634d89e536774",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-c07406dbbf46425780a95acf36b62864",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-f9bd5e564ba44bd0b19fbb70f4ca2f3d",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-266330e5df7442d6a6abe6a81f8152d1",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-ecc84cd48f264a2c8b8c7194a45eea87",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-4ff18fd065a6436799bb21b8fc457567",
+      "tos.anchor.za-i-vorrede-1.dta-paragraph-gap.sid-50feede6bb694bd3a9cb4b5a15eceebc"
+    ],
+    "authored_anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-1386ffb9ca7144e0a349c1a4f17d1f33",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-0e933fc9cb58465fadcfb404a7caa5af",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-40957d1d57954d4f971aea08db1245ab",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-1e7d4e6f092e4196a2a53f063cd5e918",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-80fa188c77f24360a03ce1bd1be1fd4d",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-3df353fe40d747d39d0fa1f44e6e88a8",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-0a8fe63246fe49a4a0f3a4ce43bbcdb2",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-3bc9a8e0335c4f22a47106231d35b7ee",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-46498d7caa8c4df3bdcc11058c4386c6",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-3019bb40f11241498ddc2ac3431e5f85",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-1dd777bdabf248e0ae6be821ebfc32ff",
+      "tos.anchor.za-i-vorrede-1.authored-segment.sid-c2925138a7404cfba718705788b9cada"
+    ],
+    "authored_gap_anchor_ids": [
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-ee68d3255ed24e108a2b2e704c317e3c",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-0ecb58bbfed84a3fb6ddbcf964a058c4",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-5b9bd668d7244ba88793be5310a9cfe2",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-3fccdfde85f842a383ec7866bdb3809b",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-39a04030b8b44114b06d9099f50457d9",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-af6bfe8d6ecd422c8d064e4161177fd4",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-e2f2220411ee463b9cd6fb837bb4d9b8",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-76b4967bd9454ca9872d69a807c1d8c0",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-829aea2fe6ef441197b209e14e675d2c",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-fa33830c7a1741ab8ecf2ff9dd32ef08",
+      "tos.anchor.za-i-vorrede-1.authored-segment-gap.sid-d4d331a41daf4c40a05183260132bf3d"
+    ],
+    "source_unit_ids": [
+      "tos.text-unit.sid-8d05e4be87c14be0bca9aa6b3d8d6f59",
+      "tos.text-unit.sid-0aded0ca694942a0a5fc094a0e4a3c77",
+      "tos.text-unit.sid-7f4e71614fe14f95b32cbd2159cbc15b",
+      "tos.text-unit.sid-ca17dd9bb6764461bd8521d3d717f8d3",
+      "tos.text-unit.sid-b22fd943aec74ec3ac376fcad165d9b1",
+      "tos.text-unit.sid-f9bcfab144734340a1781fa1f2b90906",
+      "tos.text-unit.sid-b3d4695b19334db495fd5f6fd6e0bb33",
+      "tos.text-unit.sid-9f171d144c764a9c8031be95ada965d2",
+      "tos.text-unit.sid-542a2b076ec441ac88c7fe3ce913d831",
+      "tos.text-unit.sid-53dcc6b01b33497c9bcbd5f83253884d",
+      "tos.text-unit.sid-d5bfa1c157504f4b8253d7d098dffe21",
+      "tos.text-unit.sid-b4dc2da722404f5285cceafd7331c7a6"
+    ],
+    "authored_unit_ids": [
+      "tos.text-unit.sid-c70a3277afa045a3bc7d313266eb2c98",
+      "tos.text-unit.sid-ad372473ffd9486aa01b6c07d86c2d49",
+      "tos.text-unit.sid-0aa83f818696445c9b1d9208b9d55e0a",
+      "tos.text-unit.sid-693d99bf1f0b425ab47d6cd69490c83b",
+      "tos.text-unit.sid-1fc4d87307294c5d91588ff131e3cfda",
+      "tos.text-unit.sid-07e4f4ddbbec4032a8fd1a46da5f690c",
+      "tos.text-unit.sid-7560bc6cbc27403ca60175c8be9e49aa",
+      "tos.text-unit.sid-279df3eb54754fae9b63474369a7f273",
+      "tos.text-unit.sid-a92a4945ba564b30aaf926ab23a23720",
+      "tos.text-unit.sid-b2d45c04a80a433f888a3b2c3ccf86ba",
+      "tos.text-unit.sid-0e949d456eaa4a4481b010ddfab36770",
+      "tos.text-unit.sid-5a895cb8f23f43d5b167092fd7b0fe4b"
+    ]
+  },
+  "authority_boundary": {
+    "legacy_canon_retained": true,
+    "bulk_migration_authorized": false,
+    "human_review_performed": false,
+    "german_competence_attested": false,
+    "accepted_german": false,
+    "accepted_translation": false,
+    "semantic_or_sign_promotion": false,
+    "graph_admission": false,
+    "canon_revision": false,
+    "human_task_created": false,
+    "new_publication_authorized": false,
+    "server_transfer_authorized": false
+  }
+}

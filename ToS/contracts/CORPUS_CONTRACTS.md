@@ -45,6 +45,7 @@ judgment true.
 | `source-text-layer.schema.json` | immutable role-bearing source-text representation bound to exact Work/Expression/Edition/Item/File and source-anchor-v2 identity, with predecessor and edit/normalization lineage, uncertainty, editorial policy, explicit rights/publication-authority refs, and separate mechanical, review, language-competence, accepted-use, rights, and publication gates |
 | `source-text-unit-packet-v1.schema.json` | additive frozen-layer unit and segmentation owner with opaque label-independent scheme/segmentation/unit identities, exact ordered anchor return, distinct layout/source-structure/orthographic/linguistic/model-input kinds, explicit coverage/gaps/overlap/whitespace/punctuation/line-break/hyphenation posture, reciprocal alternatives, scoped source-visible human review, status-preserving projections, and no model-subword-to-semantic promotion |
 | `witness-text-collation-packet-v1.schema.json` | stand-off same-language witness comparison with exact witness, layer, unit, selector, digest, rights, method, normalized-view, and private-detail bindings; proposed/decided status and projection admission stay separate from preferred reading, textual equivalence, Expression derivation, translation, semantics, graph truth, canon, and publication |
+| `authored-route-evidence-bridge-v1.schema.json` | text-free reconciliation of one pre-existing authored route with exact source anchor/layers and reciprocal source/authored segmentations; binds legacy witness, node, relation, and review inventories by digest while keeping modern human attestation, claim/evidence closure, source/translation acceptance, sign/concept promotion, graph admission, canon revision, publication, server transfer, and bulk migration at zero |
 | `provenance-event.schema.json` | legacy v1 acquisition and transformation entity/activity/agent trail, preserved without reinterpretation |
 | `provenance-event-v2.schema.json` | additive immutable execution receipt with exact input/output/byproduct entities, explicit derivation, terminal state, command/configuration/software/runtime/model capture, responsibility, manual changes, measurements, authentication, rights, review, and bounded replay posture |
 | `lived-witness-packet.schema.json` | private-by-default first-person authored body, distinct experience/capture time, work or passage targets, raw/AI/transformation provenance, third-party posture, separate downstream permissions, author confirmation, revision/withdrawal, and explicit zero source/philology/semantic/canon authority |
@@ -229,6 +230,15 @@ A schema validator can establish that:
   reading, textual equivalence, edition genealogy, Expression derivation,
   translation relation, lexical or semantic identity, graph truth, canon, or
   publication authority;
+- an authored-route evidence bridge preserves a living legacy route while
+  returning it to exact source layers: source-attested TEI paragraphs and
+  imported authored segments remain reciprocal competing segmentations, every
+  source/authored/review surface is digest-bound, and the route's German,
+  Russian, and English roles remain visible; the bridge is an inventory and
+  representation crosswalk only, so old review notes do not become modern
+  human attestations and old nodes or relations do not become claim/evidence-
+  closed graph facts, accepted source, accepted translation, signs, concepts,
+  publication permission, server-transfer authority, or bulk migration input;
 - a translation-alignment v1 packet keeps exact source and target witness,
   text-layer, segmentation/tokenization, anchor, alignment, claim, review, and
   projection identities separate; checks correspondence-shape cardinality,

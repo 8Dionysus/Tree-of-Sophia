@@ -69,6 +69,20 @@ corpus migration, or human task. Another real packet opens only for a new
 concrete downstream question, and the existing
 `tos-local-sentence-segmentation-v1` method remains unchanged.
 
+The authored Zarathustra route now also returns to that evidence spine without
+being rewritten. The complete exact DTA `Za-I-Vorrede-1` section and the
+pre-existing German authored witness yield the same full normalized sequence:
+12/12 authored segments match in order. The DTA's twelve `<p>` boundaries and
+the route's twelve authored boundaries cross in one place, so they remain
+reciprocal competing segmentations rather than being forced into one topology.
+The private raw/normalized strings, operations, and comparison detail remain
+ignored and mode `0600`; tracked records contain only selectors, digests, and
+inventories. This preserves three authored witness roles, 92 route nodes, 125
+relations, and eight historical review notes while establishing zero modern
+human attestation, accepted German, accepted translation, claim/evidence or
+semantic closure, graph admission, canon revision, human task, publication,
+server transfer, or bulk migration authority.
+
 The corresponding target-side mechanical floor is now independently closed
 for the exact Antonovsky/Prometey 1911 page-6 region: a private
 633-byte/349-code-point embedded-text layer, a private bbox byproduct, and six

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json",
+  "admission": {
+    "accepted_uses": [],
+    "automatic_validation_complete": true,
+    "human_language_competence": "blocked",
+    "human_review_performed": false,
+    "language_competence_evidence_refs": [],
+    "mechanical_status": "fixity_verified",
+    "model_output_is_ground_truth": false,
+    "promotion_authorized": false,
+    "review_ref": null,
+    "review_status": "unreviewed",
+    "routine_human_task_created": false,
+    "validator_proves_content_truth": false
+  },
+  "authority_boundary": "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission",
+  "derivation": {
+    "change_payload": {
+      "kind": "withheld_operations_receipt",
+      "operation_count": 35,
+      "operations_sha256": "fefc61e081ca7645fdd463227d88c774a08df2750289e9acb048901ef7edf0df",
+      "private_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/normalization-operations.json"
+    },
+    "input_layers": [
+      {
+        "content_sha256": "030a1addc74acff740171105444c091198179ff30caedc77edee8b62a434f57a",
+        "layer_id": "tos.text-layer.za-i-vorrede-1.dta-section-raw.sid-7664839e013a462abad13a9f2b35d814",
+        "record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-section.dta-raw.v1.json",
+        "record_sha256": "31a09432845ecd3b805c407b0d3c559ec570b961f84a7b07e720ca73b664adbc"
+      }
+    ],
+    "loss_posture": "normalization_intended",
+    "maker": {
+      "agent_ref": "software:tos-zarathustra-authored-canon-evidence-bridge-builder",
+      "configuration_digest": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e",
+      "configuration_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+      "maker_type": "software",
+      "method": "declared-presentation-normalization-for-crosswalk-only",
+      "version": "1"
+    },
+    "method": "editorial_normalization",
+    "preservation_goal": "normalized_for_search",
+    "silent_changes_allowed": false
+  },
+  "editorial_policy": {
+    "historical_language_preserved": true,
+    "layout_posture": "logical_reflow",
+    "method_declared": true,
+    "policy_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json",
+    "policy_sha256": "097b12fe1c183b31dd15e720a50b437664011a4c70150cb7335fa3a5d7b2e04e",
+    "printing_errors_silently_corrected": false,
+    "transcription_goal": "normalized_access",
+    "typography_posture": "normalize_declared",
+    "uncertainty_representation": "explicit-never-silent",
+    "unicode_normalization": "editorial"
+  },
+  "layer_id": "tos.text-layer.za-i-vorrede-1.dta-section-normalized.sid-efc0e7f983f24b6882c7b42e2d9d42e0",
+  "layer_role": "normalized_text",
+  "layer_version": 1,
+  "provenance_event_ref": "tos.event.reconciliation.zarathustra-authored-canon-evidence-bridge.2026-08-12",
+  "representation": {
+    "character_normalization": "editorial",
+    "charset": "UTF-8",
+    "content_file_id": "tos.file.sha256.d4a4f3222aa61d315e180c19738b654c7ce62dc3ee420386c0ac713a7753b96e",
+    "content_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/authored-canon-evidence-bridge/za-i-vorrede-1/dta-section.editorial-normalized.txt",
+    "content_sha256": "d4a4f3222aa61d315e180c19738b654c7ce62dc3ee420386c0ac713a7753b96e",
+    "content_visibility": "local_only",
+    "language": "de",
+    "line_break_posture": "logical_reflow",
+    "media_type": "text/plain",
+    "publication_authority_refs": [],
+    "publication_authorized": false,
+    "rights_record_refs": [
+      {
+        "ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json",
+        "sha256": "0ee4a2f6301450e155a623f4b692c936f13d07b296a512db9875652492cbbfc4"
+      }
+    ],
+    "storage": "ignored_local",
+    "text_scope": {
+      "end": 1593,
+      "interval": "half_open",
+      "position_unit": "unicode_code_point",
+      "start": 0
+    },
+    "tracked_content": false
+  },
+  "schema_version": "tos_source_text_layer_v1",
+  "source_binding": {
+    "anchor_contract": "tos_source_anchor_v2",
+    "anchors": [
+      {
+        "anchor_id": "tos.anchor.za-i-vorrede-1.dta-section.sid-e748d623ac0b4c348ca85aa01e8b61cd",
+        "anchor_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-anchor-v2.za-i-vorrede-1-section.dta.v1.json",
+        "anchor_record_sha256": "09199af3ccd59d602607eba022b3d0d8b629719ab5b8cec5a62b507e4b6fe03e"
+      }
+    ],
+    "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+    "expression_ref": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+    "item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+    "source_file_ref": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "source_file_sha256": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b",
+    "work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+  },
+  "supersedes_layer_ref": null,
+  "uncertainty": {
+    "annotations": [],
+    "status": "none"
+  }
+}

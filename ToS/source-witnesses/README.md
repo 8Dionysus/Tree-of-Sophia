@@ -974,6 +974,25 @@ task follows. Release validation closes only tracked metadata and therefore
 does not require the private source or Workbench artifact; the owner-local
 builder owns exact replay against both.
 
+The pre-existing authored `prologue-1` route now has a separate evidence-spine
+bridge. It extracts the complete exact DTA `Za-I-Vorrede-1` section into an
+ignored raw layer, derives a separately declared editorial-normalized local
+comparison layer, and keeps the twelve TEI paragraphs and twelve authored
+segments as reciprocal competing segmentations. All twelve authored German
+segments match the complete normalized DTA sequence, including the place where
+the authored and TEI boundaries cross. Git contains only selectors, digests,
+inventories, and authority posture; exact text and normalization operations
+remain mode-`0600` below `local-content/authored-canon-evidence-bridge/`.
+
+This closes representation and source-return debt without rewriting the
+authored route. Its `canonical_source`, `working_translation`, and
+`bridge_translation` values remain route-local authored roles. Eight legacy
+review notes remain historical review records, not modern machine-readable
+human attestations. The current 92 nodes and 125 relations remain in canon, but
+this bridge creates zero modern claim/evidence closure, accepted German,
+accepted translation, sign/concept promotion, graph admission, canon revision,
+routine human work, publication permission, or server transfer.
+
 ## Provenance-event v2 laboratory boundary
 
 The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution

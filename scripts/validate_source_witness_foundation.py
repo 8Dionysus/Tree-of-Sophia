@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import csv
 import hashlib
 import json
 import os
@@ -18,6 +19,7 @@ import subprocess
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -102,6 +104,14 @@ ANTONOVSKY_2007_1911_COLLATION_PLAN = Path(
     "ToS/source-witnesses/works/friedrich-nietzsche/"
     "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
     "antonovsky-2007-1911-opening-sentence-collation.plan.v1.json"
+)
+AUTHORED_ROUTE_EVIDENCE_BRIDGE_V1_SCHEMA = (
+    CONTRACT_ROOT / "authored-route-evidence-bridge-v1.schema.json"
+)
+ZARATHUSTRA_AUTHORED_CANON_EVIDENCE_BRIDGE_PLAN = Path(
+    "ToS/source-witnesses/works/friedrich-nietzsche/"
+    "also-sprach-zarathustra/gold-sets/foundation-pilot-v1/"
+    "authored-canon-evidence-bridge.plan.v1.json"
 )
 SOURCE_TEXT_UNIT_V1_SCHEMA = CONTRACT_ROOT / "source-text-unit-packet-v1.schema.json"
 SOURCE_TEXT_UNIT_V1_LAB_ROOT = Path(
@@ -6301,6 +6311,639 @@ def validate_antonovsky_2007_1911_collation(repo_root: Path) -> list[Issue]:
     return issues
 
 
+def validate_zarathustra_authored_canon_evidence_bridge(
+    repo_root: Path,
+) -> list[Issue]:
+    """Validate the text-free bridge without granting its legacy route authority."""
+
+    repo_root = repo_root.resolve()
+    issues: list[Issue] = []
+    plan_path = repo_root / ZARATHUSTRA_AUTHORED_CANON_EVIDENCE_BRIDGE_PLAN
+    location = ZARATHUSTRA_AUTHORED_CANON_EVIDENCE_BRIDGE_PLAN.as_posix()
+    plan = _load_json(plan_path, repo_root, issues)
+    if plan is None:
+        return issues
+    if plan.get("schema_version") != "tos_authored_canon_evidence_bridge_plan_v1":
+        issues.append((location, "unexpected authored-canon evidence-bridge plan version"))
+
+    expected_plan_boundary = {
+        "legacy_canon_retained": True,
+        "bulk_migration_authorized": False,
+        "human_review_performed": False,
+        "german_competence_attested": False,
+        "accepted_german": False,
+        "accepted_translation": False,
+        "semantic_or_sign_promotion": False,
+        "graph_admission": False,
+        "canon_revision": False,
+        "human_task_created": False,
+        "new_publication_authorized": False,
+        "server_transfer_authorized": False,
+    }
+    if plan.get("authority_boundary") != expected_plan_boundary:
+        issues.append((location, "authored-canon bridge plan authority widened"))
+
+    try:
+        anchor_validator, _ = _schema_validator(ANCHOR_V2_SCHEMA, repo_root)
+        layer_validator, _ = _schema_validator(SOURCE_TEXT_LAYER_SCHEMA, repo_root)
+        unit_validator, _ = _schema_validator(SOURCE_TEXT_UNIT_V1_SCHEMA, repo_root)
+        bridge_validator, _ = _schema_validator(
+            AUTHORED_ROUTE_EVIDENCE_BRIDGE_V1_SCHEMA, repo_root
+        )
+        provenance_validator, _ = _schema_validator(PROVENANCE_V2_SCHEMA, repo_root)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        issues.append((location, f"cannot load authored-canon bridge schemas: {exc}"))
+        return issues
+
+    outputs = plan.get("outputs", {})
+    refs = {
+        "anchor": outputs.get("anchor_ref"),
+        "raw_layer": outputs.get("raw_layer_ref"),
+        "normalized_layer": outputs.get("normalized_layer_ref"),
+        "unit": outputs.get("unit_packet_ref"),
+        "bridge": outputs.get("bridge_ref"),
+        "event": outputs.get("provenance_event_ref"),
+    }
+    payloads: dict[str, dict[str, Any]] = {}
+    paths: dict[str, Path] = {}
+    for label, ref in refs.items():
+        if not isinstance(ref, str):
+            issues.append((location, f"{label} bridge output reference is absent"))
+            continue
+        paths[label] = repo_root / ref
+        payload = _load_json(paths[label], repo_root, issues)
+        if payload is not None:
+            payloads[label] = payload
+    if set(payloads) != set(refs):
+        return issues
+
+    validators = {
+        "anchor": anchor_validator,
+        "raw_layer": layer_validator,
+        "normalized_layer": layer_validator,
+        "unit": unit_validator,
+        "bridge": bridge_validator,
+        "event": provenance_validator,
+    }
+    semantic_checks = {
+        "anchor": _anchor_v2_semantic_issues,
+        "raw_layer": _source_text_layer_semantic_issues,
+        "normalized_layer": _source_text_layer_semantic_issues,
+        "unit": _source_text_unit_v1_issues,
+        "event": _provenance_v2_semantic_issues,
+    }
+    for label, payload in payloads.items():
+        for error in validators[label].iter_errors(payload):
+            issues.append((str(refs[label]), f"{label} schema: {error.message}"))
+        checker = semantic_checks.get(label)
+        if checker is not None:
+            for message in checker(payload):
+                issues.append((str(refs[label]), message))
+
+    private_fields = (
+        "private_raw_content_ref",
+        "private_normalized_content_ref",
+        "private_operations_ref",
+        "private_comparison_ref",
+    )
+    for field in private_fields:
+        ref = outputs.get(field)
+        if (
+            not isinstance(ref, str)
+            or "local-content/authored-canon-evidence-bridge/" not in ref
+        ):
+            issues.append((location, f"unsafe authored-canon private output: {field}"))
+            continue
+        if _git_ignored(repo_root, repo_root / ref) is not True:
+            issues.append((location, f"authored-canon private output is not Git-ignored: {field}"))
+
+    scope = plan.get("scope", {})
+    ids = plan.get("opaque_ids", {})
+    plan_digest = _sha256(plan_path)
+    expected_scope = {
+        key: scope.get(key)
+        for key in (
+            "route_ref",
+            "work_ref",
+            "expression_ref",
+            "edition_ref",
+            "item_ref",
+            "file_ref",
+            "file_sha256",
+        )
+    }
+
+    anchor = payloads["anchor"]
+    selector = (
+        anchor.get("selector_payload", {})
+        .get("expression", {})
+        .get("selector", {})
+    )
+    if (
+        anchor.get("anchor_id") != ids.get("anchor_id")
+        or anchor.get("passage_id") != ids.get("passage_id")
+        or anchor.get("target", {}).get("file_sha256") != scope.get("file_sha256")
+        or selector.get("state", {}).get("representation_sha256")
+        != scope.get("file_sha256")
+        or selector.get("selector", {}).get("value")
+        != plan.get("source_selector", {}).get("value")
+        or anchor.get("resolution_status") != "mechanically_resolved"
+        or anchor.get("review_status") != "unreviewed"
+        or anchor.get("review_ref") is not None
+        or anchor.get("publication_boundary", {}).get("source_text_in_record")
+        is not False
+        or anchor.get("publication_boundary", {}).get("public_payload_expected")
+        is not False
+        or anchor.get("selector_method", {}).get("configuration_digest")
+        != plan_digest
+    ):
+        issues.append((str(refs["anchor"]), "authored-canon source anchor or authority drifted"))
+
+    raw_layer = payloads["raw_layer"]
+    normalized_layer = payloads["normalized_layer"]
+    for label, layer, role, content_field in (
+        ("raw_layer", raw_layer, "machine_transcription", "private_raw_content_ref"),
+        (
+            "normalized_layer",
+            normalized_layer,
+            "normalized_text",
+            "private_normalized_content_ref",
+        ),
+    ):
+        representation = layer.get("representation", {})
+        admission = layer.get("admission", {})
+        source_anchors = layer.get("source_binding", {}).get("anchors", [])
+        if (
+            layer.get("layer_role") != role
+            or representation.get("content_ref") != outputs.get(content_field)
+            or representation.get("storage") != "ignored_local"
+            or representation.get("tracked_content") is not False
+            or representation.get("content_visibility") != "local_only"
+            or representation.get("publication_authorized") is not False
+            or admission.get("review_status") != "unreviewed"
+            or admission.get("human_review_performed") is not False
+            or admission.get("human_language_competence") != "blocked"
+            or admission.get("accepted_uses") != []
+            or admission.get("routine_human_task_created") is not False
+            or admission.get("promotion_authorized") is not False
+            or len(source_anchors) != 1
+            or source_anchors[0].get("anchor_record_ref") != refs["anchor"]
+            or source_anchors[0].get("anchor_record_sha256")
+            != _sha256(paths["anchor"])
+        ):
+            issues.append((str(refs[label]), f"{label} private-content or authority drifted"))
+    normalized_inputs = normalized_layer.get("derivation", {}).get("input_layers", [])
+    if (
+        raw_layer.get("layer_id") != ids.get("raw_layer_id")
+        or normalized_layer.get("layer_id") != ids.get("normalized_layer_id")
+        or len(normalized_inputs) != 1
+        or normalized_inputs[0].get("layer_id") != ids.get("raw_layer_id")
+        or normalized_inputs[0].get("record_ref") != refs["raw_layer"]
+        or normalized_inputs[0].get("record_sha256") != _sha256(paths["raw_layer"])
+        or normalized_layer.get("derivation", {}).get("change_payload", {}).get(
+            "private_ref"
+        )
+        != outputs.get("private_operations_ref")
+    ):
+        issues.append((str(refs["normalized_layer"]), "normalized layer derivation closure drifted"))
+
+    packet = payloads["unit"]
+    schemes = packet.get("schemes", [])
+    segmentations = packet.get("segmentations", [])
+    packet_anchors = packet.get("anchors", [])
+    packet_units = packet.get("units", [])
+    if (
+        packet.get("packet_id") != ids.get("packet_id")
+        or packet.get("source_scope")
+        != {key: scope.get(key) for key in expected_scope if key != "route_ref"}
+        or packet.get("source_layer", {}).get("text_layer_ref")
+        != refs["normalized_layer"]
+        or packet.get("source_layer", {}).get("text_layer_sha256")
+        != normalized_layer.get("representation", {}).get("content_sha256")
+        or len(schemes) != 2
+        or [row.get("scheme_id") for row in schemes]
+        != [ids.get("source_scheme_id"), ids.get("authored_scheme_id")]
+        or len(packet_anchors) != 47
+        or len(packet_units) != 24
+        or len(segmentations) != 2
+        or packet.get("reviews") != []
+        or packet.get("projections") != []
+        or packet.get("rights_and_visibility", {}).get("publication_authorized")
+        is not False
+        or packet.get("authority_boundary", {}).get(
+            "legacy_bulk_migration_authorized"
+        )
+        is not False
+    ):
+        issues.append((str(refs["unit"]), "authored/source segmentation closure drifted"))
+    if len(segmentations) == 2:
+        source_segmentation, authored_segmentation = segmentations
+        if (
+            source_segmentation.get("segmentation_id")
+            != ids.get("source_segmentation_id")
+            or source_segmentation.get("status") != "observed_source_structure"
+            or source_segmentation.get("ordered_unit_refs")
+            != ids.get("source_unit_ids")
+            or source_segmentation.get("competing_segmentation_refs")
+            != [ids.get("authored_segmentation_id")]
+            or authored_segmentation.get("segmentation_id")
+            != ids.get("authored_segmentation_id")
+            or authored_segmentation.get("status") != "proposed"
+            or authored_segmentation.get("ordered_unit_refs")
+            != ids.get("authored_unit_ids")
+            or authored_segmentation.get("competing_segmentation_refs")
+            != [ids.get("source_segmentation_id")]
+            or any(
+                value is not False
+                for row in segmentations
+                for value in (
+                    row.get("source_text_authority"),
+                    row.get("linguistic_authority"),
+                    row.get("semantic_authority"),
+                )
+            )
+            or any(row.get("review_refs") != [] for row in segmentations)
+        ):
+            issues.append((str(refs["unit"]), "competing segmentation posture widened"))
+
+    bridge = payloads["bridge"]
+    expected_effects = {
+        "source_text_accepted": False,
+        "german_competence_attested": False,
+        "translation_accepted": False,
+        "sign_or_concept_promoted": False,
+        "legacy_relation_migrated": False,
+        "graph_projection_admitted": False,
+        "canon_revised": False,
+        "human_task_created": False,
+        "new_publication_authorized": False,
+        "server_transfer_authorized": False,
+    }
+    expected_assurance = {
+        "source_comparison": "complete-mechanical-normalized-match",
+        "authored_review_posture": "legacy-review-records-without-machine-readable-human-attestation",
+        "modern_semantic_packet_posture": "not-materialized-by-this-bridge",
+        "claim_evidence_closure": False,
+        "graph_admission": False,
+        "current_canon_retained": True,
+        "bulk_migration_authorized": False,
+    }
+    if (
+        bridge.get("route_scope") != expected_scope
+        or bridge.get("effects") != expected_effects
+        or bridge.get("assurance") != expected_assurance
+    ):
+        issues.append((str(refs["bridge"]), "authored-canon bridge authority widened"))
+    source_foundation = bridge.get("source_foundation", {})
+    for field, label in (
+        ("source_anchor", "anchor"),
+        ("raw_layer", "raw_layer"),
+        ("normalized_layer", "normalized_layer"),
+        ("unit_packet", "unit"),
+    ):
+        if source_foundation.get(field) != {
+            "ref": refs[label],
+            "sha256": _sha256(paths[label]),
+        }:
+            issues.append((str(refs["bridge"]), f"bridge source binding drifted: {field}"))
+
+    authored = plan.get("authored_surfaces", {})
+    bridge_authored = bridge.get("authored_surfaces", {})
+    authored_bindings = (
+        ("source_node", "source_node_ref"),
+        ("alignment_witness", "alignment_witness_ref"),
+        ("relation_pack", "relation_pack_ref"),
+    )
+    for bridge_field, plan_field in authored_bindings:
+        ref = authored.get(plan_field)
+        path = repo_root / ref if isinstance(ref, str) else plan_path
+        expected = {
+            "ref": ref,
+            "sha256": _sha256(path) if path.is_file() and not path.is_symlink() else None,
+        }
+        if expected["sha256"] is None:
+            issues.append((location, f"authored surface is absent: {plan_field}"))
+        elif bridge_authored.get(bridge_field) != expected:
+            issues.append((str(refs["bridge"]), f"authored surface binding drifted: {bridge_field}"))
+    expected_review_bindings = []
+    for ref in authored.get("review_record_refs", []):
+        path = repo_root / ref
+        if not path.is_file() or path.is_symlink():
+            issues.append((location, f"legacy review record is absent: {ref}"))
+        else:
+            expected_review_bindings.append({"ref": ref, "sha256": _sha256(path)})
+    if bridge_authored.get("review_records") != expected_review_bindings:
+        issues.append((str(refs["bridge"]), "legacy review-record binding drifted"))
+
+    source_node_ref = authored.get("source_node_ref")
+    source_node = (
+        _load_json(repo_root / source_node_ref, repo_root, issues)
+        if isinstance(source_node_ref, str)
+        else None
+    )
+    expected_witnesses: list[dict[str, Any]] = []
+    if source_node is not None:
+        for witness in source_node.get("language_witnesses", []):
+            language = witness.get("language")
+            segments = witness.get("segments", [])
+            expected_witnesses.append(
+                {
+                    "language": language,
+                    "legacy_role": witness.get("role"),
+                    "segment_count": len(segments),
+                    "content_sha256": hashlib.sha256(
+                        json.dumps(
+                            segments,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                            sort_keys=True,
+                        ).encode("utf-8")
+                    ).hexdigest(),
+                    "authorship_posture": (
+                        "nietzsche-source-witness-role"
+                        if language == "de"
+                        else "dionysus-authored-translation-witness"
+                    ),
+                    "current_assurance": (
+                        "mechanically-crosswalked-not-philologically-accepted"
+                        if language == "de"
+                        else "legacy-authored-translation-not-modernly-reviewed"
+                    ),
+                    "modern_review_refs": [],
+                }
+            )
+    if bridge.get("witness_roles") != expected_witnesses:
+        issues.append((str(refs["bridge"]), "authored witness role or digest drifted"))
+
+    crosswalk = bridge.get("segment_crosswalk", [])
+    expected_segment_ids = [f"seg.1.1.1.{index}" for index in range(1, 13)]
+    if (
+        len(crosswalk) != 12
+        or [row.get("legacy_segment_id") for row in crosswalk]
+        != expected_segment_ids
+        or [row.get("source_unit_ref") for row in crosswalk]
+        != ids.get("authored_unit_ids")
+        or [row.get("source_anchor_ref") for row in crosswalk]
+        != ids.get("authored_anchor_ids")
+        or any(
+            row.get("normalized_match") is not True
+            or row.get("dta_normalized_sha256")
+            != row.get("legacy_normalized_sha256")
+            or row.get("modern_review_refs") != []
+            for row in crosswalk
+        )
+    ):
+        issues.append((str(refs["bridge"]), "twelve-segment mechanical crosswalk drifted"))
+
+    inventory = bridge.get("canon_inventory", {})
+    route_node_refs = {source_node_ref} if isinstance(source_node_ref, str) else set()
+    for family in (
+        "analogy",
+        "event",
+        "lineage",
+        "principle",
+        "state",
+        "support",
+        "synthesis",
+    ):
+        family_root = (
+            repo_root
+            / "ToS/canon"
+            / family
+            / "friedrich-nietzsche"
+            / "thus-spoke-zarathustra"
+            / "prologue-1"
+        )
+        route_node_refs.update(
+            path.relative_to(repo_root).as_posix()
+            for path in family_root.rglob("node.json")
+        )
+    route_node_refs.update(
+        {
+            "ToS/canon/concept/becoming/node.json",
+            "ToS/canon/concept/overcoming/node.json",
+        }
+    )
+    route_node_rows: list[dict[str, str]] = []
+    for ref in sorted(route_node_refs):
+        path = repo_root / ref
+        payload = _load_json(path, repo_root, issues)
+        if payload is None:
+            continue
+        node_id = payload.get("node_id")
+        node_type = payload.get("node_type")
+        if not isinstance(node_id, str) or not isinstance(node_type, str):
+            issues.append((ref, "authored route node identity or type is absent"))
+            continue
+        route_node_rows.append(
+            {
+                "ref": ref,
+                "sha256": _sha256(path),
+                "node_id": node_id,
+                "node_type": node_type,
+            }
+        )
+    route_node_ids = [row["node_id"] for row in route_node_rows]
+    route_node_digest = hashlib.sha256(
+        json.dumps(
+            route_node_rows,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    route_node_kind_counts = dict(
+        sorted(Counter(row["node_type"] for row in route_node_rows).items())
+    )
+
+    relation_ref = authored.get("relation_pack_ref")
+    relation_rows: list[dict[str, str]] = []
+    if isinstance(relation_ref, str):
+        try:
+            with (repo_root / relation_ref).open(encoding="utf-8", newline="") as handle:
+                relation_rows = list(csv.DictReader(handle))
+        except OSError as exc:
+            issues.append((location, f"cannot read authored relation pack: {exc}"))
+    relation_ids = [row.get("edge_id", "") for row in relation_rows]
+    relation_kind_counts = dict(
+        sorted(Counter(row.get("edge_kind", "") for row in relation_rows).items())
+    )
+    relation_ids_digest = hashlib.sha256(
+        ("\n".join(relation_ids) + "\n").encode("utf-8")
+    ).hexdigest()
+    expected_segment_locators = set(expected_segment_ids)
+    relations_with_legacy_segment_locators = 0
+    for row in relation_rows:
+        locators = {
+            value
+            for value in row.get("anchor_segment_ids", "").split("|")
+            if value
+        }
+        if locators and locators <= expected_segment_locators:
+            relations_with_legacy_segment_locators += 1
+        else:
+            issues.append(
+                (
+                    str(relation_ref),
+                    f"authored relation has invalid legacy segment locators: {row.get('edge_id')}",
+                )
+            )
+    if (
+        len(route_node_rows) != 92
+        or len(route_node_ids) != len(set(route_node_ids))
+        or inventory.get("node_count") != len(route_node_rows)
+        or inventory.get("node_kind_counts") != route_node_kind_counts
+        or inventory.get("node_records_sha256") != route_node_digest
+        or inventory.get("relation_count") != len(relation_rows)
+        or inventory.get("relation_count") != 125
+        or len(relation_ids) != len(set(relation_ids))
+        or inventory.get("relation_kind_counts") != relation_kind_counts
+        or inventory.get("relation_ids_sha256") != relation_ids_digest
+        or inventory.get("relations_with_legacy_segment_locators")
+        != relations_with_legacy_segment_locators
+        or relations_with_legacy_segment_locators != 125
+        or inventory.get("relations_with_modern_claim_refs") != 0
+        or inventory.get("relations_with_modern_evidence_refs") != 0
+        or inventory.get("legacy_review_record_count")
+        != len(authored.get("review_record_refs", []))
+        or inventory.get("machine_readable_human_attestation_count") != 0
+    ):
+        issues.append((str(refs["bridge"]), "authored canon inventory or modern closure drifted"))
+
+    event = payloads["event"]
+    expected_build_argv = [
+        "python",
+        "scripts/build_zarathustra_authored_canon_evidence_bridge.py",
+        "--build",
+        "--local-input-root",
+        "/srv/AbyssOS/Tree-of-Sophia",
+        "--local-output-root",
+        "/srv/AbyssOS/Tree-of-Sophia",
+    ]
+    expected_command_capture = {
+        "disclosure": "withheld_digest_only",
+        "argv": None,
+        "argv_sha256": _canonical_json_value_sha256(expected_build_argv),
+        "withholding_reason": (
+            "The exact build argv contains the owner-local absolute corpus root; "
+            "its digest is retained without embedding a non-portable machine path."
+        ),
+    }
+    event_inputs = {
+        row.get("entity_ref"): row
+        for row in event.get("entities", {}).get("inputs", [])
+        if isinstance(row, dict)
+    }
+    expected_tracked_event_input_refs = [
+        location,
+        plan.get("research_ref"),
+        scope.get("rights_ref"),
+        authored.get("source_node_ref"),
+        authored.get("alignment_witness_ref"),
+        authored.get("relation_pack_ref"),
+        *authored.get("review_record_refs", []),
+    ]
+    expected_event_input_refs = {
+        scope.get("source_relative_ref"),
+        *expected_tracked_event_input_refs,
+    }
+    event_input_closure_ok = set(event_inputs) == expected_event_input_refs
+    source_input = event_inputs.get(scope.get("source_relative_ref"), {})
+    if (
+        source_input.get("sha256") != scope.get("file_sha256")
+        or source_input.get("availability") != "owner_local"
+        or source_input.get("content_disclosure") != "private_content"
+    ):
+        event_input_closure_ok = False
+    for ref in expected_tracked_event_input_refs:
+        if not isinstance(ref, str):
+            event_input_closure_ok = False
+            continue
+        row = event_inputs.get(ref, {})
+        path = repo_root / ref
+        if (
+            not path.is_file()
+            or path.is_symlink()
+            or row.get("sha256") != _sha256(path)
+            or row.get("availability") != "tracked"
+        ):
+            event_input_closure_ok = False
+    event_outputs = {
+        row.get("entity_ref"): row.get("sha256")
+        for row in event.get("entities", {}).get("outputs", [])
+        if isinstance(row, dict)
+    }
+    expected_event_outputs = {
+        str(refs[label]): _sha256(paths[label])
+        for label in ("anchor", "raw_layer", "normalized_layer", "unit", "bridge")
+    }
+    private_event_refs = {
+        outputs.get(field) for field in private_fields if isinstance(outputs.get(field), str)
+    }
+    event_private_refs = {
+        row.get("entity_ref")
+        for row in event.get("entities", {}).get("outputs", [])
+        if isinstance(row, dict) and row.get("availability") == "ignored_local"
+    }
+    review = event.get("review_and_authority", {})
+    rights = event.get("rights_and_visibility", {})
+    if (
+        event.get("activity", {}).get("event_type") != "alignment"
+        or event.get("method", {}).get("command_capture")
+        != expected_command_capture
+        or event.get("reproducibility", {}).get("classification")
+        != "partially_specified"
+        or not event_input_closure_ok
+        or not expected_event_outputs.items() <= event_outputs.items()
+        or event_private_refs != private_event_refs
+        or review.get("human_review_status") != "blocked"
+        or review.get("review_bindings") != []
+        or review.get("accepted_uses") != []
+        or review.get("promotion_authorized") is not False
+        or review.get("competence_evidence_bindings") != []
+        or rights.get("content_visibility") != "local_only"
+        or rights.get("publication_authorized") is not False
+        or rights.get("publication_authority_bindings") != []
+    ):
+        issues.append((str(refs["event"]), "bridge provenance closure or authority drifted"))
+
+    forbidden_content_keys = {
+        "text",
+        "source_text",
+        "target_text",
+        "diplomatic_transcription",
+        "dta_normalized",
+        "legacy_normalized",
+        "operations",
+        "opcodes",
+    }
+    for label, payload in payloads.items():
+        stack: list[Any] = [payload]
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                leaked = forbidden_content_keys & set(value)
+                if leaked:
+                    issues.append(
+                        (str(refs[label]), f"tracked bridge record exposes private content fields: {sorted(leaked)}")
+                    )
+                    break
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+            elif isinstance(value, str) and value.startswith(
+                ("/srv/", "/home/", "/tmp/", "/var/tmp/")
+            ):
+                issues.append(
+                    (
+                        str(refs[label]),
+                        "tracked bridge record exposes an absolute owner-local path",
+                    )
+                )
+                break
+    return issues
+
+
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
     for basename in SOURCE_BASENAMES.values():
@@ -6338,6 +6981,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     issues.extend(validate_zarathustra_opening_sentence_alignment(repo_root))
     issues.extend(validate_antonovsky_2007_1911_collation(repo_root))
+    issues.extend(validate_zarathustra_authored_canon_evidence_bridge(repo_root))
 
     try:
         corpus_validator, _ = _schema_validator(CORPUS_SCHEMA, repo_root)
