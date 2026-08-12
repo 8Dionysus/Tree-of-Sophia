@@ -44,7 +44,23 @@ unmeasured; acquisition cost is not model performance. No accepted German,
 morphology, lemma, lexeme, sign, semantic, graph, canon, publication, or human
 state changed.
 
-The only admissible continuation is to close the real model-license,
+At that snapshot, the recorded continuation was to close the model-license,
 signature, trust-root, lifecycle, verification, and subject-store requirements
-and rerun the same gate. B must not be bypassed. C remains blocked until a
-distinct normalization question exists.
+and rerun the same gate. B could not be bypassed. The additive 2026-08-12
+section below narrows the active builder consumer without rewriting this
+historical production-runtime verdict. C remains blocked until a distinct
+normalization question exists.
+
+## Additive executable-stop refresh — 2026-08-12
+
+The historical `runtime` refusal above remains unchanged. The later
+`HISTORICAL_GERMAN_MORPHOLOGY_B_EXECUTABLE_STOP_LINE_2026-08-12.md` return
+corrects the active pre-build consumer boundary: the laboratory builder asks
+the current exact `agent` gate before acquisition verification or runtime-root
+creation. Production-only trust-root and release-lifecycle reviews therefore
+remain separate, while latest-record, verification, Cosign/control, and
+subject-store closure still deny the builder. Reviewed `abyss-stack`
+checkpoint `87d85ad1` makes that stop executable and a real final invocation
+left the runtime absent without consuming the source packet. Rights remain a
+separate private-only, no-redistribution gate; B and all downstream authority
+remain unchanged.

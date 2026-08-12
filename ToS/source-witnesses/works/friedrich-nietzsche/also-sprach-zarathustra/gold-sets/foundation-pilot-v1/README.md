@@ -233,11 +233,17 @@ Zarathustra golden kernel. It is not a completed gold set.
   closure were acquired into private owner cache, but required Cosign evidence,
   release lifecycle, non-local trust root, verification, and subject-store
   closure were absent. The exact runtime trust gate therefore denied
-  admission. No runtime was built, no context packet was consumed, and no B
-  output exists. Variant C remains blocked as question-inapplicable because
-  exact and normalized form identity do not differ in this episode. This
-  creates no German-competent gold, morphology acceptance, lemma, lexeme,
-  semantic effect, or human backlog.
+  admission. A later additive engineering return preserves that event while
+  correcting the active pre-build boundary: reviewed `abyss-stack` checkpoint
+  `87d85ad1` now runs an exact `agent` gate inside the materializer before
+  acquisition verification or runtime creation. Production-only trust-root
+  and lifecycle reviews remain separate; latest, verification, Cosign/control,
+  and subject-store closure still fail closed. The final real denial left the
+  runtime absent and consumed no source packet. No B output exists. Variant C
+  remains blocked as question-inapplicable because exact and normalized form
+  identity do not differ in this episode. This creates no German-competent
+  gold, morphology acceptance, lemma, lexeme, semantic effect, or human
+  backlog.
 - `transfer-samples.json` closes the stack suite's cross-work sample reference
   with a source-gated `blocked-not-run` plan. Its three Mysl pages are
   title-page scouting boundaries only; all are ineligible for semantic
