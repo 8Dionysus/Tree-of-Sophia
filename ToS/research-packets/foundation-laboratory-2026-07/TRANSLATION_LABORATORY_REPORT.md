@@ -5,24 +5,29 @@ bounded eKGWB citation witness admitted for private AI experiments; frozen A
 linked as a rejected AI-only candidate; deterministic Russian floor and
 source-free LanguageTool B executed; one specialized MADLAD model/runtime and
 source-free smoke admitted; one exact private MADLAD candidate retained as
-uncertain method evidence; accepted translation A/B/C not started
+uncertain method evidence; participant-scoped exposure law added without a
+run or human task; accepted translation A/B/C not started
 Experiment: `tos-translation-foundation-v1`
-Report date: 2026-08-11
+Report date: 2026-08-12
 
 ## Result first
 
-The laboratory now has a reproducible, source-first route for comparing
-human-only, AI-only, multiple AI alternatives, AI+human collaboration, and a
-recognized translation witness without mixing their evidence. It does not yet
-have accepted German input, a translation draft, a comparison score, or a
-winner.
+The laboratory now has a reproducible, source-first route for comparing an
+operationally context-isolated AI candidate, machine alternatives, an
+exposure-aware AI+human retranslation, and a recognized translation witness
+without mixing their evidence. The frozen earlier human-only topology remains
+historical, but no blind-human baseline is available for the current operator.
+The laboratory does not yet have accepted German input, a translation draft,
+a comparison score, or a winner.
 
 The first automatic source selector failed source-visible inspection and was
 rejected. The successor v2 review interface was then frozen, materialized, and
 checked against the exact source scan. It contains all 30 blind review units
 and keeps the recognized Antonovsky witness sealed, but every human field is
 blank. The stack gate therefore exits `2` and keeps every translation lane
-blocked.
+in the accepted historical plan blocked. Separately admitted private
+`ai_only` and exposure-aware `ai_human` calibration routes remain
+non-promotional.
 
 This is the correct current translation result: the method and human work
 surface exist; translation evidence does not.
@@ -395,11 +400,11 @@ The two issue reports are related evidence only. Their hardware, driver,
 model, operating system, or workload differs, so neither proves an identical
 root cause.
 
-## Frozen translation lifecycle
+## Frozen historical lifecycle and active exposure correction
 
 `translation-laboratory-plan.v1.json` has SHA-256
 `9a260fb4a21c44a67b56d2887ebba4d01d82c49c5d3008b39ed44d4779145ee4`.
-It freezes 17 stages and 19 evaluation axes. The lifecycle is:
+It freezes 17 stages and 19 evaluation axes. Its original lifecycle was:
 
 ```text
 two-pass accepted German source
@@ -414,12 +419,43 @@ two-pass accepted German source
               -> human adjudication with rejected alternatives preserved
 ```
 
-The real-human-only lane forbids AI assistance and machine-authored findings.
-Model lanes forbid hidden human editing and require model, prompt, runtime, and
-provenance receipts. The AI+human lane cannot begin until independent human
-and AI work is frozen. The recognized translation remains a witness rather
-than ground truth. Personal read-aloud interpretation remains a separate
-authored layer and cannot substitute for philological source acceptance.
+That record remains immutable historical evidence, but its global human-
+blindness premise is not valid for the current operator. The five-year lived
+route concerns Zarathustra at Work level; its exact translation witness and
+retained wording are unconfirmed. Separately, the exact Antonovsky 2007 Item
+and page 11 were already displayed in the current project's source-visible
+Workbench observation. That observation is not attested as completed review,
+but hiding the page in a later interface cannot undo the exposure. The old
+`human_only` and independent `ai_human` claims therefore do not govern future
+solo+AI episodes.
+
+`translation-exposure-aware-plan.v1.json` has SHA-256
+`8c9e859cd77304c2cf0ad3fad04af081c895ed697dd426ddc131cd177f5e399b`.
+It adds participant- and event-scoped exposure without running a model or
+opening human work:
+
+```text
+exact source/rights/question gate
+  -> exposure snapshot for each actor
+    -> cited source analysis and literal interlinear
+      -> operationally context-isolated AI candidate
+        -> candidate, prompt, runtime, and receipts freeze
+          -> one target-language human response when the machine floor passes
+            -> exposure-aware AI+human revision and intervention ledger
+              -> comparator reveal to a designated post-freeze actor
+                -> aligned comparison and influence analysis
+                  -> separate source/target/process/influence adjudication
+```
+
+The current human route is `exposure-aware-assisted-retranslation`, never a
+blind baseline. An AI producer may claim only that comparator text, retrieval,
+other drafts, and current-session context were excluded; exposure through
+model training remains unknown. Dionysus may establish Russian clarity,
+rhythm, voice, pronounceability, literary force, lived-reading fit, and his
+own influence report, but not German correctness, etymology, fidelity, or an
+accepted translation. The latter remains blocked without source-language-
+competent human review. The recognized translation remains a witness rather
+than ground truth.
 
 ## Gate executions
 
@@ -512,9 +548,12 @@ Missing human time is not zero cost.
 - Reject v1 automatic source selection as translation input.
 - Preserve all v1 failures and the first failed manual set-diff query as
   negative evidence.
-- Promote the v2 review interface, source gate, independent-lane contract,
-  comparator seal, reference register, and lifecycle as laboratory method
-  only.
+- Promote the v2 review interface, source gate, comparator seal, reference
+  register, and frozen historical lifecycle as laboratory evidence only;
+  govern future solo+AI episodes through the exposure-aware overlay.
+- Promote participant-scoped exposure, operational AI context isolation,
+  source/target/process/influence separation, and a single triggered human
+  episode as method law only. Do not create a retyping task or UI exercise.
 - Preserve the one eKGWB/DTA/Naumann triangulation as a machine candidate and
   the naive dehyphenation failure as a control; promote neither to accepted
   German.
@@ -549,9 +588,13 @@ Missing human time is not zero cost.
   current image/runtime combination, begin with one synthetic
   `max_tokens=30` request, stop after one hang/reset, and vary only one factor
   at a time. Passing that probe would be runtime evidence only.
-- Block every pre-draft and draft lane until real pass 1 and independent pass
-  2 accept all required German units.
-- Block recognized-witness reveal until every blind draft is frozen.
+- Keep every accepted pre-draft and translation lane blocked until the exact
+  source question has competence-appropriate source acceptance. The already
+  admitted private `ai_only` and `ai_human` routes remain experimental only.
+- Do not open a `human_only` lane for the current operator or label the
+  exposure-aware mixed route independent.
+- Block recognized-witness reveal to each candidate-producing actor until its
+  exact candidate and receipts are frozen; log every later reveal and change.
 - Block all translation quality, speed, cost, winner, and promotion claims.
 - Do not treat a validator, model inspection, automatic EPUB text, recognized
   translation, or user's personal reading as source acceptance.

@@ -67,6 +67,14 @@ interchange posture were refreshed 2026-08-11 through a separate
 public-synthetic A/B/C; no real translation packet or corpus alignment was
 migrated.
 
+Participant-scoped translation exposure was refreshed 2026-08-12 through
+ordered official/classical, established, and fresh 2025–2026 research. The
+historical global-blindness plan remains frozen; the current operator is
+recorded with a five-year Work-level lived route and a separate exact
+Antonovsky 2007 page observation in the current project, AI candidates may
+claim only operational context isolation, and no model run, human task,
+accepted text, comparator reveal, or promotion was created.
+
 Owner route: `ToS/research-packets/AGENTS.md`
 
 This packet prepares the corpus soil beneath the Tree of Sophia and the first
@@ -91,6 +99,7 @@ and what must be tested manually.
 | `SOURCE_TEXT_UNIT_SEGMENTATION_RESEARCH_2026-08-11.md` | Why one frozen text layer still needs stable unit and segmentation identity; what Unicode, ICU, TEI, Web Annotation, CoNLL-U, ISO/LAF, established tokenization work, and fresh 2025–2026 historical-text evidence require; how coverage, gaps, layout, linguistic units, model subwords, competition, and review remain distinct; and why the public-synthetic A/B/C creates no accepted boundary? |
 | `SEMANTIC_IDENTITY_ANNOTATION_RESEARCH_2026-08-11.md` | Why occurrence, lexeme, lexical sense, sign, concept, claim, review, relation, and graph projection need separate identities; what official/classical standards, established work, and fresh 2025–2026 evidence require; how labels and translations stay outside opaque IDs; what public-synthetic A/B/C proves; and why no model proposal becomes a stable sign without a rare real-human checkpoint? |
 | `TRANSLATION_ALIGNMENT_IDENTITY_RESEARCH_2026-08-11.md` | Why source/target witness, frozen text layer, segmentation/tokenization, ordered anchor, alignment, claim, review, and export identities must remain separate; how TEI, Web Annotation, XLIFF, TMX, PROV-O, established baselines, and fresh historical/literary evidence shape the contract; and why the invented-language A/B/C creates no translation truth? |
+| `TRANSLATION_EXPOSURE_AWARE_SOLO_AI_RESEARCH_2026-08-12.md` | Why comparator exposure belongs to each actor and event; why the five-year Work-level lived route and the separately documented current-project Antonovsky page exposure must not be collapsed; why no blind-human claim survives while a sealed AI prompt still cannot prove training independence; how source-, target-, process-, and influence-facing evidence remain separate; and why rare triggered human judgment replaces retyping and routine review debt? |
 | `PROVENANCE_EXECUTION_RECEIPT_RESEARCH_2026-08-11.md` | Why legacy provenance v1 remains intact while new transformations need exact entity/activity/agent, derivation, command/runtime/model, manual-change, failure/byproduct, authentication, review, rights, and replay separation; what official, established, and fresh 2025–2026 evidence requires; and why the actually executed synthetic A/B/C still does not prove execution truth or content authority? |
 | `BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md` | How should Edition-level place, publisher and other provision roles, transcribed statements, normalized identities, and date facets remain source-returnable without flattening publication, production, distribution, manufacture, or release? |
 | `ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md` | Why the first-part Schmeitzner/Chemnitz/1883 provision statement is admitted only from its exact Edition authority record and why the publisher Organization, Person, printing, and release remain distinct? |

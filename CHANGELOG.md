@@ -9,6 +9,20 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Added a participant-scoped translation-exposure contract and text-free
+  Zarathustra pilot plan without rewriting the frozen historical translation
+  lifecycle. Ordered official/classical, established, and fresh 2025–2026
+  research now separates five-year Work-level lived exposure from the exact
+  Antonovsky 2007 page already seen in the current project, keeps the
+  historical Expression/Item/wording unconfirmed, treats model-training
+  exposure as unknown, permits only operational AI context-isolation claims, and labels
+  the mixed lane `exposure-aware-assisted-retranslation`. Source-, target-,
+  process-, and influence-facing evidence stay separate; a human episode is
+  triggered at most once for a concrete candidate and requires no retyping or
+  UI work. Digest-bound provenance and negative controls keep German
+  competence, accepted translation, comparator reveal, model execution,
+  human tasks, semantics, graph/canon effects, publication, and server
+  transfer at zero.
 - Added `tos_source_text_unit_packet_v1` as the owner of stable segmentation
   and text-unit identity over one exact frozen text layer. Ordered Unicode,
   ICU, TEI, Web Annotation, CoNLL-U, ISO/LAF, established segmentation work,

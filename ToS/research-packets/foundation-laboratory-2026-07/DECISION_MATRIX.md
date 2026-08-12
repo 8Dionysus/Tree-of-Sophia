@@ -7,7 +7,8 @@ direct-visual retrieval and historical-German morphology routes refreshed
 2026-07-30; broad software/model-stack currentness refreshed 2026-08-08;
 specialized DE→RU MT setup evidence refreshed 2026-08-10/11 UTC; semantic
 identity, translation-alignment identity, and source-text-unit contracts
-refreshed 2026-08-11
+refreshed 2026-08-11; participant-scoped translation exposure refreshed
+2026-08-12
 
 The exact freshness decision and next experiment contract are recorded in
 `LOCAL_LLM_ADMISSION.md` and the non-executing superseding currentness record
@@ -200,8 +201,9 @@ human evidence, export, graph, or canon object.
 LLMs may propose transcriptions, structures, glosses, translations,
 etymological leads, annotations, and relations. They never self-promote them.
 The A/B/C identities in this table apply only to a model-proposal comparison;
-they do not replace the separate human-only / AI-only / AI+human translation
-lanes.
+they do not replace the participant-scoped exposure law for AI-only,
+exposure-aware AI+human, comparator-analysis, and optional future external-
+human lanes.
 
 ## Russian-surface triage candidates
 
@@ -216,11 +218,11 @@ lanes.
 
 | Route | Method | State | Human visibility |
 | --- | --- | --- | --- |
-| A | independent human or literal/interlinear draft from verified German, recognized translation hidden | baseline | translator identity and source aids recorded |
-| B | local LLM independent draft from the same verified German and context, recognized translation hidden | baseline | exact model/runtime/prompt recorded |
-| C | AI+human collaborative revision, still before recognized comparator reveal | challenger | every accepted intervention attributed |
-| comparator | Antоновsky and other recognized editions after drafts freeze | required | not scored as automatic truth |
-| adjudication | independent reviewer with aligned original, drafts, comparator, and context | required | reasoned accept/reject/uncertain decision |
+| historical A | blind human-only draft | unavailable for the current operator | the exact Antonovsky 2007 page was already seen in the current project and German translation competence is absent; the separate five-year Work-level lived route is not assigned to an unconfirmed witness |
+| B | operationally context-isolated local LLM draft from the same cited German source and context | baseline | prompt, retrieval, session, runtime, and model receipts recorded; training exposure remains unknown |
+| C | exposure-aware AI+human assisted retranslation after B passes the machine floor | challenger | one triggered episode; quick judgments/edits and every intervention attributed; no retyping |
+| comparator | Antonovsky and other recognized editions shown only to a designated post-freeze actor | required comparison witness | each reveal and post-reveal change recorded; never scored as automatic truth |
+| acceptance | source-and-target-visible, source-language-competent human review | blocked current gate | Russian literary judgment by the current operator remains valid but cannot establish German fidelity or accepted translation |
 
 COMET or similar metrics may be added as diagnostics only after the manual
 packet exists. A metric-only translation route is excluded.
@@ -326,7 +328,7 @@ removal route. Execution does not satisfy the still-human promotion rule.
 | structure recovery | deterministic page/heading rules | Docling standard/hybrid | one selected VLM route on hard pages |
 | correction | no correction | reversible rules | local LLM proposal |
 | alignment | structure/length cues | Vecalign + local embedding | LLM explanation/proposal |
-| translation | independent human/interlinear | resident E2B/E4B draft | AI+human revision |
+| translation | cited source analysis and literal/interlinear control; no current blind-human draft | operationally context-isolated resident-model candidate | exposure-aware AI+human revision with post-freeze comparator analysis |
 | semantic annotation | manual packet | INCEpTION export | CATMA export |
 | retrieval | lexical SQLite FTS5 | resident Qwen dense + Qdrant + reranker | independent Granite R2 multilingual dense |
 | graph | canonical JSON/JSONL claim records | resident Neo4j claim-first projection | PyOxigraph explicit-claim/named-graph projection |

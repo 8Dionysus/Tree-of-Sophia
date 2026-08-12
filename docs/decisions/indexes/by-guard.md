@@ -23,9 +23,17 @@
 - [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
 - [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
+## comparator isolation
+
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+
 ## compatibility boundary
 
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
+
+## competence boundary
+
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## derivation lineage
 
@@ -60,6 +68,7 @@
 ## human-review sovereignty
 
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## instruction topology
 
@@ -139,6 +148,7 @@
 ## provenance
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## provenance preservation
 
@@ -192,6 +202,7 @@
 - [TOS-D-0018 - Codex Spark Agent Lane Home](../TOS-D-0018-codex-spark-agent-lane-home.md) (`docs/decisions/TOS-D-0018-codex-spark-agent-lane-home.md`)
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## source-home symmetry
 
@@ -207,6 +218,10 @@
 - [TOS-D-0012 - Agon Threshold Registry Part-Local Route](../TOS-D-0012-agon-threshold-registry-part-local-route.md) (`docs/decisions/TOS-D-0012-agon-threshold-registry-part-local-route.md`)
 - [TOS-D-0013 - Mechanics Local Test Homes](../TOS-D-0013-mechanics-local-test-homes.md) (`docs/decisions/TOS-D-0013-mechanics-local-test-homes.md`)
 - [TOS-D-0015 - Questbook Package Local Validator](../TOS-D-0015-questbook-package-local-validator.md) (`docs/decisions/TOS-D-0015-questbook-package-local-validator.md`)
+
+## translation exposure
+
+- [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
 ## validation route
 

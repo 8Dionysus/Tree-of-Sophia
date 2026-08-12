@@ -444,6 +444,15 @@ private paths. A green episode proves neither German correctness, translation
 fidelity, etymology, semantics, human review, publication, graph truth, nor
 canon authority.
 
+`translation-exposure-aware-plan.schema.json` and its one text-free pilot
+record govern future solo+AI translation episodes without changing historical
+episode bytes. The validator closes the frozen-plan, method-research,
+German-assisted, citation-witness, edition-reading, and provenance digests;
+requires participant-scoped exposure; rejects a blind-human label for the
+current operator and any claim of known-empty model-training exposure; keeps
+the `human_only` lane unavailable; and forbids acceptance, UI work, routine
+human debt, comparator reveal, or promotion from the planning record.
+
 `build_philosophy_atlas_projection.py` and
 `validate_philosophy_atlas_projection.py` publish the first atlas-shaped
 tree/graph read model from `ToS/philosophy/atlas/` for review and downstream

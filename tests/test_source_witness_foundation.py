@@ -52,6 +52,12 @@ HIERARCHICAL_TARGET_STRUCTURE_ROOTS = (
 GERMAN_ASSISTED_REVIEW_PATH = (
     GOLD_ROOT / "german-assisted-source-review.v1.json"
 )
+TRANSLATION_EXPOSURE_AWARE_PLAN_PATH = (
+    GOLD_ROOT / "translation-exposure-aware-plan.v1.json"
+)
+TRANSLATION_EXPOSURE_AWARE_PROVENANCE_PATH = (
+    GOLD_ROOT / "provenance.translation-exposure-aware-plan.jsonl"
+)
 CRITICAL_EDITION_WITNESS_PATH = (
     GOLD_ROOT / "critical-edition-witness.ekgwb.za-i-vorrede-1.v1.json"
 )
@@ -10956,6 +10962,161 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "human_only"
         )
         self.assertTrue(list(validator.iter_errors(false_human_only)))
+
+    def test_translation_exposure_is_participant_scoped_and_fail_closed(
+        self,
+    ) -> None:
+        validator, _ = foundation._schema_validator(
+            foundation.TRANSLATION_EXPOSURE_AWARE_PLAN_SCHEMA,
+            REPO_ROOT,
+        )
+        plan = json.loads(
+            TRANSLATION_EXPOSURE_AWARE_PLAN_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(plan)))
+        self.assertEqual("frozen-historical-not-rewritten", plan["base_plan"]["posture"])
+        self.assertEqual(
+            "work-level-lived-exposure-and-current-project-comparator-exposure",
+            plan["participant_exposures"]["human_operator"]["exposure_posture"],
+        )
+        self.assertFalse(
+            plan["participant_exposures"]["human_operator"]
+            ["historical_lived_exposure"]
+            ["exact_expression_item_and_wording_confirmed"]
+        )
+        self.assertFalse(
+            plan["participant_exposures"]["human_operator"]
+            ["current_project_comparator_exposure"]
+            ["observation_attested_as_review"]
+        )
+        self.assertEqual(
+            "unknown-and-unverifiable",
+            plan["participant_exposures"]["ai_candidate_producer"][
+                "model_training_exposure"
+            ],
+        )
+        self.assertEqual(
+            "unavailable-current-operator",
+            plan["lane_law"]["human_only"]["state"],
+        )
+        self.assertFalse(plan["lane_law"]["ai_human"]["independent_baseline"])
+        self.assertEqual(0, plan["gate_effects"]["accepted_translation_packets"])
+        self.assertFalse(plan["human_work_policy"]["routine_retyping"])
+        self.assertFalse(plan["human_work_policy"]["ui_work_authorized"])
+
+        expected_bindings = {
+            "base_plan": (
+                plan["base_plan"],
+                GOLD_ROOT / "translation-laboratory-plan.v1.json",
+            ),
+            "method_research": (
+                plan["method_research"],
+                REPO_ROOT
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "TRANSLATION_EXPOSURE_AWARE_SOLO_AI_RESEARCH_2026-08-12.md",
+            ),
+            "german_assisted_review": (
+                plan["assisted_source_route"]["german_assisted_review"],
+                GERMAN_ASSISTED_REVIEW_PATH,
+            ),
+            "citation_witness_decision": (
+                plan["assisted_source_route"]["citation_witness_decision"],
+                CRITICAL_EDITION_CITATION_DECISION_PATH,
+            ),
+            "edition_reading_admission": (
+                plan["assisted_source_route"]["edition_reading_admission"],
+                EDITION_READING_ADMISSION_PATH,
+            ),
+            "current_project_comparator_exposure": (
+                plan["participant_exposures"]["human_operator"]
+                ["current_project_comparator_exposure"]["evidence"],
+                GOLD_ROOT
+                / "antonovsky-2007-1911-opening-sentence-collation.plan.v1.json",
+            ),
+        }
+        for label, (binding, path) in expected_bindings.items():
+            self.assertEqual(path.relative_to(REPO_ROOT).as_posix(), binding["ref"], label)
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                binding["sha256"],
+                label,
+            )
+
+        false_exact_item = copy.deepcopy(plan)
+        false_exact_item["participant_exposures"]["human_operator"][
+            "historical_lived_exposure"
+        ][
+            "exact_expression_item_and_wording_confirmed"
+        ] = True
+        self.assertTrue(list(validator.iter_errors(false_exact_item)))
+
+        false_observation_attestation = copy.deepcopy(plan)
+        false_observation_attestation["participant_exposures"]["human_operator"][
+            "current_project_comparator_exposure"
+        ]["observation_attested_as_review"] = True
+        self.assertTrue(list(validator.iter_errors(false_observation_attestation)))
+
+        false_human_independence = copy.deepcopy(plan)
+        false_human_independence["participant_exposures"]["human_operator"][
+            "independence_claim"
+        ] = "independent"
+        self.assertTrue(list(validator.iter_errors(false_human_independence)))
+
+        false_model_independence = copy.deepcopy(plan)
+        false_model_independence["participant_exposures"]["ai_candidate_producer"][
+            "model_training_exposure"
+        ] = "known-none"
+        self.assertTrue(list(validator.iter_errors(false_model_independence)))
+
+        false_human_only = copy.deepcopy(plan)
+        false_human_only["lane_law"]["human_only"]["state"] = "opened-experimental"
+        self.assertTrue(list(validator.iter_errors(false_human_only)))
+
+        false_assisted_independence = copy.deepcopy(plan)
+        false_assisted_independence["lane_law"]["ai_human"]["independent_baseline"] = True
+        self.assertTrue(list(validator.iter_errors(false_assisted_independence)))
+
+        false_acceptance = copy.deepcopy(plan)
+        false_acceptance["gate_effects"]["accepted_translation_packets"] = 1
+        self.assertTrue(list(validator.iter_errors(false_acceptance)))
+
+        false_ui_debt = copy.deepcopy(plan)
+        false_ui_debt["human_work_policy"]["ui_work_authorized"] = True
+        self.assertTrue(list(validator.iter_errors(false_ui_debt)))
+
+    def test_translation_exposure_provenance_closes_exact_inputs_and_output(
+        self,
+    ) -> None:
+        provenance_validator, _ = foundation._schema_validator(
+            foundation.PROVENANCE_SCHEMA,
+            REPO_ROOT,
+        )
+        events = [
+            json.loads(line)
+            for line in TRANSLATION_EXPOSURE_AWARE_PROVENANCE_PATH.read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line
+        ]
+        self.assertEqual(1, len(events))
+        event = events[0]
+        self.assertEqual([], list(provenance_validator.iter_errors(event)))
+        self.assertEqual(
+            "tos.event.annotation.translation-exposure-aware-plan.2026-08-12",
+            event["event_id"],
+        )
+        for entry in event["inputs"] + event["outputs"]:
+            path = REPO_ROOT / entry["ref"]
+            self.assertTrue(path.is_file(), entry["ref"])
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                entry["sha256"],
+                entry["ref"],
+            )
+        self.assertEqual(
+            TRANSLATION_EXPOSURE_AWARE_PLAN_PATH.relative_to(REPO_ROOT).as_posix(),
+            event["outputs"][0]["ref"],
+        )
 
     def test_german_source_triangulation_is_machine_only_and_text_free(
         self,

@@ -133,6 +133,9 @@ TRANSLATION_SOURCE_REVIEW_SCHEMA = (
 TRANSLATION_LABORATORY_PLAN_SCHEMA = (
     CONTRACT_ROOT / "translation-laboratory-plan.schema.json"
 )
+TRANSLATION_EXPOSURE_AWARE_PLAN_SCHEMA = (
+    CONTRACT_ROOT / "translation-exposure-aware-plan.schema.json"
+)
 TRANSLATION_REFERENCE_REGISTER_SCHEMA = (
     CONTRACT_ROOT / "translation-reference-register.schema.json"
 )
@@ -7029,6 +7032,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             TRANSLATION_LABORATORY_PLAN_SCHEMA,
             repo_root,
         )
+        translation_exposure_aware_plan_validator, _ = _schema_validator(
+            TRANSLATION_EXPOSURE_AWARE_PLAN_SCHEMA,
+            repo_root,
+        )
         translation_reference_register_validator, _ = _schema_validator(
             TRANSLATION_REFERENCE_REGISTER_SCHEMA,
             repo_root,
@@ -7633,6 +7640,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         translation_path = gold_root / "translation-samples.json"
         translation_source_review_path = gold_root / "translation-source-review-plan.v2.json"
         translation_laboratory_path = gold_root / "translation-laboratory-plan.v1.json"
+        translation_exposure_aware_path = (
+            gold_root / "translation-exposure-aware-plan.v1.json"
+        )
         translation_reference_register_path = (
             gold_root / "translation-reference-register.v1.json"
         )
@@ -7715,6 +7725,9 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         edition_reading_admission_provenance_path = (
             gold_root / "provenance.edition-reading-admission.jsonl"
         )
+        translation_exposure_aware_provenance_path = (
+            gold_root / "provenance.translation-exposure-aware-plan.jsonl"
+        )
         semantic_ladder_v4_provenance_path = (
             gold_root / "provenance.semantic-ladder-v4.jsonl"
         )
@@ -7752,6 +7765,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         translation_laboratory_plan = (
             _load_json(translation_laboratory_path, repo_root, issues)
             if translation_laboratory_path.is_file()
+            else None
+        )
+        translation_exposure_aware_plan = (
+            _load_json(translation_exposure_aware_path, repo_root, issues)
+            if translation_exposure_aware_path.is_file()
             else None
         )
         translation_reference_register = (
@@ -9878,6 +9896,126 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     issues.append(
                         (laboratory_location, "pre-acceptance comparator is not completely sealed")
                     )
+        if translation_exposure_aware_plan is not None:
+            exposure_location = _relative(
+                translation_exposure_aware_path,
+                repo_root,
+            )
+            _validate_payload(
+                translation_exposure_aware_plan,
+                translation_exposure_aware_plan_validator,
+                exposure_location,
+                issues,
+            )
+            exposure_research_path = (
+                repo_root
+                / "ToS/research-packets/foundation-laboratory-2026-07/"
+                "TRANSLATION_EXPOSURE_AWARE_SOLO_AI_RESEARCH_2026-08-12.md"
+            )
+            current_project_exposure_path = (
+                gold_root
+                / "antonovsky-2007-1911-opening-sentence-collation.plan.v1.json"
+            )
+            expected_bindings = [
+                (
+                    "base_plan",
+                    translation_exposure_aware_plan.get("base_plan"),
+                    translation_laboratory_path,
+                ),
+                (
+                    "method_research",
+                    translation_exposure_aware_plan.get("method_research"),
+                    exposure_research_path,
+                ),
+                (
+                    "assisted_source_route.german_assisted_review",
+                    translation_exposure_aware_plan.get(
+                        "assisted_source_route", {}
+                    ).get("german_assisted_review"),
+                    german_assisted_review_path,
+                ),
+                (
+                    "assisted_source_route.citation_witness_decision",
+                    translation_exposure_aware_plan.get(
+                        "assisted_source_route", {}
+                    ).get("citation_witness_decision"),
+                    critical_edition_citation_decision_path,
+                ),
+                (
+                    "assisted_source_route.edition_reading_admission",
+                    translation_exposure_aware_plan.get(
+                        "assisted_source_route", {}
+                    ).get("edition_reading_admission"),
+                    edition_reading_admission_path,
+                ),
+                (
+                    "participant_exposures.human_operator."
+                    "current_project_comparator_exposure.evidence",
+                    translation_exposure_aware_plan.get(
+                        "participant_exposures", {}
+                    ).get("human_operator", {}).get(
+                        "current_project_comparator_exposure", {}
+                    ).get("evidence"),
+                    current_project_exposure_path,
+                ),
+            ]
+            for field, binding, expected_path in expected_bindings:
+                if not expected_path.is_file():
+                    issues.append(
+                        (
+                            exposure_location,
+                            f"{field} has no current owner artifact",
+                        )
+                    )
+                    continue
+                digest_issue = _digest_bound_ref_issue(
+                    binding,
+                    expected_path=expected_path,
+                    repo_root=repo_root,
+                    field=field,
+                )
+                if digest_issue is not None:
+                    issues.append((exposure_location, digest_issue))
+
+            if isinstance(translation_laboratory_plan, dict):
+                historical_comparator = translation_laboratory_plan.get(
+                    "recognized_comparator", {}
+                )
+                exposure_comparator = translation_exposure_aware_plan.get(
+                    "recognized_comparator", {}
+                )
+                for key in ("expression_ref", "item_ref"):
+                    if exposure_comparator.get(key) != historical_comparator.get(key):
+                        issues.append(
+                            (
+                                exposure_location,
+                                f"exposure-aware comparator {key} drifted from the frozen plan",
+                            )
+                        )
+            if isinstance(german_assisted_review, dict):
+                assisted_state = german_assisted_review.get("current_state", {})
+                exposure_route = translation_exposure_aware_plan.get(
+                    "assisted_source_route", {}
+                )
+                expected_state = {
+                    "experimental_lanes_opened": assisted_state.get(
+                        "translation_lanes_opened"
+                    ),
+                    "accepted_german_units": assisted_state.get(
+                        "accepted_german_units"
+                    ),
+                    "promotion_authorized": assisted_state.get(
+                        "promotion_authorized"
+                    ),
+                }
+                for field, expected in expected_state.items():
+                    if exposure_route.get(field) != expected:
+                        issues.append(
+                            (
+                                exposure_location,
+                                f"assisted_source_route.{field} drifted from the German-assisted review",
+                            )
+                        )
         if translation_laboratory_plan is not None and translation_reference_register is None:
             issues.append(
                 (
@@ -10096,6 +10234,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             local_provenance_paths.append(
                 edition_reading_admission_provenance_path
             )
+        if translation_exposure_aware_provenance_path.is_file():
+            local_provenance_paths.append(
+                translation_exposure_aware_provenance_path
+            )
         if semantic_ladder_v4_provenance_path.is_file():
             local_provenance_paths.append(
                 semantic_ladder_v4_provenance_path
@@ -10175,6 +10317,101 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         "edition-reading admission provenance event is absent from gold-set provenance",
                     )
                 )
+        if translation_exposure_aware_plan is not None:
+            exposure_location = _relative(
+                translation_exposure_aware_path,
+                repo_root,
+            )
+            exposure_event_ref = translation_exposure_aware_plan.get(
+                "provenance_event_ref"
+            )
+            exposure_event = local_events_by_id.get(exposure_event_ref)
+            if exposure_event is None:
+                issues.append(
+                    (
+                        exposure_location,
+                        "exposure-aware translation plan provenance event is absent from gold-set provenance",
+                    )
+                )
+            else:
+                decision_path = (
+                    repo_root
+                    / "docs/decisions/"
+                    "TOS-D-0019-zarathustra-golden-growth-kernel.md"
+                )
+                exposure_research_path = (
+                    repo_root
+                    / "ToS/research-packets/foundation-laboratory-2026-07/"
+                    "TRANSLATION_EXPOSURE_AWARE_SOLO_AI_RESEARCH_2026-08-12.md"
+                )
+                current_project_exposure_path = (
+                    gold_root
+                    / "antonovsky-2007-1911-opening-sentence-collation.plan.v1.json"
+                )
+                expected_inputs = {
+                    (
+                        _relative(decision_path, repo_root),
+                        "accepted-lived-provenance-and-golden-kernel-boundary",
+                        _sha256(decision_path),
+                    ),
+                    (
+                        _relative(translation_laboratory_path, repo_root),
+                        "frozen-historical-translation-plan",
+                        _sha256(translation_laboratory_path),
+                    ),
+                    (
+                        _relative(german_assisted_review_path, repo_root),
+                        "current-solo-human-plus-ai-competence-boundary",
+                        _sha256(german_assisted_review_path),
+                    ),
+                    (
+                        _relative(
+                            critical_edition_citation_decision_path,
+                            repo_root,
+                        ),
+                        "human-admitted-private-citation-witness-gate",
+                        _sha256(critical_edition_citation_decision_path),
+                    ),
+                    (
+                        _relative(edition_reading_admission_path, repo_root),
+                        "edition-local-reading-without-language-acceptance",
+                        _sha256(edition_reading_admission_path),
+                    ),
+                    (
+                        _relative(exposure_research_path, repo_root),
+                        "ordered-official-established-and-fresh-method-research",
+                        _sha256(exposure_research_path),
+                    ),
+                    (
+                        _relative(current_project_exposure_path, repo_root),
+                        "current-project-exact-antonovsky-page-observation-boundary",
+                        _sha256(current_project_exposure_path),
+                    ),
+                }
+                actual_inputs = {
+                    (entry.get("ref"), entry.get("role"), entry.get("sha256"))
+                    for entry in exposure_event.get("inputs", [])
+                    if isinstance(entry, dict)
+                }
+                if actual_inputs != expected_inputs:
+                    issues.append(
+                        (
+                            exposure_location,
+                            "exposure-aware translation provenance input closure drifted",
+                        )
+                    )
+                expected_output = {
+                    "ref": exposure_location,
+                    "role": "text-free-participant-scoped-exposure-and-workflow-plan",
+                    "sha256": _sha256(translation_exposure_aware_path),
+                }
+                if exposure_event.get("outputs") != [expected_output]:
+                    issues.append(
+                        (
+                            exposure_location,
+                            "exposure-aware translation provenance output closure drifted",
+                        )
+                    )
         if experimental_translation_candidate is not None:
             candidate_event_ref = experimental_translation_candidate.get(
                 "provenance_event_ref"

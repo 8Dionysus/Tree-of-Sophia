@@ -59,6 +59,9 @@ current bounded Zarathustra route:
   `ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
 - current public-synthetic translation-alignment identity laboratory:
   `ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/`
+- current text-free participant-scoped translation-exposure route, preserving
+  the historical plan while prohibiting a false blind-human baseline:
+  `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-exposure-aware-plan.v1.json`
 
 The next contour grows `ToS/philosophy/` as the domain-shaped philosophy
 branch. It is the authored philosophical body whose local branches may later

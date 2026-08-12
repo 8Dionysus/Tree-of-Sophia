@@ -1364,18 +1364,25 @@ Every semantic or relational assertion should contain:
 AI, human, and AI+human translation can become one of ToS's highest-value
 organs only if their differences remain visible.
 
-### Required blind stages
+### Required staged evidence and participant exposure
 
 1. establish and verify the original-language segment;
-2. prepare morphology, literal gloss, etymological leads, and ambiguity notes
-   without exposing a recognized translation to the first translator;
-3. create an independent human, AI, or AI-assisted draft;
-4. reveal one or more recognized translations and compare them by aligned
-   segment;
-5. perform an independent revision that did not author the draft;
-6. adjudicate disagreements and record accepted, rejected, and unresolved
-   alternatives;
-7. publish a packet, not a single cleaned sentence.
+2. snapshot prior and current comparator exposure for every human or model
+   actor; never infer memory absence or model-training independence;
+3. prepare morphology, literal gloss, sourced etymological leads, and
+   ambiguity notes while keeping recognized-translation content out of the
+   run-specific AI producer's prompt, retrieval, and session;
+4. freeze that operationally context-isolated AI candidate with its exact
+   prompt, runtime, and receipts;
+5. when the candidate passes the machine floor, capture one exposure-aware
+   human response or revision with interventions and remembered influence
+   explicit; the current operator is not a blind-human baseline;
+6. reveal recognized translations only to a designated post-freeze actor and
+   compare them by aligned segment;
+7. adjudicate source-, target-, process-, and influence-facing evidence
+   separately, preserve accepted/rejected/unresolved alternatives, and publish
+   a packet rather than one cleaned sentence. Source-language-competent human
+   review remains required for accepted translation.
 
 ### Evaluation axes
 
@@ -1465,8 +1472,9 @@ well-formed.
    resident A/B comparison and the frozen independent-challenger requirement.
 8. Compare lexical, resident dense+rerank, and independent multilingual dense
    retrieval on one ToS-authored query set; keep later hybrid fusion separate.
-9. Run a dedicated blind translation lab with interlinear and recognized
-   translation comparison.
+9. Run a dedicated exposure-aware translation lab with a cited interlinear,
+   operationally isolated AI candidate, actor-scoped comparator reveal, and
+   explicit predecessor-influence comparison.
 10. Preserve rejected and unresolved outputs as training and architectural
     evidence.
 

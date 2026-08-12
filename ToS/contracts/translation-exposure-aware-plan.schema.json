@@ -1,0 +1,578 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-exposure-aware-plan.schema.json",
+  "title": "Tree of Sophia exposure-aware solo plus AI translation plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "status",
+    "work_ref",
+    "operating_model",
+    "base_plan",
+    "method_research",
+    "assisted_source_route",
+    "recognized_comparator",
+    "participant_exposures",
+    "lane_law",
+    "workflow_order",
+    "evaluation_partition",
+    "process_evidence",
+    "human_work_policy",
+    "acceptance_boundary",
+    "gate_effects",
+    "recorded_at",
+    "provenance_event_ref",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-exposure-aware-plan.schema.json"
+    },
+    "schema_version": {"const": "tos_translation_exposure_aware_plan_v1"},
+    "plan_id": {
+      "type": "string",
+      "pattern": "^tos\\.translation-exposure-aware-plan\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "status": {"const": "active-experimental-only"},
+    "work_ref": {"$ref": "#/$defs/tosId"},
+    "operating_model": {"const": "solo_human_plus_ai"},
+    "base_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256",
+        "posture",
+        "superseded_claims",
+        "preserved_claims"
+      ],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "posture": {"const": "frozen-historical-not-rewritten"},
+        "superseded_claims": {
+          "const": [
+            "global_human_comparator_blindness",
+            "human_only_lane_available_to_current_operator",
+            "ai_human_lane_independent_of_prior_translation",
+            "one_global_comparator_visibility_boolean_is_sufficient"
+          ]
+        },
+        "preserved_claims": {
+          "const": [
+            "source_first_order",
+            "exact_source_return",
+            "external_etymology_evidence",
+            "per_run_model_receipts",
+            "no_model_self_promotion",
+            "post_freeze_change_ledger",
+            "alternatives_rejections_and_uncertainty_preserved"
+          ]
+        }
+      }
+    },
+    "method_research": {"$ref": "#/$defs/digestBoundRef"},
+    "assisted_source_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "german_assisted_review",
+        "citation_witness_decision",
+        "edition_reading_admission",
+        "experimental_lanes_opened",
+        "accepted_german_units",
+        "human_only_lane_opened",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "german_assisted_review": {"$ref": "#/$defs/digestBoundRef"},
+        "citation_witness_decision": {"$ref": "#/$defs/digestBoundRef"},
+        "edition_reading_admission": {"$ref": "#/$defs/digestBoundRef"},
+        "experimental_lanes_opened": {"const": ["ai_only", "ai_human"]},
+        "accepted_german_units": {"const": 0},
+        "human_only_lane_opened": {"const": false},
+        "promotion_authorized": {"const": false}
+      }
+    },
+    "recognized_comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expression_ref",
+        "item_ref",
+        "fresh_display_policy",
+        "global_visibility_state_valid",
+        "human_prior_exposure_relationship",
+        "five_year_expression_item_and_wording_confirmed",
+        "current_project_exact_item_observed",
+        "memory_effect",
+        "reveal_logged_per_actor"
+      ],
+      "properties": {
+        "expression_ref": {"$ref": "#/$defs/tosId"},
+        "item_ref": {"$ref": "#/$defs/tosId"},
+        "fresh_display_policy": {
+          "const": "sealed-from-candidate-producers-until-candidate-freeze"
+        },
+        "global_visibility_state_valid": {"const": false},
+        "human_prior_exposure_relationship": {
+          "const": "five-year-work-level-lived-exposure-plus-current-project-antonovsky-item-observation"
+        },
+        "five_year_expression_item_and_wording_confirmed": {"const": false},
+        "current_project_exact_item_observed": {"const": true},
+        "memory_effect": {"const": "known-possible-unquantified"},
+        "reveal_logged_per_actor": {"const": true}
+      }
+    },
+    "participant_exposures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_operator",
+        "ai_candidate_producer",
+        "post_freeze_comparison_actor"
+      ],
+      "properties": {
+        "human_operator": {"$ref": "#/$defs/humanExposure"},
+        "ai_candidate_producer": {"$ref": "#/$defs/aiCandidateExposure"},
+        "post_freeze_comparison_actor": {"$ref": "#/$defs/comparisonExposure"}
+      }
+    },
+    "lane_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_only",
+        "ai_only",
+        "ai_human",
+        "comparator_analysis",
+        "future_independent_human"
+      ],
+      "properties": {
+        "human_only": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "prohibited_label", "reason"],
+          "properties": {
+            "state": {"const": "unavailable-current-operator"},
+            "prohibited_label": {"const": "blind-human-only"},
+            "reason": {
+              "const": "prior-comparator-exposure-and-no-german-translation-competence"
+            }
+          }
+        },
+        "ai_only": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "allowed_claim",
+            "training_independence_claimed",
+            "candidate_freeze_required"
+          ],
+          "properties": {
+            "state": {"const": "opened-experimental"},
+            "allowed_claim": {
+              "const": "operational-context-isolated-not-training-independent"
+            },
+            "training_independence_claimed": {"const": false},
+            "candidate_freeze_required": {"const": true}
+          }
+        },
+        "ai_human": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "required_label",
+            "independent_baseline",
+            "prior_comparator_exposure_disclosed",
+            "intervention_attribution_required"
+          ],
+          "properties": {
+            "state": {"const": "opened-experimental"},
+            "required_label": {"const": "exposure-aware-assisted-retranslation"},
+            "independent_baseline": {"const": false},
+            "prior_comparator_exposure_disclosed": {"const": true},
+            "intervention_attribution_required": {"const": true}
+          }
+        },
+        "comparator_analysis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "output_role", "direct_candidate_mutation"],
+          "properties": {
+            "state": {"const": "blocked-until-candidate-freeze"},
+            "output_role": {"const": "comparison-evidence-only"},
+            "direct_candidate_mutation": {"const": false}
+          }
+        },
+        "future_independent_human": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "current_backlog", "requirements"],
+          "properties": {
+            "state": {"const": "optional-external-future-condition"},
+            "current_backlog": {"const": false},
+            "requirements": {
+              "const": [
+                "source-and-target-language-competence",
+                "material-comparator-naivety",
+                "source-visible-declared-scope",
+                "independent-review-provenance"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "workflow_order": {
+      "const": [
+        "exact_source_rights_and_question_gate",
+        "per_actor_exposure_snapshot",
+        "source_analysis_and_literal_interlinear_with_citations",
+        "operationally_isolated_ai_candidate_generation",
+        "freeze_candidate_prompt_runtime_and_receipts",
+        "target_language_first_response_without_fresh_comparator_display",
+        "freeze_exposure_aware_ai_human_revision_and_interventions",
+        "post_freeze_comparator_reveal_to_designated_actor",
+        "aligned_comparison_and_reference_influence_analysis",
+        "post_reveal_change_ledger",
+        "separate_source_target_process_and_influence_adjudication",
+        "preserve_alternatives_rejections_and_unresolved"
+      ]
+    },
+    "evaluation_partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_facing", "target_facing", "process_facing", "influence_facing"],
+      "properties": {
+        "source_facing": {
+          "const": [
+            "german_reading",
+            "morphology",
+            "syntax",
+            "primary_and_secondary_meaning",
+            "omission_and_addition",
+            "metaphor_and_allusion",
+            "sourced_etymology",
+            "translation_fidelity"
+          ]
+        },
+        "target_facing": {
+          "const": [
+            "russian_fluency_and_clarity",
+            "rhythm_and_voice",
+            "spoken_pronounceability",
+            "intentional_strangeness",
+            "literary_force",
+            "reader_experience_and_lived_reading_fit"
+          ]
+        },
+        "process_facing": {
+          "const": [
+            "elapsed_and_active_time",
+            "runtime_and_resource_cost",
+            "edit_operations",
+            "intervention_attribution",
+            "abstentions",
+            "comparator_reveal_events",
+            "post_reveal_changes"
+          ]
+        },
+        "influence_facing": {
+          "const": [
+            "remembered_or_recognized_wording",
+            "convergence_with_comparator",
+            "deliberate_divergence",
+            "unresolved_dependency",
+            "reasoned_stance_toward_predecessor"
+          ]
+        }
+      }
+    },
+    "process_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "optional", "prohibited_inferences"],
+      "properties": {
+        "required": {
+          "const": [
+            "exact_input_and_output_digests",
+            "model_prompt_runtime_and_decoding_receipts",
+            "per_actor_exposure_snapshots",
+            "actor_scoped_reveal_events",
+            "candidate_and_revision_timestamps",
+            "edit_diff_and_change_ledger",
+            "criterion_comments_and_abstentions"
+          ]
+        },
+        "optional": {
+          "const": [
+            "keystrokes",
+            "pauses",
+            "voice_recording",
+            "human_time_valuation"
+          ]
+        },
+        "prohibited_inferences": {
+          "const": [
+            "mental_state_from_interaction_logs",
+            "quality_from_edit_distance",
+            "historical_blindness_from_hidden_fresh_display",
+            "zero_cost_from_local_execution",
+            "fidelity_from_target_fluency"
+          ]
+        }
+      }
+    },
+    "human_work_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger",
+        "routine_retyping",
+        "per_stage_human_tasks",
+        "maximum_human_episodes_per_exact_question",
+        "ordinary_inputs",
+        "ui_work_authorized"
+      ],
+      "properties": {
+        "trigger": {
+          "const": "specific-candidate-passed-machine-floor-and-concrete-translation-question"
+        },
+        "routine_retyping": {"const": false},
+        "per_stage_human_tasks": {"const": false},
+        "maximum_human_episodes_per_exact_question": {"const": 1},
+        "ordinary_inputs": {
+          "const": [
+            "source_context",
+            "frozen_candidates",
+            "short_criteria",
+            "quick_comments",
+            "targeted_edits",
+            "optional_read_aloud"
+          ]
+        },
+        "ui_work_authorized": {"const": false}
+      }
+    },
+    "acceptance_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_may_establish",
+        "human_may_not_establish",
+        "machine_agreement_supplies_language_competence",
+        "accepted_translation_gate"
+      ],
+      "properties": {
+        "human_may_establish": {
+          "const": [
+            "target_language_preference",
+            "russian_literary_response",
+            "spoken_response",
+            "lived_reading_fit",
+            "human_choice_and_rationale",
+            "self_reported_comparator_influence"
+          ]
+        },
+        "human_may_not_establish": {
+          "const": [
+            "german_orthography_or_grammar",
+            "german_semantics",
+            "german_etymology",
+            "translation_fidelity",
+            "independent_blind_human_baseline",
+            "accepted_translation"
+          ]
+        },
+        "machine_agreement_supplies_language_competence": {"const": false},
+        "accepted_translation_gate": {
+          "const": "blocked-without-source-language-competent-human-review"
+        }
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_tasks_created",
+        "models_run",
+        "accepted_german_units",
+        "accepted_translation_packets",
+        "comparator_revealed_in_new_episode",
+        "semantic_tasks_opened",
+        "graph_or_canon_promotion_authorized",
+        "publication_authorized"
+      ],
+      "properties": {
+        "human_tasks_created": {"const": 0},
+        "models_run": {"const": 0},
+        "accepted_german_units": {"const": 0},
+        "accepted_translation_packets": {"const": 0},
+        "comparator_revealed_in_new_episode": {"const": false},
+        "semantic_tasks_opened": {"const": 0},
+        "graph_or_canon_promotion_authorized": {"const": false},
+        "publication_authorized": {"const": false}
+      }
+    },
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+    "authority_boundary": {
+      "const": "text-free exposure and workflow law only: it corrects false blindness claims for future solo human plus AI experiments but creates no source text, candidate, comparator reveal, language competence, accepted translation, semantics, graph truth, canon, publication, server transfer, model run, or human task"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(agent|work|expression|edition|collection|item|file|passage|region|anchor|occurrence|annotation|claim|rights|review|event)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))ToS/[A-Za-z0-9._/-]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRef"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "humanExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_ref",
+        "declaration_posture",
+        "exposure_posture",
+        "historical_lived_exposure",
+        "current_project_comparator_exposure",
+        "personal_life_context_included",
+        "fresh_comparator_redisplay_policy",
+        "independence_claim"
+      ],
+      "properties": {
+        "actor_ref": {"const": "human:dionysus"},
+        "declaration_posture": {"const": "operator-self-report"},
+        "exposure_posture": {
+          "const": "work-level-lived-exposure-and-current-project-comparator-exposure"
+        },
+        "historical_lived_exposure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "work_ref",
+            "declared_duration_years",
+            "declared_modes",
+            "exact_dates_known",
+            "exact_expression_item_and_wording_confirmed"
+          ],
+          "properties": {
+            "work_ref": {
+              "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+            },
+            "declared_duration_years": {"const": 5},
+            "declared_modes": {
+              "const": [
+                "repeated-reading",
+                "listening",
+                "speaking-aloud",
+                "memorization"
+              ]
+            },
+            "exact_dates_known": {"const": false},
+            "exact_expression_item_and_wording_confirmed": {"const": false}
+          }
+        },
+        "current_project_comparator_exposure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "expression_ref",
+            "item_ref",
+            "scope",
+            "evidence",
+            "observation_attested_as_review",
+            "content_retention_inferred"
+          ],
+          "properties": {
+            "expression_ref": {
+              "const": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution"
+            },
+            "item_ref": {
+              "const": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf"
+            },
+            "scope": {
+              "const": "antonovsky-2007-page-11-source-visible-workbench-observation"
+            },
+            "evidence": {"$ref": "#/$defs/digestBoundRef"},
+            "observation_attested_as_review": {"const": false},
+            "content_retention_inferred": {"const": false}
+          }
+        },
+        "personal_life_context_included": {"const": false},
+        "fresh_comparator_redisplay_policy": {
+          "const": "withheld-from-future-candidate-production-until-freeze"
+        },
+        "independence_claim": {
+          "const": "not-independent-of-known-comparator-exposure"
+        }
+      }
+    },
+    "aiCandidateExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_ref",
+        "prompt_comparator_exposure",
+        "retrieval_comparator_exposure",
+        "session_comparator_exposure",
+        "other_candidate_exposure",
+        "model_training_exposure",
+        "allowed_independence_claim",
+        "receipt_required",
+        "freeze_before_reveal"
+      ],
+      "properties": {
+        "actor_ref": {"const": "model:run-specific-candidate-producer"},
+        "prompt_comparator_exposure": {"const": "none-required"},
+        "retrieval_comparator_exposure": {"const": "none-required"},
+        "session_comparator_exposure": {"const": "none-required"},
+        "other_candidate_exposure": {"const": "none-required"},
+        "model_training_exposure": {"const": "unknown-and-unverifiable"},
+        "allowed_independence_claim": {
+          "const": "operational-context-isolated-not-training-independent"
+        },
+        "receipt_required": {"const": true},
+        "freeze_before_reveal": {"const": true}
+      }
+    },
+    "comparisonExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_ref",
+        "comparator_visible_only_after_candidate_freeze",
+        "candidate_input_must_be_frozen",
+        "exposure_event_required",
+        "output_role",
+        "candidate_independence_inherited"
+      ],
+      "properties": {
+        "actor_ref": {"const": "model:run-specific-post-freeze-comparator-analyst"},
+        "comparator_visible_only_after_candidate_freeze": {"const": true},
+        "candidate_input_must_be_frozen": {"const": true},
+        "exposure_event_required": {"const": true},
+        "output_role": {"const": "comparison-evidence-only"},
+        "candidate_independence_inherited": {"const": false}
+      }
+    }
+  }
+}

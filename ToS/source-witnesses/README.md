@@ -1219,3 +1219,16 @@ blind `abyss-stack` model/prompt/runtime calibration only. It does not make
 the string philologically accepted, revalidate the older canon role, open any
 lane in the frozen translation plan, reveal a translation surface, authorize
 redistribution, or create semantic, graph, or canon evidence.
+
+The additive `translation-exposure-aware-plan.v1.json` now corrects one
+historical method assumption without rewriting that frozen plan. Comparator
+exposure is recorded per actor and event: the current operator's five-year
+Work-level lived route remains witness-unspecified, while the exact Antonovsky
+2007 page already seen in the current project independently prohibits a
+`blind-human-only` label; a run-specific AI
+producer may claim only operational prompt/retrieval/session isolation while
+training exposure remains unknown; and post-freeze comparator analysis is
+comparison evidence rather than a candidate. The current `ai_human` route is
+an exposure-aware assisted retranslation. It creates no German competence,
+accepted translation, comparator reveal, human task, semantic or graph
+promotion, publication, or server transfer.

@@ -64,6 +64,7 @@ judgment true.
 | `translation-alignment-packet-v1.schema.json` | additive stand-off source/target mapping packet binding exact Work/Expression/Edition/Item/File, frozen text-layer, segmentation/tokenization, and ordered anchor identities; separate alignment/claim/review/projection identities; explicit cardinality, omission, addition, reorder, uncertainty, competition, supersession, human competence, and most-restrictive visibility; machine proposals cannot accept themselves and TEI/Web Annotation/XLIFF/TMX/graph forms remain derived |
 | `translation-packet.schema.json` | source-accepted lifecycle packet binding independent frozen analyses to human, AI, machine-alternative, and AI+human drafts before comparator reveal, comparison, change tracking, and human adjudication |
 | `translation-laboratory-plan.schema.json` | exact source-first 17-stage translation order, real-human lane law, sealed comparator, model-candidate posture, and source-acceptance gate |
+| `translation-exposure-aware-plan.schema.json` | additive solo+AI correction that keeps the historical plan frozen while scoping comparator exposure per actor/event, distinguishing operational model-context isolation from unknown training exposure, prohibiting a false blind-human baseline, and keeping German competence, accepted translation, publication, and routine human work closed |
 | `translation-reference-register.schema.json` | dated dictionaries, corpora, critical editions, lexical resources, and translation witnesses with separate scholarly, access, rights, citation, and admission posture |
 | `translation-pre-draft-analysis.schema.json` | source-accepted, comparator-blind morphology-to-interlinear evidence packets kept independent for real-human, AI-only, and machine-alternative lanes |
 | `semantic-ladder-packet.schema.json` | v4 task-specific form-to-graph sequence separating an attested Edition reading from language competence: exact-form, frequency, context, and typed model proposals may advance without becoming reviewed German; promotion still requires competence-appropriate and real-human evidence, distinct occurrence/lexeme/sign/concept/claim/relation identities, competing readings, and a disposable non-authoritative projection; no prepared occurrence creates routine human work |
@@ -135,12 +136,17 @@ A schema validator can establish that:
 - an anchor offers declared selectors;
 - a transformation names inputs and outputs;
 - a claim includes layer, evidence, maker, and review posture;
-- a translation packet permits honest preparation without fabricated final
+- the frozen historical translation packet permits honest preparation without fabricated final
   evidence, binds every frozen draft to its own blind pre-draft packet, requires
   at least two machine alternatives, freezes human-only and AI-only work before
   AI+human collaboration, seals recognized witnesses until all blind drafts are
   frozen, and preserves post-reveal changes, rejected alternatives, and
   real-human adjudication as separate records;
+- the active exposure-aware overlay preserves that historical packet while
+  requiring actor/event exposure snapshots, prohibiting the current operator's
+  false blind-human baseline, limiting AI independence to current-context
+  isolation, keeping model-training exposure unknown, and admitting no
+  accepted translation or routine human work;
 - a sample plan contains the declared number of source-balanced units and gold
   candidates frozen before outputs;
 - an OCR projection resolves every visual page to an exact item/file/anchor,
@@ -177,14 +183,14 @@ A schema validator can establish that:
   one exact upstream model revision before download or output, and keeps
   relevance, human metrics, winner selection, publication, and promotion
   unavailable until their separate gates are actually satisfied;
-- a translation-laboratory plan preserves the exact workflow order, keeps all
+- the historical translation-laboratory plan preserves its exact workflow order, keeps all
   four draft lanes blocked before source acceptance, and forbids comparator
   consultation while sealed;
 - a translation-reference register covers every required source category,
   resolves local witness identities, prepares contact routes for restricted
   resources, and keeps all reference content unadmitted before human
   bibliographic and rights review;
-- a blind pre-draft packet requires two real-human source-acceptance passes,
+- a legacy blind pre-draft packet requires two real-human source-acceptance passes,
   preserves the nine morphology-to-interlinear stages in order, rejects AI
   assistance or machine-authored findings in the human-only lane, rejects
   human editing in model lanes, keeps comparators and other lanes hidden, and
