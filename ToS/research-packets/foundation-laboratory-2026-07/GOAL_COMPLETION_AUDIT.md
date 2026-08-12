@@ -25,10 +25,12 @@ receipt into proof of textual or philosophical completion. It distinguishes:
 
 The owner snapshots used for the latest mechanical reconciliation are:
 
-- Tree of Sophia source evidence through reviewed checkpoint `05e9816f`
-  (`Bridge authored Zarathustra canon to source evidence`), retaining the
-  Antonovsky witness-collation foundation at `45b730e4`, the opening-sentence
-  alignment proposal at `463b0230`, the exact Antonovsky target-text checkpoint
+- Tree of Sophia source evidence through reviewed checkpoint `7acbb301`
+  (`Record admitted contextual morphology result`), retaining the executable
+  ZDL stop line at `05e9816f`, the authored source-evidence bridge at
+  `906ff637`, the Antonovsky witness-collation foundation at `45b730e4`, the
+  opening-sentence alignment proposal at `463b0230`, the exact Antonovsky
+  target-text checkpoint
   `6fcb68cf`, the exact DTA source-
   text checkpoint `68bc75a7`, the stable source-text unit checkpoint
   `084627ae`, and following reviewed source-anchor v2 `8f3b95b2`, source-text-
@@ -118,9 +120,10 @@ private-research-only handling remain an independent rights gate; a future
 production `runtime` consumer would additionally require its own non-local
 trust-root and release-lifecycle proof.
 
-The later additive contextual-morphology execution at reviewed checkpoint
-`a321401b` preserves that exact negative event and closes a different artifact
-identity. A source-free build of the first admitted successor exposed a
+The later additive contextual-morphology execution at reviewed `abyss-stack`
+checkpoint `a321401b` and Tree result checkpoint `7acbb301` preserves that
+exact negative event and closes a different artifact identity. A source-free
+build of the first admitted successor exposed a
 spaCy/Typer/Click import gap before any Nietzsche packet was consumed. The
 freezer now rejects that import-incomplete graph. A corrected 42-wheel bundle
 pins Click 8.2.1, Typer 0.24.1, and typer-slim 0.24.0, is latest-eligible and
