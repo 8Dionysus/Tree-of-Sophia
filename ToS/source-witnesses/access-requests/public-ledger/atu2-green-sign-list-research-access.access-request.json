@@ -1,0 +1,81 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/access-request.schema.json",
+  "schema_version": "tos_access_request_v1",
+  "request_id": "tos.access-request.atu2-green-sign-list-research-access",
+  "material": {
+    "title": "Zeichenliste der archaischen Texte aus Uruk",
+    "responsibility": "Margaret W. Green and Hans J. Nissen; Green's Sign List at pages 167-345; collaboration by Peter Damerow and Robert K. Englund",
+    "edition_or_resource": "Archaische Texte aus Uruk, Band 2; Berlin: Gebr. Mann, 1987",
+    "requested_portion": "Tier 1: exact front matter and table of contents sufficient to verify all component boundaries. Tier 2, only if lawful copying or research access is available: Margaret W. Green's Sign List, pages 167-345. A smaller representative page sample or reading-room route is acceptable if the complete portion cannot be supplied.",
+    "identifiers": [
+      {"scheme": "ATU", "value": "2"},
+      {"scheme": "ISBN", "value": "978-3-7861-1439-0"},
+      {"scheme": "CDLI publication", "value": "1638433"},
+      {"scheme": "KeiBi", "value": "KEI00054231"}
+    ],
+    "tos_refs": [
+      "tos.work.proto-cuneiform.atu-2-green-sign-list",
+      "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987"
+    ],
+    "discovery_refs": [
+      "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu2-signlist-critical-edition.2026-08-12.v1.json"
+    ]
+  },
+  "rights_holder_or_institution": {
+    "name": "Universitätsbibliothek Tübingen",
+    "role": "library",
+    "identification_evidence_urls": [
+      "https://ub.uni-tuebingen.de/",
+      "https://ocb.uni-tuebingen.de/Record/KEI00054231"
+    ],
+    "identity_status": "identified"
+  },
+  "contact_route": {
+    "channel_type": "institutional-form",
+    "public_institutional_url": "https://ub.uni-tuebingen.de/einrichtungen/universitaetsbibliothek/formulare/schreiben-sie-uns/",
+    "refreshed_at": "2026-08-12T12:36:00-06:00",
+    "personal_contact_committed": false
+  },
+  "project_description_ref": "README.md",
+  "research_purpose": "Establish exact bibliographic and page-level provenance for a historical Proto-Cuneiform sign list; compare its printed identity system with later reviewed scholarship and current PCSL/Unicode coordinates while keeping every source, concordance, reading, and interpretation separate.",
+  "requested_format": "Lawful reading-room access, interlibrary route, or a source-faithful PDF scan with stable page order and the institution's copying and research-use conditions. No public source-file hosting is requested.",
+  "requested_permissions": {
+    "local_access": "requested",
+    "ocr_or_transcription": "not-requested",
+    "indexing": "not-requested",
+    "embeddings": "not-requested",
+    "quotation": "not-requested",
+    "metadata_publication": "not-requested",
+    "derivative_publication": "not-requested",
+    "server_processing": "not-requested",
+    "source_redistribution": "not-requested"
+  },
+  "local_storage_conditions": {
+    "access_controlled": true,
+    "source_payload_gitignored": true,
+    "location_class": "operator-controlled-local-ToS-storage",
+    "retention_posture": "Retain only under the supplied library or rights conditions; preserve fixity and provenance metadata; support expiry review and deletion.",
+    "removal_supported": true
+  },
+  "non_redistribution_without_permission": true,
+  "technical_access_bypass_used": false,
+  "access_status": "rights-unknown",
+  "request_status": "draft-not-sent",
+  "human_send_approval": false,
+  "sent_at": null,
+  "response": {
+    "state": "none",
+    "received_at": null,
+    "permission_expires_at": null,
+    "conditions": [],
+    "safe_evidence_refs": []
+  },
+  "private_correspondence_ref": null,
+  "redacted_public_receipt_ref": null,
+  "personal_or_confidential_data_committed": false,
+  "rights_record_refs": [],
+  "provenance_event_refs": [
+    "tos.event.access-request-draft.atu2-green-sign-list-research-access.2026-08-12"
+  ],
+  "record_version": 1
+}

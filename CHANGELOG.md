@@ -9,6 +9,17 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Added
 
+- Planted the exact A01 `ATU 2 — Zeichenliste der archaischen Texte aus
+  Uruk [24]` backlog row through the existing bibliographic spine. Ordered
+  official/classical, established, and fresh research resolves the 377-page
+  1987 volume as an aggregate Collection, keeps Margaret W. Green's Sign List
+  at pp. 167-345 separate from Damerow and Englund's numerical-systems Work at
+  pp. 117-166, rejects a review and a 56-page chapter as false full-book
+  routes, and prepares one tiered library access request without sending it.
+  The planting now binds an exact Work, Collection, and `contains_work` claim;
+  ZATU coordinates, PCSL OIDs, and provisional Unicode values remain distinct.
+  No source payload, sign entry, reading, concordance, semantics, graph/canon
+  promotion, human task, or redistribution permission was created.
 - Added a provider-independent scholarly-composite witness spine and planted
   the exact A01 `DCCLT link from P000015 [24]` backlog row through DCCLT
   `Q000023` / CDLI `P471693`. Ordered official/classical, established, and

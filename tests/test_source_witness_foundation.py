@@ -3154,6 +3154,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             if line.strip()
             for entry in (json.loads(line),)
         }
+        nietzsche_work_entries = {
+            record_id: entry
+            for record_id, entry in work_entries.items()
+            if record_id.startswith("tos.work.friedrich-nietzsche.")
+        }
         object_ids = {
             entry["record_id"]
             for filename in catalog_builder.RECORD_FILES.values()
@@ -3191,10 +3196,10 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(96, manifest["counts"]["object_total"])
-        self.assertEqual(140, manifest["counts"]["claim"])
-        self.assertEqual(236, manifest["counts"]["total"])
-        self.assertEqual(140, len(claim_entries))
+        self.assertEqual(103, manifest["counts"]["object_total"])
+        self.assertEqual(145, manifest["counts"]["claim"])
+        self.assertEqual(248, manifest["counts"]["total"])
+        self.assertEqual(145, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3232,7 +3237,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "bibliographic_assertion": 123,
+                "bibliographic_assertion": 128,
                 "scholarly_report": 17,
             },
             {
@@ -3303,8 +3308,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(7, len(authorship_claims))
-        self.assertEqual(set(work_entries), {entry["subject_ref"] for entry in authorship_claims})
+        self.assertEqual(10, len(authorship_claims))
+        nietzsche_authorship_claims = [
+            entry
+            for entry in authorship_claims
+            if entry["subject_ref"] in nietzsche_work_entries
+        ]
+        self.assertEqual(7, len(nietzsche_authorship_claims))
+        self.assertEqual(
+            set(nietzsche_work_entries),
+            {entry["subject_ref"] for entry in nietzsche_authorship_claims},
+        )
         self.assertTrue(
             all(
                 entry["object"] == "tos.agent.friedrich-nietzsche"
@@ -3312,16 +3326,39 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 == {"maker_type": "model", "agent_ref": "model:codex"}
                 and entry["review_status"] == "unreviewed"
                 and entry["visibility"] == "public_metadata_only"
-                for entry in authorship_claims
+                for entry in nietzsche_authorship_claims
             )
         )
-        for claim in authorship_claims:
+        for claim in nietzsche_authorship_claims:
             self.assertEqual(
                 [claim["claim_id"]],
                 work_entries[claim["subject_ref"]]["links"][
                     "responsibility_claim_refs"
                 ],
             )
+        proto_cuneiform_authors = {
+            entry["subject_ref"]: entry["object"]
+            for entry in authorship_claims
+            if entry["subject_ref"]
+            == "tos.work.proto-cuneiform.atu-2-green-sign-list"
+        }
+        self.assertEqual(
+            {
+                "tos.work.proto-cuneiform.atu-2-green-sign-list":
+                "tos.agent.margaret-w-green"
+            },
+            proto_cuneiform_authors,
+        )
+        numerical_system_authors = {
+            entry["object"]
+            for entry in authorship_claims
+            if entry["subject_ref"]
+            == "tos.work.proto-cuneiform.die-zahlzeichensysteme-der-archaischen-texte-aus-uruk"
+        }
+        self.assertEqual(
+            {"tos.agent.peter-damerow", "tos.agent.robert-k-englund"},
+            numerical_system_authors,
+        )
         chronology_claims = [
             entry
             for entry in claim_entries
@@ -3329,7 +3366,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         ]
         self.assertEqual(7, len(chronology_claims))
         self.assertEqual(
-            set(work_entries),
+            set(nietzsche_work_entries),
             {entry["subject_ref"] for entry in chronology_claims},
         )
         for claim in chronology_claims:

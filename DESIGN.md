@@ -90,6 +90,12 @@ page, reconstructed line, translation, and interpretation. Provider coverage
 is a dated observation: a short visible source list cannot silently override a
 stronger exact membership record or become a negative fact.
 
+Aggregate printed volumes remain bibliographic rather than becoming
+`tos.composite.*` by analogy. A branch source planting may bind one exact
+`Work` through its `Collection` and `contains_work` claim. This preserves the
+named source contribution while keeping other chapters, editions, Items, and
+rights states independently addressable.
+
 At the address layer, the anchor identity, immutable File target, selected
 representation digest, and selector expression remain distinct. Text
 positions are Unicode-code-point half-open spans; byte positions are another

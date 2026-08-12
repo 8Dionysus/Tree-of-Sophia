@@ -12535,6 +12535,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             location = f"{_relative(discovery_provenance_path, repo_root)}:{index}"
             if event_id in discovery_events:
                 issues.append((location, f"duplicate discovery provenance event_id: {event_id}"))
+            if event_id in event_ids:
+                issues.append((location, f"duplicate event_id: {event_id}"))
+            else:
+                event_ids.add(event_id)
+                events_by_id[event_id] = event
+            _validate_payload(event, provenance_validator, location, issues)
+            _validate_source_refs(repo_root, event, location, issues)
             discovery_events[event_id] = (event, location)
 
     artifact_ids: set[str] = set()

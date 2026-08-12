@@ -1,0 +1,50 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "collection",
+  "record_id": "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987",
+  "preferred_label": "Zeichenliste der archaischen Texte aus Uruk (ATU 2), Green and Nissen, 1987",
+  "variant_labels": [
+    {
+      "value": "ATU 2",
+      "language": "und",
+      "source_ref": "https://cdli.earth/publications/1638433",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU2_SIGNLIST_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+    "ToS/source-witnesses/discovery/runs/proto-cuneiform-atu2-signlist-critical-edition.2026-08-12.v1.json",
+    "https://cdli.earth/publications/1638433",
+    "https://ocb.uni-tuebingen.de/Record/KEI00054231",
+    "https://libris.kb.se/bib/5961231"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "ISBN",
+      "value": "978-3-7861-1439-0",
+      "source_ref": "https://libris.kb.se/bib/5961231",
+      "status": "verified"
+    },
+    {
+      "scheme": "CDLI publication",
+      "value": "1638433",
+      "source_ref": "https://cdli.earth/publications/1638433",
+      "status": "verified"
+    },
+    {
+      "scheme": "KeiBi",
+      "value": "KEI00054231",
+      "source_ref": "https://ocb.uni-tuebingen.de/Record/KEI00054231",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "membership_claim_refs": [
+    "tos.claim.collection.proto-cuneiform.atu-2.contains-green-sign-list",
+    "tos.claim.collection.proto-cuneiform.atu-2.contains-die-zahlzeichensysteme"
+  ],
+  "notes": "A 377-page aggregate scholarly volume reported under the joint responsibility of Margaret W. Green and Hans J. Nissen, with collaboration by Peter Damerow and Robert K. Englund. Only two source-reported contained works are materialized here: Green's Sign List (pp. 167-345) and Damerow-Englund's numerical-systems contribution (pp. 117-166). Other sections remain unresolved rather than invented.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

@@ -139,6 +139,17 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         )
         self.assertEqual([], list(validator.iter_errors(composite_planting)))
 
+        bibliographic_planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "atu2-green-sign-list/source-planting.json"
+        )
+        bibliographic_planting = json.loads(
+            bibliographic_planting_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual([], list(validator.iter_errors(bibliographic_planting)))
+
         false_graph_promotion = copy.deepcopy(planting)
         false_graph_promotion["authority"]["graph_status"] = "promoted"
         self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
@@ -150,6 +161,10 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
         false_composite_promotion = copy.deepcopy(composite_planting)
         false_composite_promotion["authority"]["source_text_admitted"] = True
         self.assertTrue(list(validator.iter_errors(false_composite_promotion)))
+
+        unbound_bibliographic_planting = copy.deepcopy(bibliographic_planting)
+        del unbound_bibliographic_planting["source_witness"]["membership_claim_ref"]
+        self.assertTrue(list(validator.iter_errors(unbound_bibliographic_planting)))
 
     def test_research_packet_route_traversal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

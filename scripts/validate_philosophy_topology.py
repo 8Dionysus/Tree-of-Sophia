@@ -369,6 +369,54 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                     record = load_json(root, Path(record_ref), issues)
                     if record is not None and record.get("composite_id") != source_witness.get("composite_id"):
                         issues.append((planting_ref, "source-witness composite_id differs from its exact record"))
+            elif "work_id" in source_witness:
+                work_id = source_witness.get("work_id")
+                container_id = source_witness.get("container_id")
+                container_ref = source_witness.get("container_ref")
+                membership_claim_ref = source_witness.get("membership_claim_ref")
+                if not isinstance(record_ref, str) or not record_ref.startswith("ToS/source-witnesses/works/"):
+                    issues.append((planting_ref, "work source witness must route to the bibliographic Work spine"))
+                else:
+                    record = load_json(root, Path(record_ref), issues)
+                    if record is not None and (
+                        record.get("record_type") != "work"
+                        or record.get("record_id") != work_id
+                    ):
+                        issues.append((planting_ref, "source-witness work_id differs from its exact Work record"))
+                container = None
+                if not isinstance(container_ref, str) or not container_ref.startswith("ToS/source-witnesses/collections/"):
+                    issues.append((planting_ref, "bibliographic Work container must route to the Collection spine"))
+                else:
+                    container = load_json(root, Path(container_ref), issues)
+                    if container is not None and (
+                        container.get("record_type") != "collection"
+                        or container.get("record_id") != container_id
+                    ):
+                        issues.append((planting_ref, "source-witness container_id differs from its exact Collection record"))
+                if isinstance(container, dict) and membership_claim_ref not in container.get("membership_claim_refs", []):
+                    issues.append((planting_ref, "bibliographic Work membership claim is absent from its Collection record"))
+                if isinstance(container_ref, str):
+                    membership_path = root / Path(container_ref).parent / "membership-claims.jsonl"
+                    membership_claims: list[dict[str, object]] = []
+                    try:
+                        membership_claims = [
+                            json.loads(line)
+                            for line in membership_path.read_text(encoding="utf-8").splitlines()
+                            if line.strip()
+                        ]
+                    except (FileNotFoundError, json.JSONDecodeError) as exc:
+                        issues.append((planting_ref, f"cannot resolve bibliographic Work membership claims: {exc}"))
+                    else:
+                        exact_memberships = [
+                            claim
+                            for claim in membership_claims
+                            if claim.get("claim_id") == membership_claim_ref
+                            and claim.get("subject_ref") == container_id
+                            and claim.get("predicate") == "contains_work"
+                            and claim.get("object") == work_id
+                        ]
+                        if len(exact_memberships) != 1:
+                            issues.append((planting_ref, "bibliographic Work planting lacks one exact Collection membership claim"))
             else:
                 issues.append((planting_ref, "source witness has no admitted identity field"))
 

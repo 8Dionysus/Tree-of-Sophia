@@ -57,6 +57,12 @@ documentary comparison without turning the reconstruction into a physical
 object, ancient original, accepted reading, fixed sign meaning, or semantic
 fact.
 
+Book-like backlog anchors keep the bibliographic ladder intact. When the named
+source is one work inside an aggregate critical volume, a planting identifies
+the exact `Work`, its `Collection` container, and the evidence-bearing
+`contains_work` claim; it does not flatten the whole volume into one work or
+pretend that an accessible chapter is the complete book.
+
 A durable address is not a naked offset. Its persistent anchor ID, immutable
 target file, exact representation state, selector semantics, mechanical
 resolution, human review, and publication posture stay separate. The additive

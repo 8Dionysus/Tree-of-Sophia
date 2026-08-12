@@ -123,6 +123,11 @@ volumes route through `collections/` and point to contained works/expressions
 with evidence-bearing membership claims. A collection is not duplicated under
 every contained work.
 
+When a philosophy backlog names one contribution inside an aggregate volume,
+its source planting cites the contained Work, the Collection container, and
+the exact `contains_work` claim together. A table of contents, review link, or
+separately accessible chapter cannot silently stand in for the whole volume.
+
 Physical artifacts that do not naturally enter that bibliographic ladder use
 the parallel `artifacts/` spine. Its route is based on physical, excavation, or
 custody identity rather than a current provider. The artifact, catalog record,

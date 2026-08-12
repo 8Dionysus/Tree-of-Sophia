@@ -1,0 +1,292 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-atu2-signlist-critical-edition.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "critical-edition",
+    "known_tos_refs": [
+      "tos.work.proto-cuneiform.atu-2-green-sign-list",
+      "tos.collection.proto-cuneiform.zeichenliste-der-archaischen-texte-aus-uruk-atu-2-green-nissen-1987"
+    ],
+    "description": "Resolve the A01 ATU 2 sign-list anchor as an exact contained Work inside its aggregate 1987 volume, distinguish partial files and false full-text routes, preserve established corrections, and check the current 2026 sign-identity frontier without acquiring source text.",
+    "required_properties": [
+      "exact 1987 volume and Edition identity",
+      "Green sign-list Work separated from the aggregate volume",
+      "Damerow-Englund numerical-systems Work separated from Green's sign list",
+      "recognized review and corpus-update controls",
+      "fresh PCSL and Unicode identity status",
+      "layer-specific access and redistribution posture"
+    ],
+    "acceptable_substitutions": [
+      "a lawfully supplied complete ATU 2 Item with exact front matter and fixity",
+      "a library-provided copy of Green pages 167-345 with explicit research-use terms",
+      "a later critical sign list that supplies explicit ATU 2 concordances without erasing the historical coordinate"
+    ],
+    "languages": ["de", "en", "und"],
+    "formats": ["book metadata", "critical-edition catalog", "review article", "authorized preprint", "sign-list web data", "Unicode proposal", "rights terms"],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_ATU2_SIGNLIST_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-atu2-official-bibliography",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "CDLI publication bibliography plus Tübingen KeiBi, LIBRIS, WorldCat, and Google Books controls",
+      "endpoint_url": "https://cdli.earth/publications/1638433",
+      "interface_type": "web",
+      "interface_version": "current records checked 2026-08-12",
+      "exact_query": "Resolve Green1987ATU2 / ATU 2, publication extent, ISBN, series, contributors, contained-work page boundaries, and every apparent full-text link before selecting a witness.",
+      "queried_at": "2026-08-12T12:20:00-06:00",
+      "elapsed_seconds": 3.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.atu2-exact-volume-and-component-boundaries",
+          "rank": 1,
+          "title_as_displayed": "Zeichenliste der archaischen Texte aus Uruk",
+          "result_url": "https://cdli.earth/publications/1638433",
+          "originating_record_url": "https://ocb.uni-tuebingen.de/Record/KEI00054231",
+          "identifiers": [
+            {"scheme": "ATU", "value": "2"},
+            {"scheme": "CDLI publication", "value": "1638433"},
+            {"scheme": "ISBN", "value": "978-3-7861-1439-0"},
+            {"scheme": "KeiBi", "value": "KEI00054231"}
+          ],
+          "available_formats": ["bibliographic HTML", "BibTeX", "RIS", "union-catalog records", "component page ranges"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "CDLI fixes the book identity; KeiBi fixes Green's Sign List at pp. 167-345 and the distinct Damerow-Englund contribution at pp. 117-166; LIBRIS and Google Books corroborate 377 pages and ISBN.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "Public metadata was sufficient for the bounded bibliographic identity planting."}
+        },
+        {
+          "result_id": "tos-discovery-result.aarome-full-text-label-resolves-to-review",
+          "rank": 2,
+          "title_as_displayed": "Full Text Online",
+          "result_url": "https://library.aarome.org/bib/18453",
+          "originating_record_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/1234/",
+          "identifiers": [{"scheme": "AARome bib", "value": "18453"}],
+          "available_formats": ["catalog metadata", "review PDF"],
+          "declared_rights": {"statement": "The resolved Heidelberg object has repository-specific non-CC terms and is a review, not ATU 2.", "scope": "content", "evidence_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/help/license_urhg.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The final object is Krebernik's 1994 review. It is useful scholarship but cannot serve as the full book or Green sign-list Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The redirect target was identity-checked but no PDF was retained."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu2-official-component-access",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "Max Planck authorized preprint, CDLI chapter PDF, and Tübingen preprint record",
+      "endpoint_url": "https://pure.mpg.de/rest/items/item_3377273_2/component/file_3377274/content",
+      "interface_type": "web",
+      "interface_version": "official endpoints checked 2026-08-12",
+      "exact_query": "Identify every accessible ATU 2-related PDF by title, authorship, extent, and publication role; reject any partial contribution as the complete volume or Green sign list.",
+      "queried_at": "2026-08-12T12:23:00-06:00",
+      "elapsed_seconds": 2.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.damerow-englund-authorized-preprint",
+          "rank": 1,
+          "title_as_displayed": "Die Zahlzeichensysteme der archaischen Texte aus Uruk",
+          "result_url": "https://pure.mpg.de/rest/items/item_3377273_2/component/file_3377274/content",
+          "originating_record_url": "https://vergil.uni-tuebingen.de/keibi/Record/KEI00058579?lng=de",
+          "identifiers": [{"scheme": "KeiBi", "value": "KEI00058579"}],
+          "available_formats": ["authorized preprint PDF", "bibliographic metadata"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The source independently identifies the numerical-systems Work and its intended relation to Green's sign list. It is research evidence, not Green's pages or a proven reusable Item.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The official preprint was read through the web route; no source payload entered ToS."}
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-englund1987a-partial-chapter",
+          "rank": 2,
+          "title_as_displayed": "Damerow and Englund 1987, pp. 117-166",
+          "result_url": "https://cdli.earth/files-up/publications/englund1987a.pdf",
+          "originating_record_url": "https://cdli.earth/authors/630?update_events%5Bpage%5D=6",
+          "identifiers": [{"scheme": "CDLI file", "value": "englund1987a.pdf"}],
+          "available_formats": ["56-page PDF", "author bibliography"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "defer",
+          "rationale": "This is the numerical-systems contribution, not the 377-page volume and not Green's pp. 167-345. Rights and exact edition/preprint relation remain unresolved.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current slice needs identity, not content acquisition."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu2-established-scholarship",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "scholarly-index",
+      "source_name": "Krebernik 1994 review and Born-Kelley 2021 corpus control",
+      "endpoint_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/1234/1/Krebernik_REZ_Green_Nissen_Zeichenliste_1994.pdf",
+      "interface_type": "web",
+      "interface_version": "repository and article pages checked 2026-08-12",
+      "exact_query": "Read the recognized direct review of ATU 2 and the strongest later corpus-scale sign-use control; retain methodological limits without copying sign-list content.",
+      "queried_at": "2026-08-12T12:27:00-06:00",
+      "elapsed_seconds": 2.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.krebernik-1994-atu2-review",
+          "rank": 1,
+          "title_as_displayed": "Rezension zu Green/Nissen, Zeichenliste der archaischen Texte aus Uruk",
+          "result_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/1234/1/Krebernik_REZ_Green_Nissen_Zeichenliste_1994.pdf",
+          "originating_record_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/1234/",
+          "identifiers": [{"scheme": "journal", "value": "OLZ 89 (1994), 380-385"}],
+          "available_formats": ["review PDF", "repository metadata"],
+          "declared_rights": {"statement": "Public repository access does not grant further public reproduction under the displayed non-CC terms.", "scope": "content", "evidence_url": "https://archiv.ub.uni-heidelberg.de/propylaeumdok/help/license_urhg.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The direct review both recognizes ATU 2 as indispensable and documents grouping, notation, identification, naming, and attestation limits that must constrain later concordance work.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The review was consulted through its repository route and not republished."}
+        },
+        {
+          "result_id": "tos-discovery-result.born-kelley-2021-sign-use-control",
+          "rank": 2,
+          "title_as_displayed": "A Quantitative Analysis of Proto-Cuneiform Sign Use in Archaic Tribute",
+          "result_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "originating_record_url": "https://cdli.earth/articles/cdlb/2021-6",
+          "identifiers": [{"scheme": "CDLB", "value": "2021:6"}],
+          "available_formats": ["open scholarly article", "frequency data and code links"],
+          "declared_rights": {"statement": "Article text is CC BY 4.0 except separately governed artifact images.", "scope": "content", "evidence_url": "https://cdli.earth/articles/cdlb/2021-6", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The article makes sign frequencies versioned corpus snapshots, preserves reassessment of sign names, excludes editorial composites where they distort counts, and rejects simple one-sign-one-translation glosses.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "The current task records method and license only; article content and data were not mirrored."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu2-fresh-sign-identity",
+      "sequence": 4,
+      "channel_type": "identifier-registry",
+      "role": "scholarly-index",
+      "source_name": "Unicode Proto-Cuneiform proposal, UTC minutes, 2026 pipeline, UTR 56, and PCSL OID pages",
+      "endpoint_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+      "interface_type": "web",
+      "interface_version": "Unicode Pipeline updated 2026-08-04 and live PCSL pages checked 2026-08-12",
+      "exact_query": "Verify the freshest official status of Proto-Cuneiform character allocation and inspect how PCSL OIDs, ZATU numbers, corpus instances, allographs, and proposed code points are kept distinct.",
+      "queried_at": "2026-08-12T12:31:00-06:00",
+      "elapsed_seconds": 3.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.unicode-proto-cuneiform-provisional-2026",
+          "rank": 1,
+          "title_as_displayed": "Proposal to encode Proto-Cuneiform / Proposed New Characters Pipeline",
+          "result_url": "https://www.unicode.org/L2/L2025/25211-proto-cuneiform.pdf",
+          "originating_record_url": "https://www.unicode.org/alloc/Pipeline.html",
+          "identifiers": [{"scheme": "Unicode document", "value": "L2/25-211"}, {"scheme": "UTC action", "value": "185-C2"}],
+          "available_formats": ["official proposal PDF", "UTC minutes", "live allocation pipeline"],
+          "declared_rights": {"statement": "Unicode technical-document terms apply; no document body or character data is republished in this planting.", "scope": "content", "evidence_url": "https://www.unicode.org/copyright.html", "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The official pipeline still marks 1,392 Proto-Cuneiform characters at U+12690..U+12BFF as provisional on 2026-08-12. Proposed values are current technical coordinates, not durable ToS identity.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "Currentness is preserved by dated direct references rather than a tracked copy."}
+        },
+        {
+          "result_id": "tos-discovery-result.pcsl-oid-zatu-working-concordance",
+          "rank": 2,
+          "title_as_displayed": "Proto-Cuneiform Sign List",
+          "result_url": "https://oracc.museum.upenn.edu/pcsl/signlist/l0066/o0980090/index.html",
+          "originating_record_url": "https://www.unicode.org/standard/reports/tr56/",
+          "identifiers": [{"scheme": "PCSL OID example", "value": "o0980090"}, {"scheme": "ZATU example", "value": "048"}],
+          "available_formats": ["working sign-list HTML", "corpus-instance links", "technical report"],
+          "declared_rights": {"statement": null, "scope": "content", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "PCSL supplies useful OIDs and historical ZATU concordance, while UTR 56 explicitly retains the working-dataset risk of misreadings, duplicates, unencodable signs, and later deprecation.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-captured", "format": null, "sha256": null, "reason": "No sign-list dataset or proposed code-point table was imported."}
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-atu2-general-web-final",
+      "sequence": 5,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Final web search for a current lawful access and contact route",
+      "endpoint_url": "https://ub.uni-tuebingen.de/einrichtungen/universitaetsbibliothek/formulare/schreiben-sie-uns/",
+      "interface_type": "web",
+      "interface_version": "official university library site checked 2026-08-12",
+      "exact_query": "site:ub.uni-tuebingen.de Digitalisierung Bestellung Reproduktionsauftrag Kontakt Universitätsbibliothek Tübingen; verify the final institution-owned route and reject unrelated publisher-domain guesses",
+      "queried_at": "2026-08-12T12:36:00-06:00",
+      "elapsed_seconds": 1.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tuebingen-library-current-contact-route",
+          "rank": 1,
+          "title_as_displayed": "Universitätsbibliothek Tübingen — Schreiben Sie uns!",
+          "result_url": "https://ub.uni-tuebingen.de/einrichtungen/universitaetsbibliothek/formulare/schreiben-sie-uns/",
+          "originating_record_url": "https://ub.uni-tuebingen.de/",
+          "identifiers": [],
+          "available_formats": ["institutional contact form", "library service information"],
+          "declared_rights": {"statement": null, "scope": "metadata", "evidence_url": null, "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+          "availability": "open-view",
+          "machine_interface": "manual-only",
+          "decision": "select",
+          "rationale": "The current institution-owned form can receive a later human-authorized research-access inquiry. No form was opened with personal data or submitted.",
+          "acquisition": {"downloaded": false, "acquired_at": null, "byte_size": null, "sha256": null, "event_ref": null},
+          "snapshot": {"state": "not-needed", "format": null, "sha256": null, "reason": "The route must be refreshed immediately before any deliberate send."}
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {"channel_id": "channel-atu2-official-bibliography", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 3.8, "notes": "Best identity and component-boundary evidence; also exposes a false full-text route when followed to the final object."},
+    {"channel_id": "channel-atu2-official-component-access", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.9, "notes": "Best evidence that the accessible PDFs are the numerical-systems Work rather than Green's sign list or the full volume."},
+    {"channel_id": "channel-atu2-established-scholarship", "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 2.7, "notes": "Best direct methodological correction and later corpus-scale sign-use control; neither supplies the missing source Item."},
+    {"channel_id": "channel-atu2-fresh-sign-identity", "completeness": "strong", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "adequate", "human_minutes": 0, "machine_seconds": 3.4, "notes": "Best current evidence that PCSL OIDs and Unicode values are working or provisional coordinates rather than permanent sign truth."},
+    {"channel_id": "channel-atu2-general-web-final", "completeness": "limited", "metadata_precision": "strong", "rights_clarity": "limited", "machine_interface_quality": "limited", "human_minutes": 0, "machine_seconds": 1.4, "notes": "Supplies only the current institution-owned contact route after authoritative source work; no external action occurred."}
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.atu2-exact-volume-and-component-boundaries",
+    "tos-discovery-result.damerow-englund-authorized-preprint",
+    "tos-discovery-result.krebernik-1994-atu2-review",
+    "tos-discovery-result.born-kelley-2021-sign-use-control",
+    "tos-discovery-result.unicode-proto-cuneiform-provisional-2026",
+    "tos-discovery-result.pcsl-oid-zatu-working-concordance",
+    "tos-discovery-result.tuebingen-library-current-contact-route"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.aarome-full-text-label-resolves-to-review"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {"maker_type": "model", "agent_ref": "model:codex"},
+  "started_at": "2026-08-12T12:20:00-06:00",
+  "ended_at": "2026-08-12T12:49:58-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-atu2-signlist-critical-edition.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
