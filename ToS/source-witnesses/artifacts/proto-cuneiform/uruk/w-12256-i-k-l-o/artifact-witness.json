@@ -1,0 +1,117 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.proto-cuneiform.uruk.w-12256-i-k-l-o",
+  "artifact_kind": "clay_tablet",
+  "path_identity": {
+    "basis": "excavation_identity",
+    "provider_independent": true,
+    "note": "The route follows the reported W 12256 fragment ensemble rather than the mutable CDLI provider identity."
+  },
+  "identifiers": [
+    {"scheme": "CDLI", "value": "P000015", "source_ref": "https://cdli.earth/P000015"},
+    {"scheme": "museum inventory", "value": "VAT 17858 + VAT 17886", "source_ref": "https://cdli.earth/P000015"},
+    {"scheme": "excavation", "value": "W 12256,i + W 12256,k + W 12256,l + W 12256,o", "source_ref": "https://cdli.earth/P000015"}
+  ],
+  "physical_description": {
+    "material": "clay",
+    "height_mm": 101,
+    "width_mm": 99,
+    "thickness_mm": 30,
+    "source_ref": "https://cdli.earth/P000015"
+  },
+  "dating": {
+    "period_label": "Uruk III",
+    "display_date": "ca. 3200-3000 BC",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://cdli.earth/P000015"
+  },
+  "find_context": {
+    "site": "Uruk (Warka)",
+    "findspot": "Oe XVI,5",
+    "excavation_numbers": ["W 12256,i", "W 12256,k", "W 12256,l", "W 12256,o"],
+    "source_note": "1 m über der Hofmauerkante IVa, 50 cm davor",
+    "documentation_limit": "The cataloged find statement is retained literally; uneven historical excavation documentation and later catalog reconciliation prevent treating it as self-interpreting stratigraphic proof.",
+    "source_ref": "https://cdli.earth/P000015"
+  },
+  "custody": {
+    "current_repository": "Vorderasiatisches Museum Berlin",
+    "inventory_numbers": ["VAT 17858", "VAT 17886"],
+    "source_ref": "https://cdli.earth/P000015"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P000015",
+    "record_url": "https://cdli.earth/P000015",
+    "api_url": "https://cdli.earth/artifacts/15/json",
+    "checked_at": "2026-08-12T11:07:00-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://cdli.earth/P000015", "byte_size": 75350, "sha256": "e5ef879a1b37958da5286c1b8fa89402ad0f09728102ecbc749d1b42ab79e8bd", "captured": false},
+      {"surface": "https://cdli.earth/artifacts/15/json", "byte_size": 8584, "sha256": "1bb9739a321be00ff171a2382058dede3e371cd06f04f9136c57e2baa19d9a67", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "catalog_linked",
+    "language_status": "undetermined",
+    "provider_language_code": "qpc",
+    "normalized_language_code": "und",
+    "script": "proto-cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://cdli.earth/P000015", "https://cdli.earth/artifacts/15/json"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "CDLI composite", "value": "Q000023", "source_ref": "https://cdli.earth/P000015"},
+      {"scheme": "CDLI composite witness", "value": "P471693", "source_ref": "https://cdli.earth/P000015"}
+    ],
+    "relationship": "The catalog links this physical witness to a modern scholarly lexical composite; the composite is not the physical object and is not admitted as source text.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/P000015", "rights_note": "CDLI terms allow online noncommercial use but state that photographs generally belong to holding institutions and require prior written permission for publication."},
+    {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/P000015", "rights_note": "CDLI terms attribute line art to named publication authors and require prior written permission for publication."}
+  ],
+  "scholarly_classification": {
+    "genre": "Lexical",
+    "corpus_labels": ["Archaic Vessels & Garments (witness)", "CDLI Lexical 000023, ex. 091"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://cdli.earth/P000015", "https://cdli.earth/artifacts/15/json"]
+  },
+  "bibliography": [
+    {"citation": "Green and Nissen, Zeichenliste der archaischen Texte aus Uruk, ATU 2 (1987), plate 46.", "role": "primary_publication", "source_ref": "https://cdli.earth/publications/1638433"},
+    {"citation": "Englund and Nissen, Die lexikalischen Listen der archaischen Texte aus Uruk, ATU 3 (1993), plate 66, W 12256i+.", "role": "primary_publication", "source_ref": "https://cdli.earth/publications/1785922"},
+    {"citation": "Nissen, Damerow, and Englund, Archaic Bookkeeping (1993).", "role": "catalog_publication", "source_ref": "https://cdli.earth/publications/1657148"},
+    {"citation": "Born and Kelley, An Updated Sign List for Proto-cuneiform (2021).", "role": "established_control", "source_ref": "https://cdli.earth/articles/cdlb/2021-6"},
+    {"citation": "Nissen, The Excavations in Uruk-Warka and Their Documentation (2024).", "role": "current_control", "source_ref": "https://cdli.earth/articles/cdlj/2024-1"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/proto-cuneiform/uruk/w-12256-i-k-l-o/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-p000015-artifact-source.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-p000015-artifact-source.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_CDLI_P000015_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/plantings/cdli-p000015/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-12T11:10:39-06:00",
+  "record_version": 1
+}

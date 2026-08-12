@@ -6,9 +6,10 @@ This file applies to primary witness and source files under
 ## Role
 
 `ToS/source-witnesses/` holds the corpus evidence spine that grounds authored
-ToS routes: work/expression/edition/item identity, immutable local payloads,
-primary-language text, translations, aligned witnesses, fixity, provenance,
-rights, and forensic evidence.
+ToS routes: bibliographic work/expression/edition/item identity, parallel
+physical-artifact identity, immutable local payloads, primary-language text,
+translations, aligned witnesses, fixity, provenance, rights, and forensic
+evidence.
 
 ## Operating Card
 
@@ -29,6 +30,14 @@ rights, and forensic evidence.
 - Use the identity ladder `work -> expression -> edition -> item -> file`.
   Route multi-work publications through `collections/` and evidence-bearing
   membership claims.
+- Route a physical artifact that is not naturally bibliographic through
+  `artifacts/<tradition>/<site>/<physical-identity>/`. Do not force it into the
+  Work/Expression/Edition/Item ladder or key its durable path to a mutable
+  digital provider.
+- Keep physical artifact, catalog record, inscription or transliteration,
+  scholarly composite, photograph, line art, and interpretation as separate
+  layers. A stable sign or artifact ID does not establish a fixed reading,
+  translation, semantics, philosophy status, graph fact, or canon state.
 - Treat paths as navigation and tracked IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.

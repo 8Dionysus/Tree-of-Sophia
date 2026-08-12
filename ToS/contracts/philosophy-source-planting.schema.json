@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "title": "Tree of Sophia philosophy source planting",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "planting_id",
+    "atlas_row_id",
+    "dossier_id",
+    "branch_path",
+    "source_backlog_anchor",
+    "source_witness",
+    "discovery_ref",
+    "provenance_event_ref",
+    "research_ref",
+    "fulfilled_source_needs",
+    "remaining_controls",
+    "research_order",
+    "authority",
+    "status",
+    "maker",
+    "created_at",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json"},
+    "schema_version": {"const": "tos_philosophy_source_planting_v1"},
+    "planting_id": {"type": "string", "pattern": "^tos\\.planting\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "atlas_row_id": {"type": "string", "pattern": "^A[0-9]{2}$"},
+    "dossier_id": {"type": "string", "pattern": "^A[0-9]{2}$"},
+    "branch_path": {"$ref": "#/$defs/repoPath"},
+    "source_backlog_anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "line", "source_table_index", "source_row_index", "source_label"],
+      "properties": {
+        "path": {"$ref": "#/$defs/repoPath"},
+        "line": {"type": "integer", "minimum": 1},
+        "source_table_index": {"type": "integer", "minimum": 1},
+        "source_row_index": {"type": "integer", "minimum": 1},
+        "source_label": {"type": "string", "minLength": 1}
+      }
+    },
+    "source_witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "record_ref", "relationship"],
+      "properties": {
+        "artifact_id": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "record_ref": {"$ref": "#/$defs/repoPath"},
+        "relationship": {"const": "grounds_source_backlog_anchor"}
+      }
+    },
+    "discovery_ref": {"$ref": "#/$defs/repoPath"},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "research_ref": {"$ref": "#/$defs/repoPath"},
+    "fulfilled_source_needs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "remaining_controls": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "research_order": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "official_and_classical_documentation"},
+        {"const": "established_top_scholarship"},
+        {"const": "fresh_current_relevance_check"}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_status", "review_status", "source_text_admitted", "semantic_status", "graph_status", "canon_status", "human_task_created"],
+      "properties": {
+        "source_status": {"const": "metadata_witness_planted"},
+        "review_status": {"const": "unreviewed"},
+        "source_text_admitted": {"const": false},
+        "semantic_status": {"const": "not_started"},
+        "graph_status": {"const": "not_promoted"},
+        "canon_status": {"const": "not_canon"},
+        "human_task_created": {"const": false}
+      }
+    },
+    "status": {"const": "source_witness_planted"},
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "human_review_performed"],
+      "properties": {
+        "maker_type": {"const": "model"},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "human_review_performed": {"const": false}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"}
+  }
+}

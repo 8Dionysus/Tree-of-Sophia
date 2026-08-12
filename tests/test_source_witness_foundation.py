@@ -7310,6 +7310,41 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertFalse(foundation._git_ignored(REPO_ROOT, private_route))
         self.assertTrue(foundation._git_ignored(REPO_ROOT, private_example))
 
+    def test_artifact_witness_keeps_physical_and_content_layers_separate(self) -> None:
+        artifact_validator, _ = foundation._schema_validator(
+            foundation.ARTIFACT_SOURCE_WITNESS_SCHEMA,
+            REPO_ROOT,
+        )
+        artifact_path = (
+            REPO_ROOT
+            / "ToS/source-witnesses/artifacts/proto-cuneiform/uruk/"
+            "w-12256-i-k-l-o/artifact-witness.json"
+        )
+        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+        self.assertEqual([], list(artifact_validator.iter_errors(artifact)))
+        self.assertEqual(
+            "tos.artifact.proto-cuneiform.uruk.w-12256-i-k-l-o",
+            artifact["artifact_id"],
+        )
+        self.assertEqual("undetermined", artifact["inscription_layer"]["language_status"])
+        self.assertFalse(artifact["inscription_layer"]["transliteration_stored"])
+        self.assertFalse(artifact["inscription_layer"]["translation_stored"])
+        self.assertTrue(
+            all(not layer["content_stored"] for layer in artifact["visual_layers"])
+        )
+
+        false_semantic_authority = copy.deepcopy(artifact)
+        false_semantic_authority["authority"]["semantic_authority"] = True
+        self.assertTrue(list(artifact_validator.iter_errors(false_semantic_authority)))
+
+        false_fixed_translation = copy.deepcopy(artifact)
+        false_fixed_translation["layer_separation"]["sign_has_fixed_translation"] = True
+        self.assertTrue(list(artifact_validator.iter_errors(false_fixed_translation)))
+
+        embedded_transliteration = copy.deepcopy(artifact)
+        embedded_transliteration["inscription_layer"]["transliteration"] = "synthetic"
+        self.assertTrue(list(artifact_validator.iter_errors(embedded_transliteration)))
+
     def test_dta_open_license_remains_separate_from_local_transfer(self) -> None:
         rights_validator, _ = foundation._schema_validator(
             foundation.RIGHTS_SCHEMA,

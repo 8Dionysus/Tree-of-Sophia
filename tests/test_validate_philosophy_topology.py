@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import sys
 import tempfile
 import unittest
@@ -111,6 +112,29 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
             issues = validate_philosophy_topology.run_validation(repo_root)
 
         self.assertEqual(issues, [])
+
+    def test_current_source_planting_contract_fails_closed_on_promotion(self) -> None:
+        schema_path = Path("ToS/contracts/philosophy-source-planting.schema.json")
+        validator = validate_philosophy_topology.load_schema_validator(
+            REPO_ROOT,
+            schema_path,
+        )
+        planting_path = (
+            REPO_ROOT
+            / "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/"
+            "proto-cuneiform-accounting-ontologies/sources/plantings/"
+            "cdli-p000015/source-planting.json"
+        )
+        planting = json.loads(planting_path.read_text(encoding="utf-8"))
+        self.assertEqual([], list(validator.iter_errors(planting)))
+
+        false_graph_promotion = copy.deepcopy(planting)
+        false_graph_promotion["authority"]["graph_status"] = "promoted"
+        self.assertTrue(list(validator.iter_errors(false_graph_promotion)))
+
+        false_human_task = copy.deepcopy(planting)
+        false_human_task["authority"]["human_task_created"] = True
+        self.assertTrue(list(validator.iter_errors(false_human_task)))
 
     def test_research_packet_route_traversal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

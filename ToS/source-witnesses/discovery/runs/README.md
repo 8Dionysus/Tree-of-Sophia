@@ -387,3 +387,13 @@ release, custody, rights grant, or suitability review exists. An unsolicited
 metadata-adjacent search snippet is excluded from blind adjudication and not
 retained. The next trigger is a current publisher response or exact lawfully
 held manifestation, not another date loop.
+
+`proto-cuneiform-p000015-artifact-source.2026-08-12.v1.json` is the first
+source planting from the philosophy atlas backlog. It resolves CDLI `P000015`
+through the exact current artifact and API record, classical ATU publication
+lineage, established sign-list and excavation-documentation controls, and a
+fresh precursor/encoding frontier check. The physical tablet, catalog record,
+inscription, composite, photograph, and line art remain separate. Only
+public-safe metadata enters the artifact spine and A01 branch; no source
+content, fixed sign translation, artifact-as-philosophy judgment, semantic
+claim, graph promotion, canon state, or human task is created.

@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 from typing import TypeAlias
 
+from jsonschema import FormatChecker
+from jsonschema.validators import validator_for
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = Path("ToS/philosophy/philosophy.manifest.json")
@@ -15,6 +18,7 @@ FALSE_AUTHORITY_PATHS = (
     Path("ToS/source-witnesses/notion"),
     Path("ToS/source-witnesses/notion/philosophy"),
 )
+SOURCE_PLANTING_SCHEMA = Path("ToS/contracts/philosophy-source-planting.schema.json")
 
 Issue: TypeAlias = tuple[str, str]
 
@@ -33,6 +37,13 @@ def load_json(repo_root: Path, relative_path: Path, issues: list[Issue]) -> dict
         issues.append((relative_path.as_posix(), "JSON root must be an object"))
         return None
     return payload
+
+
+def load_schema_validator(repo_root: Path, relative_path: Path):
+    schema = json.loads((repo_root / relative_path).read_text(encoding="utf-8"))
+    validator_class = validator_for(schema)
+    validator_class.check_schema(schema)
+    return validator_class(schema, format_checker=FormatChecker())
 
 
 def slugify_label(value: str) -> str:
@@ -277,6 +288,97 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
                 issues.append((entry, "branch_id must start with philosophy."))
             if not isinstance(role, str) or not role:
                 issues.append((entry, "role must be a non-empty string"))
+
+    planting_paths = sorted(
+        (root / "ToS/philosophy/eras").glob(
+            "**/sources/plantings/*/source-planting.json"
+        )
+    )
+    planting_validator = None
+    if planting_paths:
+        try:
+            planting_validator = load_schema_validator(root, SOURCE_PLANTING_SCHEMA)
+        except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+            issues.append((SOURCE_PLANTING_SCHEMA.as_posix(), f"cannot load source-planting schema: {exc}"))
+
+    planting_ids: set[str] = set()
+    branch_planting_refs: dict[str, set[str]] = {}
+    for planting_path in planting_paths:
+        planting_ref = planting_path.relative_to(root).as_posix()
+        planting = load_json(root, planting_path.relative_to(root), issues)
+        if planting is None:
+            continue
+        if planting_validator is not None:
+            for error in sorted(planting_validator.iter_errors(planting), key=lambda item: list(item.path)):
+                suffix = ".".join(str(part) for part in error.path)
+                issues.append((planting_ref if not suffix else f"{planting_ref}:{suffix}", f"source-planting schema: {error.message}"))
+
+        planting_id = planting.get("planting_id")
+        if isinstance(planting_id, str):
+            if planting_id in planting_ids:
+                issues.append((planting_ref, f"duplicate planting_id: {planting_id}"))
+            planting_ids.add(planting_id)
+
+        branch_path = planting.get("branch_path")
+        expected_branch_path = planting_path.parents[3].relative_to(root).as_posix()
+        if branch_path != expected_branch_path:
+            issues.append((planting_ref, "branch_path does not match the planting's philosophy branch"))
+        if isinstance(branch_path, str):
+            branch_planting_refs.setdefault(branch_path, set()).add(planting_ref)
+
+        backlog = planting.get("source_backlog_anchor")
+        if isinstance(backlog, dict):
+            backlog_ref = backlog.get("path")
+            line_number = backlog.get("line")
+            if not isinstance(backlog_ref, str) or not isinstance(line_number, int):
+                issues.append((planting_ref, "source backlog path and line are required"))
+            else:
+                backlog_path = root / backlog_ref
+                try:
+                    lines = backlog_path.read_text(encoding="utf-8").splitlines()
+                    row = json.loads(lines[line_number - 1])
+                except (FileNotFoundError, IndexError, json.JSONDecodeError) as exc:
+                    issues.append((planting_ref, f"cannot resolve exact source backlog row: {exc}"))
+                else:
+                    expected_fields = {
+                        "atlas_row_id": planting.get("atlas_row_id"),
+                        "dossier_id": planting.get("dossier_id"),
+                        "branch_path": branch_path,
+                        "source_table_index": backlog.get("source_table_index"),
+                        "source_row_index": backlog.get("source_row_index"),
+                        "source_label": backlog.get("source_label"),
+                    }
+                    for key, expected in expected_fields.items():
+                        if row.get(key) != expected:
+                            issues.append((planting_ref, f"source backlog {key} differs from exact line {line_number}"))
+
+        source_witness = planting.get("source_witness")
+        if isinstance(source_witness, dict):
+            record_ref = source_witness.get("record_ref")
+            if not isinstance(record_ref, str) or not record_ref.startswith("ToS/source-witnesses/artifacts/"):
+                issues.append((planting_ref, "source witness must route to the artifact spine"))
+            else:
+                record = load_json(root, Path(record_ref), issues)
+                if record is not None and record.get("artifact_id") != source_witness.get("artifact_id"):
+                    issues.append((planting_ref, "source-witness artifact_id differs from its exact record"))
+
+        for field in ("discovery_ref", "research_ref"):
+            ref = planting.get(field)
+            if not isinstance(ref, str) or not (root / ref).is_file():
+                issues.append((planting_ref, f"{field} does not resolve to a tracked file"))
+
+    for branch_path, actual_refs in branch_planting_refs.items():
+        branch_manifest = load_json(root, Path(branch_path) / "branch.manifest.json", issues)
+        sources_manifest = load_json(root, Path(branch_path) / "sources/branch.manifest.json", issues)
+        for label, payload in (("branch", branch_manifest), ("sources", sources_manifest)):
+            if payload is None:
+                continue
+            key = "source_planting_refs" if label == "branch" else "planting_refs"
+            count_key = "source_planting_count" if label == "branch" else "planting_count"
+            if set(payload.get(key, [])) != actual_refs:
+                issues.append((f"{branch_path}/{label}", f"{key} differs from exact planting files"))
+            if payload.get(count_key) != len(actual_refs):
+                issues.append((f"{branch_path}/{label}", f"{count_key} differs from exact planting count"))
 
     tos_root = root / "ToS"
     for path in tos_root.glob("**/*"):

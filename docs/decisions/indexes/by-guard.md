@@ -70,6 +70,10 @@
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
 
+## identity separation
+
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+
 ## instruction topology
 
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
@@ -144,11 +148,13 @@
 ## projection boundary
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 
 ## provenance
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 
 ## provenance preservation
 
@@ -161,6 +167,7 @@
 ## rights
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 
 ## root convexity
 
@@ -185,6 +192,10 @@
 - [TOS-D-0016 - Public Mirror Sync Bridge Part](../TOS-D-0016-public-mirror-sync-bridge-part.md) (`docs/decisions/TOS-D-0016-public-mirror-sync-bridge-part.md`)
 - [TOS-D-0017 - Relation Pack Graph Promotion Validator](../TOS-D-0017-relation-pack-graph-promotion-validator.md) (`docs/decisions/TOS-D-0017-relation-pack-graph-promotion-validator.md`)
 
+## semantic boundary
+
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
+
 ## source return
 
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
@@ -203,6 +214,7 @@
 - [TOS-D-0019 - Zarathustra Golden Growth Kernel](../TOS-D-0019-zarathustra-golden-growth-kernel.md) (`docs/decisions/TOS-D-0019-zarathustra-golden-growth-kernel.md`)
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0023 - Participant-Scoped Translation Exposure](../TOS-D-0023-participant-scoped-translation-exposure.md) (`docs/decisions/TOS-D-0023-participant-scoped-translation-exposure.md`)
+- [TOS-D-0024 - Artifact Witness Spine](../TOS-D-0024-artifact-witness-spine.md) (`docs/decisions/TOS-D-0024-artifact-witness-spine.md`)
 
 ## source-home symmetry
 

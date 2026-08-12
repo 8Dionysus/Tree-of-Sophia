@@ -711,6 +711,17 @@ def render_branch_readme(dossier: Dossier) -> str:
     title = branch_title(dossier)
     node_pressure = ", ".join(top_counts(dossier.node_rows, "node_kind")) or "none"
     relation_pressure = ", ".join(top_counts(dossier.relation_rows, "relation_kind")) or "none"
+    path_ref, _role = BRANCHES[dossier.dossier_id]
+    planting_paths = sorted(
+        (REPO_ROOT / path_ref / "sources/plantings").glob(
+            "*/source-planting.json"
+        )
+    )
+    planting_row = (
+        "| `sources/plantings/` | exact source-witness routes already planted from backlog anchors |\n"
+        if planting_paths
+        else ""
+    )
     return (
         f"# {title}\n\n"
         f"Atlas row: `{dossier.dossier_id}`. Prepared dossier: `{dossier.source_document}`.\n\n"
@@ -728,6 +739,7 @@ def render_branch_readme(dossier: Dossier) -> str:
         "| Surface | Role |\n"
         "| --- | --- |\n"
         "| `sources/source-anchor-backlog.jsonl` | future real source witness and edition anchors for this branch |\n"
+        f"{planting_row}"
         "| `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |\n\n"
         "Global proposed node and relation rows for this branch are aggregated in "
         "`ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl` and "
@@ -779,6 +791,12 @@ def write_branch_surfaces(dossiers: list[Dossier]) -> None:
         path_ref, role = BRANCHES[dossier.dossier_id]
         path = REPO_ROOT / path_ref
         path.mkdir(parents=True, exist_ok=True)
+        planting_refs = sorted(
+            repo_ref(planting_path)
+            for planting_path in (path / "sources/plantings").glob(
+                "*/source-planting.json"
+            )
+        )
         write_json(
             path / "branch.manifest.json",
             {
@@ -790,6 +808,14 @@ def write_branch_surfaces(dossiers: list[Dossier]) -> None:
                 "evidence_status": "prepared_dossier_branch",
                 "expected_local_children": ["sources", "graph-workbench"],
                 "source_anchor_backlog": f"{path_ref}/sources/source-anchor-backlog.jsonl",
+                **(
+                    {
+                        "source_planting_count": len(planting_refs),
+                        "source_planting_refs": planting_refs,
+                    }
+                    if planting_refs
+                    else {}
+                ),
                 "local_graph_summary": f"{path_ref}/graph-workbench/pre-canon-summary.json",
             },
         )
@@ -804,8 +830,20 @@ def write_branch_surfaces(dossiers: list[Dossier]) -> None:
             {
                 "branch_id": branch_id_for(f"{path_ref}/sources"),
                 "path": f"{path_ref}/sources",
-                "role": f"source-anchor backlog for {dossier.dossier_id}",
+                "role": (
+                    f"source-anchor backlog and planted source routes for {dossier.dossier_id}"
+                    if planting_refs
+                    else f"source-anchor backlog for {dossier.dossier_id}"
+                ),
                 "anchor_count": len(dossier.source_rows),
+                **(
+                    {
+                        "planting_count": len(planting_refs),
+                        "planting_refs": planting_refs,
+                    }
+                    if planting_refs
+                    else {}
+                ),
             },
         )
         write_jsonl(sources_path / "source-anchor-backlog.jsonl", dossier.source_rows)

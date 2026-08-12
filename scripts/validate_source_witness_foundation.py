@@ -48,6 +48,7 @@ CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
 ITEM_MANIFEST_SCHEMA = CONTRACT_ROOT / "source-item-manifest.schema.json"
 RESOURCE_INVENTORY_SCHEMA = CONTRACT_ROOT / "source-resource-inventory.schema.json"
 RIGHTS_SCHEMA = CONTRACT_ROOT / "rights-record.schema.json"
+ARTIFACT_SOURCE_WITNESS_SCHEMA = CONTRACT_ROOT / "artifact-source-witness.schema.json"
 PROVENANCE_SCHEMA = CONTRACT_ROOT / "provenance-event.schema.json"
 CLAIM_SCHEMA = CONTRACT_ROOT / "claim-packet.schema.json"
 EXPRESSION_DERIVATION_SCHEMA = CONTRACT_ROOT / "expression-derivation.schema.json"
@@ -6994,6 +6995,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             repo_root,
         )
         rights_validator, _ = _schema_validator(RIGHTS_SCHEMA, repo_root)
+        artifact_source_witness_validator, _ = _schema_validator(
+            ARTIFACT_SOURCE_WITNESS_SCHEMA,
+            repo_root,
+        )
         provenance_validator, _ = _schema_validator(PROVENANCE_SCHEMA, repo_root)
         claim_validator, _ = _schema_validator(CLAIM_SCHEMA, repo_root)
         expression_derivation_validator, _ = _schema_validator(
@@ -12454,11 +12459,13 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 boundary_events_by_id[event_id] = event
 
     discovery_root = repo_root / SOURCE_ROOT / "discovery/runs"
+    discovery_records_by_ref: dict[str, dict[str, Any]] = {}
     for path in sorted(discovery_root.glob("*.json")):
         payload = _load_json(path, repo_root, issues)
         if payload is None:
             continue
         location = _relative(path, repo_root)
+        discovery_records_by_ref[location] = payload
         _validate_payload(payload, material_discovery_validator, location, issues)
         for message in _discovery_decision_issues(payload):
             issues.append((location, message))
@@ -12509,6 +12516,119 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         }
         if comparison_ids != set(channel_ids):
             issues.append((location, "discovery channel comparison does not cover the exact channel set"))
+
+    discovery_provenance_path = repo_root / SOURCE_ROOT / "discovery/provenance.jsonl"
+    discovery_events: dict[str, tuple[dict[str, Any], str]] = {}
+    for index, event in enumerate(
+        _load_jsonl(discovery_provenance_path, repo_root, issues),
+        start=1,
+    ):
+        event_id = event.get("event_id")
+        if isinstance(event_id, str):
+            location = f"{_relative(discovery_provenance_path, repo_root)}:{index}"
+            if event_id in discovery_events:
+                issues.append((location, f"duplicate discovery provenance event_id: {event_id}"))
+            discovery_events[event_id] = (event, location)
+
+    artifact_ids: set[str] = set()
+    artifact_root = repo_root / SOURCE_ROOT / "artifacts"
+    for artifact_path in sorted(artifact_root.glob("**/artifact-witness.json")):
+        artifact_ref = _relative(artifact_path, repo_root)
+        artifact = _load_json(artifact_path, repo_root, issues)
+        if artifact is None:
+            continue
+        _validate_payload(
+            artifact,
+            artifact_source_witness_validator,
+            artifact_ref,
+            issues,
+        )
+        artifact_id = artifact.get("artifact_id")
+        if isinstance(artifact_id, str):
+            if artifact_id in artifact_ids:
+                issues.append((artifact_ref, f"duplicate artifact_id: {artifact_id}"))
+            artifact_ids.add(artifact_id)
+
+        relative_artifact_path = artifact_path.relative_to(artifact_root)
+        if "cdli" in {part.lower() for part in relative_artifact_path.parts[:-1]}:
+            issues.append((artifact_ref, "artifact path must not be keyed to the mutable CDLI provider"))
+
+        referenced_paths: dict[str, str | None] = {
+            "rights_ref": artifact.get("rights_ref"),
+            "discovery_ref": artifact.get("discovery_ref"),
+            "research_ref": artifact.get("research_ref"),
+        }
+        for index, planting_ref in enumerate(artifact.get("philosophy_planting_refs", [])):
+            referenced_paths[f"philosophy_planting_refs[{index}]"] = planting_ref
+        for field, ref in referenced_paths.items():
+            if not isinstance(ref, str) or not (repo_root / ref).is_file():
+                issues.append((artifact_ref, f"{field} does not resolve to a tracked file"))
+
+        rights_ref = artifact.get("rights_ref")
+        rights = (
+            _load_json(repo_root / rights_ref, repo_root, issues)
+            if isinstance(rights_ref, str) and (repo_root / rights_ref).is_file()
+            else None
+        )
+        if rights is not None:
+            _validate_payload(rights, rights_validator, str(rights_ref), issues)
+            if artifact_id not in rights.get("scope_refs", []):
+                issues.append((str(rights_ref), "artifact rights scope does not include artifact_id"))
+            if rights.get("visibility") != "public_metadata_only" or rights.get("redistribution_posture") != "metadata_only":
+                issues.append((str(rights_ref), "artifact rights must remain public-metadata-only"))
+
+        discovery_ref = artifact.get("discovery_ref")
+        discovery = discovery_records_by_ref.get(str(discovery_ref))
+        if discovery is None:
+            issues.append((artifact_ref, "artifact discovery_ref does not resolve to a validated discovery run"))
+        else:
+            if artifact_id not in discovery.get("target", {}).get("known_tos_refs", []):
+                issues.append((artifact_ref, "artifact discovery target does not include artifact_id"))
+            if discovery.get("target", {}).get("target_kind") != "artifact":
+                issues.append((artifact_ref, "artifact discovery target_kind must be artifact"))
+
+        event_ref = artifact.get("provenance_event_ref")
+        event_entry = discovery_events.get(str(event_ref))
+        if event_entry is None:
+            issues.append((artifact_ref, "artifact provenance_event_ref is absent from discovery provenance"))
+        else:
+            event, event_location = event_entry
+            _validate_payload(event, provenance_validator, event_location, issues)
+            _validate_source_refs(repo_root, event, event_location, issues)
+            output_refs = {
+                output.get("ref")
+                for output in event.get("outputs", [])
+                if isinstance(output, dict)
+            }
+            required_outputs = {artifact_ref, str(rights_ref), str(discovery_ref), str(artifact.get("research_ref"))} | {
+                str(ref) for ref in artifact.get("philosophy_planting_refs", [])
+            }
+            if not required_outputs <= output_refs:
+                issues.append((event_location, "artifact planting provenance lacks exact output closure"))
+
+        forbidden_content_keys = {
+            "text",
+            "source_text",
+            "transliteration",
+            "translation",
+            "image_data",
+            "line_art_data",
+            "payload",
+        }
+        stack: list[Any] = [artifact]
+        while stack:
+            value = stack.pop()
+            if isinstance(value, dict):
+                leaked = forbidden_content_keys & set(value)
+                if leaked:
+                    issues.append((artifact_ref, f"artifact metadata packet exposes content fields: {sorted(leaked)}"))
+                    break
+                stack.extend(value.values())
+            elif isinstance(value, list):
+                stack.extend(value)
+            elif isinstance(value, str) and value.startswith(("/srv/", "/home/", "/tmp/", "/var/tmp/")):
+                issues.append((artifact_ref, "artifact metadata packet exposes an absolute owner-local path"))
+                break
 
     access_root = repo_root / SOURCE_ROOT / "access-requests"
     for path in sorted((access_root / "public-ledger").glob("*.json")):

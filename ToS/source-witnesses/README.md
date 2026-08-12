@@ -14,6 +14,10 @@ stores.
 
 ```text
 source-witnesses/
+├── artifacts/                              # physical witnesses outside the book ladder
+│   └── <tradition>/<site>/<physical-identity>/
+│       ├── artifact-witness.json           # physical/catalog/content-layer separation
+│       └── rights.json                     # layer-specific public-use boundary
 ├── agents/
 │   └── <person-or-organization>/agent.json
 ├── places/
@@ -114,6 +118,14 @@ The corpus follows `work -> expression -> edition -> item -> file`. Aggregate
 volumes route through `collections/` and point to contained works/expressions
 with evidence-bearing membership claims. A collection is not duplicated under
 every contained work.
+
+Physical artifacts that do not naturally enter that bibliographic ladder use
+the parallel `artifacts/` spine. Its route is based on physical, excavation, or
+custody identity rather than a current provider. The artifact, catalog record,
+inscription or transliteration, scholarly composite, photograph, and line art
+remain separate. A philosophy branch may cite an artifact through a tracked
+source planting, but that relation alone establishes neither philosophy,
+semantics, graph truth, nor canon.
 
 Collection work-boundary maps bind the source-visible member order to one
 exact item/file digest and its text-free page inventory. They may carry
