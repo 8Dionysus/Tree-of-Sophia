@@ -1,0 +1,45 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+  "preferred_label": "The Electronic Text Corpus of Sumerian Literature",
+  "variant_labels": [
+    {
+      "value": "ETCSL",
+      "language": "und",
+      "source_ref": "https://etcsl.orinst.ox.ac.uk/index.html",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_ETCSL_DIGITAL_CORPUS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+    "ToS/source-witnesses/discovery/runs/old-babylonian-etcsl-digital-corpus.2026-08-12.v1.json",
+    "https://etcsl.orinst.ox.ac.uk/index.html",
+    "https://etcsl.orinst.ox.ac.uk/edition2/credits.php",
+    "https://dh.web.ox.ac.uk/project/electronic-text-corpus-sumerian-literature",
+    "https://cdli.earth/publications/1691588"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CDLI publication",
+      "value": "1691588",
+      "source_ref": "https://cdli.earth/publications/1691588",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-jeremy-black",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-graham-cunningham",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-jarle-ebeling",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-esther-fluckiger-hawker",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-eleanor-robson",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-jon-taylor",
+    "tos.claim.work.digital-sumerian-corpora.etcsl.contributed-by-gabor-zolyomi"
+  ],
+  "expression_claim_refs": [],
+  "notes": "Verified identity for the completed 1998–2006 collaborative digital scholarly corpus Work, not for one ancient manuscript, the contained ancient compositions, an exact OTA release, or a continuously current critical edition. The seven responsibility claims preserve the project's prescribed citation without pretending that ToS's coarse contributed_by predicate captures the exact editor, developer, associate, and director roles. No Expression, Edition, Item, source content, composition membership, reading, translation, semantic, graph, or canon claim is admitted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

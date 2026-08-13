@@ -1,0 +1,907 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.old-babylonian-etcsl-digital-corpus.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "work",
+    "known_tos_refs": [
+      "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature"
+    ],
+    "description": "Resolve ETCSL as A02's first digital-corpus anchor, separate the completed project and collaborative scholarly Work from exact releases, ancient compositions, editorial composites, physical witnesses, text layers, translations, linguistic assertions, and current complementary projects, and establish the 2026 rights and currentness boundary without acquiring corpus content.",
+    "required_properties": [
+      "official project identity, dates, lifecycle, content scope, and prescribed citation",
+      "project contributors without invented role equivalence",
+      "encoding and editorial-composite boundary",
+      "archived-release lead separated from Work identity and rights conclusion",
+      "established corpus-linguistic, textual-critical, and semantic-projection controls",
+      "fresh current ORACC, ePSD2, CDLI, and machine-dataset routes",
+      "explicit currentness test for the named DCSL successor lead",
+      "rights posture that does not infer redistribution from public access"
+    ],
+    "acceptable_substitutions": [
+      "official institutional metadata where an old project page is ambiguous",
+      "publisher or scholarly-index metadata for established restricted works",
+      "current project documentation for transformation and successor boundaries",
+      "preprint as an explicitly labeled current challenger rather than accepted scholarship"
+    ],
+    "languages": [
+      "en",
+      "sux",
+      "und"
+    ],
+    "formats": [
+      "official project HTML",
+      "institutional project metadata",
+      "repository metadata",
+      "publisher metadata",
+      "scholarly article",
+      "preprint"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_ETCSL_DIGITAL_CORPUS_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-etcsl-official-classical",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "University of Oxford ETCSL, Oxford Digital Humanities, Oxford Text Archive, and current CDLI bibliographic records",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/index.html",
+      "interface_type": "web",
+      "interface_version": "live institutional and project records checked 2026-08-12",
+      "exact_query": "Resolve ETCSL project scope, completed lifecycle, prescribed collaborative citation, copyright, XML/TEI representation, archived revised-edition lead, and current bibliographic identifier without downloading corpus content.",
+      "queried_at": "2026-08-12T18:10:00-06:00",
+      "elapsed_seconds": 16.8,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.etcsl-homepage",
+          "rank": 1,
+          "title_as_displayed": "The Electronic Text Corpus of Sumerian Literature",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/index.html",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/index.html",
+          "identifiers": [
+            {
+              "scheme": "acronym",
+              "value": "ETCSL"
+            }
+          ],
+          "available_formats": [
+            "official project HTML"
+          ],
+          "declared_rights": {
+            "statement": "Copyright 2003–2006 The ETCSL project, Faculty of Oriental Studies, University of Oxford",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/index.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Originating project route for corpus scope, transliterations, translations, bibliography, search, 2006 content freeze, and 2017 backend-only maintenance.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Live source-returnable project documentation is sufficient; no corpus or page snapshot enters ToS."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-oxford-dh-completed-project",
+          "rank": 2,
+          "title_as_displayed": "Electronic Text Corpus of Sumerian Literature | Digital Humanities @ Oxford",
+          "result_url": "https://dh.web.ox.ac.uk/project/electronic-text-corpus-sumerian-literature",
+          "originating_record_url": "https://dh.web.ox.ac.uk/project/electronic-text-corpus-sumerian-literature",
+          "identifiers": [],
+          "available_formats": [
+            "institutional project metadata HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current Oxford institutional record explicitly gives 1997–2006 and Completed, preventing backend availability from becoming an active-content claim.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only public institutional metadata is cited."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-second-edition-credits",
+          "rank": 3,
+          "title_as_displayed": "ETCSL: credits and copyright",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/edition2/credits.php",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/edition2/credits.php",
+          "identifiers": [],
+          "available_formats": [
+            "official project HTML"
+          ],
+          "declared_rights": {
+            "statement": "Named project contributors assert copyright and moral rights for 1998–2006 corpus content",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/edition2/credits.php",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Best source for prescribed seven-person citation, exact historical roles, funding, contributors, copyright, and moral-rights boundary.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No contributor page or corpus content is mirrored."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-about-project",
+          "rank": 4,
+          "title_as_displayed": "ETCSL: about the project",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/about.htm",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/about.htm",
+          "identifiers": [],
+          "available_formats": [
+            "official project HTML"
+          ],
+          "declared_rights": {
+            "statement": "Copyright The ETCSL project, Faculty of Oriental Studies, University of Oxford",
+            "scope": "content",
+            "evidence_url": "https://etcsl.orinst.ox.ac.uk/about.htm",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "The project itself explains fragmentary reconstruction, lack of satisfactory editions, obsolete translations, and the collected-works ambition that bounds later use.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No project-page snapshot is necessary for the bounded metadata planting."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-ota-revised-edition",
+          "rank": 5,
+          "title_as_displayed": "The Electronic Text Corpus of Sumerian Literature. Revised edition.",
+          "result_url": "https://llds.phon.ox.ac.uk/llds/xmlui/discover?filter=Sumerian&filter_0=BCE&filter_1=corpus&filter_relational_operator=equals&filter_relational_operator_0=equals&filter_relational_operator_1=equals&filtertype=language&filtertype_0=date_range&filtertype_1=type&order=desc&rpp=80",
+          "originating_record_url": "https://llds.phon.ox.ac.uk/llds/xmlui/handle/20.500.14106/2518",
+          "identifiers": [
+            {
+              "scheme": "handle",
+              "value": "20.500.14106/2518"
+            }
+          ],
+          "available_formats": [
+            "repository metadata",
+            "10 files reported"
+          ],
+          "declared_rights": {
+            "statement": "Publicly Available",
+            "scope": "digital-object",
+            "evidence_url": "https://llds.phon.ox.ac.uk/llds/xmlui/discover?filter=Sumerian&filter_0=BCE&filter_1=corpus&filter_relational_operator=equals&filter_relational_operator_0=equals&filter_relational_operator_1=equals&filtertype=language&filtertype_0=date_range&filtertype_1=type&order=desc&rpp=80",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "manual-only",
+          "decision": "defer",
+          "rationale": "Exact release lead, but the item page was automation-protected and no item-specific reuse licence was established; no Edition, Item, or download is admitted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The repository item was not bypassed and no corpus files were acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.etcsl-cdli-publication-1691588",
+          "rank": 6,
+          "title_as_displayed": "Electronic Text Corpus of Sumerian Literature - Cuneiform Digital Library Initiative",
+          "result_url": "https://cdli.earth/publications/1691588",
+          "originating_record_url": "https://cdli.earth/publications/1691588",
+          "identifiers": [
+            {
+              "scheme": "CDLI publication",
+              "value": "1691588"
+            }
+          ],
+          "available_formats": [
+            "current bibliographic HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current stable bibliographic identifier and cross-provider links to CDLI Literary composites without asserting physical-witness or reading equivalence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Current source-returnable metadata remains online; no linked composite or media is copied."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-established-scholarship",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "ETCSL publications, Equinox, ASOR, ANU/Brill, and ACL Anthology",
+      "endpoint_url": "https://etcsl.orinst.ox.ac.uk/edition2/etcslpublications.php",
+      "interface_type": "web",
+      "interface_version": "publisher, project, repository, and anthology records checked 2026-08-12",
+      "exact_query": "Identify the field-shaping corpus-linguistic, textual-critical, semantic-web, and linked-data work that establishes what ETCSL can and cannot prove.",
+      "queried_at": "2026-08-12T18:18:00-06:00",
+      "elapsed_seconds": 14.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.ebeling-2007-etcsl-corpora",
+          "rank": 1,
+          "title_as_displayed": "The Electronic Text Corpus of Sumerian Literature",
+          "result_url": "https://doi.org/10.3366/cor.2007.2.1.111",
+          "originating_record_url": "https://doi.org/10.3366/cor.2007.2.1.111",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.3366/cor.2007.2.1.111"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Foundational corpus-level description with stable DOI; selected for the computational-corpus boundary, not as a source of ancient readings.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Publisher metadata and official project bibliography resolve the exact work."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ebeling-cunningham-2007-analysing-literary-sumerian",
+          "rank": 2,
+          "title_as_displayed": "Analysing Literary Sumerian: Corpus-based Approaches",
+          "result_url": "https://www.equinoxpub.com/home/analysing-literary-sumerian/",
+          "originating_record_url": "https://www.equinoxpub.com/home/analysing-literary-sumerian/",
+          "identifiers": [
+            {
+              "scheme": "ISBN",
+              "value": "978-1-84553-229-1"
+            }
+          ],
+          "available_formats": [
+            "publisher catalog metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established volume demonstrating corpus-linguistic uses and documenting Ebeling's detailed ETCSL chapter on pp. 33–50.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No book or chapter body is acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.ebeling-2010-all-in-one-corpus",
+          "rank": 3,
+          "title_as_displayed": "The ETCSL: an all-in-one-corpus?",
+          "result_url": "https://etcsl.orinst.ox.ac.uk/edition2/etcslpublications.php",
+          "originating_record_url": "https://etcsl.orinst.ox.ac.uk/edition2/etcslpublications.php",
+          "identifiers": [
+            {
+              "scheme": "citation",
+              "value": "Your Praise Is Sweet (2010), 53–67"
+            }
+          ],
+          "available_formats": [
+            "official project bibliography"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Direct mature assessment of the corpus as a multi-use scholarly resource whose all-in-one status remains a bounded question.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only official bibliographic metadata is required here."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.delnero-2012-textual-criticism",
+          "rank": 4,
+          "title_as_displayed": "The Textual Criticism of Sumerian Literature",
+          "result_url": "https://www.asor.org/asor-publications/book-series-monographs/jcs-supplemental-series/",
+          "originating_record_url": "https://www.isdistribution.com/BookDetail.aspx?aId=17307",
+          "identifiers": [
+            {
+              "scheme": "ISBN",
+              "value": "978-0-89757-088-6"
+            }
+          ],
+          "available_formats": [
+            "publisher and distributor metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Field-shaping manuscript-variation and textual-critical control against treating a composite as the complete source layer.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Commercial monograph body is not acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.nurmikko-fuller-2018-semantic-web",
+          "rank": 5,
+          "title_as_displayed": "Publishing Sumerian Literature on the Semantic Web",
+          "result_url": "https://openresearch-repository.anu.edu.au/items/b1da8568-a78b-4ed5-ae35-115accc551c2",
+          "originating_record_url": "https://doi.org/10.1163/9789004375086_013",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1163/9789004375086_013"
+            },
+            {
+              "scheme": "handle",
+              "value": "1885/162521"
+            }
+          ],
+          "available_formats": [
+            "repository metadata"
+          ],
+          "declared_rights": {
+            "statement": "Restricted until 2037-12-31",
+            "scope": "content",
+            "evidence_url": "https://openresearch-repository.anu.edu.au/items/b1da8568-a78b-4ed5-ae35-115accc551c2",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Direct ETCSL semantic-web work and explicit incompleteness, interpretation, and ontology-bias control; metadata only because the repository marks the body restricted.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The repository marks the chapter restricted until 2037; no body is captured."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.chiarcos-etal-2018-linked-open-data",
+          "rank": 6,
+          "title_as_displayed": "Towards a Linked Open Data Edition of Sumerian Corpora",
+          "result_url": "https://aclanthology.org/L18-1387/",
+          "originating_record_url": "https://aclanthology.org/L18-1387/",
+          "identifiers": [
+            {
+              "scheme": "ACL Anthology",
+              "value": "L18-1387"
+            }
+          ],
+          "available_formats": [
+            "open scholarly HTML",
+            "PDF"
+          ],
+          "declared_rights": {
+            "statement": "Repository copy reported CC BY-NC 4.0; exact distribution source remains item-specific",
+            "scope": "content",
+            "evidence_url": "https://opus.bibliothek.uni-augsburg.de/opus4/files/104100/104100.pdf",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Established linked-data route showing how Sumerian linguistic resources can be projected while retaining source and annotation distinctions.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The stable ACL record is sufficient; no local article copy is needed for this planting."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-fresh-current",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "mixed",
+      "source_name": "ORACC/ePSD2/ComPass, CDLI 2025–2026, SumTablets 2026, and Oxford DCSL currentness check",
+      "endpoint_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+      "interface_type": "web",
+      "interface_version": "live routes and releases checked 2026-08-12; draft and preprint statuses preserved",
+      "exact_query": "Find the freshest directly relevant ETCSL reuse, update, artifact, linked-corpus, and machine-transliteration routes; test whether any is a verified corpus successor or only a complementary or derived layer.",
+      "queried_at": "2026-08-12T18:25:00-06:00",
+      "elapsed_seconds": 18.9,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.compass-current-etcsl-acquisition",
+          "rank": 1,
+          "title_as_displayed": "2.4 Data Acquisition: ETCSL",
+          "result_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/compass/downloads/2_4_Data_Acquisition_ETCSL.html",
+          "identifiers": [],
+          "available_formats": [
+            "preliminary scholarly-project HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Direct current account of ETCSL-to-ORACC conversion, incomplete coverage, missing translations, changed conventions, and active-edition complement; retained as preliminary, not final documentation.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No notebook, XML, or converted corpus is acquired."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.oracc-dsst",
+          "rank": 2,
+          "title_as_displayed": "Datenbank sumerischer Streitliteratur",
+          "result_url": "https://oracc.museum.upenn.edu/dsst/",
+          "originating_record_url": "https://oracc.museum.upenn.edu/dsst/",
+          "identifiers": [
+            {
+              "scheme": "project",
+              "value": "DSSt"
+            }
+          ],
+          "available_formats": [
+            "scholarly-project HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Composition-specific current route for 15 disputations, five Edubba texts, and five diatribes with score, composite, and translation layers; not a universal ETCSL replacement.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only project scope is cited; no editions or translations are imported."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-primer-2025",
+          "rank": 3,
+          "title_as_displayed": "The Cuneiform Digital Library Initiative: A Primer",
+          "result_url": "https://zenodo.org/records/15309738",
+          "originating_record_url": "https://doi.org/10.5281/zenodo.15309738",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.5281/zenodo.15309738"
+            }
+          ],
+          "available_formats": [
+            "Zenodo metadata",
+            "open PDF"
+          ],
+          "declared_rights": {
+            "statement": "Open access research platform; record-specific licence remains on the Zenodo item",
+            "scope": "content",
+            "evidence_url": "https://zenodo.org/records/15309738",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current 2025 project-scale account of CDLI's artifact documentation role and scope, complementary to ETCSL's literary composites.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The live record and DOI supply the bounded currentness evidence."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.sumtablets-2026-preprint",
+          "rank": 4,
+          "title_as_displayed": "SumTablets: A Transliteration Dataset of Sumerian Tablets",
+          "result_url": "https://arxiv.org/abs/2602.22200",
+          "originating_record_url": "https://arxiv.org/abs/2602.22200",
+          "identifiers": [
+            {
+              "scheme": "arXiv",
+              "value": "2602.22200"
+            }
+          ],
+          "available_formats": [
+            "preprint HTML",
+            "PDF",
+            "linked dataset and code"
+          ],
+          "declared_rights": {
+            "statement": "Linked SumTablets dataset reported CC BY 4.0",
+            "scope": "digital-object",
+            "evidence_url": "https://arxiv.org/abs/2602.22200",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest directly relevant machine dataset and baseline, retained as a preprint/watchlist challenger with explicit genre, convention, Unicode, and human-evaluation limits.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "No dataset, code, model, or preprint body is required for this metadata planting."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.oxford-dcsl-successor-lead",
+          "rank": 5,
+          "title_as_displayed": "Diachronic Corpus of Sumerian Literature",
+          "result_url": "https://dh.web.ox.ac.uk/project/diachronic-corpus-sumerian-literature",
+          "originating_record_url": "https://dcsl.orinst.ox.ac.uk/",
+          "identifiers": [
+            {
+              "scheme": "acronym",
+              "value": "DCSL"
+            }
+          ],
+          "available_formats": [
+            "institutional project-catalog metadata"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "metadata",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "unknown",
+          "machine_interface": "none",
+          "decision": "defer",
+          "rationale": "Oxford catalog says Current/Ongoing, but the named endpoint timed out and no current release, repository, update history, or working interface was verified; no active-successor claim is made.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The inaccessible endpoint was not bypassed and the catalog metadata alone cannot prove live project state."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-etcsl-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "General web search after official, established, and current scholarly routes",
+      "endpoint_url": "https://www.google.com/search?q=ETCSL+current+best+Sumerian+literature+resource+2026",
+      "interface_type": "web",
+      "interface_version": "search results checked 2026-08-12",
+      "exact_query": "ETCSL current best Sumerian literature resource 2026; ETCSL successor; reading original Sumerian texts",
+      "queried_at": "2026-08-12T18:31:00-06:00",
+      "elapsed_seconds": 8.2,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikipedia-etcsl",
+          "rank": 1,
+          "title_as_displayed": "Electronic Text Corpus of Sumerian Literature",
+          "result_url": "https://en.wikipedia.org/wiki/Electronic_Text_Corpus_of_Sumerian_Literature",
+          "originating_record_url": "https://en.wikipedia.org/wiki/Electronic_Text_Corpus_of_Sumerian_Literature",
+          "identifiers": [],
+          "available_formats": [
+            "mutable encyclopedia HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Useful discoverability summary but mutable and derivative; it cannot settle responsibility, release identity, current edition status, successor status, or rights.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No encyclopedia snapshot is needed after direct sources were resolved."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.reddit-reading-original-sumerian-2026",
+          "rank": 2,
+          "title_as_displayed": "Reading Original Sumerian Texts",
+          "result_url": "https://www.reddit.com/r/Sumer/comments/1u2kzxd/reading_original_sumerian_texts/",
+          "originating_record_url": "https://www.reddit.com/r/Sumer/comments/1u2kzxd/reading_original_sumerian_texts/",
+          "identifiers": [],
+          "available_formats": [
+            "community discussion HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Fresh community judgment that ETCSL is useful but outdated is user-pressure evidence only, not bibliographic, philological, successor, or rights authority.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Community content is not required for the source planting."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-etcsl-official-classical",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "limited",
+      "human_minutes": 19,
+      "machine_seconds": 16.8,
+      "notes": "Best identity, lifecycle, citation, and copyright evidence. OTA access is public-facing but exact item licence and automation access remain unresolved."
+    },
+    {
+      "channel_id": "channel-etcsl-established-scholarship",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 24,
+      "machine_seconds": 14.7,
+      "notes": "Field-shaping corpus, textual-critical, semantic-web, and linked-data limits are well established; several bodies remain restricted or commercial."
+    },
+    {
+      "channel_id": "channel-etcsl-fresh-current",
+      "completeness": "adequate",
+      "metadata_precision": "adequate",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 27,
+      "machine_seconds": 18.9,
+      "notes": "Current complementary and derived routes are live, but ComPass is preliminary, SumTablets is a preprint, and DCSL currentness is unresolved."
+    },
+    {
+      "channel_id": "channel-etcsl-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "poor",
+      "rights_clarity": "poor",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 5,
+      "machine_seconds": 8.2,
+      "notes": "Useful only for discoverability and user-pressure signals; no authority result was admitted."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.etcsl-homepage",
+    "tos-discovery-result.etcsl-oxford-dh-completed-project",
+    "tos-discovery-result.etcsl-second-edition-credits",
+    "tos-discovery-result.etcsl-about-project",
+    "tos-discovery-result.etcsl-cdli-publication-1691588",
+    "tos-discovery-result.ebeling-2007-etcsl-corpora",
+    "tos-discovery-result.ebeling-cunningham-2007-analysing-literary-sumerian",
+    "tos-discovery-result.ebeling-2010-all-in-one-corpus",
+    "tos-discovery-result.delnero-2012-textual-criticism",
+    "tos-discovery-result.nurmikko-fuller-2018-semantic-web",
+    "tos-discovery-result.chiarcos-etal-2018-linked-open-data",
+    "tos-discovery-result.compass-current-etcsl-acquisition",
+    "tos-discovery-result.oracc-dsst",
+    "tos-discovery-result.cdli-primer-2025",
+    "tos-discovery-result.sumtablets-2026-preprint"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.wikipedia-etcsl",
+    "tos-discovery-result.reddit-reading-original-sumerian-2026"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-12T18:10:00-06:00",
+  "ended_at": "2026-08-12T18:36:00-06:00",
+  "status": "executed",
+  "provenance_event_refs": [
+    "tos.event.discovery.old-babylonian-etcsl-digital-corpus.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
