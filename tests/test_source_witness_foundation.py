@@ -3196,9 +3196,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(129, manifest["counts"]["object_total"])
+        self.assertEqual(130, manifest["counts"]["object_total"])
         self.assertEqual(164, manifest["counts"]["claim"])
-        self.assertEqual(293, manifest["counts"]["total"])
+        self.assertEqual(294, manifest["counts"]["total"])
         self.assertEqual(164, len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 

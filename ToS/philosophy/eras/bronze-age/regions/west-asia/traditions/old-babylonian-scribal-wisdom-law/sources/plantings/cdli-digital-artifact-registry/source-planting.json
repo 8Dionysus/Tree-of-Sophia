@@ -1,0 +1,70 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.cdli-digital-artifact-registry",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 12,
+    "source_table_index": 13,
+    "source_row_index": 2,
+    "source_label": "CDLI"
+  },
+  "source_witness": {
+    "work_id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+    "record_ref": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-cdli-digital-artifact-registry.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-cdli-digital-artifact-registry.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_DIGITAL_ARTIFACT_REGISTRY_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "CDLI is identified across its 2001 founding account and current official documentation as an evolving collaborative scholarly digital resource launched in 1998",
+    "the source route covers more than 400,000 current artifact records while preserving coverage figures as mutable dated observations rather than completeness truth",
+    "artifact identity, provenience, place of writing, present collection, museum number, excavation and findspot, archive, composite, publication, language, genre, material and uncertainty are retained as distinct future fields and relations",
+    "P, Q and S identifiers, search, JSON APIs, update events, tabular exports, ATF/JTF, linked annotations and RDF serializations are recorded as discovery and interchange capabilities rather than authority",
+    "the project Work is kept distinct from its changing organization, database releases, physical artifacts, digital records, images, inscriptions, publications and derived datasets",
+    "official terms establish layer-specific handling for museum images, line art, transliterations, translations, software and metadata instead of one inferred open licence",
+    "established digital-edition, linked-data and provenance scholarship preserves transformation and custody boundaries",
+    "fresh 2026 peer-reviewed evidence establishes that CDLI metadata may be source-dependent, manually produced, scripted and LLM-assisted, and therefore must remain versioned evidence-bearing assertions",
+    "current accepted updates and institutional activity establish a live 2026 service without inventing an immutable current release",
+    "an A/B/C route is prepared for exact live CDLI records, publication and holding-institution corroboration, and derived machine challengers"
+  ],
+  "remaining_controls": [
+    "a CDLI project Work is not the changing operator organization, one database release, an ancient corpus, an artifact Collection, or the physical objects it describes",
+    "current record counts, site counts, collection counts and update listings are mutable dated observations and must not be frozen as invariants",
+    "a future P-record must be reconciled with physical identity, holding institution, museum number, publications, update events and field-level uncertainty before supporting a material claim",
+    "provenience, place of writing, current custody, collector history, excavation, findspot, archive and composite membership must remain distinct",
+    "API availability, JSON-LD or RDF serialization, schema validity and P/Q/S identity do not prove the correctness or completeness of a metadata field",
+    "CDLI terms do not establish one blanket licence over metadata, museum images, line art, transliterations, translations, software, publications, derivatives, model training and redistribution",
+    "the exact current export, release timestamp, checksum, field scope and layer-specific rights remain unresolved and no bulk payload is admitted",
+    "the 2022.01 Zenodo deposit is historical and is not treated as a current 2026 release",
+    "the July 2026 point-cloud classifier is a deferred preprint challenger, not artifact, provenance, dating, genre, reading or rights authority",
+    "the later A02 backlog label CDLI project must reuse this Work and discovery route unless an exact distinct release or publication is planted",
+    "no Organization, contributor claims, ancient Work, Collection, Expression, Edition, Item, artifact, composite, File, source payload, image, reading, transliteration, translation, metadata claim, semantic object, graph relation, canon state, access request, external communication, server transfer, or human task is admitted"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T21:36:00-06:00",
+  "record_version": 1
+}
