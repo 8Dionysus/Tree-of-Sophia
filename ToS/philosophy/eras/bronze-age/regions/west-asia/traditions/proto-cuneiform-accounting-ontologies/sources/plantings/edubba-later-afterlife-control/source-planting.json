@@ -1,0 +1,64 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a01.edubba-later-afterlife-control",
+  "atlas_row_id": "A01",
+  "dossier_id": "A01",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/proto-cuneiform-accounting-ontologies/sources/source-anchor-backlog.jsonl",
+    "line": 28,
+    "source_table_index": 14,
+    "source_row_index": 10,
+    "source_label": "Eduba overview for later afterlife [56]"
+  },
+  "source_witness": {
+    "work_id": "tos.work.mesopotamian-education.education-mesopotamian",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/education-mesopotamian/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/proto-cuneiform-edubba-later-afterlife.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.discovery.proto-cuneiform-edubba-later-afterlife.2026-08-12",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_EDUBBA_LATER_AFTERLIFE_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the dossier's exact Wikipedia [56] lead is preserved without treating a mutable encyclopedia page as authority",
+    "a current peer-reviewed Oxford reference Work supplies the chronology fence between Late Uruk A01 and detailed second- and first-millennium BCE curricula",
+    "ORACC, CDLI, and Penn routes separate lexical tradition, term occurrence, modern composite, physical witness, exercise tablet, and institution interpretation",
+    "established Tinney, Robson, and Veldhuis scholarship preserves local curriculum reconstruction, archaeological formation bias, and functional change",
+    "fresh 2026 Robson scholarship explicitly reopens reified school models and prioritizes informality, variability, community, temporality, and locality",
+    "continuity of list tradition is separated from continuity of entries, order, signs, language, medium, function, curriculum, and institution",
+    "an A/B/C comparison is prepared for label propagation, exact textual comparison, and contextual reconstruction",
+    "recent popular summaries are rejected where recency accompanies an overconfident continuous-edubba narrative"
+  ],
+  "remaining_controls": [
+    "no Late Uruk school, teacher, student, curriculum, or edubba institution may be inferred without direct source-bearing evidence",
+    "a lexical list or later copy does not by itself establish pedagogical use or one unchanged textual tradition",
+    "a literary edubba composition is not transparent institutional ethnography",
+    "Nippur evidence and House F models cannot be generalized to every city, period, or teaching setting",
+    "the exact ancient term, normalized lexeme, translated label, modern analytical class, and institution hypothesis remain distinct",
+    "the 2026 Robson chapter belongs to an aggregate volume and requires later contained-Work plus Collection modeling before bibliographic planting",
+    "no source body, Expression, Edition, Item, artifact, composite, transmission relation, semantic object, graph relation, canon state, access request, external communication, or human task is admitted"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-12T18:05:00-06:00",
+  "record_version": 1
+}

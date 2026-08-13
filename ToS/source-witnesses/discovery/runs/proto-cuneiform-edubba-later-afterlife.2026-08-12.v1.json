@@ -1,0 +1,801 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.proto-cuneiform-edubba-later-afterlife.2026-08-12",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "research-publication",
+    "known_tos_refs": [
+      "tos.work.mesopotamian-education.education-mesopotamian"
+    ],
+    "description": "Resolve the dossier's exact Eduba [56] lead, find a source-returnable current overview, reconstruct the classical and current boundary between Late Uruk A01 and later scribal schooling, and prepare an evidence model without creating an ancient school, transmission, semantic, or graph claim.",
+    "required_properties": [
+      "exact dossier source identity and role",
+      "current peer-reviewed overview with stable identifier",
+      "official term, composite, lexical-tradition, and Old Babylonian project routes",
+      "established curriculum, archaeology, preservation, and long-duration controls",
+      "freshest direct work on locality, informality, variability, and reified school models",
+      "explicit chronology and evidence fence for A01",
+      "current access and rights posture without inferred redistribution permission"
+    ],
+    "acceptable_substitutions": [
+      "publisher abstract where the full reference entry is access-controlled and the abstract resolves the bounded chronology question",
+      "official museum and scholarly-project pages for direct documentary context",
+      "publisher or institutional metadata for restricted established works",
+      "open-access current chapter as a methodological control without prematurely modeling its aggregate volume"
+    ],
+    "languages": [
+      "en",
+      "sux",
+      "und"
+    ],
+    "formats": [
+      "publisher HTML",
+      "scholarly-project HTML",
+      "museum HTML",
+      "catalog metadata",
+      "open-access PDF"
+    ],
+    "purpose_ref": "ToS/research-packets/foundation-laboratory-2026-07/A01_EDUBBA_LATER_AFTERLIFE_SOURCE_PLANTING_RESEARCH_2026-08-12.md"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-edubba-official-documentation",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "ORACC DCCLT, ORACC OBMC/ePSD2, CDLI, and Penn Museum source-returnable documentation",
+      "endpoint_url": "https://oracc.museum.upenn.edu/dcclt/intro/lexical_intro.html",
+      "interface_type": "web",
+      "interface_version": "live project and museum pages checked 2026-08-12",
+      "exact_query": "Resolve the lexical tradition's changing functions, the e2-dub-ba-a term route, Old Babylonian teaching contexts, a source-reported Edubba A composite, and tablet-type or preservation controls without projecting them onto Late Uruk.",
+      "queried_at": "2026-08-12T17:42:00-06:00",
+      "elapsed_seconds": 8.4,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.dcclt-lexical-tradition-introduction",
+          "rank": 1,
+          "title_as_displayed": "DCCLT - Digital Corpus of Cuneiform Lexical Texts: Introduction",
+          "result_url": "https://oracc.museum.upenn.edu/dcclt/intro/lexical_intro.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/dcclt/intro/lexical_intro.html",
+          "identifiers": [],
+          "available_formats": [
+            "scholarly-project HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Best official compact account of the shift from archaic technical lists to a distinct Old Babylonian curriculum and later scholarly or hermeneutic reference use.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The live source-returnable project page is sufficient; no project content is mirrored."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.obmc-old-babylonian-school",
+          "rank": 2,
+          "title_as_displayed": "The Old Babylonian School",
+          "result_url": "https://oracc.museum.upenn.edu/obmc/OldBabylonianSchool/index.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/obmc/OldBabylonianSchool/index.html",
+          "identifiers": [],
+          "available_formats": [
+            "scholarly-project HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Official project overview for the concentration of evidence in the Old Babylonian period, multiple cities, private-house settings, and the non-universality of one school form.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the live project documentation is cited."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.epsd2-edubba-lexeme",
+          "rank": 3,
+          "title_as_displayed": "ePSD2: edubbaʾa [scribal school]",
+          "result_url": "https://oracc.museum.upenn.edu/dcclt/signlists/cbd/sux/E.html",
+          "originating_record_url": "https://oracc.museum.upenn.edu/dcclt/signlists/cbd/sux/E.html",
+          "identifiers": [
+            {
+              "scheme": "writing",
+              "value": "e2-dub-ba-a"
+            }
+          ],
+          "available_formats": [
+            "lexical HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "unknown",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Exact lexical route for the ancient term; it supports a term occurrence only in exact contexts and does not create a Late Uruk organization or universal school class.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No lexical dataset or content snapshot enters ToS."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.cdli-edubba-a-composite",
+          "rank": 4,
+          "title_as_displayed": "CDLI Literary 000754 (Edubba A) composite",
+          "result_url": "https://cdli.earth/P464238",
+          "originating_record_url": "https://cdli.earth/P464238",
+          "identifiers": [
+            {
+              "scheme": "CDLI",
+              "value": "P464238"
+            },
+            {
+              "scheme": "CDLI Literary",
+              "value": "000754"
+            }
+          ],
+          "available_formats": [
+            "provider record HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "digital-object",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Provider record proves a modern Old Babylonian Sumerian composite route and makes the composite-versus-physical-witness boundary unavoidable.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "No composite, member list, transliteration, image, or artifact representation is imported."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.tinney-1998-texts-tablets-teaching",
+          "rank": 5,
+          "title_as_displayed": "Texts, Tablets, and Teaching: Scribal Education in Nippur and Ur",
+          "result_url": "https://www.penn.museum/sites/expedition/texts-tablets-and-teaching/",
+          "originating_record_url": "https://www.penn.museum/sites/expedition/texts-tablets-and-teaching/",
+          "identifiers": [
+            {
+              "scheme": "citation",
+              "value": "Expedition 40(2), July 1998"
+            }
+          ],
+          "available_formats": [
+            "museum article HTML",
+            "museum PDF route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Official museum overview for tablet typology, Nippur/Ur differences, recycling and preservation bias, and the distinction between student exercise and preservation master copy.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The article remains at the Penn Museum; no article body or image enters ToS."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-edubba-established-scholarship",
+      "sequence": 2,
+      "channel_type": "publisher-catalog",
+      "role": "scholarly-index",
+      "source_name": "Cambridge, Cairn/Presses Universitaires de France, and university research records for field-shaping scholarship",
+      "endpoint_url": "https://www.cambridge.org/core/journals/iraq/article/abs/on-the-curricular-setting-of-sumerian-literature/65C7ABB628843558C4E78B69A6868736",
+      "interface_type": "web",
+      "interface_version": "publisher and institutional records checked 2026-08-12",
+      "exact_query": "Identify established direct scholarship on Old Babylonian curriculum reconstruction, House F archaeology, literary-edubba limits, and the long history and changing functions of the cuneiform lexical tradition.",
+      "queried_at": "2026-08-12T17:46:00-06:00",
+      "elapsed_seconds": 7.1,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.tinney-1999-curricular-setting",
+          "rank": 1,
+          "title_as_displayed": "On the Curricular Setting of Sumerian Literature",
+          "result_url": "https://www.cambridge.org/core/journals/iraq/article/abs/on-the-curricular-setting-of-sumerian-literature/65C7ABB628843558C4E78B69A6868736",
+          "originating_record_url": "https://doi.org/10.2307/4200472",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.2307/4200472"
+            },
+            {
+              "scheme": "citation",
+              "value": "Iraq 61 (1999): 159-172"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata and extract HTML",
+            "subscription article route"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Field-shaping source-bounded reconstruction of the Old Babylonian Nippur literary curriculum; its local and interim character is preserved.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "No authorized open article body was needed or captured for this control."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.robson-2001-tablet-house",
+          "rank": 2,
+          "title_as_displayed": "The tablet House: a scribal school in old Babylonian Nippur",
+          "result_url": "https://shs.cairn.info/journal-revue-d-assyriologie-2001-1-page-39?lang=en",
+          "originating_record_url": "https://doi.org/10.3917/assy.093.0039",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.3917/assy.093.0039"
+            },
+            {
+              "scheme": "ISSN",
+              "value": "0373-6032"
+            }
+          ],
+          "available_formats": [
+            "publisher HTML",
+            "publisher PDF under use conditions"
+          ],
+          "declared_rights": {
+            "statement": "Publisher use conditions apply; no open-content license is displayed in the checked record.",
+            "scope": "content",
+            "evidence_url": "https://shs.cairn.info/journal-revue-d-assyriologie-2001-1-page-39?lang=en",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Foundational archaeological reconstruction of House F and direct control against treating literary school texts as sufficient institutional evidence.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The originating publisher route is cited; no article body is retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.veldhuis-2014-lexical-tradition",
+          "rank": 3,
+          "title_as_displayed": "History of the Cuneiform Lexical Tradition",
+          "result_url": "https://researchportal.helsinki.fi/en/publications/history-of-the-cuneiform-lexical-tradition/",
+          "originating_record_url": "https://researchportal.helsinki.fi/en/publications/history-of-the-cuneiform-lexical-tradition/",
+          "identifiers": [
+            {
+              "scheme": "ISBN",
+              "value": "978-3-86835-116-3"
+            },
+            {
+              "scheme": "series",
+              "value": "Guides to the Mesopotamian Textual Record 6"
+            }
+          ],
+          "available_formats": [
+            "university bibliographic metadata"
+          ],
+          "declared_rights": {
+            "statement": "The university record reserves site content rights; no open license for the book body is reported.",
+            "scope": "content",
+            "evidence_url": "https://researchportal.helsinki.fi/en/publications/history-of-the-cuneiform-lexical-tradition/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Peer-reviewed field-scale history for distinguishing persistence of a lexical tradition from changes in technical, pedagogical, reference, and hermeneutic function.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "Only exact university metadata is retained; the monograph body is not acquired."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-edubba-fresh-current",
+      "sequence": 3,
+      "channel_type": "publisher-catalog",
+      "role": "mixed",
+      "source_name": "Oxford University Press, UCL Press, ISAC, and European Commission current scholarship",
+      "endpoint_url": "https://academic.oup.com/edited-volume/61673/chapter-abstract/552821338",
+      "interface_type": "web",
+      "interface_version": "current records checked against 2026-08-12 cut-off",
+      "exact_query": "Find the freshest authoritative overview and direct 2023-2026 corrections concerning uneven educational evidence, House F, formal-school assumptions, local variation, and lexical-list standardization.",
+      "queried_at": "2026-08-12T17:50:00-06:00",
+      "elapsed_seconds": 11.6,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.matuszak-2025-education-mesopotamian",
+          "rank": 1,
+          "title_as_displayed": "education, Mesopotamian",
+          "result_url": "https://academic.oup.com/edited-volume/61673/chapter-abstract/552821338",
+          "originating_record_url": "https://doi.org/10.1093/acrefore/9780199381135.013.9149",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.1093/acrefore/9780199381135.013.9149"
+            },
+            {
+              "scheme": "publication date",
+              "value": "2025-12-17"
+            }
+          ],
+          "available_formats": [
+            "publisher metadata and abstract HTML",
+            "access-controlled full reference entry"
+          ],
+          "declared_rights": {
+            "statement": "Copyright Oxford University Press 2025; no open license for the full entry is displayed.",
+            "scope": "content",
+            "evidence_url": "https://academic.oup.com/edited-volume/61673/chapter-abstract/552821338",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "subscription",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Best current peer-reviewed standalone overview and exact DOI-backed Work for the A01 chronology fence; only accessible abstract-level scope is used.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-permitted",
+            "format": null,
+            "sha256": null,
+            "reason": "The full entry is access-controlled; no body or bypass is used. The public abstract resolves the bounded source need."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.robson-2026-back-to-house-f",
+          "rank": 2,
+          "title_as_displayed": "Back to House F: on community, temporality and locality in Old Babylonian scribal schooling",
+          "result_url": "https://uclpress.co.uk/book/scribal-worlds/",
+          "originating_record_url": "https://doi.org/10.14324/111.9781806550821",
+          "identifiers": [
+            {
+              "scheme": "parent DOI",
+              "value": "10.14324/111.9781806550821"
+            },
+            {
+              "scheme": "parent PDF ISBN",
+              "value": "9781806550821"
+            },
+            {
+              "scheme": "chapter pages",
+              "value": "125-151"
+            }
+          ],
+          "available_formats": [
+            "open-access parent book PDF",
+            "chapter download route",
+            "publisher metadata"
+          ],
+          "declared_rights": {
+            "statement": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International",
+            "scope": "content",
+            "evidence_url": "https://uclpress.co.uk/book/scribal-worlds/",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Freshest direct source found: it challenges reified preliminary models and makes informality, variability, community, temporality, and locality mandatory dimensions. Bibliographic identity planting is deferred until the contained Work and parent Collection can be modeled together.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The official PDF was inspected transiently for research verification but was not acquired into ToS, retained as a source Item, or committed."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.isac-2023-back-to-school-babylonia",
+          "rank": 3,
+          "title_as_displayed": "Back to School in Babylonia",
+          "result_url": "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1",
+          "originating_record_url": "https://isac.uchicago.edu/research/publications/ISACMP/isacmp1",
+          "identifiers": [
+            {
+              "scheme": "ebook ISBN",
+              "value": "978-1-61491-099-2"
+            },
+            {
+              "scheme": "series",
+              "value": "ISAC Museum Publications 1"
+            }
+          ],
+          "available_formats": [
+            "official catalog HTML",
+            "official downloadable PDF"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Current museum and research synthesis with a 126-object catalog; its qualified description of House F as widely believed to be a school preserves the classification question.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The catalog is cited at its official route; no book or object payload is imported."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.scripts-2024-cordis",
+          "rank": 4,
+          "title_as_displayed": "Scribal Performance and Textual Standardization in Mesopotamian Lexical Lists",
+          "result_url": "https://cordis.europa.eu/project/id/101063660/reporting",
+          "originating_record_url": "https://doi.org/10.3030/101063660",
+          "identifiers": [
+            {
+              "scheme": "DOI",
+              "value": "10.3030/101063660"
+            },
+            {
+              "scheme": "project",
+              "value": "101063660"
+            }
+          ],
+          "available_formats": [
+            "European Commission project report HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Fresh project-level evidence that local and communal variation must replace a uniform model of cuneiform education; retained explicitly as a project report, not a peer-reviewed final article.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "Only the live Commission reporting route is retained."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-edubba-general-web-last",
+      "sequence": 4,
+      "channel_type": "general-web-search",
+      "role": "lead-only",
+      "source_name": "Exact dossier lead and final general-web recency audit",
+      "endpoint_url": "https://en.wikipedia.org/wiki/Eduba",
+      "interface_type": "web",
+      "interface_version": "general web checked last on 2026-08-12",
+      "exact_query": "Reopen the known dossier [56] URL after authoritative research and check whether newer 2026 popular summaries add source-bearing evidence or merely repeat a smooth continuous-school narrative.",
+      "queried_at": "2026-08-12T17:57:00-06:00",
+      "elapsed_seconds": 5.7,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.wikipedia-eduba-dossier-56",
+          "rank": 1,
+          "title_as_displayed": "Eduba",
+          "result_url": "https://en.wikipedia.org/wiki/Eduba",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "dossier bibliography",
+              "value": "A01 [56]"
+            }
+          ],
+          "available_formats": [
+            "mutable encyclopedia HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "select",
+          "rationale": "Selected only to preserve the exact dossier discovery path and bibliography leads; rejected as the authority Work because it is mutable and derivative.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-captured",
+            "format": null,
+            "sha256": null,
+            "reason": "The exact live URL is sufficient to preserve the dossier lead; no revision dump is retained."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.world-history-2026-mesopotamian-education",
+          "rank": 2,
+          "title_as_displayed": "Mesopotamian Education: Creating the First Written Works in History",
+          "result_url": "https://www.worldhistory.org/article/2203/mesopotamian-education/",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "publication date",
+              "value": "2026-02-12"
+            }
+          ],
+          "available_formats": [
+            "popular article HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "The recent page projects education and a stable edubba form toward the invention of writing without the chronological, local, assemblage, and institutional controls required by current scholarship.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected as evidence; the exact URL and reason are sufficient."
+          }
+        },
+        {
+          "result_id": "tos-discovery-result.history-on-net-2026-mesopotamian-schools",
+          "rank": 3,
+          "title_as_displayed": "Mesopotamian Education and Schools",
+          "result_url": "https://www.historyonthenet.com/mesopotamian-education-and-schools",
+          "originating_record_url": null,
+          "identifiers": [
+            {
+              "scheme": "publication date",
+              "value": "2026-07-23"
+            }
+          ],
+          "available_formats": [
+            "popular article HTML"
+          ],
+          "declared_rights": {
+            "statement": null,
+            "scope": "content",
+            "evidence_url": null,
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-view",
+          "machine_interface": "html",
+          "decision": "reject",
+          "rationale": "Its July 2026 date is fresh, but the smooth temple-to-secular-school narrative lacks the source, chronology, locality, and uncertainty controls required for A01.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "Rejected as evidence; no snapshot or content reuse is needed."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-edubba-official-documentation",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 12,
+      "machine_seconds": 8.4,
+      "notes": "Best source-returnable separation of tradition, term, composite, witness, tablet type, and local teaching context; project reuse terms remain layer-specific."
+    },
+    {
+      "channel_id": "channel-edubba-established-scholarship",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 14,
+      "machine_seconds": 7.1,
+      "notes": "Resolves the field-shaping curriculum, archaeology, and lexical-tradition controls; several bodies remain publisher-controlled and were not acquired."
+    },
+    {
+      "channel_id": "channel-edubba-fresh-current",
+      "completeness": "strong",
+      "metadata_precision": "strong",
+      "rights_clarity": "strong",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 22,
+      "machine_seconds": 11.6,
+      "notes": "Supplies the current Oxford fence and the June 2026 direct correction; status differences among peer-reviewed entry, chapter, museum catalog, and project report remain explicit."
+    },
+    {
+      "channel_id": "channel-edubba-general-web-last",
+      "completeness": "limited",
+      "metadata_precision": "limited",
+      "rights_clarity": "limited",
+      "machine_interface_quality": "adequate",
+      "human_minutes": 5,
+      "machine_seconds": 5.7,
+      "notes": "Useful only for preserving the dossier lead and detecting recent but overconfident popular narratives; no authority Work is selected from this channel."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.dcclt-lexical-tradition-introduction",
+    "tos-discovery-result.obmc-old-babylonian-school",
+    "tos-discovery-result.epsd2-edubba-lexeme",
+    "tos-discovery-result.cdli-edubba-a-composite",
+    "tos-discovery-result.tinney-1998-texts-tablets-teaching",
+    "tos-discovery-result.tinney-1999-curricular-setting",
+    "tos-discovery-result.robson-2001-tablet-house",
+    "tos-discovery-result.veldhuis-2014-lexical-tradition",
+    "tos-discovery-result.matuszak-2025-education-mesopotamian",
+    "tos-discovery-result.robson-2026-back-to-house-f",
+    "tos-discovery-result.isac-2023-back-to-school-babylonia",
+    "tos-discovery-result.scripts-2024-cordis",
+    "tos-discovery-result.wikipedia-eduba-dossier-56"
+  ],
+  "rejected_result_ids": [
+    "tos-discovery-result.world-history-2026-mesopotamian-education",
+    "tos-discovery-result.history-on-net-2026-mesopotamian-schools"
+  ],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-08-12T17:42:00-06:00",
+  "ended_at": "2026-08-12T18:05:00-06:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.proto-cuneiform-edubba-later-afterlife.2026-08-12"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}
