@@ -1,0 +1,68 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.nippur-ur-school-tablets-route",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 14,
+    "source_table_index": 13,
+    "source_row_index": 4,
+    "source_label": "школьные таблички Ниппура и Ура"
+  },
+  "source_witness": {
+    "work_id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+    "record_ref": "ToS/source-witnesses/works/old-babylonian-scholarship/texts-tablets-and-teaching/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-nippur-ur-school-tablets.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-nippur-ur-school-tablets.2026-08-13",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_NIPPUR_UR_SCHOOL_TABLETS_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "fulfilled_source_needs": [
+    "the exact Penn Museum article provides one source-returnable synthesis of scribal education in both Nippur and Ur",
+    "exercise sequence, lexical lists, literary texts, tablet typology, extracts, master exemplars and student copies are kept as distinct observations rather than one school label",
+    "Nippur and Ur evidence is explicitly compared while differences in tablet types and preservation remain visible",
+    "recycling, archaeological accident, excavation context and publication history are retained as formation-process controls",
+    "ORACC OBMC supplies a current machine-queryable legal-training subset with exact object-level return routes, not an identity for the whole archaeological array",
+    "CDLI, Penn Museum and Yale remain supporting artifact, holding and research-access routes whose records require object-level reconciliation",
+    "classical Nippur and Ur publication routes are followed by established curriculum and archaeology scholarship and then by the 2023 and June 2026 current corrections",
+    "an A/B/C laboratory route is prepared for synthesis-only, stratified object sampling, and excavation-plus-critical-source comparison"
+  ],
+  "remaining_controls": [
+    "the source label is a research description of an archaeological array, not an exact ancient or modern Collection with known membership",
+    "no virtual Collection is created until an explicit bounded membership rule and object list can be evidenced",
+    "Nippur and Ur do not establish one uniform curriculum, institution, chronology, social setting or preservation process",
+    "school, exercise, lexical, literary, legal, tablet type and use are separate source-reported classifications that require per-object evidence",
+    "a Type II, Type III, lentil, extract or multi-column form does not by itself prove author, purpose, educational stage, meaning or authority",
+    "a student copy is not automatically an authoritative text witness and spelling difference is not automatically dictation evidence",
+    "ORACC live counts and facets are mutable dated observations and the OBMC legal subset cannot stand for all Nippur and Ur schooling",
+    "Yale's broad holdings do not establish Nippur or Ur provenience or school status for every object",
+    "the Penn article is a 1998 historical synthesis and must be read with current House F, locality, variability and standardization controls",
+    "the later A02 control label Steve Tinney, Texts, Tablets, and Teaching must reuse this Work identity in a distinct planting role",
+    "no article body, corpus payload, Collection, membership, ancient Work, Expression, Edition, Item, artifact, transcription, translation, semantic object, graph relation, canon state, access request, external message, server transfer or human task is admitted"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-13T00:56:00-06:00",
+  "record_version": 1
+}
