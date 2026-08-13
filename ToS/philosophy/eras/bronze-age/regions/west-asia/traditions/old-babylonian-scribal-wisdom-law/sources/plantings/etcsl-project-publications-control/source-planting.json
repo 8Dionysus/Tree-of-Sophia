@@ -1,0 +1,58 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.etcsl-project-publications-control",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 28,
+    "source_table_index": 14,
+    "source_row_index": 10,
+    "source_label": "ETCSL project publications"
+  },
+  "source_witness": {
+    "work_id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+    "record_ref": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-etcsl-digital-corpus.2026-08-12.v1.json",
+  "provenance_event_ref": "tos.event.annotation.old-babylonian-a02-deduplicated-control-roles.2026-08-13",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_ETCSL_DIGITAL_CORPUS_SOURCE_PLANTING_RESEARCH_2026-08-12.md",
+  "fulfilled_source_needs": [
+    "the repeated ETCSL project-publications label returns to the already verified ETCSL project Work rather than creating a second project identity",
+    "the completed 1997 to 2006 project, its corpus navigation, bibliography, publication routes, and known currentness limits remain one bounded historical route",
+    "Oxford documentation, CDLI publication navigation, ORACC and ePSD2 transformation routes, and established semantic-web scholarship remain source-separated",
+    "the project Work is reused while any later exact article, edition, release, or dataset must still receive its own identity",
+    "the control role reuses the ordered official, established, and fresh research without a redundant web run"
+  ],
+  "remaining_controls": [
+    "ETCSL is not a continuously maintained critical edition and project bibliography is not manuscript or reading authority",
+    "the project Work is not an ancient corpus, individual composition, publication Work, release, Expression, Edition, Item, or artifact",
+    "this second role-specific planting references the same Work and does not manufacture a duplicate bibliographic entity or claim",
+    "no source body, translation, lemma, semantic claim, graph relation, canon state, external request, server transfer, or human task is created"
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-08-13T01:38:00-06:00",
+  "record_version": 1
+}
