@@ -1,0 +1,122 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness.schema.json",
+  "schema_version": "tos_artifact_source_witness_v1",
+  "artifact_id": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
+  "artifact_kind": "inscription",
+  "path_identity": {
+    "basis": "repository_identity",
+    "provider_independent": true,
+    "note": "The path follows the Louvre repository identity SB 8 rather than a mutable CDLI URL, posting, or composite identifier."
+  },
+  "identifiers": [
+    {"scheme": "Louvre inventory", "value": "SB 8", "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"},
+    {"scheme": "Louvre collection ARK", "value": "cl010174436", "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"},
+    {"scheme": "Louvre former inventory", "value": "AS 6064", "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"},
+    {"scheme": "CDLI", "value": "P249253", "source_ref": "https://cdli.earth/artifacts/249253"},
+    {"scheme": "RIME", "value": "4.03.06.add21, ex. 01", "source_ref": "https://cdli.earth/artifacts/249253"}
+  ],
+  "physical_description": {
+    "material": "basalt",
+    "height_mm": 2250,
+    "width_mm": 790,
+    "thickness_mm": 470,
+    "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"
+  },
+  "dating": {
+    "period_label": "Old Babylonian; Hammurabi dynasty/reign",
+    "display_date": "reported 1792-1750 BCE",
+    "certainty": "reported",
+    "period_stage_separation_required": true,
+    "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"
+  },
+  "find_context": {
+    "site": "Susa",
+    "findspot": null,
+    "excavation_numbers": [],
+    "source_note": "The Louvre reports discovery at Susa in 1901-1902. CDLI reports Susa as the provenience of the physical witness.",
+    "documentation_limit": "The find site is not treated as the place of composition or original display. The composite record's uncertain Sippar attribution and the posting's ancient-removal narrative remain source-attributed claims, not physical provenience facts promoted here.",
+    "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"
+  },
+  "custody": {
+    "current_repository": "Musée du Louvre, Département des Antiquités orientales",
+    "inventory_numbers": ["SB 8", "AS 6064", "PEZARD ET POTTIER 8"],
+    "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436"
+  },
+  "digital_catalog_record": {
+    "provider": "Cuneiform Digital Library Initiative",
+    "record_id": "P249253",
+    "record_url": "https://cdli.earth/artifacts/249253",
+    "api_url": "https://cdli.earth/artifacts/249253/json",
+    "checked_at": "2026-08-13T00:21:01-06:00",
+    "mutable": true,
+    "response_fingerprints": [
+      {"surface": "https://cdli.earth/artifacts/249253/json", "byte_size": 97830, "sha256": "43527b5684b7f6f746f627d76bc24f97cc89c43996ef7a203b405b5ed4da9e33", "captured": false},
+      {"surface": "https://cdli.earth/artifacts/249253", "byte_size": 206264, "sha256": "e23a3f46fc96760f8d6036e2da3506f273b50a0032c1f75ba85e533829efc2f8", "captured": false}
+    ]
+  },
+  "inscription_layer": {
+    "availability": "available_not_acquired",
+    "language_status": "reported",
+    "provider_language_code": "akk",
+    "normalized_language_code": "akk",
+    "script": "cuneiform",
+    "transliteration_stored": false,
+    "translation_stored": false,
+    "source_refs": ["https://cdli.earth/artifacts/249253", "https://cdli.earth/artifacts/249253/json"]
+  },
+  "composite_layer": {
+    "status": "linked",
+    "external_refs": [
+      {"scheme": "CDLI composite", "value": "Q006387", "source_ref": "https://cdli.earth/artifacts/464358"},
+      {"scheme": "CDLI composite artifact", "value": "P464358", "source_ref": "https://cdli.earth/artifacts/464358"}
+    ],
+    "relationship": "The physical stela is one witness of a modern multi-witness scholarly composite. The composite can supply editorial reconstruction and other witnesses, but it is not the physical object and is not admitted as source text by this record.",
+    "is_physical_artifact_identity": false
+  },
+  "visual_layers": [
+    {"layer_kind": "photograph", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/artifacts/249253", "rights_note": "CDLI states that artifact photographs generally belong to holding institutions; no photograph was acquired and no publication authority is inferred."},
+    {"layer_kind": "line_art", "availability": "visible", "content_stored": false, "source_ref": "https://cdli.earth/artifacts/249253", "rights_note": "CDLI attributes line art to named authors and publications; no drawing was acquired and later reuse requires exact source and permission review."},
+    {"layer_kind": "three_dimensional_model", "availability": "linked", "content_stored": false, "source_ref": "https://collections.louvre.fr/ark:/53355/cl010174436", "rights_note": "The Louvre collection notice links a separate 3D representation, but its payload and license were not acquired or evaluated for redistribution."}
+  ],
+  "scholarly_classification": {
+    "genre": "Law collection; royal/display inscription",
+    "corpus_labels": ["Laws of Hammurabi", "RIME 4.03.06.add21, ex. 01", "Official or display stela"],
+    "classification_is_interpretive": true,
+    "source_refs": ["https://cdli.earth/artifacts/249253", "https://cdli.earth/genres/30", "https://www.louvre.fr/le-code-de-hammurabi"]
+  },
+  "bibliography": [
+    {"citation": "Scheil, Vincent. Textes élamites-sémitiques, deuxième série (1902), initial publication of the laws.", "role": "primary_publication", "source_ref": "https://catalogue.bnf.fr/ark:/12148/cb313123921"},
+    {"citation": "Frayne, Douglas R. Old Babylonian Period (2003-1595 BC), RIME 4 (1990), 4.03.06.add21, ex. 01.", "role": "catalog_publication", "source_ref": "https://cdli.earth/artifacts/249253"},
+    {"citation": "Roth, Martha T. Mesopotamian Legal Traditions and the Laws of Hammurabi (1995).", "role": "established_control", "source_ref": "https://scholarship.kentlaw.iit.edu/cklawreview/vol71/iss1/3/"},
+    {"citation": "Roth, Martha T. Law Collections from Mesopotamia and Asia Minor, 2nd ed. (1997).", "role": "established_control", "source_ref": "https://cart.sbl-site.org/books/061506E"},
+    {"citation": "Barmash, Pamela. The Laws of Hammurabi: At the Confluence of Royal and Scribal Traditions (2020).", "role": "established_control", "source_ref": "https://academic.oup.com/book/31901"},
+    {"citation": "Oelsner, Joachim. Der Kodex Ḫammu-rāpi. Textkritische Ausgabe und Übersetzung (2022).", "role": "current_control", "source_ref": "https://www.zaphon.de/kodex-hammu-rapi"},
+    {"citation": "Zhiltsova, Liubov. NABU 2023/62, structural note on the Hammurabi stela (2023).", "role": "current_control", "source_ref": "https://sepoa.fr/wp/wp-content/uploads/2023/10/NABU-2023-3_LITE.pdf"}
+  ],
+  "layer_separation": {
+    "physical_artifact_is_catalog_record": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "visual_is_artifact": false,
+    "sign_has_fixed_translation": false,
+    "artifact_is_philosophy": false
+  },
+  "rights_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/rights.json",
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-hammurabi-stele-sb8.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-hammurabi-stele-sb8.2026-08-13",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_CODEX_HAMMURAPI_STELE_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "philosophy_planting_refs": ["ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/plantings/cdli-codex-hammurapi-stele-profile/source-planting.json"],
+  "authority": {
+    "evidence_status": "metadata_witness",
+    "review_status": "unreviewed",
+    "visibility": "public_metadata_only",
+    "source_text_admitted": false,
+    "semantic_authority": false,
+    "graph_authority": false,
+    "canon_authority": false,
+    "publication_authority": false
+  },
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-13T00:32:00-06:00",
+  "record_version": 1
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a02.cdli-codex-hammurapi-stele-profile",
+  "atlas_row_id": "A02",
+  "dossier_id": "A02",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/bronze-age/regions/west-asia/traditions/old-babylonian-scribal-wisdom-law/sources/source-anchor-backlog.jsonl",
+    "line": 13,
+    "source_table_index": 13,
+    "source_row_index": 3,
+    "source_label": "CDLI posting Codex Hammurapi"
+  },
+  "source_witness": {
+    "artifact_id": "tos.artifact.old-babylonian.susa.hammurabi-stele-sb-8",
+    "record_ref": "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/old-babylonian-hammurabi-stele-sb8.2026-08-13.v1.json",
+  "provenance_event_ref": "tos.event.discovery.old-babylonian-hammurabi-stele-sb8.2026-08-13",
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/A02_CDLI_CODEX_HAMMURAPI_STELE_SOURCE_PLANTING_RESEARCH_2026-08-13.md",
+  "fulfilled_source_needs": [
+    "exact physical stela identity separate from the CDLI posting and scholarly composite",
+    "bounded profile of material, dimensions, reported date, Susa find context, Louvre custody, language, and script",
+    "source-backed prologue, conventionally numbered legal-section, epilogue, and physical-lacuna structure",
+    "ordered classical, established, and current critical controls with layer-specific rights boundaries"
+  ],
+  "remaining_controls": [
+    "do not equate the physical stela, mutable catalog record, ancient inscription, multi-witness composite, photograph, line art, 3D model, critical edition, or translation",
+    "do not silently fill the physical stela's seven-column lacuna from composite or later witnesses",
+    "do not treat conventional 282-section numbering as a complete modern enacted code preserved continuously on the object",
+    "do not infer original display place from the Susa findspot or uncertain composite metadata",
+    "do not acquire or publish source payload before exact witness, version, provenance, quality, and rights review",
+    "do not promote semantic claims, signs, concepts, graph relations, philosophy status, or canon from this planting"
+  ],
+  "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {"maker_type": "model", "agent_ref": "model:codex", "human_review_performed": false},
+  "created_at": "2026-08-13T00:32:00-06:00",
+  "record_version": 1
+}
