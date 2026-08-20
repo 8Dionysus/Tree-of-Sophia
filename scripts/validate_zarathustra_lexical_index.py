@@ -289,6 +289,38 @@ def _validate_local_database(
         raise LexicalIndexValidationError(
             "local database path escapes explicit root"
         ) from exc
+    if "local-content" not in database_path.parts:
+        raise LexicalIndexValidationError("local database is outside local-content")
+    if not database_path.is_file():
+        raise LexicalIndexValidationError(
+            f"local lexical database is absent: {database_path}"
+        )
+    if database_path.stat().st_size != receipt["database_bytes"]:
+        raise LexicalIndexValidationError("local database byte-size drift")
+    if _sha256_file(database_path) != receipt["database_sha256"]:
+        raise LexicalIndexValidationError("local database digest drift")
+    try:
+        connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
+        try:
+            metadata = dict(connection.execute("SELECT key, value FROM metadata"))
+            if metadata.get("plan_id") != projection["plan_id"]:
+                raise LexicalIndexValidationError("local database plan identity drift")
+            if metadata.get("plan_sha256") != projection["plan_sha256"]:
+                raise LexicalIndexValidationError("local database plan digest drift")
+            for table, expected in receipt["table_counts"].items():
+                actual = connection.execute(
+                    f"SELECT count(*) FROM {table}"
+                ).fetchone()[0]
+                if actual != expected:
+                    raise LexicalIndexValidationError(
+                        f"local database {table} count drift: {actual} != {expected}"
+                    )
+        finally:
+            connection.close()
+    except sqlite3.Error as exc:
+        raise LexicalIndexValidationError(
+            f"cannot inspect local lexical database: {exc}"
+        ) from exc
 
 
 def _validate_usage_context_layer() -> dict[str, Any]:
@@ -1201,40 +1233,6 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         },
         "authority_boundary": MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY,
     }
-    if "local-content" not in database_path.parts:
-        raise LexicalIndexValidationError("local database is outside local-content")
-    if not database_path.is_file():
-        raise LexicalIndexValidationError(
-            f"local lexical database is absent: {database_path}"
-        )
-    if database_path.stat().st_size != receipt["database_bytes"]:
-        raise LexicalIndexValidationError("local database byte-size drift")
-    if _sha256_file(database_path) != receipt["database_sha256"]:
-        raise LexicalIndexValidationError("local database digest drift")
-    try:
-        connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
-        try:
-            metadata = dict(connection.execute("SELECT key, value FROM metadata"))
-            if metadata.get("plan_id") != projection["plan_id"]:
-                raise LexicalIndexValidationError("local database plan identity drift")
-            if metadata.get("plan_sha256") != projection["plan_sha256"]:
-                raise LexicalIndexValidationError("local database plan digest drift")
-            for table, expected in receipt["table_counts"].items():
-                actual = connection.execute(
-                    f"SELECT count(*) FROM {table}"
-                ).fetchone()[0]
-                if actual != expected:
-                    raise LexicalIndexValidationError(
-                        f"local database {table} count drift: {actual} != {expected}"
-                    )
-        finally:
-            connection.close()
-    except sqlite3.Error as exc:
-        raise LexicalIndexValidationError(
-            f"cannot inspect local lexical database: {exc}"
-        ) from exc
-
-
 def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
     plan_path = REPO_ROOT / PLAN_REF
     projection_path = REPO_ROOT / PROJECTION_REF

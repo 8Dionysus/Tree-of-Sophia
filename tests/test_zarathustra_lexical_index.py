@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import hashlib
 import json
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -190,6 +191,52 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             self.projection["summary"],
             self.validation["summary"],
         )
+
+    def test_local_database_verification_checks_fixity_and_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_root:
+            local_root = Path(temporary_root)
+            database_path = local_root / "local-content" / "lexical.db"
+            database_path.parent.mkdir(parents=True)
+            plan_id = "lexical-plan:test"
+            plan_sha256 = "a" * 64
+            with sqlite3.connect(database_path) as connection:
+                connection.execute(
+                    "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+                )
+                connection.executemany(
+                    "INSERT INTO metadata(key, value) VALUES (?, ?)",
+                    [("plan_id", plan_id), ("plan_sha256", plan_sha256)],
+                )
+                connection.commit()
+            receipt = {
+                "relative_path": "local-content/lexical.db",
+                "database_bytes": database_path.stat().st_size,
+                "database_sha256": hashlib.sha256(
+                    database_path.read_bytes()
+                ).hexdigest(),
+                "table_counts": {"metadata": 2},
+            }
+            projection = {
+                "plan_id": plan_id,
+                "plan_sha256": plan_sha256,
+                "local_projection_receipt": receipt,
+            }
+
+            VALIDATOR._validate_local_database(local_root, projection)
+
+            database_path.write_bytes(database_path.read_bytes() + b"drift")
+            with self.assertRaisesRegex(
+                VALIDATOR.LexicalIndexValidationError,
+                "local database byte-size drift",
+            ):
+                VALIDATOR._validate_local_database(local_root, projection)
+
+            database_path.unlink()
+            with self.assertRaisesRegex(
+                VALIDATOR.LexicalIndexValidationError,
+                "local lexical database is absent",
+            ):
+                VALIDATOR._validate_local_database(local_root, projection)
 
     def test_projection_is_whole_work_mechanical_observation(self) -> None:
         self.assertEqual(
