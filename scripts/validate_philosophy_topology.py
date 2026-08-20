@@ -436,17 +436,39 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             if not isinstance(ref, str) or not (root / ref).is_file():
                 issues.append((planting_ref, f"{field} does not resolve to a tracked file"))
 
+    declared_branch_paths = (
+        {
+            Path(entry).parent.as_posix()
+            for entry in branch_manifests
+            if isinstance(entry, str) and entry
+        }
+        if isinstance(branch_manifests, list)
+        else set()
+    )
+    for branch_path in declared_branch_paths:
+        branch_planting_refs.setdefault(branch_path, set())
+
     for branch_path, actual_refs in branch_planting_refs.items():
-        branch_manifest = load_json(root, Path(branch_path) / "branch.manifest.json", issues)
-        sources_manifest = load_json(root, Path(branch_path) / "sources/branch.manifest.json", issues)
+        branch_manifest_path = Path(branch_path) / "branch.manifest.json"
+        sources_manifest_path = Path(branch_path) / "sources/branch.manifest.json"
+        branch_manifest = (
+            load_json(root, branch_manifest_path, issues)
+            if actual_refs or (root / branch_manifest_path).is_file()
+            else None
+        )
+        sources_manifest = (
+            load_json(root, sources_manifest_path, issues)
+            if actual_refs or (root / sources_manifest_path).is_file()
+            else None
+        )
         for label, payload in (("branch", branch_manifest), ("sources", sources_manifest)):
             if payload is None:
                 continue
             key = "source_planting_refs" if label == "branch" else "planting_refs"
             count_key = "source_planting_count" if label == "branch" else "planting_count"
-            if set(payload.get(key, [])) != actual_refs:
+            if (actual_refs or key in payload) and set(payload.get(key, [])) != actual_refs:
                 issues.append((f"{branch_path}/{label}", f"{key} differs from exact planting files"))
-            if payload.get(count_key) != len(actual_refs):
+            if (actual_refs or count_key in payload) and payload.get(count_key) != len(actual_refs):
                 issues.append((f"{branch_path}/{label}", f"{count_key} differs from exact planting count"))
 
     tos_root = root / "ToS"

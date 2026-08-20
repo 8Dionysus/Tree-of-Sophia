@@ -113,6 +113,63 @@ class ValidatePhilosophyTopologyTests(unittest.TestCase):
 
         self.assertEqual(issues, [])
 
+    def test_declared_empty_branch_manifests_are_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            self.write_valid_surface(repo_root)
+            write_json(
+                repo_root / "ToS/philosophy/trunk/branch.manifest.json",
+                {
+                    "path": "ToS/philosophy/trunk",
+                    "branch_id": "philosophy.trunk",
+                    "role": "fixture trunk",
+                    "source_planting_refs": [
+                        "ToS/philosophy/trunk/sources/plantings/stale/source-planting.json"
+                    ],
+                    "source_planting_count": 1,
+                },
+            )
+            write_json(
+                repo_root / "ToS/philosophy/trunk/sources/branch.manifest.json",
+                {
+                    "planting_refs": [
+                        "ToS/philosophy/trunk/sources/plantings/stale/source-planting.json"
+                    ],
+                    "planting_count": 1,
+                },
+            )
+
+            issues = validate_philosophy_topology.run_validation(repo_root)
+
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/branch",
+                "source_planting_refs differs from exact planting files",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/branch",
+                "source_planting_count differs from exact planting count",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/sources",
+                "planting_refs differs from exact planting files",
+            ),
+            issues,
+        )
+        self.assertIn(
+            (
+                "ToS/philosophy/trunk/sources",
+                "planting_count differs from exact planting count",
+            ),
+            issues,
+        )
+
     def test_current_source_planting_contract_fails_closed_on_promotion(self) -> None:
         schema_path = Path("ToS/contracts/philosophy-source-planting.schema.json")
         validator = validate_philosophy_topology.load_schema_validator(

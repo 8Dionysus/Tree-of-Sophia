@@ -20,6 +20,84 @@ import build_source_resource_inventories as inventories
 
 class SourceResourceInventoryTests(unittest.TestCase):
     @staticmethod
+    def _write_manifest_fixture(
+        repo_root: Path, *, byte_size: int, sha256: str
+    ) -> tuple[Path, bytes]:
+        item_root = repo_root / "ToS/source-witnesses/fixture-item"
+        payload = (
+            b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>'
+            b'<pb n="1"/></body></text></TEI>'
+        )
+        payload_path = item_root / "payload/sample.xml"
+        payload_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_path.write_bytes(payload)
+        manifest_path = item_root / "item.manifest.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "item_id": "tos.item.fixture",
+                    "payload_files": [
+                        {
+                            "file_id": "tos.file.sha256.fixture",
+                            "relative_path": "payload/sample.xml",
+                            "media_type": "application/tei+xml",
+                            "byte_size": byte_size,
+                            "sha256": sha256,
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return manifest_path, payload
+
+    def test_manifest_inventory_rejects_payload_byte_size_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary) / "Tree-of-Sophia"
+            manifest_path, _ = self._write_manifest_fixture(
+                repo_root, byte_size=0, sha256="0" * 64
+            )
+            actual_payload = manifest_path.parent / "payload/sample.xml"
+            actual_bytes = actual_payload.read_bytes()
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["payload_files"][0]["byte_size"] = len(actual_bytes) + 1
+            manifest["payload_files"][0]["sha256"] = inventories._sha256_bytes(
+                actual_bytes
+            )
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                inventories.InventoryBuildError, "byte size differs from manifest"
+            ):
+                inventories.build_inventory(
+                    repo_root=repo_root,
+                    manifest_path=manifest_path,
+                    payload_source_root=repo_root / "ToS/source-witnesses",
+                    event_date="2026-08-20",
+                )
+
+    def test_manifest_inventory_rejects_payload_sha256_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary) / "Tree-of-Sophia"
+            manifest_path, _ = self._write_manifest_fixture(
+                repo_root, byte_size=0, sha256="0" * 64
+            )
+            actual_payload = manifest_path.parent / "payload/sample.xml"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["payload_files"][0]["byte_size"] = actual_payload.stat().st_size
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                inventories.InventoryBuildError, "SHA-256 differs from manifest"
+            ):
+                inventories.build_inventory(
+                    repo_root=repo_root,
+                    manifest_path=manifest_path,
+                    payload_source_root=repo_root / "ToS/source-witnesses",
+                    event_date="2026-08-20",
+                )
+
+    @staticmethod
     def _djvu_page(width: int, height: int, dpi: int) -> bytes:
         info = (
             struct.pack(">HH", width, height)

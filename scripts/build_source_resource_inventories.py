@@ -69,6 +69,47 @@ def _sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _verify_payload_fixity(
+    payload_path: Path, payload_entry: dict[str, Any]
+) -> None:
+    expected_size = payload_entry.get("byte_size")
+    expected_sha256 = payload_entry.get("sha256")
+    relative_path = payload_entry.get("relative_path", payload_path.name)
+    if not isinstance(expected_size, int) or isinstance(expected_size, bool):
+        raise InventoryBuildError(
+            f"manifest payload byte_size is invalid for {relative_path}"
+        )
+    if not isinstance(expected_sha256, str):
+        raise InventoryBuildError(
+            f"manifest payload sha256 is invalid for {relative_path}"
+        )
+    try:
+        actual_size = payload_path.stat().st_size
+        actual_sha256 = _sha256_path(payload_path)
+    except OSError as exc:
+        raise InventoryBuildError(
+            f"cannot verify payload fixity for {relative_path}: {exc}"
+        ) from exc
+    if actual_size != expected_size:
+        raise InventoryBuildError(
+            f"payload byte size differs from manifest for {relative_path}: "
+            f"expected {expected_size}, got {actual_size}"
+        )
+    if actual_sha256 != expected_sha256:
+        raise InventoryBuildError(
+            f"payload SHA-256 differs from manifest for {relative_path}: "
+            f"expected {expected_sha256}, got {actual_sha256}"
+        )
+
+
 def _normalize_text(text: str) -> str:
     return " ".join(unicodedata.normalize("NFC", text).split())
 
@@ -1059,6 +1100,7 @@ def build_inventory(
         payload_path = payload_source_dir / payload_entry["relative_path"]
         if not payload_path.is_file():
             return None
+        _verify_payload_fixity(payload_path, payload_entry)
         file_inventories.append(build_file_inventory(payload_path, payload_entry))
 
     output_path = manifest_path.parent / INVENTORY_NAME
